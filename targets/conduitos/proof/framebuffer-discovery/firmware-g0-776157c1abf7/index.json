@@ -1,0 +1,197 @@
+{
+  "schema": "conduit.conduitos/firmware-discovery-evidence@1",
+  "capture_source_commit": "776157c1abf7",
+  "proof_class": "firmware-handoff-discovery-only",
+  "accepted_release": false,
+  "graphical_show_proved": false,
+  "physical_scanout_proved": false,
+  "gpu_acceleration_proved": false,
+  "private_writable_firmware_store_included": false,
+  "files": [
+    {
+      "file": "aarch64-none/discovery.json",
+      "bytes": 7023,
+      "sha256": "e5f5d36ccc82167b00abf2ab014037f4833ca0e8f5f099eb8993903c5bc581e7"
+    },
+    {
+      "file": "aarch64-none/observed-display.png",
+      "bytes": 7773,
+      "sha256": "359b01595c872fe24f3fd3df1bad8e9bc999bb95e32907e8fa5c66e9e8115926"
+    },
+    {
+      "file": "aarch64-none/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "aarch64-none/qmp.jsonl",
+      "bytes": 1466,
+      "sha256": "acb5726584936e8dd0890a5bb1193b735cbc8d694c46edd25764efe9e336f7e7"
+    },
+    {
+      "file": "aarch64-none/serial.log",
+      "bytes": 1679,
+      "sha256": "eea8687cfac3deabc16870f228107195a8127d15081f393d07c4ee80ae18cef5"
+    },
+    {
+      "file": "aarch64-ramfb/discovery.json",
+      "bytes": 8911,
+      "sha256": "c7ec3f75752969ca9c44de8327a7aa1f8799a988384cc33fb8e7e57fe75a26b4"
+    },
+    {
+      "file": "aarch64-ramfb/observed-display.png",
+      "bytes": 11592,
+      "sha256": "c2fe026895f6b7eb9feef54e9dcb6bf55f576c159e256f594c66f9fb9df89fb2"
+    },
+    {
+      "file": "aarch64-ramfb/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "aarch64-ramfb/qmp.jsonl",
+      "bytes": 4286,
+      "sha256": "1357893292782e10c89e0b3fbbe2951b7a9c5b62ea88c54652b4b9e9f3752f82"
+    },
+    {
+      "file": "aarch64-ramfb/serial.log",
+      "bytes": 1679,
+      "sha256": "ce322727d5b2bf4e4fe2af3934bfbed6180500ae94cab722fbcbef2c87648833"
+    },
+    {
+      "file": "ia32-vga/debugger.log",
+      "bytes": 309,
+      "sha256": "107247810f206e3a776cb71f6b27a2042c594c4875772fc23136673d1bef4876"
+    },
+    {
+      "file": "ia32-vga/discovery.json",
+      "bytes": 8071,
+      "sha256": "89e6435c9b98521c960f4bc33dd4d5b4ab1b0befc78af56ea64ae156115b60b5"
+    },
+    {
+      "file": "ia32-vga/multiboot-information.bin",
+      "bytes": 128,
+      "sha256": "17731069472863b8920a2edc069714c4060be4488b553a80ef298d6afec2754d"
+    },
+    {
+      "file": "ia32-vga/observed-display.png",
+      "bytes": 22517,
+      "sha256": "350a52798f7f4784369b5ca999e652c4903a41365de5b78a1e2bc1e63956ac0d"
+    },
+    {
+      "file": "ia32-vga/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "ia32-vga/qmp.jsonl",
+      "bytes": 1422,
+      "sha256": "f97d2595d47674c692e16ad0e2dd1fa1625a20b8701f6cc291b95a07714a45e3"
+    },
+    {
+      "file": "ia32-vga/serial.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "loongarch64-ramfb/discovery.json",
+      "bytes": 9144,
+      "sha256": "ac573c9eed967a8886ee3e9c7444e2e99a72cb49f4167de3b53f355d7c37bbac"
+    },
+    {
+      "file": "loongarch64-ramfb/observed-display.png",
+      "bytes": 53142,
+      "sha256": "8b756af91e3cbfe9fe31f1aee20866dee8f38e7792d303d39ab9bd91b76725bb"
+    },
+    {
+      "file": "loongarch64-ramfb/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "loongarch64-ramfb/qmp.jsonl",
+      "bytes": 4290,
+      "sha256": "18452236c233914504d93f4d674afb8a867ca63b0187b544882f6942c7e6c37f"
+    },
+    {
+      "file": "loongarch64-ramfb/serial.log",
+      "bytes": 3760,
+      "sha256": "f5e6a2f73aae8c38842b4aceeeea12e2b37ff8bd7dd337a0fef72939ef9eed28"
+    },
+    {
+      "file": "riscv64-ramfb/discovery.json",
+      "bytes": 7549,
+      "sha256": "bb8d63cbc888e719d7b1d4021c404047b272a1d82f747ab78923969b2c3724f0"
+    },
+    {
+      "file": "riscv64-ramfb/observed-display.png",
+      "bytes": 12646,
+      "sha256": "1d4cfe1d5462919ccae7139d41f0c56aa2f8d4dbd1992122707d8e4d77a46596"
+    },
+    {
+      "file": "riscv64-ramfb/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "riscv64-ramfb/qmp.jsonl",
+      "bytes": 2243,
+      "sha256": "35ed5bb6140a757a8fcaad345dc85faea6ea3e9371f1c4f8f6fd777a773ac8b3"
+    },
+    {
+      "file": "riscv64-ramfb/serial.log",
+      "bytes": 52226,
+      "sha256": "630940f22082bee5f2a8a292202e47fee5fb8d4f0dc0e50febcbec04a8e71a1d"
+    },
+    {
+      "file": "riscv64-vga/discovery.json",
+      "bytes": 8466,
+      "sha256": "840bc823950ff2f7fd365076446d5997808aaf1b70e8b7e5870d38cafcc227d6"
+    },
+    {
+      "file": "riscv64-vga/observed-display.png",
+      "bytes": 197427,
+      "sha256": "2a7648ac9fbf3617202b092c5d68d8119a985da20b3a9ec562258e63e53cc1f6"
+    },
+    {
+      "file": "riscv64-vga/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "riscv64-vga/qmp.jsonl",
+      "bytes": 4163,
+      "sha256": "1c4a181370d341679deaad327d2d51af6618dd7f2c71fef7fd9944a5fb5e78e1"
+    },
+    {
+      "file": "riscv64-vga/serial.log",
+      "bytes": 4604,
+      "sha256": "2911350e47a62541c109b10337e73e5a48ceafcb74a1b51aaf0cb92b0f434942"
+    },
+    {
+      "file": "x86_64-vga/discovery.json",
+      "bytes": 36070,
+      "sha256": "4033f1e8baa7a4772a2ed111726719999194232120231d6a7f3766754123838c"
+    },
+    {
+      "file": "x86_64-vga/observed-display.png",
+      "bytes": 22517,
+      "sha256": "350a52798f7f4784369b5ca999e652c4903a41365de5b78a1e2bc1e63956ac0d"
+    },
+    {
+      "file": "x86_64-vga/qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "x86_64-vga/qmp.jsonl",
+      "bytes": 32591,
+      "sha256": "5658703d8c60448da64359fa538c1abea924ae5bac916d3dc0e7e9b47ee41970"
+    },
+    {
+      "file": "x86_64-vga/serial.log",
+      "bytes": 581,
+      "sha256": "46a129c5c3868f308997efacd13c0cfc9ce8f2b4e88cd5cad0ef6d72102f552d"
+    }
+  ]
+}

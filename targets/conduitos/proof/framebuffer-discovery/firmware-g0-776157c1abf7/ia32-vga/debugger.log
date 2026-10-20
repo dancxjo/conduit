@@ -1,0 +1,9 @@
+The target architecture is set to "i386".
+warning: No executable has been specified and target does not support
+determining executable automatically.  Try using the "file" command.
+0x0000fff0 in ?? ()
+Hardware assisted breakpoint 1 at 0x100020
+
+Breakpoint 1, 0x00100020 in ?? ()
+MAGIC=0x2badb002
+INFO=0x10000

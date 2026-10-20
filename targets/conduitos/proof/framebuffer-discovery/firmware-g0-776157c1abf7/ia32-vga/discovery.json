@@ -1,0 +1,241 @@
+{
+  "architecture": "ia32",
+  "candidate_provider": "vga",
+  "capture_source_commit": "776157c1abf73336e8cd62b59b08805721efebac",
+  "capture_source_dirty": false,
+  "discovery_limits": {
+    "framebuffers": 4,
+    "guest_handoff_seconds": 45,
+    "maximum_ppm_bytes": 26542336,
+    "modes_per_framebuffer": 128
+  },
+  "emulator_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "gpu_acceleration_proved": false,
+  "graphical_show_proved": false,
+  "inputs": [
+    {
+      "bytes": 31047408,
+      "path": "/usr/bin/qemu-system-i386",
+      "sha256": "64f8f00324e50092281e52a9f213bc09dbed810e2e52e353fc2c6e37f938c873"
+    },
+    {
+      "bytes": 3653632,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/toolchain/ovmf-ia32/OVMF32_CODE_4M.fd",
+      "sha256": "31172228ec4fd4840c5bd128ba98e850375bc698fd6007bd414262278b27bdba"
+    },
+    {
+      "bytes": 5691412,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/ia32-pc/conduitos-kernel.elf",
+      "sha256": "5bf66247eeae0152306e8355eb7824132159a61b8857008de25f34f1b75b5aca"
+    },
+    {
+      "bytes": 9975808,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/ia32-pc/conduitos-ia32.iso",
+      "sha256": "8eac22c53498d074b749ff01e564a2967318502a9112e30fdf983f263c9e9c7c"
+    },
+    {
+      "bytes": 540672,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/toolchain/ovmf-ia32/OVMF32_VARS_4M.fd",
+      "sha256": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+    }
+  ],
+  "launch": {
+    "arguments": [
+      "-machine",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-net",
+      "none",
+      "-no-reboot",
+      "-qmp",
+      "unix:/tmp/conduit-fb-105410-1792470791220139150/qmp.sock,server=on,wait=off",
+      "-serial",
+      "none",
+      "-debugcon",
+      "file:/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/ia32-vga/serial.log",
+      "-global",
+      "isa-debugcon.iobase=0xe9",
+      "-vga",
+      "std",
+      "-drive",
+      "if=pflash,format=raw,readonly=on,file=/home/dancxjo/src/conduit/target/conduitos/toolchain/ovmf-ia32/OVMF32_CODE_4M.fd",
+      "-drive",
+      "if=pflash,format=raw,file=/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/ia32-vga/run-vars.fd",
+      "-cdrom",
+      "/home/dancxjo/src/conduit/target/conduitos/live/ia32-pc/conduitos-ia32.iso",
+      "-boot",
+      "d",
+      "-S",
+      "-gdb",
+      "tcp:127.0.0.1:46149"
+    ],
+    "program": "/usr/bin/qemu-system-i386"
+  },
+  "observation": {
+    "display": {
+      "frame": {
+        "checkpoint": "observed-display",
+        "height": 800,
+        "non_background_pixels": 0,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b00063d6eadf9747639a6251864c6cbe9cafa38c4939c1eac0c074a715e265de",
+        "png": "observed-display.png",
+        "png_bytes": 22517,
+        "png_sha256": "350a52798f7f4784369b5ca999e652c4903a41365de5b78a1e2bc1e63956ac0d",
+        "width": 1280
+      },
+      "health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "status": "captured"
+    },
+    "elapsed_to_observed_display_ms": 4421,
+    "graphical_show_proved": false,
+    "handoff": {
+      "debugger_version": "GNU gdb (Ubuntu 17.1-2ubuntu1) 17.1",
+      "entry_address": "0x100020",
+      "framebuffer": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "framebuffer_type": 1,
+        "green": [
+          8,
+          8
+        ],
+        "height": 800,
+        "physical_address": "0x80000000",
+        "pitch": 5120,
+        "red": [
+          8,
+          16
+        ],
+        "width": 1280
+      },
+      "framebuffer_information_present": true,
+      "handoff": "multiboot1"
+    }
+  },
+  "physical_scanout_proved": false,
+  "probe_status": "observed",
+  "product": {
+    "artifact_role": "product-host",
+    "boot_assets": {
+      "architecture": "ia32",
+      "boot_entry": "BOOTIA32.EFI",
+      "firmware": "OVMF_IA32_CODE.fd",
+      "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+      "limine_version": "12.5.2",
+      "machine": "pc",
+      "packager": "pinned-limine-hybrid-iso"
+    },
+    "build_id": "build:sha256:8a74ac9c89aea959a66f6d6bccb3234487c3c7733e53fe6ab5ec2e563cf925ec",
+    "image": {
+      "file": "conduitos-ia32.iso",
+      "role": "final-bootable-image",
+      "sha256": "8eac22c53498d074b749ff01e564a2967318502a9112e30fdf983f263c9e9c7c"
+    },
+    "image_id": "image:sha256:8eac22c53498d074b749ff01e564a2967318502a9112e30fdf983f263c9e9c7c",
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "role": "freestanding-kernel",
+      "sha256": "5bf66247eeae0152306e8355eb7824132159a61b8857008de25f34f1b75b5aca"
+    },
+    "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+    "resolved_build": {
+      "base_selections": [
+        {
+          "driver": "conduitos/ia32-debugcon@1",
+          "id": "base/0",
+          "kind": "conduitos/ia32-debugcon-text"
+        }
+      ],
+      "bases": [
+        "base/0"
+      ],
+      "bounds": {
+        "active_instances": 16,
+        "buffered_bytes": 16384,
+        "evidence_items": 64,
+        "heap_arena_bytes": 33554432,
+        "line_sessions": 1,
+        "operation_slots": 8,
+        "queue_items": 64,
+        "static_memory_bytes": 8388608,
+        "timer_slots": 4
+      },
+      "build_id": "build:sha256:8a74ac9c89aea959a66f6d6bccb3234487c3c7733e53fe6ab5ec2e563cf925ec",
+      "builder_adapter": "conduit-host-conduitos/build-ia32@1",
+      "deployment_adapter": "conduit-host-conduitos/boot-ia32@1",
+      "driver_selections": [
+        {
+          "id": "driver/0",
+          "kind": "conduitos/ia32-debugcon@1"
+        }
+      ],
+      "drivers": [
+        "driver/0"
+      ],
+      "facilities": [],
+      "host_calls": [
+        "conduit.host/present@1"
+      ],
+      "image_id": "image:sha256:a4be6354895af6930913e3839377bdc9e1e93aebf92e922acc91c3dbede7c99b",
+      "implementation_packages": [
+        {
+          "implementation_id": "conduitos/ia32-debugcon@1",
+          "package_id": "conduitos-image@1",
+          "package_revision": 1
+        }
+      ],
+      "implementations": [],
+      "inclusion_paths": {
+        "presenter:presenter/main > base:conduitos/ia32-debugcon-text": [
+          "base:conduitos/ia32-debugcon-text"
+        ],
+        "presenter:presenter/main > host-call:conduit.host/present@1": [
+          "host-call:conduit.host/present@1"
+        ]
+      },
+      "lines": [],
+      "make_package_id": "conduitos-image@1",
+      "make_package_revision": 1,
+      "make_strategy": "deterministic-specialized-build",
+      "output": "disk-image",
+      "post_build_actions": [
+        "boot"
+      ],
+      "presenters": [
+        "presenter/ia32-linear-debugcon@1"
+      ],
+      "profile_fragments": [],
+      "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+      "reproducibility": "byte-exact",
+      "resource_budgets": [],
+      "resources": [],
+      "schema": "conduit.host/build-manifest@3",
+      "source_configuration_id": "sha256:633f1110377402fb07dcfd31a0c75a121d860920baa4efbfbc740e1398071037",
+      "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+      "target": "conduitos/ia32/pc",
+      "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools"
+    },
+    "resolved_description_binding": "image:sha256:a4be6354895af6930913e3839377bdc9e1e93aebf92e922acc91c3dbede7c99b",
+    "schema": "conduit.host/target-build-manifest@3",
+    "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+    "target": "conduitos/ia32/pc",
+    "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools"
+  },
+  "schema": "conduit.conduitos/framebuffer-discovery@1"
+}

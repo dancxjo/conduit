@@ -1,0 +1,9 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/ia32-vga/observed-display.ppm\"},\"execute\":\"screendump\",\"id\":\"1:observed-display\"}"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470791, \"microseconds\": 544673}, \"event\": \"RESUME\"}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470792, \"microseconds\": 365725}, \"event\": \"RTC_CHANGE\", \"data\": {\"offset\": 0, \"qom-path\": \"/machine/unattached/device[2]/rtc\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470792, \"microseconds\": 880892}, \"event\": \"RTC_CHANGE\", \"data\": {\"offset\": 0, \"qom-path\": \"/machine/unattached/device[2]/rtc\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470795, \"microseconds\": 137038}, \"event\": \"STOP\"}\r\n"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:observed-display\"}\r\n"}

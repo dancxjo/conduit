@@ -71,3 +71,30 @@ scanout admission, source-backed rendering, acknowledged Show, input journeys,
 and the comparative product gallery retain their separate acceptance gates.
 Raspberry Pi boards remain outside the five live-media profiles and have their
 own [framebuffer track](https://github.com/dancxjo/conduit/issues/6059).
+
+## Retained development discovery
+
+The [source-pinned capture package](../../targets/conduitos/proof/framebuffer-discovery/firmware-g0-776157c1abf7/index.json)
+retains the original reports, serial/debugger/QMP transcripts and real diagnostic
+PNGs with hashes. Input product sources and the collector source are recorded
+separately. This is development discovery, not accepted-release or graphical
+product evidence. The IA-32 and x86 captures are uniform. None of these captures
+has an acknowledged Conduit Show; nonuniform firmware or QEMU diagnostic pixels
+do not establish one.
+
+| Live Host | Candidate | Observed current framebuffer | Advertised modes |
+| --- | --- | --- | --- |
+| x86_64 PC | standard VGA, BIOS | 1280×800, pitch 5120, RGB32 | 66 |
+| IA-32 PC | standard VGA, UEFI32 GOP | 1280×800, pitch 5120, RGB32 | Multiboot current mode only |
+| AArch64 virt | ramfb, UEFI GOP | 800×600, pitch 3200, RGB32 | 3 |
+| AArch64 virt | absent device | no framebuffer response | 0 |
+| RISC-V64 virt | ramfb | no framebuffer response | 0 |
+| RISC-V64 virt | firmware VGA | 1280×1024, pitch 5120, RGB32 | 1 |
+| LoongArch64 virt | ramfb, UEFI GOP | 800×600, pitch 3200, RGB32 | 3 |
+
+The packed x86 firmware mode records are decoded as bounded bytes, without
+creating aligned Rust references to guest memory. The input image, kernel,
+firmware, immutable template and emulator hashes were checked again after each
+run. Private writable VARS and temporary entropy bytes are excluded from the
+capture package. The repository-local full run retains the writable VARS with
+private permissions; it is not a public artifact or a replacement template.

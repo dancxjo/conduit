@@ -1,0 +1,12 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"execute\":\"stop\",\"id\":\"1:observe-stop\"}"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470750, \"microseconds\": 423327}, \"event\": \"BLOCK_IO_ERROR\", \"data\": {\"device\": \"virtio0\", \"nospace\": false, \"node-name\": \"#block125\", \"qom-path\": \"/machine/peripheral-anon/device[1]/virtio-backend\", \"reason\": \"Operation not permitted\", \"operation\": \"write\", \"action\": \"report\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470750, \"microseconds\": 632912}, \"event\": \"BLOCK_IO_ERROR\", \"data\": {\"device\": \"virtio0\", \"nospace\": false, \"node-name\": \"#block125\", \"qom-path\": \"/machine/peripheral-anon/device[1]/virtio-backend\", \"reason\": \"Operation not permitted\", \"operation\": \"write\", \"action\": \"report\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470754, \"microseconds\": 514282}, \"event\": \"STOP\"}\r\n"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:observe-stop\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /6gx 0xffffffff8045d060\"},\"execute\":\"human-monitor-command\",\"id\":\"2:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffff8045d060: 0xc7b1dd30df4c8b88 0x0a82e883a194f07b\\r\\nffffffff8045d070: 0x9d5827dcd881dd75 0xa3148604f6fab11b\\r\\nffffffff8045d080: 0x0000000000000000 0x0000000000000000\\r\\n\", \"id\": \"2:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/riscv64-ramfb/observed-display.ppm\"},\"execute\":\"screendump\",\"id\":\"3:observed-display\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:observed-display\"}\r\n"}

@@ -1,0 +1,14 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE xhci-start
+CONDUIT_BOOT_STAGE xhci-ready
+CONDUIT_BOOT_STAGE usb-enumeration-start
+CONDUIT_BOOT_STAGE usb-configured
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_XHCI_SIGN {"schema":"conduit.conduitos.xhci-base/v1","status":"ready","proof_class":"freesta

@@ -1,0 +1,290 @@
+{
+  "architecture": "loongarch64",
+  "candidate_provider": "ramfb",
+  "capture_source_commit": "776157c1abf73336e8cd62b59b08805721efebac",
+  "capture_source_dirty": false,
+  "discovery_limits": {
+    "framebuffers": 4,
+    "guest_handoff_seconds": 60,
+    "maximum_ppm_bytes": 26542336,
+    "modes_per_framebuffer": 128
+  },
+  "emulator_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "gpu_acceleration_proved": false,
+  "graphical_show_proved": false,
+  "inputs": [
+    {
+      "bytes": 16717232,
+      "path": "/usr/bin/qemu-system-loongarch64",
+      "sha256": "3711528ac11fe5a0a3ba660c8584332d2ebf975ab943771e4bb67a0696a40e16"
+    },
+    {
+      "bytes": 4194304,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/toolchain/QEMU_EFI.loongarch64-qemu8.fd",
+      "sha256": "b4c32ce95a54346c8bc180241a21ad763c5fcf43310e95aa93ed58bf0cc0864e"
+    },
+    {
+      "bytes": 6358112,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/loongarch64-virt/conduitos-kernel.elf",
+      "sha256": "8dda21b8493c6fc48e65c9006d8b086d715dbebf0735303f7e0c97f5d6e063c6"
+    },
+    {
+      "bytes": 10620928,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/loongarch64-virt/conduitos-loongarch64.iso",
+      "sha256": "fd818c7265972e0ed1e7f86e31de52ff19b146af5754ff05ac3e04676d16393a"
+    }
+  ],
+  "launch": {
+    "arguments": [
+      "-machine",
+      "virt",
+      "-cpu",
+      "la464",
+      "-m",
+      "2G",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-net",
+      "none",
+      "-no-reboot",
+      "-qmp",
+      "unix:/tmp/conduit-fb-105372-1792470775480304548/qmp.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/loongarch64-ramfb/serial.log",
+      "-device",
+      "ramfb",
+      "-bios",
+      "/home/dancxjo/src/conduit/target/conduitos/toolchain/QEMU_EFI.loongarch64-qemu8.fd",
+      "-cdrom",
+      "/home/dancxjo/src/conduit/target/conduitos/live/loongarch64-virt/conduitos-loongarch64.iso",
+      "-boot",
+      "d",
+      "-fw_cfg",
+      "name=opt/conduitos/cryptographic-entropy@1,file=/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/loongarch64-ramfb/.loongarch64-entropy-105372-0.bin"
+    ],
+    "program": "/usr/bin/qemu-system-loongarch64"
+  },
+  "observation": {
+    "display": {
+      "frame": {
+        "checkpoint": "observed-display",
+        "height": 600,
+        "non_background_pixels": 24663,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a2d93601319de0069a97c66bd804fd363f3dda5a13cced283af856e7b2cd514a",
+        "png": "observed-display.png",
+        "png_bytes": 53142,
+        "png_sha256": "8b756af91e3cbfe9fe31f1aee20866dee8f38e7792d303d39ab9bd91b76725bb",
+        "width": 800
+      },
+      "health_refusal": null,
+      "status": "captured"
+    },
+    "elapsed_to_observed_display_ms": 7599,
+    "graphical_show_proved": false,
+    "handoff": {
+      "framebuffer_count": 1,
+      "framebuffers": [
+        {
+          "current": {
+            "bits_per_pixel": 32,
+            "blue": [
+              8,
+              0
+            ],
+            "green": [
+              8,
+              8
+            ],
+            "height": 600,
+            "memory_model": 1,
+            "pitch": 3200,
+            "red": [
+              8,
+              16
+            ],
+            "width": 800
+          },
+          "modes": [
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                8,
+                16
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                8,
+                16
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 4096,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1024
+            }
+          ],
+          "virtual_address": "0xffff80000da90000"
+        }
+      ],
+      "handoff": "limine",
+      "request_address": "0xffffffff80600060",
+      "response_present": true,
+      "response_revision": 1
+    }
+  },
+  "physical_scanout_proved": false,
+  "probe_status": "observed",
+  "product": {
+    "artifact_role": "product-host",
+    "boot_assets": {
+      "architecture": "loongarch64",
+      "boot_entry": "BOOTLOONGARCH64.EFI",
+      "firmware": "EDK2 QEMU_EFI.fd",
+      "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+      "limine_version": "12.5.2",
+      "machine": "virt",
+      "packager": "pinned-limine-hybrid-iso"
+    },
+    "build_id": "build:sha256:84ff0c46d7270f525f46890e1fb45e8d26bee88289c97d7c91f02fca15954c3d",
+    "image": {
+      "file": "conduitos-loongarch64.iso",
+      "role": "final-bootable-image",
+      "sha256": "fd818c7265972e0ed1e7f86e31de52ff19b146af5754ff05ac3e04676d16393a"
+    },
+    "image_id": "image:sha256:fd818c7265972e0ed1e7f86e31de52ff19b146af5754ff05ac3e04676d16393a",
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "role": "freestanding-kernel",
+      "sha256": "8dda21b8493c6fc48e65c9006d8b086d715dbebf0735303f7e0c97f5d6e063c6"
+    },
+    "profile_id": "sha256:a33dd03e0934ee8041fa2e0b1134a019afd6648a2180ea41e7fcd9cc0b1adc69",
+    "resolved_build": {
+      "base_selections": [
+        {
+          "driver": "conduitos/loongarch64-uart@1",
+          "id": "base/0",
+          "kind": "conduitos/loongarch64-uart-text"
+        }
+      ],
+      "bases": [
+        "base/0"
+      ],
+      "bounds": {
+        "active_instances": 16,
+        "buffered_bytes": 16384,
+        "evidence_items": 64,
+        "heap_arena_bytes": 33554432,
+        "line_sessions": 1,
+        "operation_slots": 8,
+        "queue_items": 64,
+        "static_memory_bytes": 8388608,
+        "timer_slots": 4
+      },
+      "build_id": "build:sha256:84ff0c46d7270f525f46890e1fb45e8d26bee88289c97d7c91f02fca15954c3d",
+      "builder_adapter": "conduit-host-conduitos/build-loongarch64@1",
+      "deployment_adapter": "conduit-host-conduitos/boot-loongarch64@1",
+      "driver_selections": [
+        {
+          "id": "driver/0",
+          "kind": "conduitos/loongarch64-uart@1"
+        }
+      ],
+      "drivers": [
+        "driver/0"
+      ],
+      "facilities": [],
+      "host_calls": [
+        "conduit.host/present@1"
+      ],
+      "image_id": "image:sha256:db44604a48292e7f2c6ad2629a29d12077759712818cfc9f0f21a5087e5d4d74",
+      "implementation_packages": [
+        {
+          "implementation_id": "conduitos/loongarch64-uart@1",
+          "package_id": "conduitos-image@1",
+          "package_revision": 1
+        }
+      ],
+      "implementations": [],
+      "inclusion_paths": {
+        "presenter:presenter/main > base:conduitos/loongarch64-uart-text": [
+          "base:conduitos/loongarch64-uart-text"
+        ],
+        "presenter:presenter/main > host-call:conduit.host/present@1": [
+          "host-call:conduit.host/present@1"
+        ]
+      },
+      "lines": [],
+      "make_package_id": "conduitos-image@1",
+      "make_package_revision": 1,
+      "make_strategy": "deterministic-specialized-build",
+      "output": "disk-image",
+      "post_build_actions": [
+        "boot"
+      ],
+      "presenters": [
+        "presenter/loongarch64-linear-uart@1"
+      ],
+      "profile_fragments": [],
+      "profile_id": "sha256:a33dd03e0934ee8041fa2e0b1134a019afd6648a2180ea41e7fcd9cc0b1adc69",
+      "reproducibility": "byte-exact",
+      "resource_budgets": [],
+      "resources": [],
+      "schema": "conduit.host/build-manifest@3",
+      "source_configuration_id": "sha256:77bba0c7b79ab2e062d02928e4d8f44b7ac4f4b0e16d4b108d2b903122a25c30",
+      "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+      "target": "conduitos/loongarch64/virt",
+      "toolchain_identity": "rustc:stable+loongarch64-unknown-none+llvm-tools"
+    },
+    "resolved_description_binding": "image:sha256:db44604a48292e7f2c6ad2629a29d12077759712818cfc9f0f21a5087e5d4d74",
+    "schema": "conduit.host/target-build-manifest@3",
+    "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+    "target": "conduitos/loongarch64/virt",
+    "toolchain_identity": "rustc:stable+loongarch64-unknown-none+llvm-tools"
+  },
+  "schema": "conduit.conduitos/framebuffer-discovery@1"
+}

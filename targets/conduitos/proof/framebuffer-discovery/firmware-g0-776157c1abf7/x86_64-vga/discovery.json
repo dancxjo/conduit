@@ -1,0 +1,1515 @@
+{
+  "architecture": "x86_64",
+  "candidate_provider": "vga",
+  "capture_source_commit": "776157c1abf73336e8cd62b59b08805721efebac",
+  "capture_source_dirty": false,
+  "discovery_limits": {
+    "framebuffers": 4,
+    "guest_handoff_seconds": 60,
+    "maximum_ppm_bytes": 26542336,
+    "modes_per_framebuffer": 128
+  },
+  "emulator_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "gpu_acceleration_proved": false,
+  "graphical_show_proved": false,
+  "inputs": [
+    {
+      "bytes": 31328048,
+      "path": "/usr/bin/qemu-system-x86_64",
+      "sha256": "0cd4112a8f0cb891eb7c10e8df38c9dfeec8c7389bb22db6aa425f0d6fe733dc"
+    },
+    {
+      "bytes": 262144,
+      "path": "/usr/share/seabios/bios-256k.bin",
+      "sha256": "e26615f9ad430328f49ca105e570b2dc4490a08a34ea73d27cae8b809a30ee06"
+    },
+    {
+      "bytes": 16845136,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/x86_64-baseline-1f3c3a98d/conduitos-kernel.elf",
+      "sha256": "52ec30c09b0883eaa009b254c8accc5b458fde8582631cc50db1cad7f877c097"
+    },
+    {
+      "bytes": 21118976,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/x86_64-baseline-1f3c3a98d/conduitos-x86_64.iso",
+      "sha256": "a312db7392208e3ee4a49e24e4b955d54b41a8406cc746f3e76fbbb23bc88431"
+    }
+  ],
+  "launch": {
+    "arguments": [
+      "-machine",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-net",
+      "none",
+      "-no-reboot",
+      "-qmp",
+      "unix:/tmp/conduit-fb-105466-1792470807491876097/qmp.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/x86_64-vga/serial.log",
+      "-vga",
+      "std",
+      "-bios",
+      "/usr/share/seabios/bios-256k.bin",
+      "-cdrom",
+      "/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/x86_64-baseline-1f3c3a98d/conduitos-x86_64.iso",
+      "-boot",
+      "d",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=2,p3=0",
+      "-device",
+      "usb-kbd,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,bus=conduitos-xhci.0,port=2"
+    ],
+    "program": "/usr/bin/qemu-system-x86_64"
+  },
+  "observation": {
+    "display": {
+      "frame": {
+        "checkpoint": "observed-display",
+        "height": 800,
+        "non_background_pixels": 0,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b00063d6eadf9747639a6251864c6cbe9cafa38c4939c1eac0c074a715e265de",
+        "png": "observed-display.png",
+        "png_bytes": 22517,
+        "png_sha256": "350a52798f7f4784369b5ca999e652c4903a41365de5b78a1e2bc1e63956ac0d",
+        "width": 1280
+      },
+      "health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "status": "captured"
+    },
+    "elapsed_to_observed_display_ms": 1648,
+    "graphical_show_proved": false,
+    "handoff": {
+      "framebuffer_count": 1,
+      "framebuffers": [
+        {
+          "current": {
+            "bits_per_pixel": 32,
+            "blue": [
+              8,
+              0
+            ],
+            "green": [
+              8,
+              8
+            ],
+            "height": 800,
+            "memory_model": 1,
+            "pitch": 5120,
+            "red": [
+              8,
+              16
+            ],
+            "width": 1280
+          },
+          "modes": [
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 200,
+              "memory_model": 1,
+              "pitch": 640,
+              "red": [
+                5,
+                10
+              ],
+              "width": 320
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 200,
+              "memory_model": 1,
+              "pitch": 640,
+              "red": [
+                5,
+                11
+              ],
+              "width": 320
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 200,
+              "memory_model": 1,
+              "pitch": 960,
+              "red": [
+                8,
+                16
+              ],
+              "width": 320
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 1280,
+              "red": [
+                5,
+                10
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 1280,
+              "red": [
+                5,
+                11
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 1920,
+              "red": [
+                8,
+                16
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 1600,
+              "red": [
+                5,
+                10
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 1600,
+              "red": [
+                5,
+                11
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 2400,
+              "red": [
+                8,
+                16
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 2048,
+              "red": [
+                5,
+                10
+              ],
+              "width": 1024
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 2048,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1024
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 3072,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1024
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 1024,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                10
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1024,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1024,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                5,
+                10
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 4800,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 200,
+              "memory_model": 1,
+              "pitch": 1280,
+              "red": [
+                8,
+                16
+              ],
+              "width": 320
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 400,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                8,
+                16
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                8,
+                16
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                8,
+                16
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 4096,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1024
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1024,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 6400,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 15,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                5,
+                5
+              ],
+              "height": 864,
+              "memory_model": 1,
+              "pitch": 2304,
+              "red": [
+                5,
+                10
+              ],
+              "width": 1152
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 864,
+              "memory_model": 1,
+              "pitch": 2304,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1152
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 864,
+              "memory_model": 1,
+              "pitch": 3456,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1152
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 864,
+              "memory_model": 1,
+              "pitch": 4608,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1152
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 800,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 800,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 800,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 960,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 960,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 960,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 2880,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1440
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 4320,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1440
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 5760,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1440
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 2800,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1400
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 4200,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1400
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 5600,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1400
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 3360,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1680
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 5040,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1680
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1050,
+              "memory_model": 1,
+              "pitch": 6720,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1680
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 5760,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1200,
+              "memory_model": 1,
+              "pitch": 7680,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1600,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                5,
+                11
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1600,
+              "memory_model": 1,
+              "pitch": 7680,
+              "red": [
+                8,
+                16
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1600,
+              "memory_model": 1,
+              "pitch": 10240,
+              "red": [
+                8,
+                16
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 720,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 720,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 720,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1080,
+              "memory_model": 1,
+              "pitch": 3840,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1080,
+              "memory_model": 1,
+              "pitch": 5760,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1080,
+              "memory_model": 1,
+              "pitch": 7680,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1920
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                5,
+                11
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 4800,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 900,
+              "memory_model": 1,
+              "pitch": 6400,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1600
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 1440,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                5,
+                11
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 24,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1440,
+              "memory_model": 1,
+              "pitch": 7680,
+              "red": [
+                8,
+                16
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1440,
+              "memory_model": 1,
+              "pitch": 10240,
+              "red": [
+                8,
+                16
+              ],
+              "width": 2560
+            },
+            {
+              "bits_per_pixel": 16,
+              "blue": [
+                5,
+                0
+              ],
+              "green": [
+                6,
+                5
+              ],
+              "height": 2160,
+              "memory_model": 1,
+              "pitch": 7680,
+              "red": [
+                5,
+                11
+              ],
+              "width": 3840
+            }
+          ],
+          "virtual_address": "0xffff8000fd000000"
+        }
+      ],
+      "handoff": "limine",
+      "request_address": "0xffffffff80e8d060",
+      "response_present": true,
+      "response_revision": 1
+    }
+  },
+  "physical_scanout_proved": false,
+  "probe_status": "observed",
+  "product": {
+    "artifact_role": "product-host",
+    "boot_assets": {
+      "architecture": "x86_64",
+      "boot_entry": "BOOTX64.EFI",
+      "firmware": "OVMF_CODE.fd",
+      "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+      "limine_version": "12.5.2",
+      "machine": "q35",
+      "packager": "pinned-limine-hybrid-iso"
+    },
+    "build_id": "build:sha256:10d36f547c1468c497c70af3e6d4c3969d0b755fa80f089a48592aef0b53b430",
+    "image": {
+      "file": "conduitos-x86_64.iso",
+      "role": "final-bootable-image",
+      "sha256": "a312db7392208e3ee4a49e24e4b955d54b41a8406cc746f3e76fbbb23bc88431"
+    },
+    "image_id": "image:sha256:a312db7392208e3ee4a49e24e4b955d54b41a8406cc746f3e76fbbb23bc88431",
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "role": "freestanding-kernel",
+      "sha256": "52ec30c09b0883eaa009b254c8accc5b458fde8582631cc50db1cad7f877c097"
+    },
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "resolved_build": {
+      "base_selections": [
+        {
+          "driver": "display/linear-framebuffer@1",
+          "id": "base/0",
+          "kind": "display/scanout"
+        }
+      ],
+      "bases": [
+        "base/0"
+      ],
+      "bounds": {
+        "active_instances": 128,
+        "buffered_bytes": 8388608,
+        "evidence_items": 1024,
+        "heap_arena_bytes": 268435456,
+        "line_sessions": 8,
+        "operation_slots": 64,
+        "queue_items": 1024,
+        "static_memory_bytes": 8388608,
+        "timer_slots": 32
+      },
+      "build_id": "build:sha256:10d36f547c1468c497c70af3e6d4c3969d0b755fa80f089a48592aef0b53b430",
+      "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+      "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+      "driver_selections": [
+        {
+          "id": "driver/0",
+          "kind": "display/linear-framebuffer@1"
+        }
+      ],
+      "drivers": [
+        "driver/0"
+      ],
+      "facilities": [
+        "compositor/native@1"
+      ],
+      "host_calls": [
+        "conduit.host/present@1"
+      ],
+      "image_id": "image:sha256:9feb5305d5f0aa15815bf45893a3dd5c6be9012061f23c72c260c2e04a88358e",
+      "implementation_packages": [
+        {
+          "implementation_id": "display/linear-framebuffer@1",
+          "package_id": "conduit-linear-framebuffer@1",
+          "package_revision": 1
+        }
+      ],
+      "implementations": [],
+      "inclusion_paths": {
+        "presenter:presenter/main > base:display/scanout": [
+          "base:display/scanout"
+        ],
+        "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+          "base:display/scanout",
+          "driver:display/linear-framebuffer@1"
+        ],
+        "presenter:presenter/main > facility:compositor/native@1": [
+          "facility:compositor/native@1"
+        ],
+        "presenter:presenter/main > host-call:conduit.host/present@1": [
+          "host-call:conduit.host/present@1"
+        ],
+        "presenter:presenter/main > resource:face/surface": [
+          "resource:face/surface"
+        ]
+      },
+      "lines": [],
+      "make_package_id": "conduitos-image@1",
+      "make_package_revision": 1,
+      "make_strategy": "deterministic-specialized-build",
+      "output": "disk-image",
+      "post_build_actions": [
+        "boot"
+      ],
+      "presenters": [
+        "presenter/native-graphical@1"
+      ],
+      "profile_fragments": [],
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "reproducibility": "byte-exact",
+      "resource_budgets": [
+        {
+          "bytes": 8388608,
+          "class": "face/surface",
+          "id": "surface/main",
+          "slots": 4
+        }
+      ],
+      "resources": [
+        "surface/main"
+      ],
+      "schema": "conduit.host/build-manifest@3",
+      "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+      "source_identity": "1f3c3a98d780179a663005437684973c78fb8b9e",
+      "target": "conduitos/x86_64/pc",
+      "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+    },
+    "resolved_description_binding": "image:sha256:9feb5305d5f0aa15815bf45893a3dd5c6be9012061f23c72c260c2e04a88358e",
+    "schema": "conduit.host/target-build-manifest@3",
+    "source_identity": "1f3c3a98d780179a663005437684973c78fb8b9e",
+    "target": "conduitos/x86_64/pc",
+    "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+  },
+  "schema": "conduit.conduitos/framebuffer-discovery@1"
+}

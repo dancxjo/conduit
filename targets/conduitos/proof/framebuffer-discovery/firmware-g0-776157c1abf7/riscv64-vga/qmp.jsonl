@@ -1,0 +1,22 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"execute\":\"stop\",\"id\":\"1:observe-stop\"}"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470763, \"microseconds\": 819700}, \"event\": \"BLOCK_IO_ERROR\", \"data\": {\"device\": \"virtio0\", \"nospace\": false, \"node-name\": \"#block182\", \"qom-path\": \"/machine/peripheral-anon/device[1]/virtio-backend\", \"reason\": \"Operation not permitted\", \"operation\": \"write\", \"action\": \"report\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470764, \"microseconds\": 119664}, \"event\": \"BLOCK_IO_ERROR\", \"data\": {\"device\": \"virtio0\", \"nospace\": false, \"node-name\": \"#block182\", \"qom-path\": \"/machine/peripheral-anon/device[1]/virtio-backend\", \"reason\": \"Operation not permitted\", \"operation\": \"write\", \"action\": \"report\"}}\r\n"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470767, \"microseconds\": 588702}, \"event\": \"STOP\"}\r\n"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:observe-stop\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /6gx 0xffffffff8045d060\"},\"execute\":\"human-monitor-command\",\"id\":\"2:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffff8045d060: 0xc7b1dd30df4c8b88 0x0a82e883a194f07b\\r\\nffffffff8045d070: 0x9d5827dcd881dd75 0xa3148604f6fab11b\\r\\nffffffff8045d080: 0x0000000000000000 0xffffffc08dca7000\\r\\n\", \"id\": \"2:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /3gx 0xffffffc08dca7000\"},\"execute\":\"human-monitor-command\",\"id\":\"3:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffc08dca7000: 0x0000000000000001 0x0000000000000001\\r\\nffffffc08dca7010: 0xffffffc08dca5000\\r\\n\", \"id\": \"3:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /1gx 0xffffffc08dca5000\"},\"execute\":\"human-monitor-command\",\"id\":\"4:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffc08dca5000: 0xffffffc08de41000\\r\\n\", \"id\": \"4:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /10gx 0xffffffc08de41000\"},\"execute\":\"human-monitor-command\",\"id\":\"5:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffc08de41000: 0xffffffc040000000 0x0000000000000500\\r\\nffffffc08de41010: 0x0000000000000400 0x0000000000001400\\r\\nffffffc08de41020: 0x0808081008010020 0x0000000000000000\\r\\nffffffc08de41030: 0x0000000000000000 0x0000000000000000\\r\\nffffffc08de41040: 0x0000000000000001 0xffffffc08dca4000\\r\\n\", \"id\": \"5:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /1gx 0xffffffc08dca4000\"},\"execute\":\"human-monitor-command\",\"id\":\"6:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffc08dca4000: 0xffffffc08dca6000\\r\\n\", \"id\": \"6:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /5gx 0xffffffc08dca6000\"},\"execute\":\"human-monitor-command\",\"id\":\"7:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffc08dca6000: 0x0000000000001400 0x0000000000000500\\r\\nffffffc08dca6010: 0x0000000000000400 0x0808081008010020\\r\\nffffffc08dca6020: 0x0000000000000000\\r\\n\", \"id\": \"7:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/riscv64-vga/observed-display.ppm\"},\"execute\":\"screendump\",\"id\":\"8:observed-display\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:observed-display\"}\r\n"}

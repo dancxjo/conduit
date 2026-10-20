@@ -1,0 +1,166 @@
+{
+  "verified": true,
+  "cases": [
+    {
+      "case": "aarch64-none",
+      "framebuffer_count": 0,
+      "current": null,
+      "modes": 0,
+      "display_health_refusal": null,
+      "report_sha256": "e5f5d36ccc82167b00abf2ab014037f4833ca0e8f5f099eb8993903c5bc581e7"
+    },
+    {
+      "case": "aarch64-ramfb",
+      "framebuffer_count": 1,
+      "current": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "green": [
+          8,
+          8
+        ],
+        "height": 600,
+        "memory_model": 1,
+        "pitch": 3200,
+        "red": [
+          8,
+          16
+        ],
+        "width": 800
+      },
+      "modes": 3,
+      "display_health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "report_sha256": "c7ec3f75752969ca9c44de8327a7aa1f8799a988384cc33fb8e7e57fe75a26b4"
+    },
+    {
+      "case": "ia32-vga",
+      "framebuffer_count": 1,
+      "current": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "framebuffer_type": 1,
+        "green": [
+          8,
+          8
+        ],
+        "height": 800,
+        "physical_address": "0x80000000",
+        "pitch": 5120,
+        "red": [
+          8,
+          16
+        ],
+        "width": 1280
+      },
+      "modes": 0,
+      "display_health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "report_sha256": "89e6435c9b98521c960f4bc33dd4d5b4ab1b0befc78af56ea64ae156115b60b5"
+    },
+    {
+      "case": "loongarch64-ramfb",
+      "framebuffer_count": 1,
+      "current": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "green": [
+          8,
+          8
+        ],
+        "height": 600,
+        "memory_model": 1,
+        "pitch": 3200,
+        "red": [
+          8,
+          16
+        ],
+        "width": 800
+      },
+      "modes": 3,
+      "display_health_refusal": null,
+      "report_sha256": "ac573c9eed967a8886ee3e9c7444e2e99a72cb49f4167de3b53f355d7c37bbac"
+    },
+    {
+      "case": "riscv64-ramfb",
+      "framebuffer_count": 0,
+      "current": null,
+      "modes": 0,
+      "display_health_refusal": null,
+      "report_sha256": "bb8d63cbc888e719d7b1d4021c404047b272a1d82f747ab78923969b2c3724f0"
+    },
+    {
+      "case": "riscv64-vga",
+      "framebuffer_count": 1,
+      "current": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "green": [
+          8,
+          8
+        ],
+        "height": 1024,
+        "memory_model": 1,
+        "pitch": 5120,
+        "red": [
+          8,
+          16
+        ],
+        "width": 1280
+      },
+      "modes": 1,
+      "display_health_refusal": null,
+      "report_sha256": "840bc823950ff2f7fd365076446d5997808aaf1b70e8b7e5870d38cafcc227d6"
+    },
+    {
+      "case": "x86_64-vga",
+      "framebuffer_count": 1,
+      "current": {
+        "bits_per_pixel": 32,
+        "blue": [
+          8,
+          0
+        ],
+        "green": [
+          8,
+          8
+        ],
+        "height": 800,
+        "memory_model": 1,
+        "pitch": 5120,
+        "red": [
+          8,
+          16
+        ],
+        "width": 1280
+      },
+      "modes": 66,
+      "display_health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "report_sha256": "4033f1e8baa7a4772a2ed111726719999194232120231d6a7f3766754123838c"
+    }
+  ],
+  "png_and_pixel_hashes_verified": true,
+  "private_entropy_files_retained": false,
+  "graphical_show_proved": false,
+  "physical_scanout_proved": false,
+  "gpu_acceleration_proved": false
+}

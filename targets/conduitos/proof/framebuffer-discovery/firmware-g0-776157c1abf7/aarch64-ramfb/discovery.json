@@ -1,0 +1,295 @@
+{
+  "architecture": "aarch64",
+  "candidate_provider": "ramfb",
+  "capture_source_commit": "776157c1abf73336e8cd62b59b08805721efebac",
+  "capture_source_dirty": false,
+  "discovery_limits": {
+    "framebuffers": 4,
+    "guest_handoff_seconds": 60,
+    "maximum_ppm_bytes": 26542336,
+    "modes_per_framebuffer": 128
+  },
+  "emulator_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "gpu_acceleration_proved": false,
+  "graphical_show_proved": false,
+  "inputs": [
+    {
+      "bytes": 36971856,
+      "path": "/usr/bin/qemu-system-aarch64",
+      "sha256": "c232f67cee378d22414d869b36fd9bcbaa5009630e12fbfb50fa5c9449593da5"
+    },
+    {
+      "bytes": 2097152,
+      "path": "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+      "sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392"
+    },
+    {
+      "bytes": 7472304,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/aarch64-virt/conduitos-kernel.elf",
+      "sha256": "d971602a22e3aabd8f7e427bcfce6c7ceb0ae7ec302258ef4fa281e65ce42d9f"
+    },
+    {
+      "bytes": 11702272,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/aarch64-virt/conduitos-aarch64.iso",
+      "sha256": "e3d7578e8ece996858693b329e759b9dc2f7ada1d20e040e0a6ffdcfa6c17271"
+    }
+  ],
+  "launch": {
+    "arguments": [
+      "-machine",
+      "virt",
+      "-cpu",
+      "neoverse-n2",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-net",
+      "none",
+      "-no-reboot",
+      "-qmp",
+      "unix:/tmp/conduit-fb-104400-1792470715010151050/qmp.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/aarch64-ramfb/serial.log",
+      "-device",
+      "ramfb",
+      "-bios",
+      "/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+      "-cdrom",
+      "/home/dancxjo/src/conduit/target/conduitos/live/aarch64-virt/conduitos-aarch64.iso",
+      "-boot",
+      "d"
+    ],
+    "program": "/usr/bin/qemu-system-aarch64"
+  },
+  "observation": {
+    "display": {
+      "frame": {
+        "checkpoint": "observed-display",
+        "height": 600,
+        "non_background_pixels": 0,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a7aff0f8e3f44663c369e1e75a981b90b66949586d71035771921871d67e334e",
+        "png": "observed-display.png",
+        "png_bytes": 11592,
+        "png_sha256": "c2fe026895f6b7eb9feef54e9dcb6bf55f576c159e256f594c66f9fb9df89fb2",
+        "width": 800
+      },
+      "health_refusal": {
+        "code": "qemu-display-uniform-frame",
+        "detail": "display contains one uniform color"
+      },
+      "status": "captured"
+    },
+    "elapsed_to_observed_display_ms": 6756,
+    "graphical_show_proved": false,
+    "handoff": {
+      "framebuffer_count": 1,
+      "framebuffers": [
+        {
+          "current": {
+            "bits_per_pixel": 32,
+            "blue": [
+              8,
+              0
+            ],
+            "green": [
+              8,
+              8
+            ],
+            "height": 600,
+            "memory_model": 1,
+            "pitch": 3200,
+            "red": [
+              8,
+              16
+            ],
+            "width": 800
+          },
+          "modes": [
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 480,
+              "memory_model": 1,
+              "pitch": 2560,
+              "red": [
+                8,
+                16
+              ],
+              "width": 640
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 600,
+              "memory_model": 1,
+              "pitch": 3200,
+              "red": [
+                8,
+                16
+              ],
+              "width": 800
+            },
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 768,
+              "memory_model": 1,
+              "pitch": 4096,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1024
+            }
+          ],
+          "virtual_address": "0xffff00005f0f0000"
+        }
+      ],
+      "handoff": "limine",
+      "request_address": "0xffffffff80710060",
+      "response_present": true,
+      "response_revision": 1
+    }
+  },
+  "physical_scanout_proved": false,
+  "probe_status": "observed",
+  "product": {
+    "artifact_role": "product-host",
+    "boot_assets": {
+      "architecture": "aarch64",
+      "boot_entry": "BOOTAA64.EFI",
+      "firmware": "QEMU_EFI.fd",
+      "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+      "limine_version": "12.5.2",
+      "machine": "virt",
+      "packager": "pinned-limine-hybrid-iso"
+    },
+    "build_id": "build:sha256:c690d15aefd894d964780ebb98e9244c39fdcb1c9ec144e5965ad5f12c20e4a7",
+    "image": {
+      "file": "conduitos-aarch64.iso",
+      "role": "final-bootable-image",
+      "sha256": "e3d7578e8ece996858693b329e759b9dc2f7ada1d20e040e0a6ffdcfa6c17271"
+    },
+    "image_id": "image:sha256:e3d7578e8ece996858693b329e759b9dc2f7ada1d20e040e0a6ffdcfa6c17271",
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "role": "freestanding-kernel",
+      "sha256": "d971602a22e3aabd8f7e427bcfce6c7ceb0ae7ec302258ef4fa281e65ce42d9f"
+    },
+    "profile_id": "sha256:7041516dd03cffea8701c7bd6b3651d2cd585e8950b22f36fc4a8dfd066a1aef",
+    "resolved_build": {
+      "base_selections": [
+        {
+          "driver": "conduitos/pl011@1",
+          "id": "base/0",
+          "kind": "serial/text"
+        }
+      ],
+      "bases": [
+        "base/0"
+      ],
+      "bounds": {
+        "active_instances": 16,
+        "buffered_bytes": 16384,
+        "evidence_items": 64,
+        "heap_arena_bytes": 268435456,
+        "line_sessions": 1,
+        "operation_slots": 64,
+        "queue_items": 64,
+        "static_memory_bytes": 8388608,
+        "timer_slots": 4
+      },
+      "build_id": "build:sha256:c690d15aefd894d964780ebb98e9244c39fdcb1c9ec144e5965ad5f12c20e4a7",
+      "builder_adapter": "conduit-host-conduitos/build-aarch64@1",
+      "deployment_adapter": "conduit-host-conduitos/boot-aarch64@1",
+      "driver_selections": [
+        {
+          "id": "driver/0",
+          "kind": "conduitos/pl011@1"
+        }
+      ],
+      "drivers": [
+        "driver/0"
+      ],
+      "facilities": [],
+      "host_calls": [
+        "conduit.host/present@1"
+      ],
+      "image_id": "image:sha256:486e94b2de532a5a4ddfa0df26308d0891d42f82302970a0dd2112db3d880c44",
+      "implementation_packages": [
+        {
+          "implementation_id": "conduitos/pl011@1",
+          "package_id": "conduitos-image@1",
+          "package_revision": 1
+        }
+      ],
+      "implementations": [],
+      "inclusion_paths": {
+        "presenter:presenter/main > base:serial/text": [
+          "base:serial/text"
+        ],
+        "presenter:presenter/main > driver:conduitos/pl011@1": [
+          "base:serial/text",
+          "driver:conduitos/pl011@1"
+        ],
+        "presenter:presenter/main > host-call:conduit.host/present@1": [
+          "host-call:conduit.host/present@1"
+        ]
+      },
+      "lines": [],
+      "make_package_id": "conduitos-image@1",
+      "make_package_revision": 1,
+      "make_strategy": "deterministic-specialized-build",
+      "output": "disk-image",
+      "post_build_actions": [
+        "boot"
+      ],
+      "presenters": [
+        "presenter/linear-serial@1"
+      ],
+      "profile_fragments": [],
+      "profile_id": "sha256:7041516dd03cffea8701c7bd6b3651d2cd585e8950b22f36fc4a8dfd066a1aef",
+      "reproducibility": "byte-exact",
+      "resource_budgets": [],
+      "resources": [],
+      "schema": "conduit.host/build-manifest@3",
+      "source_configuration_id": "sha256:19a7cdcadd4372e51ef3ec477159b18d66dc70011fac2df78c5f077690635cd5",
+      "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+      "target": "conduitos/aarch64/virt",
+      "toolchain_identity": "rustc:stable+aarch64-unknown-none+llvm-tools"
+    },
+    "resolved_description_binding": "image:sha256:486e94b2de532a5a4ddfa0df26308d0891d42f82302970a0dd2112db3d880c44",
+    "schema": "conduit.host/target-build-manifest@3",
+    "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+    "target": "conduitos/aarch64/virt",
+    "toolchain_identity": "rustc:stable+aarch64-unknown-none+llvm-tools"
+  },
+  "schema": "conduit.conduitos/framebuffer-discovery@1"
+}

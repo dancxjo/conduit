@@ -1,0 +1,257 @@
+{
+  "architecture": "riscv64",
+  "candidate_provider": "vga",
+  "capture_source_commit": "776157c1abf73336e8cd62b59b08805721efebac",
+  "capture_source_dirty": false,
+  "discovery_limits": {
+    "framebuffers": 4,
+    "guest_handoff_seconds": 60,
+    "maximum_ppm_bytes": 26542336,
+    "modes_per_framebuffer": 128
+  },
+  "emulator_version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "gpu_acceleration_proved": false,
+  "graphical_show_proved": false,
+  "inputs": [
+    {
+      "bytes": 18097304,
+      "path": "/usr/bin/qemu-system-riscv64",
+      "sha256": "89a99b20357ac92b2c6a533fe79d6fab6b507784858299f7109651f2d524d274"
+    },
+    {
+      "bytes": 275928,
+      "path": "/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin",
+      "sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf"
+    },
+    {
+      "bytes": 4580648,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/riscv64-virt/conduitos-kernel.elf",
+      "sha256": "1057280abcd5ad06b2e2d6d952f3bb182d981fed5f67b2b370ac0c42acca8b43"
+    },
+    {
+      "bytes": 8794112,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/live/riscv64-virt/conduitos-riscv64.iso",
+      "sha256": "debbf3b87b2af2664518ac1e6700b43dab936f9a66309b3839b0091e92232c08"
+    },
+    {
+      "bytes": 1248064,
+      "path": "/home/dancxjo/src/conduit/target/conduitos/toolchain/riscv64-root/usr/lib/u-boot/qemu-riscv64_smode/uboot.elf",
+      "sha256": "7856c2bb4508694fbf384383f94813944e26faf7f23bd6d696b1d315abeb5282"
+    }
+  ],
+  "launch": {
+    "arguments": [
+      "-machine",
+      "virt",
+      "-cpu",
+      "rv64,zkr=true,sv57=off,sv48=off",
+      "-m",
+      "256M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-net",
+      "none",
+      "-no-reboot",
+      "-qmp",
+      "unix:/tmp/conduit-fb-105330-1792470761431990004/qmp.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/riscv64-vga/serial.log",
+      "-device",
+      "VGA",
+      "-bios",
+      "/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin",
+      "-accel",
+      "tcg,thread=single",
+      "-kernel",
+      "/home/dancxjo/src/conduit/target/conduitos/toolchain/riscv64-root/usr/lib/u-boot/qemu-riscv64_smode/uboot.elf",
+      "-drive",
+      "if=virtio,format=raw,readonly=on,file=/home/dancxjo/src/conduit/target/conduitos/live/riscv64-virt/conduitos-riscv64.iso"
+    ],
+    "program": "/usr/bin/qemu-system-riscv64"
+  },
+  "observation": {
+    "display": {
+      "frame": {
+        "checkpoint": "observed-display",
+        "height": 1024,
+        "non_background_pixels": 58268,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b971f8a23a3dfb22fb5fe9cdd315c835bb2b997f229200ea0144b3279b52fba3",
+        "png": "observed-display.png",
+        "png_bytes": 197427,
+        "png_sha256": "2a7648ac9fbf3617202b092c5d68d8119a985da20b3a9ec562258e63e53cc1f6",
+        "width": 1280
+      },
+      "health_refusal": null,
+      "status": "captured"
+    },
+    "elapsed_to_observed_display_ms": 6843,
+    "graphical_show_proved": false,
+    "handoff": {
+      "framebuffer_count": 1,
+      "framebuffers": [
+        {
+          "current": {
+            "bits_per_pixel": 32,
+            "blue": [
+              8,
+              0
+            ],
+            "green": [
+              8,
+              8
+            ],
+            "height": 1024,
+            "memory_model": 1,
+            "pitch": 5120,
+            "red": [
+              8,
+              16
+            ],
+            "width": 1280
+          },
+          "modes": [
+            {
+              "bits_per_pixel": 32,
+              "blue": [
+                8,
+                0
+              ],
+              "green": [
+                8,
+                8
+              ],
+              "height": 1024,
+              "memory_model": 1,
+              "pitch": 5120,
+              "red": [
+                8,
+                16
+              ],
+              "width": 1280
+            }
+          ],
+          "virtual_address": "0xffffffc040000000"
+        }
+      ],
+      "handoff": "limine",
+      "request_address": "0xffffffff8045d060",
+      "response_present": true,
+      "response_revision": 1
+    }
+  },
+  "physical_scanout_proved": false,
+  "probe_status": "observed",
+  "product": {
+    "artifact_role": "product-host",
+    "boot_assets": {
+      "architecture": "riscv64",
+      "boot_entry": "BOOTRISCV64.EFI",
+      "firmware": "OpenSBI+U-Boot EFI",
+      "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+      "limine_version": "12.5.2",
+      "machine": "virt",
+      "packager": "pinned-limine-hybrid-iso"
+    },
+    "build_id": "build:sha256:9b90a5938096ce29f5b539189f29e22ebfe892cf6613a28a652c98b6c0794009",
+    "image": {
+      "file": "conduitos-riscv64.iso",
+      "role": "final-bootable-image",
+      "sha256": "debbf3b87b2af2664518ac1e6700b43dab936f9a66309b3839b0091e92232c08"
+    },
+    "image_id": "image:sha256:debbf3b87b2af2664518ac1e6700b43dab936f9a66309b3839b0091e92232c08",
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "role": "freestanding-kernel",
+      "sha256": "1057280abcd5ad06b2e2d6d952f3bb182d981fed5f67b2b370ac0c42acca8b43"
+    },
+    "profile_id": "sha256:7f0c8cf605e18a78a166fb6238e648067a17fe8a5c95b45e9dca65aed4791278",
+    "resolved_build": {
+      "base_selections": [
+        {
+          "driver": "conduitos/riscv64-sbi-console@1",
+          "id": "base/0",
+          "kind": "conduitos/riscv64-sbi-console-text"
+        }
+      ],
+      "bases": [
+        "base/0"
+      ],
+      "bounds": {
+        "active_instances": 16,
+        "buffered_bytes": 16384,
+        "evidence_items": 64,
+        "heap_arena_bytes": 33554432,
+        "line_sessions": 1,
+        "operation_slots": 8,
+        "queue_items": 64,
+        "static_memory_bytes": 8388608,
+        "timer_slots": 4
+      },
+      "build_id": "build:sha256:9b90a5938096ce29f5b539189f29e22ebfe892cf6613a28a652c98b6c0794009",
+      "builder_adapter": "conduit-host-conduitos/build-riscv64@1",
+      "deployment_adapter": "conduit-host-conduitos/boot-riscv64@1",
+      "driver_selections": [
+        {
+          "id": "driver/0",
+          "kind": "conduitos/riscv64-sbi-console@1"
+        }
+      ],
+      "drivers": [
+        "driver/0"
+      ],
+      "facilities": [],
+      "host_calls": [
+        "conduit.host/present@1"
+      ],
+      "image_id": "image:sha256:9b30900ac1788fad1efcacdcb6aa6678deec31ecab87fca659ab540e7bc309f7",
+      "implementation_packages": [
+        {
+          "implementation_id": "conduitos/riscv64-sbi-console@1",
+          "package_id": "conduitos-image@1",
+          "package_revision": 1
+        }
+      ],
+      "implementations": [],
+      "inclusion_paths": {
+        "presenter:presenter/main > base:conduitos/riscv64-sbi-console-text": [
+          "base:conduitos/riscv64-sbi-console-text"
+        ],
+        "presenter:presenter/main > host-call:conduit.host/present@1": [
+          "host-call:conduit.host/present@1"
+        ]
+      },
+      "lines": [],
+      "make_package_id": "conduitos-image@1",
+      "make_package_revision": 1,
+      "make_strategy": "deterministic-specialized-build",
+      "output": "disk-image",
+      "post_build_actions": [
+        "boot"
+      ],
+      "presenters": [
+        "presenter/riscv64-linear-sbi-console@1"
+      ],
+      "profile_fragments": [],
+      "profile_id": "sha256:7f0c8cf605e18a78a166fb6238e648067a17fe8a5c95b45e9dca65aed4791278",
+      "reproducibility": "byte-exact",
+      "resource_budgets": [],
+      "resources": [],
+      "schema": "conduit.host/build-manifest@3",
+      "source_configuration_id": "sha256:f1bd2df01a33c97fa8ca30859e2bd19c3c008341a1fa87b161992109c1027799",
+      "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+      "target": "conduitos/riscv64/virt",
+      "toolchain_identity": "rustc:stable+riscv64gc-unknown-none-elf+llvm-tools"
+    },
+    "resolved_description_binding": "image:sha256:9b30900ac1788fad1efcacdcb6aa6678deec31ecab87fca659ab540e7bc309f7",
+    "schema": "conduit.host/target-build-manifest@3",
+    "source_identity": "eab532db703bb6a1d3010d6d9ee40576d32206b5",
+    "target": "conduitos/riscv64/virt",
+    "toolchain_identity": "rustc:stable+riscv64gc-unknown-none-elf+llvm-tools"
+  },
+  "schema": "conduit.conduitos/framebuffer-discovery@1"
+}

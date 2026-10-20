@@ -1,0 +1,24 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"execute\":\"stop\",\"id\":\"1:observe-stop\"}"}
+{"direction":"response","message":"{\"timestamp\": {\"seconds\": 1792470721, \"microseconds\": 536209}, \"event\": \"STOP\"}\r\n"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:observe-stop\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /6gx 0xffffffff80710060\"},\"execute\":\"human-monitor-command\",\"id\":\"2:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffffffff80710060: 0xc7b1dd30df4c8b88 0x0a82e883a194f07b\\r\\nffffffff80710070: 0x9d5827dcd881dd75 0xa3148604f6fab11b\\r\\nffffffff80710080: 0x0000000000000000 0xffff000059874000\\r\\n\", \"id\": \"2:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /3gx 0xffff000059874000\"},\"execute\":\"human-monitor-command\",\"id\":\"3:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff000059874000: 0x0000000000000001 0x0000000000000001\\r\\nffff000059874010: 0xffff00005986a000\\r\\n\", \"id\": \"3:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /1gx 0xffff00005986a000\"},\"execute\":\"human-monitor-command\",\"id\":\"4:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff00005986a000: 0xffff00005fff8000\\r\\n\", \"id\": \"4:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /10gx 0xffff00005fff8000\"},\"execute\":\"human-monitor-command\",\"id\":\"5:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff00005fff8000: 0xffff00005f0f0000 0x0000000000000320\\r\\nffff00005fff8010: 0x0000000000000258 0x0000000000000c80\\r\\nffff00005fff8020: 0x0808081008010020 0x0000000000000000\\r\\nffff00005fff8030: 0x0000000000000000 0x0000000000000000\\r\\nffff00005fff8040: 0x0000000000000003 0xffff000059869000\\r\\n\", \"id\": \"5:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /3gx 0xffff000059869000\"},\"execute\":\"human-monitor-command\",\"id\":\"6:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff000059869000: 0xffff000059873000 0xffff000059873048\\r\\nffff000059869010: 0xffff000059873090\\r\\n\", \"id\": \"6:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /5gx 0xffff000059873000\"},\"execute\":\"human-monitor-command\",\"id\":\"7:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff000059873000: 0x0000000000000a00 0x0000000000000280\\r\\nffff000059873010: 0x00000000000001e0 0x0808081008010020\\r\\nffff000059873020: 0x0000000000000000\\r\\n\", \"id\": \"7:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /5gx 0xffff000059873048\"},\"execute\":\"human-monitor-command\",\"id\":\"8:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff000059873048: 0x0000000000000c80 0x0000000000000320\\r\\nffff000059873058: 0x0000000000000258 0x0808081008010020\\r\\nffff000059873068: 0x0000000000000000\\r\\n\", \"id\": \"8:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"command-line\":\"x /5gx 0xffff000059873090\"},\"execute\":\"human-monitor-command\",\"id\":\"9:read-handoff\"}"}
+{"direction":"response","message":"{\"return\": \"ffff000059873090: 0x0000000000001000 0x0000000000000400\\r\\nffff0000598730a0: 0x0000000000000300 0x0808081008010020\\r\\nffff0000598730b0: 0x0000000000000000\\r\\n\", \"id\": \"9:read-handoff\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/src/conduit/target/conduitos/diagnostics/6057/canonical-discovery-776157c1abf7/aarch64-ramfb/observed-display.ppm\"},\"execute\":\"screendump\",\"id\":\"10:observed-display\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:observed-display\"}\r\n"}
