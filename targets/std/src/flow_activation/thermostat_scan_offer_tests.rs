@@ -97,3 +97,118 @@ fn thermostat_scan_has_a_finite_domain_bound() {
     assert!(thermostat_scan_offer(&initial, 0).is_err());
     assert!(thermostat_scan_offer(&initial, 257).is_err());
 }
+
+fn prepared_reusable_scan() -> (
+    conduit_core::Plan,
+    conduit_core::PreparedPlan,
+    super::super::StdActivationHost,
+) {
+    let host = crate::StdHost::new_for_thermostat_scan(
+        crate::StdHostConfig {
+            host_id: conduit_core::HostId::from("reuse-control"),
+            boot_id: conduit_core::BootId::from("reuse-control/boot"),
+            offer_generation: conduit_core::OfferGeneration(1),
+        },
+        &ThermostatState::default(),
+        2,
+    )
+    .unwrap();
+    let plan = authored_thermostat_plan_on_host(host.advertisement(), 2);
+    let fragment = &plan.fragments[0];
+    let identity = conduit_core::PreparationHostIdentity {
+        host_id: fragment.host_id.clone(),
+        boot_id: fragment.boot_id.clone(),
+        offer_generation: fragment.offer_generation,
+    };
+    let mut owner = super::super::StdActivationHost::new(
+        identity,
+        super::super::standard_child_registry().unwrap(),
+    );
+    let prepared = conduit_core::prepare_plan_on_hosts(&plan, &mut [&mut owner]).unwrap();
+    (plan, prepared, owner)
+}
+
+#[test]
+fn reusable_thermostat_handoff_refuses_stale_identity_and_plan_before_consuming() {
+    use super::super::install_pure_thermostat_scan;
+    let (plan, mut prepared, mut host) = prepared_reusable_scan();
+    let conduit_core::PlannedActivationEntry::Scan(scan) = &plan.activations[0] else {
+        panic!()
+    };
+    let id = &scan.activation_id;
+    let original = host.identity.clone();
+    host.identity.boot_id = conduit_core::BootId::from("replacement-boot");
+    assert!(install_pure_thermostat_scan(&plan, &mut prepared, id, &mut host).is_err());
+    host.identity = original;
+    let mut foreign = plan.clone();
+    foreign.plan_id = conduit_core::PlanId::from("substituted-plan");
+    assert!(install_pure_thermostat_scan(&foreign, &mut prepared, id, &mut host).is_err());
+    assert!(install_pure_thermostat_scan(&plan, &mut prepared, id, &mut host).is_ok());
+    assert!(install_pure_thermostat_scan(&plan, &mut prepared, id, &mut host).is_err());
+}
+
+#[test]
+fn reusable_scan_preserves_pending_output_until_acceptance_and_exhausts_exactly() {
+    use conduit_composite::{BoundedScanAdmission as Admission, BoundedScanState as State};
+    use conduit_thermostat_plot::{Command, Fan};
+    let (plan, mut prepared, mut host) = prepared_reusable_scan();
+    let conduit_core::PlannedActivationEntry::Scan(planned) = &plan.activations[0] else {
+        panic!()
+    };
+    let mut scan = super::super::install_pure_thermostat_scan(
+        &plan,
+        &mut prepared,
+        &planned.activation_id,
+        &mut host,
+    )
+    .unwrap();
+    scan.bind_parent_play(&conduit_core::ActivePlayId::from("parent/reuse-controls"))
+        .unwrap();
+    let command = |command: Command| conduit_core::ValuePayload {
+        value_kind: conduit_core::kind_id(conduit_thermostat_plot::COMMAND_KIND),
+        encoded: command.encode().to_vec(),
+    };
+    let first = command(Command::SetTarget(225));
+    let second = command(Command::SetFan(Fan::On));
+    let mut wrong = first.clone();
+    wrong.value_kind = conduit_core::kind_id("foreign-command");
+    assert!(scan.admit(&wrong).is_err());
+    assert_eq!(scan.admit(&first).unwrap(), Admission::Accepted);
+    assert_eq!(scan.admit(&second).unwrap(), Admission::Accepted);
+    assert_eq!(scan.admit(&second).unwrap(), Admission::Full);
+    let mut output = conduit_core::ValuePayload {
+        value_kind: planned.output.value_kind.clone(),
+        encoded: Vec::with_capacity(planned.retained_accumulator_bytes as usize),
+    };
+    for expected_revision in 1..=2 {
+        for _ in 0..16 {
+            if scan.step().unwrap() == &State::OutputReady {
+                break;
+            }
+        }
+        assert_eq!(scan.step().unwrap(), &State::OutputReady);
+        assert!(scan.output_into(&mut output).unwrap());
+        let state = ThermostatState::decode(&output.encoded).unwrap();
+        assert_eq!(state.target, 225);
+        assert_eq!(state.revision, expected_revision);
+        assert_eq!(
+            state.fan,
+            if expected_revision == 1 {
+                Fan::Auto
+            } else {
+                Fan::On
+            }
+        );
+        // A rejected copy and repeated Steps cannot accept or advance this Value.
+        assert!(scan.output_into(&mut wrong).is_err());
+        assert_eq!(scan.step().unwrap(), &State::OutputReady);
+        scan.complete_output().unwrap();
+    }
+    assert_eq!(
+        scan.admit(&first).unwrap(),
+        Admission::MaximumItemsExceeded { maximum_items: 2 }
+    );
+    scan.close_input().unwrap();
+    assert_eq!(scan.step().unwrap(), &State::Complete);
+    assert_eq!(scan.child_sign_receipts().unwrap().len(), 2);
+}
