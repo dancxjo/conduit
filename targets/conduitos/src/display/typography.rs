@@ -97,7 +97,7 @@ pub(super) fn scaled_glyph(role: TextRole, character: char, scale: TextScale) ->
     raster
 }
 
-pub fn metrics(role: TextRole) -> &'static ProfileMetrics {
+pub const fn metrics(role: TextRole) -> &'static ProfileMetrics {
     &PROFILES[role as usize]
 }
 

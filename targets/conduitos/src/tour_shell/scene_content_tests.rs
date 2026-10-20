@@ -225,3 +225,46 @@ fn inspection_rejects_oversized_fields_even_when_scrolled_out_of_view() {
     assert!(inspector_scene(bounds, &face, 500).is_err());
     assert!(super::super::fields::project(bounds, &face, 0, None).is_err());
 }
+
+#[cfg(feature = "native-compositor")]
+#[test]
+fn projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells() {
+    use crate::display::typography::{TextLayout, TextRole};
+    let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
+    let host = conduit_core::HostId::from("0123456789abcdef0123456789abcdef");
+    let face =
+        super::super::lifecycle::with_presenter_host(state.status_face().unwrap(), &host).unwrap();
+    for width in [640, 1280] {
+        let layout = ShellLayout::new(width, 480).unwrap();
+        let scene = status_scene(layout.status, &face).unwrap();
+        let mut host_seen = false;
+        for command in scene
+            .commands()
+            .iter()
+            .filter(|command| !command.payload().is_empty())
+        {
+            assert_eq!(command.text_role(), conduit_face::GraphicsTextRole::Label);
+            let measured =
+                TextLayout::new(command.payload(), TextRole::Label, command.bounds.width)
+                    .unwrap()
+                    .finish_height();
+            assert!(measured <= u32::from(command.bounds.height));
+            assert!(
+                i32::from(command.bounds.y) + measured as i32 <= i32::from(command.clip.height)
+            );
+            host_seen |= command.payload() == "Host\nNative\n01234567...";
+        }
+        assert!(host_seen);
+    }
+    let scene = status_scene(ShellLayout::new(320, 240).unwrap().status, &face).unwrap();
+    let host = scene
+        .commands()
+        .iter()
+        .find(|command| command.payload().starts_with("Host\n"))
+        .unwrap();
+    assert_eq!(host.bounds.width, 5);
+    assert!(matches!(
+        TextLayout::new(host.payload(), TextRole::Label, host.bounds.width),
+        Err(crate::display::DisplayError::InvalidExtent)
+    ));
+}
