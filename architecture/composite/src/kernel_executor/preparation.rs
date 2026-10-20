@@ -51,6 +51,47 @@ impl KernelCompositeHost {
         registry: &KernelOperationRegistry,
         sign_storage: KernelCompositeSignStorage,
     ) -> Result<Self, KernelCompositeError> {
+        Self::prepare_mode(definition, registry, sign_storage, false)
+    }
+    /// One process-local pure-Value child. Factories must explicitly opt in;
+    /// failed reuse preparation never falls back to a fresh child pool.
+    pub fn prepare_reusable_value(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+    ) -> Result<Self, KernelCompositeError> {
+        Self::prepare_mode(
+            definition,
+            registry,
+            KernelCompositeSignStorage::default(),
+            true,
+        )
+    }
+    fn prepare_mode(
+        definition: KernelCompositeDefinition,
+        registry: &KernelOperationRegistry,
+        sign_storage: KernelCompositeSignStorage,
+        reusable: bool,
+    ) -> Result<Self, KernelCompositeError> {
+        if reusable
+            && (definition.internal_plan.fragments.len() != 1
+                || definition.internal_plan.fragments.iter().any(|f| {
+                    f.placements.len() != 1
+                        || !f.connections.is_empty()
+                        || !f.states.is_empty()
+                        || !f.shared_pools.is_empty()
+                        || f.fore_ports.iter().any(|p| p.selected_line.is_some())
+                })
+                || definition
+                    .boundary
+                    .input_fronts
+                    .iter()
+                    .chain(&definition.boundary.output_fronts)
+                    .any(|f| f.external_port.temporal != conduit_core::PortTemporal::Value))
+        {
+            return Err(KernelCompositeError::InvalidBoundary(
+                "reusable child requires one local Value fragment".into(),
+            ));
+        }
         let preparation = KernelCompositePreparation::prepare(definition.internal_plan.clone())?;
         let mut child_boundaries = BTreeMap::<HostId, Vec<BoundaryEndpoint>>::new();
         let mut fronts = BTreeMap::new();
@@ -207,6 +248,7 @@ impl KernelCompositeHost {
                 child_boundaries.remove(&child).unwrap_or_default(),
                 registry,
                 sign_storage,
+                reusable,
             )
             .map_err(|reason| KernelCompositeError::ChildRefused {
                 child: child.clone(),
@@ -232,7 +274,7 @@ impl KernelCompositeHost {
             })
             .collect();
         Ok(Self {
-            definition,
+            definition: alloc::sync::Arc::new(definition),
             children,
             fronts,
             links,
