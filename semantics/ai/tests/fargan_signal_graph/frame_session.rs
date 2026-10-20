@@ -2,7 +2,7 @@
 use super::*;
 use crate::runtime::session::PreparedTrajectory;
 use conduit_core::bind_active_play;
-fn zero_resources(schema: &SourceSchema) -> Resources {
+pub(super) fn zero_resources(schema: &SourceSchema) -> Resources {
     schema
         .resource_shapes
         .iter()

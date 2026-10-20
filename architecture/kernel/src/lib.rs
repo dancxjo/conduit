@@ -426,6 +426,23 @@ pub trait ValueStorage {
     fn retain(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn release(&mut self, value: ValueRef) -> Result<(), StorageError>;
     fn clear(&mut self);
+    /// Compact finite F32 transport is separately admitted before Play. The
+    /// reference length and live quota remain canonical logical byte bounds.
+    fn compact_f32_available(&self, _logical_bytes: u32) -> (u16, u32) {
+        (0, 0)
+    }
+    fn store_compact_f32(
+        &mut self,
+        _little_endian_lanes: &[u8],
+        _logical_bytes: u32,
+    ) -> Result<ValueRef, StorageError> {
+        Err(StorageError::RepresentationMismatch)
+    }
+    /// Canonical-only profiles validate ownership and report no compact view.
+    fn compact_f32(&self, value: ValueRef) -> Result<Option<&[u8]>, StorageError> {
+        self.reference_count(value)?;
+        Ok(None)
+    }
     /// Currently available native item and logical-byte reservations.
     fn native_u64_available(&self) -> (u16, u32) {
         (0, 0)

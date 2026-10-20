@@ -45,6 +45,13 @@ where
         {
             return Err(SchedulerError::InvalidPlan);
         }
+        #[cfg(feature = "alloc")]
+        if nodes
+            .iter()
+            .any(|n| usize::from(n.0) < NODES && self.has_compact_f32_node(usize::from(n.0)))
+        {
+            return Err(SchedulerError::InvalidPlan);
+        }
         for (index, node) in nodes.iter().enumerate() {
             if usize::from(node.0) >= self.active_nodes
                 || nodes[..index].contains(node)
@@ -140,6 +147,9 @@ where
             let Some(next) = self.region_successors[node] else {
                 break;
             };
+            if next == node_id {
+                break;
+            }
             let next = usize::from(next.0);
             if !may_continue || !self.ready.contains(next) || self.completed[next] {
                 break;
@@ -224,6 +234,8 @@ where
         let mut current_input_bytes = [None; PORTS];
         #[cfg(feature = "alloc")]
         let mut native_inputs = self.native_input_ports[node].map(|_| [None; PORTS]);
+        #[cfg(feature = "alloc")]
+        let mut compact_inputs = self.has_compact_f32_inputs(node).then_some([None; PORTS]);
         for (port, value) in io.inputs.iter().copied().enumerate() {
             if let Some(value) = value {
                 #[cfg(feature = "alloc")]
@@ -234,6 +246,22 @@ where
                         continue;
                     }
                 }
+                #[cfg(feature = "alloc")]
+                if self.has_compact_f32_input(node, port) {
+                    if let Some(bytes) = self.values.compact_f32(value)? {
+                        let layout = self.drivers[node]
+                            .compact_f32_input(PortId(as_u16(port)?))
+                            .ok_or(SchedulerError::InvalidPlan)?;
+                        if u32::try_from(bytes.len()).ok() != Some(layout.physical_bytes()?)
+                            || value.byte_len != layout.logical_bytes
+                        {
+                            return Err(SchedulerError::InvalidPlan);
+                        }
+                        compact_inputs.as_mut().ok_or(SchedulerError::InvalidPlan)?[port] =
+                            Some(bytes);
+                        continue;
+                    }
+                }
                 current_input_bytes[port] = Some(self.values.get(value)?);
             }
         }
@@ -241,6 +269,8 @@ where
             inputs: current_input_bytes,
             #[cfg(feature = "alloc")]
             native_u64: native_inputs.as_ref(),
+            #[cfg(feature = "alloc")]
+            compact_f32: compact_inputs.as_ref(),
             host_output: io
                 .host_completion
                 .and_then(|(_, outcome)| outcome.output)

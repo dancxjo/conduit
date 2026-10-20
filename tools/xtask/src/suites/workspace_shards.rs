@@ -86,7 +86,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model"
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model,conduit-semantic-catalog/prepared-expression-session"
     ]
 );
 

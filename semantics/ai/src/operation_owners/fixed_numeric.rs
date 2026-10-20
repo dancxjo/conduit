@@ -34,6 +34,8 @@ macro_rules! run {
         })()
     }};
 }
+mod compact;
+pub use compact::compact_pointwise_offer_layout;
 mod dispatch_tensors;
 mod dispatch_values;
 mod dispatch_vectors;
