@@ -1,14 +1,5 @@
 name: Measure tool acquisition
 on:
-  pull_request:
-    branches: [dev]
-    types: [ready_for_review]
-    paths:
-      - '.github/workflows/acquisition.yml'
-      - '.github/workflows/acquisition-pair.yml'
-      - '.github/workflows/ci.yml'
-      - 'tools/ci/pipeline/**'
-      - 'tools/xtask/src/commands/avr/**'
   workflow_dispatch:
     inputs:
       targets:
@@ -19,7 +10,7 @@ on:
 permissions:
   contents: read
 env:
-  SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  SOURCE_SHA: ${{ github.sha }}
   RUSTUP_TOOLCHAIN: 1.98.1
   CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: 0
@@ -39,7 +30,7 @@ jobs:
           node-version: 22
       - id: matrix
         env:
-          SELECTION: ${{ inputs.targets || 'unit,preflight,conduitos-ia32,browser,rp2040,avr,esp32-c3,esp32-s3' }}
+          SELECTION: ${{ inputs.targets }}
         run: echo "matrix=$(node tools/ci/pipeline/acquisition/compare.mjs matrix "$SELECTION")" >> "$GITHUB_OUTPUT"
   measure:
     needs: [select]
@@ -52,4 +43,4 @@ jobs:
     with:
       target: ${{ matrix.id }}
       runner: ${{ matrix.runner }}
-      source_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      source_sha: ${{ github.sha }}
