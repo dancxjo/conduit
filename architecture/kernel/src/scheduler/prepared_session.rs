@@ -29,6 +29,7 @@ pub enum SessionRefusal {
     NotFresh,
     UnsupportedRemote,
     InvalidOwnedBoundary,
+    InvocationExhausted,
     NotNormallyDrained,
     OutstandingOwnership,
     EvidenceReservation,
@@ -73,6 +74,7 @@ pub struct PreparedKernelSession<
     kernel: Box<FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A>>,
     phase: Phase,
     remote_sign_reservation: u16,
+    owned_value_index: u64,
 }
 impl<
         D,
@@ -157,6 +159,7 @@ where
             kernel,
             phase: Phase::Prepared,
             remote_sign_reservation,
+            owned_value_index: 0,
         })
     }
     pub fn kernel(&self) -> &FixedScheduler<D, S, E, N, C, P, Q, R, T, H, A> {
@@ -241,6 +244,9 @@ where
                 next,
             });
         }
+        if self.remote_sign_reservation != 0 {
+            self.owned_value_index += 1;
+        }
         for (driver, input) in self.kernel.drivers[..self.kernel.active_nodes]
             .iter_mut()
             .zip(next)
@@ -282,6 +288,9 @@ where
     }
     fn preflight(&self, next: &[D::Next; N], signs: &E) -> Result<(), SessionRefusal> {
         let kernel = &self.kernel;
+        if self.remote_sign_reservation != 0 && self.owned_value_index >= u64::MAX - 1 {
+            return Err(SessionRefusal::InvocationExhausted);
+        }
         if self.phase != Phase::Drained
             || kernel.cancelled
             || !kernel.completed[..kernel.active_nodes]
@@ -301,14 +310,25 @@ where
             || kernel.undispatched_host_count != 0
             || kernel.undispatched_cancellation_count != 0
             || kernel.queue_slots.iter().any(Option::is_some)
-            || kernel.cords[..kernel.active_cords].iter().any(|cord| {
-                cord.len != 0
-                    || cord.queued_bytes != 0
-                    || cord.offered_remote_sequence.is_some()
-                    || cord.remote_accepted
-                    || cord.producer_abnormal
-                    || (self.remote_sign_reservation != 0 && !cord.producer_closed)
-            })
+            || kernel.cords[..kernel.active_cords]
+                .iter()
+                .enumerate()
+                .any(|(index, cord)| {
+                    cord.len != 0
+                        || cord.queued_bytes != 0
+                        || cord.offered_remote_sequence.is_some()
+                        || cord.remote_accepted
+                        || cord.producer_abnormal
+                        || (self.remote_sign_reservation != 0
+                            && (!cord.producer_closed
+                                || ((!matches!(
+                                    kernel.cord_specs[index].source,
+                                    CordEndpoint::Local { .. }
+                                ) || !matches!(
+                                    kernel.cord_specs[index].sink,
+                                    CordEndpoint::Local { .. }
+                                )) && cord.next_remote_sequence != self.owned_value_index + 1)))
+                })
         {
             return Err(SessionRefusal::OutstandingOwnership);
         }
