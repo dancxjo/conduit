@@ -1,0 +1,5 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plot)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/language)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/planner)
+    Finished `release` profile [optimized] target(s) in 49.23s

@@ -103,3 +103,56 @@ remote resource, preserve a live model session or certify full Body continuity.
 Those contracts remain #6102 and the existing owners. Service forecasts, retained
 old Play outcomes, hysteresis/net-benefit policy, global placement and automatic
 release remain separate. Parent #6078 retains the full audit and publication work.
+
+## Retained current-source observations
+
+Measured Source: `f94e025592bf89a2f0408dcdf8f2a5cab21b10a3`, on dev base
+`72ab3b367c236653dff0b5726939e08de62390b9`. The supported entrance completed
+three alternating repetitions per case with clean source custody. All six
+records verify against the original artifact hashes, exact reference workloads,
+reservations, stage attribution and exact rational interval sums.
+
+Medians in microseconds from this one process:
+
+| Named operation | Retained original | Prepared local copy |
+| --- | ---: | ---: |
+| Target preparation | 0.083 | 4.223 |
+| Lease/read or actual transfer | 0.135 | 9.029 |
+| Residence inspection | 0.088 | 0.109 |
+| Handoff and readback SHA-256 validation | 120.769 | 120.281 |
+| Original resource continuity validation | 124.218 | 121.535 |
+| Cost admission and report construction, separately | 390.985 | 475.427 |
+| Target release/disposal, separately | 0.058 | 1.266 |
+
+Retained resource transfer copies zero payload bytes; the target initialization
+copies 262144 bytes. SHA-256 validation dominates the named handoff/continuity
+stages in both cases. The cost collector/report is more expensive than the
+resource copy itself, and is reported separately rather than erased. These are
+protocol-specific descriptive observations with uncontrolled affinity/frequency
+and background load, not a product speedup or a calibrated policy threshold.
+Only this committed-source capture is timing evidence; uncommitted development
+probes were functional diagnostics and are excluded.
+
+The [complete original capture](../audits/evidence/resource-replacement-cost-20261020/capture.tar.gz)
+has SHA-256 `15b8e43512cf7c99fd971aff62a62d9284fb9086c7df4f435ad9d3bee9bf7664`.
+Its [derived summary](../audits/evidence/resource-replacement-cost-20261020/summary.json)
+comes from `python3 proof/performance/verify-resource-replacement-cost.py CAPTURE`.
+The [negative-control driver](../audits/evidence/resource-replacement-cost-20261020/check-negatives.py)
+takes `VERIFIER_PATH CAPTURE_PATH`; six rehashed mutations refuse incorrect sums,
+changed references, expired observations, failed source custody, reused concrete
+handles and missing reservations. Original captures remain read-only.
+
+At the measured source, all 12 focused resource tests passed, including allocation-
+free publication, unchanged real kernel frame behavior, stale copy-lease refusal,
+replacement-Boot refusal, exact Back/artifact and resource-extent fencing, missing
+stage/context/reservation and arithmetic-budget refusal. Scoped core/Planner
+library and Std library/test/example Clippy passed with warnings denied.
+[Logs and verifier results](../audits/evidence/resource-replacement-cost-20261020/)
+retain their actual command scope; this is not full-workspace or native acceptance.
+
+CI-only upstream changes through `e834020b7e5cf30b0dd02cc1cd98cff0039cc01a` were
+merged after the capture, preserving its measured commit as an ancestor. The
+core/Planner/Std/xtask and verifier files compare unchanged against the measured
+source. This closeout is pushed directly to dev under the user's explicit
+instruction; no new Candidate/Integration/main publication is claimed. #6078
+retains shared release and full-audit completion.
