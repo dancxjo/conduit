@@ -354,9 +354,27 @@ fn assert_actual_failure_custody(fused: &Plan, advertisement: &HostAdvertisement
     let mut host = StdHost::from_advertisement(advertisement.clone()).unwrap();
     for plan in [&unfused, fused] {
         let fragment = &plan.fragments[0];
-        let mut source_order: Vec<_> = fragment.placements.iter().collect();
-        source_order.sort_by_key(|p| p.source_span.unwrap().start);
-        let expected = source_order[2];
+        let mut failing_id = fragment
+            .fore_ports
+            .iter()
+            .find(|p| p.direction == PortDirection::Input)
+            .unwrap()
+            .placement_id
+            .clone();
+        for _ in 0..2 {
+            failing_id = fragment
+                .connections
+                .iter()
+                .find(|cord| cord.source_placement_id == failing_id)
+                .unwrap()
+                .sink_placement_id
+                .clone();
+        }
+        let expected = fragment
+            .placements
+            .iter()
+            .find(|p| p.placement_id == failing_id)
+            .unwrap();
         let mut outputs = Outputs::default();
         let input = |value: u64| {
             [ExternalForeInput {
