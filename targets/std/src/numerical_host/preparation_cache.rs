@@ -77,3 +77,6 @@ impl NumericalPreparationCache {
         Ok(offers)
     }
 }
+
+#[cfg(test)]
+mod tests;
