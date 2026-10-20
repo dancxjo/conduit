@@ -2,7 +2,7 @@
 //! Phoneme and phone IDs are supplied separately despite matching broad IPA.
 #![allow(dead_code)]
 #[path = "committed_carrier/commitment.rs"]
-mod commitment_kernel;
+pub(crate) mod commitment_kernel;
 #[path = "committed_carrier/constructors.rs"]
 mod constructors;
 use commitment_kernel::parser;
