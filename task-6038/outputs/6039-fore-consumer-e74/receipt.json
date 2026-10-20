@@ -1,0 +1,85 @@
+{
+  "base": "e74d6f060caff897ac42a5e8dc06b2f8c0bde38e",
+  "proof_class": "prepared portable checked Fore consumer; deterministic CPU/package conformance, not native05 implementation, full native acceptance or C1 admission",
+  "change": "exactly two selection selectors role(Collection) to checked independent collection maximum16; six regions/groups/ActionTarget bindings/max_subjects1 unchanged; no native files/budgets",
+  "configured_creche": {
+    "passed": 2,
+    "failed": 0
+  },
+  "face_birth": {
+    "passed": 358,
+    "test_doc_targets": 66,
+    "existing_ignored": [
+      "test spoken_template_looks::tests::actual_control_face_retains_human_settings_and_actions_in_checked_summary ... ignored, requires an actual retained control Face; no runtime or audio claim",
+      "test spoken_template_looks::tests::actual_retained_face_preserves_essential_clauses_in_both_checked_looks ... ignored, requires explicit actual retained Face; never manufactures owner state"
+    ]
+  },
+  "strict_clippy": "Face/Birth all-targets passed warnings denied",
+  "fmt_diff": "passed",
+  "native_face_inventory_once": {
+    "passed": 94,
+    "failed": 11,
+    "ignored": 0,
+    "failure_names": [
+      "native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts",
+      "native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable",
+      "native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore",
+      "native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show",
+      "native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it",
+      "native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face",
+      "native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal",
+      "native_face_scene::boolean_choice_tests::ordinary_name_entry_reaches_first_choice_with_one_tab",
+      "native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot",
+      "native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts",
+      "native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation"
+    ],
+    "classification": "8 direct Capacity/Producer(Capacity) failures; 2 assertions expecting later scanout/Plan errors fail (capacity masking inferred, not enum logged); 1 generic focus order expectation gets plot.2 instead of Source first plot.0",
+    "no_sweep_fixes": true,
+    "failure_classification": {
+      "native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts": "Direct logged Producer(Capacity) refusal",
+      "native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable": "Direct logged Producer(Capacity) refusal",
+      "native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore": "Direct logged Producer(Capacity) refusal",
+      "native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show": "Assertion expecting Compositor refusal fails before requested scanout branch; Capacity masking inferred from surrounding producer admission, not logged enum",
+      "native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it": "Direct logged Producer(Capacity) refusal",
+      "native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face": "Direct logged Producer(Capacity) refusal",
+      "native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal": "Direct logged Producer(Capacity) refusal",
+      "native_face_scene::boolean_choice_tests::ordinary_name_entry_reaches_first_choice_with_one_tab": "Distinct focus/order expectation: observed creche.plot.2 vs expected creche.plot.0; not capacity",
+      "native_face_snapshot::tests::prepared_kernel_can_cancel_without_publishing_or_changing_the_snapshot": "Direct logged Capacity refusal",
+      "native_face_snapshot::tests::real_zero_body_birth_face_crosses_exact_kernel_fore_without_changing_facts": "Direct logged Capacity refusal",
+      "native_face_snapshot::tests::stale_plan_seal_is_refused_before_kernel_preparation": "Assertion expecting Plan refusal fails; Capacity masking inferred from 48KiB admission, not logged enum"
+    }
+  },
+  "admission_hold": [
+    "https://github.com/dancxjo/conduit/issues/6156 native source snapshot capacity",
+    "Explicit item-order consumer focus conformance gap remains separate; no expectation weakening"
+  ],
+  "profile": {
+    "jobs": 4,
+    "dev_test_opt_level": 1,
+    "debug": 0,
+    "incremental": 0,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "cache": "exclusive work/portable-source-target"
+  },
+  "files_sha256": {
+    "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "face-birth.command": "64569b30a2c83d361af4d5480264636d4d99f053e5974bf867a1b7c74847332a",
+    "fmt.command": "e7b9f3260be7c9a7a9c578e385cfc38d0f56f59cdbc23e4e7d06473f82433884",
+    "status.txt": "abcc43b51486799f1be46a46b54b4e419b91c4aa2282a61db36d31eaf962154f",
+    "configured-creche.command": "3eb1ac4c2bfbee374444bf91a83f500a546af4fae33ac703a8a50b2671f2a97a",
+    "configured-creche.log": "16a6424dbde1dd7623737d6bc0e480d503e9c8cf6a1fb63889f036397161371f",
+    "native-face-inventory.command": "b6bb9bdb33fb48c3429a5289b919c62e08abe4fdee3729ec86b5e950825c83e0",
+    "native-face-inventory.log": "6c9304c8011cf572b873d72f4d409f32f7ac1dbaaeb1edbddb2040fbe87eb179",
+    "clippy.log": "e43f3285645035657269084a3c2b7cc10242c7413f68f7e6cf005b6a8585f00d",
+    "clippy.command": "4fd8a5686bcd3ef0e44be49d62bda33a3616e943ee0f8f4e1766c137fd6fdd10",
+    "face-birth.log": "ebe1db8b4a114781a08acf00ed8a42ff24ac3f9747ff4e8beb25b6a33b3330e8"
+  },
+  "source_head": "83c7a5d03776f167e912b9fe4da718b21a54a921",
+  "source_tree": "0c1d566c6ae64665913fa9e071d5553e43c86fe3",
+  "independent_review": "Root approved exact two-file selector/doc scope; final doc-only note names separate focus-order failure; no runnable-code change after green",
+  "committed_files_sha256": {
+    "semantics/face/components/creche-mask.conduit": "03582d8b4988a72b0ae584f40c6da8a062ee29e324168506e4459fc16c788301",
+    "docs/architecture/portable-collection-handoff.md": "4f5b11d17ed5200e72d9dcb3def9d94789ac5ea79b4e4d319955e69fc94ab17c"
+  }
+}

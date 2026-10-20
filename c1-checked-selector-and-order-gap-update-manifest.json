@@ -1,0 +1,30 @@
+{
+  "parent": "8e69b2cd4e8bacadd747ccfe3519b83a806d5037",
+  "scope": "Preserve refreshed Source and pending proof runner, verified prior repair restoration, and confirmed renderer occlusion red diagnostic",
+  "files": [
+    {
+      "source": "work/6039-source-order-readonly-proposal-e74.md",
+      "tree_path": "task-6038/work/6039-source-order-readonly-proposal-e74.md",
+      "bytes": 4991,
+      "sha256": "8020153aaed610c8165a3983f7d7a166c7b648557fe40792a4c44940356e95b0",
+      "mode": "100644",
+      "blob": "24dda8bbc19e2f29573dbe0d4e11f57e0dc56d00"
+    },
+    {
+      "source": "outputs/6039-fore-consumer-e74/receipt.json",
+      "tree_path": "task-6038/outputs/6039-fore-consumer-e74/receipt.json",
+      "bytes": 6553,
+      "sha256": "4f8547ea74f0d57abbfb3565adc5c038eace577c3b059fecb1adc206e568d246",
+      "mode": "100644",
+      "blob": "314d8bbc1b971f38819ddfff9d88cf493a0f4cc3"
+    },
+    {
+      "source": "outputs/6039-fore-consumer-e74/native-face-inventory.log",
+      "tree_path": "task-6038/outputs/6039-fore-consumer-e74/native-face-inventory.log",
+      "bytes": 17777,
+      "sha256": "6c9304c8011cf572b873d72f4d409f32f7ac1dbaaeb1edbddb2040fbe87eb179",
+      "mode": "100644",
+      "blob": "377e78bf1511db5c2ecf00d13d4ddab2a7630175"
+    }
+  ]
+}
