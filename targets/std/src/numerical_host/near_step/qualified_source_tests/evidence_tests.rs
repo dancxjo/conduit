@@ -174,3 +174,68 @@ fn same_denotation_and_target_do_not_erase_incoming_or_program_custody() {
     let omitted = &f[..3];
     assert!(ProjectionReport::new(&d, &policy, input(&x, &t, omitted)).is_err());
 }
+
+#[test]
+fn bounded_consumer_api_checks_artifacts_basis_work_and_transport_before_returning_a_target() {
+    use QualifiedQuantityBinary64EvidenceRefusal as E;
+    let p = program("0.2Hz", "(. + 10000000000000000Hz) - 10000000000000000Hz");
+    let supplier = incoming("0.1Hz", "0.001Hz", NearQuantityAlgorithm::Binary32);
+    let frame = supplier.state.encoding.encoded();
+    let mut producer = prepare(&p);
+    let mut consumer = prepare(&p);
+    let result = producer.execute(frame, &mut work()).unwrap();
+    let target = result.target();
+    let facts = result.projection_facts();
+    let basis = input(&result, &target, &facts).basis;
+    let mut bytes = vec![0; QUALIFIED_QUANTITY_BINARY64_EVIDENCE_LIMITS.total_bytes];
+    let oversized = vec![0; bytes.len() + 1];
+    let mut shortened = vec![0xAA; 1];
+    let guard = crate::allocation_probe::begin();
+    let n = result.encode_evidence(basis, &mut bytes).unwrap();
+    assert_eq!(
+        consumer.verify_evidence(frame, basis, &bytes[..n], &mut work()),
+        Ok(target)
+    );
+    assert_eq!(
+        result.encode_evidence(basis, &mut shortened),
+        Err(E::Transport(ProjectionEvidenceRefusal::BufferTooSmall))
+    );
+    assert_eq!(shortened[0], 0xAA);
+    let mut unused = work();
+    assert_eq!(
+        consumer.verify_evidence(frame, basis, &oversized, &mut unused),
+        Err(E::Transport(ProjectionEvidenceRefusal::Extent))
+    );
+    assert_eq!(unused.spent(), 0);
+    let mut changed = basis;
+    changed.source = ProjectionText::new("fixture/different-source").unwrap();
+    let mut charged = work();
+    assert!(matches!(
+        consumer.verify_evidence(frame, changed, &bytes[..n], &mut charged),
+        Err(E::Transport(ProjectionEvidenceRefusal::EvidenceMismatch))
+    ));
+    assert!(charged.spent() > 0);
+    bytes[n - 1] ^= 1;
+    assert!(matches!(
+        consumer.verify_evidence(frame, basis, &bytes[..n], &mut work()),
+        Err(E::Transport(ProjectionEvidenceRefusal::EvidenceMismatch))
+    ));
+    bytes[n - 1] ^= 1;
+    let mut exhausted = ExactNumericWork::new(1);
+    assert!(matches!(
+        consumer.verify_evidence(frame, basis, &bytes[..n], &mut exhausted),
+        Err(E::Computation(R::Evidence(
+            NearQuantityEvidenceRefusal::WorkLimit
+        )))
+    ));
+    assert_eq!(exhausted.spent(), 1);
+    assert!(matches!(
+        consumer.verify_evidence(&frame[..frame.len() - 1], basis, &bytes[..n], &mut work()),
+        Err(E::Computation(R::Evidence(_)))
+    ));
+    assert_eq!(
+        consumer.verify_evidence(frame, basis, &bytes[..n], &mut work()),
+        Ok(target)
+    );
+    assert_eq!(guard.finish(), 0);
+}
