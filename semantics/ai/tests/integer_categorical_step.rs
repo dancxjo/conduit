@@ -653,3 +653,7 @@ fn scheduler_pressure_cancel_and_storage_failure_do_not_publish_uncommitted_fram
     assert!((0..24).any(|_| run.step().is_err()));
     assert!(seen.borrow().is_empty());
 }
+
+#[cfg(target_has_atomic = "8")]
+#[path = "integer_categorical_step/invocation_cases.rs"]
+mod invocation_cases;

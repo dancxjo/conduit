@@ -1,0 +1,914 @@
+diff --git a/semantics/ai/src/integer_categorical_step.rs b/semantics/ai/src/integer_categorical_step.rs
+--- a/semantics/ai/src/integer_categorical_step.rs
++++ b/semantics/ai/src/integer_categorical_step.rs
+@@ -397,218 +397,11 @@
+     }
+ }
+ 
+-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+-pub struct CategoricalStepReceipt {
+-    pub model_content: [u8; 32],
+-    pub input: [u8; 32],
+-    pub output: [u8; 32],
+-    pub invocation: u64,
+-    pub work_units: u64,
+-}
+-pub struct CategoricalStepBack {
+-    profile: Arc<PreparedCategoricalStep>,
+-    input: IntegerCollectionCodec,
+-    output: IntegerCollectionCodec,
+-    indices: Vec<u64>,
+-    scores: Vec<i64>,
+-    flow: bool,
+-    committed: u64,
+-    staged: Option<CategoricalStepReceipt>,
+-    last: Option<CategoricalStepReceipt>,
+-    cancelled: bool,
+-}
+-impl CategoricalStepBack {
+-    pub fn prepare_planned<const PORTS: usize>(
+-        gear: &PlannedGear,
+-        fuel: u16,
+-        profile: Arc<PreparedCategoricalStep>,
+-        flow: bool,
+-    ) -> Result<Self, String> {
+-        if PORTS < 1 || fuel < 2 {
+-            return Err("categorical step budget".into());
+-        }
+-        profile.verify_placement(gear, flow)?;
+-        let (_, outputs, lookups) = profile.dimensions();
+-        Ok(Self {
+-            input: IntegerCollectionCodec::prepare(&profile.indices, lookups)?,
+-            output: IntegerCollectionCodec::prepare(&profile.scores, outputs)?,
+-            indices: vec![0; lookups],
+-            scores: vec![0; outputs],
+-            profile,
+-            flow,
+-            committed: 0,
+-            staged: None,
+-            last: None,
+-            cancelled: false,
+-        })
+-    }
+-    pub fn committed_invocations(&self) -> u64 {
+-        self.committed
+-    }
+-    pub fn last_receipt(&self) -> Option<CategoricalStepReceipt> {
+-        self.last
+-    }
+-}
+-fn fail(detail: u16) -> StepOutcome {
+-    StepOutcome::Fail(Failure {
+-        code: FailureCode::InvalidInput,
+-        detail,
+-    })
+-}
+-impl<const PORTS: usize> StepBack<PORTS> for CategoricalStepBack {
+-    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+-        self.staged = None;
+-        if self.cancelled {
+-            return StepOutcome::Fail(Failure {
+-                code: FailureCode::Cancelled,
+-                detail: 3100,
+-            });
+-        }
+-        if !self.flow && self.committed != 0 {
+-            return StepOutcome::Complete;
+-        }
+-        if io.input_closed(PortId(0)) {
+-            return if self.flow {
+-                StepOutcome::Complete
+-            } else {
+-                fail(3101)
+-            };
+-        }
+-        if self.committed == u64::MAX {
+-            return fail(3102);
+-        }
+-        if io.input(PortId(0)).is_none() || !io.output_ready(PortId(0)) {
+-            return StepOutcome::Await;
+-        }
+-        let Some(bytes) = inputs.input(PortId(0)) else {
+-            return fail(3103);
+-        };
+-        if self.input.decode(bytes, &mut self.indices).is_err()
+-            || self
+-                .profile
+-                .model
+-                .infer_indices_into(&self.indices, &mut self.scores)
+-                .is_err()
+-        {
+-            return fail(3104);
+-        }
+-        let output = self.output.encode(&self.scores);
+-        let receipt = CategoricalStepReceipt {
+-            model_content: self.profile.model.identity(),
+-            input: semantic_digest("numeric/categorical-indices@1", bytes),
+-            output: semantic_digest("numeric/categorical-scores@1", output),
+-            invocation: self.committed + 1,
+-            work_units: self.profile.model.work_units(),
+-        };
+-        if io.consume(PortId(0)).is_err()
+-            || io.send_prepared(PortId(0), output.len() as u32).is_err()
+-        {
+-            return fail(3105);
+-        }
+-        self.staged = Some(receipt);
+-        StepOutcome::Progress
+-    }
+-    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+-        (port == PortId(0) && self.staged.is_some()).then_some(self.output.encoded.as_slice())
+-    }
+-    fn step_committed(&mut self) {
+-        if let Some(receipt) = self.staged.take() {
+-            self.committed += 1;
+-            self.last = Some(receipt);
+-        }
+-    }
+-    fn cancel(&mut self) {
+-        self.cancelled = true;
+-        self.staged = None;
+-    }
+-}
++mod back;
++pub use back::{CategoricalStepBack, CategoricalStepReceipt};
++
++#[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++pub mod invocation;
+ 
+ #[cfg(feature = "kernel-operation-owners")]
+-pub mod owner {
+-    use super::*;
+-    use alloc::{boxed::Box, collections::BTreeMap};
+-    use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
+-    use conduit_kernel::HostedValueStore;
+-    use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
+-    pub struct CategoricalOperationFactory {
+-        implementation: ImplementationId,
+-        selected: BTreeMap<PlacementId, (Arc<PreparedCategoricalStep>, bool)>,
+-    }
+-    impl CategoricalOperationFactory {
+-        pub fn for_plan(
+-            plan: &Plan,
+-            profiles: &[Arc<PreparedCategoricalStep>],
+-        ) -> Result<Self, String> {
+-            if !verify_plan(plan) {
+-                return Err("categorical requires sealed Plan".into());
+-            }
+-            let mut selected = BTreeMap::new();
+-            for gear in plan
+-                .fragments
+-                .iter()
+-                .flat_map(|f| &f.placements)
+-                .filter(|g| g.implementation_id.as_str() == CATEGORICAL_STEP_IMPLEMENTATION)
+-            {
+-                let mut matches = profiles
+-                    .iter()
+-                    .flat_map(|p| [false, true].map(move |flow| (p, flow)))
+-                    .filter(|(p, flow)| p.verify_placement(gear, *flow).is_ok());
+-                let (profile, flow) = matches
+-                    .next()
+-                    .ok_or("unadmitted selected categorical model")?;
+-                if matches.next().is_some() {
+-                    return Err("ambiguous selected categorical model".into());
+-                }
+-                if selected
+-                    .insert(gear.placement_id.clone(), (profile.clone(), flow))
+-                    .is_some()
+-                {
+-                    return Err("duplicate categorical placement".into());
+-                }
+-            }
+-            Ok(Self {
+-                implementation: CATEGORICAL_STEP_IMPLEMENTATION.into(),
+-                selected,
+-            })
+-        }
+-        fn selected(
+-            &self,
+-            gear: &PlannedGear,
+-        ) -> Result<&(Arc<PreparedCategoricalStep>, bool), String> {
+-            let selected = self
+-                .selected
+-                .get(&gear.placement_id)
+-                .ok_or("unselected categorical placement")?;
+-            selected.0.verify_placement(gear, selected.1)?;
+-            Ok(selected)
+-        }
+-    }
+-    impl KernelOperationFactory for CategoricalOperationFactory {
+-        fn implementation_id(&self) -> &ImplementationId {
+-            &self.implementation
+-        }
+-        fn budget(&self, gear: &PlannedGear) -> Result<KernelOperationBudget, String> {
+-            let (profile, _) = self.selected(gear)?;
+-            Ok(KernelOperationBudget {
+-                value_items: 1,
+-                value_bytes: profile.output_bytes,
+-                maximum_value_bytes: profile.input_bytes.max(profile.output_bytes),
+-                host_requests: 0,
+-                sign_items: 16,
+-            })
+-        }
+-        fn prepare(
+-            &self,
+-            gear: &PlannedGear,
+-            _values: &mut HostedValueStore,
+-        ) -> Result<Box<dyn StepBack<PORTS> + Send>, String> {
+-            let (profile, flow) = self.selected(gear)?;
+-            Ok(Box::new(CategoricalStepBack::prepare_planned::<PORTS>(
+-                gear,
+-                2,
+-                profile.clone(),
+-                *flow,
+-            )?))
+-        }
+-    }
+-}
++pub mod owner;
+diff --git a/semantics/ai/src/integer_categorical_step/back.rs b/semantics/ai/src/integer_categorical_step/back.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/src/integer_categorical_step/back.rs
+@@ -0,0 +1,170 @@
++use super::*;
++
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub struct CategoricalStepReceipt {
++    pub model_content: [u8; 32],
++    pub input: [u8; 32],
++    pub output: [u8; 32],
++    pub invocation: u64,
++    pub work_units: u64,
++}
++pub struct CategoricalStepBack {
++    profile: Arc<PreparedCategoricalStep>,
++    input: IntegerCollectionCodec,
++    output: IntegerCollectionCodec,
++    indices: Vec<u64>,
++    scores: Vec<i64>,
++    flow: bool,
++    committed: u64,
++    staged: Option<CategoricalStepReceipt>,
++    last: Option<CategoricalStepReceipt>,
++    cancelled: bool,
++    #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++    writer: Option<invocation::InvocationWriter>,
++    #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++    reservation: Option<invocation::Reservation>,
++}
++impl CategoricalStepBack {
++    pub fn prepare_planned<const PORTS: usize>(
++        gear: &PlannedGear,
++        fuel: u16,
++        profile: Arc<PreparedCategoricalStep>,
++        flow: bool,
++    ) -> Result<Self, String> {
++        if PORTS < 1 || fuel < 2 {
++            return Err("categorical step budget".into());
++        }
++        profile.verify_placement(gear, flow)?;
++        let (_, outputs, lookups) = profile.dimensions();
++        Ok(Self {
++            input: IntegerCollectionCodec::prepare(&profile.indices, lookups)?,
++            output: IntegerCollectionCodec::prepare(&profile.scores, outputs)?,
++            indices: vec![0; lookups],
++            scores: vec![0; outputs],
++            profile,
++            flow,
++            committed: 0,
++            staged: None,
++            last: None,
++            cancelled: false,
++            #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++            writer: None,
++            #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++            reservation: None,
++        })
++    }
++    #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++    pub(super) fn observe(
++        &mut self,
++        outlet: &invocation::CategoricalInvocationOutlet,
++        gear: &PlannedGear,
++    ) -> Result<(), String> {
++        self.writer = Some(outlet.writer(gear, &self.profile, self.flow)?);
++        Ok(())
++    }
++    pub fn committed_invocations(&self) -> u64 {
++        self.committed
++    }
++    pub fn last_receipt(&self) -> Option<CategoricalStepReceipt> {
++        self.last
++    }
++}
++fn fail(detail: u16) -> StepOutcome {
++    StepOutcome::Fail(Failure {
++        code: FailureCode::InvalidInput,
++        detail,
++    })
++}
++impl<const PORTS: usize> StepBack<PORTS> for CategoricalStepBack {
++    fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
++        self.staged = None;
++        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++        {
++            self.reservation = None;
++        }
++        if self.cancelled {
++            return StepOutcome::Fail(Failure {
++                code: FailureCode::Cancelled,
++                detail: 3100,
++            });
++        }
++        if !self.flow && self.committed != 0 {
++            return StepOutcome::Complete;
++        }
++        if io.input_closed(PortId(0)) {
++            return if self.flow {
++                StepOutcome::Complete
++            } else {
++                fail(3101)
++            };
++        }
++        if self.committed == u64::MAX {
++            return fail(3102);
++        }
++        if io.input(PortId(0)).is_none() || !io.output_ready(PortId(0)) {
++            return StepOutcome::Await;
++        }
++        let Some(bytes) = inputs.input(PortId(0)) else {
++            return fail(3103);
++        };
++        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++        if let Some(writer) = &self.writer {
++            let Some(reservation) = writer.reserve() else {
++                return StepOutcome::Fail(Failure {
++                    code: FailureCode::StorageExhausted,
++                    detail: 3106,
++                });
++            };
++            self.reservation = Some(reservation);
++        }
++        if self.input.decode(bytes, &mut self.indices).is_err()
++            || self
++                .profile
++                .model
++                .infer_indices_into(&self.indices, &mut self.scores)
++                .is_err()
++        {
++            return fail(3104);
++        }
++        let output = self.output.encode(&self.scores);
++        let receipt = CategoricalStepReceipt {
++            model_content: self.profile.model.identity(),
++            input: semantic_digest("numeric/categorical-indices@1", bytes),
++            output: semantic_digest("numeric/categorical-scores@1", output),
++            invocation: self.committed + 1,
++            work_units: self.profile.model.work_units(),
++        };
++        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++        if let Some(reservation) = &mut self.reservation {
++            reservation.stage(bytes, output, receipt.invocation);
++        }
++        if io.consume(PortId(0)).is_err()
++            || io.send_prepared(PortId(0), output.len() as u32).is_err()
++        {
++            return fail(3105);
++        }
++        self.staged = Some(receipt);
++        StepOutcome::Progress
++    }
++    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
++        (port == PortId(0) && self.staged.is_some()).then_some(self.output.encoded.as_slice())
++    }
++    fn step_committed(&mut self) {
++        if let Some(receipt) = self.staged.take() {
++            self.committed += 1;
++            self.last = Some(receipt);
++            #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++            if let Some(reservation) = self.reservation.take() {
++                reservation.publish();
++            }
++        }
++    }
++    fn cancel(&mut self) {
++        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++        {
++            self.reservation = None;
++        }
++        self.cancelled = true;
++        self.staged = None;
++    }
++}
+diff --git a/semantics/ai/src/integer_categorical_step/invocation.rs b/semantics/ai/src/integer_categorical_step/invocation.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/src/integer_categorical_step/invocation.rs
+@@ -0,0 +1,231 @@
++//! Bounded evidence from a single observed Back instance, published only on commit.
++//!
++//! This proves numerical invocation custody, not Language legality or model quality.
++//! No caller-supplied Play identifier is authenticated by this outlet. A new Play
++//! requires a fresh factory/outlet: the exclusive writer can be claimed only once.
++use super::*;
++use alloc::boxed::Box;
++use core::sync::atomic::{AtomicBool, AtomicU8, Ordering};
++
++/// Maximum slots per placement, including held receipts.
++pub const MAX_INVOCATION_SLOTS: usize = 128;
++/// Maximum canonical input + output + invocation bytes retained per outlet.
++pub const MAX_INVOCATION_BYTES: usize = 1_048_576;
++const FREE: u8 = 0;
++const RESERVED: u8 = 1;
++const COMMITTED: u8 = 2;
++const CLAIMED: u8 = 3;
++
++struct Slot {
++    state: AtomicU8,
++    bytes: Box<[AtomicU8]>,
++}
++struct Inner {
++    profile: Arc<PreparedCategoricalStep>,
++    plan: Plan,
++    placement: PlannedGear,
++    flow: bool,
++    writer_claimed: AtomicBool,
++    slots: Box<[Slot]>,
++    bytes_per_slot: usize,
++}
++
++/// Read handle. Cloning a handle does not duplicate or release held receipts.
++#[derive(Clone)]
++pub struct CategoricalInvocationOutlet(Arc<Inner>);
++impl CategoricalInvocationOutlet {
++    pub(super) fn prepare(
++        plan: &Plan,
++        placement: &PlannedGear,
++        profile: Arc<PreparedCategoricalStep>,
++        flow: bool,
++        capacity: usize,
++    ) -> Result<Self, String> {
++        profile.verify_placement(placement, flow)?;
++        let bytes_per_slot = (profile.input_bytes as usize)
++            .checked_add(profile.output_bytes as usize)
++            .and_then(|n| n.checked_add(8))
++            .ok_or("categorical outlet byte overflow")?;
++        let total = bytes_per_slot
++            .checked_mul(capacity)
++            .ok_or("categorical outlet capacity overflow")?;
++        if capacity == 0 || capacity > MAX_INVOCATION_SLOTS || total > MAX_INVOCATION_BYTES {
++            return Err("categorical outlet finite capacity".into());
++        }
++        let slots = (0..capacity)
++            .map(|_| Slot {
++                state: AtomicU8::new(FREE),
++                bytes: (0..bytes_per_slot).map(|_| AtomicU8::new(0)).collect(),
++            })
++            .collect();
++        Ok(Self(Arc::new(Inner {
++            profile,
++            plan: plan.clone(),
++            placement: placement.clone(),
++            flow,
++            writer_claimed: AtomicBool::new(false),
++            slots,
++            bytes_per_slot,
++        })))
++    }
++    pub fn capacity(&self) -> usize {
++        self.0.slots.len()
++    }
++    /// Payload bytes, excluding fixed atomic states, immutable binding and allocator overhead.
++    pub fn retained_payload_bytes(&self) -> usize {
++        self.0.bytes_per_slot * self.capacity()
++    }
++    /// Claims a committed slot. Concurrent readers receive disjoint leases.
++    pub fn try_take(&self) -> Option<CommittedCategoricalInvocation> {
++        self.0.slots.iter().enumerate().find_map(|(index, slot)| {
++            slot.state
++                .compare_exchange(COMMITTED, CLAIMED, Ordering::Acquire, Ordering::Relaxed)
++                .ok()
++                .map(|_| CommittedCategoricalInvocation {
++                    inner: self.0.clone(),
++                    index,
++                })
++        })
++    }
++    pub(super) fn writer(
++        &self,
++        placement: &PlannedGear,
++        profile: &Arc<PreparedCategoricalStep>,
++        flow: bool,
++    ) -> Result<InvocationWriter, String> {
++        if &self.0.placement != placement
++            || !Arc::ptr_eq(&self.0.profile, profile)
++            || self.0.flow != flow
++        {
++            return Err("categorical outlet foreign selected placement".into());
++        }
++        self.0
++            .writer_claimed
++            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
++            .map_err(|_| String::from("categorical outlet already attached to a Back"))?;
++        Ok(InvocationWriter(self.0.clone()))
++    }
++}
++
++/// Opaque, non-cloneable committed execution evidence. Dropping releases its slot.
++/// Exact canonical bytes are available without decoding or allocating in the Back.
++pub struct CommittedCategoricalInvocation {
++    inner: Arc<Inner>,
++    index: usize,
++}
++impl CommittedCategoricalInvocation {
++    pub fn profile(&self) -> &PreparedCategoricalStep {
++        &self.inner.profile
++    }
++    pub fn plan(&self) -> &Plan {
++        &self.inner.plan
++    }
++    pub fn placement(&self) -> &PlannedGear {
++        &self.inner.placement
++    }
++    pub fn flow(&self) -> bool {
++        self.inner.flow
++    }
++    pub fn input_len(&self) -> usize {
++        self.inner.profile.input_bytes as usize
++    }
++    pub fn output_len(&self) -> usize {
++        self.inner.profile.output_bytes as usize
++    }
++    fn copy(&self, offset: usize, target: &mut [u8], length: usize) -> Result<(), &'static str> {
++        if target.len() != length {
++            return Err("categorical evidence buffer length");
++        }
++        for (to, from) in target
++            .iter_mut()
++            .zip(&self.inner.slots[self.index].bytes[offset..offset + length])
++        {
++            *to = from.load(Ordering::Relaxed);
++        }
++        Ok(())
++    }
++    pub fn copy_input_into(&self, target: &mut [u8]) -> Result<(), &'static str> {
++        self.copy(0, target, self.input_len())
++    }
++    pub fn copy_output_into(&self, target: &mut [u8]) -> Result<(), &'static str> {
++        self.copy(self.input_len(), target, self.output_len())
++    }
++    pub fn invocation(&self) -> u64 {
++        let mut bytes = [0; 8];
++        // The slot was privately staged with precisely these fixed-size fields.
++        for (to, from) in bytes
++            .iter_mut()
++            .zip(&self.inner.slots[self.index].bytes[self.input_len() + self.output_len()..])
++        {
++            *to = from.load(Ordering::Relaxed);
++        }
++        u64::from_le_bytes(bytes)
++    }
++}
++impl Drop for CommittedCategoricalInvocation {
++    fn drop(&mut self) {
++        self.inner.slots[self.index]
++            .state
++            .store(FREE, Ordering::Release);
++    }
++}
++
++pub(super) struct InvocationWriter(Arc<Inner>);
++impl InvocationWriter {
++    pub(super) fn reserve(&self) -> Option<Reservation> {
++        self.0.slots.iter().enumerate().find_map(|(index, slot)| {
++            slot.state
++                .compare_exchange(FREE, RESERVED, Ordering::Acquire, Ordering::Relaxed)
++                .ok()
++                .map(|_| Reservation {
++                    inner: self.0.clone(),
++                    index,
++                    staged: false,
++                    published: false,
++                })
++        })
++    }
++}
++pub(super) struct Reservation {
++    inner: Arc<Inner>,
++    index: usize,
++    staged: bool,
++    published: bool,
++}
++impl Reservation {
++    pub(super) fn stage(&mut self, input: &[u8], output: &[u8], invocation: u64) {
++        debug_assert_eq!(input.len(), self.inner.profile.input_bytes as usize);
++        debug_assert_eq!(output.len(), self.inner.profile.output_bytes as usize);
++        for (to, from) in self.inner.slots[self.index].bytes.iter().zip(
++            input
++                .iter()
++                .chain(output)
++                .chain(invocation.to_le_bytes().iter()),
++        ) {
++            to.store(*from, Ordering::Relaxed);
++        }
++        self.staged = true;
++    }
++    pub(super) fn publish(mut self) {
++        if self.staged {
++            self.inner.slots[self.index]
++                .state
++                .store(COMMITTED, Ordering::Release);
++            self.published = true;
++        }
++    }
++}
++impl Drop for Reservation {
++    fn drop(&mut self) {
++        // Published reservations are COMMITTED; only unfinished ones are released.
++        if self.published {
++            return;
++        }
++        let _ = self.inner.slots[self.index].state.compare_exchange(
++            RESERVED,
++            FREE,
++            Ordering::Release,
++            Ordering::Relaxed,
++        );
++    }
++}
+diff --git a/semantics/ai/src/integer_categorical_step/owner.rs b/semantics/ai/src/integer_categorical_step/owner.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/src/integer_categorical_step/owner.rs
+@@ -0,0 +1,121 @@
++use super::*;
++use alloc::{boxed::Box, collections::BTreeMap};
++use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
++use conduit_kernel::HostedValueStore;
++use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
++pub struct CategoricalOperationFactory {
++    implementation: ImplementationId,
++    selected: BTreeMap<PlacementId, (Arc<PreparedCategoricalStep>, bool)>,
++    #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++    outlets: BTreeMap<PlacementId, invocation::CategoricalInvocationOutlet>,
++}
++impl CategoricalOperationFactory {
++    pub fn for_plan(
++        plan: &Plan,
++        profiles: &[Arc<PreparedCategoricalStep>],
++    ) -> Result<Self, String> {
++        if !verify_plan(plan) {
++            return Err("categorical requires sealed Plan".into());
++        }
++        let mut selected = BTreeMap::new();
++        for gear in plan
++            .fragments
++            .iter()
++            .flat_map(|f| &f.placements)
++            .filter(|g| g.implementation_id.as_str() == CATEGORICAL_STEP_IMPLEMENTATION)
++        {
++            let mut matches = profiles
++                .iter()
++                .flat_map(|p| [false, true].map(move |flow| (p, flow)))
++                .filter(|(p, flow)| p.verify_placement(gear, *flow).is_ok());
++            let (profile, flow) = matches
++                .next()
++                .ok_or("unadmitted selected categorical model")?;
++            if matches.next().is_some() {
++                return Err("ambiguous selected categorical model".into());
++            }
++            if selected
++                .insert(gear.placement_id.clone(), (profile.clone(), flow))
++                .is_some()
++            {
++                return Err("duplicate categorical placement".into());
++            }
++        }
++        Ok(Self {
++            implementation: CATEGORICAL_STEP_IMPLEMENTATION.into(),
++            selected,
++            #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++            outlets: BTreeMap::new(),
++        })
++    }
++    /// Each returned outlet may attach to exactly one prepared Back, never another Play.
++    #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++    pub fn for_plan_with_invocation_outlets(
++        plan: &Plan,
++        profiles: &[Arc<PreparedCategoricalStep>],
++        slots_per_placement: usize,
++    ) -> Result<(Self, Vec<invocation::CategoricalInvocationOutlet>), String> {
++        let mut factory = Self::for_plan(plan, profiles)?;
++        for gear in plan
++            .fragments
++            .iter()
++            .flat_map(|fragment| &fragment.placements)
++        {
++            if let Some((profile, flow)) = factory.selected.get(&gear.placement_id) {
++                let outlet = invocation::CategoricalInvocationOutlet::prepare(
++                    plan,
++                    gear,
++                    profile.clone(),
++                    *flow,
++                    slots_per_placement,
++                )?;
++                factory.outlets.insert(gear.placement_id.clone(), outlet);
++            }
++        }
++        let readers = factory.outlets.values().cloned().collect();
++        Ok((factory, readers))
++    }
++    fn selected(
++        &self,
++        gear: &PlannedGear,
++    ) -> Result<&(Arc<PreparedCategoricalStep>, bool), String> {
++        let selected = self
++            .selected
++            .get(&gear.placement_id)
++            .ok_or("unselected categorical placement")?;
++        selected.0.verify_placement(gear, selected.1)?;
++        Ok(selected)
++    }
++}
++impl KernelOperationFactory for CategoricalOperationFactory {
++    fn implementation_id(&self) -> &ImplementationId {
++        &self.implementation
++    }
++    fn budget(&self, gear: &PlannedGear) -> Result<KernelOperationBudget, String> {
++        let (profile, _) = self.selected(gear)?;
++        Ok(KernelOperationBudget {
++            value_items: 1,
++            value_bytes: profile.output_bytes,
++            maximum_value_bytes: profile.input_bytes.max(profile.output_bytes),
++            host_requests: 0,
++            sign_items: 16,
++        })
++    }
++    fn prepare(
++        &self,
++        gear: &PlannedGear,
++        _values: &mut HostedValueStore,
++    ) -> Result<Box<dyn StepBack<PORTS> + Send>, String> {
++        let (profile, flow) = self.selected(gear)?;
++        let back = CategoricalStepBack::prepare_planned::<PORTS>(gear, 2, profile.clone(), *flow)?;
++        #[cfg(all(target_has_atomic = "ptr", target_has_atomic = "8"))]
++        let back = {
++            let mut back = back;
++            if let Some(outlet) = self.outlets.get(&gear.placement_id) {
++                back.observe(outlet, gear)?;
++            }
++            back
++        };
++        Ok(Box::new(back))
++    }
++}
+diff --git a/semantics/ai/tests/integer_categorical_step.rs b/semantics/ai/tests/integer_categorical_step.rs
+--- a/semantics/ai/tests/integer_categorical_step.rs
++++ b/semantics/ai/tests/integer_categorical_step.rs
+@@ -653,3 +653,7 @@
+     assert!((0..24).any(|_| run.step().is_err()));
+     assert!(seen.borrow().is_empty());
+ }
++
++#[cfg(target_has_atomic = "8")]
++#[path = "integer_categorical_step/invocation_cases.rs"]
++mod invocation_cases;
+diff --git a/semantics/ai/tests/integer_categorical_step/invocation_cases.rs b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/ai/tests/integer_categorical_step/invocation_cases.rs
+@@ -0,0 +1,133 @@
++//! Uses the unchanged categorical model/Plan fixture; acknowledgements here are
++//! diagnostic StepBack protocol proof, not installed Plan/Play acceptance.
++use super::*;
++use conduit_ai::integer_categorical_step::invocation::*;
++
++fn frame(bytes: &[u8]) -> (StepIo<PORTS>, StepInputBytes<'_, PORTS>) {
++    let reference = ValueRef {
++        slot: 0,
++        generation: 1,
++        byte_len: bytes.len() as u32,
++    };
++    (
++        StepIo::test_frame(
++            core::array::from_fn(|i| (i == 0).then_some(reference)),
++            [false; PORTS],
++            core::array::from_fn(|i| (i == 0).then_some(4096)),
++            None,
++            2,
++        ),
++        StepInputBytes::test_frame(core::array::from_fn(|i| (i == 0).then_some(bytes)), None),
++    )
++}
++
++#[test]
++fn opaque_outlet_publishes_only_after_ack_and_holds_exact_bytes_under_pressure() {
++    fn send_sync<T: Send + Sync>() {}
++    send_sync::<CategoricalInvocationOutlet>();
++    send_sync::<CommittedCategoricalInvocation>();
++    let profile = profile();
++    let plan = plan(&profile, true, true).unwrap();
++    let (factory, mut readers) =
++        owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
++            &plan,
++            &[profile.clone()],
++            1,
++        )
++        .unwrap();
++    let outlet = readers.pop().unwrap();
++    assert!(readers.is_empty());
++    assert_eq!(outlet.capacity(), 1);
++    let mut values = HostedValueStore::new(8, 4096, 32768).unwrap();
++    let mut back = factory.prepare(gear(&plan), &mut values).unwrap();
++    // An observed outlet is never rebound to another instance / Play.
++    assert!(factory.prepare(gear(&plan), &mut values).is_err());
++    let bytes = indices(&profile, &[1, 1]);
++    let (mut io, input) = frame(&bytes);
++    let (outcome, allocations) = allocation_probe::observe(|| back.step(&mut io, &input));
++    assert_eq!(outcome, StepOutcome::Progress);
++    assert_eq!(allocations.allocations, 0);
++    assert_eq!(allocations.reallocations, 0);
++    assert!(outlet.try_take().is_none());
++    let output = back.prepared_output(KPort(0)).unwrap().to_vec();
++    let (_, allocations) = allocation_probe::observe(|| back.step_committed());
++    assert_eq!(allocations.allocations, 0);
++    let receipt = outlet.try_take().unwrap();
++    assert!(outlet.try_take().is_none());
++    assert_eq!(receipt.invocation(), 1);
++    assert_eq!(receipt.placement(), gear(&plan));
++    assert_eq!(receipt.plan(), &plan);
++    assert!(receipt.flow());
++    assert_eq!(
++        receipt.profile().resource().artifact(),
++        profile.resource().artifact()
++    );
++    let mut retained_input = vec![0; receipt.input_len()];
++    let mut retained_output = vec![0; receipt.output_len()];
++    receipt.copy_input_into(&mut retained_input).unwrap();
++    receipt.copy_output_into(&mut retained_output).unwrap();
++    assert_eq!(retained_input, bytes);
++    assert_eq!(retained_output, output);
++    assert_eq!(scores(&retained_output), [4, -4]);
++    assert!(receipt.copy_input_into(&mut []).is_err());
++    assert_eq!(
++        outlet.retained_payload_bytes(),
++        bytes.len() + output.len() + 8
++    );
++    let (mut pressure, input) = frame(&bytes);
++    assert_eq!(
++        back.step(&mut pressure, &input),
++        StepOutcome::Fail(conduit_kernel::Failure {
++            code: conduit_kernel::FailureCode::StorageExhausted,
++            detail: 3106,
++        })
++    );
++    assert!(back.prepared_output(KPort(0)).is_none());
++    // A held receipt is immutable even after a refused subsequent invocation.
++    receipt.copy_output_into(&mut retained_output).unwrap();
++    assert_eq!(retained_output, output);
++    drop(receipt);
++    let (mut io, input) = frame(&bytes);
++    assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
++    back.step_committed();
++    assert_eq!(outlet.try_take().unwrap().invocation(), 2);
++}
++
++#[test]
++fn cancellation_and_bad_input_never_publish_and_capacity_is_admitted_before_use() {
++    let profile = profile();
++    let plan = plan(&profile, true, true).unwrap();
++    for capacity in [0, MAX_INVOCATION_SLOTS + 1] {
++        assert!(
++            owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
++                &plan,
++                &[profile.clone()],
++                capacity
++            )
++            .is_err()
++        );
++    }
++    let (factory, readers) = owner::CategoricalOperationFactory::for_plan_with_invocation_outlets(
++        &plan,
++        &[profile.clone()],
++        1,
++    )
++    .unwrap();
++    let mut values = HostedValueStore::new(8, 4096, 32768).unwrap();
++    let mut wrong = gear(&plan).clone();
++    wrong.kind_contract_revision = "foreign".into();
++    assert!(factory.prepare(&wrong, &mut values).is_err());
++    // Failed descriptor admission did not consume exclusive writer custody.
++    let mut back = factory.prepare(gear(&plan), &mut values).unwrap();
++    let malformed = indices(&profile, &[0, 3]);
++    let (mut io, input) = frame(&malformed);
++    assert!(matches!(back.step(&mut io, &input), StepOutcome::Fail(_)));
++    back.step_committed();
++    assert!(readers[0].try_take().is_none());
++    let bytes = indices(&profile, &[0, 2]);
++    let (mut io, input) = frame(&bytes);
++    assert_eq!(back.step(&mut io, &input), StepOutcome::Progress);
++    back.cancel();
++    back.step_committed();
++    assert!(readers[0].try_take().is_none());
++}
