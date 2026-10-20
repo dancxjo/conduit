@@ -9,7 +9,7 @@ fn layout() -> CompactF32Layout {
 fn store() -> (HostedValueStore, PreparedCompactF32Output) {
     let mut values = HostedValueStore::new(4, 24, 48).unwrap();
     let owner = values
-        .prepare_owned_compact_f32_outputs(&[(layout(), 2)])
+        .prepare_owned_compact_f32_outputs(&[(layout(), 2)], &[])
         .unwrap()
         .remove(0);
     (values, owner)
@@ -98,21 +98,24 @@ fn invalid_batch_and_unadmitted_buffer_leave_store_truth_unchanged() {
     let mut values = HostedValueStore::new(2, 24, 48).unwrap();
     let backing = values.reserved_storage_bytes();
     assert!(values
-        .prepare_owned_compact_f32_outputs(&[
-            (layout(), 1),
-            (
-                CompactF32Layout {
-                    lanes: 0,
-                    logical_bytes: 20
-                },
-                1
-            )
-        ])
+        .prepare_owned_compact_f32_outputs(
+            &[
+                (layout(), 1),
+                (
+                    CompactF32Layout {
+                        lanes: 0,
+                        logical_bytes: 20
+                    },
+                    1
+                )
+            ],
+            &[]
+        )
         .is_err());
     assert_eq!(values.reserved_storage_bytes(), backing);
     assert!(values.owned_compact_slots.is_empty());
     let owner = values
-        .prepare_owned_compact_f32_outputs(&[(layout(), 1)])
+        .prepare_owned_compact_f32_outputs(&[(layout(), 1)], &[])
         .unwrap()
         .remove(0);
     for mut bytes in [vec![0; 4], f32::INFINITY.to_le_bytes().repeat(2)] {
@@ -126,7 +129,7 @@ fn invalid_batch_and_unadmitted_buffer_leave_store_truth_unchanged() {
 fn logical_pressure_and_retired_generations_refuse_before_buffer_transfer() {
     let mut values = HostedValueStore::new(3, 24, 24).unwrap();
     let owner = values
-        .prepare_owned_compact_f32_outputs(&[(layout(), 2)])
+        .prepare_owned_compact_f32_outputs(&[(layout(), 2)], &[])
         .unwrap()
         .remove(0);
     let mut first = LANES.to_vec();
@@ -180,4 +183,35 @@ fn numerically_equal_foreign_pending_receipts_cannot_commit_another_store() {
     assert_eq!(b_bytes, LANES);
     assert_eq!(a.used_items(), 0);
     assert_eq!(b.used_items(), 0);
+}
+
+#[test]
+fn conversion_preserves_explicit_canonical_capacity_or_refuses_atomically() {
+    let mut values = HostedValueStore::new(4, 24, 96).unwrap();
+    let live = values.store(&[1; 24]).unwrap();
+    let before = values.reserved_storage_bytes();
+    // One live slot, two owned slots and two canonical slots cannot fit.
+    assert_eq!(
+        values.preflight_owned_compact_f32_outputs(&[(layout(), 2)], &[24, 24]),
+        Err(StorageError::ItemCapacityExceeded)
+    );
+    assert!(values
+        .prepare_owned_compact_f32_outputs(&[(layout(), 2)], &[24, 24])
+        .is_err());
+    assert_eq!(values.reserved_storage_bytes(), before);
+    assert!(values.owned_compact_slots.is_empty());
+    assert_eq!(values.get(live).unwrap(), [1; 24]);
+    values
+        .preflight_owned_compact_f32_outputs(&[(layout(), 2)], &[24])
+        .unwrap();
+    let owners = values
+        .prepare_owned_compact_f32_outputs(&[(layout(), 2)], &[24])
+        .unwrap();
+    let canonical = values.store(&[2; 24]).unwrap();
+    assert!(!owners[0].slots.contains(&canonical.slot));
+    assert_eq!(values.get(canonical).unwrap(), [2; 24]);
+    assert_eq!(
+        values.preflight_owned_compact_f32_outputs(&[(layout(), 1)], &[0]),
+        Err(StorageError::InvalidBudget)
+    );
 }

@@ -440,10 +440,14 @@ pub trait ValueStorage {
     }
     /// Typed producer pools are explicitly reserved before Play. Unsupported
     /// storage profiles refuse rather than copying an owned publication.
+    /// Canonical reservations name additional free generic slot capacities
+    /// that conversion must preserve. Preparation either publishes the entire
+    /// batch or leaves storage unchanged; preflight itself is read-only.
     #[cfg(feature = "alloc")]
     fn preflight_owned_compact_f32_outputs(
         &self,
         _requests: &[(scheduler::CompactF32Layout, u16)],
+        _canonical_reservations: &[u32],
     ) -> Result<(), StorageError> {
         Err(StorageError::RepresentationMismatch)
     }
@@ -451,6 +455,7 @@ pub trait ValueStorage {
     fn prepare_owned_compact_f32_outputs(
         &mut self,
         _requests: &[(scheduler::CompactF32Layout, u16)],
+        _canonical_reservations: &[u32],
     ) -> Result<alloc::vec::Vec<PreparedCompactF32Output>, StorageError> {
         Err(StorageError::RepresentationMismatch)
     }

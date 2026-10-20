@@ -135,6 +135,27 @@ where
         nodes: &[NodeId],
         canonical_inputs: &[(NodeId, PortId)],
     ) -> Result<(), SchedulerError> {
+        self.bind_compact_f32_dag_outputs(nodes, canonical_inputs, None)
+    }
+    /// Select ownership transfer for supported internal producers. The caller
+    /// supplies additional free canonical slot requirements for bounded retained
+    /// inputs and Host completions in its exact prepared profile. Queue and
+    /// one-step staging requirements are added here. A selected owned producer
+    /// never falls back to copying during Play.
+    pub fn bind_owned_compact_f32_dag(
+        &mut self,
+        nodes: &[NodeId],
+        canonical_inputs: &[(NodeId, PortId)],
+        retained_canonical: &[u32],
+    ) -> Result<(), SchedulerError> {
+        self.bind_compact_f32_dag_outputs(nodes, canonical_inputs, Some(retained_canonical))
+    }
+    fn bind_compact_f32_dag_outputs(
+        &mut self,
+        nodes: &[NodeId],
+        canonical_inputs: &[(NodeId, PortId)],
+        owned_reservations: Option<&[u32]>,
+    ) -> Result<(), SchedulerError> {
         if !(2..=32).contains(&nodes.len())
             || self.decisions != 0
             || self.cancelled
@@ -320,6 +341,45 @@ where
         if u32::from(available) < items || quota < bytes {
             return Err(SchedulerError::InvalidPlan);
         }
+        let mut owned_nodes = Vec::new();
+        let mut owned_requests = Vec::new();
+        let mut canonical = owned_reservations.unwrap_or_default().to_vec();
+        if owned_reservations.is_some() {
+            for &(node, port, layout) in &outputs {
+                if !self.drivers[usize::from(node.0)].owns_compact_f32_output(port) {
+                    continue;
+                }
+                let slots = self.cord_specs[..self.active_cords]
+                    .iter()
+                    .filter(|cord| cord.source_local() == Some((node, port)))
+                    .try_fold(1u16, |count, cord| count.checked_add(cord.item_capacity))
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                owned_nodes.push(node);
+                owned_requests.push((layout, slots));
+            }
+            if owned_requests.is_empty() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let mut staging = 0;
+            for cord in &self.cord_specs[..self.active_cords] {
+                if cord
+                    .source_local()
+                    .is_some_and(|(node, _)| owned_nodes.contains(&node))
+                {
+                    continue;
+                }
+                staging = staging.max(cord.maximum_value_bytes);
+                canonical.extend(core::iter::repeat_n(
+                    cord.maximum_value_bytes,
+                    usize::from(cord.item_capacity),
+                ));
+            }
+            if staging != 0 {
+                canonical.push(staging);
+            }
+            self.values
+                .preflight_owned_compact_f32_outputs(&owned_requests, &canonical)?;
+        }
         let prepared = self.compact_f32_bindings.is_none().then(|| {
             Box::new(CompactF32Bindings {
                 inputs: [[false; P]; N],
@@ -327,7 +387,22 @@ where
                 owned: None,
             })
         });
+        let prior_successors = self.region_successors;
         self.bind_execution_dag(nodes)?;
+        let owned = if owned_reservations.is_some() {
+            match self
+                .values
+                .prepare_owned_compact_f32_outputs(&owned_requests, &canonical)
+            {
+                Ok(owned) => owned,
+                Err(error) => {
+                    self.region_successors = prior_successors;
+                    return Err(error.into());
+                }
+            }
+        } else {
+            Vec::new()
+        };
         if let Some(bindings) = prepared {
             self.compact_f32_bindings = Some(bindings);
         }
@@ -335,6 +410,14 @@ where
             .compact_f32_bindings
             .as_deref_mut()
             .expect("preflight prepared compact bindings");
+        if !owned.is_empty() {
+            let table = bindings
+                .owned
+                .get_or_insert_with(|| Box::new(core::array::from_fn(|_| None)));
+            for (node, owner) in owned_nodes.into_iter().zip(owned) {
+                table[usize::from(node.0)] = Some(owner);
+            }
+        }
         for (node, port, layout) in outputs {
             bindings.outputs[usize::from(node.0)] = Some((port, layout));
         }

@@ -50,8 +50,9 @@ impl HostedValueStore {
     fn owned_selection(
         &self,
         requests: &[(CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
     ) -> Result<Vec<Vec<u16>>, StorageError> {
-        if requests.is_empty() || requests.len() > 32 {
+        if requests.is_empty() || requests.len() > 32 || canonical_reservations.contains(&0) {
             return Err(StorageError::InvalidBudget);
         }
         let count = requests
@@ -90,22 +91,49 @@ impl HostedValueStore {
             }
             selected.push(group);
         }
+        // Reserve the remaining generic slots by exact capacity. Existing live
+        // values and earlier typed pools cannot satisfy these obligations.
+        let mut canonical = Vec::with_capacity(canonical_reservations.len());
+        for bytes in canonical_reservations {
+            let index = self
+                .slots
+                .iter()
+                .enumerate()
+                .filter(|(index, slot)| {
+                    slot.references == 0
+                        && slot.generation != u16::MAX
+                        && slot.bytes.capacity() >= *bytes as usize
+                        && !self.is_owned_compact(*index)
+                        && !canonical.contains(index)
+                        && !selected.iter().any(|pool| pool.contains(&(*index as u16)))
+                })
+                .min_by_key(|(_, slot)| slot.bytes.capacity())
+                .map(|(index, _)| index)
+                .ok_or(StorageError::ItemCapacityExceeded)?;
+            canonical.push(index);
+        }
         Ok(selected)
     }
     /// Read-only preflight; publication of the batch is all-or-nothing.
+    /// Each canonical reservation requires one additional free generic slot
+    /// of at least the named capacity after conversion. This is a preparation
+    /// check; the caller still admits shared live-byte quota for all traffic.
     pub fn preflight_owned_compact_f32_outputs(
         &self,
         requests: &[(CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
     ) -> Result<(), StorageError> {
-        self.owned_selection(requests).map(|_| ())
+        self.owned_selection(requests, canonical_reservations)
+            .map(|_| ())
     }
     /// Convert free admitted slots before Play, retaining their logical quota.
     /// Physical buffers become exact typed lane buffers; generic stores skip them.
     pub fn prepare_owned_compact_f32_outputs(
         &mut self,
         requests: &[(CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
     ) -> Result<Vec<PreparedCompactF32Output>, StorageError> {
-        let selected = self.owned_selection(requests)?;
+        let selected = self.owned_selection(requests, canonical_reservations)?;
         // Allocate the entire finite candidate batch before changing store truth.
         let mut buffers: Vec<Vec<Vec<u8>>> = requests
             .iter()

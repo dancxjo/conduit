@@ -160,14 +160,20 @@ impl ValueStorage for HostedValueStore {
     fn preflight_owned_compact_f32_outputs(
         &self,
         requests: &[(crate::scheduler::CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
     ) -> Result<(), StorageError> {
-        HostedValueStore::preflight_owned_compact_f32_outputs(self, requests)
+        HostedValueStore::preflight_owned_compact_f32_outputs(
+            self,
+            requests,
+            canonical_reservations,
+        )
     }
     fn prepare_owned_compact_f32_outputs(
         &mut self,
         requests: &[(crate::scheduler::CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
     ) -> Result<Vec<crate::PreparedCompactF32Output>, StorageError> {
-        HostedValueStore::prepare_owned_compact_f32_outputs(self, requests)
+        HostedValueStore::prepare_owned_compact_f32_outputs(self, requests, canonical_reservations)
     }
     fn owned_compact_f32_available(
         &self,
