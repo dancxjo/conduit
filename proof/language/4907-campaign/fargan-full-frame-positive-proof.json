@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "tests": 1,
+  "frames": 24,
+  "seconds": 8.31,
+  "compile_seconds": 1.68,
+  "pcm_max_abs": 8.780626e-06,
+  "signal_state_max_abs": 0.01395759,
+  "conditioning_history_max_abs": 5.865097e-05,
+  "oracle_sha256": "9c676f6c76aec71281ea097fe0c477c5a3b77f5022e639a0d82dbb4a5437fcc3",
+  "model_f32_sha256": "d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47",
+  "selected_resources": 26,
+  "files": {
+    "semantics/ai/tests/fargan_signal_graph/state.rs": "6aca0bf5edcc0888eebfced6c927af18f0197553a0171b64a2cd3bc5c2edab92",
+    "semantics/ai/tests/fargan_signal_graph/shared.rs": "9e62579bdb7ccc96961e980a10240fcfe3f75b298e56d2d8e476ce609b53eabd",
+    "semantics/ai/tests/fargan_signal_graph/runtime.rs": "0d61dbaa6ed6ada4a78dd912d6014b42010d13beda9197ec836735f13634ec11",
+    "semantics/ai/tests/fargan_signal_graph/frame.rs": "4911f1929a31391c3382c5269ab666b49581d00d438b2d71ff867fda80ab7f13",
+    "semantics/ai/tests/fargan_signal_graph/plan.rs": "4c198430c30e5931c006def7f3a9b95d77713444f65185b89e992246dea6ae89",
+    "semantics/ai/tests/fargan_signal_graph/runtime_backs.rs": "a1ddae9bf37e6134790be93f5ce0e523b9dac49451d92be32171a47837c24bd4",
+    "semantics/ai/tests/fargan_signal_graph/conditioning.rs": "6c8705e903ab963dce08d2400bfc662e86396f1c73689924e65d43d6ef841a4f",
+    "semantics/ai/tests/fargan_signal_graph/pinned.rs": "90bea9d51272f4713247ccaa4a4300eaac36778a97fce73f29ef8d07d3595d4c",
+    "semantics/ai/tests/fargan_signal_graph.rs": "2fb0225fa9527758e2decb1aed0658833ea5e9c01bad7aacbb4e3bd56dbcb088",
+    "semantics/speech/fargan_frame.conduit": "74ec7540ec7fb90f8c95861e4275f7d5342bd8c0805609723b820b451bb56320",
+    "semantics/speech/fargan_conditioning.conduit": "c1a6e245af7783dbdb71b8bbc838a4ac3e39a8a92fb2594b65d0f74ba4372033"
+  },
+  "log_sha256": "458cd103c181899fda3f25de18491d9f1d326e9c97c8cdf6221a205b19046f86",
+  "scope": "Actual ordinary Source/Plan/Play full conditioning+four recurrent subframes,24 synthetic numerical frames with own accumulated state/history after C-provided warmed initial state",
+  "remaining": [
+    "Actual Source warm initialization (C warm seed is not product startup proof)",
+    "Same committed linguistic carrier/period, atomic state/startup/tail",
+    "Quality, installed target, publication/acceptance"
+  ]
+}

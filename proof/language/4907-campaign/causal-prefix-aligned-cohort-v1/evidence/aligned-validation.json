@@ -1,0 +1,22 @@
+{
+  "crosslink_report_sha256": "820c79abc939714b4159cc1a27a625a0a15ac72584ba86e9c3bda5bd3124d974",
+  "excluded_pairs": 49,
+  "excluded_sentences": 17,
+  "fit_inputs_eligible": true,
+  "original_pairs": 1620,
+  "original_sentences": 394,
+  "original_validation_sha256": "cfab10f75662e335bb0d26414d63c1b5f3c0b73bfe429d42cd9e0d44486ce659",
+  "pair_count": 1571,
+  "prefixes": 628,
+  "raw_train_review_sha256": "4079e68b5c73547cdee50246d32b591c9ea39bf0917b1d17094619a9f21b0661",
+  "root_review_sha256": "5a34f03d5ccf81f64483d69af19216f512222caabd80a3c2c7f4c833d624d8b3",
+  "scope": "New occurrence-aligned matched experiment only, not original cohort eligibility or parent acceptance",
+  "sentence_count": 377,
+  "source_accepted_transitions": 3142,
+  "source_feature_queries": 6652,
+  "source_fixture_checkpoint": "b6a20204a",
+  "status": "ALIGNED_SOURCE_PARITY_COMPLETE",
+  "terminal_test_log_sha256": "9a26c12dba2623df4984ca062232af5be439e5af5848fbe571d76a3799eff213",
+  "unexpected_failures": 0,
+  "unprocessed_requests": 0
+}

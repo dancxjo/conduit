@@ -1,0 +1,48 @@
+{
+  "observed_at": "2026-10-19T22:35:00.303448+00:00",
+  "log": "fargan-warm-start-eleventh-check.log",
+  "terminal_exit": 0,
+  "passed": 2,
+  "seconds": 5.53,
+  "source_sha256": "64ce2971e308aad9037d62553b42dd71e949ac32db0f14105295c6922c8f828d",
+  "nodes": 915,
+  "cords": 1430,
+  "model_f32_sha256": "d35f0510da476716183a33caafe45cc095e48d496f06de2db7655e780a385e47",
+  "independent_C_receipt": "warm-oracle-reconstruction/receipt.json",
+  "varied": {
+    "state_max_abs": 0.0010570586,
+    "history_max_abs": 5.143881e-05,
+    "period": 128
+  },
+  "baseline": {
+    "state_max_abs": 0.00066541135,
+    "history_max_abs": 5.596876e-05,
+    "period": 80
+  },
+  "guards": "Original state<.05/history<.001; all256teacherpitch and finaldeemphasis bit-exact; source zero initial state, no oracle warm state supplied",
+  "pressure_cancel": "Both retain no complete result",
+  "actual_outputs": "next_state,next_history,previous_period plus4earlyconditioning observations; all7must complete before transaction acceptance",
+  "corrections": [
+    "Explicit arithmetic left observation via*1.0 and finite operand-first coefficient multiplication",
+    "Existing authored periodidentity gear instead of raw front passthrough",
+    "Four computed C-discarded earlyconditioning outputs now explicit finite observations with consumers"
+  ],
+  "historical_failures": "first..tenth logs retained; eighth doubled fixture deadline showed same finalSigns as8192, disproving deadline theory; budgetexperiment fully removed; no product bounds or tolerance changed",
+  "source_inputs": {
+    "semantics/speech/fargan_warm_policy.conduit": "4583a57a398e2809de36d5e8a7b40c19ce15319eb355a496dbc7f6ddcad79665",
+    "semantics/speech/fargan_warm_start.conduit": "aa7f0589f33261ffa85a19a402f1ef7ec80fc2068885c43dc731c7e2dad19873",
+    "semantics/speech/src/fargan.rs": "f66e957f0e5ffcce3cbbe4907c7865858ee143c591ae255fb045628d77b7173a",
+    "semantics/ai/tests/fargan_signal_graph/warm_start.rs": "6087f3cb51e1ea980f25d8c97803403494843cb8a3c9d464bfab1712e165abb5",
+    "semantics/ai/tests/fargan_signal_graph/runtime.rs": "481f3a9814eef364caec22099870865c9cce0a82dde8c2fc0aa6313484facda6",
+    "semantics/ai/tests/fargan_signal_graph.rs": "06cb243c170f3b2dd6670041081d2e34a51598a8a04ef5c9052637fb9f73b290"
+  },
+  "nonclaims": [
+    "feature18/period consistency for arbitrary inputs",
+    "same-carrier controls",
+    "installed atomic streaming transaction",
+    "utterance start/tail/trim",
+    "physical playback",
+    "human quality",
+    "parent closure"
+  ]
+}

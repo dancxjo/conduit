@@ -1,0 +1,71 @@
+{
+  "status": "PREPARED_UNVALIDATED",
+  "base": "9ff334927f546c7f9a4a241ef38b548bd1b25549",
+  "branch": "fix/4907-categorical-sign-admission",
+  "source_revision": "395b52b9b9ed84d0f00dfc445a690f7bd3241a1e",
+  "recover_history": [
+    "73defbe38",
+    "c3cda235c",
+    "821d22607",
+    "8ce3f9b1c",
+    "3ce4b81d3",
+    "395b52b9b"
+  ],
+  "projection": "Exact final source/test blobs; only channel prepare_canonical method and its unused canonical imports removed. Private prepare_verified remains shared authored preparation. No canonical adapter or Language code imported.",
+  "source_comparison": {
+    "semantics/ai/src/integer_categorical_step.rs": {
+      "prepared_sha256": "d148e9c742f2b0fa29ef2d2ad5d106f33c730c291c4fa18d6f8983c3f5dc5e4f",
+      "held_current_sha256": "d148e9c742f2b0fa29ef2d2ad5d106f33c730c291c4fa18d6f8983c3f5dc5e4f",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/src/integer_categorical_step/back.rs": {
+      "prepared_sha256": "9c8f8ae9a6fc16396fef51eda9eeeb19339853c2f47a383104df8172f99b1e69",
+      "held_current_sha256": "9c8f8ae9a6fc16396fef51eda9eeeb19339853c2f47a383104df8172f99b1e69",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/src/integer_categorical_step/owner.rs": {
+      "prepared_sha256": "f594f65226e3bac74d9aed627cad61da131cbf9a70f2c870565ce69a3019f3f0",
+      "held_current_sha256": "f594f65226e3bac74d9aed627cad61da131cbf9a70f2c870565ce69a3019f3f0",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/src/integer_categorical_step/invocation.rs": {
+      "prepared_sha256": "05c6d01658dd6709b2bf9a5e5a6a9e2ca0e819c3c4b37fa7ee6f80b54f911371",
+      "held_current_sha256": "05c6d01658dd6709b2bf9a5e5a6a9e2ca0e819c3c4b37fa7ee6f80b54f911371",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/src/integer_categorical_step/channel.rs": {
+      "prepared_sha256": "f709f9684e875687ec6a74d313e700db95577cae2ea23d7205783c08ce73e861",
+      "held_current_sha256": "08831b50b20c613ea1cfec41ff85dcbde12157101c8214b76d5e0fd886046deb",
+      "identical_to_held_current": false
+    },
+    "semantics/ai/tests/integer_categorical_step.rs": {
+      "prepared_sha256": "6e950f15797e8cd7a1f1c7f35fb82095c4d75ef6bedc22c1040a48db4ce952d6",
+      "held_current_sha256": "6e950f15797e8cd7a1f1c7f35fb82095c4d75ef6bedc22c1040a48db4ce952d6",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/tests/integer_categorical_step/invocation_cases.rs": {
+      "prepared_sha256": "985feb27f6e484158628fb8a9299162376ea1a6a7a676219477199e5e9add87a",
+      "held_current_sha256": "985feb27f6e484158628fb8a9299162376ea1a6a7a676219477199e5e9add87a",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/tests/integer_categorical_step/concurrent_invocation_cases.rs": {
+      "prepared_sha256": "dce24537f74dee1126fdfb7f3691eb4f54778d1b1cda2619aeff4329a911ec65",
+      "held_current_sha256": "dce24537f74dee1126fdfb7f3691eb4f54778d1b1cda2619aeff4329a911ec65",
+      "identical_to_held_current": true
+    },
+    "semantics/ai/tests/integer_categorical_step/channel_cases.rs": {
+      "prepared_sha256": "e45a160a84193dcd35a8204a7ababdbbfec9b0aed79c5748e32244adf1a2e1c0",
+      "held_current_sha256": "e45a160a84193dcd35a8204a7ababdbbfec9b0aed79c5748e32244adf1a2e1c0",
+      "identical_to_held_current": true
+    }
+  },
+  "held_channel_projection_byte_identical": true,
+  "tests_run": false,
+  "builds_run": false,
+  "scope": "Generic AI numeric custody and finite Sign admission; no installed Language or Current authority",
+  "root_owned_remaining": [
+    "xtask public suite and CLI wiring",
+    "format/feature/Clippy/focused runtime validation",
+    "exact-head Candidate and later Integration/publication"
+  ]
+}

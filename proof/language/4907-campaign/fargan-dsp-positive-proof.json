@@ -1,0 +1,67 @@
+{
+  "revision": "6af29cfcf9e85c73394c6ff793019461d3708756",
+  "scope": "Generic AI prerequisites only; no FARGAN frame/quality/shared-carrier acceptance",
+  "command": "cargo +stable test --locked -p conduit-ai --features kernel-operation-owners,hosted-catalog-cache --test fixed_numeric_dsp --test fixed_numeric_dsp_back --test fixed_numeric_dsp_conversion --test fixed_numeric_index_back -- --nocapture --test-threads=1",
+  "result": {
+    "passed": 24,
+    "failed": 0,
+    "groups": [
+      6,
+      6,
+      8,
+      4
+    ],
+    "seconds": [
+      0.07,
+      0.14,
+      0.18,
+      0.16
+    ],
+    "compile_seconds": 1.19
+  },
+  "log": "work/goal4907/fargan-dsp-second-check.log",
+  "historical_failure": {
+    "log": "work/goal4907/fargan-dsp-first-check.log",
+    "result": "Compile E0425 test helpers referenced stale public name twice and private catalogue lookup once; corrected to actual public APIs. Production compiled."
+  },
+  "inputs": {
+    "semantics/ai/fixed_numeric_signal.conduit": "79296bdf85317ab4c409b04076edb452ccc553857f246de1871c6a32d761dc29",
+    "semantics/ai/src/fixed_numeric_catalog.rs": "27e91a7219b9a1e2917f911b04b9ff480395e1e65c2f657ee18cddc209acf1ed",
+    "semantics/ai/src/fixed_numeric_signal_catalog.rs": "065ceeb6ba922dc112d47e078edb891ee478969b92e30255039ea727d62bd2b8",
+    "semantics/ai/src/lib.rs": "836df7d9d263b5a5b4a8304f008b64c54ba22d576893b228984c24f1054a7ca4",
+    "semantics/ai/src/operation_owners/fixed_numeric.rs": "4b1a7e7cc34803e3ad85f9481fbf87b629255125a47e9743d058ca124d1606ab",
+    "semantics/ai/src/operation_owners/fixed_numeric/dispatch_values.rs": "4c1d21646e2f64d3aba2e3a98d1665009d62cdd3e09e9482d15da850826ea938",
+    "semantics/ai/tests/fixed_numeric_index_back.rs": "e6c5bc1acb153b873ca338b12038722b563d8ca2842047ada84cd1108140a5cb",
+    "semantics/ai/src/fixed_numeric_dsp.rs": "c8a9ee54f983a1beee0986438563879a5be3097517fb343bf7c89d84166fb925",
+    "semantics/ai/src/fixed_numeric_dsp_catalog.rs": "c66563956baea017eef5faef4a82915089e79aebd6b13039e2166f548d643e67",
+    "semantics/ai/src/fixed_numeric_dsp_back.rs": "844477a138b22b03e97dc9fd7da3fb012482bdd10ec5c88a2a6c116e7ff06085",
+    "semantics/ai/src/fixed_numeric_i16_codec.rs": "4822dbb81d895b54a43f0806243d01a2e363288fffe620ede5927083d415789c",
+    "semantics/ai/src/fixed_numeric_integer_conversion.rs": "01dafa6fc3310e9283717f929c077f6e1d1a293c9ae9426db8ad57d27b2da28c",
+    "semantics/ai/src/operation_owners/fixed_numeric/dispatch_dsp.rs": "dcd34d213da98196fcfcf35087951868062fa738b1e7aa6be1f54a7b56af81c2",
+    "semantics/ai/tests/fixed_numeric_dsp.rs": "61b35aebcfdaed22efbc9d4e53581d22b102fe8e91d49cfc7fbbed9cb3d51ec2",
+    "semantics/ai/tests/fixed_numeric_dsp_back.rs": "8f5fbba6591d53af9b372fc5c7e7b8cd917e8b5ee84c446c056a0892e9ec85f4",
+    "semantics/ai/tests/fixed_numeric_dsp_back/flow_closure.rs": "001b27c146adfe38a587baa097a08bba1c8019739578610528afee509661813a",
+    "semantics/ai/tests/fixed_numeric_dsp_conversion.rs": "6e08246684c9cb63e8d31f2bd21407a76137c3285932ee4b94756260af043753",
+    "semantics/ai/tests/fixed_numeric_dsp_conversion/flow_closure.rs": "c15012d0b351534a9ca6889429ab419feb48a7a14a0fc8f825838491f9fc1471"
+  },
+  "remaining": [
+    "Exact-head Candidate/Integration/stable acceptance",
+    "Actual Source feature/warm/model differential and same-carrier FARGAN PCM"
+  ],
+  "no_default_features": {
+    "result": "PASS",
+    "seconds": 40.84,
+    "log": "work/goal4907/fargan-dsp-no-default-check.log",
+    "command": "cargo +stable check --locked -p conduit-ai --no-default-features"
+  },
+  "existing_regressions": {
+    "result": "12PASS0FAIL",
+    "groups": [
+      6,
+      4,
+      2
+    ],
+    "log": "work/goal4907/fargan-dsp-existing-regression-check.log",
+    "command": "cargo +stable test --locked -p conduit-ai --features kernel-operation-owners,hosted-catalog-cache --test fixed_numeric_operations --test fixed_numeric_signal_back --test fixed_numeric_back -- --nocapture --test-threads=1"
+  }
+}

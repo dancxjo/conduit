@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "tests": 1,
+  "seconds": 10.67,
+  "compile_seconds": 21.62,
+  "source_id": "5252760f729930067c6b90b76874c8bcbbeb78561658b4ba2010ad25cea9aecb",
+  "plan_id": "5ee5e43b31bc038d34bfb92b4fc4a6a4587996c61b9b472274c7b0c89ca21d0b",
+  "nodes": 77,
+  "cords": 86,
+  "owner_prepare_ms": 52.768134,
+  "execution_ms": 212.910813,
+  "files": {
+    "semantics/ai/tests/fargan_feature_frontend.rs": "11dbafe8bb95dc4f8780ca80b6dd500a2067d3f60cc9e49fae2f7ba5f035d1ef",
+    "semantics/ai/tests/fargan_feature_frontend/preprocess.rs": "fb02271c4b9902722069582472111947de8b8ae7cba8b6dcc599b3cc1cf6f873",
+    "semantics/ai/tests/fargan_feature_frontend/oracle.rs": "596cd39e360f1b336361f868bae145b9c60b7a39ed9e332f8254f47c901e2825",
+    "semantics/ai/tests/fixtures/fargan_feature_probe.conduit": "7e003272e0f27ac67a54e7936c4f8edba86c66d022888dc4e9990d9ff66e44b8",
+    "semantics/speech/fargan_feature_policy.conduit": "c0a0bad785aaeff746c717e3345883695e0e24d51591269d94793d0dddbb45cc",
+    "semantics/speech/fargan_feature_correlation.conduit": "c1b88b61e3ec86fbb9417dfccfb48c698d1895b786dcedbd3201d046b037aa50",
+    "semantics/speech/fargan_conditioning.conduit": "c1a6e245af7783dbdb71b8bbc838a4ac3e39a8a92fb2594b65d0f74ba4372033",
+    "proof/fargan/feature-profile/manifest.json": "fd466e43225a159820a3037ed705f9d802d82c7e43b0e4fcc3c4ee10e39b30aa",
+    "proof/fargan/feature-profile/generate_coefficients.py": "79955a8b4ee889ce4baae0afc70090f9225e1e0c37f4c8ae8b4dcc52205a436c"
+  },
+  "public_arrays": {
+    "proof/fargan/feature-profile/generated/band_bias18.bin": "ccc8ef501158d683a793b5de106853c5d7a556205bc98003893c0c9d5c12f123",
+    "proof/fargan/feature-profile/generated/dct18x18.bin": "0ee4290f4ec2b3408882aefe5d379cd9a8e0050b319a0e67d297d22442b928a5",
+    "proof/fargan/feature-profile/generated/bands161x18.bin": "f3e181ecfdf3a579b76699a0924efebbb2ba6e0a9837cb265a87e929c18da1c3"
+  },
+  "log_sha256": "c9c1f76db0618eeeb4e56468710db2409ff81ca33a25667d42111b9c5cc3b1ee",
+  "scope": "Synthetic nonzero I16 PCM,12 actual pure Source preprocessing executions+4 real finite160 admissions, generic DSP vs independent equations incl phase/power/bands/all20features; frozen tolerances unchanged",
+  "remaining": [
+    "Canonical carrier period/control correspondence",
+    "Source warm state/startup/tail/atomic feature+frame state",
+    "Same-carrier neural PCM, quality and actual target acceptance"
+  ]
+}

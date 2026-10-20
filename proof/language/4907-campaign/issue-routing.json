@@ -1,0 +1,262 @@
+{
+  "parent": 4907,
+  "issues": [
+    {
+      "rank": 1,
+      "key": "asr",
+      "number": 5727,
+      "url": "https://github.com/dancxjo/conduit/issues/5727",
+      "label": "ASR consumer acceptance",
+      "status": "Merged; release/publication receipt reconciliation",
+      "dependencies": []
+    },
+    {
+      "rank": 2,
+      "key": "prosody",
+      "number": 5724,
+      "url": "https://github.com/dancxjo/conduit/issues/5724",
+      "label": "Prosody contract acceptance",
+      "status": "Merged; release/publication receipt reconciliation",
+      "dependencies": []
+    },
+    {
+      "rank": 3,
+      "key": "pronunciation",
+      "number": 5725,
+      "url": "https://github.com/dancxjo/conduit/issues/5725",
+      "label": "Pronunciation consumer acceptance",
+      "status": "Merged; exact descendant Integration/publication pending",
+      "dependencies": []
+    },
+    {
+      "rank": 4,
+      "key": "session_snapshot",
+      "number": 6071,
+      "url": "https://github.com/dancxjo/conduit/issues/6071",
+      "label": "Immutable session snapshots",
+      "status": "Prepared; one-commit allocation probe passed; replacement negatives remain",
+      "dependencies": []
+    },
+    {
+      "rank": 5,
+      "key": "categorical",
+      "number": 6062,
+      "url": "https://github.com/dancxjo/conduit/issues/6062",
+      "label": "Generic numerical custody and Sign storage",
+      "status": "Focused branch prepared; local source-bound proof; new-head checks remain",
+      "dependencies": []
+    },
+    {
+      "rank": 6,
+      "key": "causal_eval",
+      "number": 6076,
+      "url": "https://github.com/dancxjo/conduit/issues/6076",
+      "label": "Complete frozen C/F diagnostic",
+      "status": "29/34 reports; no live run or complete aggregate",
+      "dependencies": [
+        6062,
+        6063
+      ]
+    },
+    {
+      "rank": 7,
+      "key": "native_fixed",
+      "number": 6065,
+      "url": "https://github.com/dancxjo/conduit/issues/6065",
+      "label": "Fixed-record Native decoding",
+      "status": "Prepared with local generated-consumer/Beam proof",
+      "dependencies": [
+        6064
+      ]
+    },
+    {
+      "rank": 8,
+      "key": "native_admission",
+      "number": 6064,
+      "url": "https://github.com/dancxjo/conduit/issues/6064",
+      "label": "Prepared Native law admission",
+      "status": "Prepared with local positive/refusal/occurrence proof",
+      "dependencies": []
+    },
+    {
+      "rank": 9,
+      "key": "canonical",
+      "number": 6063,
+      "url": "https://github.com/dancxjo/conduit/issues/6063",
+      "label": "Canonical Source/Plan binding",
+      "status": "Prepared; generic current-dev test extraction remains",
+      "dependencies": [
+        6062
+      ]
+    },
+    {
+      "rank": 10,
+      "key": "epoch",
+      "number": 6068,
+      "url": "https://github.com/dancxjo/conduit/issues/6068",
+      "label": "Finite epoch and fallback custody",
+      "status": "Prepared with actual Source lifecycle proof",
+      "dependencies": []
+    },
+    {
+      "rank": 11,
+      "key": "lexical_resource",
+      "number": 6072,
+      "url": "https://github.com/dancxjo/conduit/issues/6072",
+      "label": "Finite lexical resource/rebase custody",
+      "status": "Prepared with local Source/resource/rebase proof",
+      "dependencies": [
+        6064
+      ]
+    },
+    {
+      "rank": 12,
+      "key": "learned_round",
+      "number": 6069,
+      "url": "https://github.com/dancxjo/conduit/issues/6069",
+      "label": "Authenticated learned round binding",
+      "status": "Prepared with actual kernel/Source proof",
+      "dependencies": [
+        6062,
+        6063,
+        6068
+      ]
+    },
+    {
+      "rank": 13,
+      "key": "round_slots",
+      "number": 6070,
+      "url": "https://github.com/dancxjo/conduit/issues/6070",
+      "label": "Preadmitted same-epoch round slots",
+      "status": "Prepared; two actual Std learned rounds passed",
+      "dependencies": [
+        6068,
+        6069,
+        6062,
+        6065
+      ]
+    },
+    {
+      "rank": 14,
+      "key": "native_variants",
+      "number": 6066,
+      "url": "https://github.com/dancxjo/conduit/issues/6066",
+      "label": "Optional/payload Native decoding",
+      "status": "Committed preparation; not built or run",
+      "dependencies": [
+        6064,
+        6065
+      ]
+    },
+    {
+      "rank": 15,
+      "key": "translation",
+      "number": 5756,
+      "url": "https://github.com/dancxjo/conduit/issues/5756",
+      "label": "Bounded structural translation consumer",
+      "status": "Planned; implementation not started",
+      "dependencies": []
+    },
+    {
+      "rank": 16,
+      "key": "compact",
+      "number": 5755,
+      "url": "https://github.com/dancxjo/conduit/issues/5755",
+      "label": "Compact vocative realization",
+      "status": "Not started; accepted #5724 prerequisite remains",
+      "dependencies": []
+    },
+    {
+      "rank": 17,
+      "key": "fargan",
+      "number": 5726,
+      "url": "https://github.com/dancxjo/conduit/issues/5726",
+      "label": "Same-carrier FARGAN integration",
+      "status": "Partial endpoint/frontend proof; complete committed consumer remains",
+      "dependencies": []
+    },
+    {
+      "rank": 18,
+      "key": "commit_cursor",
+      "number": 6073,
+      "url": "https://github.com/dancxjo/conduit/issues/6073",
+      "label": "No-growth commitment Source cursor",
+      "status": "Audited design; not implemented",
+      "dependencies": [
+        6070,
+        6065
+      ]
+    },
+    {
+      "rank": 19,
+      "key": "native_sequences",
+      "number": 6067,
+      "url": "https://github.com/dancxjo/conduit/issues/6067",
+      "label": "Bounded sequences and physical storage profiles",
+      "status": "Design only; capacity/owned storage seam unresolved",
+      "dependencies": [
+        6064,
+        6065,
+        6066
+      ]
+    },
+    {
+      "rank": 20,
+      "key": "atomic_current",
+      "number": 6074,
+      "url": "https://github.com/dancxjo/conduit/issues/6074",
+      "label": "Atomic Current and committed canonical origin",
+      "status": "Session prerequisite prepared; complete publication not implemented",
+      "dependencies": [
+        6073,
+        6071,
+        6067
+      ]
+    },
+    {
+      "rank": 21,
+      "key": "arrival_controller",
+      "number": 6075,
+      "url": "https://github.com/dancxjo/conduit/issues/6075",
+      "label": "Installed subsequent-revision controller",
+      "status": "Pieces prepared; complete ingress/rebase/commit loop absent",
+      "dependencies": [
+        6074,
+        6072,
+        6070,
+        6067
+      ]
+    },
+    {
+      "rank": 22,
+      "key": "causal_quality",
+      "number": 6077,
+      "url": "https://github.com/dancxjo/conduit/issues/6077",
+      "label": "Useful prefinal vocative scorer",
+      "status": "Not accepted; largest quality/experiment uncertainty",
+      "dependencies": [
+        6076,
+        6069,
+        6074
+      ]
+    }
+  ],
+  "new_issue_numbers": [
+    6062,
+    6063,
+    6064,
+    6065,
+    6066,
+    6067,
+    6068,
+    6069,
+    6070,
+    6071,
+    6072,
+    6073,
+    6074,
+    6075,
+    6076,
+    6077
+  ]
+}

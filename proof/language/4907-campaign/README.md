@@ -6,4 +6,6 @@ Evidence records retain original revision, binary, file hashes and execution pat
 
 The included FARGAN WAV is the recorded 0.5-second endpoint specimen, not proof of complete installed streaming speech or physical playback. No child or parent closes from this checkpoint alone.
 
-Issue routing and difficulty order are recorded in the linked parent #4907 and the issue index added after issue creation.
+Issue routing, source ownership and easiest-to-hardest order are recorded in [ISSUE_MAP.md](ISSUE_MAP.md), [the machine-readable index](issue-routing.json), and parent #4907.
+
+The full model-free Source canonical blob store and large raw traces remain in local custody; uploaded reports are selected evidence, not a complete remote proof archive. Historical private runner scripts preserve execution provenance and local paths; they are not supported user entrances. Original frozen manifests are never rewritten to pretend relocation or current-source execution. Archived compiled-source files preserve the exact earlier loader used by the interrupted evaluation.

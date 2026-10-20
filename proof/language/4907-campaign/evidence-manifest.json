@@ -330,6 +330,111 @@
       "path": "causal-candidate-evaluation-batched-first/causal-04-report.json",
       "sha256": "55c3fdb51ea371b50c2008c8b31d6e9a5538b1a79189f189b4a68cb7f288953c",
       "bytes": 499582
+    },
+    {
+      "path": "causal-prefix-trainer-preparation/train_matched.py",
+      "sha256": "a1a000e40e47acfb7f10976e1b81846ea63008bd5f8bc81c7b2ad4abba1efd8d",
+      "bytes": 4146
+    },
+    {
+      "path": "causal-prefix-trainer-preparation/gate.py",
+      "sha256": "5f75fc8101f03487b8b632a9280d088c919435a934b772c4e3b7b232aa50d1f7",
+      "bytes": 7010
+    },
+    {
+      "path": "causal-prefix-ablation-proposal/SPEC.md",
+      "sha256": "27f7ee6253b71529a33af77f67acd77e790fd07b4d469a7c5333f85414730b3e",
+      "bytes": 9790
+    },
+    {
+      "path": "causal-prefix-aligned-cohort-v1/frozen-crosslink-report.json",
+      "sha256": "e66fe1991ba8fe3482a37aeb3d511be1d07a759f120052338fa2f2adb57321ee",
+      "bytes": 4814145
+    },
+    {
+      "path": "causal-prefix-aligned-cohort-v1/evidence/aligned-validation.json",
+      "sha256": "5f26797939a2817be463f560d27e45bbff1cadcdae95993305ac09e24ffecbb5",
+      "bytes": 1026
+    },
+    {
+      "path": "causal-prefix-aligned-cohort-v1/audit_raw_train.py",
+      "sha256": "47985c432c335b6aaeb451c5deea5571c3fb902dd2cc5f658e2cd7fcfbf27f5d",
+      "bytes": 3073
+    },
+    {
+      "path": "causal-source-full-first/validation-manifest.json",
+      "sha256": "cfab10f75662e335bb0d26414d63c1b5f3c0b73bfe429d42cd9e0d44486ce659",
+      "bytes": 3305
+    },
+    {
+      "path": "causal-source-full-first/admission-status.json",
+      "sha256": "7471084a79217eaa91c5ca5afe78941a46c8570bdc099e21fe980bd59a50f52c",
+      "bytes": 124
+    },
+    {
+      "path": "categorical-runtime-recovery/HANDOFF.md",
+      "sha256": "3aa5b388fbd5b13a099dd5428dbe185a4c2a8b710a6cad71c0251e187420d2c1",
+      "bytes": 2384
+    },
+    {
+      "path": "categorical-runtime-recovery/manifest.json",
+      "sha256": "3b079ee4e2cb3a32f1040a7b932a618314b869a37056cb4778a714257e059def",
+      "bytes": 3721
+    },
+    {
+      "path": "prepared-native-variants/HANDOFF.md",
+      "sha256": "de123e463c72d894d9fd8c9aff6962b3dffb59d46913aa117c6e666f4a65113a",
+      "bytes": 4551
+    },
+    {
+      "path": "prepared-native-variants/manifest.json",
+      "sha256": "78f6363375b2f17ba7890ee4ee6d7b4f0ca1521396c9cdb0dc33361f01b8043b",
+      "bytes": 1327
+    },
+    {
+      "path": "coordinated_native_check_v2.py",
+      "sha256": "f2f7a00fea56b4152fcf9fbf1483fac50190b87852072e4c2e90f081f20e9054",
+      "bytes": 4477
+    },
+    {
+      "path": "coordinated_native_check_v3.py",
+      "sha256": "7ff641f2e4ddf3ab446ae19bedcab8bb9c296496b13e96b00c3f7054424e27e5",
+      "bytes": 13072
+    },
+    {
+      "path": "coordinated-native-v3-handoff.md",
+      "sha256": "783959526b9ec87f8ed208cab486f4464a150809673d7a8475700d9f8852d496",
+      "bytes": 3209
+    },
+    {
+      "path": "causal-candidate-evaluation-batched-first/compiled-source/parser_causal_candidate_evaluation.rs",
+      "sha256": "457fc8fbb7f6c9edb045ac8ba60b090198c7e9904a30f1dc12bdc91a2d52facc",
+      "bytes": 16295
+    },
+    {
+      "path": "causal-candidate-evaluation-batched-first/compiled-source/causal_candidate_loader.rs",
+      "sha256": "61cba90299ccdeb09a0a037aaec3cffa8e6e2c41341981dfe52bff0978dfdcf5",
+      "bytes": 12459
+    },
+    {
+      "path": "fargan-dsp-positive-proof.json",
+      "sha256": "4d44a1e1eb3b5d4f8adaf6a0e79f2bc53070abd29e686878326382105f8edd0e",
+      "bytes": 3975
+    },
+    {
+      "path": "fargan-feature-frontend-positive-proof.json",
+      "sha256": "673f9e7f662af355a7fd8346d447701bdbb2cbb82ec2ad70291b75e89ef17770",
+      "bytes": 2413
+    },
+    {
+      "path": "fargan-warm-start-positive-proof.json",
+      "sha256": "0f3c98104933b4e29367f9e4f193b62f5f0c60d3774c30f0dfb2dd13e72ab5e2",
+      "bytes": 2541
+    },
+    {
+      "path": "fargan-full-frame-positive-proof.json",
+      "sha256": "61691f07a606826cb90d74a82aaac47afd319bb2e3923a323032c45aaebae946",
+      "bytes": 2304
     }
   ],
   "partial_evaluation_reports": 29,

@@ -1,0 +1,31 @@
+{
+  "status": "PREPARED_UNBUILT_UNRUN",
+  "baseline": "c766cd0b3e722a7d4e2423a41027380b27179df6",
+  "worktree": "/home/dancxjo/Documents/Codex/2026-10-18/goal-finish-and-close-https-github/work/prepared-variant-storage",
+  "paths": [
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage.rs",
+      "baseline_sha256": "f13a42216298cfcc3ac26cddb5c812f5f1ce9e456b5fa295996c74330c7d6d8a",
+      "proposed_sha256": "ee71e25436c1bffd4002899d476944cf35bda0abd128206e70159493cf9d631a",
+      "lines": 268
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage/emit.rs",
+      "baseline_sha256": "fc7388041506c85fae169f673aae24e105857eea8e967e6ca5bc25ffe117f159",
+      "proposed_sha256": "9624a3f7bd693dbce833773beedcfea9917f3a3710307e718fa859797b72fa71",
+      "lines": 133
+    },
+    {
+      "path": "architecture/plot/src/rust_binding/generate_prepared_storage/variant.rs",
+      "baseline_sha256": "ABSENT",
+      "proposed_sha256": "e8d52df5e857aeed08d2731c125c91285a5f6677d402e1bc86f89c6f9c006376",
+      "lines": 121
+    },
+    {
+      "path": "architecture/plot/tests/prepared_native_decode_variants.rs",
+      "baseline_sha256": "ABSENT",
+      "proposed_sha256": "40294fc465181a07c679a01de05e6126f341637c4c89f426fd9c00bf59e49a36",
+      "lines": 204
+    }
+  ]
+}
