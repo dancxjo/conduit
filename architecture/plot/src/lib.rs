@@ -24,8 +24,8 @@ mod back_catalog;
 mod preparation_cache;
 #[cfg(target_has_atomic = "ptr")]
 pub use preparation_cache::{
-    PreparationCacheLimitError, PreparationCacheLimits, PreparationCacheStats, PreparedSource,
-    SourcePreparationCache,
+    CatalogueRead, CatalogueTable, PreparationCacheLimitError, PreparationCacheLimits,
+    PreparationCacheStats, PreparedSource, SourcePreparationCache,
 };
 mod canonical_expansion;
 mod checked_syntax;
@@ -37,6 +37,7 @@ mod expression_definition;
 mod expression_evaluate;
 mod expression_float;
 mod expression_inverse_trigonometry;
+mod profile_read_dependencies;
 pub use expression_inverse_trigonometry::inverse_angle_failure_detail;
 pub use expression_quantity::quantity_arithmetic_failure_detail;
 mod expression_numeric_type;
@@ -418,6 +419,8 @@ impl From<&conduit_core::Kind> for KindProjection {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct ProfileCatalog {
+    #[cfg(target_has_atomic = "ptr")]
+    read_trace: preparation_cache::read_trace::TraceHandle,
     pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     kinds: BTreeMap<KindId, KindProjection>,
     canonical_kinds: BTreeMap<KindId, conduit_core::Kind>,
@@ -456,6 +459,7 @@ impl ProfileCatalog {
 
     pub fn insert(&mut self, definition: KindProjection) -> Result<(), PlotError> {
         validate_unique_port_symbols(&definition)?;
+        self.observe_projection(&definition.kind_id);
         if self.kinds.contains_key(&definition.kind_id) {
             return Err(PlotError::DuplicateKind(
                 definition.kind_id.as_str().to_string(),
@@ -525,6 +529,7 @@ impl ProfileCatalog {
     }
 
     pub fn get(&self, kind_id: &KindId) -> Option<&KindProjection> {
+        self.observe_projection(kind_id);
         self.kinds.get(kind_id)
     }
 
@@ -533,9 +538,11 @@ impl ProfileCatalog {
         kind_id: &KindId,
         input_count: usize,
     ) -> Result<Option<KindProjection>, String> {
+        self.observe_projection(kind_id);
         let Some(definition) = self.kinds.get(kind_id) else {
             return Ok(None);
         };
+        self.observe_variadic_fore(kind_id);
         let Some(family) = self.variadic_fores.get(kind_id) else {
             return Ok((definition.inputs.len() == input_count).then(|| definition.clone()));
         };
@@ -553,6 +560,7 @@ impl ProfileCatalog {
     }
 
     pub(crate) fn is_homogeneous_variadic(&self, kind_id: &KindId) -> bool {
+        self.observe_variadic_fore(kind_id);
         self.variadic_fores.contains_key(kind_id)
     }
 
@@ -561,7 +569,9 @@ impl ProfileCatalog {
         kind_id: &KindId,
         input_count: Option<usize>,
     ) -> Result<Option<conduit_core::Kind>, String> {
+        self.observe_variadic_kind(kind_id);
         if let Some(template) = self.variadic_kinds.get(kind_id) {
+            self.observe_variadic_fore(kind_id);
             let input_count = input_count.ok_or_else(|| {
                 format!(
                     "variadic Gear '{}' requires an exact relational operand count",
@@ -575,14 +585,17 @@ impl ProfileCatalog {
                 .specialize_kind(template, input_count)
                 .map(Some);
         }
+        self.observe_canonical(kind_id);
         Ok(self.canonical_kinds.get(kind_id).cloned())
     }
 
     pub fn canonical_kind(&self, kind_id: &KindId) -> Option<&conduit_core::Kind> {
+        self.observe_canonical(kind_id);
         self.canonical_kinds.get(kind_id)
     }
 
     pub(crate) fn canonical_kinds(&self) -> &BTreeMap<KindId, conduit_core::Kind> {
+        self.observe_all_kinds();
         &self.canonical_kinds
     }
 
@@ -590,6 +603,7 @@ impl ProfileCatalog {
     /// Checked structured configuration defaults supply their exact Types and
     /// canonical values. Additional authored Types require an assembled catalog.
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
+        self.observe_all_kinds();
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
             let canonical_kind = self

@@ -62,7 +62,7 @@ fn repeated_exact_inputs_share_checked_and_expanded_owners_with_cold_equality() 
     assert_eq!(c.stats().expansion_hits, 1);
 }
 #[test]
-fn source_bytes_and_complete_startup_context_are_invalidation_dependencies() {
+fn source_bytes_and_observed_startup_context_are_invalidation_dependencies() {
     let (startup, profile) = catalog("unit@1");
     let mut c = cache();
     let a = c.check(SOURCE, &startup).unwrap();
@@ -78,12 +78,12 @@ fn source_bytes_and_complete_startup_context_are_invalidation_dependencies() {
         })
         .unwrap();
     let d = c.check(SOURCE, &Arc::new(extra)).unwrap();
-    assert!(!Arc::ptr_eq(a.checked(), d.checked()));
+    assert!(Arc::ptr_eq(a.checked(), d.checked()));
     assert!(
         c.check(SOURCE, &Arc::new(StartupCatalog::new())).is_err(),
         "removed checking dependency must not reuse a successful check"
     );
-    assert_eq!(c.stats().checks, 4);
+    assert_eq!(c.stats().checks, 3);
     let backs = Arc::new(CanonicalBackCatalog::new());
     let expanded = c.expand(&b, "main", &profile, &backs).unwrap();
     assert_eq!(
@@ -259,3 +259,6 @@ fn changed_back_owner_is_not_hidden_by_a_cached_primitive_expansion() {
     assert_eq!(c.stats().expansions, 3);
     assert_eq!(c.stats().expansion_hits, 1);
 }
+
+#[path = "preparation_cache/dependencies.rs"]
+mod dependencies;

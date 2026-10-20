@@ -264,3 +264,53 @@ test('descriptive measurement receipts use preflight without broadening mixed ru
     assert.equal(plan([fixture]).broad, true, fixture);
   }
 });
+
+test('native owner package admission retains the workspace network feature context', () => {
+  const native = { id: 'conduitos', name: 'conduitos', manifest_path: '/repo/targets/conduitos/Cargo.toml' };
+  const model = { workspace_members: [...metadata.workspace_members, native.id], packages: [...metadata.packages, native] };
+  const commands = [];
+  runAdmission(['targets/conduitos/src/native_owner_document.rs'], model, '/repo', (...args) => commands.push(args));
+  for (const operation of ['test', 'clippy']) {
+    const command = commands.find(([program, args]) => program === 'cargo' && args[0] === operation);
+    assert.ok(command, `${operation} is scheduled`);
+    const index = command[1].indexOf('--features');
+    assert.ok(index > 0);
+    assert.deepEqual(command[1][index + 1].split(','), ['conduitos/hosted-tools', 'conduitos/native-compositor']);
+  }
+  const unrelated = [];
+  runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
+  assert.ok(unrelated.every(([, args]) => !args.includes('--features')));
+});
+
+
+test('parallel broad admission retains explicit native lint without repeating package tests', () => {
+  const native = { id: 'conduitos', name: 'conduitos', manifest_path: '/repo/targets/conduitos/Cargo.toml' };
+  const model = { workspace_members: [...metadata.workspace_members, native.id], packages: [...metadata.packages, native] };
+  const commands = [];
+  runAdmission(['Cargo.toml'], model, '/repo', (...args) => commands.push(args), { workspaceChecked: true });
+  const lint = commands.filter(([program, args]) => program === 'cargo' && args[0] === 'clippy');
+  assert.equal(lint.length, 1);
+  assert.ok(lint[0][1].includes('conduitos'));
+  assert.equal(lint[0][1][lint[0][1].indexOf('--features') + 1], 'conduitos/hosted-tools,conduitos/native-compositor');
+  assert.ok(commands.every(([, args]) => !args.includes('--no-fail-fast')));
+});
+
+test('shared xtask sources compile both tooling entrances during narrow admission', () => {
+  const tools = [
+    {id: 'xtask', name: 'xtask', manifest_path: '/repo/tools/xtask/Cargo.toml'},
+    {id: 'dispatch', name: 'conduit-xtask-dispatch', manifest_path: '/repo/tools/xtask-dispatch/Cargo.toml'},
+  ];
+  const model = {workspace_members: [...names, ...tools.map(pkg => pkg.id)], packages: [...metadata.packages, ...tools]};
+  for (const source of ['tools/xtask/src/suites/workspace_shard_features_tests.rs', 'tools/xtask/src/suites/host_protocol_shards.rs', 'tools/xtask/src/commands/check.rs']) {
+    const selected = admissionPlan([source], model, '/repo');
+    assert.deepEqual(selected.packages, ['conduit-xtask-dispatch', 'xtask']);
+    assert.equal(selected.broad, false);
+    const commands = [];
+    runAdmission([source], model, '/repo', (...args) => commands.push(args));
+    assert.deepEqual(commands.map(([, args]) => args), [
+      ['clippy', '--locked', '-p', 'conduit-xtask-dispatch', '-p', 'xtask', '--all-targets', '--', '-D', 'warnings'],
+      ['test', '--locked', '--no-fail-fast', '-p', 'conduit-xtask-dispatch', '-p', 'xtask', '--', '--test-threads=1'],
+    ]);
+  }
+  assert.deepEqual(admissionPlan(['tools/xtask/README.md'], model, '/repo').packages, []);
+});
