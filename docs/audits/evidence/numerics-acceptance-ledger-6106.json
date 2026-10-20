@@ -66,7 +66,7 @@
     {
       "issue": 5735,
       "observed_state": "CLOSED",
-      "title": "[Numerics N8] Transport exact turn-to-radian π law into certified projections",
+      "title": "[Numerics N8] Transport exact turn-to-radian \u03c0 law into certified projections",
       "url": "https://github.com/dancxjo/conduit/issues/5735",
       "assessment": "Closure is recorded, not used as independent proof of broader parent completion. Follow-up issue links remain in its body."
     }
@@ -109,7 +109,7 @@
     {
       "id": "R03",
       "section": "Motivating failures / examples",
-      "requirement": "- `π` and `π/180` are exact named/symbolic mathematical expressions, even though a particular numerical projection is approximate.",
+      "requirement": "- `\u03c0` and `\u03c0/180` are exact named/symbolic mathematical expressions, even though a particular numerical projection is approximate.",
       "recorded_status": "partial",
       "owner_issue": 6118,
       "follow_up_issue": 6118,
@@ -132,7 +132,7 @@
     {
       "id": "R05",
       "section": "Motivating failures / examples",
-      "requirement": "- `sin(π/7)` may remain a finite symbolic expression even where no supported closed-form simplification is available.",
+      "requirement": "- `sin(\u03c0/7)` may remain a finite symbolic expression even where no supported closed-form simplification is available.",
       "recorded_status": "partial",
       "owner_issue": 6118,
       "follow_up_issue": 6118,
@@ -301,7 +301,7 @@
     {
       "id": "R21",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- `turn` gives exact rational circle fractions: `90° = 1/4turn`, `180° = 1/2turn`, `1turn = 360°`; `1turn = 2π rad` is **symbolically exact** rather than a stored float approximation of π. The current `architecture/core/src/quantity/wide_conversion.rs` cross-radian `Inexact` refusal should become a representation limitation addressed by #5392, not a permanent claim that degree/turn vs radian is incompatible. `#5390` declares/resolves angle units, while this issue owns the π-bearing numeric expression/precision projections.",
+      "requirement": "- `turn` gives exact rational circle fractions: `90\u00b0 = 1/4turn`, `180\u00b0 = 1/2turn`, `1turn = 360\u00b0`; `1turn = 2\u03c0 rad` is **symbolically exact** rather than a stored float approximation of \u03c0. The current `architecture/core/src/quantity/wide_conversion.rs` cross-radian `Inexact` refusal should become a representation limitation addressed by #5392, not a permanent claim that degree/turn vs radian is incompatible. `#5390` declares/resolves angle units, while this issue owns the \u03c0-bearing numeric expression/precision projections.",
       "recorded_status": "partial",
       "owner_issue": 6116,
       "follow_up_issue": 6116,
@@ -311,7 +311,7 @@
     {
       "id": "R22",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- Known exact identities should simplify/prove exactly, with no float leak: `sin(0turn) = 0`, `sin(1/4turn) = 1`, `cos(1/2turn) = -1`, `sin(90°) = sin(π/2 rad) = 1`, `tan(1/4turn)` refuses undefined. For other values, preserve exact symbolic denotation where bounded/representable and project only at a consuming Back according to admitted numerical precision/error constraints. Do not require a full computer algebra system or universal symbolic equality algorithm.",
+      "requirement": "- Known exact identities should simplify/prove exactly, with no float leak: `sin(0turn) = 0`, `sin(1/4turn) = 1`, `cos(1/2turn) = -1`, `sin(90\u00b0) = sin(\u03c0/2 rad) = 1`, `tan(1/4turn)` refuses undefined. For other values, preserve exact symbolic denotation where bounded/representable and project only at a consuming Back according to admitted numerical precision/error constraints. Do not require a full computer algebra system or universal symbolic equality algorithm.",
       "recorded_status": "partial",
       "owner_issue": 6116,
       "follow_up_issue": 6116,
@@ -344,7 +344,7 @@
     {
       "id": "R25",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- Distinguish cyclic frequency `f` in cycles/s (Hz) from angular frequency `ω` in turn/s. The checked relation is `ω = f × (1turn/cycle)`, or `ω = 2π f` when represented in rad/s. Neither Hz nor rad/s may silently convert to the other simply because both reduce to inverse time.",
+      "requirement": "- Distinguish cyclic frequency `f` in cycles/s (Hz) from angular frequency `\u03c9` in turn/s. The checked relation is `\u03c9 = f \u00d7 (1turn/cycle)`, or `\u03c9 = 2\u03c0 f` when represented in rad/s. Neither Hz nor rad/s may silently convert to the other simply because both reduce to inverse time.",
       "recorded_status": "reviewed-gap",
       "owner_issue": 6124,
       "follow_up_issue": 6124,
@@ -364,7 +364,7 @@
     {
       "id": "R27",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- [ ] #5390 establishes `turn` as canonical/reference/default Angle unit in its built-in source declaration; `0.25turn` and `90°` remain exact, while explicit authored units remain visible as evidence.",
+      "requirement": "- [ ] #5390 establishes `turn` as canonical/reference/default Angle unit in its built-in source declaration; `0.25turn` and `90\u00b0` remain exact, while explicit authored units remain visible as evidence.",
       "recorded_status": "complete-accepted-main",
       "owner_issue": 6106,
       "follow_up_issue": 6106,
@@ -379,7 +379,7 @@
     {
       "id": "R28",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- [ ] `1turn = 2π rad` transports as an exact supported symbolic conversion without inventing rational π; limited numeric projection is either witnessed to tolerance or precisely refused.",
+      "requirement": "- [ ] `1turn = 2\u03c0 rad` transports as an exact supported symbolic conversion without inventing rational \u03c0; limited numeric projection is either witnessed to tolerance or precisely refused.",
       "recorded_status": "partial",
       "owner_issue": 6116,
       "follow_up_issue": 6116,
@@ -425,7 +425,7 @@
     {
       "id": "R32",
       "section": "Dimension-aware trigonometry; canonical angle unit = turn (cross-ticket #5390)",
-      "requirement": "- [ ] Cyclic frequency versus angular frequency requires an explicit semantic operation; any `2π` factor stays exact until a Back projects it.",
+      "requirement": "- [ ] Cyclic frequency versus angular frequency requires an explicit semantic operation; any `2\u03c0` factor stays exact until a Back projects it.",
       "recorded_status": "reviewed-gap",
       "owner_issue": 6124,
       "follow_up_issue": 6124,
@@ -434,7 +434,7 @@
     },
     {
       "id": "R33",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
       "requirement": "- A numeric expression carried by a Quantity retains its exact denotation (where finitely supportable), **dimension, quantity family and point/difference role**. A pure Scalar is not an Angle just because radians have SI dimension one. Numeric representation lowering must not erase any of these checked facts.",
       "recorded_status": "partial",
       "owner_issue": 6108,
@@ -444,8 +444,8 @@
     },
     {
       "id": "R34",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
-      "requirement": "- Explicit unit-coordinate projection (e.g. `90° ↔ 0.25turn`, or `turn ↔ rad` with symbolic π) and numeric realization projection (e.g. exact ↔ `f64`) are **orthogonal planning decisions**, each with its own law/evidence. A proposed fast `f32` Back cannot justify silently changing the physical Unit, and unit conversion cannot silently justify IEEE rounding.",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- Explicit unit-coordinate projection (e.g. `90\u00b0 \u2194 0.25turn`, or `turn \u2194 rad` with symbolic \u03c0) and numeric realization projection (e.g. exact \u2194 `f64`) are **orthogonal planning decisions**, each with its own law/evidence. A proposed fast `f32` Back cannot justify silently changing the physical Unit, and unit conversion cannot silently justify IEEE rounding.",
       "recorded_status": "reviewed-gap",
       "owner_issue": 6123,
       "follow_up_issue": 6123,
@@ -454,7 +454,7 @@
     },
     {
       "id": "R35",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
       "requirement": "- A Quantity can retain a finite pair of authored coordinates + Unit and source evidence as a transport encoding. Its **semantic physical equality** is distinct from structural/byte equality; don't require eagerly materializing normalized symbolic numbers at every Port.",
       "recorded_status": "partial",
       "owner_issue": 6115,
@@ -464,7 +464,7 @@
     },
     {
       "id": "R36",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
       "requirement": "- Keep distinction of compatible dimensions versus authorized semantic operations: Length/Time is derivable; Energy/Torque share dimensional exponents yet can remain nominally different families; temperature points and differences cannot be silently added or equated. #5390 owns that physical type law; this issue owns exact mathematical expression support and admitted numerical projection.",
       "recorded_status": "partial",
       "owner_issue": 6115,
@@ -474,8 +474,8 @@
     },
     {
       "id": "R37",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
-      "requirement": "- The coherent integration proof is one exact Angle Quantity authored as `0.25turn`, equated exactly to `90°` and symbolically to `π/2 rad`, consumed by `sin(Angle)` for exact value 1, and optionally lowered to an admitted machine representation with appropriate error evidence. Preserve `turn` as the canonical angular reference, and bare `42` as Scalar.",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
+      "requirement": "- The coherent integration proof is one exact Angle Quantity authored as `0.25turn`, equated exactly to `90\u00b0` and symbolically to `\u03c0/2 rad`, consumed by `sin(Angle)` for exact value 1, and optionally lowered to an admitted machine representation with appropriate error evidence. Preserve `turn` as the canonical angular reference, and bare `42` as Scalar.",
       "recorded_status": "partial",
       "owner_issue": 6123,
       "follow_up_issue": 6123,
@@ -484,7 +484,7 @@
     },
     {
       "id": "R38",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
       "requirement": "- [ ] An exact Quantity survives **two independent projections** (Unit coordinates and numerical implementation) without losing its Dimension, family/role, mathematical denotation or source evidence; admissible substitutions produce equivalent semantics and truthful separate projection evidence.",
       "recorded_status": "incomplete",
       "owner_issue": 6123,
@@ -494,7 +494,7 @@
     },
     {
       "id": "R39",
-      "section": "Dimension–Unit–Quantity separation (coordinate projection vs numeric projection)",
+      "section": "Dimension\u2013Unit\u2013Quantity separation (coordinate projection vs numeric projection)",
       "requirement": "- [ ] `Dimension`, `Unit`, and `Quantity` are not aliased types in the checked numeric IR or source/Plan value transport. A Dimension is not guessed from a bare numeric literal or smuggled via Text.",
       "recorded_status": "partial",
       "owner_issue": 6108,
@@ -655,7 +655,7 @@
     {
       "id": "R55",
       "section": "Performance invariant for universal numbers (2026-10-10)",
-      "requirement": "- **No big-bang dependency:** #5396 and #5397 may optimize already-implemented fixed-width exact expression semantics independently of generalized symbolic π, arbitrary algebraics or a complete CAS; #5392's novel numeric representations follow behind a proven cheap path rather than blocking it.",
+      "requirement": "- **No big-bang dependency:** #5396 and #5397 may optimize already-implemented fixed-width exact expression semantics independently of generalized symbolic \u03c0, arbitrary algebraics or a complete CAS; #5392's novel numeric representations follow behind a proven cheap path rather than blocking it.",
       "recorded_status": "partial",
       "owner_issue": 6106,
       "follow_up_issue": 6133,
@@ -804,7 +804,7 @@
     {
       "id": "R68",
       "section": "Acceptance tests",
-      "requirement": "- [ ] `π/180` and `sqrt(2)` survive symbolic transport as exact denotations; a consumer requesting a finite numeric realization gets a value **with a verified bound** or an explicit refusal. The system does not assert that a decimal expansion is exact.",
+      "requirement": "- [ ] `\u03c0/180` and `sqrt(2)` survive symbolic transport as exact denotations; a consumer requesting a finite numeric realization gets a value **with a verified bound** or an explicit refusal. The system does not assert that a decimal expansion is exact.",
       "recorded_status": "partial",
       "owner_issue": 6118,
       "follow_up_issue": 6118,
@@ -1101,12 +1101,22 @@
     {
       "id": "R93",
       "section": "Thin delivery slices (2026-10-13)",
-      "requirement": "- [ ] #5735: [Numerics N8] Transport exact turn-to-radian π law into certified projections",
+      "requirement": "- [ ] #5735: [Numerics N8] Transport exact turn-to-radian \u03c0 law into certified projections",
       "recorded_status": "partial",
       "owner_issue": 6116,
       "follow_up_issue": 6116,
       "reconciliation": "not-promoted",
       "reason": "Original recorded status retained; related accepted examples, closed child state and held development work do not establish this whole row."
     }
-  ]
+  ],
+  "schema_provenance": {
+    "review_base_dev": "09cb583ccdec99be762759dce48754a019a370d5",
+    "accepted_dev_near_revision": "numeric/quantity-near@1",
+    "accepted_dev_shape": "Nine root fields; exact_rational and binary32 representations; no root projection-evidence field.",
+    "held_source": "5f9641a761",
+    "held_near_revision": "numeric/quantity-near@5",
+    "held_shape": "Ten root fields including projection-evidence; adds enclosed and binary64_computation forms.",
+    "historical_fixture_scope": "The @4 fixture is held development history, not evidence that @4 reached accepted dev.",
+    "follow_up": "#6107 must preserve accepted @1 and held @4 replay; integrating the held complete-report baseline depends on #6112. Six targeted held catalog tests do not prove accepted @1 compatibility."
+  }
 }
