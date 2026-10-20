@@ -15,6 +15,14 @@ pub struct KernelOperationBudget {
     pub sign_items: u16,
 }
 
+/// Explicit reusable pure-Value operation; mutable instances are never cloned.
+pub type ReusableKernelOperation = Box<
+    dyn conduit_kernel::scheduler::prepared_session::ReusableStepBack<
+            { FIXED_KERNEL_STORAGE_PORTS_PER_NODE },
+            Next = (),
+        > + Send,
+>;
+
 pub trait KernelOperationFactory: Send + Sync {
     fn implementation_id(&self) -> &ImplementationId;
     fn budget(&self, placement: &PlannedGear) -> Result<KernelOperationBudget, String>;
@@ -23,6 +31,15 @@ pub trait KernelOperationFactory: Send + Sync {
         placement: &PlannedGear,
         values: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
+    /// Opt-in only after exact preparation/profile admission. Unsupported or
+    /// failed reuse is a refusal, never an implicit one-shot retry during Play.
+    fn prepare_reusable_value(
+        &self,
+        _placement: &PlannedGear,
+        _values: &mut HostedValueStore,
+    ) -> Result<ReusableKernelOperation, String> {
+        Err("installed operation does not admit reusable Values".into())
+    }
 }
 
 #[derive(Default, Clone)]
