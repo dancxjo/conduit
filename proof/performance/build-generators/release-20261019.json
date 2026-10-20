@@ -143,5 +143,7 @@
     "human/semantic_types.rs": "f7f09fcddbffd1d0e5a7303c1544b924ce46f610cece485b4e86fdd32c177795",
     "human/keymap_layouts.rs": "c5110a075493e603d8a6b2aaa2aaebd3bde9db7ab3d2e10d7b67fa76de1595b4"
   },
-  "interpretation": "Build-dependency opt-level 1 reduced generator work and the representative cold build. The warm no-op builds show no useful speedup. Runtime release optimization, assertions and product code are unchanged."
+  "interpretation": "Build-dependency opt-level 1 reduced generator work and the representative cold build. The warm no-op builds show no useful speedup. Runtime release optimization, assertions and product code are unchanged.",
+  "reference_generator_source_url": "https://github.com/dancxjo/conduit/commit/b58c15e032259d29996c544add4bff5dd7866692",
+  "candidate_generator_source_url": "https://github.com/dancxjo/conduit/commit/8ffc5a4e26c59b146d6a596242a5fea06106bd7a"
 }
