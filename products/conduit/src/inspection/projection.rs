@@ -2,6 +2,7 @@
 use conduit_core::projection::{inspect_projection_evidence, ProjectionEvidenceView};
 use conduit_observatory::RoutedValueArtifact;
 use std::fmt::Write;
+mod coordinates;
 mod semantic;
 pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, String> {
     let sign = &artifact.sign.sign;
@@ -33,6 +34,19 @@ pub(super) fn render(artifact: &RoutedValueArtifact) -> Result<Option<String>, S
         .flat_map(|f| &f.placements)
         .find(|p| Some(&p.placement_id) == sign.placement_id.as_ref())
         .ok_or("routed value lacks producer")?;
+    if producer.execution_profile_id.as_str() == "std/exact-quantity-coordinates@1" {
+        let port = match &sign.kind {
+            conduit_core::ObservationKind::ForeOutputContent { evidence, .. }
+            | conduit_core::ObservationKind::RoutedContent { evidence, .. } => {
+                &evidence.output_port
+            }
+            _ => unreachable!("checked content context"),
+        };
+        if port.as_str() != "evidence" {
+            return Ok(None);
+        }
+        return coordinates::render(artifact, producer).map(Some);
+    }
     if !matches!(
         producer.execution_profile_id.as_str(),
         "std/quantity-near-exact-rational@1"

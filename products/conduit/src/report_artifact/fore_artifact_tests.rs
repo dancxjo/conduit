@@ -28,7 +28,7 @@ impl ExternalForeOutputAdapter for Outputs {
     }
 }
 
-fn prepared(relay: bool) -> (StdHost, Plan) {
+fn prepared(relay: bool, coordinates: bool) -> (StdHost, Plan) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile).unwrap();
@@ -43,6 +43,11 @@ fn prepared(relay: bool) -> (StdHost, Plan) {
         " value >> boundary.value"
     };
     let source = format!("{prefix}plot project (\n >> value: Quantity <= 33829B\n result: NearQuantity <= 131072B >>\n) {{\n boundary: math/near(limit=0.0001m)\n{input}\n boundary.result >> result\n}}\n");
+    let source = if coordinates {
+        "plot project (\n >> value: Quantity <= 33829B\n coordinate-evidence: QuantityCoordinateEvidence <= 131500B >>\n result: NearQuantity <= 131072B >>\n) {\n coordinates: math/coordinates(request={unit:cm})\n boundary: math/near(limit=0.01cm)\n value >> coordinates.value\n coordinates.result >> boundary.value\n coordinates.evidence >> coordinate-evidence\n boundary.result >> result\n}\n".to_string()
+    } else {
+        source
+    };
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "project", &profile).unwrap();
     let mut host = StdHost::new();
@@ -73,29 +78,35 @@ fn prepared(relay: bool) -> (StdHost, Plan) {
         .unwrap()
         .capability_id
         .clone();
-    let boundaries = [
+    let mut boundary_ports = vec![
         (PortDirection::Input, "value"),
         (PortDirection::Output, "result"),
-    ]
-    .into_iter()
-    .map(|(direction, port)| {
-        (
-            conduit_planner::ForeBoundaryKey {
-                direction,
-                front_port_id: port.into(),
-                track: ConnectionTrack::Payload,
-            },
-            conduit_planner::ConnectionQueueLimits {
-                item_capacity: 1,
-                byte_capacity: if port == "value" {
-                    33829
-                } else {
-                    conduit_semantic_catalog::NUMERICAL_NEAR_MAX_BYTES
+    ];
+    if coordinates {
+        boundary_ports.push((PortDirection::Output, "coordinate-evidence"));
+    }
+    let boundaries = boundary_ports
+        .into_iter()
+        .map(|(direction, port)| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.into(),
+                    track: ConnectionTrack::Payload,
                 },
-            },
-        )
-    })
-    .collect();
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: if port == "value" {
+                        33829
+                    } else if port == "coordinate-evidence" {
+                        131500
+                    } else {
+                        conduit_semantic_catalog::NUMERICAL_NEAR_MAX_BYTES
+                    },
+                },
+            )
+        })
+        .collect();
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &authored,
         &hosts,
@@ -135,7 +146,7 @@ fn actual_output_fore_bytes_export_and_inspect_without_a_core_cord() {
             .to_vec(),
         rational,
     ] {
-        export_and_inspect(input, false);
+        export_and_inspect(input, false, false);
     }
     export_and_inspect(
         Quantity::parse_plot_literal("1m")
@@ -143,12 +154,25 @@ fn actual_output_fore_bytes_export_and_inspect_without_a_core_cord() {
             .encode()
             .to_vec(),
         true,
+        false,
     );
 }
 
-fn export_and_inspect(input: Vec<u8>, relay: bool) {
+#[test]
+fn actual_coordinate_reports_export_and_replay_against_the_plan_request() {
+    export_and_inspect(
+        Quantity::parse_plot_literal("1m")
+            .unwrap()
+            .encode()
+            .to_vec(),
+        false,
+        true,
+    );
+}
+
+fn export_and_inspect(input: Vec<u8>, relay: bool, coordinates: bool) {
     let input_proof = input.clone();
-    let (mut host, plan) = prepared(relay);
+    let (mut host, plan) = prepared(relay, coordinates);
     let advertisement = host.advertisement().clone();
     let mut outputs = Outputs::default();
     let report = host
@@ -191,11 +215,66 @@ fn export_and_inspect(input: Vec<u8>, relay: bool) {
             value,
         })
         .collect::<Vec<_>>();
-    assert_eq!(routed_values.len(), if relay { 2 } else { 1 });
-    assert_eq!(outputs.0.len(), 1);
+    assert_eq!(
+        routed_values.len(),
+        if coordinates {
+            3
+        } else if relay {
+            2
+        } else {
+            1
+        }
+    );
+    assert_eq!(outputs.0.len(), if coordinates { 2 } else { 1 });
     assert!(routed_values
         .iter()
         .any(|value| value.value.bytes == outputs.0[0]));
+    if coordinates {
+        let records = outputs
+            .0
+            .iter()
+            .map(|bytes| StructuredInfoValue::from_canonical_bytes(bytes).unwrap())
+            .collect::<Vec<_>>();
+        let coordinate = records
+            .iter()
+            .find(|record| {
+                record.value_type()
+                    == &conduit_semantic_catalog::quantity_coordinate_evidence_type()
+            })
+            .unwrap();
+        let bytes = |record: &StructuredInfoValue, name: &str| {
+            let StructuredInfoValueShape::Record(fields) = record.shape() else {
+                panic!("record")
+            };
+            let StructuredInfoValueShape::Leaf(bytes) = fields
+                .iter()
+                .find(|field| field.name() == name)
+                .unwrap()
+                .value()
+                .shape()
+            else {
+                panic!("bytes")
+            };
+            bytes.to_vec()
+        };
+        let mut evidence = bytes(coordinate, "projection-evidence-head");
+        evidence.extend_from_slice(&bytes(coordinate, "projection-evidence-tail"));
+        let view = conduit_core::projection::inspect_projection_evidence(&evidence).unwrap();
+        let source_len = u32::from_le_bytes(view.source_bytes[..4].try_into().unwrap()) as usize;
+        assert_eq!(&view.source_bytes[4..4 + source_len], input_proof);
+        let target_frame = view.target_bytes.unwrap();
+        let target_len = u32::from_le_bytes(target_frame[..4].try_into().unwrap()) as usize;
+        let target = &target_frame[4..4 + target_len];
+        assert_ne!(target, input_proof);
+        assert!(routed_values
+            .iter()
+            .any(|value| value.value.bytes == target));
+        let numeric = records
+            .iter()
+            .find(|record| record.value_type() == &conduit_semantic_catalog::near_quantity_type())
+            .unwrap();
+        assert_eq!(bytes(numeric, "source-wire"), target);
+    }
     let snapshot = crate::report_artifact::snapshot_from_execution(
         vec![advertisement],
         vec![],
@@ -268,8 +347,10 @@ fn export_and_inspect(input: Vec<u8>, relay: bool) {
             artifact.sign.sign.kind,
             ObservationKind::RoutedContent { .. }
         ) {
-            assert!(relay && artifact.sign.sign.connection_id.is_some());
-            assert_eq!(artifact.bytes, input_proof);
+            assert!((relay || coordinates) && artifact.sign.sign.connection_id.is_some());
+            if relay {
+                assert_eq!(artifact.bytes, input_proof);
+            }
             inspections.push((path.with_extension("inspection.txt"), inspection));
             continue;
         }
@@ -279,14 +360,16 @@ fn export_and_inspect(input: Vec<u8>, relay: bool) {
             artifact.sign.sign.kind,
             ObservationKind::ForeOutputContent { .. }
         ));
-        assert_eq!(artifact.bytes, outputs.0[0]);
+        assert!(outputs.0.contains(&artifact.bytes));
         assert!(
             inspection.contains("Projection report claims"),
             "{inspection}"
         );
         assert!(inspection.contains("Fore"), "{inspection}");
         assert!(
-            inspection.contains("Numerical certificate independently replayed"),
+            inspection.contains("Numerical certificate independently replayed")
+                || (coordinates
+                    && inspection.contains("Coordinate certificate independently replayed")),
             "{inspection}"
         );
         assert!(
@@ -296,7 +379,7 @@ fn export_and_inspect(input: Vec<u8>, relay: bool) {
         inspections.push((path.with_extension("inspection.txt"), inspection));
     }
     assert_eq!(values, routed_values.len());
-    assert_eq!(fore_values, 1);
+    assert_eq!(fore_values, if coordinates { 2 } else { 1 });
     for (path, inspection) in inspections {
         std::fs::write(path, inspection).unwrap();
     }
