@@ -20,6 +20,7 @@ pub enum MappingRefusal {
     CachePolicy,
 }
 impl MappingRefusal {
+    #[cfg_attr(test, allow(dead_code))]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Extent => "aarch64-framebuffer-mapping-extent-invalid",

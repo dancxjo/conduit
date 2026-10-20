@@ -197,9 +197,6 @@ fn boot_aarch64_product(
     let image_path = image.to_str().ok_or_else(|| {
         ConduitosError::refusal("profile-built-image-path-invalid", "non-UTF-8 path")
     })?;
-    let serial_path = paths.target.join("aarch64-product-boot.log");
-    let _ = fs::remove_file(&serial_path);
-    let serial_target = format!("file:{}", serial_path.to_string_lossy());
     let graphical = manifest
         .presenters
         .iter()
@@ -207,6 +204,12 @@ fn boot_aarch64_product(
     let capture = graphical
         .then(|| graphical::Capture::prepare(&paths.target))
         .transpose()?;
+    let legacy_serial_path = paths.target.join("aarch64-product-boot.log");
+    let serial_path = capture
+        .as_ref()
+        .map_or_else(|| legacy_serial_path.clone(), |c| c.serial_path());
+    let _ = fs::remove_file(&serial_path);
+    let serial_target = format!("file:{}", serial_path.to_string_lossy());
     let mut command = Command::new("qemu-system-aarch64");
     command
         .args([
@@ -240,14 +243,22 @@ fn boot_aarch64_product(
             .arg(capture.endpoint());
         capture.record_launch(&command, &paths.root, &firmware, image)?;
     }
+    let stderr = if let Some(capture) = &capture {
+        Stdio::from(fs::File::create(capture.stderr_path()).map_err(|error| {
+            ConduitosError::refusal("aarch64-product-stderr-unavailable", error.to_string())
+        })?)
+    } else {
+        Stdio::piped()
+    };
     let mut child = command
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::piped())
+        .stderr(stderr)
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-aarch64-qemu", error.to_string()))?;
-    let deadline = Instant::now() + Duration::from_secs(45);
+    let started = Instant::now();
+    let deadline = started + Duration::from_secs(45);
     loop {
         if fs::metadata(&serial_path).is_ok_and(|metadata| metadata.len() > 1024 * 1024) {
             let _ = child.kill();
@@ -308,7 +319,8 @@ fn boot_aarch64_product(
                 })?;
                 value["ordinary_observatory"] = snapshot;
                 if let Some(capture) = &capture {
-                    value["graphical"] = capture.finish(&mut child, &transcript, &value)?;
+                    value["graphical"] =
+                        capture.finish(&mut child, &transcript, &value, started)?;
                 }
                 Ok::<_, ConduitosError>(value)
             })();
@@ -339,10 +351,23 @@ fn boot_aarch64_product(
                 .map_err(|error| {
                     ConduitosError::refusal("aarch64-product-stop-failed", error.to_string())
                 })?;
+            if graphical {
+                fs::copy(&serial_path, &legacy_serial_path).map_err(|error| {
+                    ConduitosError::refusal(
+                        "aarch64-product-log-retention-failed",
+                        error.to_string(),
+                    )
+                })?;
+            }
             if !opts.quiet && !opts.json {
                 println!(
-                    "BOOTED {} to AArch64 linear product front door",
-                    image.display()
+                    "BOOTED {} to AArch64 {} product front door",
+                    image.display(),
+                    if graphical {
+                        "graphical read-only"
+                    } else {
+                        "linear"
+                    }
                 );
             }
             return Ok(value);

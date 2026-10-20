@@ -70,6 +70,12 @@ impl Capture {
         )
         .map_err(io)
     }
+    pub(super) fn serial_path(&self) -> PathBuf {
+        self.directory.join("serial.log")
+    }
+    pub(super) fn stderr_path(&self) -> PathBuf {
+        self.directory.join("qemu-stderr.log")
+    }
     pub(super) fn endpoint(&self) -> String {
         format!(
             "unix:{},server=on,wait=off",
@@ -81,6 +87,7 @@ impl Capture {
         child: &mut Child,
         transcript: &str,
         product: &Value,
+        started: std::time::Instant,
     ) -> Result<Value, ConduitosError> {
         if transcript.len() > 1024 * 1024 {
             return Err(refuse("serial exceeds 1 MiB"));
@@ -95,7 +102,16 @@ impl Capture {
                 .ok_or_else(|| refuse("no complete mapping Sign"))?,
         )
         .map_err(|e| refuse(e.to_string()))?;
-        if face["status"] != "shown"
+        if [
+            &face["face"]["identity"],
+            &face["show"]["show_id"],
+            &face["show"]["mask_plan_id"],
+            &face["show"]["mask_active_play_id"],
+            &face["framebuffer"]["base_id"],
+        ]
+        .iter()
+        .any(|id| id.as_str().is_none_or(str::is_empty))
+            || face["status"] != "shown"
             || face["target"] != "conduitos/aarch64/virt"
             || face["profile_id"] != product["profile_id"]
             || face["build_id"] != product["build_id"]
@@ -145,9 +161,9 @@ impl Capture {
         {
             return Err(refuse("capture dimensions do not match admitted scanout"));
         }
-        fs::write(self.directory.join("serial.log"), transcript).map_err(io)?;
         let proof = json!({"schema":"conduit.conduitos/firmware-frame-capture@1",
             "face":face,"mapping":mapping,"frame":frame,"directory":self.directory,
+            "boot_to_capture_millis":started.elapsed().as_millis(),
             "physical_scanout_proved":false,"gpu_acceleration_proved":false,
             "local_input_proved":false,"accepted_release":false});
         fs::write(
