@@ -4,6 +4,7 @@ mod damage;
 mod frame_composition;
 mod input_routing;
 mod interaction_affordance;
+mod raster_reuse;
 mod scanline;
 mod scanout_acknowledgement;
 mod surface_buffer;
@@ -203,6 +204,7 @@ pub(super) struct CompositorSurface {
     z: u8,
     visible: bool,
     buffer: SurfaceBuffer,
+    raster_scene: Option<GraphicsScene>,
     visual_expression: Option<conduit_face::AdmittedVisualExpression>,
     binding: Option<SurfaceBinding>,
     receipt: Option<CompositionReceipt>,
@@ -299,6 +301,7 @@ impl NativeCompositor {
             z,
             visible: true,
             buffer,
+            raster_scene: None,
             visual_expression: None,
             binding: None,
             receipt: None,
