@@ -3,6 +3,7 @@ use crate::prelude::*;
 mod contract;
 mod inspection;
 mod preparation;
+mod receipts;
 mod reusable;
 #[cfg_attr(not(feature = "fixture-registry-preparation"), allow(unused_imports))]
 use crate::{

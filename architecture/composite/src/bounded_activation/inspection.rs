@@ -78,7 +78,23 @@ impl BoundedActivationHost {
 
     pub fn signs(&self) -> BTreeMap<conduit_core::HostId, Vec<KernelEvent>> {
         let mut signs = BTreeMap::new();
-        for receipt in self.receipts.iter().chain(self.active.iter()) {
+        if let Some(pool) = &self.reusable {
+            for evidence in &pool.evidence {
+                for host in evidence.active_plays().keys() {
+                    use conduit_kernel::SignQuery;
+                    signs
+                        .entry(host.clone())
+                        .or_insert_with(Vec::new)
+                        .extend(evidence.signs().events());
+                }
+            }
+        }
+        for receipt in self
+            .receipts
+            .iter()
+            .chain(self.active.iter())
+            .chain(self.reusable.iter().filter_map(|pool| pool.drained()))
+        {
             for (host, events) in receipt.signs() {
                 signs.entry(host).or_insert_with(Vec::new).extend(events);
             }
@@ -94,6 +110,7 @@ impl BoundedActivationHost {
     pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
         self.active
             .as_ref()
+            .or_else(|| self.reusable.as_ref().and_then(|pool| pool.host()))
             .or_else(|| self.receipts.last())
             .or_else(|| self.ready.last())
             .and_then(|host| host.child_identity(child))
@@ -102,12 +119,16 @@ impl BoundedActivationHost {
     pub fn last_cancellation_failures(
         &self,
     ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
-        self.receipts
-            .last()
+        self.reusable
+            .as_ref()
+            .and_then(|pool| pool.host())
+            .or_else(|| self.receipts.last())
             .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
 
     pub fn remaining_items(&self) -> usize {
-        self.ready.len()
+        self.reusable
+            .as_ref()
+            .map_or(self.ready.len(), |pool| pool.remaining())
     }
 }
