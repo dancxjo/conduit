@@ -216,7 +216,7 @@ fn boot_once(paths: &Paths) -> Result<A3Run, ConduitosError> {
     let (firmware, vars_template) = firmware_paths(paths)?;
     let vars = paths.target.join("ovmf32-vars.fd");
     let transcript_path = paths.target.join("ia32-debugcon.log");
-    fs::copy(vars_template, &vars)
+    super::ia32_firmware::copy_vars(&vars_template, &vars)
         .map_err(|error| refusal("unavailable-ia32-firmware", error.to_string()))?;
     fs::write(&transcript_path, [])
         .map_err(|error| refusal("ia32-boot-failed", error.to_string()))?;
@@ -451,24 +451,8 @@ fn reject_dry_run(opts: &GlobalOpts) -> Result<(), ConduitosError> {
 }
 
 pub(super) fn firmware_paths(paths: &Paths) -> Result<(PathBuf, PathBuf), ConduitosError> {
-    [
-        PathBuf::from("/usr/share/OVMF"),
-        paths.root.join("target/conduitos/toolchain/ovmf-ia32"),
-    ]
-    .into_iter()
-    .map(|root| {
-        (
-            root.join("OVMF32_CODE_4M.fd"),
-            root.join("OVMF32_VARS_4M.fd"),
-        )
-    })
-    .find(|(code, vars)| code.is_file() && vars.is_file())
-    .ok_or_else(|| {
-        refusal(
-            "unavailable-ia32-firmware",
-            "OVMF32_CODE_4M.fd and OVMF32_VARS_4M.fd are required",
-        )
-    })
+    super::ia32_firmware::paths(&paths.root)
+        .map_err(|error| refusal("unavailable-ia32-firmware", error.to_string()))
 }
 
 fn qemu_version(paths: &Paths) -> Result<String, ConduitosError> {

@@ -10,7 +10,7 @@ import { ACTIONLINT } from '../../tools/ci/pipeline/setup.mjs';
 
 test('each ConduitOS package set includes only its own emulator/firmware', () => {
   const expected = {
-    x86_64: ['qemu-system-x86'], ia32: ['qemu-system-x86', 'ovmf-ia32'],
+    x86_64: ['qemu-system-x86'], ia32: ['qemu-system-x86'],
     aarch64: ['qemu-system-arm', 'qemu-efi-aarch64'], riscv64: ['qemu-system-misc', 'u-boot-qemu'], loongarch64: ['qemu-system-misc'],
   };
   for (const [arch, selected] of Object.entries(expected)) {

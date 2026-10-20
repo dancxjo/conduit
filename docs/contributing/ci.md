@@ -99,7 +99,12 @@ Chromium, one worker and zero retries.
 ## Tool acquisition
 
 Each lane resolves one package set and checks installed tools before acquiring
-anything. Linux lanes use one apt transaction; browser dependencies come from
+anything. IA-32 UEFI firmware uses the shared
+`cargo xtask make conduitos prepare-ia32-firmware` and
+`doctor-ia32-firmware` routes instead of a distro `ovmf-ia32` package dependency.
+The [reviewed pin](../../targets/conduitos/tools/ia32-firmware/README.md) records
+the signed Ubuntu provenance and package/file hashes. Verified cached pairs
+work offline; partial or corrupt pairs refuse. Boot never acquires firmware. Linux lanes use one apt transaction; browser dependencies come from
 the pinned Playwright package. Pico radio assets are already versioned source
 and are verified without downloading them again. AVR checks its retained core
 and compiler identities before repeating setup. Fresh AVR setup installs the
