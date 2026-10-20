@@ -5,6 +5,8 @@ use sha2::{Digest, Sha256};
 #[path = "linear_collection_records.rs"]
 mod records;
 use records::Records;
+#[path = "generic_collection_observation.rs"]
+mod generic_observation;
 
 fn rehash(face: Face) -> Face {
     Face::new_with_semantics(
@@ -266,6 +268,10 @@ fn owner_generic_and_actual_linear_reconstruct_all_three_collection_profiles() {
         serde_json::to_string(&render_linear_face(&specimen).unwrap().lines).unwrap()
     );
     std::println!("COLLECTION_RECONSTRUCTED {:?}", reconstructed);
+    std::println!(
+        "COLLECTION_GENERIC_JSON {}",
+        generic_observation::observe(&specimen)
+    );
     let choices = owner
         .choices()
         .iter()
