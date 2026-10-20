@@ -39,6 +39,13 @@ pub const STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
+        "prove.resource-frame.replanning",
+        "Check finite reluctant policy against reserved provider replacement costs and signed fixture forecasts",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-std-host", "--test", "reluctant_replan_policy", "--test", "resource_replacement_cost", "--test", "resource_replacement_scope"],
+        None, None, Some(ProofClass::HostedIntegration), &[],
+    ),
+    Step::typed(
         "prove.resource-frame.execution",
         "Execute the frame Plans through the production kernel and bounded Resource provider",
         "cargo",

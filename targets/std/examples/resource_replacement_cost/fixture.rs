@@ -16,6 +16,9 @@ pub fn payload() -> Vec<u8> {
 pub const SOURCE: &str = "plot resource_cost {\n source: frame/source\n}\n";
 
 pub struct Cases {
+    // Policy conformance retains checked demand identity; the timing worker uses Plans.
+    #[allow(dead_code)]
+    pub expanded: ExpandedCanonicalPlot,
     pub host: HostAdvertisement,
     pub previous: Plan,
     pub candidate: Plan,
@@ -163,6 +166,7 @@ impl Cases {
             return Err("resource alternatives lost identity or distinct residence".into());
         }
         Ok(Self {
+            expanded,
             host,
             previous,
             candidate,
