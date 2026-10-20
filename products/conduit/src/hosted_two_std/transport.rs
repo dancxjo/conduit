@@ -73,6 +73,9 @@ fn drive_sink(
     for _ in 0..32 {
         if let Some(request) = runtime.next_host_request() {
             complete_text_face(runtime, request, output, workload)?;
+            if matches!(workload, super::Workload::Text) {
+                return Ok(());
+            }
             // Commit the accepted effect and release its retained ingress Value
             // before Delivered permits the next transfer into the same slot.
             return match runtime.step()? {
