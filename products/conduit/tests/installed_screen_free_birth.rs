@@ -713,10 +713,10 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
     fs::create_dir_all(&state).unwrap();
     seed_installation(&state);
     let mut service = start_service(&state);
-    // The journal can be written, but publication of its biography cannot
-    // replace a directory. Inject this after startup so archive validation does
-    // not refuse the Host before Birth reaches its commit decision.
-    fs::create_dir_all(state.join("body/biography.json")).unwrap();
+    // Retention reads the prior biography before journaling. Block the source
+    // publication instead: replay writes it only after the transaction is durable.
+    // Inject after startup so the Host reaches Birth's commit decision.
+    fs::create_dir_all(state.join("body/source.conduit")).unwrap();
     let attempt = product_with_stdin(
         &["body", "birth", "--screen-free", "--state-dir", path(&state)],
         b"focus creche.name\nedit value Ada\nactivate\nfocus creche.plot.1\nedit value true\nactivate\nfocus creche.birth\nactivate\n",
@@ -724,6 +724,16 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
     assert!(!attempt.status.success());
     assert!(String::from_utf8_lossy(&attempt.stderr).contains("control-outcome-unknown"));
     let journal = state.join("body/owner-transaction.json");
+    // The client deadline does not cancel the service's accepted operation.
+    // Observe its durable boundary without sending Birth a second time.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !journal.exists() {
+        assert!(
+            Instant::now() < deadline,
+            "Birth did not retain its journal"
+        );
+        thread::sleep(Duration::from_millis(10));
+    }
     let transaction: Value = serde_json::from_slice(&fs::read(&journal).unwrap()).unwrap();
     let body_id = transaction["biography"]["body_id"]
         .as_str()
@@ -744,7 +754,7 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
     assert!(String::from_utf8_lossy(&repeated.stderr).contains("control-outcome-unknown"));
 
     stop_service(&mut service);
-    fs::remove_dir(state.join("body/biography.json")).unwrap();
+    fs::remove_dir(state.join("body/source.conduit")).unwrap();
     fs::remove_file(state.join("control.sock")).unwrap();
     service = start_service(&state);
     let recovered = product(&["body", "face", "--state-dir", path(&state), "--json"]);
