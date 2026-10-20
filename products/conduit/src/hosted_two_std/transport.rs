@@ -469,19 +469,25 @@ fn with_message<R>(
     line: &mut NativeWebSocketLine,
     consume: impl FnOnce(&mut InstalledRemoteFragment, SessionMessage<'_>) -> Result<R, String>,
 ) -> Result<R, String> {
-    line.receive_binary_with(|bytes| {
-        let frame = decode_session_frame(bytes, conduit_text::MAX_TEXT_BYTES, MAXIMUM_FRAME_BYTES)
-            .map_err(|error| format!("decode Tour Line frame: {error:?}"))?;
-        runtime
-            .sessions_mut()
-            .get_mut(endpoint)
-            .ok_or("Tour Line session missing")?
-            .machine_mut()
-            .admit_inbound(frame)
-            .map_err(|error| format!("admit inbound Tour Line frame: {error:?}"))?;
-        consume(runtime, frame.message)
-    })
-    .map_err(|error| format!("receive Tour Line frame: {error:?}"))?
+    // Matched reference only: retain the former bounded caller-buffer copy.
+    let mut bytes = [0; MAXIMUM_FRAME_BYTES as usize];
+    let length = line
+        .receive_binary(&mut bytes)
+        .map_err(|error| format!("receive Tour Line frame: {error:?}"))?;
+    let frame = decode_session_frame(
+        &bytes[..length],
+        conduit_text::MAX_TEXT_BYTES,
+        MAXIMUM_FRAME_BYTES,
+    )
+    .map_err(|error| format!("decode Tour Line frame: {error:?}"))?;
+    runtime
+        .sessions_mut()
+        .get_mut(endpoint)
+        .ok_or("Tour Line session missing")?
+        .machine_mut()
+        .admit_inbound(frame)
+        .map_err(|error| format!("admit inbound Tour Line frame: {error:?}"))?;
+    consume(runtime, frame.message)
 }
 
 fn receive_message(
