@@ -2080,8 +2080,12 @@ where
                     .and_then(|bindings| bindings.owned.as_deref())
                     .and_then(|owners| owners[node].as_ref())
                 {
-                    if !self.values.owned_compact_f32_available(owner)? {
-                        maximum = 0;
+                    match self.values.owned_compact_f32_available(owner) {
+                        Ok(false) => maximum = 0,
+                        // A completed producer may still drain normally. A new
+                        // publication itself reports permanent generation refusal.
+                        Ok(true) | Err(StorageError::GenerationExhausted) => {}
+                        Err(error) => return Err(error.into()),
                     }
                 }
             }

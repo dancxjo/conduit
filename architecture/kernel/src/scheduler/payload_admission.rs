@@ -244,7 +244,7 @@ where
         }
         #[cfg(not(feature = "alloc"))]
         let _ = node;
-        self.values.release(generated.value)?;
+        let _ = self.values.release(generated.value);
         Ok(())
     }
     pub(super) fn commit_generated_output(

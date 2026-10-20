@@ -169,6 +169,13 @@ impl HostedValueStore {
                 return Ok(true);
             }
         }
+        if owner
+            .slots
+            .iter()
+            .all(|index| self.slots[usize::from(*index)].generation == u16::MAX)
+        {
+            return Err(StorageError::GenerationExhausted);
+        }
         Ok(false)
     }
     /// Transfer without a payload copy. The producer receives another exact,

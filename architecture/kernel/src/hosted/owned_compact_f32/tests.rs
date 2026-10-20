@@ -149,6 +149,10 @@ fn logical_pressure_and_retired_generations_refuse_before_buffer_transfer() {
         values.swap_owned_compact_f32(&owner, &mut second),
         Err(StorageError::GenerationExhausted)
     ));
+    assert_eq!(
+        values.owned_compact_f32_available(&owner),
+        Err(StorageError::GenerationExhausted)
+    );
     assert_eq!(second.as_ptr(), pointer);
     assert_eq!(values.used_items(), 0);
 }
