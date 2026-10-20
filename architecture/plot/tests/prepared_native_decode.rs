@@ -80,12 +80,13 @@ fn admit(d:&CheckedSyntaxDocument)->PreparedNativeAdmission<'_>{
  let d=doc();let a=admit(&d);let proof=a.admitted().unwrap();
  let mut staging=Beam::prepare_storage(&d,bound()).unwrap();
  let capacity=staging.canonical_capacity();
- let ((actual,steps),growth)=allocation_probe::observe(||{
+ let ((actual,steps,retained),growth)=allocation_probe::observe(||{
   let mut steps=0;loop{steps+=1;if staging.step(&proof).unwrap()==PreparedDecodeProgress::Complete{break;}}
-  let actual=match staging.finish(&proof){Ok(v)=>v,Err(_)=>panic!("completion refused")}; (actual,steps)
+  let (actual,retained)=match staging.finish_retained(&proof){Ok(v)=>v,Err(_)=>panic!("completion refused")}; (actual,steps,retained)
  });
  assert_eq!(growth.allocations,0);assert_eq!(growth.reallocations,0);
- assert_eq!(actual,value());assert_eq!(steps,10);assert!(capacity>=16384);
+ assert_eq!(growth.deallocations,0);
+ assert_eq!(actual,value());assert_eq!(steps,10);assert!(capacity>=16384);assert_eq!(retained.canonical_capacity(),capacity);
 }
 #[test]fn foreign_witness_cancel_and_pressure_cannot_finish(){
  let d=doc();let other=doc();let a=admit(&d);let b=admit(&other);let proof=a.admitted().unwrap();let foreign=b.admitted().unwrap();

@@ -66,7 +66,7 @@ pub(super) fn emit(
             _ => writeln!(out, "f{i}: None,").unwrap(),
         }
     }
-    writeln!(out, "}}) }} }}\nimpl {storage}<'_> {{").unwrap();
+    writeln!(out, "}}) }} }}\nimpl<'d> {storage}<'d> {{").unwrap();
     writeln!(out,"pub fn step(&mut self,witness:&conduit_plot::rust_binding::AdmittedNativeCanonical<'_>)->Result<conduit_plot::rust_binding::PreparedDecodeProgress,conduit_plot::rust_binding::PreparedDecodeRefusal>{{").unwrap();
     writeln!(out,"use conduit_plot::rust_binding::PreparedDecodeRefusal as E; let (ordinal,value)=self.gate.step_value(witness)?; let result: Result<(),E> = (|| {{ match ordinal {{").unwrap();
     for (i, s) in layout.slots.iter().enumerate() {
@@ -80,8 +80,10 @@ pub(super) fn emit(
     }
     writeln!(out,"_=>return Err(E::State), }} Ok(()) }})(); if let Err(error)=result {{return Err(self.gate.fail(error));}} Ok(self.gate.advance()) }}").unwrap();
     writeln!(out,"#[allow(clippy::result_large_err)]
-pub fn finish(mut self,witness:&conduit_plot::rust_binding::AdmittedNativeCanonical<'_>)->Result<{rust},(conduit_plot::rust_binding::PreparedDecodeRefusal,Self)> {{").unwrap();
-    writeln!(out,"use conduit_plot::rust_binding::PreparedDecodeRefusal as E; if let Err(error)=self.gate.finish(witness) {{return Err((error,self));}} let result: Result<{rust},E>=(|| Ok({}))(); match result {{Ok(value)=>Ok(value),Err(_)=>unreachable!(\"private completed staging slots\"),}} }}",layout.expression).unwrap();
+pub fn finish(self,witness:&conduit_plot::rust_binding::AdmittedNativeCanonical<'_>)->Result<{rust},(conduit_plot::rust_binding::PreparedDecodeRefusal,Self)> {{ self.finish_retained(witness).map(|(value,retained)| {{ drop(retained); value }}) }}").unwrap();
+    writeln!(out,"#[allow(clippy::result_large_err)]
+pub fn finish_retained(mut self,witness:&conduit_plot::rust_binding::AdmittedNativeCanonical<'_>)->Result<({rust},conduit_plot::rust_binding::PreparedDecodeGate<'d>),(conduit_plot::rust_binding::PreparedDecodeRefusal,Self)> {{").unwrap();
+    writeln!(out,"use conduit_plot::rust_binding::PreparedDecodeRefusal as E; if let Err(error)=self.gate.finish(witness) {{return Err((error,self));}} let result: Result<{rust},E>=(|| Ok({}))(); match result {{Ok(value)=>Ok((value,self.gate)),Err(_)=>unreachable!(\"private completed staging slots\"),}} }}",layout.expression).unwrap();
     writeln!(out,"pub fn cancel(&mut self){{self.gate.cancel();}} pub fn canonical_capacity(&self)->usize{{self.gate.canonical_capacity()}} }}").unwrap();
     Ok(())
 }
