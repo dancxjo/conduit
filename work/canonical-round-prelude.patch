@@ -1,0 +1,718 @@
+diff --git a/semantics/language/src/analysis_fallback_io.rs b/semantics/language/src/analysis_fallback_io.rs
+--- a/semantics/language/src/analysis_fallback_io.rs
++++ b/semantics/language/src/analysis_fallback_io.rs
+@@ -56,6 +56,13 @@
+             operations.push((*name, programs));
+         }
+         Ok(Self { operations })
++    }
++    #[cfg(target_has_atomic = "ptr")]
++    pub(super) fn operation(&self, name: &str) -> Option<&[PortableExpressionProgram]> {
++        self.operations
++            .iter()
++            .find(|(actual, _)| *actual == name)
++            .map(|(_, programs)| programs.as_slice())
+     }
+     pub fn programs(&self) -> &'static [(&'static str, &'static [&'static str])] {
+         FALLBACK_ROUND_PROGRAMS
+diff --git a/semantics/language/src/analysis_fallback_round.rs b/semantics/language/src/analysis_fallback_round.rs
+--- a/semantics/language/src/analysis_fallback_round.rs
++++ b/semantics/language/src/analysis_fallback_round.rs
+@@ -11,6 +11,9 @@
+     FallbackObservationProvider, FallbackOperationObservation, PreparedFallbackRoundPrograms,
+     MAXIMUM_ROUND_BYTES, MAXIMUM_ROUND_OBSERVATIONS,
+ };
++#[cfg(target_has_atomic = "ptr")]
++#[path = "analysis_round_prelude.rs"]
++pub mod canonical_prelude;
+ #[path = "analysis_round_scoring.rs"]
+ mod scoring;
+ use scoring::{FallbackScores, RankRequest, RoundScores};
+diff --git a/semantics/language/src/analysis_round_frames.rs b/semantics/language/src/analysis_round_frames.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/language/src/analysis_round_frames.rs
+@@ -0,0 +1,97 @@
++//! Preparation-only canonical selection/composition from the admitted owner.
++//! No reinterpretation of raw candidate bytes as refined Native values.
++use super::*;
++use conduit_core::{
++    validate_canonical_structured_value, PreparedStructuredComposer, StructuredCanonicalSelection,
++    StructuredInfoType, StructuredSelector,
++};
++use conduit_plot::rust_binding::NativeRustBinding;
++fn field(input: &[u8], ty: &StructuredInfoType, name: &str) -> Result<Vec<u8>, PreludeRefusal> {
++    let selector =
++        StructuredSelector::field(ty.clone(), name).map_err(|_| PreludeRefusal::Preparation)?;
++    let input_type = selector
++        .input_type()
++        .canonical_bytes()
++        .map_err(|_| PreludeRefusal::Preparation)?;
++    let output_type = selector
++        .output_type()
++        .canonical_bytes()
++        .map_err(|_| PreludeRefusal::Preparation)?;
++    let maximum = conduit_plot::maximum_prepared_canonical_value_bytes(selector.output_type())
++        .map_err(|_| PreludeRefusal::Preparation)? as usize;
++    let mut output = Vec::with_capacity(maximum);
++    if selector
++        .select_canonical_into(input, &input_type, &output_type, &mut output)
++        .map_err(|_| PreludeRefusal::Preparation)?
++        != StructuredCanonicalSelection::Matched
++    {
++        return Err(PreludeRefusal::Preparation);
++    }
++    Ok(output)
++}
++pub(super) fn prepare(owner: &AnalysisEpochOwner<'_>) -> Result<Vec<RequestFrame>, PreludeRefusal> {
++    let raw = super::super::raw_beam(owner.beam()).map_err(|_| PreludeRefusal::Preparation)?;
++    let raw_bytes = raw.encode().map_err(|_| PreludeRefusal::Preparation)?;
++    let ty =
++        LanguageAnalysisInitialRawBeam::semantic_type().map_err(|_| PreludeRefusal::Preparation)?;
++    let children = ["candidate0", "candidate1", "candidate2", "candidate3"]
++        .map(|name| field(&raw_bytes, &ty, name));
++    let [a, b, c, d] = children;
++    let (a, b, c, d) = (a?, b?, c?, d?);
++    let mut composer = PreparedStructuredComposer::new(&ty, raw_bytes.len())
++        .map_err(|_| PreludeRefusal::Preparation)?;
++    let seed = composer
++        .record(&[
++            validate_canonical_structured_value(&a).map_err(|_| PreludeRefusal::Preparation)?,
++            validate_canonical_structured_value(&b).map_err(|_| PreludeRefusal::Preparation)?,
++            validate_canonical_structured_value(&c).map_err(|_| PreludeRefusal::Preparation)?,
++            validate_canonical_structured_value(&d).map_err(|_| PreludeRefusal::Preparation)?,
++        ])
++        .map_err(|_| PreludeRefusal::Preparation)?;
++    if seed != raw_bytes {
++        return Err(PreludeRefusal::Preparation);
++    }
++    let mut frames = Vec::with_capacity(2);
++    frames.push(RequestFrame {
++        operation: PreludeOperation::EmptyRound,
++        input: seed.to_vec(),
++    });
++    if let Some((index, prior)) = super::super::slots(owner.beam())
++        .into_iter()
++        .enumerate()
++        .find(|(_, prior)| *prior.parser().active())
++    {
++        // The selected Type is the already admitted original ParserState.
++        // Its canonical bytes remain distinct from the raw empty-round output.
++        let beam = owner
++            .beam()
++            .clone()
++            .encode()
++            .map_err(|_| PreludeRefusal::Preparation)?;
++        let beam_type =
++            LanguageParserScorerBeam::semantic_type().map_err(|_| PreludeRefusal::Preparation)?;
++        let selector =
++            StructuredSelector::field(beam_type.clone(), alloc::format!("candidate{index}"))
++                .map_err(|_| PreludeRefusal::Preparation)?;
++        let candidate = field(&beam, &beam_type, &alloc::format!("candidate{index}"))?;
++        let parser_selector = StructuredSelector::field(selector.output_type().clone(), "parser")
++            .map_err(|_| PreludeRefusal::Preparation)?;
++        let parser = field(&candidate, selector.output_type(), "parser")?;
++        let state = field(&parser, parser_selector.output_type(), "state")?;
++        if state
++            != prior
++                .parser()
++                .state()
++                .clone()
++                .encode()
++                .map_err(|_| PreludeRefusal::Preparation)?
++        {
++            return Err(PreludeRefusal::Preparation);
++        }
++        frames.push(RequestFrame {
++            operation: PreludeOperation::DecodeComplete { survivor: index },
++            input: state,
++        });
++    }
++    Ok(frames)
++}
+diff --git a/semantics/language/src/analysis_round_prelude.rs b/semantics/language/src/analysis_round_prelude.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/language/src/analysis_round_prelude.rs
+@@ -0,0 +1,354 @@
++//! Finite canonical request prelude for the existing shared round traversal.
++//!
++//! This stops after empty-round and first-active decode-complete Source gates.
++//! It cannot construct/apply a round, model score, current commitment or Play proof.
++//! Observed bytes become Source-law-admitted only after exact checked-program
++//! admission. Actual execution custody belongs to the later target driver.
++use super::*;
++use alloc::sync::Arc;
++use conduit_plot::{rust_binding::NativeRustBinding, PreparedPortableExpressionEvaluator};
++#[path = "analysis_round_frames.rs"]
++mod frames;
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum PreludeRefusal {
++    Preparation,
++    Bound,
++    Lifecycle,
++    ForeignLease,
++    Pressure,
++    Evaluation,
++    ForeignOutput,
++}
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum PreludeOperation {
++    EmptyRound,
++    DecodeComplete { survivor: usize },
++}
++impl PreludeOperation {
++    pub fn name(self) -> &'static str {
++        match self {
++            Self::EmptyRound => "language/analysis-round-empty",
++            Self::DecodeComplete { .. } => "language-parser-decode-complete",
++        }
++    }
++}
++struct RequestFrame {
++    operation: PreludeOperation,
++    input: Vec<u8>,
++}
++struct Identity {
++    context: [String; 5],
++    generation: u64,
++    prior: Vec<u8>,
++    lexical: Vec<u8>,
++    frames: Vec<RequestFrame>,
++}
++struct Record {
++    evaluators: Vec<PreparedPortableExpressionEvaluator>,
++    observed: Vec<u8>,
++    admitted: bool,
++}
++/// Unique private request membership and ordinal; not an execution attestation.
++pub struct PreludeSourceLease {
++    identity: Arc<Identity>,
++    ordinal: usize,
++}
++pub struct PreludeSubmitFailure {
++    pub refusal: PreludeRefusal,
++    pub lease: PreludeSourceLease,
++}
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum PreludeProgress {
++    Ready,
++    AwaitingSource,
++    Admitting,
++    SourceAdmitted { ordinal: usize },
++    Complete,
++}
++#[derive(Clone, Copy, PartialEq, Eq)]
++enum State {
++    Ready,
++    Awaiting,
++    Admitting,
++    Complete,
++    Failed,
++    Cancelled,
++}
++pub struct CanonicalRoundPrelude {
++    identity: Arc<Identity>,
++    records: Vec<Record>,
++    ordinal: usize,
++    program: usize,
++    state: State,
++}
++pub struct PreparedPreludeEvidence {
++    identity: Arc<Identity>,
++    records: Vec<Record>,
++}
++pub struct PreludeRequestView<'a> {
++    pub operation: PreludeOperation,
++    pub canonical_input: &'a [u8],
++    pub ordinal: usize,
++}
++impl CanonicalRoundPrelude {
++    pub fn prepare(
++        owner: &AnalysisEpochOwner<'_>,
++        programs: &PreparedFallbackRoundPrograms,
++    ) -> Result<Self, PreludeRefusal> {
++        if owner.session.is_closed() {
++            return Err(PreludeRefusal::Lifecycle);
++        }
++        let frames = frames::prepare(owner)?;
++        let mut records = Vec::with_capacity(frames.len());
++        let mut bytes = 0usize;
++        for frame in &frames {
++            let chain = programs
++                .operation(frame.operation.name())
++                .ok_or(PreludeRefusal::Preparation)?;
++            let first = chain.first().ok_or(PreludeRefusal::Preparation)?;
++            let input_bound = first
++                .maximum_prepared_input_bytes()
++                .map_err(|_| PreludeRefusal::Preparation)? as usize;
++            if frame.input.len() > input_bound || frame.input.len() > 65536 {
++                return Err(PreludeRefusal::Bound);
++            }
++            let last = chain.last().ok_or(PreludeRefusal::Preparation)?;
++            let maximum = last
++                .maximum_prepared_output_bytes()
++                .map_err(|_| PreludeRefusal::Preparation)? as usize;
++            bytes = bytes
++                .checked_add(frame.input.len())
++                .and_then(|n| n.checked_add(maximum))
++                .ok_or(PreludeRefusal::Bound)?;
++            if maximum > 65536 || bytes > MAXIMUM_ROUND_BYTES {
++                return Err(PreludeRefusal::Bound);
++            }
++            let evaluators = chain
++                .iter()
++                .map(|program| {
++                    PreparedPortableExpressionEvaluator::new(program)
++                        .map_err(|_| PreludeRefusal::Preparation)
++                })
++                .collect::<Result<Vec<_>, _>>()?;
++            records.push(Record {
++                evaluators,
++                observed: Vec::with_capacity(maximum),
++                admitted: false,
++            });
++        }
++        let identity = Arc::new(Identity {
++            context: round_context(owner),
++            generation: owner.generation(),
++            prior: owner
++                .beam()
++                .clone()
++                .encode()
++                .map_err(|_| PreludeRefusal::Preparation)?,
++            lexical: owner
++                .lexical()
++                .tape()
++                .clone()
++                .encode()
++                .map_err(|_| PreludeRefusal::Preparation)?,
++            frames,
++        });
++        if identity.prior.len() > 65536 || identity.lexical.len() > 65536 {
++            return Err(PreludeRefusal::Bound);
++        }
++        Ok(Self {
++            identity,
++            records,
++            ordinal: 0,
++            program: 0,
++            state: State::Ready,
++        })
++    }
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++    pub fn generation(&self) -> u64 {
++        self.identity.generation
++    }
++    pub fn context(&self) -> &[String; 5] {
++        &self.identity.context
++    }
++    pub fn original_beam_canonical(&self) -> &[u8] {
++        &self.identity.prior
++    }
++    pub fn original_lexical_canonical(&self) -> &[u8] {
++        &self.identity.lexical
++    }
++    /// Canonical input/output arena payload capacity only. Evaluators have
++    /// additional finite prepared storage; this is not a total RSS claim.
++    pub fn payload_capacity(&self) -> usize {
++        self.identity
++            .frames
++            .iter()
++            .map(|f| f.input.capacity())
++            .sum::<usize>()
++            + self
++                .records
++                .iter()
++                .map(|r| r.observed.capacity())
++                .sum::<usize>()
++            + self.identity.prior.capacity()
++            + self.identity.lexical.capacity()
++    }
++    pub fn issue(&mut self) -> Result<PreludeSourceLease, PreludeRefusal> {
++        if self.state != State::Ready {
++            return Err(PreludeRefusal::Lifecycle);
++        }
++        self.state = State::Awaiting;
++        Ok(PreludeSourceLease {
++            identity: self.identity.clone(),
++            ordinal: self.ordinal,
++        })
++    }
++    pub fn request(
++        &self,
++        lease: &PreludeSourceLease,
++    ) -> Result<PreludeRequestView<'_>, PreludeRefusal> {
++        if !Arc::ptr_eq(&self.identity, &lease.identity) || lease.ordinal != self.ordinal {
++            return Err(PreludeRefusal::ForeignLease);
++        }
++        if self.state != State::Awaiting {
++            return Err(PreludeRefusal::Lifecycle);
++        }
++        let frame = &self.identity.frames[self.ordinal];
++        Ok(PreludeRequestView {
++            operation: frame.operation,
++            canonical_input: &frame.input,
++            ordinal: self.ordinal,
++        })
++    }
++    /// Read-only retained request inspection, including after terminal refusal.
++    /// This does not mint a request lease or reopen execution.
++    pub fn retained_request(&self, ordinal: usize) -> Option<PreludeRequestView<'_>> {
++        self.identity
++            .frames
++            .get(ordinal)
++            .map(|frame| PreludeRequestView {
++                operation: frame.operation,
++                canonical_input: &frame.input,
++                ordinal,
++            })
++    }
++    pub fn submit_observed(
++        &mut self,
++        lease: PreludeSourceLease,
++        output: &[u8],
++    ) -> Result<(), PreludeSubmitFailure> {
++        let refusal = self.request(&lease).err().or_else(|| {
++            (output.len() > self.records[self.ordinal].observed.capacity())
++                .then_some(PreludeRefusal::Pressure)
++        });
++        if let Some(refusal) = refusal {
++            return Err(PreludeSubmitFailure { refusal, lease });
++        }
++        let record = &mut self.records[self.ordinal];
++        record.observed.clear();
++        record.observed.extend_from_slice(output);
++        self.program = 0;
++        self.state = State::Admitting;
++        Ok(())
++    }
++    /// Advance ONE existing prepared Source program, with no prefix replay.
++    pub fn step_admission(&mut self) -> Result<PreludeProgress, PreludeRefusal> {
++        match self.state {
++            State::Ready => return Ok(PreludeProgress::Ready),
++            State::Awaiting => return Ok(PreludeProgress::AwaitingSource),
++            State::Complete => return Ok(PreludeProgress::Complete),
++            State::Failed | State::Cancelled => return Err(PreludeRefusal::Lifecycle),
++            State::Admitting => (),
++        }
++        let record = &mut self.records[self.ordinal];
++        let (previous, next) = record.evaluators.split_at_mut(self.program);
++        let input = if self.program == 0 {
++            self.identity.frames[self.ordinal].input.as_slice()
++        } else {
++            previous[self.program - 1].output_bytes()
++        };
++        if next[0].evaluate(input).is_err() {
++            self.state = State::Failed;
++            return Err(PreludeRefusal::Evaluation);
++        }
++        self.program += 1;
++        if self.program < record.evaluators.len() {
++            return Ok(PreludeProgress::Admitting);
++        }
++        if record
++            .evaluators
++            .last()
++            .ok_or(PreludeRefusal::Evaluation)?
++            .output_bytes()
++            != record.observed
++        {
++            self.state = State::Failed;
++            return Err(PreludeRefusal::ForeignOutput);
++        }
++        record.admitted = true;
++        let ordinal = self.ordinal;
++        self.ordinal += 1;
++        self.state = if self.ordinal == self.records.len() {
++            State::Complete
++        } else {
++            State::Ready
++        };
++        Ok(PreludeProgress::SourceAdmitted { ordinal })
++    }
++    pub fn observed_capacity(&self, ordinal: usize) -> Option<usize> {
++        self.records
++            .get(ordinal)
++            .map(|record| record.observed.capacity())
++    }
++    pub fn observed(&self, ordinal: usize) -> Option<&[u8]> {
++        self.records
++            .get(ordinal)
++            .map(|record| record.observed.as_slice())
++    }
++    pub fn admitted(&self, ordinal: usize) -> Option<&[u8]> {
++        self.records
++            .get(ordinal)
++            .filter(|record| record.admitted)
++            .map(|record| record.observed.as_slice())
++    }
++    /// Cancellation preserves input frames, pending identity and observed evidence.
++    pub fn cancel(&mut self) {
++        self.state = State::Cancelled;
++    }
++    pub fn finish(self) -> Result<PreparedPreludeEvidence, Self> {
++        if self.state != State::Complete {
++            return Err(self);
++        }
++        Ok(PreparedPreludeEvidence {
++            identity: self.identity,
++            records: self.records,
++        })
++    }
++}
++impl PreparedPreludeEvidence {
++    pub fn source_id(&self) -> &'static str {
++        crate::parser_commitment::COMMITMENT_SOURCE_ID
++    }
++    pub fn original_beam_canonical(&self) -> &[u8] {
++        &self.identity.prior
++    }
++    pub fn original_lexical_canonical(&self) -> &[u8] {
++        &self.identity.lexical
++    }
++    pub fn len(&self) -> usize {
++        self.records.len()
++    }
++    pub fn is_empty(&self) -> bool {
++        self.records.is_empty()
++    }
++    pub fn observation(&self, ordinal: usize) -> Option<(&'static str, &[u8], &[u8])> {
++        self.records.get(ordinal).map(|record| {
++            (
++                self.identity.frames[ordinal].operation.name(),
++                self.identity.frames[ordinal].input.as_slice(),
++                record.observed.as_slice(),
++            )
++        })
++    }
++}
+diff --git a/semantics/language/tests/analysis_round_prelude.rs b/semantics/language/tests/analysis_round_prelude.rs
+new file mode 100644
+--- /dev/null
++++ b/semantics/language/tests/analysis_round_prelude.rs
+@@ -0,0 +1,222 @@
++//! Actual Source differential and no-growth admission for a bounded prelude.
++//! No full round, model ACK, installed stream, current commitment or consumer claim.
++#![cfg(target_has_atomic = "ptr")]
++#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
++#[allow(dead_code)]
++mod allocation_probe;
++#[path = "common/parser_revision_fixture.rs"]
++mod fixture;
++#[path = "common/analysis_epoch_runtime.rs"]
++mod runtime;
++#[global_allocator]
++static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
++use conduit_core::revision::*;
++use conduit_language::{
++    analysis_epoch_initialization::*,
++    analysis_epoch_owner::{
++        fallback_round::{canonical_prelude::*, *},
++        *,
++    },
++    lexical::prepare_lexical_tape,
++    revision::*,
++    *,
++};
++use conduit_plot::rust_binding::NativeRustBinding;
++fn text(value: &str) -> RevisionText<'_> {
++    RevisionText::new(value).unwrap()
++}
++fn no_growth<T>(operation: impl FnOnce() -> T) -> T {
++    let (result, allocations) = allocation_probe::observe(operation);
++    assert_eq!(allocations.allocations, 0);
++    assert_eq!(allocations.reallocations, 0);
++    result
++}
++#[test]
++fn canonical_prelude_resumes_each_source_program_with_private_lease_and_unchanged_owner() {
++    let mut runtime = runtime::Runtime::new();
++    let source = fixture::revision("answer ", None, 7);
++    let domain = DependencyRevisions {
++        source_text: source.material(),
++        tokens: 1,
++    };
++    let context = RevisionContext {
++        stream: text("analysis"),
++        subject: text("utterance"),
++        epoch: text("1"),
++        producer: text("canonical-prelude-fixture"),
++        policy: text("source-prelude-only@1"),
++    };
++    let lexical = prepare_lexical_tape(&source, &fixture::profile(), None).unwrap();
++    let basis = LanguageParserBasis::new(
++        LanguageAnalysisRevisionId::new("analysis/1".into()).unwrap(),
++        source.material().revision().clone(),
++        source.material().identity().clone(),
++    )
++    .unwrap();
++    let begin = LanguageParserBegin::new(basis, fixture::dep(), 1).unwrap();
++    let observed = LanguageParserNumericState::decode(&runtime.execute(
++        "language-parser-initialize",
++        &begin.clone().encode().unwrap(),
++    ))
++    .unwrap();
++    let initial = PreparedAnalysisInitializationProgram::prepare()
++        .unwrap()
++        .replay(lexical, &begin, &observed)
++        .unwrap();
++    let owner = AnalysisEpochOwner::initialize(
++        initial,
++        &domain,
++        context,
++        RevisionLimits {
++            history_events: 16,
++            revisable_units: 4,
++        },
++    )
++    .unwrap();
++    let prior = owner.beam().clone().encode().unwrap();
++    let lexical = owner.lexical().tape().clone().encode().unwrap();
++    let programs = PreparedFallbackRoundPrograms::prepare().unwrap();
++    let mut cursor = CanonicalRoundPrelude::prepare(&owner, &programs).unwrap();
++    let mut foreign = CanonicalRoundPrelude::prepare(&owner, &programs).unwrap();
++    assert_eq!(cursor.original_beam_canonical(), prior);
++    assert_eq!(cursor.original_lexical_canonical(), lexical);
++    assert_eq!(cursor.context()[0], "analysis");
++    let capacity = cursor.payload_capacity();
++    let mut inputs = Vec::new();
++    let mut outputs = Vec::new();
++    for ordinal in 0..2 {
++        let lease = no_growth(|| cursor.issue()).unwrap();
++        if ordinal == 0 {
++            // Same snapshots/generation still cannot substitute another cursor's lease.
++            let _foreign_lease = foreign.issue().unwrap();
++            let refusal = match foreign.submit_observed(lease, &[]) {
++                Err(failure) => failure,
++                Ok(()) => panic!("foreign lease accepted"),
++            };
++            assert_eq!(refusal.refusal, PreludeRefusal::ForeignLease);
++            foreign.cancel();
++            assert!(foreign.retained_request(0).is_some());
++            assert!(matches!(
++                foreign.step_admission(),
++                Err(PreludeRefusal::Lifecycle)
++            ));
++            // The unchanged lease still belongs to the original pending request.
++            drive(
++                &mut cursor,
++                refusal.lease,
++                ordinal,
++                &mut runtime,
++                &mut inputs,
++                &mut outputs,
++            );
++        } else {
++            drive(
++                &mut cursor,
++                lease,
++                ordinal,
++                &mut runtime,
++                &mut inputs,
++                &mut outputs,
++            );
++        }
++    }
++    assert_eq!(cursor.payload_capacity(), capacity);
++    assert_eq!(
++        no_growth(|| cursor.step_admission()).unwrap(),
++        PreludeProgress::Complete
++    );
++    assert!(matches!(cursor.issue(), Err(PreludeRefusal::Lifecycle)));
++    let receipt = match no_growth(|| cursor.finish()) {
++        Ok(receipt) => receipt,
++        Err(_) => panic!("incomplete"),
++    };
++    assert_eq!(receipt.len(), 2);
++    for ordinal in 0..2 {
++        let (operation, input, output) = receipt.observation(ordinal).unwrap();
++        assert_eq!(input, inputs[ordinal]);
++        assert_eq!(output, outputs[ordinal]);
++        assert_eq!(
++            operation,
++            if ordinal == 0 {
++                "language/analysis-round-empty"
++            } else {
++                "language-parser-decode-complete"
++            }
++        );
++    }
++    assert_eq!(
++        inputs[1],
++        owner
++            .beam()
++            .candidate0()
++            .parser()
++            .state()
++            .clone()
++            .encode()
++            .unwrap()
++    );
++    assert_eq!(owner.beam().clone().encode().unwrap(), prior);
++    assert_eq!(owner.generation(), 0);
++    assert_eq!(owner.frontiers().committed, TokenFrontier(0));
++    runtime.assert_signs();
++    // A captured but incorrect output never becomes Source-admitted evidence.
++    let mut bad = CanonicalRoundPrelude::prepare(&owner, &programs).unwrap();
++    let lease = bad.issue().unwrap();
++    let mut altered = outputs[0].clone();
++    altered[0] ^= 1;
++    match bad.submit_observed(lease, &altered) {
++        Ok(()) => (),
++        Err(_) => panic!("bounded observation refused before admission"),
++    }
++    loop {
++        match no_growth(|| bad.step_admission()) {
++            Ok(PreludeProgress::Admitting) => (),
++            Err(PreludeRefusal::ForeignOutput) => break,
++            other => panic!("wrong output admission {other:?}"),
++        }
++    }
++    assert_eq!(bad.observed(0), Some(altered.as_slice()));
++    assert!(bad.admitted(0).is_none());
++    assert!(bad.retained_request(0).is_some());
++    assert!(matches!(bad.issue(), Err(PreludeRefusal::Lifecycle)));
++}
++fn drive(
++    cursor: &mut CanonicalRoundPrelude,
++    lease: PreludeSourceLease,
++    ordinal: usize,
++    runtime: &mut runtime::Runtime,
++    inputs: &mut Vec<Vec<u8>>,
++    outputs: &mut Vec<Vec<u8>>,
++) {
++    let request = cursor.request(&lease).unwrap();
++    assert_eq!(request.ordinal, ordinal);
++    let input = request.canonical_input.to_vec();
++    let output = runtime.execute(request.operation.name(), &input);
++    assert!(cursor.admitted(ordinal).is_none());
++    let oversized = vec![0; cursor.observed_capacity(ordinal).unwrap() + 1];
++    let lease = match no_growth(|| cursor.submit_observed(lease, &oversized)) {
++        Err(failure) => {
++            assert_eq!(failure.refusal, PreludeRefusal::Pressure);
++            failure.lease
++        }
++        Ok(()) => panic!("output capacity pressure was not refused"),
++    };
++    assert_eq!(cursor.request(&lease).unwrap().canonical_input, input);
++    match no_growth(|| cursor.submit_observed(lease, &output)) {
++        Ok(()) => (),
++        Err(failure) => panic!("actual Source observation refused {:?}", failure.refusal),
++    }
++    loop {
++        match no_growth(|| cursor.step_admission()).unwrap() {
++            PreludeProgress::Admitting => (),
++            PreludeProgress::SourceAdmitted { ordinal: actual } => {
++                assert_eq!(actual, ordinal);
++                break;
++            }
++            other => panic!("unexpected admission progress {other:?}"),
++        }
++    }
++    assert_eq!(cursor.admitted(ordinal), Some(output.as_slice()));
++    inputs.push(input);
++    outputs.push(output);
++}

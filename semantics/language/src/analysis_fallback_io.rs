@@ -57,6 +57,13 @@ impl PreparedFallbackRoundPrograms {
         }
         Ok(Self { operations })
     }
+    #[cfg(target_has_atomic = "ptr")]
+    pub(super) fn operation(&self, name: &str) -> Option<&[PortableExpressionProgram]> {
+        self.operations
+            .iter()
+            .find(|(actual, _)| *actual == name)
+            .map(|(_, programs)| programs.as_slice())
+    }
     pub fn programs(&self) -> &'static [(&'static str, &'static [&'static str])] {
         FALLBACK_ROUND_PROGRAMS
     }

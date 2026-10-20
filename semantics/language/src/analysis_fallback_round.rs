@@ -11,6 +11,9 @@ pub use io::{
     FallbackObservationProvider, FallbackOperationObservation, PreparedFallbackRoundPrograms,
     MAXIMUM_ROUND_BYTES, MAXIMUM_ROUND_OBSERVATIONS,
 };
+#[cfg(target_has_atomic = "ptr")]
+#[path = "analysis_round_prelude.rs"]
+pub mod canonical_prelude;
 #[path = "analysis_round_scoring.rs"]
 mod scoring;
 use scoring::{FallbackScores, RankRequest, RoundScores};

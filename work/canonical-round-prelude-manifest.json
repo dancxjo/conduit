@@ -1,0 +1,40 @@
+{
+  "base": "c8946a6f3",
+  "files": [
+    {
+      "path": "semantics/language/src/analysis_fallback_io.rs",
+      "base_sha256": "51bb14b9c531fb7ed3dca6fdc85b0766842fcf379dc5972164620b630bc35f3c",
+      "current_root_matches_base": true,
+      "bytes": 11566,
+      "sha256": "91e280ef3b476e67efe3b8a4e5b9dadbd785655a51439e52fe4814e2f83d2531"
+    },
+    {
+      "path": "semantics/language/src/analysis_fallback_round.rs",
+      "base_sha256": "d9eeaee56b55634c29c4d17896873acdb3f4e2219c54c0f847aaa0f41aa76a11",
+      "current_root_matches_base": true,
+      "bytes": 15827,
+      "sha256": "ea37bbb7b4e2a5f2e453d3317ea77b37f7c26859fd766a8268f1bce6f376271b"
+    },
+    {
+      "path": "semantics/language/src/analysis_round_frames.rs",
+      "base_sha256": null,
+      "current_root_matches_base": true,
+      "bytes": 4382,
+      "sha256": "844ac178cbcf174a3ce6fe00ff7b11eaa40cabfface1b5a8e4745a563954774a"
+    },
+    {
+      "path": "semantics/language/src/analysis_round_prelude.rs",
+      "base_sha256": null,
+      "current_root_matches_base": true,
+      "bytes": 11873,
+      "sha256": "7b342b0b2f84bf2f1ef643f52516dde94f553fc6e4bfc2c3612df44e02c97a0e"
+    },
+    {
+      "path": "semantics/language/tests/analysis_round_prelude.rs",
+      "base_sha256": null,
+      "current_root_matches_base": true,
+      "bytes": 8184,
+      "sha256": "e72788da7d9d11d76b03645236821e555a187faccc60998fff6d56adc7114b62"
+    }
+  ]
+}
