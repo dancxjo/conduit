@@ -1,0 +1,1199 @@
+{
+  "captures_verified": 4,
+  "frames_verified": 192,
+  "ordered_signs_verified": 2678784,
+  "results": [
+    {
+      "source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+      "frames_verified": 48,
+      "ordered_signs_verified": 669696,
+      "status_sha256": "653dd599baea56a794032e4d8571b6466d3bfeb41102a77f7ea938ddfc796243",
+      "rows": [
+        {
+          "repetition": 0,
+          "frame": 0,
+          "fresh_call_ns": 325171364,
+          "prepared_call_ns": 21821147
+        },
+        {
+          "repetition": 0,
+          "frame": 1,
+          "fresh_call_ns": 326828525,
+          "prepared_call_ns": 23524766
+        },
+        {
+          "repetition": 0,
+          "frame": 2,
+          "fresh_call_ns": 334696197,
+          "prepared_call_ns": 21752514
+        },
+        {
+          "repetition": 0,
+          "frame": 3,
+          "fresh_call_ns": 327421589,
+          "prepared_call_ns": 22878238
+        },
+        {
+          "repetition": 0,
+          "frame": 4,
+          "fresh_call_ns": 328686878,
+          "prepared_call_ns": 22929326
+        },
+        {
+          "repetition": 0,
+          "frame": 5,
+          "fresh_call_ns": 325787585,
+          "prepared_call_ns": 23317952
+        },
+        {
+          "repetition": 0,
+          "frame": 6,
+          "fresh_call_ns": 331939441,
+          "prepared_call_ns": 22418187
+        },
+        {
+          "repetition": 0,
+          "frame": 7,
+          "fresh_call_ns": 325114485,
+          "prepared_call_ns": 23465623
+        },
+        {
+          "repetition": 0,
+          "frame": 8,
+          "fresh_call_ns": 332174020,
+          "prepared_call_ns": 22786448
+        },
+        {
+          "repetition": 0,
+          "frame": 9,
+          "fresh_call_ns": 331306295,
+          "prepared_call_ns": 23283322
+        },
+        {
+          "repetition": 0,
+          "frame": 10,
+          "fresh_call_ns": 326818041,
+          "prepared_call_ns": 21612180
+        },
+        {
+          "repetition": 0,
+          "frame": 11,
+          "fresh_call_ns": 327462450,
+          "prepared_call_ns": 28192764
+        },
+        {
+          "repetition": 0,
+          "frame": 12,
+          "fresh_call_ns": 325470899,
+          "prepared_call_ns": 21826828
+        },
+        {
+          "repetition": 0,
+          "frame": 13,
+          "fresh_call_ns": 326245565,
+          "prepared_call_ns": 23392221
+        },
+        {
+          "repetition": 0,
+          "frame": 14,
+          "fresh_call_ns": 328600186,
+          "prepared_call_ns": 22161580
+        },
+        {
+          "repetition": 0,
+          "frame": 15,
+          "fresh_call_ns": 325082615,
+          "prepared_call_ns": 26729673
+        },
+        {
+          "repetition": 0,
+          "frame": 16,
+          "fresh_call_ns": 326506039,
+          "prepared_call_ns": 21829411
+        },
+        {
+          "repetition": 0,
+          "frame": 17,
+          "fresh_call_ns": 328017600,
+          "prepared_call_ns": 23525152
+        },
+        {
+          "repetition": 0,
+          "frame": 18,
+          "fresh_call_ns": 331474409,
+          "prepared_call_ns": 22812434
+        },
+        {
+          "repetition": 0,
+          "frame": 19,
+          "fresh_call_ns": 324812623,
+          "prepared_call_ns": 23954868
+        },
+        {
+          "repetition": 0,
+          "frame": 20,
+          "fresh_call_ns": 327920013,
+          "prepared_call_ns": 22269540
+        },
+        {
+          "repetition": 0,
+          "frame": 21,
+          "fresh_call_ns": 330076102,
+          "prepared_call_ns": 25727416
+        },
+        {
+          "repetition": 0,
+          "frame": 22,
+          "fresh_call_ns": 325099446,
+          "prepared_call_ns": 21899013
+        },
+        {
+          "repetition": 0,
+          "frame": 23,
+          "fresh_call_ns": 325959675,
+          "prepared_call_ns": 22862627
+        },
+        {
+          "repetition": 1,
+          "frame": 0,
+          "fresh_call_ns": 320853483,
+          "prepared_call_ns": 22155560
+        },
+        {
+          "repetition": 1,
+          "frame": 1,
+          "fresh_call_ns": 331685625,
+          "prepared_call_ns": 22980882
+        },
+        {
+          "repetition": 1,
+          "frame": 2,
+          "fresh_call_ns": 334373673,
+          "prepared_call_ns": 22739431
+        },
+        {
+          "repetition": 1,
+          "frame": 3,
+          "fresh_call_ns": 322718737,
+          "prepared_call_ns": 23788774
+        },
+        {
+          "repetition": 1,
+          "frame": 4,
+          "fresh_call_ns": 324570711,
+          "prepared_call_ns": 21706771
+        },
+        {
+          "repetition": 1,
+          "frame": 5,
+          "fresh_call_ns": 323999149,
+          "prepared_call_ns": 23047548
+        },
+        {
+          "repetition": 1,
+          "frame": 6,
+          "fresh_call_ns": 327098096,
+          "prepared_call_ns": 22516234
+        },
+        {
+          "repetition": 1,
+          "frame": 7,
+          "fresh_call_ns": 323225100,
+          "prepared_call_ns": 23206672
+        },
+        {
+          "repetition": 1,
+          "frame": 8,
+          "fresh_call_ns": 324446311,
+          "prepared_call_ns": 22449543
+        },
+        {
+          "repetition": 1,
+          "frame": 9,
+          "fresh_call_ns": 327190542,
+          "prepared_call_ns": 24637795
+        },
+        {
+          "repetition": 1,
+          "frame": 10,
+          "fresh_call_ns": 323781087,
+          "prepared_call_ns": 21661845
+        },
+        {
+          "repetition": 1,
+          "frame": 11,
+          "fresh_call_ns": 325294531,
+          "prepared_call_ns": 22960095
+        },
+        {
+          "repetition": 1,
+          "frame": 12,
+          "fresh_call_ns": 325805386,
+          "prepared_call_ns": 22345872
+        },
+        {
+          "repetition": 1,
+          "frame": 13,
+          "fresh_call_ns": 328400424,
+          "prepared_call_ns": 22956143
+        },
+        {
+          "repetition": 1,
+          "frame": 14,
+          "fresh_call_ns": 325761308,
+          "prepared_call_ns": 21707196
+        },
+        {
+          "repetition": 1,
+          "frame": 15,
+          "fresh_call_ns": 323454684,
+          "prepared_call_ns": 23647633
+        },
+        {
+          "repetition": 1,
+          "frame": 16,
+          "fresh_call_ns": 325606957,
+          "prepared_call_ns": 21850810
+        },
+        {
+          "repetition": 1,
+          "frame": 17,
+          "fresh_call_ns": 322247958,
+          "prepared_call_ns": 22758179
+        },
+        {
+          "repetition": 1,
+          "frame": 18,
+          "fresh_call_ns": 326577909,
+          "prepared_call_ns": 21812259
+        },
+        {
+          "repetition": 1,
+          "frame": 19,
+          "fresh_call_ns": 337934387,
+          "prepared_call_ns": 22051585
+        },
+        {
+          "repetition": 1,
+          "frame": 20,
+          "fresh_call_ns": 331491743,
+          "prepared_call_ns": 21992184
+        },
+        {
+          "repetition": 1,
+          "frame": 21,
+          "fresh_call_ns": 328619622,
+          "prepared_call_ns": 23346665
+        },
+        {
+          "repetition": 1,
+          "frame": 22,
+          "fresh_call_ns": 329853835,
+          "prepared_call_ns": 21720317
+        },
+        {
+          "repetition": 1,
+          "frame": 23,
+          "fresh_call_ns": 332516223,
+          "prepared_call_ns": 22882449
+        }
+      ],
+      "median_frame_call_ratio": 0.06912267650094904,
+      "scope": "Exact raw outputs and every Sign; retained request offsets independently checked. Frame ratio excludes separately retained cold preparation, input binding, rearm and acceptance; not total trajectory speedup or hardware memory traffic."
+    },
+    {
+      "source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+      "frames_verified": 48,
+      "ordered_signs_verified": 669696,
+      "status_sha256": "031081433c6bf7f11455fbc8ce10e91f6f1140098a52a7c631213344099fbc9b",
+      "rows": [
+        {
+          "repetition": 0,
+          "frame": 0,
+          "fresh_call_ns": 328616808,
+          "prepared_call_ns": 22532958
+        },
+        {
+          "repetition": 0,
+          "frame": 1,
+          "fresh_call_ns": 330606936,
+          "prepared_call_ns": 22866807
+        },
+        {
+          "repetition": 0,
+          "frame": 2,
+          "fresh_call_ns": 331284676,
+          "prepared_call_ns": 22158028
+        },
+        {
+          "repetition": 0,
+          "frame": 3,
+          "fresh_call_ns": 338198793,
+          "prepared_call_ns": 23236957
+        },
+        {
+          "repetition": 0,
+          "frame": 4,
+          "fresh_call_ns": 327783776,
+          "prepared_call_ns": 22622103
+        },
+        {
+          "repetition": 0,
+          "frame": 5,
+          "fresh_call_ns": 329569985,
+          "prepared_call_ns": 23406750
+        },
+        {
+          "repetition": 0,
+          "frame": 6,
+          "fresh_call_ns": 329694809,
+          "prepared_call_ns": 22225082
+        },
+        {
+          "repetition": 0,
+          "frame": 7,
+          "fresh_call_ns": 329807266,
+          "prepared_call_ns": 23229044
+        },
+        {
+          "repetition": 0,
+          "frame": 8,
+          "fresh_call_ns": 329636248,
+          "prepared_call_ns": 22111298
+        },
+        {
+          "repetition": 0,
+          "frame": 9,
+          "fresh_call_ns": 328354637,
+          "prepared_call_ns": 23115341
+        },
+        {
+          "repetition": 0,
+          "frame": 10,
+          "fresh_call_ns": 326927930,
+          "prepared_call_ns": 22831599
+        },
+        {
+          "repetition": 0,
+          "frame": 11,
+          "fresh_call_ns": 330690979,
+          "prepared_call_ns": 23191794
+        },
+        {
+          "repetition": 0,
+          "frame": 12,
+          "fresh_call_ns": 333531752,
+          "prepared_call_ns": 22912927
+        },
+        {
+          "repetition": 0,
+          "frame": 13,
+          "fresh_call_ns": 329471378,
+          "prepared_call_ns": 23472509
+        },
+        {
+          "repetition": 0,
+          "frame": 14,
+          "fresh_call_ns": 327041087,
+          "prepared_call_ns": 22615856
+        },
+        {
+          "repetition": 0,
+          "frame": 15,
+          "fresh_call_ns": 332219077,
+          "prepared_call_ns": 22957201
+        },
+        {
+          "repetition": 0,
+          "frame": 16,
+          "fresh_call_ns": 327989951,
+          "prepared_call_ns": 22554221
+        },
+        {
+          "repetition": 0,
+          "frame": 17,
+          "fresh_call_ns": 336740370,
+          "prepared_call_ns": 23101578
+        },
+        {
+          "repetition": 0,
+          "frame": 18,
+          "fresh_call_ns": 334092678,
+          "prepared_call_ns": 22136484
+        },
+        {
+          "repetition": 0,
+          "frame": 19,
+          "fresh_call_ns": 333182646,
+          "prepared_call_ns": 22382547
+        },
+        {
+          "repetition": 0,
+          "frame": 20,
+          "fresh_call_ns": 328678444,
+          "prepared_call_ns": 22244546
+        },
+        {
+          "repetition": 0,
+          "frame": 21,
+          "fresh_call_ns": 329201428,
+          "prepared_call_ns": 23809728
+        },
+        {
+          "repetition": 0,
+          "frame": 22,
+          "fresh_call_ns": 336774628,
+          "prepared_call_ns": 22852510
+        },
+        {
+          "repetition": 0,
+          "frame": 23,
+          "fresh_call_ns": 327789907,
+          "prepared_call_ns": 22997936
+        },
+        {
+          "repetition": 1,
+          "frame": 0,
+          "fresh_call_ns": 326986983,
+          "prepared_call_ns": 22132177
+        },
+        {
+          "repetition": 1,
+          "frame": 1,
+          "fresh_call_ns": 333915815,
+          "prepared_call_ns": 23302505
+        },
+        {
+          "repetition": 1,
+          "frame": 2,
+          "fresh_call_ns": 333613849,
+          "prepared_call_ns": 22290135
+        },
+        {
+          "repetition": 1,
+          "frame": 3,
+          "fresh_call_ns": 327011633,
+          "prepared_call_ns": 22384607
+        },
+        {
+          "repetition": 1,
+          "frame": 4,
+          "fresh_call_ns": 329221075,
+          "prepared_call_ns": 22219974
+        },
+        {
+          "repetition": 1,
+          "frame": 5,
+          "fresh_call_ns": 329328196,
+          "prepared_call_ns": 22327711
+        },
+        {
+          "repetition": 1,
+          "frame": 6,
+          "fresh_call_ns": 326461633,
+          "prepared_call_ns": 22251540
+        },
+        {
+          "repetition": 1,
+          "frame": 7,
+          "fresh_call_ns": 326456667,
+          "prepared_call_ns": 22593868
+        },
+        {
+          "repetition": 1,
+          "frame": 8,
+          "fresh_call_ns": 332043894,
+          "prepared_call_ns": 22215919
+        },
+        {
+          "repetition": 1,
+          "frame": 9,
+          "fresh_call_ns": 326125826,
+          "prepared_call_ns": 22674302
+        },
+        {
+          "repetition": 1,
+          "frame": 10,
+          "fresh_call_ns": 325481713,
+          "prepared_call_ns": 22120222
+        },
+        {
+          "repetition": 1,
+          "frame": 11,
+          "fresh_call_ns": 327351679,
+          "prepared_call_ns": 23148271
+        },
+        {
+          "repetition": 1,
+          "frame": 12,
+          "fresh_call_ns": 329465681,
+          "prepared_call_ns": 22576294
+        },
+        {
+          "repetition": 1,
+          "frame": 13,
+          "fresh_call_ns": 329812732,
+          "prepared_call_ns": 23098144
+        },
+        {
+          "repetition": 1,
+          "frame": 14,
+          "fresh_call_ns": 327088006,
+          "prepared_call_ns": 22218574
+        },
+        {
+          "repetition": 1,
+          "frame": 15,
+          "fresh_call_ns": 330640129,
+          "prepared_call_ns": 23814017
+        },
+        {
+          "repetition": 1,
+          "frame": 16,
+          "fresh_call_ns": 330916025,
+          "prepared_call_ns": 22253171
+        },
+        {
+          "repetition": 1,
+          "frame": 17,
+          "fresh_call_ns": 328606681,
+          "prepared_call_ns": 23057122
+        },
+        {
+          "repetition": 1,
+          "frame": 18,
+          "fresh_call_ns": 337999067,
+          "prepared_call_ns": 22111296
+        },
+        {
+          "repetition": 1,
+          "frame": 19,
+          "fresh_call_ns": 327828048,
+          "prepared_call_ns": 23209026
+        },
+        {
+          "repetition": 1,
+          "frame": 20,
+          "fresh_call_ns": 328856335,
+          "prepared_call_ns": 22792721
+        },
+        {
+          "repetition": 1,
+          "frame": 21,
+          "fresh_call_ns": 329396349,
+          "prepared_call_ns": 23225787
+        },
+        {
+          "repetition": 1,
+          "frame": 22,
+          "fresh_call_ns": 332083942,
+          "prepared_call_ns": 22172024
+        },
+        {
+          "repetition": 1,
+          "frame": 23,
+          "fresh_call_ns": 330974080,
+          "prepared_call_ns": 23559528
+        }
+      ],
+      "median_frame_call_ratio": 0.06873647945238631,
+      "scope": "Exact raw outputs and every Sign; retained request offsets independently checked. Frame ratio excludes separately retained cold preparation, input binding, rearm and acceptance; not total trajectory speedup or hardware memory traffic."
+    },
+    {
+      "source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+      "frames_verified": 48,
+      "ordered_signs_verified": 669696,
+      "status_sha256": "1f822aa1bb13e9d25589a673bf73f71f5fcb252d1d101bebec63c555ecdfdbd7",
+      "rows": [
+        {
+          "repetition": 0,
+          "frame": 0,
+          "fresh_call_ns": 326465754,
+          "prepared_call_ns": 22128791
+        },
+        {
+          "repetition": 0,
+          "frame": 1,
+          "fresh_call_ns": 332369374,
+          "prepared_call_ns": 22962277
+        },
+        {
+          "repetition": 0,
+          "frame": 2,
+          "fresh_call_ns": 333415109,
+          "prepared_call_ns": 22144460
+        },
+        {
+          "repetition": 0,
+          "frame": 3,
+          "fresh_call_ns": 327595335,
+          "prepared_call_ns": 23435030
+        },
+        {
+          "repetition": 0,
+          "frame": 4,
+          "fresh_call_ns": 328835461,
+          "prepared_call_ns": 22397659
+        },
+        {
+          "repetition": 0,
+          "frame": 5,
+          "fresh_call_ns": 327259032,
+          "prepared_call_ns": 23043432
+        },
+        {
+          "repetition": 0,
+          "frame": 6,
+          "fresh_call_ns": 334024029,
+          "prepared_call_ns": 24111023
+        },
+        {
+          "repetition": 0,
+          "frame": 7,
+          "fresh_call_ns": 328004392,
+          "prepared_call_ns": 22955372
+        },
+        {
+          "repetition": 0,
+          "frame": 8,
+          "fresh_call_ns": 329052686,
+          "prepared_call_ns": 22224622
+        },
+        {
+          "repetition": 0,
+          "frame": 9,
+          "fresh_call_ns": 327892773,
+          "prepared_call_ns": 23257051
+        },
+        {
+          "repetition": 0,
+          "frame": 10,
+          "fresh_call_ns": 331256719,
+          "prepared_call_ns": 22298112
+        },
+        {
+          "repetition": 0,
+          "frame": 11,
+          "fresh_call_ns": 329803833,
+          "prepared_call_ns": 22789041
+        },
+        {
+          "repetition": 0,
+          "frame": 12,
+          "fresh_call_ns": 329988965,
+          "prepared_call_ns": 22134328
+        },
+        {
+          "repetition": 0,
+          "frame": 13,
+          "fresh_call_ns": 328198314,
+          "prepared_call_ns": 23275700
+        },
+        {
+          "repetition": 0,
+          "frame": 14,
+          "fresh_call_ns": 329027548,
+          "prepared_call_ns": 22208183
+        },
+        {
+          "repetition": 0,
+          "frame": 15,
+          "fresh_call_ns": 329850057,
+          "prepared_call_ns": 23702007
+        },
+        {
+          "repetition": 0,
+          "frame": 16,
+          "fresh_call_ns": 327795828,
+          "prepared_call_ns": 22175478
+        },
+        {
+          "repetition": 0,
+          "frame": 17,
+          "fresh_call_ns": 325798305,
+          "prepared_call_ns": 23221852
+        },
+        {
+          "repetition": 0,
+          "frame": 18,
+          "fresh_call_ns": 331714184,
+          "prepared_call_ns": 22252270
+        },
+        {
+          "repetition": 0,
+          "frame": 19,
+          "fresh_call_ns": 332602156,
+          "prepared_call_ns": 23261434
+        },
+        {
+          "repetition": 0,
+          "frame": 20,
+          "fresh_call_ns": 330954332,
+          "prepared_call_ns": 22188806
+        },
+        {
+          "repetition": 0,
+          "frame": 21,
+          "fresh_call_ns": 328227429,
+          "prepared_call_ns": 23246458
+        },
+        {
+          "repetition": 0,
+          "frame": 22,
+          "fresh_call_ns": 333588555,
+          "prepared_call_ns": 22108140
+        },
+        {
+          "repetition": 0,
+          "frame": 23,
+          "fresh_call_ns": 330926597,
+          "prepared_call_ns": 23247628
+        },
+        {
+          "repetition": 1,
+          "frame": 0,
+          "fresh_call_ns": 331155662,
+          "prepared_call_ns": 22177436
+        },
+        {
+          "repetition": 1,
+          "frame": 1,
+          "fresh_call_ns": 328351261,
+          "prepared_call_ns": 23167631
+        },
+        {
+          "repetition": 1,
+          "frame": 2,
+          "fresh_call_ns": 330325287,
+          "prepared_call_ns": 22240268
+        },
+        {
+          "repetition": 1,
+          "frame": 3,
+          "fresh_call_ns": 341975572,
+          "prepared_call_ns": 25375077
+        },
+        {
+          "repetition": 1,
+          "frame": 4,
+          "fresh_call_ns": 373117819,
+          "prepared_call_ns": 22180820
+        },
+        {
+          "repetition": 1,
+          "frame": 5,
+          "fresh_call_ns": 413360885,
+          "prepared_call_ns": 32724546
+        },
+        {
+          "repetition": 1,
+          "frame": 6,
+          "fresh_call_ns": 326533392,
+          "prepared_call_ns": 22845301
+        },
+        {
+          "repetition": 1,
+          "frame": 7,
+          "fresh_call_ns": 341750963,
+          "prepared_call_ns": 22522422
+        },
+        {
+          "repetition": 1,
+          "frame": 8,
+          "fresh_call_ns": 328010718,
+          "prepared_call_ns": 22171014
+        },
+        {
+          "repetition": 1,
+          "frame": 9,
+          "fresh_call_ns": 326084995,
+          "prepared_call_ns": 23565920
+        },
+        {
+          "repetition": 1,
+          "frame": 10,
+          "fresh_call_ns": 329226329,
+          "prepared_call_ns": 22398531
+        },
+        {
+          "repetition": 1,
+          "frame": 11,
+          "fresh_call_ns": 327782866,
+          "prepared_call_ns": 23068124
+        },
+        {
+          "repetition": 1,
+          "frame": 12,
+          "fresh_call_ns": 328724566,
+          "prepared_call_ns": 22346228
+        },
+        {
+          "repetition": 1,
+          "frame": 13,
+          "fresh_call_ns": 331600944,
+          "prepared_call_ns": 22832117
+        },
+        {
+          "repetition": 1,
+          "frame": 14,
+          "fresh_call_ns": 330055332,
+          "prepared_call_ns": 22050772
+        },
+        {
+          "repetition": 1,
+          "frame": 15,
+          "fresh_call_ns": 328607474,
+          "prepared_call_ns": 22939757
+        },
+        {
+          "repetition": 1,
+          "frame": 16,
+          "fresh_call_ns": 331500914,
+          "prepared_call_ns": 22215780
+        },
+        {
+          "repetition": 1,
+          "frame": 17,
+          "fresh_call_ns": 328473440,
+          "prepared_call_ns": 23231397
+        },
+        {
+          "repetition": 1,
+          "frame": 18,
+          "fresh_call_ns": 329193948,
+          "prepared_call_ns": 22264596
+        },
+        {
+          "repetition": 1,
+          "frame": 19,
+          "fresh_call_ns": 328460178,
+          "prepared_call_ns": 23069723
+        },
+        {
+          "repetition": 1,
+          "frame": 20,
+          "fresh_call_ns": 330113295,
+          "prepared_call_ns": 22208588
+        },
+        {
+          "repetition": 1,
+          "frame": 21,
+          "fresh_call_ns": 328832865,
+          "prepared_call_ns": 23203173
+        },
+        {
+          "repetition": 1,
+          "frame": 22,
+          "fresh_call_ns": 330349056,
+          "prepared_call_ns": 22174788
+        },
+        {
+          "repetition": 1,
+          "frame": 23,
+          "fresh_call_ns": 330044128,
+          "prepared_call_ns": 23318685
+        }
+      ],
+      "median_frame_call_ratio": 0.06897040945662056,
+      "scope": "Exact raw outputs and every Sign; retained request offsets independently checked. Frame ratio excludes separately retained cold preparation, input binding, rearm and acceptance; not total trajectory speedup or hardware memory traffic."
+    },
+    {
+      "source": "e4fbac12b38ff0f787fe626f4c587cbd175ab5b8",
+      "frames_verified": 48,
+      "ordered_signs_verified": 669696,
+      "status_sha256": "c591d9d55ec4d39a07c552ef17a1c0eb3290917041b7fb245083cf1400702d08",
+      "rows": [
+        {
+          "repetition": 0,
+          "frame": 0,
+          "fresh_call_ns": 326310761,
+          "prepared_call_ns": 23165432
+        },
+        {
+          "repetition": 0,
+          "frame": 1,
+          "fresh_call_ns": 329246356,
+          "prepared_call_ns": 23202175
+        },
+        {
+          "repetition": 0,
+          "frame": 2,
+          "fresh_call_ns": 331062937,
+          "prepared_call_ns": 22185871
+        },
+        {
+          "repetition": 0,
+          "frame": 3,
+          "fresh_call_ns": 330591147,
+          "prepared_call_ns": 23439333
+        },
+        {
+          "repetition": 0,
+          "frame": 4,
+          "fresh_call_ns": 327047061,
+          "prepared_call_ns": 22114747
+        },
+        {
+          "repetition": 0,
+          "frame": 5,
+          "fresh_call_ns": 325478493,
+          "prepared_call_ns": 22844054
+        },
+        {
+          "repetition": 0,
+          "frame": 6,
+          "fresh_call_ns": 329046450,
+          "prepared_call_ns": 22464223
+        },
+        {
+          "repetition": 0,
+          "frame": 7,
+          "fresh_call_ns": 330632051,
+          "prepared_call_ns": 22585080
+        },
+        {
+          "repetition": 0,
+          "frame": 8,
+          "fresh_call_ns": 327950909,
+          "prepared_call_ns": 22415923
+        },
+        {
+          "repetition": 0,
+          "frame": 9,
+          "fresh_call_ns": 326819978,
+          "prepared_call_ns": 23290828
+        },
+        {
+          "repetition": 0,
+          "frame": 10,
+          "fresh_call_ns": 328591856,
+          "prepared_call_ns": 22153621
+        },
+        {
+          "repetition": 0,
+          "frame": 11,
+          "fresh_call_ns": 328919019,
+          "prepared_call_ns": 22180834
+        },
+        {
+          "repetition": 0,
+          "frame": 12,
+          "fresh_call_ns": 329260234,
+          "prepared_call_ns": 22207115
+        },
+        {
+          "repetition": 0,
+          "frame": 13,
+          "fresh_call_ns": 371595842,
+          "prepared_call_ns": 23025481
+        },
+        {
+          "repetition": 0,
+          "frame": 14,
+          "fresh_call_ns": 329295722,
+          "prepared_call_ns": 22101510
+        },
+        {
+          "repetition": 0,
+          "frame": 15,
+          "fresh_call_ns": 331318728,
+          "prepared_call_ns": 22808737
+        },
+        {
+          "repetition": 0,
+          "frame": 16,
+          "fresh_call_ns": 328517133,
+          "prepared_call_ns": 22267738
+        },
+        {
+          "repetition": 0,
+          "frame": 17,
+          "fresh_call_ns": 326776528,
+          "prepared_call_ns": 23070711
+        },
+        {
+          "repetition": 0,
+          "frame": 18,
+          "fresh_call_ns": 328893385,
+          "prepared_call_ns": 22013990
+        },
+        {
+          "repetition": 0,
+          "frame": 19,
+          "fresh_call_ns": 331421330,
+          "prepared_call_ns": 23208310
+        },
+        {
+          "repetition": 0,
+          "frame": 20,
+          "fresh_call_ns": 333099111,
+          "prepared_call_ns": 22190939
+        },
+        {
+          "repetition": 0,
+          "frame": 21,
+          "fresh_call_ns": 327872657,
+          "prepared_call_ns": 23406237
+        },
+        {
+          "repetition": 0,
+          "frame": 22,
+          "fresh_call_ns": 334028837,
+          "prepared_call_ns": 22052910
+        },
+        {
+          "repetition": 0,
+          "frame": 23,
+          "fresh_call_ns": 328646161,
+          "prepared_call_ns": 23536841
+        },
+        {
+          "repetition": 1,
+          "frame": 0,
+          "fresh_call_ns": 324870636,
+          "prepared_call_ns": 22188122
+        },
+        {
+          "repetition": 1,
+          "frame": 1,
+          "fresh_call_ns": 330602021,
+          "prepared_call_ns": 22771934
+        },
+        {
+          "repetition": 1,
+          "frame": 2,
+          "fresh_call_ns": 332139481,
+          "prepared_call_ns": 22153660
+        },
+        {
+          "repetition": 1,
+          "frame": 3,
+          "fresh_call_ns": 327503106,
+          "prepared_call_ns": 22822176
+        },
+        {
+          "repetition": 1,
+          "frame": 4,
+          "fresh_call_ns": 330383026,
+          "prepared_call_ns": 22134493
+        },
+        {
+          "repetition": 1,
+          "frame": 5,
+          "fresh_call_ns": 331463071,
+          "prepared_call_ns": 22912151
+        },
+        {
+          "repetition": 1,
+          "frame": 6,
+          "fresh_call_ns": 328826904,
+          "prepared_call_ns": 22094247
+        },
+        {
+          "repetition": 1,
+          "frame": 7,
+          "fresh_call_ns": 328648898,
+          "prepared_call_ns": 22983072
+        },
+        {
+          "repetition": 1,
+          "frame": 8,
+          "fresh_call_ns": 327600689,
+          "prepared_call_ns": 22175163
+        },
+        {
+          "repetition": 1,
+          "frame": 9,
+          "fresh_call_ns": 327085913,
+          "prepared_call_ns": 23296443
+        },
+        {
+          "repetition": 1,
+          "frame": 10,
+          "fresh_call_ns": 329745437,
+          "prepared_call_ns": 22104524
+        },
+        {
+          "repetition": 1,
+          "frame": 11,
+          "fresh_call_ns": 328089499,
+          "prepared_call_ns": 22583557
+        },
+        {
+          "repetition": 1,
+          "frame": 12,
+          "fresh_call_ns": 329002054,
+          "prepared_call_ns": 22059766
+        },
+        {
+          "repetition": 1,
+          "frame": 13,
+          "fresh_call_ns": 326118453,
+          "prepared_call_ns": 22956471
+        },
+        {
+          "repetition": 1,
+          "frame": 14,
+          "fresh_call_ns": 328287567,
+          "prepared_call_ns": 24635802
+        },
+        {
+          "repetition": 1,
+          "frame": 15,
+          "fresh_call_ns": 333470037,
+          "prepared_call_ns": 23126057
+        },
+        {
+          "repetition": 1,
+          "frame": 16,
+          "fresh_call_ns": 330697569,
+          "prepared_call_ns": 22183333
+        },
+        {
+          "repetition": 1,
+          "frame": 17,
+          "fresh_call_ns": 326673073,
+          "prepared_call_ns": 23162646
+        },
+        {
+          "repetition": 1,
+          "frame": 18,
+          "fresh_call_ns": 330146448,
+          "prepared_call_ns": 22260967
+        },
+        {
+          "repetition": 1,
+          "frame": 19,
+          "fresh_call_ns": 329467457,
+          "prepared_call_ns": 23077073
+        },
+        {
+          "repetition": 1,
+          "frame": 20,
+          "fresh_call_ns": 329628075,
+          "prepared_call_ns": 22222437
+        },
+        {
+          "repetition": 1,
+          "frame": 21,
+          "fresh_call_ns": 329027867,
+          "prepared_call_ns": 23173620
+        },
+        {
+          "repetition": 1,
+          "frame": 22,
+          "fresh_call_ns": 335199458,
+          "prepared_call_ns": 22407752
+        },
+        {
+          "repetition": 1,
+          "frame": 23,
+          "fresh_call_ns": 328873056,
+          "prepared_call_ns": 23223671
+        }
+      ],
+      "median_frame_call_ratio": 0.06833013138006783,
+      "scope": "Exact raw outputs and every Sign; retained request offsets independently checked. Frame ratio excludes separately retained cold preparation, input binding, rearm and acceptance; not total trajectory speedup or hardware memory traffic."
+    }
+  ]
+}

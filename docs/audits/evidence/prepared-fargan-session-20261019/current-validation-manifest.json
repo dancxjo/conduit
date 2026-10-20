@@ -1,0 +1,88 @@
+{
+  "tested_source": "ddaf3e23fe2ab71c3f8d2d2bd47c40d4f2aac246",
+  "base": "c10e6a265d5e1022d3d470639e2b99d3a3ac0f18",
+  "files": [
+    {
+      "file": "current-source-bridge.json",
+      "bytes": 13783,
+      "sha256": "db39da2743fe3a80cade9c3348cad7de3d19a07f5f5bc16117698adc2741ce38"
+    },
+    {
+      "file": "current-full-kernel-suite-result.json",
+      "bytes": 514,
+      "sha256": "5049dc626be2509e60b894893c86e67829096edb6194cf78246ebf30bc291b6f"
+    },
+    {
+      "file": "current-full-ai-suite-result.json",
+      "bytes": 549,
+      "sha256": "e0c951c3749be0d6c2c7c90e6ec551303f09c3fd008e7b3ba3c04e085a1606c7"
+    },
+    {
+      "file": "current-cached-24-frame-oracle-result.json",
+      "bytes": 516,
+      "sha256": "fa5af4b2a22327d594fb6712bee7047bd5be74f67cb497e555886f8e9ce66210"
+    },
+    {
+      "file": "review-uncached-suite-result.json",
+      "bytes": 648,
+      "sha256": "241c6d2417fbc59add099904f1c70487159972ac4f6a8fa3aa93d37f0204c821"
+    },
+    {
+      "file": "current-full-kernel-suite.log.xz",
+      "bytes": 7624,
+      "sha256": "7ab2160d11f8791a9ae10815e2673fbd67161bb6e901401100c4b31bef0c0e54",
+      "encoding": "xz",
+      "decoded_file": "current-full-kernel-suite.log",
+      "decoded_sha256": "6f417eaa3194a97118137936e7178886f430cebe83f14f338ae2205a4e399aab"
+    },
+    {
+      "file": "current-full-ai-suite.log.xz",
+      "bytes": 10080,
+      "sha256": "a24590f0ee763a0206c3b264f236008c3ab67fd55acdc80876c9f3b7bd91053c",
+      "encoding": "xz",
+      "decoded_file": "current-full-ai-suite.log",
+      "decoded_sha256": "7cf2b4c1289e10cc4a5a652c434311571077d69d0b5827b0e6b89681e95ef02a"
+    },
+    {
+      "file": "current-cached-24-frame-oracle.log.xz",
+      "bytes": 1064,
+      "sha256": "f54cd5a01ca79ef270cccadaf3b41aa71d686bad9884c26a073f7706b9a6258b",
+      "encoding": "xz",
+      "decoded_file": "current-cached-24-frame-oracle.log",
+      "decoded_sha256": "69b9980aaf2be454f21343f872c2666eed69c612bb6022b5268703041392ae1e"
+    },
+    {
+      "file": "current-ai-xtask-all-target-clippy.log.xz",
+      "bytes": 3236,
+      "sha256": "0c415cc451277c7cf9206a8d5df56b85db06b0630b21ab50cd14b1ee80521e1e",
+      "encoding": "xz",
+      "decoded_file": "current-ai-xtask-all-target-clippy.log",
+      "decoded_sha256": "2b3a0a377efe5eb185cd01761b25a94b04ed944f31eae2cf7534a5ee949e1ef0"
+    },
+    {
+      "file": "review-uncached-suite.log.xz",
+      "bytes": 17244,
+      "sha256": "6d490af83e6e4b964419e99db4a8aad1ec74811e56f5cfa7f7f15480838e1cc9",
+      "encoding": "xz",
+      "decoded_file": "review-uncached-suite.log",
+      "decoded_sha256": "aed2738a82ba84a956a032e56dd91d98dba0f268e35b29eb21e8d3000740cd50"
+    },
+    {
+      "file": "current-base-kernel-clippy.log.xz",
+      "bytes": 348,
+      "sha256": "78da613a7250e3af89b7349f950596e9d1a5e64812dba465cb1a01f9ac1026db",
+      "encoding": "xz",
+      "decoded_file": "current-base-kernel-clippy.log",
+      "decoded_sha256": "9ff7c341e5b12ed5fdf1631d3409fc180292592291ff3f24f87d9cd6affe2124"
+    },
+    {
+      "file": "current-native-session-composition.log.xz",
+      "bytes": 452,
+      "sha256": "eca071e1a1b36faa6fee48ca32f97a1c188daca8393d3b1b18308557734d2550",
+      "encoding": "xz",
+      "decoded_file": "current-native-session-composition.log",
+      "decoded_sha256": "da28729001565442ec47bc94191c6779c3aa625c2c866c06fd9d6dd3df8bebef"
+    }
+  ],
+  "scope": "Currentcombinedkernel/AI/cachedoracle and actualxtask lint, with separatelyidentified priorreview uncached compatibility evidence. No newperformanceor stableacceptance claim."
+}

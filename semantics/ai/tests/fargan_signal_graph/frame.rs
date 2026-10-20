@@ -214,3 +214,7 @@ fn pinned_full_frame_conditioning_and_recurrent_differential() {
         assert!(pcm_error < 0.002 && state_error < 0.05 && history_error < 0.001);
     });
 }
+
+#[cfg(test)]
+#[path = "frame_session.rs"]
+mod session_tests;

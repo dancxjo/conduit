@@ -180,7 +180,18 @@ pub(super) fn prepare(
             FaceRole::Region | FaceRole::Collection => GraphicsPaintRole::Accent,
             _ => GraphicsPaintRole::Foreground,
         };
-        append(heading);
+        // An exactly associated field/checkbox row already carries this
+        // subject's name. Keep the complete named subject in Details without
+        // displaying a second primary expression of that same name.
+        let named_control = face.actions.iter().enumerate().any(|(index, action)| {
+            action.target == subject.identity
+                && (super::text_field::current(face, index).is_some()
+                    || (heading.text == subject.name
+                        && super::boolean_choice::selected(face, index).is_some()))
+        });
+        if !named_control {
+            append(heading);
+        }
         // The source-supplied Body status follows its name. This presents the
         // owner's exact wording; the Mask derives no lifecycle fact.
         {
@@ -244,7 +255,11 @@ pub(super) fn prepare(
                     }
                     FaceActionAvailability::Available => label.clone(),
                 },
-                role: GraphicsTextRole::Action,
+                role: if action.disclosure == FaceDisclosureLevel::Primary {
+                    GraphicsTextRole::Heading
+                } else {
+                    GraphicsTextRole::Action
+                },
                 paint,
                 control: interaction_admitted.then_some(FaceControl {
                     action: index,
@@ -255,7 +270,7 @@ pub(super) fn prepare(
                 region: None,
                 checkbox,
             });
-            if !available {
+            if !available && super::text_field::current(face, index).is_none() {
                 continue;
             }
             for (argument_index, argument) in action.arguments.iter().enumerate() {
@@ -264,10 +279,31 @@ pub(super) fn prepare(
                 }
                 let hint = argument_hint(argument);
                 append(Item {
-                    text: format!("{} · {}", argument.value_name, hint),
+                    text: super::text_field::current(face, index).map_or_else(
+                        || format!("{} · {}", argument.value_name, hint),
+                        |value| {
+                            let current = format!(
+                                "{}: {}",
+                                subject.name,
+                                if value.is_empty() { "(empty)" } else { value }
+                            );
+                            if !interaction_admitted || !available {
+                                return current;
+                            }
+                            format!(
+                                "{} · {}",
+                                current,
+                                if super::text_field::choices(face, index).is_some() {
+                                    "Left/Right choose"
+                                } else {
+                                    "Type to replace"
+                                }
+                            )
+                        },
+                    ),
                     role: GraphicsTextRole::Label,
                     paint,
-                    control: interaction_admitted.then_some(FaceControl {
+                    control: (interaction_admitted && available).then_some(FaceControl {
                         action: index,
                         argument: Some(argument_index),
                     }),

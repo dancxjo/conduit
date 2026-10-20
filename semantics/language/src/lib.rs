@@ -128,3 +128,17 @@ mod parser_scorer;
 pub use parser_scorer::*;
 
 pub mod parser_commitment;
+
+pub mod dependency_commitment;
+pub mod prosody_commitment;
+pub mod prosody_revision;
+pub use generated::{
+    LanguageCommittedDependencyAdmission, LanguageCommittedDependencyQuery,
+    LanguageCommittedProsodyAdmission, LanguageDependencyExecutionContext,
+    LanguageDependencyExecutionObservation, LanguageDependencyExecutionResult,
+    LanguageProsodyDurationIntent, LanguageProsodyFocusIntent, LanguageProsodyFrontierRequest,
+    LanguageProsodyFrontierResult, LanguageProsodyRateIntent, LanguageProsodySymbolicIntent,
+    LanguageProsodySymbolicProfile,
+};
+
+pub mod analysis_session;

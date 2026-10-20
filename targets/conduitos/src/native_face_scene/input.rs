@@ -281,6 +281,31 @@ impl NativeFaceScene {
                     return self.toggle_boolean(self.focus.unwrap(), show, sequence);
                 }
                 40 => return self.commit(show, sequence, None),
+                79 | 80 => {
+                    if let Some(control) = self.focus
+                        && self
+                            .input
+                            .action
+                            .is_none_or(|action| action == control.action)
+                        && self.face.actions[control.action]
+                            .availability
+                            .is_available()
+                        && let Some(choice) = super::text_field::adjacent(
+                            &self.face,
+                            control.action,
+                            self.input.values.first().and_then(Option::as_deref),
+                            event.usage() == 79,
+                        )
+                    {
+                        self.input.action = Some(control.action);
+                        self.input.values = vec![Some(choice.as_bytes().to_vec())];
+                        self.focus = Some(FaceControl {
+                            action: control.action,
+                            argument: Some(0),
+                        });
+                        return Ok(FaceSceneInput::Changed);
+                    }
+                }
                 _ => {}
             }
         }

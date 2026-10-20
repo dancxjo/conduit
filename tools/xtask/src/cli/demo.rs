@@ -50,6 +50,9 @@ pub struct NativeSpeechArgs {
     /// Retained WAV output directory; never enables device playback.
     #[arg(long, default_value = "target/conduit-evidence/native-speech")]
     pub output: std::path::PathBuf,
+    /// Regenerate and independently reload only the complete shared carrier evidence.
+    #[arg(long, conflicts_with = "microcontroller")]
+    pub shared_carrier_only: bool,
     /// Also link the allocation-free Cortex-M0+ footprint probe.
     #[arg(long)]
     pub microcontroller: bool,

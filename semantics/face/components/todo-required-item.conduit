@@ -1,0 +1,13 @@
+# One source-backed Todo item contract. The surrounding Mask still preserves
+# every unmatched subject and acknowledges the final Show.
+plot todo-required-item (
+ expression: VisualExpressionInfo
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ renderer: face/component-mask(label = "Todo item", recipe = {gutter: 12, identity: "conduit.face/todo-required-item@1", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: "item", maximum_subjects: 1, selector: bound({subject: "todo/item/task-1", role: role("Item"), properties: [{name: "complete", kind: "flag", value_kind: ""}], actions: [{identity: "todo.complete.task-1", intent: "todo/complete@1", arguments: []}]})}], version: 1}, expression = expression)
+ face >> renderer.face
+ renderer.show >> show
+ renderer.interaction >> interaction
+}

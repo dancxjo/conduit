@@ -1,0 +1,57 @@
+# Relative intent is authored profile data, never acoustic timing.
+type LanguageProsodyDurationIntent =
+    neutral
+    | lengthen
+    | shorten
+type LanguageProsodyRateIntent =
+    neutral
+    | slower
+    | faster
+type LanguageProsodyFocusIntent =
+    neutral
+    | focused
+type LanguageProsodySymbolicProfile = {
+    base: LanguageProsodyProfile
+    duration: LanguageProsodyDurationIntent
+    rate: LanguageProsodyRateIntent
+    focus: LanguageProsodyFocusIntent
+}
+type LanguageProsodySymbolicIntent = {
+    choice: LanguageProsodyChoice
+    duration: LanguageProsodyDurationIntent
+    rate: LanguageProsodyRateIntent
+    focus: LanguageProsodyFocusIntent
+}
+# Only the opaque Rust preparation entry may publish this admission after replay.
+# Source joins a supplied discourse arc to every active, agreed committed edge.
+# This is not an attestation of installed parser currentness or acoustic playback.
+type LanguageCommittedProsodyAdmission = {
+    rich: LanguageRichProsodyRequest
+    dependency: LanguageCommittedDependencyAdmission
+    symbolic: LanguageProsodySymbolicProfile
+    where .rich.source == .dependency.query.source
+    where .rich.discourse.basis == .dependency.query.arc
+    where .rich.discourse.analysis == .dependency.query.commitment.beam.basis.analysis_revision
+    where .rich.token == .dependency.query.token
+    where .symbolic.base == .rich.profile
+}
+plot language/committed-vocative-prosody (
+    >> value: LanguageCommittedProsodyAdmission
+    result: LanguageProsodySymbolicIntent >>
+) = ({ choice: .rich.profile.vocative, duration: .symbolic.duration, rate: .symbolic.rate, focus: .symbolic.focus })
+# The session supplies these private journal cursors; external packets alone do
+# not establish currentness. Generic revision admission additionally checks IDs.
+type LanguageProsodyFrontierRequest = {
+    committed: U64 in 0..=4
+    stable: U64 in 0..=4
+    through: U64 in 0..=4
+    cancelled: Boolean
+    pressure: Boolean
+}
+type LanguageProsodyFrontierResult = {
+    accepted: Boolean
+}
+plot language/prosody-frontier (
+    >> value: LanguageProsodyFrontierRequest
+    result: LanguageProsodyFrontierResult >>
+) = ({ accepted: ((! .cancelled && ! .pressure) && (.through >= .committed && .through <= .stable)) })

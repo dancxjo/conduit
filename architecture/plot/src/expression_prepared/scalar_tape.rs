@@ -281,7 +281,10 @@ fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Resu
 fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
     require_intrinsic_type(&node.value_type)?;
     match &node.operation {
-        PortableExpressionOperation::Unary { operand, .. } => require_intrinsic_node_types(operand),
+        PortableExpressionOperation::ValueContract { value: operand, .. }
+        | PortableExpressionOperation::Unary { operand, .. } => {
+            require_intrinsic_node_types(operand)
+        }
         PortableExpressionOperation::Binary { left, right, .. } => {
             require_intrinsic_node_types(left)?;
             require_intrinsic_node_types(right)

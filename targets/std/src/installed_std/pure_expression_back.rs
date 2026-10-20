@@ -169,25 +169,28 @@ fn validate_placement(
         result.map_err(|error| format!("pure expression offer refusal: {error:?}"))?
     };
     let wire_kind = conduit_core::QuantityWireContract::property_kind();
+    let predicate_kind = conduit_std_offers::pure_expression_value_contract_bounds_profile();
     if offer.realization_properties.iter().any(|expected| {
         !placement
             .realization_properties
             .iter()
             .any(|actual| actual == expected)
-    }) || (placement
-        .realization_properties
-        .iter()
-        .any(|p| p.profile() == &wire_kind)
-        && !offer
+    }) || [&wire_kind, &predicate_kind].iter().any(|kind| {
+        placement
             .realization_properties
             .iter()
-            .any(|p| p.profile() == &wire_kind))
-    {
+            .any(|p| p.profile() == *kind)
+            && !offer
+                .realization_properties
+                .iter()
+                .any(|p| p.profile() == *kind)
+    }) {
         return Err(
             "planned pure expression has missing or foreign prepared wire/resource facts".into(),
         );
     }
-    if placement.kind_id != offer.kind_id
+    if placement.semantic_contract.laws != offer.semantic_contract.laws
+        || placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.implementation_id != offer.implementation.implementation_id
@@ -237,6 +240,10 @@ fn prepare(
 
 pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluationRefusal) -> u16 {
     match refusal {
+        conduit_plot::PortableExpressionEvaluationRefusal::InputValueConstraint(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::OutputValueConstraint(_) => {
+            conduit_plot::value_contract_failure_detail(refusal)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidInput => 1,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,

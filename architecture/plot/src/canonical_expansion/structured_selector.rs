@@ -364,6 +364,7 @@ fn expand_expression(
         )
     })?;
     checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
+    input_bound::retain_contracts(&mut checked, source, right_stage, source_plot, gears)?;
     checked.canonical_literals = canonical_literals;
     checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(

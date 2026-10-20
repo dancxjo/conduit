@@ -1,5 +1,21 @@
 use crate::prelude::*;
 
+/// Retain authored slices while recognizing a whitespace-delimited qualifier.
+/// Identifiers containing `near` are not qualification keywords.
+pub(crate) fn split_near_qualification(source: &str) -> Option<(&str, &str)> {
+    let (index, _) = source.match_indices("near").find(|(index, _)| {
+        source[..*index]
+            .chars()
+            .next_back()
+            .is_some_and(char::is_whitespace)
+            && source[*index + 4..]
+                .chars()
+                .next()
+                .is_some_and(char::is_whitespace)
+    })?;
+    Some((&source[..index], &source[index + 4..]))
+}
+
 #[derive(Clone, Copy)]
 pub(crate) struct SourceLine<'a> {
     pub(crate) text: &'a str,

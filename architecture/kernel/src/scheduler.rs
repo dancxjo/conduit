@@ -37,6 +37,8 @@ mod queue_index;
 mod quiescence;
 use queue_index::queue_slot;
 mod payload_admission;
+#[cfg(feature = "alloc")]
+pub mod prepared_session;
 #[cfg(feature = "linear-ready-reference-test")]
 mod ready_reference;
 mod ready_set;
