@@ -203,11 +203,11 @@ impl MakeRecord {
             || (matches!(
                 self.target,
                 "conduitos/ia32/pc"
-                    | "conduitos/aarch64/virt"
                     | "conduitos/riscv64/virt"
                     | "conduitos/loongarch64/virt"
                     | "conduitos/aarch64/orange-pi-5-rk3588s"
             ) && (native || !linear))
+            || (self.target == "conduitos/aarch64/virt" && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
         {
             return Err(MakeError::UnknownInventory);
@@ -395,7 +395,7 @@ mod tests {
     }
 
     #[test]
-    fn aarch64_requires_only_the_linear_serial_closure() {
+    fn aarch64_retains_serial_and_requires_the_complete_optional_graphical_closure() {
         let x86 = record();
         let record = MakeRecord {
             target: "conduitos/aarch64/virt",
@@ -423,6 +423,34 @@ mod tests {
             }
             .validate(1),
             Ok(())
+        );
+        let graphical = MakeRecord {
+            implementations: record.implementations | IMPL_NATIVE_PRESENTER,
+            facilities: FACILITY_NATIVE_COMPOSITOR,
+            resources: RESOURCE_FACE_SURFACE,
+            bases: record.bases | BASE_DISPLAY_SCANOUT,
+            drivers: record.drivers | DRIVER_LINEAR_FRAMEBUFFER,
+            presenters: record.presenters | PRESENTER_NATIVE_GRAPHICAL,
+            face_surface_slots: 4,
+            face_surface_bytes: 8 * 1024 * 1024,
+            ..record
+        };
+        assert_eq!(graphical.validate(1), Ok(()));
+        assert_eq!(
+            MakeRecord {
+                bases: BASE_DISPLAY_SCANOUT,
+                ..graphical
+            }
+            .validate(1),
+            Err(MakeError::UnknownInventory)
+        );
+        assert_eq!(
+            MakeRecord {
+                resources: 0,
+                ..graphical
+            }
+            .validate(1),
+            Err(MakeError::UnknownInventory)
         );
         for malformed in [
             MakeRecord {

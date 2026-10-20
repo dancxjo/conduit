@@ -1,6 +1,6 @@
 //! Small native rendering vocabulary, with no action or runtime ownership.
 
-#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor-core")))]
 use conduit_face::{
     FaceIconKey, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
     GraphicsShapeStyle, LayoutRect, MAX_GRAPHICS_COMMANDS,
@@ -8,7 +8,7 @@ use conduit_face::{
 
 /// Append one button atomically within the admitted scene budget.
 /// The caller owns its semantic action, hit target, and containing clip.
-#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
+#[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor-core")))]
 pub(crate) fn action_button(
     scene: &mut GraphicsScene,
     bounds: LayoutRect,

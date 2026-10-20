@@ -9,6 +9,7 @@ use conduit_core::{
 };
 
 pub use crate::native_surface_provider::NativeSurfaceProvider;
+#[cfg(target_arch = "x86_64")]
 use crate::{arch::UsbDevice, identity, offer::HostOffer};
 
 /// Advertise the same observed framebuffer provider that the native Mask will
@@ -23,6 +24,7 @@ pub fn native_mask_host_advertisement(
 }
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
+#[cfg(any(test, target_arch = "x86_64"))]
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
 pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_face::SHOW_RESOURCE_CLASS;
 
@@ -55,6 +57,7 @@ struct EffectBinding {
 }
 
 impl NativeProductBases {
+    #[cfg(target_arch = "x86_64")]
     pub fn observe(
         offer: &HostOffer<'_>,
         framebuffer: &conduit_observatory::FramebufferBasis,
@@ -136,6 +139,46 @@ impl NativeProductBases {
             "conduitos/framebuffer@1",
             family_kind(EffectFamily::Framebuffer),
             vec![framebuffer_resource(&framebuffer_base)],
+        )?;
+        Ok(Self { registry, effects })
+    }
+
+    /// Register only the exact framebuffer observed by a graphical startup.
+    /// This is not an input-device offer or permission to infer other Bases.
+    pub fn observe_framebuffer(
+        framebuffer: &conduit_observatory::FramebufferBasis,
+    ) -> Result<Self, EffectBaseRefusal> {
+        if framebuffer.base_id.as_str().is_empty()
+            || framebuffer.width == 0
+            || framebuffer.height == 0
+            || framebuffer.bits_per_pixel != 32
+            || framebuffer
+                .width
+                .checked_mul(4)
+                .is_none_or(|row| row > framebuffer.pitch_bytes)
+        {
+            return Err(EffectBaseRefusal::InvalidProvider);
+        }
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: 1,
+            maximum_capabilities_per_base: 0,
+            maximum_resources_per_base: 1,
+            maximum_advertised_capabilities: 1,
+            maximum_advertised_resources: 1,
+        })
+        .map_err(|_| EffectBaseRefusal::InvalidProvider)?;
+        let mut effects = Vec::with_capacity(1);
+        let base = framebuffer.base_id.as_str().to_owned();
+        register_effect(
+            &mut registry,
+            &mut effects,
+            EffectFamily::Framebuffer,
+            base.clone(),
+            format!("{base}/provider/1"),
+            1,
+            "conduitos/framebuffer@1",
+            family_kind(EffectFamily::Framebuffer),
+            vec![framebuffer_resource(&base)],
         )?;
         Ok(Self { registry, effects })
     }
@@ -286,6 +329,36 @@ const fn family_kind(family: EffectFamily) -> &'static str {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn framebuffer_only_observation_never_invents_local_input_or_another_pool() {
+        let framebuffer = conduit_observatory::FramebufferBasis {
+            base_id: HostBaseId::from("base/observed-frame"),
+            width: 800,
+            height: 600,
+            pitch_bytes: 3200,
+            bits_per_pixel: 32,
+        };
+        let bases = NativeProductBases::observe_framebuffer(&framebuffer).unwrap();
+        assert_eq!(bases.entries().len(), 1);
+        assert_eq!(
+            bases.require(EffectFamily::Keyboard),
+            Err(EffectBaseRefusal::Unavailable)
+        );
+        assert_eq!(
+            bases.require(EffectFamily::Pointer),
+            Err(EffectBaseRefusal::Unavailable)
+        );
+        assert!(bases.framebuffer_provider([0; 32]).is_err());
+        let provider = bases.framebuffer_provider([7; 32]).unwrap();
+        assert_eq!(provider.entry.base_id, framebuffer.base_id);
+        assert_eq!(provider.entry.resources[0].capacity_units, 1);
+        let malformed = conduit_observatory::FramebufferBasis {
+            pitch_bytes: 3199,
+            ..framebuffer
+        };
+        assert!(NativeProductBases::observe_framebuffer(&malformed).is_err());
+    }
 
     #[test]
     fn framebuffer_resource_identity_is_derived_from_the_discovered_base() {

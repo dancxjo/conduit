@@ -332,23 +332,35 @@ fn proof_instrumentation_without_native_closure_refuses() {
 }
 
 #[test]
-fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
-    let manifest = manifest(include_str!(
-        "../../../profiles/conduitos-aarch64-virt.host.conduit"
-    ));
-    let lowered = lower(&manifest).unwrap();
-    assert_eq!(lowered.cargo_features, ["aarch64-product"]);
-    assert_eq!(lowered.facilities, 0);
-    assert_eq!(lowered.resources, 0);
-    assert_ne!(lowered.bases, conduitos::make::BASE_DISPLAY_SCANOUT);
-    assert_ne!(lowered.drivers, conduitos::make::DRIVER_LINEAR_FRAMEBUFFER);
-    assert_ne!(
+fn aarch64_virt_selects_exact_graphical_closure_without_owner_network_or_local_input() {
+    let source = include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit");
+    let lowered = lower(&manifest(source)).unwrap();
+    assert_eq!(
+        lowered.cargo_features,
+        ["aarch64-product", "native-compositor-core"]
+    );
+    assert_eq!(
+        lowered.facilities,
+        conduitos::make::FACILITY_NATIVE_COMPOSITOR
+    );
+    assert_eq!(lowered.resources, conduitos::make::RESOURCE_FACE_SURFACE);
+    assert_eq!(
+        lowered.bases,
+        conduitos::make::BASE_SERIAL_TEXT | conduitos::make::BASE_DISPLAY_SCANOUT
+    );
+    assert_eq!(
+        lowered.drivers,
+        conduitos::make::DRIVER_PL011_SERIAL | conduitos::make::DRIVER_LINEAR_FRAMEBUFFER
+    );
+    assert_eq!(
         lowered.presenters,
-        conduitos::make::PRESENTER_NATIVE_GRAPHICAL
+        conduitos::make::PRESENTER_LINEAR_SERIAL | conduitos::make::PRESENTER_NATIVE_GRAPHICAL
     );
     assert_eq!(lowered.proof_instrumentation, 0);
-    assert_eq!(lowered.face_surface_slots, 0);
-    assert_eq!(lowered.face_surface_bytes, 0);
+    assert_eq!(
+        (lowered.face_surface_slots, lowered.face_surface_bytes),
+        (4, 8_388_608)
+    );
     assert_eq!(
         lowered.implementations
             & (conduitos::make::IMPL_KEYBOARD
@@ -356,6 +368,24 @@ fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
                 | conduitos::make::IMPL_OPL2),
         0
     );
+
+    let serial_source = source
+        .lines()
+        .filter(|line| !line.contains("display/scanout") && !line.contains("face/surface"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    let serial = lower(&manifest(&serial_source)).unwrap();
+    assert_eq!(serial.cargo_features, ["aarch64-product"]);
+    assert_eq!(
+        (
+            serial.facilities,
+            serial.resources,
+            serial.face_surface_slots,
+            serial.face_surface_bytes
+        ),
+        (0, 0, 0, 0)
+    );
+    assert_eq!(serial.presenters, conduitos::make::PRESENTER_LINEAR_SERIAL);
 }
 
 #[test]
@@ -371,11 +401,37 @@ fn aarch64_virt_rejects_x86_leaks_and_incomplete_serial_closure() {
         .contains("aarch64-product-closure-mismatch"));
 
     let mut wrong_driver = exact.clone();
-    wrong_driver.base_selections[0].driver = FRAMEBUFFER_DRIVER.into();
+    wrong_driver
+        .base_selections
+        .iter_mut()
+        .find(|base| base.kind == SERIAL_TEXT_BASE)
+        .unwrap()
+        .driver = FRAMEBUFFER_DRIVER.into();
     assert!(lower(&wrong_driver)
         .unwrap_err()
         .to_string()
         .contains("aarch64-serial-driver-mismatch"));
+
+    for missing in 0..5 {
+        let mut broken = exact.clone();
+        match missing {
+            0 => broken.facilities.clear(),
+            1 => broken.resource_budgets.clear(),
+            2 => broken
+                .base_selections
+                .retain(|base| base.kind != SCANOUT_BASE),
+            3 => broken
+                .driver_selections
+                .retain(|driver| driver.kind != FRAMEBUFFER_DRIVER),
+            _ => broken
+                .presenters
+                .retain(|presenter| presenter != NATIVE_PRESENTER),
+        }
+        assert!(
+            lower(&broken).is_err(),
+            "incomplete graphical closure {missing}"
+        );
+    }
 
     let mut proof_leak = exact;
     proof_leak

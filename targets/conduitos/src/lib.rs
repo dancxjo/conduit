@@ -40,10 +40,6 @@ mod execution_region;
 pub mod expression_host_call;
 #[path = "face_nucleus/offers.rs"]
 mod face_offers;
-pub mod flow_concat_finite;
-pub mod flow_merge_finite;
-pub mod flow_singleton;
-pub mod flow_zip;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -53,6 +49,12 @@ pub mod flow_zip;
     feature = "loongarch64-product",
     feature = "aarch64-orange-pi-5"
 ))]
+#[cfg(feature = "native-compositor-core")]
+pub mod firmware_face;
+pub mod flow_concat_finite;
+pub mod flow_merge_finite;
+pub mod flow_singleton;
+pub mod flow_zip;
 pub mod front_door;
 pub mod functional_offers;
 #[cfg(target_arch = "x86_64")]
@@ -95,11 +97,11 @@ pub mod monotonic_clock;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_boot_join;
 mod native_components;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub mod native_compositor;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_mask;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_guest_face;
@@ -259,7 +261,7 @@ mod native_surface_possession;
 mod native_surface_provider;
 #[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 mod pointer_coordinates;
-#[cfg(any(test, target_arch = "x86_64"))]
+#[cfg(any(test, target_arch = "x86_64", feature = "native-compositor-core"))]
 pub mod product_bases;
 #[cfg(any(
     test,

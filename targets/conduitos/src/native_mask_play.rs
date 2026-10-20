@@ -1,65 +1,65 @@
 //! Bounded execution of one ordinary Mask Plot through its plan-sealed Fore.
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod backs;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod interaction;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 mod prepared;
 #[cfg(test)]
 mod tests;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use backs::MaskBack;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub use interaction::NativeMaskInteractionSession;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub use prepared::PreparedNativeMaskPlay;
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use alloc::{string::String, vec::Vec};
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_face::{Face, PlannedMaskPlot};
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler};
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore};
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_plan_lowering::lowering::lower_plan_fragment;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use serde::Serialize;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 use sha2::{Digest, Sha256};
 
 // The current complete resident Patchbay Face is about 21 KiB encoded. This
 // finite native profile admits it whole; larger Faces require a new admission.
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub const MAX_MASK_VALUE_BYTES: usize = conduit_conduitos_mask_offer::MASK_BYTES;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const NODES: usize = 4;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const CORDS: usize = 6;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const ROUTES: usize = NODES * PORTS;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const HOST_BINDINGS: usize = 4;
 // One value per fixed Cord queue slot plus one result per pending Host Call.
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const VALUES: usize = CORDS + NODES;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const INTERACTION_VALUE_BYTES: usize = conduit_face::MAX_FACE_INTERACTION_BYTES;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
 // Five Face/Show queues, one interaction queue, and the two Host Call results.
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const VALUE_BYTES: usize = 6 * MAX_MASK_VALUE_BYTES + 2 * INTERACTION_VALUE_BYTES;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 const SIGNS: usize = 96;
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 type Scheduler = FixedScheduler<
     MaskBack,
     HostedValueStore,
@@ -74,7 +74,7 @@ type Scheduler = FixedScheduler<
     NODES,
 >;
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct NativeMaskPlayReceipt {
     pub mask_plan_id: conduit_core::PlanId,
@@ -90,7 +90,7 @@ pub struct NativeMaskPlayReceipt {
     pub fore_endpoints: u16,
 }
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeMaskPlayError {
     Face,
@@ -111,7 +111,7 @@ pub enum NativeMaskPlayError {
     Cancelled,
 }
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 #[derive(Serialize)]
 struct ShowValue<'a> {
     schema: &'static str,
@@ -133,7 +133,7 @@ pub fn run(
     Err(NativeMaskPlayError::PendingRenderer)
 }
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 fn show_value_id(
     planned: &PlannedMaskPlot,
     face: &Face,
@@ -156,7 +156,7 @@ fn show_value_id(
     value
 }
 
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
@@ -245,7 +245,7 @@ fn scheduler(
 /// byte budget follows the admitted Cord queues plus the two bounded Host Call
 /// results. Native rendering narrows its larger semantic offer to 16 KiB;
 /// interaction retains its declared 8192-byte bound. No budget grows during Play.
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
     if usize::from(lowered.cord_value_slots) > CORDS || lowered.host_calls.len() != 2 {
         return Err(NativeMaskPlayError::Shape);

@@ -77,7 +77,7 @@ pub(crate) fn verify_artifact_digest(
 
 pub(crate) fn boot_profile_image(
     image: &std::path::Path,
-    target: &str,
+    manifest: &BuildManifest,
     expected_profile_id: &str,
     expected_build_id: &str,
     expected_image_binding: &str,
@@ -89,7 +89,7 @@ pub(crate) fn boot_profile_image(
             "a dry run cannot prove that the final PROFILE-built IMAGE boots",
         ));
     }
-    let arch = arch_for_target(target)?;
+    let arch = arch_for_target(&manifest.target)?;
     if arch == ConduitosArch::Ia32 {
         return super::ia32_product_boot::boot_twice(
             image,
@@ -120,6 +120,7 @@ pub(crate) fn boot_profile_image(
     if arch == ConduitosArch::Aarch64 {
         let first = boot_aarch64_product(
             image,
+            manifest,
             expected_profile_id,
             expected_build_id,
             expected_image_binding,
@@ -127,6 +128,7 @@ pub(crate) fn boot_profile_image(
         )?;
         let second = boot_aarch64_product(
             image,
+            manifest,
             expected_profile_id,
             expected_build_id,
             expected_image_binding,
@@ -176,6 +178,7 @@ fn arch_for_target(target: &str) -> Result<ConduitosArch, ConduitosError> {
 
 fn boot_aarch64_product(
     image: &std::path::Path,
+    manifest: &BuildManifest,
     expected_profile_id: &str,
     expected_build_id: &str,
     expected_image_binding: &str,
@@ -197,7 +200,15 @@ fn boot_aarch64_product(
     let serial_path = paths.target.join("aarch64-product-boot.log");
     let _ = fs::remove_file(&serial_path);
     let serial_target = format!("file:{}", serial_path.to_string_lossy());
-    let mut child = Command::new("qemu-system-aarch64")
+    let graphical = manifest
+        .presenters
+        .iter()
+        .any(|p| p == "presenter/native-graphical@1");
+    let capture = graphical
+        .then(|| graphical::Capture::prepare(&paths.target))
+        .transpose()?;
+    let mut command = Command::new("qemu-system-aarch64");
+    command
         .args([
             "-M",
             "virt",
@@ -222,7 +233,14 @@ fn boot_aarch64_product(
             "-bios",
         ])
         .arg(&firmware)
-        .args(["-cdrom", image_path, "-boot", "d"])
+        .args(["-cdrom", image_path, "-boot", "d"]);
+    if let Some(capture) = &capture {
+        command
+            .args(["-device", "ramfb", "-qmp"])
+            .arg(capture.endpoint());
+        capture.record_launch(&command, &paths.root, &firmware, image)?;
+    }
+    let mut child = command
         .current_dir(&paths.root)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -231,6 +249,14 @@ fn boot_aarch64_product(
         .map_err(|error| ConduitosError::refusal("missing-aarch64-qemu", error.to_string()))?;
     let deadline = Instant::now() + Duration::from_secs(45);
     loop {
+        if fs::metadata(&serial_path).is_ok_and(|metadata| metadata.len() > 1024 * 1024) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(ConduitosError::refusal(
+                "aarch64-product-serial-bound",
+                "serial exceeds 1 MiB",
+            ));
+        }
         let transcript = fs::read_to_string(&serial_path).unwrap_or_default();
         if let (Some(json), Some(_)) = (
             complete_aarch64_product_sign(&transcript),
@@ -281,6 +307,9 @@ fn boot_aarch64_product(
                     )
                 })?;
                 value["ordinary_observatory"] = snapshot;
+                if let Some(capture) = &capture {
+                    value["graphical"] = capture.finish(&mut child, &transcript, &value)?;
+                }
                 Ok::<_, ConduitosError>(value)
             })();
             let value = match captured {
@@ -375,3 +404,5 @@ fn validate_aarch64_product_sign(
 
 #[cfg(test)]
 mod tests;
+
+mod graphical;

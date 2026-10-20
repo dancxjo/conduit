@@ -29,7 +29,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     // The normal image earns its own receipt before adding diagnostic entries.
     target_build::boot_profile_image(
         &paths.iso,
-        &manifest.target,
+        &manifest.resolved_build,
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,
@@ -48,7 +48,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     image::assemble_architecture_proof(ConduitosArch::Riscv64, opts)?;
     target_build::boot_profile_image(
         &paths.iso,
-        &manifest.target,
+        &manifest.resolved_build,
         &manifest.profile_id,
         &manifest.build_id,
         &manifest.resolved_description_binding,

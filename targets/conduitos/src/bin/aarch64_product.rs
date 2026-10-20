@@ -139,6 +139,18 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         arch::present(&join);
         arch::present(b"\n");
     }
+    #[cfg(feature = "native-compositor-core")]
+    let graphical = prepare_graphical_face(&record, &identities, &offer);
+    #[cfg(feature = "native-compositor-core")]
+    let framebuffer_basis = graphical
+        .as_ref()
+        .map(|graphic| graphic.framebuffer_basis());
+    #[cfg(not(feature = "native-compositor-core"))]
+    let framebuffer_basis = None;
+    #[cfg(not(feature = "native-compositor-core"))]
+    if EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        refuse("firmware-face-renderer-not-linked");
+    }
     let export = observatory::prepare_export(
         &record,
         &identities,
@@ -146,7 +158,7 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         &prepared,
         EMBEDDED_MAKE.build_id,
         EMBEDDED_MAKE.image_binding,
-        None,
+        framebuffer_basis,
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     // Diagnostic Plays prepare independently after the ordinary Play.
@@ -215,6 +227,54 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     loop {
         unsafe { core::arch::asm!("wfi", options(nomem, nostack)) };
     }
+}
+
+#[cfg(feature = "native-compositor-core")]
+fn prepare_graphical_face(
+    record: &boot::BootRecord,
+    identities: &identity::BootIdentities,
+    offer: &ImageBoundHostOffer<'_>,
+) -> Option<conduitos::firmware_face::FirmwareFace<arch::FirmwareScanout>> {
+    if !EMBEDDED_MAKE.includes(conduitos::make::IMPL_NATIVE_PRESENTER) {
+        return None;
+    }
+    let display = boot::framebuffer_display().unwrap_or_else(|error| refuse(error.as_str()));
+    let display =
+        arch::FirmwareScanout::prepare(display, record).unwrap_or_else(|reason| refuse(reason));
+    let mapping = display.mapping().clone();
+    let source = arch::DomainEntropy::detect(1).unwrap_or_else(|error| refuse(error.as_str()));
+    let mut entropy =
+        conduitos::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(source)
+            .unwrap_or_else(|error| refuse(error.as_str()));
+    let graphic = entropy
+        .with_secret::<32, _>(|key, _| {
+            conduitos::firmware_face::FirmwareFace::prepare(
+                display,
+                identities,
+                offer,
+                &EMBEDDED_MAKE,
+                *key,
+            )
+        })
+        .unwrap_or_else(|error| refuse(error.as_str()))
+        .unwrap_or_else(|reason| refuse(reason));
+    let proof = serde_json::to_vec(&serde_json::json!({
+        "schema":"conduit.conduitos/aarch64-framebuffer-mapping@1",
+        "host_id":identity::hex(&identities.host),"boot_id":identity::hex(&identities.boot),
+        "base_id":graphic.framebuffer_basis().base_id,"mapping":mapping,
+        "physical_scanout_proved":false,"gpu_acceleration_proved":false
+    }))
+    .unwrap_or_else(|_| refuse("framebuffer-mapping-evidence-encoding"));
+    if proof.len() > 2048 {
+        refuse("framebuffer-mapping-evidence-bound");
+    }
+    arch::present(b"CONDUIT_FRAMEBUFFER_MAPPING ");
+    arch::present(&proof);
+    arch::present(b"\n");
+    arch::present(conduitos::firmware_face::SIGN_PREFIX);
+    arch::present(graphic.evidence());
+    arch::present(b"\n");
+    Some(graphic)
 }
 
 fn refuse(reason: &str) -> ! {

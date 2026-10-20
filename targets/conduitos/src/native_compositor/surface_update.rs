@@ -1,6 +1,6 @@
 //! Exact retained raster staging, separately from successful scanout.
 use super::*;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 use crate::display::PixelTarget;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -159,7 +159,7 @@ impl NativeCompositor {
         surface.input_ready = false;
         self.scanout_pixels = [0; MAX_COMPOSITOR_SURFACES];
         surface.buffer.clear();
-        #[cfg(feature = "native-compositor")]
+        #[cfg(feature = "native-compositor-core")]
         let display = {
             let format = surface.buffer.format();
             let expression = surface.visual_expression.as_ref();
@@ -171,7 +171,7 @@ impl NativeCompositor {
                 |role| visual_paint(format, role, expression),
             )?
         };
-        #[cfg(not(feature = "native-compositor"))]
+        #[cfg(not(feature = "native-compositor-core"))]
         let display = render_scene(&mut surface.buffer, scene)?;
         surface.binding = Some(SurfaceBinding {
             manifestation_id: manifestation.manifestation_id.clone(),
@@ -253,7 +253,7 @@ impl NativeCompositor {
     }
 }
 
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 fn visual_paint(
     format: crate::display::DisplayFormat,
     role: conduit_face::GraphicsPaintRole,

@@ -232,7 +232,7 @@ mod tests {
             crate::display::text_height("Host\nNative\n01234567...", 640 / 6 - 16).unwrap(),
             48
         );
-        #[cfg(feature = "native-compositor")]
+        #[cfg(feature = "native-compositor-core")]
         {
             let height = crate::display::typography::TextLayout::new(
                 "Host\nNative\n01234567...",

@@ -146,6 +146,13 @@ impl NativeFaceMask {
         self.publication.as_ref()
     }
 
+    /// Receipt minted by the existing Mask Play after actual scanout ack.
+    pub fn render_receipt(&self) -> Option<&crate::native_mask_play::NativeMaskPlayReceipt> {
+        self.session
+            .as_ref()
+            .map(NativeMaskInteractionSession::render_receipt)
+    }
+
     pub fn show(&self) -> Option<&MaskShow> {
         self.session
             .as_ref()

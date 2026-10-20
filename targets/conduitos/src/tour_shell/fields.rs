@@ -32,10 +32,10 @@ pub(super) fn project(
             .find(|subject| subject.identity == item.subject)
             .ok_or(TourShellError::Identity)?;
         let text = alloc::format!("{}\n{}", subject.name, item.text);
-        #[cfg(not(feature = "native-compositor"))]
+        #[cfg(not(feature = "native-compositor-core"))]
         let height =
             crate::display::text_height(&text, width).map_err(|_| TourShellError::Scene)?;
-        #[cfg(feature = "native-compositor")]
+        #[cfg(feature = "native-compositor-core")]
         let height = u16::try_from(
             crate::display::typography::TextLayout::new(
                 &text,

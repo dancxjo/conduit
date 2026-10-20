@@ -330,7 +330,7 @@ fn selected_patchbay_graph_becomes_exact_face_subjects_for_the_native_mask() {
         }],
     });
     let face = door.face().unwrap();
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     {
         let scene =
             crate::native_face_scene::NativeFaceScene::prepare(face.clone(), 800, 600).unwrap();

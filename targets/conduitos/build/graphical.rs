@@ -1,6 +1,6 @@
 //! Build-time structural admission of immutable graphical resources.
 pub fn validate() {
-    if std::env::var_os("CARGO_FEATURE_NATIVE_COMPOSITOR").is_none() {
+    if std::env::var_os("CARGO_FEATURE_NATIVE_COMPOSITOR_CORE").is_none() {
         return;
     }
     for name in ["body", "heading", "title", "code"] {

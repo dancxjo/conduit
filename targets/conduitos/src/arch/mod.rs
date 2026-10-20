@@ -87,6 +87,16 @@ pub const ARCHITECTURE: &str = "ia32";
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 mod aarch64;
 
+#[cfg(all(
+    target_arch = "aarch64",
+    not(feature = "aarch64-orange-pi-5"),
+    feature = "native-compositor-core"
+))]
+pub use aarch64::FirmwareScanout;
+#[cfg(test)]
+#[path = "aarch64/framebuffer/mapping.rs"]
+mod aarch64_framebuffer_mapping_conformance;
+
 #[cfg(all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5")))]
 pub use aarch64::{
     Clock, Idle, InterruptFact, Interrupts, Serial, Timer, VirtXhciRefusal, append_boot_diagnostic,

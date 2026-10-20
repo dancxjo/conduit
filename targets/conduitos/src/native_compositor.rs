@@ -11,7 +11,7 @@ mod surface_lifecycle;
 mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
-#[cfg(not(feature = "native-compositor"))]
+#[cfg(not(feature = "native-compositor-core"))]
 use crate::display::render_scene;
 use crate::display::{DisplayError, DisplayReceipt};
 use alloc::{string::String, vec::Vec};

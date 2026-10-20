@@ -24,6 +24,8 @@ mod multiboot1;
 mod observation;
 pub use modules::BootModuleRefusal;
 
+#[cfg(all(target_arch = "aarch64", feature = "native-compositor-core"))]
+pub(crate) use limine::framebuffer_reserved_range;
 #[cfg(any(
     target_arch = "x86_64",
     target_arch = "aarch64",

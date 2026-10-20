@@ -176,7 +176,10 @@ usb-configuration-proof = []
 usb-endpoint-read-proof = ["scripted-keyboard-proof"]
 usb-hid-endpoint-proof = ["usb-endpoint-read-proof"]
 usb-hid-mouse-proof = ["usb-hid-endpoint-proof"]
-native-compositor = ["dep:fontdue", "native-owner-network"]
+# The renderer/compositor is portable; the established x86 product feature
+# retains its invitation-bound network closure independently.
+native-compositor-core = ["dep:fontdue"]
+native-compositor = ["native-compositor-core", "native-owner-network"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.
 native-owner-network = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
