@@ -26,6 +26,7 @@ test('real failed, truncated, absent and unrelated transfers remain fatal', () =
     [{ ...failure, resourceType: 'script' }, resource],
     [{ ...failure, status: 404 }, resource],
     [{ ...failure, requestStart: -1 }, resource],
+    [{ ...failure, responseStart: failure.requestStart - 1 }, resource],
     [{ ...failure, responseEnd: -1 }, resource],
     [{ ...failure, contentLength: NaN }, resource],
     [{ ...failure, contentLength: 0 }, resource],
@@ -74,4 +75,24 @@ test('a real failure arriving while earlier response evidence awaits is retained
   assert.deepEqual(records, [failure, laterFailure]);
   const result = classifyRequestFailures(records, timing([resource]));
   assert.deepEqual(result.errors, [`${laterFailure.url}: net::ERR_CONNECTION_RESET`]);
+});
+
+// A raw HTTP diagnostic sends the first header bytes, then completes the
+// headers 25 ms later. Chromium consumes all 4096 body bytes. Playwright's
+// responseStart is receiveHeadersEnd, whereas Resource Timing marks first byte.
+test('complete fragmented headers need not finish within one millisecond of first byte', () => {
+  const headers = { ...failure, responseStart: 28, responseEnd: 40 };
+  const delivered = { ...resource, responseEnd: 96 };
+  assert.deepEqual(classifyRequestFailures([headers], timing([delivered])).errors, []);
+});
+
+test('response timing outside the matched HTTP request remains fatal', () => {
+  for (const entry of [
+    { ...resource, responseStart: resource.requestStart - 5 },
+    { ...resource, responseStart: resource.responseStart + 5 },
+  ]) {
+    const result = classifyRequestFailures([failure], timing([entry]));
+    assert.equal(result.errors.length, 1);
+    assert.equal(result.completedAbortNotifications.length, 0);
+  }
 });
