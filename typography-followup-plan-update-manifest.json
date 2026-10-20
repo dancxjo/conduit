@@ -1,0 +1,22 @@
+{
+  "parent": "b5ba8bd66209f3277179ea35540f57d445f75911",
+  "scope": "Linked full workspace receipt and read-only Look integration plan; no new implementation",
+  "files": [
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 3829,
+      "sha256": "5e4fd9a23dff534afaad21fe88748dad591870e4303858e65a6f4eb6dd6e82eb",
+      "mode": "100644",
+      "blob": "69f0a00aeba62eacb47fb52b50223c6fa0effee3"
+    },
+    {
+      "source": "work/5628-implementation-seam-plan.md",
+      "tree_path": "task-6038/work/5628-implementation-seam-plan.md",
+      "bytes": 3772,
+      "sha256": "fd39ca4ef3e62031028b74c60836fcb1c655c8bf803769662afc4788a6cc5b44",
+      "mode": "100644",
+      "blob": "2f0bbaaca0992597febdf074bd6fe3240bbce907"
+    }
+  ]
+}
