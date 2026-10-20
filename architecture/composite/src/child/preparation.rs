@@ -117,6 +117,9 @@ impl ChildKernel {
             .max(1)
             .checked_add(sign_storage.additional_remote_items)
             .ok_or_else(|| "kernel composite remote Sign bound overflow".to_string())?;
+        if reusable && host_requests != 0 {
+            return Err("reusable child cannot admit Host requests".into());
+        }
         if usize::from(host_requests) > PENDING_REQUESTS {
             return Err("child exceeds the admitted kernel host-request profile".into());
         }
