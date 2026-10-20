@@ -1,0 +1,70 @@
+{
+  "parent": "2006bff2df8658383ff91b047d55ab42bf0a6fa2",
+  "scope": "Independent collection source-derived specimens and handoff; compiled products and raw execution logs excluded",
+  "files": [
+    {
+      "source": "work/6039-source-recovery-handoff.md",
+      "tree_path": "task-6038/work/6039-source-recovery-handoff.md",
+      "bytes": 20203,
+      "sha256": "dffe9c888226b55da725b243c6c740ff1130d8b57a27b6ceb3428494e82b92b0",
+      "mode": "100644",
+      "blob": "5aa617acdf7f4787ff0be68bfbe196e6a34f6d28"
+    },
+    {
+      "source": "work/6055-body-final-a637.md",
+      "tree_path": "task-6038/work/6055-body-final-a637.md",
+      "bytes": 5738,
+      "sha256": "0a932b2c1d69d37f8195c326ea1a1cfd6d5d52b22900f1388970bce7109f618a",
+      "mode": "100644",
+      "blob": "e2666613f9dc52b2e05f2bec72b4b5d10c1b94fe"
+    },
+    {
+      "source": "outputs/6039-independent-linear/receipt.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/receipt.json",
+      "bytes": 4589,
+      "sha256": "e89d56781a1b6e10dcff5e1876cd2e91641e4552f0f6ec210db8cb08239d7967",
+      "mode": "100644",
+      "blob": "751cd64faa44ee0f40891dc3c7b4e61e2b0f2f6f"
+    },
+    {
+      "source": "outputs/6039-independent-linear/source-face.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/source-face.json",
+      "bytes": 46171,
+      "sha256": "bfa2958d811755e0720debd155a7f9f1584c04bf3eb0f4da906b0b2fcc4e8bcc",
+      "mode": "100644",
+      "blob": "4d8bb0d70ff353c550bd267c85050b0134fd42d8"
+    },
+    {
+      "source": "outputs/6039-independent-linear/linear-lines.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/linear-lines.json",
+      "bytes": 49167,
+      "sha256": "b7f22d79cfe6106c3bf539fa65cbaede109c2c78bd0bb1ec4aad07a12805b17a",
+      "mode": "100644",
+      "blob": "22ca10d1e1a55e6b6048fb0f85f14d305e81dce2"
+    },
+    {
+      "source": "outputs/6039-independent-linear/reconstructed-account.txt",
+      "tree_path": "task-6038/outputs/6039-independent-linear/reconstructed-account.txt",
+      "bytes": 34104,
+      "sha256": "3e9c4e883b13555618fe30ef0580633f77ef6e7bc95082b57eb1a41069ec231a",
+      "mode": "100644",
+      "blob": "dde89cade27206f81fcd86ec968995f83076caa1"
+    },
+    {
+      "source": "outputs/6039-independent-linear/generic-observation.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/generic-observation.json",
+      "bytes": 133876,
+      "sha256": "b156d53b43a5d50b760b7f97f70ed1de26f56d340b683a0632431fd33a11fc02",
+      "mode": "100644",
+      "blob": "7ffeec73d0eb5296e06e31cbce2799049813b417"
+    },
+    {
+      "source": "outputs/6039-independent-linear/generic-followup/prior-receipt-87d97d7d3.json",
+      "tree_path": "task-6038/outputs/6039-independent-linear/generic-followup/prior-receipt-87d97d7d3.json",
+      "bytes": 2952,
+      "sha256": "96dd8dafef27a021689b7cd9b6c2e107d97e251bd1b229e8ce9f74c6d2cf5cd8",
+      "mode": "100644",
+      "blob": "df94977f34e9e5165821763c9c800a73fcfb96f6"
+    }
+  ]
+}

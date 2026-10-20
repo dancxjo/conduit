@@ -1,0 +1,3826 @@
+{
+  "collections": [
+    {
+      "multiplicity": null,
+      "ordered_items": [
+        {
+          "identity": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "name": "Clock",
+          "role": "Item"
+        }
+      ],
+      "pages": [
+        {
+          "collection": "birth/arrival/one/reviewed-plots",
+          "first": 0,
+          "items": [
+            {
+              "identity": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+              "name": "Clock",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 1
+        },
+        {
+          "collection": "birth/arrival/one/reviewed-plots",
+          "first": 1,
+          "items": [],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 1
+        }
+      ],
+      "proposals": [
+        {
+          "choose": false,
+          "item": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "outcome": {
+            "refused": "NoSelectionAction"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "outcome": {
+            "refused": "NoSelectionAction"
+          }
+        }
+      ],
+      "revision": 1,
+      "source_actions": [],
+      "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+      "source_properties": [
+        {
+          "name": "item-count",
+          "subject": "birth/arrival/one/reviewed-plots",
+          "value": {
+            "Count": 1
+          }
+        },
+        {
+          "name": "checked-plot-id",
+          "subject": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Identity": "checked/clock"
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/reviewed-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Count": 0
+          }
+        }
+      ],
+      "subject": {
+        "identity": "birth/arrival/one/reviewed-plots",
+        "name": "Selected starting Plots",
+        "role": "Collection"
+      }
+    },
+    {
+      "multiplicity": "exclusive",
+      "ordered_items": [
+        {
+          "identity": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "name": "Surprise me",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "name": "Roman tria nomina",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "name": "Chinese (romanized, family name first)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "name": "Contemporary American",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "name": "Mexican (two surnames)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "name": "Icelandic patronymic or matronymic",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "name": "Japanese (romanized, family name first)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "name": "Arabic lineage plot",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "name": "Contemporary French",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "name": "Contemporary British",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "name": "Classic Anglophone",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "name": "Korean (romanized, family name first)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "name": "Vietnamese (family\u2013middle\u2013given)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "name": "Yor\u00f9b\u00e1 personal and family names",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "name": "Ukrainian (official romanization)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "name": "Biblical Hebrew-inspired patronymic (romanized)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "name": "Amharic-style patronymic (romanized)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "name": "Portuguese multi-surname",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "name": "Tamil patronymic plots (romanized)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "name": "Indonesian complete personal-name plots (romanized)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "name": "Welsh modern and patronymic plots",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "name": "Kurdish Kurmanji (Latin script)",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "name": "The TARGUS family",
+          "role": "Item"
+        },
+        {
+          "identity": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "name": "Original Elvish-inspired",
+          "role": "Item"
+        }
+      ],
+      "pages": [
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 0,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+              "name": "Surprise me",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+              "name": "Roman tria nomina",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+              "name": "Chinese (romanized, family name first)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 3,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 1,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+              "name": "Roman tria nomina",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+              "name": "Chinese (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+              "name": "Contemporary American",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 4,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 2,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+              "name": "Chinese (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+              "name": "Contemporary American",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+              "name": "Mexican (two surnames)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 5,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 3,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+              "name": "Contemporary American",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+              "name": "Mexican (two surnames)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+              "name": "Icelandic patronymic or matronymic",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 6,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 4,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+              "name": "Mexican (two surnames)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+              "name": "Icelandic patronymic or matronymic",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+              "name": "Japanese (romanized, family name first)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 7,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 5,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+              "name": "Icelandic patronymic or matronymic",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+              "name": "Japanese (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+              "name": "Arabic lineage plot",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 8,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 6,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+              "name": "Japanese (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+              "name": "Arabic lineage plot",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+              "name": "Contemporary French",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 9,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 7,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+              "name": "Arabic lineage plot",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+              "name": "Contemporary French",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+              "name": "Contemporary British",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 10,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 8,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+              "name": "Contemporary French",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+              "name": "Contemporary British",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+              "name": "Classic Anglophone",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 11,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 9,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+              "name": "Contemporary British",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+              "name": "Classic Anglophone",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+              "name": "Korean (romanized, family name first)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 12,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 10,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+              "name": "Classic Anglophone",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+              "name": "Korean (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+              "name": "Vietnamese (family\u2013middle\u2013given)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 13,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 11,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+              "name": "Korean (romanized, family name first)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+              "name": "Vietnamese (family\u2013middle\u2013given)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+              "name": "Yor\u00f9b\u00e1 personal and family names",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 14,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 12,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+              "name": "Vietnamese (family\u2013middle\u2013given)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+              "name": "Yor\u00f9b\u00e1 personal and family names",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+              "name": "Ukrainian (official romanization)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 15,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 13,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+              "name": "Yor\u00f9b\u00e1 personal and family names",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+              "name": "Ukrainian (official romanization)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+              "name": "Biblical Hebrew-inspired patronymic (romanized)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 16,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 14,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+              "name": "Ukrainian (official romanization)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+              "name": "Biblical Hebrew-inspired patronymic (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+              "name": "Amharic-style patronymic (romanized)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 17,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 15,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+              "name": "Biblical Hebrew-inspired patronymic (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+              "name": "Amharic-style patronymic (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+              "name": "Portuguese multi-surname",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 18,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 16,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+              "name": "Amharic-style patronymic (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+              "name": "Portuguese multi-surname",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+              "name": "Tamil patronymic plots (romanized)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 19,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 17,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+              "name": "Portuguese multi-surname",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+              "name": "Tamil patronymic plots (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+              "name": "Indonesian complete personal-name plots (romanized)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 20,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 18,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+              "name": "Tamil patronymic plots (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+              "name": "Indonesian complete personal-name plots (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+              "name": "Welsh modern and patronymic plots",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 21,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 19,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+              "name": "Indonesian complete personal-name plots (romanized)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+              "name": "Welsh modern and patronymic plots",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+              "name": "Kurdish Kurmanji (Latin script)",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 22,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 20,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+              "name": "Welsh modern and patronymic plots",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+              "name": "Kurdish Kurmanji (Latin script)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+              "name": "The TARGUS family",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": 23,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 21,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+              "name": "Kurdish Kurmanji (Latin script)",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+              "name": "The TARGUS family",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+              "name": "Original Elvish-inspired",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 22,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+              "name": "The TARGUS family",
+              "role": "Item"
+            },
+            {
+              "identity": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+              "name": "Original Elvish-inspired",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 23,
+          "items": [
+            {
+              "identity": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+              "name": "Original Elvish-inspired",
+              "role": "Item"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        },
+        {
+          "collection": "birth/arrival/one/name-system/input-details",
+          "first": 24,
+          "items": [],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 24
+        }
+      ],
+      "proposals": [
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "e7e0506c0d283258362e29a89143af17459c24497be2c39b9d83d126334469ae",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    114,
+                    111,
+                    109,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "f82ec0b4a16f97cfdcdc7173753b54309c0ce5cb251463c05b1037a0a793b063",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    99,
+                    104,
+                    105,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "f1c3bd2ea0a77e40af4bee33e4339a3bf48a11ddf6f44f5a269f23a9de1923fb",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    97,
+                    109,
+                    101,
+                    114,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "5120f12cc6bbfb0e0d73a3e140e4b912071104ec460d2b8c484dfa599dee18fc",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    109,
+                    101,
+                    120,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "6b95b09781db77c9be9dce2d21260a13dffb3e9432b40b818e7918303d34b81a",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    105,
+                    99,
+                    101,
+                    108,
+                    97,
+                    110,
+                    100,
+                    105,
+                    99
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "4e13dc914bea883fb6f4d0d4b1b37b7b1938a5b3d2086f7fd9d255fa1c169a02",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    106,
+                    97,
+                    112,
+                    97,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "f6a96eb1654e944b3234f25a0c8464c122bd677d436a306866e6d8aebf07037c",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    97,
+                    114,
+                    97,
+                    98,
+                    105,
+                    99
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "f785e80e3fd65924312eedf56989d1d848fe4c774fc33f2d6784f85d0677773e",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    102,
+                    114,
+                    101,
+                    110,
+                    99,
+                    104
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "1c6344ba043c1a9d63a60602ea7cc032be9874dc6482a57880b23aab0fe98a54",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    98,
+                    114,
+                    105,
+                    116,
+                    105,
+                    115,
+                    104
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "1c433165ce60ae0501405d6ba40f89839a46e81f3bf70cb0034b94f74aea460d",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    99,
+                    108,
+                    97,
+                    115,
+                    115,
+                    105,
+                    99,
+                    45,
+                    97,
+                    110,
+                    103,
+                    108,
+                    111,
+                    112,
+                    104,
+                    111,
+                    110,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "7183586b4d1e730dd2bc7bd8ec82e060326c83fc282de92f553eeaf638860090",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    107,
+                    111,
+                    114,
+                    101,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "319deab4eae685f7ddec99eea21392dd8b1062d691b31dfa17821e152c743da3",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    118,
+                    105,
+                    101,
+                    116,
+                    110,
+                    97,
+                    109,
+                    101,
+                    115,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "3d2b8f2a0ae346a111512b50bb0bdaef54fcd895a885cdb3025c67ffd97949ad",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    121,
+                    111,
+                    114,
+                    117,
+                    98,
+                    97
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "0467fa173e9bc6b34a72b69a564a7de185e2b4a2b1603fe0325170686d91d080",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    117,
+                    107,
+                    114,
+                    97,
+                    105,
+                    110,
+                    105,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "f5407b5561440bbe137ebffef7712751eb253b54eea571edb546ca91f521962f",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    97,
+                    110,
+                    99,
+                    105,
+                    101,
+                    110,
+                    116,
+                    45,
+                    104,
+                    101,
+                    98,
+                    114,
+                    101,
+                    119
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "0fc2e1a1a8ed1143c8c5508111c19095e747184c028c06bb86f4fc3ed793ccbe",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    97,
+                    109,
+                    104,
+                    97,
+                    114,
+                    105,
+                    99
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "cfa2c290b572ed498b4bd407c826001c9418e79e970a4ecb6662905c818f7b47",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    112,
+                    111,
+                    114,
+                    116,
+                    117,
+                    103,
+                    117,
+                    101,
+                    115,
+                    101
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "cd1263017e466134cd942040fdc64757ab17033d81b0ca9c2a63ed87420370ff",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    116,
+                    97,
+                    109,
+                    105,
+                    108
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "0c52abfb021c86fcbf25e82c86f74d801d6b0dcfb60397a1b9ffc16fbfc248ae",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    105,
+                    110,
+                    100,
+                    111,
+                    110,
+                    101,
+                    115,
+                    105,
+                    97,
+                    110
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "ef0bb7849052778a2eedf0662f6c1d9c82999735fc5a345c89ab2f1631662166",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    119,
+                    101,
+                    108,
+                    115,
+                    104
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "ca535a1b6f7ac1a3ac46645c6080d9d05874184064517f32bcc2fd17fa3a5830",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    107,
+                    117,
+                    114,
+                    109,
+                    97,
+                    110,
+                    106,
+                    105
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "57ae6df4fc272ccb3e6c27f1f75f76e51d257f5b6515b16aca5f5cf542f18062",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    116,
+                    97,
+                    114,
+                    103,
+                    117,
+                    115
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "4cb20c339a19d19d0b88eab460db068d0d482a7258bb62a18f515ada28efb580",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "outcome": {
+            "refused": "Selection"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.naming",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    101,
+                    108,
+                    118,
+                    105,
+                    115,
+                    104
+                  ],
+                  "value_kind": "value/text"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "b94727e33c3f2e4d2c0cb07ce5ab09cad076ae98e79f1e6cc11c129a91f671f1",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/name-system"
+            }
+          }
+        }
+      ],
+      "revision": 1,
+      "source_actions": [
+        {
+          "arguments": [
+            {
+              "contract": {
+                "constraints": [
+                  {
+                    "ByteLength": {
+                      "maximum": 64,
+                      "minimum": 0
+                    }
+                  },
+                  {
+                    "CanonicalMembership": {
+                      "members": [
+                        [
+                          97,
+                          109,
+                          101,
+                          114,
+                          105,
+                          99,
+                          97,
+                          110
+                        ],
+                        [
+                          97,
+                          109,
+                          104,
+                          97,
+                          114,
+                          105,
+                          99
+                        ],
+                        [
+                          97,
+                          110,
+                          99,
+                          105,
+                          101,
+                          110,
+                          116,
+                          45,
+                          104,
+                          101,
+                          98,
+                          114,
+                          101,
+                          119
+                        ],
+                        [
+                          97,
+                          114,
+                          97,
+                          98,
+                          105,
+                          99
+                        ],
+                        [
+                          98,
+                          114,
+                          105,
+                          116,
+                          105,
+                          115,
+                          104
+                        ],
+                        [
+                          99,
+                          104,
+                          105,
+                          110,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          99,
+                          108,
+                          97,
+                          115,
+                          115,
+                          105,
+                          99,
+                          45,
+                          97,
+                          110,
+                          103,
+                          108,
+                          111,
+                          112,
+                          104,
+                          111,
+                          110,
+                          101
+                        ],
+                        [
+                          101,
+                          108,
+                          118,
+                          105,
+                          115,
+                          104
+                        ],
+                        [
+                          102,
+                          114,
+                          101,
+                          110,
+                          99,
+                          104
+                        ],
+                        [
+                          105,
+                          99,
+                          101,
+                          108,
+                          97,
+                          110,
+                          100,
+                          105,
+                          99
+                        ],
+                        [
+                          105,
+                          110,
+                          100,
+                          111,
+                          110,
+                          101,
+                          115,
+                          105,
+                          97,
+                          110
+                        ],
+                        [
+                          106,
+                          97,
+                          112,
+                          97,
+                          110,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          107,
+                          111,
+                          114,
+                          101,
+                          97,
+                          110
+                        ],
+                        [
+                          107,
+                          117,
+                          114,
+                          109,
+                          97,
+                          110,
+                          106,
+                          105
+                        ],
+                        [
+                          109,
+                          101,
+                          120,
+                          105,
+                          99,
+                          97,
+                          110
+                        ],
+                        [
+                          112,
+                          111,
+                          114,
+                          116,
+                          117,
+                          103,
+                          117,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          114,
+                          111,
+                          109,
+                          97,
+                          110
+                        ],
+                        [
+                          115,
+                          117,
+                          114,
+                          112,
+                          114,
+                          105,
+                          115,
+                          101
+                        ],
+                        [
+                          116,
+                          97,
+                          109,
+                          105,
+                          108
+                        ],
+                        [
+                          116,
+                          97,
+                          114,
+                          103,
+                          117,
+                          115
+                        ],
+                        [
+                          117,
+                          107,
+                          114,
+                          97,
+                          105,
+                          110,
+                          105,
+                          97,
+                          110
+                        ],
+                        [
+                          118,
+                          105,
+                          101,
+                          116,
+                          110,
+                          97,
+                          109,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          119,
+                          101,
+                          108,
+                          115,
+                          104
+                        ],
+                        [
+                          121,
+                          111,
+                          114,
+                          117,
+                          98,
+                          97
+                        ]
+                      ],
+                      "negated": false
+                    }
+                  }
+                ],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              },
+              "name": "value",
+              "value_name": "Naming tradition"
+            }
+          ],
+          "availability": "Available",
+          "disclosure": "CurrentAction",
+          "identity": "creche.naming",
+          "intent": "conduit.intent/creche.naming@1",
+          "name": "Use naming tradition",
+          "target": "birth/arrival/one/name-system"
+        }
+      ],
+      "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+      "source_properties": [
+        {
+          "name": "item-count",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Count": 24
+          }
+        },
+        {
+          "name": "choice-multiplicity",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Text": "exclusive"
+          }
+        },
+        {
+          "name": "minimum-selected-count",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Count": 1
+          }
+        },
+        {
+          "name": "maximum-selected-count",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Count": 1
+          }
+        },
+        {
+          "name": "selection-action",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Identity": "creche.naming"
+          }
+        },
+        {
+          "name": "value-source",
+          "subject": "birth/arrival/one/name-system/input-details",
+          "value": {
+            "Identity": "birth/arrival/one/name-system"
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "value": {
+            "Count": 0
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "value": {
+            "Flag": true
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/0832c0adf05418144b7b5f01e14600782ba7a302a606b49e3bf26214b765c176",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                115,
+                117,
+                114,
+                112,
+                114,
+                105,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "value": {
+            "Count": 1
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/4eaae75f1df2f52bda44f6b18a400542d51c81bd7c00b0e720be5dc2c997575d",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                114,
+                111,
+                109,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "value": {
+            "Count": 2
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/e2d3b41db9567ddf0334e14b2ff58556581630566061a0c643fec42d12c47122",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                99,
+                104,
+                105,
+                110,
+                101,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "value": {
+            "Count": 3
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/e6deb10a6558650aebf4c4d95fc47c716dfb2da7350183c114041c19ae9bfcd3",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                97,
+                109,
+                101,
+                114,
+                105,
+                99,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "value": {
+            "Count": 4
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/0faa155716f526ef52b450e853aca61ed7c037d51372ea62f7a303598a226f09",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                109,
+                101,
+                120,
+                105,
+                99,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "value": {
+            "Count": 5
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/44418d3c3dfc57a20b112ebeccfeaa99df0baa6657939708e8ad121dd459d994",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                105,
+                99,
+                101,
+                108,
+                97,
+                110,
+                100,
+                105,
+                99
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "value": {
+            "Count": 6
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/42e1eb95ac3ebc9076c837c657265bdf53febef917d4ccdbc32c1a2aa03ee088",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                106,
+                97,
+                112,
+                97,
+                110,
+                101,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "value": {
+            "Count": 7
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/fbec97e237d3a956cc3bd1327a53139defe5926bc8c2ba833c798d18f8b08a88",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                97,
+                114,
+                97,
+                98,
+                105,
+                99
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "value": {
+            "Count": 8
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/21bb36ad06385b1ccc1f48489b71eea397b7e8b0fa39f91b920f51ce00af459e",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                102,
+                114,
+                101,
+                110,
+                99,
+                104
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "value": {
+            "Count": 9
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/17684a3307c6d0527b4487b695b843d916a6f370a19cbbf2d994f37c0b0b1f2b",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                98,
+                114,
+                105,
+                116,
+                105,
+                115,
+                104
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "value": {
+            "Count": 10
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/608fc491ee9f119a3e46e2a5d9ac743012918633eabd7a3fc60af885992eebcd",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                99,
+                108,
+                97,
+                115,
+                115,
+                105,
+                99,
+                45,
+                97,
+                110,
+                103,
+                108,
+                111,
+                112,
+                104,
+                111,
+                110,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "value": {
+            "Count": 11
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/e35fbb1a86bcd6f6736a4e44e9ebe408465f0d28fba23421191a9ea64168fac5",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                107,
+                111,
+                114,
+                101,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "value": {
+            "Count": 12
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/4aeaf0c480c0a8c806d30d251cc98445e9df63436fadde72deb98abbd49b9bde",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                118,
+                105,
+                101,
+                116,
+                110,
+                97,
+                109,
+                101,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "value": {
+            "Count": 13
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/818ee56667083246736326b82cfd965fd996c1831ea3b1bb2644777834e705c2",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                121,
+                111,
+                114,
+                117,
+                98,
+                97
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "value": {
+            "Count": 14
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/87d8ab25d296a9f6fef77d0145d633156d05d424c2ddf47a4d2bd0c8257686e5",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                117,
+                107,
+                114,
+                97,
+                105,
+                110,
+                105,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "value": {
+            "Count": 15
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/f679a30110c51a5fc228e3a074837e8d409e39e440309438d2039dec8827c2d7",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                97,
+                110,
+                99,
+                105,
+                101,
+                110,
+                116,
+                45,
+                104,
+                101,
+                98,
+                114,
+                101,
+                119
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "value": {
+            "Count": 16
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/773c8b10ff56bde943c39a8dfdf8196b23504c397c2b8a9f5ac4651783219411",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                97,
+                109,
+                104,
+                97,
+                114,
+                105,
+                99
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "value": {
+            "Count": 17
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/e35242c809c8c717756d1b3fc9e292d80a05352030cc44f8d1585d7db489484d",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                112,
+                111,
+                114,
+                116,
+                117,
+                103,
+                117,
+                101,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "value": {
+            "Count": 18
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/d9614030c34f73f1b9b755459977284960c50b37605262fe9828cad6158cf8a7",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                116,
+                97,
+                109,
+                105,
+                108
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "value": {
+            "Count": 19
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/4b918d589849ae62a79b2f1f2a8e55d210d2891f584000a4315e747127d9ada6",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                105,
+                110,
+                100,
+                111,
+                110,
+                101,
+                115,
+                105,
+                97,
+                110
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "value": {
+            "Count": 20
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/a7dfd819ed4e23417fd5d0a48cce595c954597fa6f48d0c0a0827d25f29e2357",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                119,
+                101,
+                108,
+                115,
+                104
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "value": {
+            "Count": 21
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/709a44e4c98dbe9095d177dcfe2c0dfe02099be39f34f9b7f3561edd92adf233",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                107,
+                117,
+                114,
+                109,
+                97,
+                110,
+                106,
+                105
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "value": {
+            "Count": 22
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/75cfda9badebc3176c3887afc0af27fd26d6b83c0c67f1c8f16c02ee14924243",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                116,
+                97,
+                114,
+                103,
+                117,
+                115
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "value": {
+            "Count": 23
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "choice-value",
+          "subject": "birth/arrival/one/name-system/input-details/8c944874038d2227e9610960efa3e459a73fa4dcdde7dabb660cdf5bfd857049",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                101,
+                108,
+                118,
+                105,
+                115,
+                104
+              ],
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "current-value",
+          "subject": "birth/arrival/one/name-system",
+          "value": {
+            "TypedValue": {
+              "bytes": [
+                115,
+                117,
+                114,
+                112,
+                114,
+                105,
+                115,
+                101
+              ],
+              "contract": {
+                "constraints": [
+                  {
+                    "ByteLength": {
+                      "maximum": 64,
+                      "minimum": 0
+                    }
+                  },
+                  {
+                    "CanonicalMembership": {
+                      "members": [
+                        [
+                          97,
+                          109,
+                          101,
+                          114,
+                          105,
+                          99,
+                          97,
+                          110
+                        ],
+                        [
+                          97,
+                          109,
+                          104,
+                          97,
+                          114,
+                          105,
+                          99
+                        ],
+                        [
+                          97,
+                          110,
+                          99,
+                          105,
+                          101,
+                          110,
+                          116,
+                          45,
+                          104,
+                          101,
+                          98,
+                          114,
+                          101,
+                          119
+                        ],
+                        [
+                          97,
+                          114,
+                          97,
+                          98,
+                          105,
+                          99
+                        ],
+                        [
+                          98,
+                          114,
+                          105,
+                          116,
+                          105,
+                          115,
+                          104
+                        ],
+                        [
+                          99,
+                          104,
+                          105,
+                          110,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          99,
+                          108,
+                          97,
+                          115,
+                          115,
+                          105,
+                          99,
+                          45,
+                          97,
+                          110,
+                          103,
+                          108,
+                          111,
+                          112,
+                          104,
+                          111,
+                          110,
+                          101
+                        ],
+                        [
+                          101,
+                          108,
+                          118,
+                          105,
+                          115,
+                          104
+                        ],
+                        [
+                          102,
+                          114,
+                          101,
+                          110,
+                          99,
+                          104
+                        ],
+                        [
+                          105,
+                          99,
+                          101,
+                          108,
+                          97,
+                          110,
+                          100,
+                          105,
+                          99
+                        ],
+                        [
+                          105,
+                          110,
+                          100,
+                          111,
+                          110,
+                          101,
+                          115,
+                          105,
+                          97,
+                          110
+                        ],
+                        [
+                          106,
+                          97,
+                          112,
+                          97,
+                          110,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          107,
+                          111,
+                          114,
+                          101,
+                          97,
+                          110
+                        ],
+                        [
+                          107,
+                          117,
+                          114,
+                          109,
+                          97,
+                          110,
+                          106,
+                          105
+                        ],
+                        [
+                          109,
+                          101,
+                          120,
+                          105,
+                          99,
+                          97,
+                          110
+                        ],
+                        [
+                          112,
+                          111,
+                          114,
+                          116,
+                          117,
+                          103,
+                          117,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          114,
+                          111,
+                          109,
+                          97,
+                          110
+                        ],
+                        [
+                          115,
+                          117,
+                          114,
+                          112,
+                          114,
+                          105,
+                          115,
+                          101
+                        ],
+                        [
+                          116,
+                          97,
+                          109,
+                          105,
+                          108
+                        ],
+                        [
+                          116,
+                          97,
+                          114,
+                          103,
+                          117,
+                          115
+                        ],
+                        [
+                          117,
+                          107,
+                          114,
+                          97,
+                          105,
+                          110,
+                          105,
+                          97,
+                          110
+                        ],
+                        [
+                          118,
+                          105,
+                          101,
+                          116,
+                          110,
+                          97,
+                          109,
+                          101,
+                          115,
+                          101
+                        ],
+                        [
+                          119,
+                          101,
+                          108,
+                          115,
+                          104
+                        ],
+                        [
+                          121,
+                          111,
+                          114,
+                          117,
+                          98,
+                          97
+                        ]
+                      ],
+                      "negated": false
+                    }
+                  }
+                ],
+                "maximum_bytes": 64,
+                "value_kind": "value/text"
+              }
+            }
+          }
+        },
+        {
+          "name": "value-change-action",
+          "subject": "birth/arrival/one/name-system",
+          "value": {
+            "Identity": "creche.naming"
+          }
+        }
+      ],
+      "subject": {
+        "identity": "birth/arrival/one/name-system/input-details",
+        "name": "Naming tradition choices",
+        "role": "Collection"
+      }
+    },
+    {
+      "multiplicity": "independent",
+      "ordered_items": [
+        {
+          "identity": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "name": "Clock",
+          "role": "Plot"
+        },
+        {
+          "identity": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "name": "Speaker",
+          "role": "Plot"
+        }
+      ],
+      "pages": [
+        {
+          "collection": "birth/arrival/one/initial-plots",
+          "first": 0,
+          "items": [
+            {
+              "identity": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+              "name": "Clock",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+              "name": "Speaker",
+              "role": "Plot"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 2
+        },
+        {
+          "collection": "birth/arrival/one/initial-plots",
+          "first": 1,
+          "items": [
+            {
+              "identity": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+              "name": "Speaker",
+              "role": "Plot"
+            }
+          ],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 2
+        },
+        {
+          "collection": "birth/arrival/one/initial-plots",
+          "first": 2,
+          "items": [],
+          "maximum": 3,
+          "next": null,
+          "revision": 1,
+          "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "total": 2
+        }
+      ],
+      "proposals": [
+        {
+          "choose": false,
+          "item": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.plot.0",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    0
+                  ],
+                  "value_kind": "value/bool"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "40a0aeb390180ac06df5116a300a8608a720ff671e60415696e68d803a921ff5",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2"
+            }
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "outcome": {
+            "checked_proposal": {
+              "action_id": "creche.plot.0",
+              "arguments": [
+                {
+                  "name": "value",
+                  "value": [
+                    1
+                  ],
+                  "value_kind": "value/bool"
+                }
+              ],
+              "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+              "face_revision": 1,
+              "identity": "c6b24f4e84356fee0b5ecc221e47b4d09e464b1b0d96e54465c365421ac8adbf",
+              "sequence": 1,
+              "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca",
+              "target": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2"
+            }
+          }
+        },
+        {
+          "choose": false,
+          "item": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "outcome": {
+            "refused": "Interaction(UnavailableAction)"
+          }
+        },
+        {
+          "choose": true,
+          "item": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "outcome": {
+            "refused": "Interaction(UnavailableAction)"
+          }
+        }
+      ],
+      "revision": 1,
+      "source_actions": [
+        {
+          "arguments": [
+            {
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 1,
+                "value_kind": "value/bool"
+              },
+              "name": "value",
+              "value_name": "Include Plot"
+            }
+          ],
+          "availability": "Available",
+          "disclosure": "CurrentAction",
+          "identity": "creche.plot.0",
+          "intent": "conduit.intent/creche.plot.0@1",
+          "name": "Include Plot",
+          "target": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2"
+        },
+        {
+          "arguments": [
+            {
+              "contract": {
+                "constraints": [],
+                "maximum_bytes": 1,
+                "value_kind": "value/bool"
+              },
+              "name": "value",
+              "value_name": "Include Plot"
+            }
+          ],
+          "availability": {
+            "Unavailable": {
+              "explanation": "This Host has no admitted audio output.",
+              "reason_code": "birth/unavailable"
+            }
+          },
+          "disclosure": "CurrentAction",
+          "identity": "creche.plot.1",
+          "intent": "conduit.intent/creche.plot.1@1",
+          "name": "Include Plot",
+          "target": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8"
+        }
+      ],
+      "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+      "source_properties": [
+        {
+          "name": "checked-plot-id",
+          "subject": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Identity": "checked/clock"
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Flag": true
+          }
+        },
+        {
+          "name": "boolean-change-action",
+          "subject": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Identity": "creche.plot.0"
+          }
+        },
+        {
+          "name": "checked-plot-id",
+          "subject": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "value": {
+            "Identity": "checked/speaker"
+          }
+        },
+        {
+          "name": "selected",
+          "subject": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "value": {
+            "Flag": false
+          }
+        },
+        {
+          "name": "boolean-change-action",
+          "subject": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "value": {
+            "Identity": "creche.plot.1"
+          }
+        },
+        {
+          "name": "item-count",
+          "subject": "birth/arrival/one/initial-plots",
+          "value": {
+            "Count": 2
+          }
+        },
+        {
+          "name": "inventory-count",
+          "subject": "birth/arrival/one/initial-plots",
+          "value": {
+            "Count": 2
+          }
+        },
+        {
+          "name": "selected-count",
+          "subject": "birth/arrival/one/initial-plots",
+          "value": {
+            "Count": 1
+          }
+        },
+        {
+          "name": "choice-multiplicity",
+          "subject": "birth/arrival/one/initial-plots",
+          "value": {
+            "Text": "independent"
+          }
+        },
+        {
+          "name": "query-source",
+          "subject": "birth/arrival/one/initial-plots",
+          "value": {
+            "Identity": "birth/arrival/one/plot-search"
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/initial-plots/5c9d406e6eae1add3ed8c784d7c5326fb5108d8a27df9fa528082609c77666c2",
+          "value": {
+            "Count": 0
+          }
+        },
+        {
+          "name": "order",
+          "subject": "birth/arrival/one/initial-plots/c0ebc2bcd057311f9b60581889fd63e02aae96b444005922b950f78f2a7844d8",
+          "value": {
+            "Count": 1
+          }
+        }
+      ],
+      "subject": {
+        "identity": "birth/arrival/one/initial-plots",
+        "name": "Plots to include",
+        "role": "Collection"
+      }
+    }
+  ],
+  "proof_class": "source-derived deterministic generic observation; proposals only, no execution",
+  "revision": 1,
+  "show": {
+    "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+    "face_plan_id": "b6159e8fb736ed61040a46717bd45027d4e36a04c1d42ed714c4c563fe3d24ec",
+    "face_plot": {
+      "checked_plot_id": "fcb09908a65a40e1cdc06ad7fe0c697db0793495b0e25ad597fc3f2043111095",
+      "expanded_plot_id": "6d6f4d3570b634eeeb2ede32770d486e53e836ada41786513f416c7ccd567fe8",
+      "source_document_id": "199e85e9d68b77d822612f1a0f735c64b78020e238a6848151a2fedd8a1c5734"
+    },
+    "face_revision": 1,
+    "mask_plot": {
+      "checked_plot_id": "078583e0f228a9371326cfb498e897af1259fe7d977b71bb872c20beee2173c6",
+      "expanded_plot_id": "de7135f84cf0873de405f686eb07b76c0f437f36bcf02e2cd4c045621d1990ce",
+      "source_document_id": "98eb466b3f4ce4cc5bf2e6f72cc0850700b806fda9a107383f3ce2a4ae9f9be4"
+    },
+    "planned_mask": {
+      "mask": {
+        "face_input": {
+          "front_port_id": "face",
+          "gear_id": "browser/output",
+          "gear_port_id": "face"
+        },
+        "interaction_output": {
+          "front_port_id": "interaction",
+          "gear_id": "browser/input",
+          "gear_port_id": "interaction"
+        },
+        "plot_identity": {
+          "checked_plot_id": "078583e0f228a9371326cfb498e897af1259fe7d977b71bb872c20beee2173c6",
+          "expanded_plot_id": "de7135f84cf0873de405f686eb07b76c0f437f36bcf02e2cd4c045621d1990ce",
+          "source_document_id": "98eb466b3f4ce4cc5bf2e6f72cc0850700b806fda9a107383f3ce2a4ae9f9be4"
+        },
+        "plot_name": "browser",
+        "show_output": {
+          "front_port_id": "show",
+          "gear_id": "browser/output",
+          "gear_port_id": "show"
+        }
+      },
+      "plan": {
+        "checked_plot_id": "078583e0f228a9371326cfb498e897af1259fe7d977b71bb872c20beee2173c6",
+        "completion_policy": "Live",
+        "expanded_plot_id": "de7135f84cf0873de405f686eb07b76c0f437f36bcf02e2cd4c045621d1990ce",
+        "fragments": [
+          {
+            "boot_id": "boot/interaction-mask",
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "checked_plot_id": "078583e0f228a9371326cfb498e897af1259fe7d977b71bb872c20beee2173c6",
+            "completion_policy": "Live",
+            "connections": [],
+            "execution_fusions": [],
+            "execution_regions": [],
+            "expanded_plot_id": "de7135f84cf0873de405f686eb07b76c0f437f36bcf02e2cd4c045621d1990ce",
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43"
+              },
+              {
+                "PlacementPrepared": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16"
+              },
+              {
+                "PlacementTerminal": "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43"
+              },
+              {
+                "PlacementTerminal": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16"
+              },
+              "PlanTerminal"
+            ],
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43"
+              },
+              {
+                "PlacementCompleted": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16"
+              },
+              "PlanCompleted"
+            ],
+            "fore_ports": [
+              {
+                "byte_capacity": 65536,
+                "direction": "Input",
+                "front_port_id": "face",
+                "gear_port_id": "face",
+                "item_capacity": 1,
+                "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+                "pressure_policy": "preserve-order",
+                "temporal": "Value",
+                "track": "payload",
+                "value_kind": "face/face@1"
+              },
+              {
+                "byte_capacity": 65536,
+                "direction": "Output",
+                "front_port_id": "interaction",
+                "gear_port_id": "interaction",
+                "item_capacity": 1,
+                "placement_id": "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43",
+                "pressure_policy": "preserve-order",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "track": "payload",
+                "value_kind": "face/interaction@2"
+              },
+              {
+                "byte_capacity": 65536,
+                "direction": "Output",
+                "front_port_id": "show",
+                "gear_port_id": "show",
+                "item_capacity": 1,
+                "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+                "pressure_policy": "preserve-order",
+                "temporal": "Value",
+                "track": "payload",
+                "value_kind": "face/show@1"
+              }
+            ],
+            "fragment_id": "128d48191a1eef20c28bef86bd9c0590c448033f8f654597f017e08c989ae887",
+            "host_id": "host/interaction-mask",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "artifact_id": "artifact/browser/input",
+                "authority": [],
+                "boot_id": "boot/interaction-mask",
+                "capability_id": "cap/browser/input",
+                "configuration": [],
+                "execution_profile_id": "mask/test@1",
+                "gear_id": "browser/input",
+                "host_calls": [],
+                "host_id": "host/interaction-mask",
+                "implementation_id": "implementation/browser/input",
+                "inputs": [],
+                "kind_contract_revision": "conduit.test/web/input@1",
+                "kind_id": "web/input",
+                "limits": {
+                  "max_active_instances": 2,
+                  "max_queue_bytes": 65536,
+                  "max_queue_items": 2
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "interaction",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    },
+                    "value_kind": "face/interaction@2"
+                  }
+                ],
+                "placement_id": "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [],
+                "semantic_contract": {
+                  "configuration": [],
+                  "laws": []
+                },
+                "source_span": {
+                  "column": 9,
+                  "end": 120,
+                  "end_column": 18,
+                  "end_line": 7,
+                  "line": 7,
+                  "start": 111
+                }
+              },
+              {
+                "artifact_id": "artifact/browser/output",
+                "authority": [],
+                "boot_id": "boot/interaction-mask",
+                "capability_id": "cap/browser/output",
+                "configuration": [],
+                "execution_profile_id": "mask/test@1",
+                "gear_id": "browser/output",
+                "host_calls": [],
+                "host_id": "host/interaction-mask",
+                "implementation_id": "implementation/browser/output",
+                "inputs": [
+                  {
+                    "direction": "Input",
+                    "port_id": "face",
+                    "temporal": "Value",
+                    "value_kind": "face/face@1"
+                  }
+                ],
+                "kind_contract_revision": "conduit.test/web/dom@1",
+                "kind_id": "web/dom",
+                "limits": {
+                  "max_active_instances": 2,
+                  "max_queue_bytes": 65536,
+                  "max_queue_items": 2
+                },
+                "offer_generation": 1,
+                "outputs": [
+                  {
+                    "direction": "Output",
+                    "port_id": "show",
+                    "temporal": "Value",
+                    "value_kind": "face/show@1"
+                  }
+                ],
+                "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+                "pool_references": [],
+                "realization_characteristics": [],
+                "resources": [],
+                "semantic_contract": {
+                  "configuration": [],
+                  "laws": []
+                },
+                "source_span": {
+                  "column": 10,
+                  "end": 102,
+                  "end_column": 17,
+                  "end_line": 6,
+                  "line": 6,
+                  "start": 95
+                }
+              }
+            ],
+            "plan_fragments": [
+              {
+                "fragment_id": "128d48191a1eef20c28bef86bd9c0590c448033f8f654597f017e08c989ae887",
+                "host_id": "host/interaction-mask"
+              }
+            ],
+            "plan_id": "dabc9f002fae4e553ac44dc98643ef37f685ffed533647c54b609545d46d43b5",
+            "realization_backs": [],
+            "shared_pools": [],
+            "sign_storage_budget": {
+              "byte_capacity": 262,
+              "item_capacity": 6
+            },
+            "source_document_id": "98eb466b3f4ce4cc5bf2e6f72cc0850700b806fda9a107383f3ce2a4ae9f9be4",
+            "startup_dependencies": [],
+            "startup_order": [
+              "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+              "fd9379ec43187181f1588a39c6ac9c476c6d9d403049dffa90fdb147d7a4fd43"
+            ],
+            "terminal_policy": "RequireAllPlacementsAndConnections"
+          }
+        ],
+        "plan_id": "dabc9f002fae4e553ac44dc98643ef37f685ffed533647c54b609545d46d43b5",
+        "realization_backs": [],
+        "source_document_id": "98eb466b3f4ce4cc5bf2e6f72cc0850700b806fda9a107383f3ce2a4ae9f9be4"
+      }
+    },
+    "show": {
+      "active_play_id": "59e5aa72261f976a42c7c140e734a99ba861c0bf8c4e9cdc8733fd5a74834929",
+      "body_id": null,
+      "boot_id": "boot/interaction-mask",
+      "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+      "face_revision": 1,
+      "failure": null,
+      "front_subject": "birth/arrival/one",
+      "host_id": "host/interaction-mask",
+      "lifecycle": "Available",
+      "manifestation_id": "57bc868841e1771f4c3824236c3a63d58a60766cd723f00aa3eca54105124e8a",
+      "offer_generation": 1,
+      "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+      "plan_id": "dabc9f002fae4e553ac44dc98643ef37f685ffed533647c54b609545d46d43b5",
+      "play_sequence": 1,
+      "presenter_artifact_id": "artifact/browser/output",
+      "presenter_capability_id": "cap/browser/output",
+      "presenter_implementation_id": "implementation/browser/output",
+      "signs": [
+        {
+          "active_play_id": "59e5aa72261f976a42c7c140e734a99ba861c0bf8c4e9cdc8733fd5a74834929",
+          "boot_id": "boot/interaction-mask",
+          "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "failure": null,
+          "host_id": "host/interaction-mask",
+          "lifecycle": "Prepared",
+          "manifestation_id": "57bc868841e1771f4c3824236c3a63d58a60766cd723f00aa3eca54105124e8a",
+          "offer_generation": 1,
+          "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+          "plan_id": "dabc9f002fae4e553ac44dc98643ef37f685ffed533647c54b609545d46d43b5",
+          "play_sequence": 1,
+          "presenter_implementation_id": "implementation/browser/output",
+          "sign_id": "interaction/show-prepared"
+        },
+        {
+          "active_play_id": "59e5aa72261f976a42c7c140e734a99ba861c0bf8c4e9cdc8733fd5a74834929",
+          "boot_id": "boot/interaction-mask",
+          "face_id": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af",
+          "failure": null,
+          "host_id": "host/interaction-mask",
+          "lifecycle": "Available",
+          "manifestation_id": "57bc868841e1771f4c3824236c3a63d58a60766cd723f00aa3eca54105124e8a",
+          "offer_generation": 1,
+          "placement_id": "ef5beb5e7d9ffc8d53873ac4543dbbe8d59ca97f57a61f574a9cc02359d23a16",
+          "plan_id": "dabc9f002fae4e553ac44dc98643ef37f685ffed533647c54b609545d46d43b5",
+          "play_sequence": 1,
+          "presenter_implementation_id": "implementation/browser/output",
+          "sign_id": "fixture/show-acknowledged"
+        }
+      ],
+      "target_subject": "fixture/birth-mask-output",
+      "wake_id": null
+    },
+    "show_id": "show/e286d34a7d48ce7d2ece17fb70b1eec49cc6de73659a141a035e96e9538638ca"
+  },
+  "source_face": "e713ca3cd98ea2e312afbb348147530d859ec63aaa035b4c0af6f96a344736af"
+}

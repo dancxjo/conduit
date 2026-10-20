@@ -42,5 +42,42 @@
     "failed": 0
   },
   "reader_boundary": "Narrow fixture-only record reader: canonical values <=128 bytes, <=64 collection members, JSON-compatible quoted Rust Debug strings; refuses unsupported escapes/profiles. Not a generic arbitrary linear decoder or action execution engine.",
-  "tested_owned_files_match_commit": true
+  "tested_owned_files_match_commit": true,
+  "generic_followup": {
+    "tested_base": "87d97d7d323e8da1efab98444a283776880ea118",
+    "committed_head": "3e2d7e3641eb51fe5f21ccce86d77799e66b9f80",
+    "proof_class": "held historical Source actual generic views and checked proposals only; no owner execution/current-dev/platform acceptance",
+    "focused_tests_passed": 3,
+    "strict_birth_library_tests_clippy": "passed",
+    "format_hygiene": "passed",
+    "tested_files_match_commit": {
+      "plots/birth/src/face/generic_collection_observation.rs": "c0d17e581f83029dadbc6b37f6148ef669a02bb89652f6475ee464ef669dd7b6",
+      "plots/birth/src/face/collection_reconstruction_tests.rs": "0813a4adef061f699b62ac86840ab0a179fa411a8377fdadf348ef62af1cafc7"
+    },
+    "artifact": "generic-observation.json",
+    "counts": {
+      "informational": {
+        "items": 1,
+        "pages": 2,
+        "proposals": 2
+      },
+      "exclusive": {
+        "items": 24,
+        "pages": 25,
+        "proposals": 48
+      },
+      "independent": {
+        "items": 2,
+        "pages": 3,
+        "proposals": 4
+      }
+    },
+    "artifacts": {
+      "generic-observation.json": "b156d53b43a5d50b760b7f97f70ed1de26f56d340b683a0632431fd33a11fc02",
+      "generic-followup/clippy.log": "85e230c1b79807232198b2e216508360bb376f272e2b23518a82dd95a59a9a34",
+      "generic-followup/fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "generic-followup/tests.log": "e33dfcbcd49dc964473b365fa4cf35bafdf480a977eacb0c33a996ac04b9e57a",
+      "generic-followup/prior-receipt-87d97d7d3.json": "96dd8dafef27a021689b7cd9b6c2e107d97e251bd1b229e8ce9f74c6d2cf5cd8"
+    }
+  }
 }
