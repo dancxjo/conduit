@@ -144,6 +144,22 @@ impl<'a> Cursor<'a> {
             .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
         let value_type = self.value_type()?;
         let operation = match self.byte()? {
+            14 => {
+                let input = self
+                    .contract()?
+                    .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
+                let output = self
+                    .contract()?
+                    .ok_or(PortableExpressionProgramRefusal::MalformedEncoding)?;
+                let physical_input = self.value_type()?;
+                let value = Box::new(self.node(depth + 1, remaining_nodes)?);
+                PortableExpressionOperation::QualifiedQuantity {
+                    input,
+                    output,
+                    physical_input,
+                    value,
+                }
+            }
             13 => {
                 let input = self.contract()?;
                 let output = self.contract()?;

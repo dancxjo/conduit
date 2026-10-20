@@ -129,6 +129,13 @@ fn validate_node(
         }
     }
     match &node.operation {
+        Op::QualifiedQuantity {
+            physical_input,
+            value,
+            ..
+        } => {
+            validate_node(value, physical_input, types, &ByteFacts::default())?;
+        }
         Op::ValueContract { value, .. }
         | Op::Projection { value, .. }
         | Op::Unary { operand: value, .. } => validate_node(value, input_type, types, facts)?,

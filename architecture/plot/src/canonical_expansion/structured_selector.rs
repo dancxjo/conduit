@@ -343,12 +343,19 @@ fn expand_expression(
             StageSink::FaceOutput(_, kind, _, _) => kind.clone(),
         })
         .map(crate::CheckedExpressionType::Semantic);
+    let physical_types = boundary_contracts.physical_types(&expression);
     let mut checked = crate::expression_check::check_expression_as(
         &expression,
-        expected_output.as_ref(),
+        physical_types
+            .as_ref()
+            .map(|(_, output)| output)
+            .or(expected_output.as_ref()),
         &crate::ExpressionTypeContext {
             glyph_values: Some(&source_plot.glyph_values),
-            input: &input_type,
+            input: physical_types
+                .as_ref()
+                .map(|(input, _)| input)
+                .unwrap_or(&input_type),
             immutable_values: &immutable_values,
             structured_types: &structured_types,
             literal_types: &literal_types,
@@ -366,7 +373,7 @@ fn expand_expression(
         )
     })?;
     checked.input_maximum_bytes = input_bound::checked_bound(source, source_plot, gears)?;
-    boundary_contracts.retain(&mut checked)?;
+    boundary_contracts.retain(&mut checked, physical_types.is_some(), &structured_types)?;
     checked.canonical_literals = canonical_literals;
     checked.immutable_constants = constants;
     if let Some(invariants) = catalog.type_invariants(

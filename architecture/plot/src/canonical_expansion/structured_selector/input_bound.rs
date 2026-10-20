@@ -144,7 +144,26 @@ impl ExpressionBoundaryContracts {
     pub(super) fn retain(
         self,
         checked: &mut crate::CheckedExpression,
+        qualified_body: bool,
+        structures: &BTreeMap<KindId, conduit_core::StructuredInfoType>,
     ) -> Result<(), CanonicalExpansionDiagnostic> {
+        if qualified_body {
+            checked.qualified_quantity_input = Some(checked.input_type.clone());
+            for (ty, contract) in [
+                (&mut checked.input_type, self.input.as_ref()),
+                (&mut checked.value_type, self.output.as_ref()),
+            ] {
+                let kind = &contract
+                    .expect("qualified body has both boundary contracts")
+                    .value_kind;
+                *ty = crate::CheckedExpressionType::Semantic(kind.clone());
+                if let Some(schema) = structures.get(kind) {
+                    checked
+                        .semantic_structures
+                        .insert(kind.clone(), schema.clone());
+                }
+            }
+        }
         checked.input_value_contract = self.input;
         checked.output_value_contract = self.output;
         if matches!(checked.syntax, crate::ExpressionSyntax::Input(_))
@@ -159,5 +178,48 @@ impl ExpressionBoundaryContracts {
             ));
         }
         Ok(())
+    }
+}
+
+impl ExpressionBoundaryContracts {
+    pub(super) fn physical_types(
+        &self,
+        expression: &crate::ExpressionSyntax,
+    ) -> Option<(crate::CheckedExpressionType, crate::CheckedExpressionType)> {
+        use crate::{BinaryOperator as B, ExpressionSyntax as E, UnaryOperator as U};
+        fn arithmetic(e: &E) -> bool {
+            match e {
+                E::Input(_) | E::Atomic(_) => true,
+                E::Unary {
+                    operator: U::Negate,
+                    operand,
+                    ..
+                } => arithmetic(operand),
+                E::Binary {
+                    operator: B::Add | B::Subtract | B::Multiply | B::Divide,
+                    left,
+                    right,
+                    ..
+                } => arithmetic(left) && arithmetic(right),
+                _ => false,
+            }
+        }
+        fn physical(
+            c: &conduit_core::CheckedValueContract,
+        ) -> Option<crate::CheckedExpressionType> {
+            let [conduit_core::ValueConstraint::NearQuantity { source_kind, .. }] =
+                c.constraints.as_slice()
+            else {
+                return None;
+            };
+            Some(crate::CheckedExpressionType::Semantic(source_kind.clone()))
+        }
+        if !matches!(expression, E::Binary { .. } | E::Unary { .. }) || !arithmetic(expression) {
+            return None;
+        }
+        Some((
+            physical(self.input.as_ref()?)?,
+            physical(self.output.as_ref()?)?,
+        ))
     }
 }

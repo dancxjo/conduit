@@ -6,6 +6,9 @@ pub(super) fn checked_node(
     checked: &CheckedExpression,
     value: PortableExpressionNode,
 ) -> PortableExpressionNode {
+    if checked.qualified_quantity_input.is_some() {
+        return super::qualified_quantity::checked_node(checked, value);
+    }
     if checked.input_value_contract.is_none() && checked.output_value_contract.is_none() {
         return value;
     }
@@ -77,6 +80,12 @@ pub(crate) fn boundary(
     &PortableExpressionNode,
 ) {
     match &node.operation {
+        PortableExpressionOperation::QualifiedQuantity {
+            input,
+            output,
+            value,
+            ..
+        } => (Some(input), Some(output), value),
         PortableExpressionOperation::ValueContract {
             input,
             output,
@@ -90,7 +99,12 @@ pub(crate) fn validate(
     program: &PortableExpressionProgram,
 ) -> Result<(), PortableExpressionProgramRefusal> {
     let (input, output, body) = boundary(&program.root);
-    if body.value_type != program.output_type {
+    if matches!(
+        program.root.operation,
+        PortableExpressionOperation::QualifiedQuantity { .. }
+    ) {
+        super::qualified_quantity::validate(program)?;
+    } else if body.value_type != program.output_type {
         return Err(PortableExpressionProgramRefusal::MalformedEncoding);
     }
     for (contract, ty) in [(input, &program.input_type), (output, &program.output_type)] {

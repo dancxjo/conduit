@@ -322,6 +322,14 @@ impl PreparedPortableExpressionEvaluator {
         input: PreparedInput,
         capacity: usize,
     ) -> Result<Self, Refusal> {
+        if matches!(
+            program.root.operation,
+            PortableExpressionOperation::QualifiedQuantity { .. }
+        ) {
+            return Err(Refusal::UnsupportedType(
+                "qualified physical computation requires a certified host profile".into(),
+            ));
+        }
         let (input_contract, output_contract, body) =
             crate::expression_program::value_contract::boundary(program.root);
         let input_value_contract = input_contract.cloned().map(PreparedValueContract::Ordinary);

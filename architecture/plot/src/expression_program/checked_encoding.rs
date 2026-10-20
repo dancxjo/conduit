@@ -40,9 +40,19 @@ fn encode(
             .value_type
             .structured_info_type_with(&checked.semantic_structures)?;
         push_type(sink, &ty)?;
-        sink.push(13);
+        sink.push(if checked.qualified_quantity_input.is_some() {
+            14
+        } else {
+            13
+        });
         value_contract::push_contract(sink, checked.input_value_contract.as_ref());
         value_contract::push_contract(sink, checked.output_value_contract.as_ref());
+        if let Some(input) = &checked.qualified_quantity_input {
+            push_type(
+                sink,
+                &input.structured_info_type_with(&checked.semantic_structures)?,
+            )?;
+        }
     }
     push_checked(sink, &checked.syntax, checked)?;
     if sink.length > MAXIMUM_PURE_EXPRESSION_PROGRAM_BYTES {

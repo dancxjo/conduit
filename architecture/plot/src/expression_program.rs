@@ -11,6 +11,7 @@ mod checked_node;
 use checked_node::{node, same_span};
 mod constant;
 pub(crate) mod input_bound;
+mod qualified_quantity;
 pub(crate) mod value_contract;
 pub(crate) use checked_encoding::checked_canonical_hex;
 
@@ -32,6 +33,13 @@ pub struct PortableExpressionNode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableExpressionOperation {
+    /// Physical body behind qualified evidence ports; requires a certified host profile.
+    QualifiedQuantity {
+        input: conduit_core::CheckedValueContract,
+        output: conduit_core::CheckedValueContract,
+        physical_input: StructuredInfoType,
+        value: Box<PortableExpressionNode>,
+    },
     /// Retain the consuming and emitted predicates at this checked boundary.
     ValueContract {
         input: Option<conduit_core::CheckedValueContract>,
@@ -191,6 +199,18 @@ fn push_node(
 ) -> Result<(), PortableExpressionProgramRefusal> {
     push_type(encoded, &node.value_type)?;
     match &node.operation {
+        PortableExpressionOperation::QualifiedQuantity {
+            input,
+            output,
+            physical_input,
+            value,
+        } => {
+            encoded.push(14);
+            value_contract::push_contract(encoded, Some(input));
+            value_contract::push_contract(encoded, Some(output));
+            push_type(encoded, physical_input)?;
+            push_node(encoded, value)?;
+        }
         PortableExpressionOperation::ValueContract {
             input,
             output,

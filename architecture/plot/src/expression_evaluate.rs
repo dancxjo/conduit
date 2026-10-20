@@ -81,6 +81,9 @@ fn evaluate_node(
     input_type: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
     let value = match &node.operation {
+        PortableExpressionOperation::QualifiedQuantity { .. } => {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
         PortableExpressionOperation::ValueContract {
             input: required_input,
             output: required_output,

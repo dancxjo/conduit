@@ -23,6 +23,9 @@ fn ty(value: &StructuredInfoType) -> Result<(), String> {
 fn node(value: &PortableExpressionNode) -> Result<(), String> {
     ty(&value.value_type)?;
     match &value.operation {
+        Op::QualifiedQuantity { .. } => {
+            Err("std/source-expression/qualified-computation-witness-unavailable@1".into())
+        }
         Op::Input | Op::Literal(_) | Op::CanonicalLiteral(_) | Op::Constant(_) => Ok(()),
         Op::ValueContract { value, .. }
         | Op::Projection { value, .. }
