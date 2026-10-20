@@ -188,3 +188,34 @@ test('language package admission exercises and lints the optional admitted score
   runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
   assert.ok(unrelated.every(([, args]) => !args.includes('conduit-language/parser-model')));
 });
+
+
+test('native owner package admission retains the workspace network feature context', () => {
+  const native = { id: 'conduitos', name: 'conduitos', manifest_path: '/repo/targets/conduitos/Cargo.toml' };
+  const model = { workspace_members: [...metadata.workspace_members, native.id], packages: [...metadata.packages, native] };
+  const commands = [];
+  runAdmission(['targets/conduitos/src/native_owner_document.rs'], model, '/repo', (...args) => commands.push(args));
+  for (const operation of ['test', 'clippy']) {
+    const command = commands.find(([program, args]) => program === 'cargo' && args[0] === operation);
+    assert.ok(command, `${operation} is scheduled`);
+    const index = command[1].indexOf('--features');
+    assert.ok(index > 0);
+    assert.deepEqual(command[1][index + 1].split(','), ['conduitos/hosted-tools', 'conduitos/native-compositor']);
+  }
+  const unrelated = [];
+  runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
+  assert.ok(unrelated.every(([, args]) => !args.includes('--features')));
+});
+
+
+test('parallel broad admission retains explicit native lint without repeating package tests', () => {
+  const native = { id: 'conduitos', name: 'conduitos', manifest_path: '/repo/targets/conduitos/Cargo.toml' };
+  const model = { workspace_members: [...metadata.workspace_members, native.id], packages: [...metadata.packages, native] };
+  const commands = [];
+  runAdmission(['Cargo.toml'], model, '/repo', (...args) => commands.push(args), { workspaceChecked: true });
+  const lint = commands.filter(([program, args]) => program === 'cargo' && args[0] === 'clippy');
+  assert.equal(lint.length, 1);
+  assert.ok(lint[0][1].includes('conduitos'));
+  assert.equal(lint[0][1][lint[0][1].indexOf('--features') + 1], 'conduitos/hosted-tools,conduitos/native-compositor');
+  assert.ok(commands.every(([, args]) => !args.includes('--no-fail-fast')));
+});
