@@ -16,11 +16,13 @@ export function classifyRequestFailures(failures, { timeOrigin, resources }) {
   for (const failure of failures) {
     const candidates = resources.filter(resource =>
       resource.name === failure.url && resource.initiatorType === 'fetch' &&
-      // Match the actual HTTP send/header times, rather than fetchStart, which
-      // includes browser queueing. The APIs round these clocks independently.
-      failure.requestStart >= 0 && failure.responseStart >= 0 &&
+      // Match the HTTP send time, excluding browser queueing. The APIs round
+      // independently. Playwright uses CDP receiveHeadersEnd for responseStart;
+      // Resource Timing records the first response byte, before headers finish.
+      failure.requestStart >= 0 && failure.responseStart >= failure.requestStart &&
       Math.abs(timeOrigin + resource.requestStart - failure.startTime - failure.requestStart) <= 1 &&
-      Math.abs(timeOrigin + resource.responseStart - failure.startTime - failure.responseStart) <= 1);
+      resource.responseStart >= resource.requestStart &&
+      timeOrigin + resource.responseStart <= failure.startTime + failure.responseStart + 1);
     const resource = candidates.length === 1 ? candidates[0] : null;
     if (failure.errorText === 'net::ERR_ABORTED' && failure.method === 'GET' &&
         failure.resourceType === 'fetch' && failure.status === 200 &&
