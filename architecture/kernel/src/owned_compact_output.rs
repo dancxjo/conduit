@@ -28,7 +28,7 @@ impl PreparedCompactF32Output {
     }
 }
 
-/// An unpublished buffer transfer. Commit consumes this handle; rollback returns
+/// An unpublished buffer transfer. Commit invalidates this handle; rollback returns
 /// the exact producer buffer and releases the logical quota without copying it.
 #[must_use = "commit or restore a pending compact output publication"]
 #[derive(Debug)]

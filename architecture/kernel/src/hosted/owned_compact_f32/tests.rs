@@ -65,10 +65,13 @@ fn committed_fanout_retains_one_buffer_and_releases_each_reference() {
     values.release(value).unwrap();
     assert!(values.compact_f32(value).is_err());
     bytes.extend_from_slice(&LANES);
-    let next = values.swap_owned_compact_f32(&owner, &mut bytes).unwrap();
-    let next = next.value().unwrap();
-    assert_eq!(value.slot, next.slot);
-    assert_ne!(value.generation, next.generation);
+    let mut next = values.swap_owned_compact_f32(&owner, &mut bytes).unwrap();
+    let next_value = next.value().unwrap();
+    assert_eq!(value.slot, next_value.slot);
+    assert_ne!(value.generation, next_value.generation);
+    values.commit_owned_compact_f32(&owner, &mut next).unwrap();
+    values.release(next_value).unwrap();
+    assert_eq!(values.used_items(), 0);
 }
 #[test]
 fn wrong_owner_denial_preserves_pending_ticket_and_both_buffers() {
