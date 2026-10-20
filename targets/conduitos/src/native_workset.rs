@@ -1,6 +1,7 @@
 //! Exact initial native workset preparation, before ordinary kernel admission.
 mod application_delivery;
 mod catalog;
+mod eligibility;
 mod keyboard_delivery;
 mod planning;
 mod play;
@@ -8,6 +9,7 @@ mod text_state;
 mod tutorial_application;
 
 pub use application_delivery::NativeApplicationRequest;
+pub use eligibility::eligibility;
 pub use catalog::{
     NATIVE_CANDIDATE_CAPACITY, NATIVE_PLOT_CAPACITY, NativePlot, NativePlotProfile,
     candidate_inventory, checked, inventory, profile, resident, resolve,
