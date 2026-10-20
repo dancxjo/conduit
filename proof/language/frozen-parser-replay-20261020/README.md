@@ -19,7 +19,14 @@ portable product interface. The runner is an internal diagnostic test, not an
 installed language consumer. `verify.py` refuses an incomplete report set and
 checks the retained receipts and raw canonical Source trace files.
 
-The run is in progress. No complete aggregate, accepted model, new default,
+The first replacement terminated after 28 reports when the workspace filesystem
+ran out of space while retaining canonical Source observations. Its terminal
+receipt is `first-replacement-terminal.json`; it is incomplete and excluded
+from any aggregate. A fresh whole34 run uses the identical worker, manifest,
+models and schedule, with output on a separate tmpfs to isolate workspace disk
+pressure (`second-replacement-custody.json`). No reports are mixed across runs.
+
+The second run is in progress. No complete aggregate, accepted model, new default,
 installed Current controller, broad accuracy or real-time claim follows from
 this preparation. Numerical/canonical prerequisites #6062/#6063 and normal
 reviewed acceptance gates remain separate.
