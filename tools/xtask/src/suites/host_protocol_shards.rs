@@ -314,11 +314,9 @@ mod tests {
             assert_eq!(targets.iter().filter(|target| target == name).count(), 1);
             assert_eq!(integration_owner(name), WorkspaceShard::TestHostsConduitos);
         }
-        assert!(
-            arguments()
-                .windows(2)
-                .any(|pair| pair == ["--features", FEATURES])
-        );
+        assert!(arguments()
+            .windows(2)
+            .any(|pair| pair == ["--features", FEATURES]));
         let mut unknown = metadata.clone();
         let packages = unknown["packages"].as_array_mut().unwrap();
         let package = packages.iter_mut().find(|p| p["name"] == PACKAGE).unwrap();
