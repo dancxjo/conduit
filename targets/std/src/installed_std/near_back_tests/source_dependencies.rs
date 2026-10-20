@@ -55,7 +55,7 @@ fn run(
     plan: &Plan,
     bytes: Vec<u8>,
 ) -> (
-    Vec<Vec<u8>>,
+    Vec<crate::ExternalForeBytes>,
     Result<crate::StdKernelExecutionReport, String>,
 ) {
     let mut host = StdHost::from_advertisement(advertisement.clone()).unwrap();
