@@ -1,0 +1,19 @@
+# W2 input and immediate accessibility prerequisite reuse
+
+Read-only audit of held W1 a252d091c95de386da8132f71d7221263d578083. No source edits or new browser/build execution. W1 refresh remains after native05 merge; feature admission remains held for repaired-dev Integration and publication. This is a gap inventory, not acceptance or certification.
+
+## Existing W2 input behavior
+
+`targets/browser/handbook/owner-face-presentation.mjs` routes native submit/ready/reachability/composition checks and marks dispatch/disabled before awaiting Source. `owner-face-component.mjs` delegates the same trusted presentation. Existing Chromium tests exercise Enter/pointer callback counts. `targets/browser/sdk/browser-sdk-face-actions.mjs` checks current acknowledged Show, exact action/target and argument contracts; `browser-sdk.mjs` routes the trusted return and clears the old acknowledgement. No new input reducer or direct DOM callback route is needed.
+
+Historical installed evidence: `outputs/5645-installed-required-232d80b13/journey/browser/required-component/observations.json` records keyboard Complete, pointer Reopen/Complete, actual owner mutations and initiating/resulting Face/Show identities. `journey/browser/adversarial-receipt.json` records SDK refusals and unchanged owner execution. Stale refusal here is at the trusted SDK gate, not a kernel-side replay proof. Current a252 already adds literal wrong-item and item-unknown-argument probes in `proof/browser/todo-owner-arbitrary-action.mjs`; run those probes after refresh rather than implement another guard. Old232d installed bytes cannot establish the final source. Current127 Chromium fixtures/58SDK/4CSP-Node are separate proof classes.
+
+## Immediate accessibility gaps
+
+Live5367 and5630/5631/5632 remain open. Broad5365/5372 parents also remain open; accepted foundation children must be identified separately. No parent closure follows from this audit.
+
+- A1: Source-owned wording, native roles and required slot/argument validation are present. Final-source installed observations need an explicit role/name/value/disabled/required account and the same retained Todo Face's deterministic linear/nonvisual reachable-action reconstruction. Generic DOM text is not nonvisual fallback or an accessibility-tree certificate.
+- A2: Native browser controls, source-order groups, refresh/disclosure/inert/stale/composition protections and non-color focus styling already exist. Installed act() programmatically focusing then Enter is not a complete keyboard-only Tab traversal. Add final-source traversal through all required Todo controls/details and retain actual fresh Show-bound single commits plus refusal zero-effects. Browser proof does not certify native accessibility interfaces.
+- A3: Existing actual Chromium tests cover320px, Unicode, zoom, forced colors, reduced motion, hidden/transparent/inert/clipped controls and forged role/ARIA/tabindex. Occlusion/overlapping pointer blockers remain unproved: current geometry/visibility checks do not perform hit-testing, and no overlay regression exists. Hostile visual reorder also lacks a negative runtime case. Add bounded regressions before claiming either protection, then make the smallest truthful refusal/fallback correction if a defect is demonstrated. Keep static CSS/CSP checks separate from actual Chromium effects. A bounded Todo axe/contrast witness and explicit human assistive-tech-not-performed record remain needed where appropriate.
+
+The broader5367 two-component/cross-Mask/spoken/physical-remapping campaign is not silently absorbed into this bounded audit. Its immediate guardrails still apply. Fresh final-source W1/required-component proof must precede W2 acceptance; do not rewrite existing functioning input protections or label the fixture count full certification.

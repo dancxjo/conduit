@@ -1,0 +1,30 @@
+{
+  "parent": "534f69db3dacd0d4b68df1fa18aef9cc53be2e0b",
+  "scope": "Native stage05 current-dev refresh and exact preflight receipt; normal product and all five emulator runs passed; Candidate still running",
+  "files": [
+    {
+      "source": "work/5646-a252-input-and-accessibility-reuse.md",
+      "tree_path": "task-6038/work/5646-a252-input-and-accessibility-reuse.md",
+      "bytes": 3812,
+      "sha256": "fc7528cf837c30f8bc30793471c2456e517869e78f3ee0f9cef2b440bf2a06bd",
+      "mode": "100644",
+      "blob": "cd3b2e62509c77e2a5c1eccfc4c9118e88fa466e"
+    },
+    {
+      "source": "work/5367-current-acceptance-1635.json",
+      "tree_path": "task-6038/work/5367-current-acceptance-1635.json",
+      "bytes": 7720,
+      "sha256": "125c3b2b714268ea72cd34d9cb0de8f36027e9522774bde44852a524a54f26ff",
+      "mode": "100644",
+      "blob": "46340ba88635e7dd22174a87b392b565d38f649a"
+    },
+    {
+      "source": "work/accessibility-prerequisite-state-1634.json",
+      "tree_path": "task-6038/work/accessibility-prerequisite-state-1634.json",
+      "bytes": 17912,
+      "sha256": "22988ddf29645ba02d6e6c586be031a75ddae4c5653c887d982eaad1ffd95354",
+      "mode": "100644",
+      "blob": "34d84f03c0f50901d009085f4eb34a8f1950976e"
+    }
+  ]
+}
