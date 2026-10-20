@@ -15,7 +15,9 @@ use conduit_core::{
 };
 use conduit_kernel::HostCallOutcome;
 mod parent_play;
+mod reuse_pool;
 pub use parent_play::ScanChildSignReceipt;
+use reuse_pool::ReusableScanPool;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BoundedScanState {
@@ -45,6 +47,7 @@ pub enum BoundedScanAdmission {
 pub struct BoundedScanActivationHost {
     planned: PlannedScanActivation,
     ready: Vec<KernelCompositeHost>,
+    reusable: Option<ReusableScanPool>,
     receipts: Vec<KernelCompositeHost>,
     accumulator: ValuePayload,
     queued: ValuePayload,
@@ -111,10 +114,30 @@ impl BoundedScanActivationHost {
         definition: KernelCompositeDefinition,
         ready: Vec<KernelCompositeHost>,
     ) -> Result<Self, BoundedScanError> {
+        Self::prepare_pool(planned, definition, ready, false)
+    }
+    pub(crate) fn prepare_reusable_with_ready(
+        planned: &PlannedScanActivation,
+        definition: KernelCompositeDefinition,
+        ready: Vec<KernelCompositeHost>,
+    ) -> Result<Self, BoundedScanError> {
+        Self::prepare_pool(planned, definition, ready, true)
+    }
+    fn prepare_pool(
+        planned: &PlannedScanActivation,
+        definition: KernelCompositeDefinition,
+        mut ready: Vec<KernelCompositeHost>,
+        reusable: bool,
+    ) -> Result<Self, BoundedScanError> {
+        let expected = if reusable {
+            1
+        } else {
+            usize::from(planned.limits.maximum_items)
+        };
         if planned.selected_plan.as_ref() != &definition.internal_plan
             || !verify_plan(&planned.selected_plan)
-            || ready.len() != usize::from(planned.limits.maximum_items)
-            || ready.capacity() != usize::from(planned.limits.maximum_items)
+            || ready.len() != expected
+            || ready.capacity() != expected
         {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
@@ -136,7 +159,14 @@ impl BoundedScanActivationHost {
             value_kind: planned.item_input.value_kind.clone(),
             encoded: Vec::with_capacity(planned.retained_item_bytes as usize),
         };
-        let maximum_items = ready.len();
+        let maximum_items = usize::from(planned.limits.maximum_items);
+        let reusable = if reusable {
+            let host = ready.pop().unwrap();
+            ready = Vec::new();
+            Some(ReusableScanPool::new(host, planned.limits.maximum_items)?)
+        } else {
+            None
+        };
         let abnormal_buffer = planned
             .output
             .abnormal_kind
@@ -148,7 +178,8 @@ impl BoundedScanActivationHost {
         Ok(Self {
             planned: planned.clone(),
             ready,
-            receipts: Vec::with_capacity(maximum_items),
+            receipts: Vec::with_capacity(if reusable.is_some() { 0 } else { maximum_items }),
+            reusable,
             accumulator,
             queued,
             queued_ready: false,
@@ -181,7 +212,7 @@ impl BoundedScanActivationHost {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
         if self.active.is_some() || self.output_ready {
-            if self.ready.is_empty() {
+            if self.remaining_children() == 0 {
                 return Ok(BoundedScanAdmission::MaximumItemsExceeded {
                     maximum_items: self.planned.limits.maximum_items,
                 });
@@ -194,7 +225,7 @@ impl BoundedScanActivationHost {
             self.queued_ready = true;
             return Ok(BoundedScanAdmission::Accepted);
         }
-        if self.ready.is_empty() {
+        if self.remaining_children() == 0 {
             return Ok(BoundedScanAdmission::MaximumItemsExceeded {
                 maximum_items: self.planned.limits.maximum_items,
             });
@@ -206,7 +237,22 @@ impl BoundedScanActivationHost {
     }
 
     fn start(&mut self) -> Result<(), BoundedScanError> {
-        let mut child = self.ready.pop().ok_or(BoundedScanError::InvalidLifecycle)?;
+        let reused = self.reusable.is_some();
+        let mut child = if let Some(pool) = &mut self.reusable {
+            pool.take()?
+        } else {
+            self.ready.pop().ok_or(BoundedScanError::InvalidLifecycle)?
+        };
+        let sequence = if reused {
+            u64::from(
+                child
+                    .parent_play_binding()
+                    .ok_or(BoundedScanError::InvalidLifecycle)?
+                    .1,
+            )
+        } else {
+            0
+        };
         child.start().map_err(BoundedScanError::Refused)?;
         for (port, value) in [
             (
@@ -217,7 +263,7 @@ impl BoundedScanActivationHost {
         ] {
             if !matches!(
                 child
-                    .admit_input(port, 0, value)
+                    .admit_input(port, sequence, value)
                     .map_err(BoundedScanError::Refused)?,
                 conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { .. }
             ) {
@@ -257,7 +303,7 @@ impl BoundedScanActivationHost {
             .map(KernelCompositeHost::cancel)
             .transpose();
         if let Some(terminated) = self.active.take() {
-            self.receipts.push(terminated);
+            self.retire_child(terminated);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
@@ -269,16 +315,16 @@ impl BoundedScanActivationHost {
         let Some(active) = self.active.as_mut() else {
             return Ok(&self.state);
         };
-        if !self.candidate_ready
-            && active
+        if !self.candidate_ready {
+            if let Some(sequence) = active
                 .output_into(&self.planned.output.front_port_id, &mut self.candidate)
                 .map_err(BoundedScanError::Refused)?
-                .is_some()
-        {
-            active
-                .complete_output(&self.planned.output.front_port_id, 0)
-                .map_err(BoundedScanError::Refused)?;
-            self.candidate_ready = true;
+            {
+                active
+                    .complete_output(&self.planned.output.front_port_id, sequence)
+                    .map_err(BoundedScanError::Refused)?;
+                self.candidate_ready = true;
+            }
         }
         match active.step().map_err(BoundedScanError::Refused)? {
             KernelCompositeStatus::Active => {}
@@ -293,7 +339,7 @@ impl BoundedScanActivationHost {
                         .take()
                         .ok_or(BoundedScanError::PlannedContractMismatch)?;
                     let completed = self.active.take().expect("active scan child was borrowed");
-                    self.receipts.push(completed);
+                    self.retire_child(completed);
                     self.queued_ready = false;
                     self.candidate_ready = false;
                     self.state = BoundedScanState::Abnormal(terminal);
@@ -311,17 +357,15 @@ impl BoundedScanActivationHost {
                 {
                     return Err(BoundedScanError::PlannedContractMismatch);
                 }
-                core::mem::swap(&mut self.accumulator, &mut self.candidate);
-                self.candidate.encoded.clear();
-                self.candidate_ready = false;
+                // Keep recurrence staged until the containing output is accepted.
                 let completed = self.active.take().expect("active scan child was borrowed");
-                self.receipts.push(completed);
+                self.retire_child(completed);
                 self.output_ready = true;
                 self.state = BoundedScanState::OutputReady;
             }
             KernelCompositeStatus::Cancelled => {
                 let completed = self.active.take().expect("active scan child was borrowed");
-                self.receipts.push(completed);
+                self.retire_child(completed);
                 self.queued_ready = false;
                 self.state = BoundedScanState::Cancelled;
             }
@@ -333,15 +377,15 @@ impl BoundedScanActivationHost {
         if !self.output_ready {
             return Ok(false);
         }
-        if destination.value_kind != self.accumulator.value_kind
-            || destination.encoded.capacity() < self.accumulator.encoded.len()
+        if destination.value_kind != self.candidate.value_kind
+            || destination.encoded.capacity() < self.candidate.encoded.len()
         {
             return Err(BoundedScanError::PlannedContractMismatch);
         }
         destination.encoded.clear();
         destination
             .encoded
-            .extend_from_slice(&self.accumulator.encoded);
+            .extend_from_slice(&self.candidate.encoded);
         Ok(true)
     }
 
@@ -349,7 +393,13 @@ impl BoundedScanActivationHost {
         if !self.output_ready {
             return Err(BoundedScanError::InvalidLifecycle);
         }
+        core::mem::swap(&mut self.accumulator, &mut self.candidate);
+        self.candidate.encoded.clear();
+        self.candidate_ready = false;
         self.output_ready = false;
+        if let Some(pool) = &mut self.reusable {
+            pool.advance()?;
+        }
         if self.queued_ready {
             core::mem::swap(&mut self.admission.encoded, &mut self.queued.encoded);
             self.queued_ready = false;
@@ -370,7 +420,7 @@ impl BoundedScanActivationHost {
             .map(KernelCompositeHost::cancel)
             .transpose();
         if let Some(cancelled) = self.active.take() {
-            self.receipts.push(cancelled);
+            self.retire_child(cancelled);
         }
         self.queued_ready = false;
         self.candidate_ready = false;
@@ -391,18 +441,14 @@ impl BoundedScanActivationHost {
     }
     /// Resolve a failure index against the exact prepared child identities.
     pub fn child_identity(&self, child: usize) -> Option<&conduit_core::HostId> {
-        self.active
-            .as_ref()
-            .or_else(|| self.receipts.last())
-            .or_else(|| self.ready.last())
+        self.observed_child()
             .and_then(|host| host.child_identity(child))
     }
 
     pub fn last_cancellation_failures(
         &self,
     ) -> &[(usize, conduit_kernel::scheduler::SchedulerError)] {
-        self.receipts
-            .last()
+        self.observed_child()
             .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
 

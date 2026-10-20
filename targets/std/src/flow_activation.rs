@@ -144,6 +144,19 @@ pub fn install_planned_activation(
     PreparedPlannedActivationComposite::prepare(plan, activation_id, children).map_err(Box::new)
 }
 
+/// Exact reusable scan handoff; no one-shot fallback or registry lookup at Play.
+pub fn install_reusable_planned_scan(
+    plan: &Plan,
+    prepared: &mut PreparedPlan,
+    activation_id: &str,
+    host: &mut StdActivationHost,
+) -> Result<PreparedPlannedActivationComposite, Box<PlannedActivationCompositeError>> {
+    let children =
+        PreparedActivationChildPool::prepare_reusable_on_host(plan, prepared, activation_id, host)
+            .map_err(Box::new)?;
+    PreparedPlannedActivationComposite::prepare(plan, activation_id, children).map_err(Box::new)
+}
+
 impl PlanPreparationHost for StdActivationHost {
     fn preparation_identity(&self) -> PreparationHostIdentity {
         self.identity.clone()
@@ -202,6 +215,31 @@ impl PlanPreparationHost for StdActivationHost {
 }
 
 impl PlannedActivationChildPoolHost for StdActivationHost {
+    fn take_reusable_activation_child(
+        &mut self,
+        receipts: &[PreparedFragmentReceipt],
+        definition: &conduit_composite::KernelCompositeDefinition,
+    ) -> Result<KernelCompositeHost, HostPreparationRefusal> {
+        if receipts.is_empty()
+            || receipts
+                .iter()
+                .any(|receipt| receipt.host() != &self.identity || !self.prepared.contains(receipt))
+        {
+            return Err(HostPreparationRefusal::PreparedBindingMismatch);
+        }
+        let child = KernelCompositeHost::prepare_reusable_value(definition.clone(), &self.registry)
+            .map_err(|_| HostPreparationRefusal::ImplementationUnavailable)?;
+        for receipt in receipts {
+            let index = self
+                .prepared
+                .iter()
+                .position(|candidate| candidate == receipt)
+                .ok_or(HostPreparationRefusal::PreparedBindingMismatch)?;
+            self.prepared.remove(index);
+        }
+        Ok(child)
+    }
+
     fn take_activation_child_pool(
         &mut self,
         receipts: &[PreparedFragmentReceipt],

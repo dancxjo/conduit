@@ -42,6 +42,15 @@ impl ValueInvocationEvidence {
     }
 }
 impl KernelCompositeHost {
+    /// Inspection snapshot; mandatory remote sidecars remain owned until disposal.
+    pub fn remote_signs(
+        &self,
+    ) -> BTreeMap<HostId, Vec<(u32, conduit_kernel::RemoteLifecycleIdentity)>> {
+        self.children
+            .iter()
+            .map(|(host, child)| (host.clone(), child.remote_signs()))
+            .collect()
+    }
     /// Reserve identity bytes before the containing Play begins. This is not a
     /// fresh Host/Boot observation or permission to invoke the child.
     pub fn prepare_value_invocation(

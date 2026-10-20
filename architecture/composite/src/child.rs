@@ -358,6 +358,18 @@ impl ChildKernel {
         Ok(())
     }
 
+    pub(crate) fn remote_signs(&self) -> Vec<(u32, conduit_kernel::RemoteLifecycleIdentity)> {
+        use conduit_kernel::SignQuery;
+        let signs = self.scheduler.signs();
+        signs
+            .events()
+            .filter_map(|event| {
+                signs
+                    .remote_identity(event.sequence)
+                    .map(|identity| (event.sequence, identity))
+            })
+            .collect()
+    }
     pub(crate) fn signs(&self) -> Vec<KernelEvent> {
         self.scheduler.signs().events().collect()
     }
