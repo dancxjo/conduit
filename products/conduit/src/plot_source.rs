@@ -216,7 +216,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
             conduit_core::QUANTITY_INFO_ID.into(),
             conduit_core::QUANTITY_VALUE_MAX_ENCODED_BYTES as u32,
             vec![],
-        )?,
+        )
+        .map_err(|e| format!("numerical Each Value contract: {e:?}"))?,
         &conduit_core::CheckedValueContract::new(
             conduit_semantic_catalog::near_quantity_type()
                 .profile()
@@ -225,7 +226,8 @@ fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog
                 .clone(),
             conduit_core::NEAR_QUANTITY_EVIDENCE_MAX_BYTES as u32,
             vec![],
-        )?,
+        )
+        .map_err(|e| format!("numerical Each Value contract: {e:?}"))?,
         None,
         conduit_std_host::flow_activation::NEAR_EACH_MAXIMUM_ITEMS,
         &mut startup,
