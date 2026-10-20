@@ -1,0 +1,33 @@
+{
+  "source": "f94e025592bf89a2f0408dcdf8f2a5cab21b10a3",
+  "verified_trials": 6,
+  "profiles": {
+    "retained-local": {
+      "trials": 3,
+      "stages_elapsed_ns_median": {
+        "preparation": 83,
+        "transfer": 135,
+        "residency": 88,
+        "migration": 120769,
+        "continuity": 124218
+      },
+      "admission_report_elapsed_ns_median": 390985,
+      "disposal_elapsed_ns_median": 58,
+      "copied_resource_payload_bytes": 0
+    },
+    "prepared-local-copy": {
+      "trials": 3,
+      "stages_elapsed_ns_median": {
+        "preparation": 4223,
+        "transfer": 9029,
+        "residency": 109,
+        "migration": 120281,
+        "continuity": 121535
+      },
+      "admission_report_elapsed_ns_median": 475427,
+      "disposal_elapsed_ns_median": 1266,
+      "copied_resource_payload_bytes": 262144
+    }
+  },
+  "scope": "retained records from actual local providers; no Body migration, remote transport or hardware-copy-counter claim"
+}

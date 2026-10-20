@@ -53,7 +53,10 @@ mod ipa_constructor_back;
 mod near_back;
 mod numerical_back;
 pub(crate) use ieee_back::{offer as ieee_offer, owns_offer as owns_ieee_offer};
-pub(crate) use near_back::{offers as near_offers, owns_offer as owns_near_offer};
+pub(crate) use near_back::{
+    admitted as prepare_near_value, offers as near_offers, owns_offer as owns_near_offer,
+    IMPLEMENTATION as NEAR_VALUE_IMPLEMENTATION,
+};
 mod fore_outputs;
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;

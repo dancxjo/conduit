@@ -133,8 +133,8 @@ fn todo_add_toggle_remove_execute_composed_plots_through_production_kernel() {
 fn todo_unknown_index_refuses_without_emitting_a_success_snapshot() {
     let (output, report) = execute(r#"{"collection":[],"command":{"index":0,"op":"remove"}}"#);
     assert!(!output.lines().any(|line| line == "[]"), "{output}");
-    assert_eq!(
-        report.unwrap_err(),
-        "installed kernel step: BackFailed(Failure { code: HostCallFailed, detail: 105 })"
-    );
+    let error = report.unwrap_err();
+    assert!(error.starts_with("installed kernel step: BackFailed(Failure { code: HostCallFailed, detail: 105 }); logical-gear=todo-fixture/application/update/edit placement="), "{error}");
+    assert!(error.contains(" source-document="), "{error}");
+    assert!(error.contains(" source-span=Some("), "{error}");
 }

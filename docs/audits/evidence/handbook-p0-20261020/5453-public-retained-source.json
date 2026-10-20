@@ -1,0 +1,27 @@
+{
+  "observed_at_utc": "2026-10-20T19:07:55.256Z",
+  "url": "https://dancxjo.github.io/conduit/handbook/",
+  "browser": "151.0.7922.34",
+  "fresh_context": true,
+  "method": "One isolated Chromium context; native click/selectOption/fill/check. Only its own retained continuity source is fault-injected; public package unmodified. Initial probe stopped on an ambiguous disclosure selector; corrected scoped selector before this verification run.",
+  "package_digest": "sha256:515405b5878fc720f21a4f31895c208e2e11f8685b2bef142825fcb71dd19766",
+  "original_body_id": "51a1cb9e9881c037ce3e3ca2b6676f20dc47117178c97a1857f98e15c97cb807",
+  "retained_record_sha256": "sha256:bd74bfd4c948e248563ae0484b1d20d9a1ce1b3cd9dd651616c16bca78d8b5e1",
+  "canonical_source_sha256": "sha256:20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e",
+  "malformed_source": "plot convert-pitch-demo {\n    operation: units/convert(source = \"1kHz\", to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+  "startup_diagnostic": "Retained Body recovery refused: PlotSyntaxInvalid: check reviewed plot inventory: SyntaxCheckDiagnostic { code: \"CND-FRM-051\", span: Span { start: 64, end: 70, line: 2, column: 39, end_line: 2, end_column: 45 }, message: \"'\\\"1kHz\\\"' is not a checked quantity value: InvalidNumber; '=' is declarative and there is no later assignment\" }",
+  "editor_enabled": true,
+  "selector_enabled": true,
+  "original_and_packaged_sources_independently_inspected": true,
+  "correction_checked_without_continuity_mutation": true,
+  "backup_filename": "conduit-handbook-retained-body.json",
+  "backup_sha256": "sha256:7b60f1313643d4c8d52bb6dd4b0f613206aee73bc0e280a3bf0bd351807e3511",
+  "backup_exact_original_record": true,
+  "replacement_consent_guard_verified": true,
+  "no_replacement_started": true,
+  "page_errors": [],
+  "limits": [
+    "Synthetic retained-source corruption in an isolated context, not the historical reporting browser.",
+    "Does not prove semantic migration of retained identities, separately archived history backup, unpromoted live changes or release-train acceptance."
+  ]
+}

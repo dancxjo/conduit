@@ -1,6 +1,6 @@
 //! Production child-pool handoff for the pure Thermostat scan Plan.
 
-use super::{install_reusable_planned_scan, StdActivationHost, ThermostatCombineFactory};
+use super::{install_reusable_planned_activation, StdActivationHost, ThermostatCombineFactory};
 use conduit_composite::{BoundedScanActivationHost, KernelOperationFactory};
 use conduit_core::{verify_plan, Plan, PlannedActivationEntry, PlannedGear, PreparedPlan};
 use conduit_thermostat_plot::THERMOSTAT_KIND;
@@ -13,7 +13,7 @@ pub fn install_pure_thermostat_scan(
 ) -> Result<BoundedScanActivationHost, String> {
     let child = exact_pure_child(plan, activation_id)?;
     ThermostatCombineFactory.budget(child)?;
-    install_reusable_planned_scan(plan, prepared, activation_id, host)
+    install_reusable_planned_activation(plan, prepared, activation_id, host)
         .map_err(|error| format!("prepare exact Thermostat scan: {error:?}"))?
         .into_scan()
         .map_err(|error| format!("prepare exact Thermostat scan: {error:?}"))

@@ -1,0 +1,248 @@
+//! Ordinary numerical Fore ownership over one sealed Body Play.
+//! The queue is a producer boundary; scheduling and numeric work stay in the kernel.
+use crate::{
+    body_execution::{BodyForeOutputAdapter, BodyRunReport, BodyRunRequest},
+    BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, RunControl,
+    RunControlRequestId, StdHost, ThreadTimer,
+};
+use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
+use conduit_core::*;
+use std::{
+    sync::{mpsc, Arc, Mutex},
+    thread::JoinHandle,
+    time::Duration,
+};
+
+pub struct NumericalFore {
+    queue: BodyLiveForeQueue,
+    control: RunControl,
+    outputs: mpsc::Receiver<AcceptedValue>,
+    expected: Arc<Mutex<Option<[u8; 32]>>>,
+    worker: Option<JoinHandle<Result<BodyRunReport, String>>>,
+    play: BodyPlayIdentity,
+    body_plan: Arc<BodyPlan>,
+}
+pub struct NumericalValue {
+    pub value: VerifiedNearQuantity,
+    pub canonical: Vec<u8>,
+    pub play: BodyPlayIdentity,
+}
+struct AcceptedValue {
+    value: VerifiedNearQuantity,
+    canonical: Vec<u8>,
+}
+struct Capture {
+    output: mpsc::SyncSender<AcceptedValue>,
+    expected: Arc<Mutex<Option<[u8; 32]>>>,
+    verifier: PreparedNearQuantityVerifier,
+    limit: RationalQuantity,
+}
+impl BodyForeOutputAdapter for Capture {
+    fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
+        let source = self
+            .expected
+            .lock()
+            .map_err(|_| "numerical Fore obligation poisoned")?
+            .take()
+            .ok_or("numerical output has no issued input")?;
+        let value = self
+            .verifier
+            .verify(
+                &output.bytes,
+                QUANTITY_INFO_ID,
+                self.limit,
+                Some(source),
+                &mut ExactNumericWork::new(200_000_000),
+            )
+            .map_err(error)?;
+        // Verification precedes the Fore's acceptance. The bounded producer
+        // obligation is consumed before waking the caller for its next input.
+        self.output
+            .send(AcceptedValue {
+                value,
+                canonical: output.bytes.to_vec(),
+            })
+            .map_err(|_| "numerical Fore consumer stopped".into())
+    }
+}
+fn error(why: impl core::fmt::Debug) -> String {
+    format!("{why:?}")
+}
+impl NumericalFore {
+    /// Consume the real installed Host and its already checked/planned Source.
+    pub fn from_plan(mut host: StdHost, plan: Plan) -> Result<Self, String> {
+        let Some(PlannedActivationEntry::Unary(each)) = plan.activations.first() else {
+            return Err("numerical Fore has no Each activation".into());
+        };
+        crate::flow_activation::validate_near_each(&plan, each)?;
+        let child = &each.selected_plan.fragments[0].placements[0];
+        let [ConfigurationEntry {
+            value: ConfigurationValue::Quantity(limit),
+            ..
+        }] = child.configuration.as_slice()
+        else {
+            return Err("numerical Fore has no sealed physical limit".into());
+        };
+        let limit =
+            RationalQuantity::from_quantity(limit.value(), &mut ExactNumericWork::new(200_000_000))
+                .map_err(error)?;
+        let verifier =
+            PreparedNearQuantityVerifier::new(&conduit_semantic_catalog::near_quantity_type())
+                .map_err(error)?;
+        let body = Body::born(
+            plan.source_document_id.clone(),
+            plan.checked_plot_id.clone(),
+            1,
+            "sign/numerical-fore-born".into(),
+        )
+        .map_err(error)?;
+        let wake = body
+            .wake(1, "sign/numerical-fore-wake".into())
+            .map_err(error)?
+            .1;
+        let body_plan = BodyPlan::seal(
+            &wake,
+            vec![BodyPlotPlan {
+                plot: ResidentPlot::new(
+                    plan.source_document_id.clone(),
+                    plan.checked_plot_id.clone(),
+                ),
+                plan,
+            }],
+        )
+        .map_err(error)?;
+        let control = RunControl::default();
+        let queue =
+            BodyLiveForeQueue::for_near_each_plan(&body_plan.plots[0].plan, control.clone(), 1)?;
+        let body_plan = Arc::new(body_plan);
+        let retained = Arc::clone(&body_plan);
+        let producer = queue.clone();
+        let run_control = control.clone();
+        let (started_tx, started_rx) = mpsc::sync_channel(1);
+        let (output_tx, outputs) = mpsc::sync_channel(1);
+        let expected = Arc::new(Mutex::new(None));
+        let capture = Capture {
+            output: output_tx,
+            expected: Arc::clone(&expected),
+            verifier,
+            limit,
+        };
+        let worker = std::thread::Builder::new()
+            .name("numerical-body-play".into())
+            .stack_size(4 * 1024 * 1024)
+            .spawn(move || {
+                host.run_body_plan_with_live_fore_to_with_start(
+                    BodyRunRequest {
+                        wake: &wake,
+                        plan: &body_plan,
+                        control: &run_control,
+                        keyboard: None,
+                    },
+                    &producer,
+                    &mut { capture },
+                    &mut Vec::new(),
+                    &mut ThreadTimer,
+                    |play, _| started_tx.send(play.clone()).map_err(error),
+                )
+            })
+            .map_err(error)?;
+        // Preparation is finite admitted work, before Play. Wait for its exact
+        // result rather than treating a slow cold CPU as an execution timeout.
+        // Every failure/panic drops the sender, so it cannot hide startup refusal.
+        let play = match started_rx.recv() {
+            Ok(play) => play,
+            Err(why) => {
+                let _ = control.request_stop(RunControlRequestId::new("numerical-start-refused")?);
+                let result = worker.join().map_err(error)?;
+                return Err(format!("numerical Body did not start: {why}; {result:?}"));
+            }
+        };
+        Ok(Self {
+            queue,
+            control,
+            outputs,
+            expected,
+            worker: Some(worker),
+            play,
+            body_plan: retained,
+        })
+    }
+    pub fn body_plan(&self) -> &BodyPlan {
+        &self.body_plan
+    }
+    pub fn play(&self) -> &BodyPlayIdentity {
+        &self.play
+    }
+    pub fn execute(&mut self, value: Quantity) -> Result<NumericalValue, String> {
+        self.execute_encoded(&value.encode())
+    }
+    pub fn execute_encoded(&mut self, bytes: &[u8]) -> Result<NumericalValue, String> {
+        let source = semantic_digest(QUANTITY_INFO_ID, bytes);
+        {
+            let mut expected = self
+                .expected
+                .lock()
+                .map_err(|_| "numerical Fore obligation poisoned")?;
+            if expected.is_some() {
+                return Err("numerical Fore already has an issued input".into());
+            }
+            *expected = Some(source);
+        }
+        match self.queue.submit(bytes) {
+            Ok(BodyLiveForeAdmission::Accepted { .. }) => {}
+            outcome => {
+                *self
+                    .expected
+                    .lock()
+                    .map_err(|_| "numerical Fore obligation poisoned")? = None;
+                return Err(format!("numerical Fore admission refused: {outcome:?}"));
+            }
+        }
+        let accepted = match self.outputs.recv_timeout(Duration::from_secs(30)) {
+            Ok(output) => output,
+            Err(why) => {
+                let _ = self
+                    .control
+                    .request_stop(RunControlRequestId::new("numerical-output-unavailable")?);
+                // The caller can still finish/join and inspect the exact terminal
+                // report and complete child evidence after an execution refusal.
+                return Err(format!("numerical Body produced no accepted output: {why}"));
+            }
+        };
+        Ok(NumericalValue {
+            value: accepted.value,
+            canonical: accepted.canonical,
+            play: self.play.clone(),
+        })
+    }
+    pub fn finish(mut self) -> Result<BodyRunReport, String> {
+        if !self.queue.status().play_terminal && !self.control.stop_requested() {
+            self.queue.close()?;
+        }
+        self.worker
+            .take()
+            .ok_or("numerical Body already joined")?
+            .join()
+            .map_err(error)?
+    }
+    pub fn stop(mut self) -> Result<BodyRunReport, String> {
+        self.control
+            .request_stop(RunControlRequestId::new("numerical-explicit-stop")?)
+            .map_err(error)?;
+        self.worker
+            .take()
+            .ok_or("numerical Body already joined")?
+            .join()
+            .map_err(error)?
+    }
+}
+impl Drop for NumericalFore {
+    fn drop(&mut self) {
+        if let Some(worker) = self.worker.take() {
+            let _ = self.control.request_stop(
+                RunControlRequestId::new("numerical-fore-dropped").expect("static Stop identity"),
+            );
+            let _ = worker.join();
+        }
+    }
+}

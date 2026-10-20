@@ -351,6 +351,18 @@ Their presence is not an additional physical or release acceptance claim:
   names focused std and browser proof. Local implementation and test evidence
   must be distinguished from hosted candidate and stable acceptance.
 
+- **Local numerical Fore (#6097, in development):** the authored
+  [Quantity projection](plots/quantity-projection/README.md) runs stdin Values
+  through one installed Std Host and sealed Body, reusing one pure Near child
+  for up to 64 admitted inputs. Eight authored/controller controls and the
+  actual CLI path pass locally, including physical refusal, pressure, exact
+  output ACK, external delivery refusal and retained child evidence. Matched
+  [complete-owner observations](docs/performance/numerical-fore-session.md)
+  retain Source through disposal and show avoided cold child preparation;
+  warm caller costs remain similar. Required Candidate/dev merge and shared
+  main/publication acceptance remain outstanding. This is not FARGAN or
+  private-model adoption.
+
 - **Browser-local Thermostat (#5399):** the static Handbook packages the original
   `thermostat/main` and checks, plans and executes it in its own browser Body.
   The installed browser scan shares the production kernel Back with std and

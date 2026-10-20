@@ -31,10 +31,10 @@ fn todo_summary_refuses_missing_or_non_boolean_completion() {
         let request =
             format!("{{\"collection\":[],\"command\":{{\"op\":\"append\",\"value\":{value}}}}}");
         let (output, report) = execute_entry(&request, "todo/command-summary");
-        assert_eq!(
-            report.unwrap_err(),
-            format!("installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: {detail} }})")
-        );
+        let error = report.unwrap_err();
+        assert!(error.starts_with(&format!("installed kernel step: BackFailed(Failure {{ code: HostCallFailed, detail: {detail} }}); logical-gear=todo-fixture/application/count/count placement=")), "{error}");
+        assert!(error.contains(" source-document="), "{error}");
+        assert!(error.contains(" source-span=Some("), "{error}");
         assert!(
             !output.lines().any(|line| line.starts_with('{')),
             "{output}"
