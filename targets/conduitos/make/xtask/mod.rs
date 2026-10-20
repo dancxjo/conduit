@@ -34,6 +34,7 @@ mod ia32_a0;
 mod ia32_a1;
 mod ia32_a2;
 mod ia32_domain_proof;
+mod ia32_firmware;
 mod ia32_physical_proof;
 mod ia32_product_boot;
 mod ia32_vga_receipt;
@@ -497,6 +498,21 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             screen_free_three_host_proof::execute(&args, opts)
         }
         ConduitosCommand::OwnerModelRoute(args) => owner_model_route::execute(&args, opts),
+        ConduitosCommand::PrepareIa32Firmware => {
+            let root = crate::workspace::workspace_root()
+                .map_err(|e| ConduitosError::refusal("workspace-root", e.to_string()))?;
+            if opts.dry_run {
+                return Ok(());
+            }
+            ia32_firmware::prepare(&root)
+                .map_err(|e| ConduitosError::refusal("ia32-firmware-setup", e.to_string()))
+        }
+        ConduitosCommand::DoctorIa32Firmware => {
+            let root = crate::workspace::workspace_root()
+                .map_err(|e| ConduitosError::refusal("workspace-root", e.to_string()))?;
+            ia32_firmware::doctor(&root)
+                .map_err(|e| ConduitosError::refusal("ia32-firmware-doctor", e.to_string()))
+        }
         ConduitosCommand::Ia32LegacyBiosProof => live_media::prove_ia32_legacy_bios(opts),
         ConduitosCommand::Ia32MabelPhysicalProof(args) => ia32_physical_proof::execute(&args, opts),
         ConduitosCommand::LiveMatrix => live_media::matrix(opts),

@@ -200,10 +200,11 @@ pub use dormant_readmission_explanation::{
 pub use external_fore_lines::{bind_external_fore_lines, ExternalForeLineChoice};
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
-    plan_expanded_selected_optimization, plan_selected_optimization,
-    select_expanded_fusion_candidate, select_fusion_candidate, FusionBoundary, FusionCandidate,
-    FusionCandidateEvidence, FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation,
-    FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
+    plan_expanded_selected_optimization, plan_expanded_with_requested_fusions,
+    plan_selected_optimization, plan_with_requested_fusions, select_expanded_fusion_candidate,
+    select_fusion_candidate, FusionBoundary, FusionCandidate, FusionCandidateEvidence,
+    FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation, FusionRealizationOffer,
+    FusionSelection, OptimizedPlan, RequestedFusionInputs, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,
 };
 pub use incremental::{

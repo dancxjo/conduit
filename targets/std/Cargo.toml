@@ -15,12 +15,12 @@ isolated-base-proof = ["isolated-file-base"]
 isolated-http-base = ["isolated-file-base"]
 confined-gear = ["dep:wasmi"]
 physical-effect-proof = []
-native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
+native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
-conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
+conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "hosted-catalog-cache"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
@@ -76,6 +76,9 @@ async-trait = { version = "0.1", optional = true }
 bytes = { version = "1", optional = true }
 tokio = { version = "1", features = ["io-util", "macros", "rt-multi-thread", "sync", "time"], optional = true }
 webrtc = { version = "0.20.5", optional = true }
+# These test helpers are used only by the feature-gated native WebRTC module.
+turn = { version = "0.17.2", optional = true }
+webrtc-util = { version = "0.17.1", default-features = false, features = ["conn", "vnet"], optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
@@ -127,6 +130,4 @@ conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "ste
 conduit-workspace-make = { path = "../../make/workspace" }
 ed25519-dalek = "2.2"
 rcgen = "0.14"
-turn = "0.17.2"
-webrtc-util = { version = "0.17.1", default-features = false, features = ["conn", "vnet"] }
 wat = "1"

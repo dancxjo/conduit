@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.ia32-firmware-toolchain/v1",
+  "identity": "ovmf-ia32/2024.02-2ubuntu0.10",
+  "upstream": "edk2 2024.02",
+  "license": "BSD-2-Clause-Patent and component licenses; see copyright",
+  "package": {
+    "url": "https://archive.ubuntu.com/ubuntu/pool/universe/e/edk2/ovmf-ia32_2024.02-2ubuntu0.10_all.deb",
+    "bytes": 2900310,
+    "sha256": "45fb466babfad1f5a51c65d656ba338ae46a7b8bbcda61234b79753a7359d423"
+  },
+  "files": [
+    {
+      "name": "OVMF32_CODE_4M.fd",
+      "bytes": 3653632,
+      "sha256": "31172228ec4fd4840c5bd128ba98e850375bc698fd6007bd414262278b27bdba"
+    },
+    {
+      "name": "OVMF32_VARS_4M.fd",
+      "bytes": 540672,
+      "sha256": "5d2ac383371b408398accee7ec27c8c09ea5b74a0de0ceea6513388b15be5d1e"
+    }
+  ],
+  "authentication": {
+    "release": "noble-updates.InRelease",
+    "signing_key": "F6ECB3762474EDA9D21B7022871920D1991BC93C",
+    "index_url": "https://archive.ubuntu.com/ubuntu/dists/noble-updates/universe/binary-amd64/Packages.xz",
+    "index_sha256": "1aa680fbcf4303eee697a7d54c7d6a8e1f941461e64d23871b04d1fe963abb21",
+    "index_bytes": 1703660
+  }
+}

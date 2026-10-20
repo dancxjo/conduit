@@ -128,6 +128,30 @@ where
                 *slot = Some(value);
                 return Ok(Some(value));
             }
+            #[cfg(feature = "alloc")]
+            if let PreparedStepValue::CompactF32(layout) = output {
+                if self.compact_f32_output_binding(node) != Some((port, layout)) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                self.ensure_output_value_envelope(node, port, declared_len)?;
+                let bytes = self.drivers[node]
+                    .prepared_output(port)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                if u32::try_from(bytes.len()).ok() != Some(layout.physical_bytes()?) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                let value = self.values.store_compact_f32(bytes, declared_len)?;
+                let slot = io
+                    .outputs
+                    .get_mut(usize::from(port.0))
+                    .ok_or(SchedulerError::InvalidPortAccess)?;
+                if slot.is_some() {
+                    self.values.release(value)?;
+                    return Err(SchedulerError::InvalidPortAccess);
+                }
+                *slot = Some(value);
+                return Ok(Some(value));
+            }
             let bytes = self.drivers[node]
                 .prepared_output(port)
                 .ok_or(SchedulerError::InvalidPlan)?;

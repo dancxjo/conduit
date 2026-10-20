@@ -25,8 +25,11 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
     if !(2..=20).contains(&repetitions) {
         return Err("FARGAN repetitions must be 2..=20".into());
     }
-    if !matches!(owners.as_str(), "fresh" | "prepared") {
-        return Err("FARGAN owners must be fresh or prepared".into());
+    if !matches!(
+        owners.as_str(),
+        "fresh" | "prepared" | "prepared-compact-local"
+    ) {
+        return Err("FARGAN owners must be fresh, prepared or prepared-compact-local".into());
     }
     let root = crate::workspace::workspace_root()?;
     let fixture = fixture

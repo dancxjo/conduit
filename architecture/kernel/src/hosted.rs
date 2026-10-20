@@ -1,6 +1,7 @@
 use alloc::vec::Vec;
 
 use super::{StorageError, ValueRef, ValueStorage};
+mod compact_f32;
 mod native_values;
 mod value_admission;
 
@@ -15,6 +16,7 @@ struct HostedValueSlot {
 pub struct HostedValueStore {
     slots: Vec<HostedValueSlot>,
     native_words: Vec<Option<u64>>,
+    compact_f32_lengths: Vec<Option<core::num::NonZeroU32>>,
     maximum_value_bytes: usize,
     byte_capacity: u32,
     used_items: u16,
@@ -84,6 +86,7 @@ impl HostedValueStore {
         Ok(Self {
             slots,
             native_words: Vec::new(),
+            compact_f32_lengths: Vec::new(),
             uniform_slots,
             free_search_start: 0,
             has_retired_slots: false,
@@ -97,7 +100,8 @@ impl HostedValueStore {
     }
 
     /// Actual reserved backing storage, including slot metadata. This differs
-    /// from `byte_capacity`, which bounds live payload bytes.
+    /// from `byte_capacity`, which bounds live logical payload quotas. Compact physical lanes
+    /// retain their checked canonical logical bound in this quota.
     pub fn reserved_storage_bytes(&self) -> usize {
         self.slots.capacity() * core::mem::size_of::<HostedValueSlot>()
             + self
@@ -106,6 +110,8 @@ impl HostedValueStore {
                 .map(|slot| slot.bytes.capacity())
                 .sum::<usize>()
             + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
+            + self.compact_f32_lengths.capacity()
+                * core::mem::size_of::<Option<core::num::NonZeroU32>>()
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -115,7 +121,9 @@ impl HostedValueStore {
                 .iter()
                 .map(|slot| slot.bytes.capacity())
                 .sum::<usize>()
-                + self.native_words.capacity() * core::mem::size_of::<Option<u64>>(),
+                + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
+                + self.compact_f32_lengths.capacity()
+                    * core::mem::size_of::<Option<core::num::NonZeroU32>>(),
         )
     }
 
@@ -126,17 +134,7 @@ impl HostedValueStore {
             .ok_or(StorageError::StaleReference)?;
         if slot.references == 0
             || slot.generation != value.generation
-            || (value.byte_len == 0
-                && self
-                    .native_words
-                    .get(usize::from(value.slot))
-                    .is_some_and(Option::is_some))
-            || (slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
-                && !(value.byte_len == 8
-                    && self
-                        .native_words
-                        .get(usize::from(value.slot))
-                        .is_some_and(Option::is_some)))
+            || !self.representation_matches(value, slot)
         {
             return Err(StorageError::StaleReference);
         }
@@ -144,31 +142,27 @@ impl HostedValueStore {
     }
 
     fn slot_mut(&mut self, value: ValueRef) -> Result<&mut HostedValueSlot, StorageError> {
-        let slot = self
-            .slots
+        self.slot(value)?;
+        self.slots
             .get_mut(usize::from(value.slot))
-            .ok_or(StorageError::StaleReference)?;
-        if slot.references == 0
-            || slot.generation != value.generation
-            || (value.byte_len == 0
-                && self
-                    .native_words
-                    .get(usize::from(value.slot))
-                    .is_some_and(Option::is_some))
-            || (slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
-                && !(value.byte_len == 8
-                    && self
-                        .native_words
-                        .get(usize::from(value.slot))
-                        .is_some_and(Option::is_some)))
-        {
-            return Err(StorageError::StaleReference);
-        }
-        Ok(slot)
+            .ok_or(StorageError::StaleReference)
     }
 }
 
 impl ValueStorage for HostedValueStore {
+    fn compact_f32_available(&self, logical_bytes: u32) -> (u16, u32) {
+        self.available_compact_f32(logical_bytes)
+    }
+    fn store_compact_f32(
+        &mut self,
+        bytes: &[u8],
+        logical_bytes: u32,
+    ) -> Result<ValueRef, StorageError> {
+        self.store_compact_lanes(bytes, logical_bytes)
+    }
+    fn compact_f32(&self, value: ValueRef) -> Result<Option<&[u8]>, StorageError> {
+        self.compact_lanes(value)
+    }
     fn native_u64_available(&self) -> (u16, u32) {
         self.available_native_words()
     }
@@ -207,12 +201,15 @@ impl ValueStorage for HostedValueStore {
         if let Some(word) = self.native_words.get_mut(usize::from(value.slot)) {
             *word = None;
         }
+        self.clear_compact_layout(value.slot);
         Ok(value)
     }
 
     fn get(&self, value: ValueRef) -> Result<&[u8], StorageError> {
         let slot = self.slot(value)?;
-        if slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX) {
+        if self.is_compact(value.slot)
+            || slot.bytes.len() != usize::try_from(value.byte_len).unwrap_or(usize::MAX)
+        {
             return Err(StorageError::RepresentationMismatch);
         }
         Ok(slot.bytes.as_slice())
@@ -240,6 +237,7 @@ impl ValueStorage for HostedValueStore {
             if let Some(word) = self.native_words.get_mut(usize::from(value.slot)) {
                 *word = None;
             }
+            self.clear_compact_layout(value.slot);
             self.used_items -= 1;
             self.used_bytes -= len;
             if self.slots[usize::from(value.slot)].generation == u16::MAX {
@@ -258,6 +256,7 @@ impl ValueStorage for HostedValueStore {
             slot.bytes.clear();
         }
         self.native_words.fill(None);
+        self.compact_f32_lengths.fill(None);
         self.used_items = 0;
         self.used_bytes = 0;
         self.free_search_start = 0;

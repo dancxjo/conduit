@@ -59,6 +59,10 @@ mod todo_action_command_tests {
 
 #[derive(Subcommand, Debug)]
 pub(super) enum ConduitosCommand {
+    /// Prepare the pinned verified IA-32 UEFI firmware pair without installing packages.
+    PrepareIa32Firmware,
+    /// Verify local IA-32 UEFI firmware; never download during doctor or boot.
+    DoctorIa32Firmware,
     /// Boot one exact Crèche-exported ConduitOS spore through the product journey.
     Acceptance(AcceptanceArgs),
     /// Check and package bounded Source without building the target.

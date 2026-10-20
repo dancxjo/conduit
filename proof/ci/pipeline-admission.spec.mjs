@@ -22,7 +22,7 @@ test('numerical certificates and cancellation retain shared boundary tests', () 
   }
 });
 test('native ownership and isolation require native proof, including either rename side', () => {
-  for (const name of ['targets/conduitos/Cargo.toml', 'targets/conduitos/build.rs', 'targets/conduitos/domain/gate.rs', 'targets/conduitos/src/usb.rs', 'targets/conduitos/proof/usb-bot/verify_cancellation.py']) assert.equal(nativeRisk([name]), true);
+  for (const name of ['targets/conduitos/Cargo.toml', 'targets/conduitos/build.rs', 'targets/conduitos/domain/gate.rs', 'targets/conduitos/src/usb.rs', 'targets/conduitos/proof/usb-bot/verify_cancellation.py', 'targets/conduitos/make/xtask/ia32_product_boot.rs', 'targets/conduitos/make/xtask/ia32_firmware.rs', 'targets/conduitos/make/xtask/target_build.rs']) assert.equal(nativeRisk([name]), true);
   assert.equal(nativeRisk(['targets/conduitos/domain/old.rs', 'products/new.rs']), true);
   assert.equal(nativeRisk(['products/conduit/tests/installed_screen_free_birth.rs']), false);
 });
@@ -187,4 +187,25 @@ test('language package admission exercises and lints the optional admitted score
   const unrelated = [];
   runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
   assert.ok(unrelated.every(([, args]) => !args.includes('conduit-language/parser-model')));
+});
+
+
+test('narrow admission lints selected packages and broad changes retain workspace lint', () => {
+  for (const [paths, expected] of [
+    [['products/conduit/tests/installed_screen_free_birth.rs'], ['-p', 'conduit']],
+    [['Cargo.toml'], ['--workspace']],
+  ]) {
+    const commands = [];
+    runAdmission(paths, metadata, '/repo', (...args) => commands.push(args));
+    const lint = commands.find(([, args]) => args[0] === 'clippy')[1];
+    assert.deepEqual(lint, ['clippy', '--locked', ...expected, '--all-targets', '--', '-D', 'warnings']);
+  }
+});
+
+test('sensitive changes lint every selected boundary package', () => {
+  const commands = [];
+  runAdmission(['semantics/data/src/number.rs'], metadata, '/repo', (...args) => commands.push(args));
+  const lint = commands.find(([, args]) => args[0] === 'clippy')[1];
+  for (const name of ['conduit-data', 'conduit-kernel', 'conduit-planner']) assert.ok(lint.includes(name));
+  assert.ok(!lint.includes('--workspace'));
 });

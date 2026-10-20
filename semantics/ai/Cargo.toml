@@ -30,7 +30,7 @@ serde_json = { version = "1", features = ["std"] }
 libc = "0.2"
 conduitos = { path = "../../targets/conduitos" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering" }
-conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog"] }
+conduit-semantic-catalog = { path = "../catalog", features = ["plot-catalog", "prepared-expression-session"] }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-planner = { path = "../../architecture/planner" }

@@ -2,6 +2,9 @@
 #[allow(dead_code)] // The full xtask uses the remaining AVR upload helpers.
 #[path = "../../xtask/src/commands/avr/avr_toolchain.rs"]
 mod avr_toolchain;
+#[allow(dead_code)] // The full ConduitOS boot tooling also copies per-run VARS.
+#[path = "../../../targets/conduitos/make/xtask/ia32_firmware.rs"]
+mod ia32_firmware;
 #[path = "../../xtask/src/commands/avr/rust_toolchain.rs"]
 mod rust_toolchain;
 #[allow(dead_code)] // The build path also uses the pinned HAL revision.
@@ -19,6 +22,8 @@ mod pico_doctor;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Setup {
     Avr,
+    Ia32Prepare,
+    Ia32Doctor,
     Pico,
 }
 
@@ -31,6 +36,8 @@ pub fn route(arguments: &[String]) -> Option<Setup> {
         return None;
     }
     match (target.as_str(), action.as_str()) {
+        ("conduitos", "prepare-ia32-firmware") => Some(Setup::Ia32Prepare),
+        ("conduitos", "doctor-ia32-firmware") => Some(Setup::Ia32Doctor),
         ("avr", "check") => Some(Setup::Avr),
         ("pico", "doctor") => Some(Setup::Pico),
         _ => None,
@@ -39,6 +46,8 @@ pub fn route(arguments: &[String]) -> Option<Setup> {
 
 pub fn run(setup: Setup) -> PicoResult<()> {
     match setup {
+        Setup::Ia32Prepare => ia32_firmware::prepare(&crate::workspace::workspace_root()?),
+        Setup::Ia32Doctor => ia32_firmware::doctor(&crate::workspace::workspace_root()?),
         Setup::Avr => {
             setup::check(&crate::workspace::workspace_root()?)?;
             println!("AVR boundary ready");
@@ -59,6 +68,8 @@ mod tests {
     fn exact_setup_and_ci_locked_invocations_take_shared_fast_path() {
         for (target, action, expected) in [
             ("avr", "check", Setup::Avr),
+            ("conduitos", "prepare-ia32-firmware", Setup::Ia32Prepare),
+            ("conduitos", "doctor-ia32-firmware", Setup::Ia32Doctor),
             ("pico", "doctor", Setup::Pico),
         ] {
             assert_eq!(route(&args(&["make", target, action])), Some(expected));

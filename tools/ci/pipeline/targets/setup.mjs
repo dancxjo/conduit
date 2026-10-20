@@ -11,7 +11,7 @@ export function targetPackages(target) {
   const packages = [...COMMON_APT];
   if (target.family === 'conduitos') {
     const byArch = {
-      x86_64: ['qemu-system-x86'], ia32: ['qemu-system-x86', 'ovmf-ia32'],
+      x86_64: ['qemu-system-x86'], ia32: ['qemu-system-x86'],
       aarch64: ['qemu-system-arm', 'qemu-efi-aarch64'],
       riscv64: ['qemu-system-misc', 'u-boot-qemu', 'libglib2.0-dev', 'libfdt-dev', 'zlib1g-dev', 'ninja-build', 'python3-venv'],
       loongarch64: ['qemu-system-misc', 'libglib2.0-dev', 'libfdt-dev', 'zlib1g-dev', 'ninja-build', 'python3-venv', 'patch'],
@@ -77,6 +77,11 @@ export function setup(target) {
     };
     rustTargets(...triples[arch]);
     rustComponents('rust-src', 'llvm-tools-preview');
+    if (arch === 'ia32') {
+      xtask('make', 'conduitos', 'prepare-ia32-firmware');
+      xtask('make', 'conduitos', 'doctor-ia32-firmware');
+      recordTool('ia32-firmware', JSON.parse(readFileSync('targets/conduitos/tools/ia32-firmware/manifest.json', 'utf8')));
+    }
     if (arch === 'riscv64') {
       xtask('make', 'conduitos', 'prepare-riscv64-domain-emulator');
       recordTool('riscv64-protected-emulator', JSON.parse(readFileSync('target/conduitos/riscv64/riscv64-protected-emulator.json', 'utf8')));

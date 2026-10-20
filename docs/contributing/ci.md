@@ -28,8 +28,10 @@ Changing only draft/readiness does not rerun or cancel proof for the same source
 Opening, reopening and new commits still run Candidate against the exact merge
 preview; all required checks and branch protection remain unchanged.
 
-PR admission runs workspace Clippy with warnings denied and the owning workspace
-packages' unit, integration and doc tests, with one test thread. Both sides of
+PR admission runs Clippy with warnings denied for the selected packages and their
+dependencies, then the owning packages' unit, integration and doc tests, with one
+test thread. Broad changes retain workspace Clippy; every dev Integration still
+runs exhaustive workspace lint and tests. Both sides of
 renames are scanned against the actual dev parent of the tested merge preview;
 GitHub's PR metadata can retain an older base SHA after dev advances. Unknown paths, removed packages, shared files and empty
 diffs select all workspace packages. CI scripts and workflow changes run tooling
@@ -96,10 +98,23 @@ failures do not cancel sibling lanes. Code tests have no retries; acquisition
 may have one bounded infrastructure retry. Browser acceptance retains pinned
 Chromium, one worker and zero retries.
 
+## On-demand runtime measurements
+
+Runtime measurements are diagnostic and have no calibrated regression threshold.
+They run through the **Runtime performance measurements** manual workflow for the
+selected ref, or locally through `cargo xtask prove runtime-performance`. They do
+not start on every PR or occupy a runner needed for Candidate admission. Failed
+measurements retain diagnostics and remain visible as failures in their own run.
+
 ## Tool acquisition
 
 Each lane resolves one package set and checks installed tools before acquiring
-anything. Linux lanes use one apt transaction; browser dependencies come from
+anything. IA-32 UEFI firmware uses the shared
+`cargo xtask make conduitos prepare-ia32-firmware` and
+`doctor-ia32-firmware` routes instead of a distro `ovmf-ia32` package dependency.
+The [reviewed pin](../../targets/conduitos/tools/ia32-firmware/README.md) records
+the signed Ubuntu provenance and package/file hashes. Verified cached pairs
+work offline; partial or corrupt pairs refuse. Boot never acquires firmware. Linux lanes use one apt transaction; browser dependencies come from
 the pinned Playwright package. Pico radio assets are already versioned source
 and are verified without downloading them again. AVR checks its retained core
 and compiler identities before repeating setup. Fresh AVR setup installs the

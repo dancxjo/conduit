@@ -2,8 +2,9 @@ import path from 'node:path';
 
 export function nativeRisk(paths) {
   // The native kernel owns isolation, device ownership and preemption. Its
-  // standalone sources cannot be covered by workspace package tests alone.
-  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof)\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
+  // standalone sources and product build/proof collectors cannot be covered
+  // by workspace package tests alone.
+  return paths.some(name => /^targets\/conduitos\/(?:(?:src|domain|build|proof|make\/xtask)\/|(?:Cargo\.(?:toml|lock)|build\.rs)$)/.test(name));
 }
 
 export function admissionPlan(paths, metadata, root) {
@@ -15,7 +16,7 @@ export function admissionPlan(paths, metadata, root) {
   for (const name of paths) {
     if (name.endsWith('.md') || name === 'LICENSE') continue;
     // A dependency lock update accompanies its owning manifest; workspace lint
-    // still compiles every consumer. A standalone lock change remains broad.
+    // is exhaustive during Integration. A standalone lock change remains broad.
     if (name === 'Cargo.lock' && paths.some(item => item.endsWith('/Cargo.toml'))) continue;
     const owner = owners.filter(item => name.startsWith(`${item.directory}/`)).sort((a, b) => b.directory.length - a.directory.length)[0];
     if (/^(?:tools\/ci\/|proof\/ci\/|\.github\/)/.test(name)) {
@@ -46,7 +47,8 @@ export function runAdmission(paths, metadata, root, run, { workspaceChecked = fa
   if (paths.length && paths.every(name => /^(?:docs\/.+\.md|[^/]+\.md|LICENSE)$/.test(name))) return;
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
   const languageFeatures = plan.packages.includes('conduit-language') ? ['--features', 'conduit-language/parser-model'] : [];
-  if (!workspaceChecked) run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
+  const lintPackages = plan.broad ? ['--workspace'] : plan.packages.flatMap(name => ['-p', name]);
+  if (!workspaceChecked && lintPackages.length) run('cargo', ['clippy', '--locked', ...lintPackages, '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
   else if (languageFeatures.length) {
     // Parallel workspace lint does not enable this optional consumer feature.
     run('cargo', ['clippy', '--locked', '-p', 'conduit-language', '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
