@@ -260,7 +260,7 @@ fn boot_once(
     if matches!(firmware_mode, FirmwareMode::Uefi32) {
         let (firmware, vars_template) = ia32_a1::firmware_paths(&paths)?;
         let vars = paths.target.join(format!("ia32-product-{run}-vars.fd"));
-        fs::copy(vars_template, &vars)
+        super::ia32_firmware::copy_vars(&vars_template, &vars)
             .map_err(|error| refusal("unavailable-ia32-firmware", error.to_string()))?;
         child
             .arg("-drive")

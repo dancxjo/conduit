@@ -27,6 +27,7 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
       'tools/xtask/src/commands/avr/rust_toolchain.rs', 'tools/xtask/src/commands/avr/setup.rs',
       'tools/xtask/src/commands/avr/tool_support.rs', 'tools/xtask-dispatch/src/tool_setup.rs',
       'tools/xtask/src/process/tool_command.rs',
+      'targets/conduitos/make/xtask/ia32_firmware.rs', 'targets/conduitos/tools/ia32-firmware/manifest.json',
       'targets/conduitos/make/xtask/qemu_source.rs', 'targets/conduitos/make/xtask/riscv64_emulator.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/firmware.rs',
       'targets/rp2040/firmware/pico-w-signal/make/xtask/doctor.rs'].map(name => path.join(root, name)),
@@ -43,6 +44,8 @@ export function acquisitionIdentity(target, { root = process.cwd(), env = proces
   const key = `conduit-acquisition-v1-${safe(platform)}-${safe(arch)}-${safe(runnerImage.os)}-${safe(runnerImage.version)}-${target}-${specificationKey}`;
   const paths = [path.join(home, '.cache/conduit-ci')];
   if (target === 'browser') paths.push(path.join(home, '.cache/ms-playwright'), path.join(home, '.npm'));
+  if (target === 'conduitos-ia32') paths.push(...['OVMF32_CODE_4M.fd', 'OVMF32_VARS_4M.fd', 'manifest.json', 'copyright']
+    .map(name => path.join(root, 'target/conduitos/toolchain/ovmf-ia32', name)));
   if (target === 'conduitos-riscv64') paths.push(...['qemu-system-riscv64', 'fw_dynamic.bin', 'receipt.json']
     .map(name => path.join(root, 'target/conduitos/toolchain/riscv64-domain-qemu/*', name)));
   const rustup = env.RUSTUP_HOME || path.join(home, '.rustup');

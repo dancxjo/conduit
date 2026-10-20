@@ -1,0 +1,22 @@
+Package: ovmf-ia32
+Source: edk2
+Priority: optional
+Section: universe/misc
+Installed-Size: 7706
+Maintainer: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Architecture: all
+Version: 2024.02-2ubuntu0.10
+Suggests: qemu-system-x86
+Filename: pool/universe/e/edk2/ovmf-ia32_2024.02-2ubuntu0.10_all.deb
+Size: 2900310
+MD5sum: 703cf56feee0f13d648432f899ae3f4d
+SHA1: d9edfa990a22bda952603023d06eb93a7ca2647c
+SHA256: 45fb466babfad1f5a51c65d656ba338ae46a7b8bbcda61234b79753a7359d423
+SHA512: fbd4d20047ca8e9fc80de8fcf17056280083e1858fac8df8ae2284789e201a5d26769f91250ebea23a918e09a3fbc60dc4e28235e24462a9c6419be2f393c36a
+Homepage: http://www.tianocore.org
+Description: UEFI firmware for 32-bit x86 virtual machines
+Description-md5: 45406fadf3a151c202373ad38c0f2c3e
+Multi-Arch: foreign
+Original-Maintainer: Debian QEMU Team <pkg-qemu-devel@lists.alioth.debian.org>
+Origin: Ubuntu
+Bugs: https://bugs.launchpad.net/ubuntu/+filebug
