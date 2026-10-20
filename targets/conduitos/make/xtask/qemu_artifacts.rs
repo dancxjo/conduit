@@ -1,6 +1,6 @@
 //! Explicit, bounded visual evidence for one ordinary QEMU journey.
-use super::{qmp_display, ConduitosError};
-use serde_json::{json, Value};
+use super::{ConduitosError, qmp_display};
+use serde_json::{Value, json};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
@@ -89,6 +89,9 @@ impl Artifacts {
                 "serial correlation exceeds 16 MiB",
             ));
         }
+        // QEMU may still be writing the last record (including a UTF-8 scalar).
+        // Correlate only newline-committed bytes; retain the full raw log.
+        serial.truncate(complete_serial_end(&serial));
         let text = std::str::from_utf8(&serial).map_err(|error| {
             ConduitosError::refusal("qemu-display-serial-invalid", error.to_string())
         })?;
@@ -200,9 +203,31 @@ fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("qemu-display-manifest-io", error.to_string())
 }
 
+/// A live serial read is a prefix, not an atomic record snapshot.
+fn complete_serial_end(serial: &[u8]) -> usize {
+    serial
+        .iter()
+        .rposition(|byte| *byte == b'\n')
+        .map_or(0, |end| end + 1)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn live_serial_snapshot_excludes_only_the_uncommitted_tail() {
+        let complete = b"CONDUIT_NATIVE_TIMING malformed\n";
+        let mut snapshot = complete.to_vec();
+        snapshot.extend_from_slice(b"CONDUIT_NATIVE_FACE {\"text\":\"\xf0\x9f");
+        let end = complete_serial_end(&snapshot);
+        assert_eq!(&snapshot[..end], complete);
+        let text = std::str::from_utf8(&snapshot[..end]).unwrap();
+        // A complete malformed record still refuses; framing is not recovery.
+        assert!(super::super::native_timing::parse(text).is_err());
+        assert_eq!(complete_serial_end(b"unfinished"), 0);
+        assert_eq!(complete_serial_end(complete), complete.len());
+    }
+
     #[test]
     fn uniform_capture_retains_a_correlated_png_before_refusal() {
         use std::io::{BufRead, BufReader, Write};
