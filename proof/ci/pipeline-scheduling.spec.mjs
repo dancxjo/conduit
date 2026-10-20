@@ -10,11 +10,11 @@ function job(source, name) {
   return source.split(`\n  ${name}:\n`)[1]?.split(/\n  [A-Za-z_][A-Za-z0-9_-]*:\n/)[0];
 }
 
-test('independent proof starts after preflight and preserves complete aggregation', () => {
+test('candidate proof fails fast while exhaustive Integration preserves complete aggregation', () => {
   for (const name of ['unit', 'target']) {
     assert.match(job(ci, name), /needs: preflight\n/);
 
-    assert.match(job(ci, name), /fail-fast: false/);
+    assert.match(job(ci, name), /fail-fast: \$\{\{ !inputs\.exhaustive \}\}/);
   }
   assert.match(job(ci, 'unit'), /matrix: \$\{\{ fromJSON\(needs.preflight.outputs.unit-matrix\) \}\}/);
   assert.match(job(ci, 'complete'), /needs: \[preflight, unit, admission, target\]/);

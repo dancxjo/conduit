@@ -46,10 +46,8 @@ impl KernelScanBack {
             return Err("installed pure scan requires value-only bounded Flow terminals".into());
         }
         let expected_children = usize::from(planned.limits.maximum_items);
-        let (ready, receipts) = scan.allocation_capacities();
         let (accumulator, candidate, queued, admission) = scan.storage_capacities();
-        if ready != expected_children
-            || receipts != expected_children
+        if !scan.has_admitted_children(expected_children)
             || accumulator < planned.retained_accumulator_bytes as usize
             || candidate < planned.retained_accumulator_bytes as usize
             || queued < planned.retained_item_bytes as usize

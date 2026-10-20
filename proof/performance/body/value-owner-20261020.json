@@ -1,0 +1,263 @@
+{
+  "schema": "conduit.body-value-owner-comparison@1",
+  "sources": {
+    "candidate": "c3712735551a4ef44d11badde1d1e3cc83041873",
+    "reference": "57f086791da69ad0f875db027ba7b6580d04e3cd"
+  },
+  "toolchain": {
+    "rustc": "1.98.1 (48a229cea 2026-09-01)",
+    "llvm": "22.1.8",
+    "target": "x86_64-unknown-linux-gnu",
+    "profile": "test unoptimized; debug=0; incremental=0"
+  },
+  "host": {
+    "machine": "local i7-12700",
+    "os": "Linux 7.0.0-38-generic x86_64",
+    "planned_host_id": "std-thermostat",
+    "boot": "fresh per Execution owner from SystemTime",
+    "offer_generation": 1
+  },
+  "boundary": "Warm-process complete ordinary authored Thermostat Body owner; 32 accepted Values; all worker-thread allocator calls included; 256 admitted items and mandatory Sign/evidence reservations",
+  "workers": {
+    "candidate": {
+      "sha256": "2ef43ceb7ffb85721037c838f353442fe00f3a691b60c694322776a1be299d47",
+      "local_archive": "work/body-value-owner-workers/candidate"
+    },
+    "reference": {
+      "sha256": "64287aa96181f9c6e6358e58722db4308579810ec26d0974a89cd97b11d4b587",
+      "local_archive": "work/body-value-owner-workers/reference"
+    }
+  },
+  "trials": [
+    {
+      "trial": 0,
+      "policy": "reference",
+      "observation": {
+        "cold": {
+          "allocation_requests": 508215,
+          "live_bytes_delta": 64478922,
+          "requested_bytes": 113017648
+        },
+        "complete_owner": {
+          "allocation_requests": 508853,
+          "live_bytes_delta": 0,
+          "requested_bytes": 113400450
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 493,
+          "live_bytes_delta": -52540416,
+          "requested_bytes": 110288
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 64781975,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 145,
+          "live_bytes_delta": 262573,
+          "requested_bytes": 272514
+        }
+      },
+      "log_sha256": "fc70d352d4809d2e2bdd03e4b679a83ff72f3e56331a93f914e269ff8e196499"
+    },
+    {
+      "trial": 0,
+      "policy": "candidate",
+      "observation": {
+        "cold": {
+          "allocation_requests": 344783,
+          "live_bytes_delta": 14773965,
+          "requested_bytes": 49319134
+        },
+        "complete_owner": {
+          "allocation_requests": 345245,
+          "live_bytes_delta": 0,
+          "requested_bytes": 49400462
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 333,
+          "live_bytes_delta": -2572982,
+          "requested_bytes": 71952
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 14814541,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 129,
+          "live_bytes_delta": 96,
+          "requested_bytes": 9376
+        }
+      },
+      "log_sha256": "b54d52119cbf274f5d11b9fc97cdb7da0b80288f0726cdc0821f246ad71a87ce"
+    },
+    {
+      "trial": 1,
+      "policy": "candidate",
+      "observation": {
+        "cold": {
+          "allocation_requests": 344783,
+          "live_bytes_delta": 14773965,
+          "requested_bytes": 49319134
+        },
+        "complete_owner": {
+          "allocation_requests": 345245,
+          "live_bytes_delta": 0,
+          "requested_bytes": 49400462
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 333,
+          "live_bytes_delta": -2572982,
+          "requested_bytes": 71952
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 14814541,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 129,
+          "live_bytes_delta": 96,
+          "requested_bytes": 9376
+        }
+      },
+      "log_sha256": "b54d52119cbf274f5d11b9fc97cdb7da0b80288f0726cdc0821f246ad71a87ce"
+    },
+    {
+      "trial": 1,
+      "policy": "reference",
+      "observation": {
+        "cold": {
+          "allocation_requests": 508231,
+          "live_bytes_delta": 64741399,
+          "requested_bytes": 113280786
+        },
+        "complete_owner": {
+          "allocation_requests": 508853,
+          "live_bytes_delta": 0,
+          "requested_bytes": 113400450
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 493,
+          "live_bytes_delta": -52540416,
+          "requested_bytes": 110288
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 64781975,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 129,
+          "live_bytes_delta": 96,
+          "requested_bytes": 9376
+        }
+      },
+      "log_sha256": "bf576d7bf5961f238addc645a43b429629cc7bbe0fc8ea123816d7f1c6472ec4"
+    },
+    {
+      "trial": 2,
+      "policy": "reference",
+      "observation": {
+        "cold": {
+          "allocation_requests": 508231,
+          "live_bytes_delta": 64741399,
+          "requested_bytes": 113280786
+        },
+        "complete_owner": {
+          "allocation_requests": 508853,
+          "live_bytes_delta": 0,
+          "requested_bytes": 113400450
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 493,
+          "live_bytes_delta": -52540416,
+          "requested_bytes": 110288
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 64781975,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 129,
+          "live_bytes_delta": 96,
+          "requested_bytes": 9376
+        }
+      },
+      "log_sha256": "12c855b681cf67e1e793bc578ee37be51c15339179a8bd751dc42c16c683bbee"
+    },
+    {
+      "trial": 2,
+      "policy": "candidate",
+      "observation": {
+        "cold": {
+          "allocation_requests": 344783,
+          "live_bytes_delta": 14773965,
+          "requested_bytes": 49319134
+        },
+        "complete_owner": {
+          "allocation_requests": 345245,
+          "live_bytes_delta": 0,
+          "requested_bytes": 49400462
+        },
+        "finish_and_inspection": {
+          "allocation_requests": 333,
+          "live_bytes_delta": -2572982,
+          "requested_bytes": 71952
+        },
+        "inspection_and_disposal": {
+          "allocation_requests": 0,
+          "live_bytes_delta": -12201079,
+          "requested_bytes": 0
+        },
+        "peak_live_bytes_over_baseline": 14814541,
+        "retained_child_events": 512,
+        "retained_remote_sidecars": 256,
+        "schema": "conduit.body-value-owner-observation@1",
+        "values": 32,
+        "warm_values": {
+          "allocation_requests": 129,
+          "live_bytes_delta": 96,
+          "requested_bytes": 9376
+        }
+      },
+      "log_sha256": "b54d52119cbf274f5d11b9fc97cdb7da0b80288f0726cdc0821f246ad71a87ce"
+    }
+  ],
+  "limitations": [
+    "Allocation observation only; no calibrated latency or RSS claim.",
+    "Tracked heap excludes stacks and allocator/OS internals.",
+    "Reference and candidate use the same controller; only the Thermostat child-pool installation policy differs in production code.",
+    "Unprimed first observations retained a common 138-byte process allocation; primer settles this before accepted owner measurements.",
+    "Early noncanonical one-unit target increment probe refused with TargetRange before any cost record; accepted inputs use five-unit increments."
+  ],
+  "status": "local evidence; no claim of required CI, merge, or main/release publication"
+}

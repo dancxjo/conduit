@@ -13,6 +13,7 @@ pub struct ThermostatBack {
     output_len: usize,
     staged: bool,
     emitted: bool,
+    cancelled: bool,
 }
 
 impl ThermostatBack {
@@ -23,6 +24,7 @@ impl ThermostatBack {
             output_len: 0,
             staged: false,
             emitted: false,
+            cancelled: false,
         }
     }
 
@@ -102,6 +104,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ThermostatBack {
     }
 
     fn cancel(&mut self) {
+        self.cancelled = true;
         self.staged = false;
     }
 }
@@ -111,4 +114,19 @@ fn refuse(error: Refusal) -> StepOutcome {
         code: FailureCode::InvalidInput,
         detail: error as u16,
     })
+}
+
+// The accumulator is an explicit typed input/output, not hidden recurrent state.
+// Only an acknowledged normal drain may reuse this bounded pure transition.
+impl<const PORTS: usize> conduit_kernel::scheduler::prepared_session::ReusableStepBack<PORTS>
+    for ThermostatBack
+{
+    type Next = ();
+    fn preflight_next(&self, _: &(), _: &dyn conduit_kernel::ValueStorage) -> bool {
+        self.emitted && !self.staged && !self.cancelled
+    }
+    fn begin_next(&mut self, _: ()) {
+        self.emitted = false;
+        self.output_len = 0;
+    }
 }

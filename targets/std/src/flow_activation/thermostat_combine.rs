@@ -129,6 +129,15 @@ impl KernelOperationFactory for ThermostatCombineFactory {
         })
     }
 
+    fn prepare_reusable_value(
+        &self,
+        placement: &PlannedGear,
+        _: &mut HostedValueStore,
+    ) -> Result<conduit_composite::ReusableKernelOperation, String> {
+        validate(placement)?;
+        Ok(Box::new(ThermostatBack::new()))
+    }
+
     fn prepare(
         &self,
         placement: &PlannedGear,
