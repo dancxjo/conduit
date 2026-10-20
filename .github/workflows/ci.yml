@@ -99,7 +99,8 @@ jobs:
     # Other independently scheduled host groups retain their existing bound.
     timeout-minutes: ${{ matrix.shard == 'hosts-conduitos' && 120 || matrix.shard == 'foundation' && 90 || (matrix.shard == 'products' || startsWith(matrix.shard, 'hosts-')) && 70 || 40 }}
     strategy:
-      fail-fast: false
+      # Stop a doomed admission candidate; exhaustive Integration keeps all results.
+      fail-fast: ${{ !inputs.exhaustive }}
       matrix: ${{ fromJSON(needs.preflight.outputs.unit-matrix) }}
     steps:
       - uses: actions/checkout@v7.0.1
@@ -199,7 +200,8 @@ jobs:
     needs: preflight
     if: needs.preflight.outputs.has-targets == 'true'
     strategy:
-      fail-fast: false
+      # Stop a doomed admission candidate; exhaustive Integration keeps all results.
+      fail-fast: ${{ !inputs.exhaustive }}
       matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
     name: target / ${{ matrix.id }}
     runs-on: ${{ matrix.runner }}

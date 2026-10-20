@@ -15,6 +15,7 @@ pub struct PreparedActivationChildPool {
     _preparation_identity: [u8; 32],
     definition: KernelCompositeDefinition,
     ready: Vec<KernelCompositeHost>,
+    reusable: bool,
 }
 
 pub enum PreparedPlannedActivationComposite {
@@ -47,6 +48,14 @@ pub trait PlannedActivationChildPoolHost: PlanPreparationHost {
         definition: &KernelCompositeDefinition,
         maximum_items: usize,
     ) -> Result<Vec<KernelCompositeHost>, HostPreparationRefusal>;
+    /// Explicit single-owner Value profile. Never falls back to a fresh pool.
+    fn take_reusable_activation_child(
+        &mut self,
+        _receipts: &[PreparedFragmentReceipt],
+        _definition: &KernelCompositeDefinition,
+    ) -> Result<KernelCompositeHost, HostPreparationRefusal> {
+        Err(HostPreparationRefusal::ImplementationUnavailable)
+    }
 }
 
 impl PreparedActivationChildPool {
@@ -57,6 +66,23 @@ impl PreparedActivationChildPool {
         prepared: &mut PreparedPlan,
         activation_id: &str,
         host: &mut dyn PlannedActivationChildPoolHost,
+    ) -> Result<Self, PlannedActivationCompositeError> {
+        Self::prepare_mode(outer, prepared, activation_id, host, false)
+    }
+    pub fn prepare_reusable_on_host(
+        outer: &Plan,
+        prepared: &mut PreparedPlan,
+        activation_id: &str,
+        host: &mut dyn PlannedActivationChildPoolHost,
+    ) -> Result<Self, PlannedActivationCompositeError> {
+        Self::prepare_mode(outer, prepared, activation_id, host, true)
+    }
+    fn prepare_mode(
+        outer: &Plan,
+        prepared: &mut PreparedPlan,
+        activation_id: &str,
+        host: &mut dyn PlannedActivationChildPoolHost,
+        reusable: bool,
     ) -> Result<Self, PlannedActivationCompositeError> {
         let definition =
             KernelCompositeDefinition::from_planned_activation(outer, prepared, activation_id)
@@ -75,10 +101,16 @@ impl PreparedActivationChildPool {
         if receipts.is_empty() {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
-        let mut returned = host
-            .take_activation_child_pool(&receipts, &definition, maximum_items)
-            .map_err(PlannedActivationCompositeError::HostPreparation)?;
-        if returned.len() != maximum_items {
+        let mut returned = if reusable {
+            alloc::vec![host
+                .take_reusable_activation_child(&receipts, &definition)
+                .map_err(PlannedActivationCompositeError::HostPreparation)?]
+        } else {
+            host.take_activation_child_pool(&receipts, &definition, maximum_items)
+                .map_err(PlannedActivationCompositeError::HostPreparation)?
+        };
+        let expected = if reusable { 1 } else { maximum_items };
+        if returned.len() != expected {
             return Err(PlannedActivationCompositeError::StaleOrSubstitutedHandoff);
         }
         if let Some(index) = returned
@@ -87,7 +119,7 @@ impl PreparedActivationChildPool {
         {
             return Err(PlannedActivationCompositeError::SubstitutedChildDefinition { index });
         }
-        let mut ready = Vec::with_capacity(maximum_items);
+        let mut ready = Vec::with_capacity(expected);
         ready.append(&mut returned);
         Ok(Self {
             outer_plan_id: outer.plan_id.clone(),
@@ -95,6 +127,7 @@ impl PreparedActivationChildPool {
             _preparation_identity: preparation_identity,
             definition,
             ready,
+            reusable,
         })
     }
 }
@@ -112,6 +145,18 @@ impl PreparedPlannedActivationComposite {
         }
         let entry = activation(outer, activation_id)
             .ok_or(PlannedActivationCompositeError::MissingActivation)?;
+        if handoff.reusable {
+            let PlannedActivationEntry::Scan(value) = entry else {
+                return Err(PlannedActivationCompositeError::WrongActivationKind);
+            };
+            return BoundedScanActivationHost::prepare_reusable_with_ready(
+                value,
+                handoff.definition,
+                handoff.ready,
+            )
+            .map(Self::Scan)
+            .map_err(PlannedActivationCompositeError::Scan);
+        }
         match entry {
             PlannedActivationEntry::Unary(value) => {
                 BoundedActivationHost::prepare_planned_with_ready(
