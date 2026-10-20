@@ -1,58 +1,17 @@
 use super::*;
-use crate::{BirthPlotChoice, BirthWidgetFace};
+use crate::BirthWidgetFace;
 use alloc::{format, string::String, vec};
-use conduit_body::ResidentPlot;
-use conduit_core::{PlotIdentity, kind_id};
+use conduit_core::kind_id;
 use conduit_face::{
     ApplicationEventKind, FaceInteractionArgument, FaceReadingCommand, FaceReadingCursor,
     FaceReadingRefusal, FaceRelationshipKind, FaceRole, FaceUtteranceProvenance,
     ManifestationLifecycle, UTF8_TEXT_VALUE_KIND, plan_face_utterances,
 };
+#[path = "field_value_tests.rs"]
+mod field_values;
 #[path = "fixtures.rs"]
 mod fixtures;
-fn basis() -> BirthFaceBasis {
-    let plan = fixtures::producer_plan();
-    BirthFaceBasis {
-        host_id: "host/birth".into(),
-        boot_id: "boot/birth".into(),
-        encounter_id: "arrival/one".into(),
-        producer_plot: PlotIdentity {
-            source_document_id: plan.source_document_id.clone(),
-            checked_plot_id: plan.checked_plot_id.clone(),
-            expanded_plot_id: plan.expanded_plot_id.clone(),
-        },
-        producer_plan_id: plan.plan_id,
-    }
-}
-fn host_owned_basis() -> HostOwnedBirthFaceBasis {
-    HostOwnedBirthFaceBasis {
-        host_id: "host/birth".into(),
-        boot_id: "boot/birth".into(),
-        encounter_id: "arrival/one".into(),
-    }
-}
-fn draft() -> BirthDraft {
-    BirthDraft::new(
-        "550e8400-e29b-41d4-a716-446655440000".into(),
-        vec![
-            BirthPlotChoice {
-                title: "Clock".into(),
-                search_text: "time".into(),
-                plot: ResidentPlot::new("source/clock".into(), "checked/clock".into()),
-                refusal: None,
-                selected: true,
-            },
-            BirthPlotChoice {
-                title: "Speaker".into(),
-                search_text: "sound".into(),
-                plot: ResidentPlot::new("source/speaker".into(), "checked/speaker".into()),
-                refusal: Some("This Host has no admitted audio output.".into()),
-                selected: false,
-            },
-        ],
-    )
-    .unwrap()
-}
+use fixtures::{basis, draft, host_owned_basis};
 fn input(
     draft: &BirthDraft,
     id: &str,

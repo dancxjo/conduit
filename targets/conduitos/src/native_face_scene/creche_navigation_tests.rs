@@ -42,6 +42,108 @@ fn face(draft: &BirthDraft) -> Face {
         .unwrap()
 }
 
+#[test]
+fn source_disclosure_presents_one_title_and_preserves_every_exact_clause() {
+    let original = face(&draft());
+    let (primary, details) = document::prepare(&original, true).unwrap();
+    let commitments: Vec<_> = primary
+        .iter()
+        .filter(|row| row.role == GraphicsTextRole::Heading && row.control.is_some())
+        .collect();
+    assert_eq!(commitments.len(), 1);
+    assert_eq!(
+        original.actions[commitments[0].control.unwrap().action].identity,
+        "creche.birth"
+    );
+    assert_eq!(
+        primary
+            .iter()
+            .filter(|row| row.text == "A body of your own")
+            .count(),
+        1,
+    );
+    let exact: String = details.iter().map(|row| row.text.as_str()).collect();
+    for clause in plan_face_utterances(&original).unwrap().clauses {
+        assert!(exact.contains(&clause.text), "lost exact Source clause");
+    }
+    assert!(primary.iter().any(|row| {
+        row.text.starts_with("Friendly Body name: ")
+            && row.control.is_some_and(|control| {
+                control.argument == Some(0)
+                    && original.actions[control.action].identity == "creche.name"
+            })
+    }));
+    assert!(
+        !primary
+            .iter()
+            .any(|row| row.text.starts_with("Starting Plot "))
+    );
+    assert!(
+        !primary
+            .iter()
+            .any(|row| row.text.starts_with("Current value: ") || row.text.starts_with("Choice: "))
+    );
+    for plot in draft().choices() {
+        let named: Vec<_> = primary
+            .iter()
+            .filter(|row| row.text == plot.title)
+            .collect();
+        assert_eq!(named.len(), 1, "one primary name per verified choice");
+        assert!(named[0].checkbox.is_some());
+    }
+    assert!(!primary.iter().any(|row| row.text == "Included."));
+    let mut filtered = draft();
+    filtered
+        .search_plots(filtered.revision(), "no-match")
+        .unwrap();
+    let (filtered_primary, _) = document::prepare(&face(&filtered), true).unwrap();
+    for plot in filtered.choices().iter().filter(|choice| choice.selected) {
+        assert!(filtered_primary.iter().any(|row| row.text == plot.title));
+    }
+}
+
+#[test]
+fn real_naming_catalogue_uses_checked_membership_and_keeps_choice_uncommitted() {
+    let original = face(&draft());
+    let index = original
+        .actions
+        .iter()
+        .position(|action| action.identity == "creche.naming")
+        .unwrap();
+    let choices = text_field::choices(&original, index).unwrap();
+    assert_eq!(choices.as_slice().len(), 24);
+    assert_eq!(
+        text_field::adjacent(&original, index, None, false),
+        Some("roman")
+    );
+    assert!(
+        original.actions[index].arguments[0]
+            .contract
+            .validate(b"roman")
+            .is_ok()
+    );
+    let show = tests::fixture::show(&original);
+    let mut scene = NativeFaceScene::prepare(original.clone(), 1280, 800).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: "creche.naming".into(),
+            argument_name: Some("value".into()),
+        })
+        .unwrap();
+    assert!(matches!(
+        scene.key(key(80, false), &show, 1).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert_eq!(scene.face(), &original);
+    let FaceSceneInput::Submitted { interaction, .. } =
+        scene.key(key(40, false), &show, 2).unwrap()
+    else {
+        panic!("checked naming choice must submit on Enter")
+    };
+    assert_eq!(interaction.arguments[0].value, b"roman");
+    assert_eq!(scene.face(), &original);
+}
+
 fn key(usage: u8, shift: bool) -> KeyEvent {
     KeyEvent::new(
         usage,

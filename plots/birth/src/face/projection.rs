@@ -71,6 +71,18 @@ pub(super) fn project(
         properties: vec![],
         actions: vec![],
         events: vec![],
+        disclosures: vec![
+            FaceDisclosure {
+                subject: root.clone(),
+                level: FaceDisclosureLevel::Primary,
+            },
+            // Preserve the structural name without repeating the primary title.
+            FaceDisclosure {
+                subject: main.clone(),
+                level: FaceDisclosureLevel::Context,
+            },
+        ],
+        selected_review_in_primary: !draft.search().trim().is_empty(),
     };
     projection.node(&view.root)?;
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
@@ -111,10 +123,7 @@ pub(super) fn project(
         projection.properties,
         projection.text,
         projection.actions,
-        vec![FaceDisclosure {
-            subject: root,
-            level: FaceDisclosureLevel::Primary,
-        }],
+        projection.disclosures,
     )
     .map_err(BirthFaceRefusal::Face)?;
     Ok((face, projection.events))
@@ -130,6 +139,8 @@ struct Projection {
     properties: Vec<FaceProperty>,
     actions: Vec<FaceAction>,
     events: Events,
+    disclosures: Vec<FaceDisclosure>,
+    selected_review_in_primary: bool,
 }
 fn contains(source: &str, target: &str) -> FaceRelationship {
     FaceRelationship {
@@ -159,7 +170,13 @@ impl Projection {
             target: subject.into(),
             name: action.label.clone(),
             arguments,
-            disclosure: FaceDisclosureLevel::CurrentAction,
+            // The Birth owner selects its primary commitment. Masks need no
+            // application action-name convention to distinguish it visually.
+            disclosure: if action.identity == "creche.birth" {
+                FaceDisclosureLevel::Primary
+            } else {
+                FaceDisclosureLevel::CurrentAction
+            },
             availability: match &action.availability {
                 ActionAvailability::Available => FaceActionAvailability::Available,
                 ActionAvailability::Busy { detail } => FaceActionAvailability::Unavailable {
@@ -186,9 +203,20 @@ impl Projection {
                     name: field.label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
+                let input_details = format!("{subject}/input-details");
+                self.subjects.push(FaceSubject {
+                    identity: input_details.clone(),
+                    role: FaceRole::Info,
+                    name: format!("{} input details", field.label),
+                });
+                self.relationships.push(contains(&subject, &input_details));
+                self.disclosures.push(FaceDisclosure {
+                    subject: input_details.clone(),
+                    level: FaceDisclosureLevel::SelectedDetail,
+                });
                 self.words(&subject, field.help.clone());
                 self.words(
-                    &subject,
+                    &input_details,
                     format!(
                         "Current value: {}.",
                         if field.value.is_empty() {
@@ -225,7 +253,7 @@ impl Projection {
                             });
                         for option in options {
                             self.words(
-                                &subject,
+                                &input_details,
                                 format!(
                                     "Choice: {}. Value: {}. {}.",
                                     option.label,
@@ -241,6 +269,27 @@ impl Projection {
                     }
                     _ => return Err(BirthFaceRefusal::UnsupportedMechanism),
                 }
+                argument
+                    .contract
+                    .validate(field.value.as_bytes())
+                    .map_err(|_| BirthFaceRefusal::InvalidProjection)?;
+                // The same Source value supplies readable fallback and exact
+                // input state. A Mask need not interpret the fallback prose.
+                self.properties.extend([
+                    FaceProperty {
+                        subject: subject.clone(),
+                        name: "current-value".into(),
+                        value: FacePropertyValue::TypedValue {
+                            contract: argument.contract.clone(),
+                            bytes: field.value.as_bytes().to_vec(),
+                        },
+                    },
+                    FaceProperty {
+                        subject: subject.clone(),
+                        name: "value-change-action".into(),
+                        value: FacePropertyValue::Identity(field.input_action.identity.clone()),
+                    },
+                ]);
                 self.action(&subject, &field.input_action, vec![argument]);
             }
             FaceMechanism::ChoiceGroup {
@@ -262,6 +311,20 @@ impl Projection {
                         name: option.label.clone(),
                     });
                     self.relationships.push(contains(&subject, &id));
+                    // Independent selection is already primary typed meaning.
+                    // Keep its readable fallback explicitly inspectable without
+                    // requiring any Mask to infer state from these words.
+                    let selection_details = format!("{id}/selection-details");
+                    self.subjects.push(FaceSubject {
+                        identity: selection_details.clone(),
+                        role: FaceRole::Info,
+                        name: format!("{} selection details", option.label),
+                    });
+                    self.relationships.push(contains(&id, &selection_details));
+                    self.disclosures.push(FaceDisclosure {
+                        subject: selection_details.clone(),
+                        level: FaceDisclosureLevel::SelectedDetail,
+                    });
                     self.properties.push(FaceProperty {
                         subject: id.clone(),
                         name: "selected".into(),
@@ -280,7 +343,7 @@ impl Projection {
                         });
                     }
                     self.words(
-                        &id,
+                        &selection_details,
                         if option.selected {
                             "Included.".into()
                         } else {
@@ -304,6 +367,14 @@ impl Projection {
                     name: title.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
+                // The unfiltered checked inventory already names every selected
+                // Plot. A filter must never make that review disappear.
+                if node.key.starts_with("birth-review-plot-") && !self.selected_review_in_primary {
+                    self.disclosures.push(FaceDisclosure {
+                        subject: subject.clone(),
+                        level: FaceDisclosureLevel::SelectedDetail,
+                    });
+                }
                 self.words(&subject, detail.clone());
             }
             _ => return Err(BirthFaceRefusal::UnsupportedMechanism),
