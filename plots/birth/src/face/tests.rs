@@ -7,6 +7,8 @@ use conduit_face::{
     FaceReadingRefusal, FaceRelationshipKind, FaceRole, FaceUtteranceProvenance,
     ManifestationLifecycle, UTF8_TEXT_VALUE_KIND, plan_face_utterances,
 };
+#[path = "collection_tests.rs"]
+mod collections;
 #[path = "field_value_tests.rs"]
 mod field_values;
 #[path = "fixtures.rs"]

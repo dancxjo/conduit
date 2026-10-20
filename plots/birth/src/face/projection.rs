@@ -6,6 +6,7 @@ use conduit_core::{CheckedValueContract, kind_id};
 use conduit_face::*;
 use sha2::{Digest, Sha256};
 
+mod collections;
 mod fields;
 
 type Events = Vec<(String, ApplicationEventKind)>;
@@ -88,6 +89,7 @@ pub(super) fn project(
         selected_review_in_primary: !draft.search().trim().is_empty(),
     };
     projection.node(&view.root)?;
+    projection.collections(draft);
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
         BirthProjectionBasis::Planned(b) => (
             Some(b.producer_plot.source_document_id.clone()),
