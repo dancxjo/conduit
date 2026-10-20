@@ -20,7 +20,7 @@ native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep
 [dependencies]
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
-conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
+conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog", "hosted-catalog-cache"] }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-alife-distributed-conformance = { path = "../../proof/conformance/alife-distributed" }
