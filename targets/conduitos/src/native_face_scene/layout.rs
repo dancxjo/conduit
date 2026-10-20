@@ -2,6 +2,9 @@
 use super::*;
 use alloc::string::String;
 
+#[path = "layout/panels.rs"]
+mod panels;
+
 pub(super) use super::chrome::{FOOTER, HEADER};
 pub(super) const MAX_PAGE_ROWS: usize = 20;
 const MAX_ROWS: usize = 32_768;
@@ -19,6 +22,7 @@ pub(super) struct Row {
     pub region_start: bool,
     pub padding: u16,
     pub checkbox: Option<bool>,
+    pub panel_bounds: Option<LayoutRect>,
 }
 
 impl Row {
@@ -47,6 +51,17 @@ pub(super) fn append_row_chrome(
     showing_details: bool,
     focused: bool,
 ) -> Result<(), FaceSceneError> {
+    if !showing_details && let Some(bounds) = row.panel_bounds {
+        push(
+            scene,
+            GraphicsCommand::rect(
+                bounds,
+                screen,
+                GraphicsPaintRole::Muted,
+                GraphicsShapeStyle::Stroke,
+            ),
+        )?;
+    }
     if !showing_details && row.region_start {
         push(
             scene,
@@ -180,39 +195,15 @@ pub(super) fn admit_with_expression(
         }
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
-            let mut end = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
-            while !remaining.is_char_boundary(end) {
-                end -= 1;
-            }
-            let height = loop {
-                if end == 0 {
-                    return Err(FaceSceneError::InvalidExtent);
-                }
-                let height = TextLayout::new_scaled(
-                    &remaining[..end],
-                    item.role.into(),
-                    text_width,
-                    text_scale_percent,
-                )
-                .map_err(|_| FaceSceneError::InvalidExtent)?
-                .finish_height();
-                if height <= u32::from(maximum_height) {
-                    break height as u16;
-                }
-                end -= 1;
-                while !remaining.is_char_boundary(end) {
-                    end -= 1;
-                }
-            };
+            let (end, height) = measure_prefix(
+                remaining,
+                item.role,
+                text_width,
+                maximum_height,
+                text_scale_percent,
+            )?;
             let box_height = height + padding * 2;
-            let cost = 1
-                + 2 * usize::from(item.checkbox.is_some())
-                + usize::from(item.control.is_some())
-                + usize::from(region_start)
-                + usize::from(matches!(
-                    item.role,
-                    GraphicsTextRole::Title | GraphicsTextRole::Heading
-                ));
+            let cost = row_commands(&item, region_start);
             let command_pressure = commands + cost > conduit_face::MAX_GRAPHICS_COMMANDS;
             if y + box_height > bottom || count == MAX_PAGE_ROWS || command_pressure {
                 column += 1;
@@ -237,6 +228,7 @@ pub(super) fn admit_with_expression(
                 region_start,
                 padding,
                 checkbox: item.checkbox,
+                panel_bounds: None,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,
                     y: y as i16,
@@ -252,4 +244,79 @@ pub(super) fn admit_with_expression(
         }
     }
     Ok(rows)
+}
+
+/// Recipe group identity is not a domain catalogue or a reading-order hint.
+/// The renderer's first pair follows authored region order, even when the
+/// complete primary reader encounters review/unmatched material first.
+pub(super) fn authored_panel_groups(groups: impl Iterator<Item = u8>) -> Option<[u8; 2]> {
+    let mut first = None;
+    for group in groups {
+        match first {
+            None => first = Some(group),
+            Some(prior) if prior != group => return Some([prior, group]),
+            _ => {}
+        }
+    }
+    None
+}
+
+pub(super) fn admit_configured(
+    items: Vec<document::Item>,
+    screen: LayoutRect,
+    gutter: u16,
+    columns: u16,
+    text_scale_percent: u16,
+    padding: u16,
+    groups: Option<[u8; 2]>,
+) -> Result<Vec<Row>, FaceSceneError> {
+    if columns == 2
+        && screen.width >= 640
+        && let Some(groups) = groups
+    {
+        if groups[0] == groups[1] || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        panels::admit(items, screen, gutter, text_scale_percent, padding, groups)
+    } else {
+        admit_with_expression(items, screen, gutter, columns, text_scale_percent, padding)
+    }
+}
+
+fn row_commands(item: &document::Item, region_start: bool) -> usize {
+    1 + 2 * usize::from(item.checkbox.is_some())
+        + usize::from(item.control.is_some())
+        + usize::from(region_start)
+        + usize::from(matches!(
+            item.role,
+            GraphicsTextRole::Title | GraphicsTextRole::Heading
+        ))
+}
+
+fn measure_prefix(
+    remaining: &str,
+    role: GraphicsTextRole,
+    width: u16,
+    maximum_height: u16,
+    scale: u16,
+) -> Result<(usize, u16), FaceSceneError> {
+    let mut end = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
+    while !remaining.is_char_boundary(end) {
+        end -= 1;
+    }
+    loop {
+        if end == 0 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        let height = TextLayout::new_scaled(&remaining[..end], role.into(), width, scale)
+            .map_err(|_| FaceSceneError::InvalidExtent)?
+            .finish_height();
+        if height <= u32::from(maximum_height) {
+            return Ok((end, height as u16));
+        }
+        end -= 1;
+        while !remaining.is_char_boundary(end) {
+            end -= 1;
+        }
+    }
 }
