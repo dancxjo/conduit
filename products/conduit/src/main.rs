@@ -142,12 +142,7 @@ fn run_with_placements(
                 "numerical stdin Fore uses its exact local Source-selected Body Plan".into(),
             );
         }
-        return numerical_run::run(
-            &source,
-            &source.expand_entry_for_authoring()?,
-            report_path,
-            artifact_directory,
-        );
+        return numerical_run::run(&source, report_path, artifact_directory);
     }
     let plot = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;

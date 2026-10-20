@@ -11,14 +11,20 @@ use std::{
 
 pub(crate) fn run(
     source: &CanonicalSource,
-    authored: &conduit_plot::ExpandedAuthoringPlot,
     report_path: Option<&Path>,
     artifacts: Option<&Path>,
 ) -> Result<(), String> {
     if artifacts.is_some_and(Path::exists) {
         return Err("execution artifact destination already exists".into());
     }
-    let (host, plan) = prepare(source, authored)?;
+    let checked = source.check()?;
+    let authored = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "quantity-projection/main",
+        source.authoring_catalog(),
+    )
+    .map_err(|e| format!("{e:?}"))?;
+    let (host, plan) = prepare(source, &checked, &authored)?;
     let metadata = (report_path.is_some() || artifacts.is_some())
         .then(|| (host.advertisement().clone(), plan.clone()));
     let mut execution = NumericalFore::from_plan(host, plan)?;
@@ -135,6 +141,7 @@ fn write_json(path: &Path, value: &serde_json::Value) -> Result<(), String> {
 }
 fn prepare(
     source: &CanonicalSource,
+    checked: &conduit_plot::CheckedSyntaxDocument,
     authored: &conduit_plot::ExpandedAuthoringPlot,
 ) -> Result<(StdHost, Plan), String> {
     if authored.expanded.name != "quantity-projection/main"
@@ -145,9 +152,8 @@ fn prepare(
         );
     }
     let activation = &authored.expanded.activations[0];
-    let checked = source.check()?;
     let child = conduit_plot::expand_canonical_plot_for_authoring(
-        &checked,
+        checked,
         &activation.selected_plot,
         source.authoring_catalog(),
     )
@@ -203,7 +209,7 @@ fn prepare(
         })
         .collect();
     let plan = conduit_planner::plan_expanded_authoring_with_activations(
-        &checked,
+        checked,
         authored,
         source.authoring_catalog(),
         &conduit_plot::CanonicalBackCatalog::new(),
