@@ -18,10 +18,10 @@ mod parser_scorer;
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
-#[path = "../suites/record_pronunciation.rs"]
-mod record_pronunciation;
 #[path = "../suites/prosody_commitment.rs"]
 mod prosody_commitment;
+#[path = "../suites/record_pronunciation.rs"]
+mod record_pronunciation;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
