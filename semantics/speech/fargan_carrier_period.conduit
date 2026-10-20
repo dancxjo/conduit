@@ -1,0 +1,36 @@
+# One explicitly bounded original-cycle projection, not a new clock or F0 estimate.
+# Profile1:16kHz, original unreduced U32 ratio, pre-round support32..255,
+# nearest integer with exact half ties upward. No clamp or octave substitution.
+type SpeechFarganPeriodInput = {
+ cycle: SpeechFundamentalCycle
+ where .cycle.numerator_seconds <= 4294967295
+ where .cycle.denominator <= 4294967295
+}
+# Unrefined proposal: construction is not admission of the supported period.
+type SpeechFarganPeriodRawProjection = {
+ supported: Boolean
+ whole_frames: U64
+ remainder_numerator: U64
+ rounded_frames: U64
+ rounded_up: Boolean
+}
+plot speech/fargan-carrier-period (
+ >> value: SpeechFarganPeriodInput
+ result: SpeechFarganPeriodRawProjection >>
+) = ({supported: .cycle.numerator_seconds * 16000 >= .cycle.denominator * 32 && .cycle.numerator_seconds * 16000 <= .cycle.denominator * 255, whole_frames: .cycle.numerator_seconds * 16000 / .cycle.denominator, remainder_numerator: .cycle.numerator_seconds * 16000 % .cycle.denominator, rounded_frames: .cycle.numerator_seconds * 16000 / .cycle.denominator + ((.cycle.numerator_seconds * 16000 % .cycle.denominator) * 2 >= .cycle.denominator ? 1 : 0), rounded_up: (.cycle.numerator_seconds * 16000 % .cycle.denominator) * 2 >= .cycle.denominator})
+# This proof packet retains the exact physical input and quantization remainder.
+# The result is passed as one integer to feature18, correlation and embedding;
+# it does not independently establish arbitrary caller-supplied feature20 arrays.
+type SpeechFarganPeriodProjection = {
+ input: SpeechFarganPeriodInput
+ whole_frames: U64 in 32..=255
+ remainder_numerator: U64
+ rounded_frames: U64 in 32..=255
+ rounded_up: Boolean
+ where .remainder_numerator < .input.cycle.denominator
+ where .whole_frames * .input.cycle.denominator + .remainder_numerator == .input.cycle.numerator_seconds * 16000
+ where .input.cycle.numerator_seconds * 16000 >= .input.cycle.denominator * 32
+ where .input.cycle.numerator_seconds * 16000 <= .input.cycle.denominator * 255
+ where .rounded_up == (.remainder_numerator * 2 >= .input.cycle.denominator)
+ where .rounded_frames == .whole_frames + (.rounded_up ? 1 : 0)
+}

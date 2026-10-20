@@ -1,0 +1,49 @@
+# Exact-duration endpoint profile's one audible160sample frame:
+# previous raw frame last80, then current raw frame first80.
+# Inputs are the existing four40sample frame ports, wired by authored outer Source:
+# previous.pcm2, previous.result.pcm_f32, current.pcm0, current.pcm1.
+# These Value concatenations copy finite elements; no arithmetic or host trimming.
+# Required generic owner specializations: concatenate40x40 and concatenate80x80.
+plot speech/fargan-audible-frame (
+ >> previous_pcm2: NumericF32Vector40
+ >> previous_pcm3: NumericF32Vector40
+ >> current_pcm0: NumericF32Vector40
+ >> current_pcm1: NumericF32Vector40
+ result: NumericF32Vector160 >>
+) {
+ tail: numeric/concatenate40x40
+ head: numeric/concatenate40x40
+ audible: numeric/concatenate80x80
+ previous_pcm2 >> tail.left
+ previous_pcm3 >> tail.right
+ current_pcm0 >> head.left
+ current_pcm1 >> head.right
+ tail.result >> audible.left
+ head.result >> audible.right
+ audible.result >> result
+}
+
+# Unheard boundary halves are retained as outputs for actual evidence consumers.
+# They are NOT audible PCM, no-op completion flags, or physical silence claims.
+# Outer Source wires B0.pcm0/pcm1 here; it must stage this output with all state.
+plot speech/fargan-unheard-leading-half (
+ >> pcm0: NumericF32Vector40
+ >> pcm1: NumericF32Vector40
+ result: NumericF32Vector80 >>
+) {
+ retain: numeric/concatenate40x40
+ pcm0 >> retain.left
+ pcm1 >> retain.right
+ retain.result >> result
+}
+# Outer Source wires B50.pcm2/result.pcm_f32 here before the final commit.
+plot speech/fargan-unheard-trailing-half (
+ >> pcm2: NumericF32Vector40
+ >> pcm3: NumericF32Vector40
+ result: NumericF32Vector80 >>
+) {
+ retain: numeric/concatenate40x40
+ pcm2 >> retain.left
+ pcm3 >> retain.right
+ retain.result >> result
+}

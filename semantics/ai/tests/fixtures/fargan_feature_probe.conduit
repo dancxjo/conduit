@@ -1,0 +1,47 @@
+# Diagnostic observation wrapper only: actual policy remains in Speech Source.
+# Duplicate spectral path exposes intermediates without changing the full frame.
+plot speech-test/fargan-feature-probe (
+    >> waveform: NumericF32Vector640
+    >> period: FarganPeriod
+    >> band_weights: NumericF32MatrixRef161x18
+    >> band_bias: NumericF32BiasRef18
+    >> dct_weights: NumericF32MatrixRef18x18
+    phase: NumericF32Vector322 >>
+    power: NumericF32Vector161 >>
+    bands: NumericF32Vector18 >>
+    features: NumericF32Vector20 >>
+) {
+    basis: speech/fargan-feature-window-basis
+    window: speech/fargan-feature-window
+    finite: numeric/finite-vector320
+    transform: numeric/real-dft320
+    magnitude: numeric/magnitude-squared161
+    energy: numeric/dense161x18
+    full: speech/fargan-feature-frame
+    waveform >> basis.waveform
+    basis.result >> window.value
+    window.result >> finite.value
+    finite.result >> transform.value
+    transform.result >> phase
+    transform.result >> magnitude.value
+    magnitude.result >> power
+    magnitude.result >> energy.value
+    band_weights >> energy.weights
+    band_bias >> energy.bias
+    energy.result >> bands
+    waveform >> full.waveform
+    period >> full.period
+    band_weights >> full.band_weights
+    band_bias >> full.band_bias
+    dct_weights >> full.dct_weights
+    full.result >> features
+}
+
+plot speech-test/fargan-admit160 (
+    >> value: NumericRawF32Vector160
+    result: NumericF32Vector160 >>
+) {
+    finite: numeric/finite-vector160
+    value >> finite.value
+    finite.result >> result
+}
