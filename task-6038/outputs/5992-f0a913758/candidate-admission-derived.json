@@ -1,0 +1,51 @@
+{
+  "source": "f0a913758b0dec61d9c620da385b6aa5a41bbf06",
+  "base": "00525faf30522b6851d226613e61e277f2b48f43",
+  "plan": {
+    "packages": [
+      "conduit-host-conduitos-make",
+      "conduitos"
+    ],
+    "broad": false,
+    "native": true,
+    "smoke": false
+  },
+  "commands": [
+    {
+      "program": "cargo",
+      "args": [
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-host-conduitos-make",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "conduitos/hosted-tools,conduitos/native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "program": "cargo",
+      "args": [
+        "test",
+        "--locked",
+        "--no-fail-fast",
+        "-p",
+        "conduit-host-conduitos-make",
+        "-p",
+        "conduitos",
+        "--features",
+        "conduitos/hosted-tools,conduitos/native-compositor",
+        "--",
+        "--test-threads=1"
+      ]
+    }
+  ],
+  "logs": [
+    "Admission packages: conduit-host-conduitos-make, conduitos"
+  ]
+}

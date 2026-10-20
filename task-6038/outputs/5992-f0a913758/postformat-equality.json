@@ -1,0 +1,23 @@
+{
+  "preformat_test_body_sha256": "fd51228d7e3e2a8896d2db87884e406939ad9e072d1660753b1f1639a6a41d0c",
+  "postformat_test_body_sha256": "b4432219546bb7a2344a41025e579d26963cbc5be653b6c7ca341c605b098f0d",
+  "production_prefix_byte_identical": true,
+  "exact_three_known_whitespace_replacements_only": true,
+  "replacements": [
+    [
+      "        let measured =\n            crate::display::text_height(label.payload(), label.bounds.width).unwrap();",
+      "        let measured = crate::display::text_height(label.payload(), label.bounds.width).unwrap();"
+    ],
+    [
+      "    assert!(scene.commands().iter().take(16).all(|command| {\n        command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible\n    }));",
+      "    assert!(\n        scene.commands().iter().take(16).all(|command| {\n            command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible\n        })\n    );"
+    ],
+    [
+      "        command.payload().contains(\"value/text\")\n            && command.paint == GraphicsPaintRole::Foreground",
+      "        command.payload().contains(\"value/text\") && command.paint == GraphicsPaintRole::Foreground"
+    ]
+  ],
+  "focus_tests_before_formatting_passed": 19,
+  "fmt_check_passed": true,
+  "no_test_name_or_literal_or_operator_change": true
+}

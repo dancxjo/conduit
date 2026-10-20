@@ -1,0 +1,8 @@
+{
+  "source": "f0a913758b0dec61d9c620da385b6aa5a41bbf06",
+  "prior": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "production_prefix_byte_identical": true,
+  "entire_test_module_body_dedent_byte_identical": true,
+  "tests_sha256": "fd51228d7e3e2a8896d2db87884e406939ad9e072d1660753b1f1639a6a41d0c",
+  "module_and_test_identities_preserved": true
+}

@@ -1,0 +1,29 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 1m 27s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 19 tests
+test tour_workspace::graph::projection_tests::configured_literal_is_visible_without_claiming_an_observed_output ... ok
+test tour_workspace::graph::projection_tests::configured_preview_comes_from_checked_source_and_remains_bounded ... ok
+test tour_workspace::graph::projection_tests::cord_storage_order_preserves_exact_endpoint_geometry ... ok
+test tour_workspace::graph::projection_tests::gear_storage_order_cannot_rewire_or_reposition_cards ... ok
+test tour_workspace::graph::projection_tests::removed_cord_is_not_replaced_by_an_assumed_adjacent_connection ... ok
+test tour_workspace::graph::projection_tests::tour_viewport_refuses_a_graph_with_an_unrepresented_gear ... ok
+test tour_workspace::graph::tests::canonical_cords_join_measured_port_rows_with_one_command_each ... ok
+test tour_workspace::graph::tests::hit_regions_match_card_edges_and_exclude_headers_and_gaps ... ok
+test tour_workspace::graph::tests::port_caps_refuse_coordinate_overflow ... ok
+test tour_workspace::graph::tests::previews_distinguish_absence_empty_and_bounded_unicode ... ok
+test tour_workspace::lesson::tests::prose_measurement_is_positive_and_bounded ... ok
+test tour_workspace::tests::chooser_label_fits_a_complete_measured_font_line ... ok
+test tour_workspace::tests::conduitos_consumes_the_tour_owned_portable_view ... ok
+test tour_workspace::tests::default_workspace_reserves_status_without_rescaling_pointer_space ... ok
+test tour_workspace::tests::graph_cards_project_catalog_ports_and_selected_gear ... ok
+test tour_workspace::tests::native_focus_tracks_the_shared_phase_key ... ok
+test tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus ... ok
+test tour_workspace::tests::native_scene_refuses_an_empty_viewport ... ok
+test tour_workspace::tests::selected_workspace_reserves_inspector_and_status_without_rescaling_pointer_space ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1206 filtered out; finished in 0.75s
+
