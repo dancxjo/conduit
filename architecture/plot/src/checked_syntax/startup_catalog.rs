@@ -1,4 +1,5 @@
 //! Installed checking-time Kind, Type and authoring contracts.
+mod read_dependencies;
 mod refinement_diagnostic;
 use refinement_diagnostic::NativeRefinementDiagnosticOwner;
 pub use refinement_diagnostic::{NativeRefinementDiagnosticCallback, NativeRefinementSource};
@@ -14,6 +15,8 @@ pub use typed_literal::*;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct StartupCatalog {
+    #[cfg(target_has_atomic = "ptr")]
+    read_trace: crate::preparation_cache::read_trace::TraceHandle,
     pub(crate) physical: crate::physical_declarations::CheckedPhysicalCatalogue,
     pub(crate) physical_sources: Vec<crate::SyntaxDocument>,
     pub(crate) literal_owners:
@@ -49,6 +52,7 @@ impl StartupCatalog {
     }
 
     pub fn insert(&mut self, signature: KindSignature) -> Result<(), String> {
+        self.observe_signature(&signature.kind);
         if self.kinds.contains_key(&signature.kind)
             || self.typed_literal_families.contains_key(&signature.kind)
         {
@@ -106,6 +110,7 @@ impl StartupCatalog {
         parameter: &str,
         value_type: &conduit_core::StructuredInfoType,
     ) -> Result<(String, String), String> {
+        self.observe_signature(kind);
         let signature = self
             .kinds
             .get(kind)
@@ -136,6 +141,7 @@ impl StartupCatalog {
     }
 
     pub(crate) fn get(&self, kind: &str) -> Option<&KindSignature> {
+        self.observe_signature(kind);
         self.kinds.get(kind)
     }
 
@@ -144,6 +150,7 @@ impl StartupCatalog {
     /// Reusable Back installers use this together with the profile contract so
     /// substitution checks the complete Front, including startup parameters.
     pub fn signature(&self, kind: &str) -> Option<&KindSignature> {
+        self.observe_signature(kind);
         self.kinds.get(kind)
     }
 
@@ -151,6 +158,7 @@ impl StartupCatalog {
     /// runtime port shape, such as glyph operand binding. This is not a Back or
     /// planning profile: it carries no implementation or availability truth.
     pub fn insert_fore(&mut self, kind: &str, fore: CheckedFront) -> Result<(), String> {
+        self.observe_signature(kind);
         let signature = self
             .kinds
             .get(kind)
@@ -163,6 +171,7 @@ impl StartupCatalog {
                 "checked Fore startup parameters differ from Kind '{kind}' signature"
             ));
         }
+        self.observe_fore(kind);
         if self.fores.contains_key(kind) {
             return Err(format!("duplicate checked Fore for Kind '{kind}'"));
         }
@@ -171,6 +180,7 @@ impl StartupCatalog {
     }
 
     pub fn fore(&self, kind: &str) -> Option<&CheckedFront> {
+        self.observe_fore(kind);
         self.fores.get(kind)
     }
 
@@ -181,6 +191,7 @@ impl StartupCatalog {
         kind: &str,
         family: crate::HomogeneousVariadicFore,
     ) -> Result<(), String> {
+        self.observe_signature(kind);
         let signature = self
             .kinds
             .get(kind)
@@ -189,6 +200,7 @@ impl StartupCatalog {
             .canonical_startup_parameters(signature)
             .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
         family.specialize(usize::from(family.minimum_inputs()), startup_parameters)?;
+        self.observe_variadic(kind);
         if self.variadic_fores.contains_key(kind) {
             return Err(format!("duplicate variadic Fore for Kind '{kind}'"));
         }
@@ -201,7 +213,9 @@ impl StartupCatalog {
         kind: &str,
         input_count: usize,
     ) -> Result<Option<CheckedFront>, String> {
+        self.observe_variadic(kind);
         if let Some(family) = self.variadic_fores.get(kind) {
+            self.observe_signature(kind);
             let signature = self
                 .kinds
                 .get(kind)
@@ -211,6 +225,7 @@ impl StartupCatalog {
                 .map_err(|error| format!("invalid variadic Fore for Kind '{kind}': {error:?}"))?;
             return family.specialize(input_count, startup_parameters).map(Some);
         }
+        self.observe_fore(kind);
         Ok(self
             .fores
             .get(kind)

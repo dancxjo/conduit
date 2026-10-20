@@ -6,6 +6,14 @@ use conduit_face::{Face, FaceInteraction, MaskShow};
 use serde_json::{Value, json};
 
 fn emit(prefix: &[u8], record: &Value) -> Result<(), &'static str> {
+    #[cfg(feature = "native-latency-observation")]
+    let observed = crate::native_observation::counter_ticks().map(|ticks| {
+        let mut observed = record.clone();
+        observed["native_observer"] = json!({"clock":"x86-tsc-lfence","ticks":ticks});
+        observed
+    });
+    #[cfg(feature = "native-latency-observation")]
+    let record = observed.as_ref().unwrap_or(record);
     let bytes = serde_json::to_vec(record).map_err(|_| "native-action-evidence-encoding")?;
     if bytes.len() > 96 * 1024 {
         return Err("native-action-evidence-bound");
@@ -184,6 +192,57 @@ pub(super) fn action(
             "before": snapshot(before), "after": snapshot(after),
         }),
     )
+}
+
+/// Mask-local reading acknowledgement after exact Show validation and scanout.
+/// The owning Face remains unchanged; page navigation is a presenter operation.
+pub(super) fn reading(
+    mask: &crate::native_face_mask::NativeFaceMask,
+    usage: u8,
+    previous_page: usize,
+) -> Result<(), &'static str> {
+    #[cfg(feature = "native-latency-observation")]
+    {
+        let scene = mask.scene().ok_or("reading-observation-scene-absent")?;
+        let show = mask.show().ok_or("reading-observation-show-absent")?;
+        emit(
+            b"CONDUIT_NATIVE_READING ",
+            &json!({
+                "schema":"conduit.native-reading/v1", "usage":usage,
+                "previous_page":previous_page,"page":scene.page(),"pages":scene.pages(),
+                "face_id":show.face_id,"face_revision":show.face_revision,
+                "show_id":show.show_id,"manifestation_id":show.show.manifestation_id,
+                "host_id":show.show.host_id,"boot_id":show.show.boot_id,
+                "disposition":"mask-local-input-acknowledged-and-drawn"
+            }),
+        )?;
+    }
+    #[cfg(not(feature = "native-latency-observation"))]
+    let _ = (mask, usage, previous_page);
+    Ok(())
+}
+
+#[cfg(feature = "native-latency-observation")]
+pub(super) fn journey_timing(
+    projection: &JourneyProjection,
+    receipt: &crate::native_compositor::CompositionReceipt,
+) {
+    // Diagnostic failure stays explicit; it cannot replace authoritative Signs.
+    if emit(
+        b"CONDUIT_NATIVE_JOURNEY_TIMING ",
+        &json!({
+            "schema":"conduit.native-journey-timing/v1", "revision":projection.revision,
+            "input_count":projection.input_count,"input_sign_id":projection.input_sign_id,
+            "active_play_id":projection.active_play_id,"status":projection.status.as_str(),
+            "face_id":receipt.face_id,"manifestation_id":receipt.manifestation_id,
+            "host_id":projection.host_id,"boot_id":projection.boot_id
+        }),
+    )
+    .is_err()
+    {
+        #[cfg(not(test))]
+        crate::arch::early_write(b"CONDUIT_NATIVE_TIMING_REFUSAL custody-record-bound\n");
+    }
 }
 
 #[cfg(test)]

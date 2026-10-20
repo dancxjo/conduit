@@ -29,6 +29,14 @@ pub fn execute_architecture_proof(
     assemble_architecture_proof(arch, opts)
 }
 
+pub(super) fn execute_native_latency(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_native_latency(opts)?;
+    build
+        .artifact_role
+        .require(ArtifactRole::ArchitectureProofAppliance)?;
+    assemble_architecture_proof(ConduitosArch::X86_64, opts)
+}
+
 pub(super) fn execute_hotplug(
     arch: ConduitosArch,
     opts: &GlobalOpts,

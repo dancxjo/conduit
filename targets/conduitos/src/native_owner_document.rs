@@ -85,7 +85,7 @@ mod tests {
 
     #[test]
     fn large_owner_document_crosses_finite_native_frames() {
-        let value = serde_json::json!({"face":"x".repeat(20_000)});
+        let value = serde_json::json!({"face":"x".repeat(MAXIMUM_BINARY_MESSAGE_BYTES)});
         let document = serde_json::to_vec(&value).unwrap();
         let digest: [u8; 32] = Sha256::digest(&document).into();
         let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
@@ -97,6 +97,7 @@ mod tests {
             frames.push(frame[..length].to_vec());
             offset = next;
         }
+        assert!(frames.len() > 1, "exercise document continuation");
         let mut line = Frames { frames, next: 0 };
         let received: serde_json::Value = receive(&mut line, 64 * 1024).unwrap();
         assert_eq!(received, value);
@@ -105,11 +106,13 @@ mod tests {
 
     #[test]
     fn truncated_or_tampered_owner_document_refuses() {
-        let value = serde_json::json!({"face":"x".repeat(20_000)});
+        let value = serde_json::json!({"face":"x".repeat(MAXIMUM_BINARY_MESSAGE_BYTES)});
         let document = serde_json::to_vec(&value).unwrap();
         let digest: [u8; 32] = Sha256::digest(&document).into();
         let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
-        let (length, _) = encode_bounded_document_chunk(&mut frame, &document, 0, &digest).unwrap();
+        let (length, next) =
+            encode_bounded_document_chunk(&mut frame, &document, 0, &digest).unwrap();
+        assert!(next < document.len(), "the first frame must be incomplete");
         let mut line = Frames {
             frames: vec![frame[..length].to_vec()],
             next: 0,

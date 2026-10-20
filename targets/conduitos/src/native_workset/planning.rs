@@ -98,6 +98,9 @@ pub(crate) fn prepare_exact(
     offer: &HostOffer<'_>,
     build_id: &str,
 ) -> Result<PreparedNativeWorkset, WorksetRefusal> {
+    let _native_timing = crate::native_observation::Interval::begin(
+        crate::native_observation::Stage::WorksetPrepare,
+    );
     plan.validate_for(wake).map_err(|_| WorksetRefusal::Plan)?;
     let plots = propose_partitions(&wake.workset, identities, offer, build_id)?;
     if plots != plan.plots {

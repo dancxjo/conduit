@@ -35,7 +35,15 @@ export function admissionPlan(paths, metadata, root) {
     if (/^(?:tools\/ci\/|proof\/ci\/|\.github\/)/.test(name)) {
       for (const item of owners.filter(item => item.directory.startsWith('tools/xtask'))) selected.add(item.pkg.name);
     }
-    else if (owner) selected.add(owner.pkg.name);
+    else if (owner) {
+      selected.add(owner.pkg.name);
+      // The dispatcher includes shared xtask modules by source path, outside
+      // Cargo's dependency graph. Compile both entrances for these edits so a
+      // module-layout error cannot pass Candidate and fail Integration later.
+      if (owner.directory === 'tools/xtask') {
+        for (const item of owners.filter(item => item.directory === 'tools/xtask-dispatch')) selected.add(item.pkg.name);
+      }
+    }
     else if (name.startsWith('plots/')) {
       // Authored plots and their inventory are consumed by the product and
       // xtask catalog commands, rather than every workspace package.
@@ -62,12 +70,16 @@ export function runAdmission(paths, metadata, root, run, { workspaceChecked = fa
   if (paths.length && paths.every(preflightOnly)) return;
   const runtimePaths = paths.filter(name => !preflightOnly(name));
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
-  const languageFeatures = plan.packages.includes('conduit-language') ? ['--features', 'conduit-language/parser-model'] : [];
+  const enabledFeatures = [
+    ...(plan.packages.includes('conduit-language') ? ['conduit-language/parser-model'] : []),
+    ...(plan.packages.includes('conduitos') ? ['conduitos/hosted-tools', 'conduitos/native-compositor'] : []),
+  ];
+  const featureArguments = enabledFeatures.length ? ['--features', enabledFeatures.join(',')] : [];
   const lintPackages = plan.broad ? ['--workspace'] : plan.packages.flatMap(name => ['-p', name]);
-  if (!workspaceChecked && lintPackages.length) run('cargo', ['clippy', '--locked', ...lintPackages, '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
-  else if (languageFeatures.length) {
-    // Parallel workspace lint does not enable this optional consumer feature.
-    run('cargo', ['clippy', '--locked', '-p', 'conduit-language', '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
+  if (!workspaceChecked && lintPackages.length) run('cargo', ['clippy', '--locked', ...lintPackages, '--all-targets', ...featureArguments, '--', '-D', 'warnings']);
+  else if (featureArguments.length) {
+    // Explicit consumer features must also be linted after parallel package proof.
+    run('cargo', ['clippy', '--locked', ...['conduit-language', 'conduitos'].filter(name => plan.packages.includes(name)).flatMap(name => ['-p', name]), '--all-targets', ...featureArguments, '--', '-D', 'warnings']);
   }
   const catalogChanges = runtimePaths.filter(name => name.startsWith('semantics/catalog/') && !name.endsWith('.md'));
   const numericalCatalog = !plan.broad && catalogChanges.length > 0 && catalogChanges.every(name =>
@@ -83,7 +95,7 @@ export function runAdmission(paths, metadata, root, run, { workspaceChecked = fa
     return !plan.broad && plan.packages.includes(consumer.name) && changes.some(name => name.includes('numerical')) && changes.every(name => consumer.allowed.test(name));
   });
   const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog') && !consumers.some(consumer => consumer.name === name));
-  if (packages.length && !workspaceChecked) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), ...languageFeatures, '--', '--test-threads=1']);
+  if (packages.length && !workspaceChecked) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), ...featureArguments, '--', '--test-threads=1']);
   const libraries = [...consumers.map(consumer => consumer.name), ...(numericalCatalog ? ['conduit-semantic-catalog'] : [])];
   if (libraries.length) {
     // One feature-unified compiler context avoids rebuilding the same Host and

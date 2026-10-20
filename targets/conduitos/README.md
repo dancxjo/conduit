@@ -135,6 +135,7 @@ host. See [Raspberry Pi](../raspberry-pi/make/README.md) and
 | Command | What it checks |
 | --- | --- |
 | `cargo xtask make conduitos journey-proof` | Birth two resident plots, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
+| `cargo xtask make conduitos native-latency-proof` | Observe three fresh QEMU journeys over one image, with bounded raw guest counters, six typed values and reader pagination; retain separate host process/capture intervals and failed families under `target/conduitos/x86_64/native-latency/`. `--trials 1..8` changes the finite repetition count. No inferred counter frequency or physical claim. |
 | `cargo xtask make conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
 | `cargo xtask make conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
 | `cargo xtask make conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |
