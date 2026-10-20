@@ -210,7 +210,12 @@ impl<const P: usize> StepBack<P> for KernelEachBack {
                     StepOutcome::Yield
                 }
             }
-            BoundedActivationState::Succeeded { .. } => StepOutcome::Progress,
+            BoundedActivationState::Succeeded { .. } => {
+                // Child retirement changes only subordinate state. It does not
+                // claim a parent port transaction; yield before awaiting input.
+                io.exhaust_fuel();
+                StepOutcome::Yield
+            }
             BoundedActivationState::Drained if self.input_closed => StepOutcome::Complete,
             BoundedActivationState::Faulted {
                 fault:
