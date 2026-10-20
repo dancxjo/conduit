@@ -30,7 +30,16 @@ fn authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence(
         let input =
             RationalQuantity::from_quantity(quantity, &mut ExactNumericWork::new(200_000_000))
                 .unwrap();
-        let output = execution.execute(quantity).unwrap();
+        let output = match execution.execute(quantity) {
+            Ok(output) => output,
+            Err(why) => {
+                let report = execution.finish().unwrap();
+                panic!(
+                    "Value {index}: {why}; terminal {:?}; failure {:?}; children {:?}",
+                    report.terminal, report.failure, report.each_child_signs
+                );
+            }
+        };
         assert_eq!(output.value.source(), input);
         assert_eq!(output.play, play);
         assert!(!output.canonical.is_empty());
