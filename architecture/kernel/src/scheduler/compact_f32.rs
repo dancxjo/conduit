@@ -4,8 +4,9 @@ use alloc::{boxed::Box, vec::Vec};
 
 // Only selected hosted profiles allocate this fixed-capacity sidecar.
 pub(super) struct CompactF32Bindings<const N: usize, const P: usize> {
-    inputs: [[bool; P]; N],
-    outputs: [Option<(PortId, CompactF32Layout)>; N],
+    pub(super) inputs: [[bool; P]; N],
+    pub(super) outputs: [Option<(PortId, CompactF32Layout)>; N],
+    pub(super) owned: Option<Box<[Option<crate::PreparedCompactF32Output>; N]>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -105,9 +106,17 @@ where
     }
     /// Additional prepared heap backing. The unselected profile owns none.
     pub fn compact_f32_binding_bytes(&self) -> usize {
-        self.compact_f32_bindings
-            .as_ref()
-            .map_or(0, |_| core::mem::size_of::<CompactF32Bindings<N, P>>())
+        self.compact_f32_bindings.as_ref().map_or(0, |bindings| {
+            core::mem::size_of::<CompactF32Bindings<N, P>>()
+                + bindings.owned.as_ref().map_or(0, |owned| {
+                    core::mem::size_of_val(owned.as_ref())
+                        + owned
+                            .iter()
+                            .flatten()
+                            .map(|owner| owner.reserved_storage_bytes())
+                            .sum::<usize>()
+                })
+        })
     }
     /// Exact Host/Plan preparation must prove purity, type, temporal and resource
     /// eligibility. This binder checks physical layout, local DAG topology,
@@ -315,6 +324,7 @@ where
             Box::new(CompactF32Bindings {
                 inputs: [[false; P]; N],
                 outputs: [None; N],
+                owned: None,
             })
         });
         self.bind_execution_dag(nodes)?;
