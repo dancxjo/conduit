@@ -159,7 +159,12 @@ fn arrow_choice_is_a_cancellable_draft_until_the_checked_enter_submission() {
     assert!(
         scene
             .input
-            .preview(scene.focused())
+            .preview(
+                scene.focused(),
+                &chrome::Chrome::prepare(scene.screen, scene.text_scale_percent).unwrap(),
+                scene.text_scale_percent
+            )
+            .unwrap()
             .unwrap()
             .contains("Draft: roman")
     );
@@ -168,7 +173,17 @@ fn arrow_choice_is_a_cancellable_draft_until_the_checked_enter_submission() {
         scene.key(press(41), &show, 2).unwrap(),
         FaceSceneInput::Changed
     ));
-    assert_eq!(scene.input.preview(scene.focused()), None);
+    assert_eq!(
+        scene
+            .input
+            .preview(
+                scene.focused(),
+                &chrome::Chrome::prepare(scene.screen, scene.text_scale_percent).unwrap(),
+                scene.text_scale_percent
+            )
+            .unwrap(),
+        None
+    );
     assert_eq!(scene.face(), &face);
     assert!(matches!(
         scene.key(press(79), &show, 3).unwrap(),
