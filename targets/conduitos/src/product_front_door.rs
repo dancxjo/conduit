@@ -137,7 +137,7 @@ pub fn run(
             generation,
         )?
     } else {
-        arrival::open(&mut front_door, &mut journey, identities, offer, make)?;
+        arrival::open(&mut front_door, &mut journey, identities, offer)?;
         None
     };
     let mut owner_route = owner_face
