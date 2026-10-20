@@ -8,7 +8,7 @@ use crate::{
 use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::*;
 use std::{
-    sync::{mpsc, Arc},
+    sync::{mpsc, Arc, Mutex},
     thread::JoinHandle,
     time::Duration,
 };
@@ -16,23 +16,52 @@ use std::{
 pub struct NumericalFore {
     queue: BodyLiveForeQueue,
     control: RunControl,
-    outputs: mpsc::Receiver<Vec<u8>>,
+    outputs: mpsc::Receiver<AcceptedValue>,
+    expected: Arc<Mutex<Option<[u8; 32]>>>,
     worker: Option<JoinHandle<Result<BodyRunReport, String>>>,
     play: BodyPlayIdentity,
     body_plan: Arc<BodyPlan>,
-    verifier: PreparedNearQuantityVerifier,
-    limit: RationalQuantity,
 }
 pub struct NumericalValue {
     pub value: VerifiedNearQuantity,
     pub canonical: Vec<u8>,
     pub play: BodyPlayIdentity,
 }
-struct Capture(mpsc::SyncSender<Vec<u8>>);
+struct AcceptedValue {
+    value: VerifiedNearQuantity,
+    canonical: Vec<u8>,
+}
+struct Capture {
+    output: mpsc::SyncSender<AcceptedValue>,
+    expected: Arc<Mutex<Option<[u8; 32]>>>,
+    verifier: PreparedNearQuantityVerifier,
+    limit: RationalQuantity,
+}
 impl BodyForeOutputAdapter for Capture {
     fn deliver(&mut self, output: &ExternalForeDelivery) -> Result<(), String> {
-        self.0
-            .send(output.bytes.to_vec())
+        let source = self
+            .expected
+            .lock()
+            .map_err(|_| "numerical Fore obligation poisoned")?
+            .take()
+            .ok_or("numerical output has no issued input")?;
+        let value = self
+            .verifier
+            .verify(
+                &output.bytes,
+                QUANTITY_INFO_ID,
+                self.limit,
+                Some(source),
+                &mut ExactNumericWork::new(200_000_000),
+            )
+            .map_err(error)?;
+        // Verification precedes the Fore's acceptance. The bounded producer
+        // obligation is consumed before waking the caller for its next input.
+        self.output
+            .send(AcceptedValue {
+                value,
+                canonical: output.bytes.to_vec(),
+            })
             .map_err(|_| "numerical Fore consumer stopped".into())
     }
 }
@@ -91,6 +120,13 @@ impl NumericalFore {
         let run_control = control.clone();
         let (started_tx, started_rx) = mpsc::sync_channel(1);
         let (output_tx, outputs) = mpsc::sync_channel(1);
+        let expected = Arc::new(Mutex::new(None));
+        let capture = Capture {
+            output: output_tx,
+            expected: Arc::clone(&expected),
+            verifier,
+            limit,
+        };
         let worker = std::thread::Builder::new()
             .name("numerical-body-play".into())
             .stack_size(4 * 1024 * 1024)
@@ -103,7 +139,7 @@ impl NumericalFore {
                         keyboard: None,
                     },
                     &producer,
-                    &mut Capture(output_tx),
+                    &mut { capture },
                     &mut Vec::new(),
                     &mut ThreadTimer,
                     |play, _| started_tx.send(play.clone()).map_err(error),
@@ -122,11 +158,10 @@ impl NumericalFore {
             queue,
             control,
             outputs,
+            expected,
             worker: Some(worker),
             play,
             body_plan: retained,
-            verifier,
-            limit,
         })
     }
     pub fn body_plan(&self) -> &BodyPlan {
@@ -141,13 +176,28 @@ impl NumericalFore {
         self.execute_encoded(&bytes[..length])
     }
     pub fn execute_encoded(&mut self, bytes: &[u8]) -> Result<NumericalValue, String> {
-        if !matches!(
-            self.queue.submit(bytes)?,
-            BodyLiveForeAdmission::Accepted { .. }
-        ) {
-            return Err("numerical Fore queue is full".into());
+        let source = semantic_digest(QUANTITY_INFO_ID, bytes);
+        {
+            let mut expected = self
+                .expected
+                .lock()
+                .map_err(|_| "numerical Fore obligation poisoned")?;
+            if expected.is_some() {
+                return Err("numerical Fore already has an issued input".into());
+            }
+            *expected = Some(source);
         }
-        let canonical = match self.outputs.recv_timeout(Duration::from_secs(30)) {
+        match self.queue.submit(bytes) {
+            Ok(BodyLiveForeAdmission::Accepted { .. }) => {}
+            outcome => {
+                *self
+                    .expected
+                    .lock()
+                    .map_err(|_| "numerical Fore obligation poisoned")? = None;
+                return Err(format!("numerical Fore admission refused: {outcome:?}"));
+            }
+        }
+        let accepted = match self.outputs.recv_timeout(Duration::from_secs(30)) {
             Ok(output) => output,
             Err(why) => {
                 let _ = self
@@ -158,20 +208,9 @@ impl NumericalFore {
                 return Err(format!("numerical Body produced no accepted output: {why}"));
             }
         };
-        let source = semantic_digest(QUANTITY_INFO_ID, bytes);
-        let value = self
-            .verifier
-            .verify(
-                &canonical,
-                QUANTITY_INFO_ID,
-                self.limit,
-                Some(source),
-                &mut ExactNumericWork::new(200_000_000),
-            )
-            .map_err(error)?;
         Ok(NumericalValue {
-            value,
-            canonical,
+            value: accepted.value,
+            canonical: accepted.canonical,
             play: self.play.clone(),
         })
     }
