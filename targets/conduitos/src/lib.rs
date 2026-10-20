@@ -104,6 +104,7 @@ pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_guest_face;
 pub mod native_network_bounds;
+pub mod native_observation;
 #[cfg(feature = "native-owner-network")]
 pub mod native_owner_admission;
 #[cfg(feature = "native-owner-network")]

@@ -128,6 +128,8 @@ impl ProductJourney {
                 .is_some_and(|kernel| kernel.owns_release(event))
     }
     pub fn accept_play_input(&mut self, event: KeyEvent) -> Result<bool, JourneyError> {
+        let _native_timing =
+            crate::native_observation::Interval::begin(crate::native_observation::Stage::PlayInput);
         if self.status != JourneyStatus::QuiescentAwaitingInput {
             return Ok(false);
         }

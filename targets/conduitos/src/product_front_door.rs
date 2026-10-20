@@ -181,6 +181,7 @@ pub fn run(
     } else {
         face_arrival.present_first(&front_door, display)?
     };
+    crate::native_observation::point(crate::native_observation::Stage::FirstFramebufferCommit);
     if owner_route_standby {
         face_arrival.show_owner_standby(display)?;
         arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"standby\",\"activation\":\"F5\"}\n");

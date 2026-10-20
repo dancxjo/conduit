@@ -71,6 +71,7 @@ impl Artifacts {
                 format!("at most {} captures admitted", self.capture_limit),
             ));
         }
+        let observation_start_ns = self.started.elapsed().as_nanos();
         let mut serial = Vec::new();
         fs::File::open(&self.serial)
             .map_err(io_error)?
@@ -97,8 +98,11 @@ impl Artifacts {
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let native = super::journey_records::native_checkpoint(text)?;
+        let timing = super::native_timing::parse(text)?;
+        let frame_request_start_ns = self.started.elapsed().as_nanos();
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
+        let frame_response_end_ns = self.started.elapsed().as_nanos();
         let health_refusal = health_refusal.or_else(|| {
             if frame["width"] != 1280 || frame["height"] != 800 {
                 Some(ConduitosError::refusal(
@@ -122,6 +126,11 @@ impl Artifacts {
         self.entries.push(json!({"index":self.entries.len(),"checkpoint":checkpoint,
             "journey_step_ids":journey_step_ids(checkpoint),
             "elapsed_millis":self.started.elapsed().as_millis(),"serial_byte_end":serial.len(),
+            "native_timing":timing,
+            "host_observation":{"clock":"std::time::Instant","units":"nanoseconds",
+                "checkpoint_start":observation_start_ns,"frame_request_start":frame_request_start_ns,
+                "frame_response_end":frame_response_end_ns,
+                "interpretation":"Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance."},
             "guest_record":record,"guest_boot_record":boot,"native_receipts":native,"frame":frame,"expected_change":expect_change,"unchanged":unchanged,
             "health_refusal":health_refusal.as_ref().map(|error|json!({"reason":error.reason,"detail":error.detail}))}));
         self.previous_pixels = Some(pixels);

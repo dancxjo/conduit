@@ -177,6 +177,8 @@ impl NativeWorksetPlay {
         plan: &conduit_body::BodyPlan,
         play: &conduit_body::BodyPlayIdentity,
     ) -> Result<(), PlayRefusal> {
+        let _native_timing =
+            crate::native_observation::Interval::begin(crate::native_observation::Stage::PlayStart);
         if self.cancelled
             || self.active_body_play.is_some()
             || plan.plan_id != self.admitted_plan
