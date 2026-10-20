@@ -150,7 +150,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   admission:
-    needs: [preflight, unit]
+    needs: preflight
     if: ${{ always() && !cancelled() && !inputs.exhaustive && needs.preflight.result == 'success' && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
     # Admission can own the same cold ConduitOS tests as the 120-minute unit shard.
@@ -163,11 +163,9 @@ jobs:
       - name: Require the selected admission route
         env:
           BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
-          UNIT_RESULT: ${{ needs.unit.result }}
         run: |
           case "$BROAD_ADMISSION" in
-            true) test "$UNIT_RESULT" = success ;;
-            false) ;; # Existing affected-package commands below own this route.
+            true|false) ;; # Complete requires all delegated workspace shards.
             *) echo "Missing or invalid admission route" >&2; exit 1 ;;
           esac
       - uses: actions/checkout@v7.0.1
@@ -300,6 +298,7 @@ jobs:
           PREFLIGHT: ${{ needs.preflight.result }}
           EXHAUSTIVE: ${{ inputs.exhaustive }}
           DOCS_ONLY: ${{ needs.preflight.outputs.docs-only }}
+          BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
           ADMISSION: ${{ needs.admission.result }}
           HAS_TARGETS: ${{ needs.preflight.outputs.has-targets }}
           UNIT: ${{ needs.unit.result }}
@@ -310,6 +309,11 @@ jobs:
             test "$UNIT" = success
           elif test "$DOCS_ONLY" != true; then
             test "$ADMISSION" = success
+            case "$BROAD_ADMISSION" in
+              true) test "$UNIT" = success ;;
+              false) ;; # Affected-package admission owns the narrow route.
+              *) echo "Missing or invalid admission route" >&2; exit 1 ;;
+            esac
           fi
           if test "$HAS_TARGETS" = true; then
             test "$TARGET" = success

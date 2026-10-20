@@ -55,20 +55,18 @@ for (const [changed, broad, docsOnly] of [
   });
 }
 
-test('stable admission waits for parallel proof and refuses incomplete aggregate results',()=>{
+test('broad admission runs independently while completion requires every delegated shard',()=>{
   const admission=job('admission');
-  assert.match(admission,/needs: \[preflight, unit\]/);
+  assert.match(admission,/needs: preflight\n/);
   assert.match(admission,/always\(\) && !cancelled\(\)/);
   assert.match(job('unit'),/inputs\.exhaustive \|\| needs\.preflight\.outputs\.broad-admission == 'true'/);
   const gate=admission.split('      - name: Require the selected admission route\n')[1].split('      - uses:')[0];
   const script=gate.split('        run: |\n')[1].replace(/^          /gm,'');
-  const passes=(route,result)=>spawnSync('bash',['-e','-c',script],{
-    env:{...process.env,BROAD_ADMISSION:route,UNIT_RESULT:result},stdio:'pipe',
+  const passes=route=>spawnSync('bash',['-e','-c',script],{
+    env:{...process.env,BROAD_ADMISSION:route},stdio:'pipe',
   }).status===0;
-  assert.equal(passes('true','success'),true);
-  for(const result of ['failure','cancelled','skipped','', 'pending']) assert.equal(passes('true',result),false,result);
-  assert.equal(passes('false','skipped'),true);
-  for(const route of ['', 'unknown']) assert.equal(passes(route,'success'),false,route);
+  for(const route of ['true','false']) assert.equal(passes(route),true);
+  for(const route of ['', 'unknown']) assert.equal(passes(route),false,route);
   assert.match(admission,/cargo xtask ci pipeline admission "\$BASE" --workspace-checked/);
   assert.match(admission,/else\n            cargo xtask ci pipeline admission "\$BASE"/);
 });

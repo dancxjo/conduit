@@ -86,9 +86,9 @@ publication continues to require those exact verified artifacts. PR admission
 never establishes stable acceptance or supplies publication receipts.
 
 Broad candidate admission uses the same complete parallel workspace unit shards
-as Integration, including workspace lint. The stable required `admission` check
-waits for their aggregate success, then runs the remaining feature-specific
-checks and integration smoke. Narrow changes retain affected-package admission.
+as Integration, including workspace lint. Remaining feature-specific checks and integration smoke run concurrently with
+those shards. The final completion gate requires both admission and every
+workspace shard to succeed. Narrow changes retain affected-package admission.
 A skipped, missing, failed or cancelled workspace aggregate cannot satisfy broad
 admission. Shard tests also compare their enabled package features with the
 workspace-wide feature inventory; the Std Host shard explicitly retains local
