@@ -109,8 +109,16 @@ impl KernelTables {
         fragment: &conduit_core::PlanFragment,
         lowered: &LoweredPlanFragment,
     ) -> Result<(), String> {
-        self.chains
-            .extend(super::fusion::prepare_chains(fragment, lowered)?);
+        self.chains.extend(
+            super::fusion::prepare_chains(fragment, lowered).map_err(|error| {
+                format!(
+                    "{error}; plan={} fragment={} source-document={}",
+                    fragment.plan_id.as_str(),
+                    fragment.fragment_id.as_str(),
+                    fragment.source_document_id.as_str()
+                )
+            })?,
+        );
         Ok(())
     }
 

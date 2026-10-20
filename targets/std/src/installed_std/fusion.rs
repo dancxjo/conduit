@@ -134,11 +134,6 @@ pub(super) fn step_failure(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> String {
-    // Keep the established unfused refusal surface. A selected physical region
-    // needs the additional correlation because its dispatch spans several Gears.
-    if fragment.execution_fusions.is_empty() {
-        return format!("installed kernel step: {error:?}");
-    }
     // Correlate only an exact retained failure or suspension, never the last
     // unrelated Step when a capacity refusal prevented its start Sign.
     let node = scheduler.debug_suspension().map(|s| s.node).or_else(|| {
@@ -169,6 +164,6 @@ pub(super) fn step_failure(
     match placement {
         Some(placement) => format!("installed kernel step: {error:?}; logical-gear={} placement={} source-document={} source-span={:?}",
             placement.gear_id.as_str(), placement.placement_id.as_str(), fragment.source_document_id.as_str(), placement.source_span),
-        None => format!("installed kernel step: {error:?}"),
+        None => format!("installed kernel step: {error:?}; plan={} fragment={} source-document={}", fragment.plan_id.as_str(), fragment.fragment_id.as_str(), fragment.source_document_id.as_str()),
     }
 }
