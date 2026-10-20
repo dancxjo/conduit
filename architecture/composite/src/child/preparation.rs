@@ -13,8 +13,35 @@ impl ChildKernel {
         boundaries: Vec<BoundaryEndpoint>,
         registry: &KernelOperationRegistry,
         sign_storage: crate::KernelCompositeSignStorage,
+        reusable: bool,
     ) -> Result<Self, String> {
         augment_boundary_cords(&mut lowered, &boundaries)?;
+        if reusable
+            && (!lowered.host_calls.is_empty()
+                || fragment.placements.iter().any(|p| {
+                    !p.host_calls.is_empty()
+                        || p.base.is_some()
+                        || !p.resources.is_empty()
+                        || !p.authority.is_empty()
+                })
+                || lowered.cords.iter().any(|c| {
+                    !matches!(
+                        (c.spec.source, c.spec.sink),
+                        (
+                            conduit_kernel::CordEndpoint::Local { .. },
+                            conduit_kernel::CordEndpoint::Remote(_)
+                        ) | (
+                            conduit_kernel::CordEndpoint::Remote(_),
+                            conduit_kernel::CordEndpoint::Local { .. }
+                        )
+                    )
+                }))
+        {
+            return Err(
+                "reusable child requires pure local Value boundaries without effects or Lines"
+                    .into(),
+            );
+        }
         let mut input_targets = BTreeMap::new();
         for boundary in boundaries
             .iter()
@@ -104,9 +131,11 @@ impl ChildKernel {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            backs.push(BoxedKernelBack::new(
-                factory.prepare(placement, &mut values)?,
-            ));
+            backs.push(if reusable {
+                BoxedKernelBack::reusable(factory.prepare_reusable_value(placement, &mut values)?)
+            } else {
+                BoxedKernelBack::new(factory.prepare(placement, &mut values)?)
+            });
         }
         while backs.len() < MAX_NODES {
             backs.push(BoxedKernelBack::inactive());
@@ -156,7 +185,7 @@ impl ChildKernel {
                 .ok_or_else(|| "kernel composite remote Sign byte bound overflow".to_string())?,
         )
         .map_err(debug)?;
-        let mut scheduler = ChildScheduler::new_boxed_with_active_counts_and_host_calls(
+        let mut scheduler = RawChildScheduler::new_boxed_with_active_counts_and_host_calls(
             active_nodes,
             active_cords,
             nodes,
@@ -188,6 +217,7 @@ impl ChildKernel {
         scheduler
             .bind_terminal_transductions(terminal_contracts)
             .map_err(debug)?;
+        let scheduler = ChildScheduler::new(scheduler, &boundaries, remote_sign_items, reusable)?;
         Ok(Self {
             scheduler,
             input_targets,

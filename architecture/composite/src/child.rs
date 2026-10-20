@@ -1,11 +1,13 @@
 //! Bounded child execution and exact composite boundary transport.
 use crate::prelude::*;
 mod preparation;
+mod scheduler_owner;
 use crate::BoxedKernelBack;
 use conduit_core::{PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerError, SchedulerStatus,
 };
+use scheduler_owner::ChildScheduler;
 
 /// A finite execution refusal; formatting belongs outside Play.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,7 +64,7 @@ const HOST_CALLS_PER_NODE: u16 = 8;
 const HOST_BINDING_SLOTS: usize = MAX_NODES * HOST_CALLS_PER_NODE as usize;
 const PENDING_REQUESTS: usize = MAX_NODES;
 
-type ChildScheduler = FixedScheduler<
+type RawChildScheduler = FixedScheduler<
     BoxedKernelBack,
     HostedValueStore,
     HostedSignLog,
@@ -92,7 +94,7 @@ pub(crate) struct BoundaryEndpoint {
 
 pub(crate) struct ChildKernel {
     // Hosted preparation allocates this finite scheduler before play.
-    scheduler: alloc::boxed::Box<ChildScheduler>,
+    scheduler: ChildScheduler,
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
     input_targets: BTreeMap<SemanticPortId, Vec<(RemoteEndpointId, CordId)>>,
     status: SchedulerStatus,
@@ -290,11 +292,7 @@ impl ChildKernel {
             .filter(|boundary| boundary.direction == PortDirection::Output)
             .ok_or(ChildExecutionError::UnknownFront)?;
         self.scheduler
-            .remote_egress_accept(boundary.endpoint, boundary.cord, sequence)
-            .and_then(|()| {
-                self.scheduler
-                    .remote_egress_delivered(boundary.endpoint, boundary.cord, sequence)
-            })
+            .deliver_value(boundary.endpoint, boundary.cord, sequence)
             .map_err(ChildExecutionError::from)
     }
 
@@ -382,11 +380,7 @@ impl ChildKernel {
         sequence: u64,
     ) -> Result<(), ChildTransportError> {
         self.scheduler
-            .remote_egress_accept(endpoint, cord, sequence)
-            .and_then(|()| {
-                self.scheduler
-                    .remote_egress_delivered(endpoint, cord, sequence)
-            })
+            .deliver_value(endpoint, cord, sequence)
             .map_err(ChildTransportError::Scheduler)
     }
 

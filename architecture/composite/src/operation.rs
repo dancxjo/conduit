@@ -76,19 +76,51 @@ impl KernelOperationRegistry {
     }
 }
 
-pub(crate) struct BoxedKernelBack(
-    Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
-);
-
+pub(crate) enum BoxedKernelBack {
+    Single(Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>),
+    Reusable(ReusableKernelOperation),
+}
 impl BoxedKernelBack {
     pub(crate) fn new(
         back: Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>,
     ) -> Self {
-        Self(back)
+        Self::Single(back)
     }
-
+    pub(crate) fn reusable(back: ReusableKernelOperation) -> Self {
+        Self::Reusable(back)
+    }
     pub(crate) fn inactive() -> Self {
-        Self(Box::new(Inactive))
+        Self::Single(Box::new(Inactive))
+    }
+    fn back(&self) -> &(dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send) {
+        match self {
+            Self::Single(back) => &**back,
+            Self::Reusable(back) => &**back,
+        }
+    }
+    fn back_mut(&mut self) -> &mut (dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send) {
+        match self {
+            Self::Single(back) => &mut **back,
+            Self::Reusable(back) => &mut **back,
+        }
+    }
+}
+impl
+    conduit_kernel::scheduler::prepared_session::ReusableStepBack<
+        { FIXED_KERNEL_STORAGE_PORTS_PER_NODE },
+    > for BoxedKernelBack
+{
+    type Next = ();
+    fn preflight_next(&self, next: &(), values: &dyn conduit_kernel::ValueStorage) -> bool {
+        match self {
+            Self::Reusable(back) => back.preflight_next(next, values),
+            Self::Single(_) => false,
+        }
+    }
+    fn begin_next(&mut self, next: ()) {
+        if let Self::Reusable(back) = self {
+            back.begin_next(next);
+        }
     }
 }
 
@@ -97,39 +129,39 @@ impl StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> for BoxedKernelBack {
         &self,
     ) -> [Option<conduit_kernel::scheduler::AssignedTerminalTransduction>;
            FIXED_KERNEL_STORAGE_PORTS_PER_NODE] {
-        self.0.terminal_transductions()
+        self.back().terminal_transductions()
     }
     fn terminal_transduction(
         &self,
     ) -> Option<conduit_kernel::scheduler::AssignedTerminalTransduction> {
-        self.0.terminal_transduction()
+        self.back().terminal_transduction()
     }
     fn prepared_output(&self, port: conduit_kernel::PortId) -> Option<&[u8]> {
-        self.0.prepared_output(port)
+        self.back().prepared_output(port)
     }
     fn step_committed(&mut self) {
-        self.0.step_committed();
+        self.back_mut().step_committed();
     }
     fn step(
         &mut self,
         io: &mut StepIo<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
         input_bytes: &StepInputBytes<'_, { FIXED_KERNEL_STORAGE_PORTS_PER_NODE }>,
     ) -> StepOutcome {
-        self.0.step(io, input_bytes)
+        self.back_mut().step(io, input_bytes)
     }
     fn accepts_input_while_host_call_pending(&self) -> bool {
-        self.0.accepts_input_while_host_call_pending()
+        self.back().accepts_input_while_host_call_pending()
     }
     fn retains_host_call_input(
         &self,
         request: conduit_kernel::RequestId,
         value: conduit_kernel::ValueRef,
     ) -> bool {
-        self.0.retains_host_call_input(request, value)
+        self.back().retains_host_call_input(request, value)
     }
 
     fn cancel(&mut self) {
-        self.0.cancel();
+        self.back_mut().cancel();
     }
 }
 
