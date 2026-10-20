@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.near-preparation-reuse@1",
+  "issue": 6095,
+  "reference_source": "aa3925cf7ca674d374b83254f9734101f512301c",
+  "candidate_source": "196f15e4e8cccf3895d99aa52a4174a7ccb5951d",
+  "reference": {
+    "phases": {
+      "schema": "conduit.numeric-preparation-observation@1",
+      "repetitions": 32,
+      "ordinary_cold_allocations": 190680,
+      "ordinary_cold_ns_uncalibrated": 791957260,
+      "ordinary_warm_allocations": 6099168,
+      "ordinary_warm_ns_uncalibrated": 25426048810,
+      "fragment_allocations": 5133248,
+      "fragment_ns_uncalibrated": 21779674577
+    }
+  },
+  "candidate": {
+    "owner": {
+      "calls": 33,
+      "allocation_requests": 1162751,
+      "elapsed_ns_uncalibrated": 4541198416
+    },
+    "phases": {
+      "schema": "conduit.numeric-preparation-observation@1",
+      "repetitions": 32,
+      "ordinary_cold_allocations": 190790,
+      "ordinary_cold_ns_uncalibrated": 842406358,
+      "ordinary_warm_allocations": 968320,
+      "ordinary_warm_ns_uncalibrated": 3787861745,
+      "fragment_allocations": 5133248,
+      "fragment_ns_uncalibrated": 22339085178
+    }
+  },
+  "controls": "Separate two-test corpus compares complete cached/cold offer fragments, ten changed compatibility/Type/law facts, exact request contents despite equal identities, malformed requests, precision eligibility, four-entry FIFO and final borrowed-owner release. Ordinary six-case Std corpus compares exact Plans, kernel reports, outputs and refusals.",
+  "boundary": {
+    "phase_comparison": "One actual math/near Source through StdHost::prepare_numerical_realizations: first cold call plus 32 repeated calls. Source parsing/checking/expansion and initial Host creation are outside the phase counts. Every repeated advertisement equals the first, including generation.",
+    "fragment_control": "32 direct cold strategy-fragment constructions; all complete offer values equal the cold oracle. This seam accounts for most repeated preparation allocation.",
+    "candidate_owner": "Separate candidate observation begins before StdHost::from_advertisement(seed.clone()), performs 33 ordinary preparations with exact-advertisement comparison, and ends after dropping the Host and cache. Source/catalogue inputs and seed advertisement prepared outside. No matched full-owner reference was measured.",
+    "allocator": "Existing thread-local successful alloc/alloc_zeroed/realloc request counter. Does not measure bytes, RSS or peak memory.",
+    "lifetime": "Four FIFO fragments per owning Host. Only immutable exact Gear keys, compatibility facts and offer metadata retained; temporary strategy/scratch owners drop in the cold factory. Weak owner controls prove borrowed fragments survive eviction and release after final drop."
+  },
+  "limitations": [
+    "Unoptimized pinned Rust 1.98.1 local test worker; uncalibrated timings, including concurrent compilation during some observations. No product latency or speedup claim.",
+    "Initial cold adds 110 allocation requests for keys and immutable ownership.",
+    "Retained source/Type structures are caller-admitted finite inputs. Four entries is not a byte-accurate memory reservation.",
+    "Only installed Near strategy metadata is reused; admission, reservations, Host publication, planning, scratch and mutable runtime state are rebuilt/revalidated normally.",
+    "Installed Back/artifact code is immutable for this process; nothing persists across a different binary. Source identities, full exact Gear contents and protocol/Host/Boot/profile bind reuse. Cached metadata is authority-free and never reuses authority decisions."
+  ]
+}
