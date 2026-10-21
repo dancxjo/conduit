@@ -1,0 +1,25 @@
+{
+  "artifact_sha256": {
+    "raw.jsonl": "fca519ac3e14a2ac7c8df432c7545b15a0b64aa2a71618b2c32eba51dd583127",
+    "stderr.log": "7ff91d86a54d92cee6c179c74eb120c71e886d50776a6201d19ac318d09ff2de",
+    "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "worker-status.json": "d477e09aea9b1b353c592e5ecb7081555dad29982ff3f947505c46604be49a7d"
+  },
+  "command": [
+    "run",
+    "--locked",
+    "--release",
+    "-p",
+    "conduit-std-host",
+    "--example",
+    "reluctant_replan",
+    "--"
+  ],
+  "final_git_sha": "70e89ed3244602c65fee21f3052e2281012d037b",
+  "git_sha": "70e89ed3244602c65fee21f3052e2281012d037b",
+  "output": "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/h2-family-1",
+  "schema": "conduit.reluctant-replan-command@1",
+  "source_custody_verified": true,
+  "worker_exit_code": 0,
+  "worker_success": true
+}

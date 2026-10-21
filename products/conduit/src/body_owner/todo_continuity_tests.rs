@@ -174,9 +174,26 @@ fn same_body_three_items_recover_on_another_admitted_host_without_a_cache() {
         1,
         Some((&source, &plot, &grant)),
     );
+    let first_receipt = owner.last_execution.clone().unwrap();
     next_action(&mut owner, &first_root, Some("Eggs"), 2, None);
     next_action(&mut owner, &first_root, Some("Bread"), 3, None);
     let expected = next_action(&mut owner, &first_root, None, 4, None);
+    let history = installed::owner::state::execution_history(&first_root).unwrap();
+    assert!(history["receipts"]
+        .as_array()
+        .unwrap()
+        .contains(&first_receipt));
+    assert_eq!(history["legacy_prefix_unavailable"], false);
+    assert_eq!(
+        installed::owner::state::execution(&first_root).unwrap(),
+        owner.last_execution
+    );
+    println!(
+        "{}",
+        serde_json::json!({"case":"durable-normal-owner-replacement-history",
+        "body_id":body_id,"first_receipt":first_receipt,"latest_receipt":owner.last_execution,
+        "history":history})
+    );
     assert!(expected.items[0].complete);
     assert_eq!(expected.items.len(), 3);
     assert_eq!(

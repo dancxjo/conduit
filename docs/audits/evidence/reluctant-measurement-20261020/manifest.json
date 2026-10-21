@@ -1,0 +1,12 @@
+{
+  "5568-measured-integrated-tests.log.gz": "737aef62e62d486fe889bfe65e6600295c1a85582c2190cb88b779bdec25adaf",
+  "5568-measured-worker-clippy-final.log.gz": "33060ee70c8b55f122aeec143d6efa9a6d8261864744476af70a2755a21d9ee1",
+  "5568-replanning-entrance-clippy.log.gz": "3d5795f28c69ccf6bf379a3875d3ddcd97bbd04defce13b81427742c0ab36d88",
+  "family-1/raw.jsonl.gz": "9689fa0b86b4b8dc87df89058ee240dadcc567344f6c62914b6b3ddb3d687d91",
+  "family-1/status.json": "a31106dd6603e14fe143705574d08bcfac44a32b54f12ae3868c4ec82abc7221",
+  "family-1/stderr.log": "7ff91d86a54d92cee6c179c74eb120c71e886d50776a6201d19ac318d09ff2de",
+  "family-1/stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "family-1/worker-status.json": "d477e09aea9b1b353c592e5ecb7081555dad29982ff3f947505c46604be49a7d",
+  "negative-controls.log": "c3dbcdde2cf6f58efbe766a43e7e0ad7d46d24b8d7a5333fd8a970f8150e41bf",
+  "verification.log": "c2491cff453f9af48b172a67fad698c2c313d6e4425427d882674bac9eb937ff"
+}

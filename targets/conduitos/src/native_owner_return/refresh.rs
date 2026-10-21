@@ -21,7 +21,7 @@ struct ComponentSelection<'a> {
     sequence: u8,
     request: OwnerFaceSnapshotRequest,
     show: &'a MaskShow,
-    look: &'static str,
+    look: conduit_face::ComponentMaskLook,
     recipe: &'static str,
 }
 
@@ -91,10 +91,6 @@ impl NativeOwnerReturnRoute {
         request.last_seen_revision = Some(prior.face().revision);
         request.last_seen_identity = Some(prior.face().identity.clone());
         let length = if let Some((show, look, recipe)) = selection {
-            let look = match look {
-                conduit_face::ComponentMaskLook::Compact => "compact",
-                conduit_face::ComponentMaskLook::Spacious => "spacious",
-            };
             let recipe = match recipe {
                 conduit_face::TodoComponentRecipe::Flat => "flat",
                 conduit_face::TodoComponentRecipe::Grouped => "grouped",

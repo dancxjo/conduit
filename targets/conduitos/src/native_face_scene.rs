@@ -33,6 +33,8 @@ mod input;
 mod layout;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
+#[path = "native_face_scene/semantic_icons.rs"]
+mod semantic_icons;
 #[path = "native_face_scene/text_editor.rs"]
 mod text_editor;
 #[path = "native_face_scene/text_field.rs"]
@@ -174,6 +176,9 @@ impl NativeFaceScene {
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
         let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         for item in &mut primary {
+            item.region_order = item
+                .subject_index
+                .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten());
             item.region = item
                 .subject_index
                 .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten())
@@ -185,13 +190,17 @@ impl NativeFaceScene {
             conduit_face::VisualDensity::Compact => SPACE_SM,
             conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
         };
-        scene.primary = layout::admit_with_expression(
+        let panel_groups = layout::authored_panel_groups(
+            recipe.recipe.regions().iter().map(|region| *region.group()),
+        );
+        scene.primary = layout::admit_configured(
             primary,
             scene.screen,
             geometry.gutter,
             geometry.columns,
             scale,
             padding,
+            panel_groups,
         )?;
         scene.details = layout::admit_with_expression(
             details,
@@ -276,7 +285,11 @@ impl NativeFaceScene {
         if self.showing_diagram {
             diagram::pages(&self.face, self.screen.width, self.screen.height)
         } else {
-            self.rows().last().map_or(1, |row| row.page + 1)
+            self.rows()
+                .iter()
+                .map(|row| row.page + 1)
+                .max()
+                .unwrap_or(1)
         }
     }
 
@@ -464,3 +477,10 @@ mod creche_navigation_tests;
 #[cfg(test)]
 #[path = "native_face_scene/observation_tests.rs"]
 mod observation_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/look_tests.rs"]
+mod look_tests;
+
+#[path = "native_face_scene/encounter.rs"]
+mod encounter;

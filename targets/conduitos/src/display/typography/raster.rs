@@ -16,7 +16,7 @@ pub fn render_text(
     render_text_scaled(target, value, role, bounds, clip, color, 100)
 }
 
-/// Fixed nearest-neighbor coverage resampling, bounded to twice each glyph extent.
+/// Fixed four-tap coverage filtering, bounded to twice each glyph extent.
 pub fn render_text_scaled(
     target: &mut impl RetainedPixelTarget,
     value: &str,
@@ -218,11 +218,12 @@ mod tests {
     }
 
     #[test]
-    fn maximum_admitted_unicode_remains_bounded_at_one_pixel_width() {
+    fn unrenderable_one_pixel_unicode_refuses_before_writing_ink() {
         let value = "é".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES / 2);
-        let count = value.chars().count();
-        let layout = super::super::TextLayout::new(&value, TextRole::Body, 1).unwrap();
-        assert_eq!(layout.count(), count);
+        assert!(matches!(
+            super::super::TextLayout::new(&value, TextRole::Body, 1),
+            Err(DisplayError::InvalidExtent)
+        ));
         let mut surface = Surface {
             pixels: [0x204060; 32 * 32],
         };
@@ -239,14 +240,9 @@ mod tests {
             bounds,
             bounds,
             0xffffff,
-        )
-        .unwrap();
-        assert!(receipt.pixels_written <= count as u32 * 64 * 64);
-        for y in 0..32 {
-            for x in 1..32 {
-                assert_eq!(surface.pixels[y * 32 + x], 0x204060);
-            }
-        }
+        );
+        assert!(matches!(receipt, Err(DisplayError::InvalidExtent)));
+        assert_eq!(surface.pixels, [0x204060; 32 * 32]);
     }
 
     #[test]

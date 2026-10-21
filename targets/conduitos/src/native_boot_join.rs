@@ -55,12 +55,18 @@ pub fn attempt(
         .as_ref()
         .ok_or("owner-admission-request-missing")
         .and_then(|request| {
-            exchange(
-                route,
-                &pending.route_certificates,
-                request,
-                identities,
-                current_offer,
+            crate::native_observation::Progress::result(
+                crate::native_observation::Phase::NetworkSetup,
+                "owner-admission",
+                || {
+                    exchange(
+                        route,
+                        &pending.route_certificates,
+                        request,
+                        identities,
+                        current_offer,
+                    )
+                },
             )
         });
     let (receipt, face, return_route, return_refusal) = match result {

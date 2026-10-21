@@ -255,6 +255,8 @@ type GraphicsPaintRole =
     | focus
     | hovered
     | selected
+    | surface
+    | border
 
 form face/graphics-paint-role = GraphicsPaintRole as u8 from 1
 
@@ -710,6 +712,7 @@ type ComponentSubjectBinding = {
 type ComponentSubjectSelector =
     subject Text <= 256B not in [""]
     | bound ComponentSubjectBinding
+    | action_target Text <= 256B not in [""]
     | role Text in ["Document", "Body", "Part", "Candidate", "Plot", "Gear", "Port", "Cord", "Plan", "Play", "Host", "Capability", "Line", "Manifestation", "Route", "Diagnostic", "Sign", "Info", "Region", "Collection", "Item", "TextEntry", "Status", "Action"]
 
 type ComponentRegionInfo = {

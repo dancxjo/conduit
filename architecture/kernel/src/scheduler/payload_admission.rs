@@ -1,6 +1,21 @@
 //! Queue pressure and semantic value admission at the remote payload boundary.
 use super::*;
 
+pub(super) struct GeneratedStepOutput {
+    value: ValueRef,
+    #[cfg(feature = "alloc")]
+    owned: Option<(PortId, crate::PendingCompactF32Publication)>,
+}
+impl GeneratedStepOutput {
+    fn copied(value: ValueRef) -> Self {
+        Self {
+            value,
+            #[cfg(feature = "alloc")]
+            owned: None,
+        }
+    }
+}
+
 impl<
         D,
         S,
@@ -107,7 +122,7 @@ where
         &mut self,
         node: usize,
         io: &mut StepIo<PORTS>,
-    ) -> Result<Option<ValueRef>, SchedulerError> {
+    ) -> Result<Option<GeneratedStepOutput>, SchedulerError> {
         if let Some((port, output)) = io.prepared_output {
             let declared_len = output.logical_bytes();
             #[cfg(feature = "alloc")]
@@ -126,7 +141,7 @@ where
                     return Err(SchedulerError::InvalidPortAccess);
                 }
                 *slot = Some(value);
-                return Ok(Some(value));
+                return Ok(Some(GeneratedStepOutput::copied(value)));
             }
             #[cfg(feature = "alloc")]
             if let PreparedStepValue::CompactF32(layout) = output {
@@ -134,6 +149,30 @@ where
                     return Err(SchedulerError::InvalidPlan);
                 }
                 self.ensure_output_value_envelope(node, port, declared_len)?;
+                if let Some(owner) = self
+                    .compact_f32_bindings
+                    .as_deref()
+                    .and_then(|bindings| bindings.owned.as_deref())
+                    .and_then(|owners| owners[node].as_ref())
+                {
+                    let slot = io
+                        .outputs
+                        .get_mut(usize::from(port.0))
+                        .ok_or(SchedulerError::InvalidPortAccess)?;
+                    if slot.is_some() {
+                        return Err(SchedulerError::InvalidPortAccess);
+                    }
+                    let bytes = self.drivers[node]
+                        .prepared_compact_f32_output_mut(port)
+                        .ok_or(SchedulerError::InvalidPlan)?;
+                    let pending = self.values.swap_owned_compact_f32(owner, bytes)?;
+                    let value = pending.value()?;
+                    *slot = Some(value);
+                    return Ok(Some(GeneratedStepOutput {
+                        value,
+                        owned: Some((port, pending)),
+                    }));
+                }
                 let bytes = self.drivers[node]
                     .prepared_output(port)
                     .ok_or(SchedulerError::InvalidPlan)?;
@@ -150,7 +189,7 @@ where
                     return Err(SchedulerError::InvalidPortAccess);
                 }
                 *slot = Some(value);
-                return Ok(Some(value));
+                return Ok(Some(GeneratedStepOutput::copied(value)));
             }
             let bytes = self.drivers[node]
                 .prepared_output(port)
@@ -169,12 +208,66 @@ where
                 return Err(SchedulerError::InvalidPortAccess);
             }
             *output = Some(value);
-            Ok(Some(value))
+            Ok(Some(GeneratedStepOutput::copied(value)))
         } else {
             if let Some((port, value)) = io.canonical_output {
                 self.ensure_output_value_envelope(node, port, value.as_slice().len() as u32)?;
             }
             derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)
+                .map(|value| value.map(GeneratedStepOutput::copied))
         }
+    }
+    pub(super) fn rollback_generated_output(
+        &mut self,
+        node: usize,
+        generated: Option<GeneratedStepOutput>,
+    ) -> Result<(), SchedulerError> {
+        #[allow(unused_mut)]
+        let Some(mut generated) = generated
+        else {
+            return Ok(());
+        };
+        #[cfg(feature = "alloc")]
+        if let Some((port, pending)) = &mut generated.owned {
+            let owner = self
+                .compact_f32_bindings
+                .as_deref()
+                .and_then(|bindings| bindings.owned.as_deref())
+                .and_then(|owners| owners[node].as_ref())
+                .ok_or(SchedulerError::InvalidPlan)?;
+            let bytes = self.drivers[node]
+                .prepared_compact_f32_output_mut(*port)
+                .ok_or(SchedulerError::InvalidPlan)?;
+            self.values
+                .restore_owned_compact_f32(owner, pending, bytes)?;
+            return Ok(());
+        }
+        #[cfg(not(feature = "alloc"))]
+        let _ = node;
+        let _ = self.values.release(generated.value);
+        Ok(())
+    }
+    pub(super) fn commit_generated_output(
+        &mut self,
+        node: usize,
+        generated: Option<GeneratedStepOutput>,
+    ) -> Result<(), SchedulerError> {
+        #[cfg(feature = "alloc")]
+        if let Some(GeneratedStepOutput {
+            owned: Some((_, mut pending)),
+            ..
+        }) = generated
+        {
+            let owner = self
+                .compact_f32_bindings
+                .as_deref()
+                .and_then(|bindings| bindings.owned.as_deref())
+                .and_then(|owners| owners[node].as_ref())
+                .ok_or(SchedulerError::InvalidPlan)?;
+            self.values.commit_owned_compact_f32(owner, &mut pending)?;
+        }
+        #[cfg(not(feature = "alloc"))]
+        let _ = (node, generated);
+        Ok(())
     }
 }

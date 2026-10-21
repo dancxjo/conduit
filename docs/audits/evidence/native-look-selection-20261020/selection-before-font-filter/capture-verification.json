@@ -1,0 +1,10 @@
+{
+  "source_commit": "76e6e48c82f78af1c402c27b191ad8f4202eb8ac",
+  "iso_sha256": "4047bda49ebeed351efdd6d17c0a64b898919ac86ae8f02b218d8285cab9d62e",
+  "checkpoint_count": 26,
+  "png_and_rgba_hashes_verified": 26,
+  "look_transitions": 4,
+  "look_body_actions": 0,
+  "selection_status": "passed",
+  "visual_followup": "125% nearest-neighbor font coverage looks rough; filtering improvement pending"
+}

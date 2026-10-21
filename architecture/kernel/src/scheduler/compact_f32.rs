@@ -4,8 +4,9 @@ use alloc::{boxed::Box, vec::Vec};
 
 // Only selected hosted profiles allocate this fixed-capacity sidecar.
 pub(super) struct CompactF32Bindings<const N: usize, const P: usize> {
-    inputs: [[bool; P]; N],
-    outputs: [Option<(PortId, CompactF32Layout)>; N],
+    pub(super) inputs: [[bool; P]; N],
+    pub(super) outputs: [Option<(PortId, CompactF32Layout)>; N],
+    pub(super) owned: Option<Box<[Option<crate::PreparedCompactF32Output>; N]>>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -14,7 +15,7 @@ pub struct CompactF32Layout {
     pub logical_bytes: u32,
 }
 impl CompactF32Layout {
-    pub(super) fn physical_bytes(self) -> Result<u32, SchedulerError> {
+    pub(crate) fn physical_bytes(self) -> Result<u32, SchedulerError> {
         let bytes = u32::from(self.lanes) * 4;
         if bytes == 0 || bytes > self.logical_bytes {
             return Err(SchedulerError::InvalidPlan);
@@ -105,9 +106,17 @@ where
     }
     /// Additional prepared heap backing. The unselected profile owns none.
     pub fn compact_f32_binding_bytes(&self) -> usize {
-        self.compact_f32_bindings
-            .as_ref()
-            .map_or(0, |_| core::mem::size_of::<CompactF32Bindings<N, P>>())
+        self.compact_f32_bindings.as_ref().map_or(0, |bindings| {
+            core::mem::size_of::<CompactF32Bindings<N, P>>()
+                + bindings.owned.as_ref().map_or(0, |owned| {
+                    core::mem::size_of_val(owned.as_ref())
+                        + owned
+                            .iter()
+                            .flatten()
+                            .map(|owner| owner.reserved_storage_bytes())
+                            .sum::<usize>()
+                })
+        })
     }
     /// Exact Host/Plan preparation must prove purity, type, temporal and resource
     /// eligibility. This binder checks physical layout, local DAG topology,
@@ -125,6 +134,27 @@ where
         &mut self,
         nodes: &[NodeId],
         canonical_inputs: &[(NodeId, PortId)],
+    ) -> Result<(), SchedulerError> {
+        self.bind_compact_f32_dag_outputs(nodes, canonical_inputs, None)
+    }
+    /// Select ownership transfer for supported internal producers. The caller
+    /// supplies additional free canonical slot requirements for bounded retained
+    /// inputs and Host completions in its exact prepared profile. Queue and
+    /// one-step staging requirements are added here. A selected owned producer
+    /// never falls back to copying during Play.
+    pub fn bind_owned_compact_f32_dag(
+        &mut self,
+        nodes: &[NodeId],
+        canonical_inputs: &[(NodeId, PortId)],
+        retained_canonical: &[u32],
+    ) -> Result<(), SchedulerError> {
+        self.bind_compact_f32_dag_outputs(nodes, canonical_inputs, Some(retained_canonical))
+    }
+    fn bind_compact_f32_dag_outputs(
+        &mut self,
+        nodes: &[NodeId],
+        canonical_inputs: &[(NodeId, PortId)],
+        owned_reservations: Option<&[u32]>,
     ) -> Result<(), SchedulerError> {
         if !(2..=32).contains(&nodes.len())
             || self.decisions != 0
@@ -311,13 +341,103 @@ where
         if u32::from(available) < items || quota < bytes {
             return Err(SchedulerError::InvalidPlan);
         }
+        let mut owned_nodes = Vec::new();
+        let mut owned_requests = Vec::new();
+        let mut canonical = owned_reservations.unwrap_or_default().to_vec();
+        if owned_reservations.is_some() {
+            for &(node, port, layout) in &outputs {
+                if !self.drivers[usize::from(node.0)].owns_compact_f32_output(port) {
+                    continue;
+                }
+                let slots = self.cord_specs[..self.active_cords]
+                    .iter()
+                    .filter(|cord| cord.source_local() == Some((node, port)))
+                    .map(|cord| cord.item_capacity)
+                    .max()
+                    .unwrap_or(0)
+                    .checked_add(1)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                owned_nodes.push(node);
+                owned_requests.push((layout, slots));
+            }
+            if owned_requests.is_empty() {
+                return Err(SchedulerError::InvalidPlan);
+            }
+            let mut staging = 0;
+            let mut canonical_sources = Vec::new();
+            for cord in &self.cord_specs[..self.active_cords] {
+                let source = cord.source_local();
+                if source.is_some_and(|(node, _)| {
+                    owned_nodes.contains(&node)
+                        || self
+                            .compact_f32_bindings
+                            .as_deref()
+                            .and_then(|b| b.owned.as_deref())
+                            .is_some_and(|owners| owners[usize::from(node.0)].is_some())
+                }) {
+                    continue;
+                }
+                // Atomic fan-out publishes the same reference to every queue.
+                // FIFO consumption leaves nested suffixes of the publication
+                // sequence, so the longest outstanding queue bounds the union.
+                let shared_fifo = source.filter(|source| {
+                    self.cord_specs[..self.active_cords]
+                        .iter()
+                        .filter(|c| c.source_local() == Some(*source))
+                        .all(|c| {
+                            c.track == AssignedConnectionTrack::Payload
+                                && c.pressure_policy == AssignedPressurePolicy::PreserveOrder
+                        })
+                });
+                if let Some(source) = shared_fifo {
+                    if canonical_sources.contains(&source) {
+                        continue;
+                    }
+                    canonical_sources.push(source);
+                    let outgoing = self.cord_specs[..self.active_cords]
+                        .iter()
+                        .filter(|c| c.source_local() == Some(source));
+                    let count = outgoing.clone().map(|c| c.item_capacity).max().unwrap_or(0);
+                    let bytes = outgoing.map(|c| c.maximum_value_bytes).max().unwrap_or(0);
+                    staging = staging.max(bytes);
+                    canonical.extend(core::iter::repeat_n(bytes, usize::from(count)));
+                } else {
+                    staging = staging.max(cord.maximum_value_bytes);
+                    canonical.extend(core::iter::repeat_n(
+                        cord.maximum_value_bytes,
+                        usize::from(cord.item_capacity),
+                    ));
+                }
+            }
+            if staging != 0 {
+                canonical.push(staging);
+            }
+            self.values
+                .preflight_owned_compact_f32_outputs(&owned_requests, &canonical)?;
+        }
         let prepared = self.compact_f32_bindings.is_none().then(|| {
             Box::new(CompactF32Bindings {
                 inputs: [[false; P]; N],
                 outputs: [None; N],
+                owned: None,
             })
         });
+        let prior_successors = self.region_successors;
         self.bind_execution_dag(nodes)?;
+        let owned = if owned_reservations.is_some() {
+            match self
+                .values
+                .prepare_owned_compact_f32_outputs(&owned_requests, &canonical)
+            {
+                Ok(owned) => owned,
+                Err(error) => {
+                    self.region_successors = prior_successors;
+                    return Err(error.into());
+                }
+            }
+        } else {
+            Vec::new()
+        };
         if let Some(bindings) = prepared {
             self.compact_f32_bindings = Some(bindings);
         }
@@ -325,6 +445,14 @@ where
             .compact_f32_bindings
             .as_deref_mut()
             .expect("preflight prepared compact bindings");
+        if !owned.is_empty() {
+            let table = bindings
+                .owned
+                .get_or_insert_with(|| Box::new(core::array::from_fn(|_| None)));
+            for (node, owner) in owned_nodes.into_iter().zip(owned) {
+                table[usize::from(node.0)] = Some(owner);
+            }
+        }
         for (node, port, layout) in outputs {
             bindings.outputs[usize::from(node.0)] = Some((port, layout));
         }

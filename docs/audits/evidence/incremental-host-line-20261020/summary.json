@@ -1,0 +1,23 @@
+{
+  "issue": 5571,
+  "source": "3fc4f7ce7e273a01301d7d4682b4621acd6d778a",
+  "base": "9c2847e431280ea1ed816ae1f09bd065b8b587aa",
+  "tests": 18,
+  "result": "PASS",
+  "cases": [
+    "missing-line",
+    "Line-replacement",
+    "unavailable-line",
+    "stale-peer-boot",
+    "underbounded-line",
+    "provider-loss",
+    "Host-replacement",
+    "provider-loss-and-returning-reboot",
+    "Boot-replacement"
+  ],
+  "log_sha256": "89c84eba7daa35e851ab628140311facbdc1fd784eaf38a67043cd0f3f98c2e4",
+  "archive_sha256": "2a964ea322899a39795a448da006ba405bd0b604f0f57e639e6bba36068a45e7",
+  "proof_class": "Checked Source and real verified ordinary Plans with modeled Host/Boot/Line/resource/cost facts; explicit finite test cache adapter",
+  "remaining": "#6102 owns actual old Play/output/Sign terminal custody, cancellation, drain and uncertain external delivery. #5571 remains open for its original outcome-custody criterion.",
+  "ci": "No Candidate, Integration or main acceptance claimed."
+}

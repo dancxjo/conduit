@@ -1,0 +1,25 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/audio)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/mechanisms/protocols/midi)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/face)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/chat)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/catalog)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/std/offers)
+    Finished `test` profile [unoptimized] target(s) in 1m 01s
+     Running unittests src/lib.rs (target/debug/deps/conduit_face-a1271f281e6d616a)
+
+running 6 tests
+test graphics::tests::malformed_overflow_and_unknown_icon_refuse ... ok
+test graphics::tests::pane_sized_text_is_exactly_bounded_and_round_trips ... ok
+test graphics::tests::round_trip_and_clip_classes_are_raster_independent ... ok
+test graphics::tests::graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles ... ok
+test graphics::tests::interaction_state_paints_round_trip_and_unknown_paints_refuse ... ok
+test graphics::tests::paint_extension_preserves_existing_tags_and_command_storage ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 0.00s
+

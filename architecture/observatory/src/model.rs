@@ -304,7 +304,19 @@ pub struct ExecutionFusionRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FragmentAdmission {
+    pub sign_storage_budget: conduit_core::SignStorageBudget,
+    pub expected_sign: Vec<conduit_core::ExpectedSign>,
+    pub shared_pools: Vec<conduit_core::PlannedSharedPool>,
+    pub cancellation_policy: conduit_core::CancellationPolicy,
+    pub terminal_policy: conduit_core::TerminalPolicy,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FragmentRow {
+    /// Unknown in older retained reports; never infer an empty admission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<FragmentAdmission>,
     pub plan_id: PlanId,
     pub fragment_id: FragmentId,
     pub host_id: HostId,
@@ -330,8 +342,20 @@ pub struct LogicalCordRow {
     pub abnormal_kind: Option<KindId>,
 }
 
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PlacementAdmission {
+    pub limits: CapabilityLimits,
+    pub realization_characteristics: Vec<conduit_core::RealizationCharacteristic>,
+    pub realization_properties: Vec<conduit_core::StructuredConfigurationValue>,
+    pub pool_references: Vec<conduit_core::SharedPoolId>,
+    pub terminal_transductions: Vec<conduit_core::TerminalTransductionProfile>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlacementRow {
+    /// Exact sealed bounds and realization facts; not fresh cost observations.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub admission: Option<PlacementAdmission>,
     /// Older retained reports have unknown logical provenance, never invented IDs.
     #[serde(default)]
     pub logical_gear: Option<LogicalGearRow>,

@@ -30,6 +30,7 @@ pub fn generate() {
         "domain/frame.rs",
         "domain/layout.rs",
         "domain/probes.rs",
+        "domain/service_probe.rs",
         "domain/probes_ia32.rs",
         "domain/probes_aarch64.rs",
         "domain/probes_riscv64.rs",

@@ -1,0 +1,16 @@
+{
+  "source_commit": "7d5aacbab7b296c5e446788aa04082ee848a3925",
+  "status": "",
+  "profile": "targets/conduitos/profiles/conduitos-native.host.conduit",
+  "build_environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0"
+  },
+  "purpose": "real product surface/primary-action visual check; not complete Look selection acceptance",
+  "build_exit_code": 0,
+  "source_after_build": "7d5aacbab7b296c5e446788aa04082ee848a3925",
+  "status_after_build": "",
+  "iso_sha256": "91936dfa9d901b43660310bd83036552f51eccacb248aa19cd41811606eecc48",
+  "journey_exit_code": 0,
+  "source_after_journey": "7d5aacbab7b296c5e446788aa04082ee848a3925",
+  "status_after_journey": ""
+}

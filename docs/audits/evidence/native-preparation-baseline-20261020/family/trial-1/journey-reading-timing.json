@@ -1,0 +1,84 @@
+{
+  "clock": "std::time::Instant",
+  "interpretation": "Current native reader pagination, not continuous wheel scrolling. Host intervals include input dispatch, receipt polling and capture; guest records retain exact Face/Show ownership.",
+  "origin": "shared QMP/frame observation origin",
+  "rows": [
+    {
+      "accepted_record_observed_ns": 87803318149,
+      "command_start_ns": 87782680953,
+      "frame_checkpoint": "reading-details-first",
+      "frame_observed_ns": 87995822550,
+      "guest_reading_record": {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185376376378
+        },
+        "page": 0,
+        "pages": 11,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 59
+      },
+      "key": "f2"
+    },
+    {
+      "accepted_record_observed_ns": 88017623116,
+      "command_start_ns": 87995901410,
+      "frame_checkpoint": "reading-details-next",
+      "frame_observed_ns": 88214355964,
+      "guest_reading_record": {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185831243259
+        },
+        "page": 1,
+        "pages": 11,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 78
+      },
+      "key": "pgdn"
+    },
+    {
+      "accepted_record_observed_ns": 88240344410,
+      "command_start_ns": 88214459615,
+      "frame_checkpoint": "reading-details-returned",
+      "frame_observed_ns": 88433842079,
+      "guest_reading_record": {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 186299563295
+        },
+        "page": 0,
+        "pages": 11,
+        "previous_page": 1,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 75
+      },
+      "key": "pgup"
+    }
+  ],
+  "schema": "conduit.conduitos/native-reading-observation@1",
+  "units": "nanoseconds"
+}

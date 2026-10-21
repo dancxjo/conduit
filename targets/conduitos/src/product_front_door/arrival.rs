@@ -18,7 +18,6 @@ pub(super) fn open(
     journey: &mut ProductJourney,
     identities: &BootIdentities,
     offer: &HostOffer<'_>,
-    make: &MakeRecord,
 ) -> Result<(), &'static str> {
     // Crèche is the zero-body entrance. Do not open a plot merely to make the
     // arrival surface exist: reviewed plots belong to the Crèche inventory and
@@ -34,8 +33,10 @@ pub(super) fn open(
         &hex[16..20],
         &hex[20..32]
     );
-    let refusals = native_workset::inventory().map(|plot| {
-        native_workset::review(plot, identities, offer, make.build_id)
+    // Selection eligibility is not execution admission. The current selected
+    // workset is planned at Wake and lowered at Plan, before any Play.
+    let refusals = native_workset::candidate_inventory().map(|plot| {
+        native_workset::eligibility(plot, offer)
             .err()
             .map(|error| error.as_str().into())
     });

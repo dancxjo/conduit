@@ -5,6 +5,14 @@ pub(super) fn validate_exact_profile(
     advertisement: &HostAdvertisement,
     fragment: &PlanFragment,
 ) -> Result<(), String> {
+    // A valid Plan seal proves what was requested, not that this runner can
+    // realize it. The installed std runner owns one cooperative kernel and
+    // has no execution-region worker, lane, preemption or isolation admission.
+    // In particular, do not ignore region-only resource reservations while
+    // validating the ordinary placement resources below.
+    if !fragment.execution_regions.is_empty() {
+        return Err("execution regions are not installed in the std runner".into());
+    }
     if fragment.host_id != advertisement.host_id {
         return Err("fragment is assigned to a different host".to_string());
     }

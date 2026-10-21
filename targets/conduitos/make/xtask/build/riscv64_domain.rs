@@ -24,6 +24,7 @@ pub(crate) fn execute(
             generated: &generated,
             build_id,
             image_binding,
+            manifest: None,
         }),
         ArtifactRole::ArchitectureProofAppliance,
         ConduitOsProductArtifact::for_target("conduitos/riscv64/virt"),

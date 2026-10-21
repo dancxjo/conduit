@@ -53,7 +53,7 @@ pub fn render_scene_configured(
                 .checked_add(text.pixels_written)
                 .ok_or(DisplayError::InvalidExtent)?;
         } else {
-            super::super::render_command_with_color(
+            super::super::coverage::render_command(
                 target,
                 format,
                 command,

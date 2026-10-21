@@ -9,6 +9,9 @@ use conduit_plan_lowering::lowering::{LoweredForePort, LoweredPlanFragment};
 use super::super::keyboard_input_completion::{CompletedInputEvent, MAX_COMPLETED_INPUT_EVENTS};
 use std::collections::VecDeque;
 
+mod custody;
+use crate::body_execution::BodyForePendingOutput;
+
 use super::super::{
     external_fore_feeder::{self, PreparedForeInputs},
     InstalledScheduler,
@@ -19,6 +22,7 @@ pub(super) struct BodyForeRoute<'a> {
     ports: Vec<LoweredForePort>,
     output_slots: Vec<OutputSlots>,
     deliveries: Vec<ExternalForeDelivery>,
+    pending_output: Option<BodyForePendingOutput>,
     started: bool,
     acknowledged_inputs: VecDeque<AcknowledgedInput>,
 }
@@ -168,6 +172,7 @@ impl<'a> BodyForeRoute<'a> {
             ports,
             output_slots,
             deliveries: Vec::with_capacity(delivery_capacity),
+            pending_output: None,
             started: false,
             acknowledged_inputs: VecDeque::with_capacity(MAX_COMPLETED_INPUT_EVENTS),
         })
@@ -214,6 +219,9 @@ impl<'a> BodyForeRoute<'a> {
         mut input: Option<&mut super::super::keyboard_input_host::KeyboardInputHost<'_>>,
         mut map: Option<&mut super::parsec_acknowledged_map::ParsecAcknowledgedMap>,
     ) -> Result<(), String> {
+        if self.pending_output.is_some() {
+            return Err("Body Fore stopped output cannot be retried".into());
+        }
         for slots in &mut self.output_slots {
             let planned = &slots.port;
             while let Some(offer) = scheduler
@@ -258,16 +266,18 @@ impl<'a> BodyForeRoute<'a> {
                     .pop()
                     .ok_or("Body Fore delivery slots exhausted")?;
                 delivery.fill_prepared(offer.sequence, bytes)?;
-                output
-                    .as_deref_mut()
-                    .ok_or("Body Fore output adapter lost")?
-                    .deliver(&delivery)?;
-                scheduler
-                    .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
-                    .map_err(|error| format!("Body Fore accept: {error:?}"))?;
-                scheduler
-                    .remote_egress_delivered(planned.endpoint, planned.cord, offer.sequence)
-                    .map_err(|error| format!("Body Fore acknowledge: {error:?}"))?;
+                let delivery = match custody::deliver(scheduler, output, planned, delivery) {
+                    Ok(delivery) => delivery,
+                    Err((pending, error)) => {
+                        self.pending_output = Some(pending);
+                        return Err(error);
+                    }
+                };
+                // Retain confirmed delivery even if a subsequent source/map
+                // acknowledgement fails. Those are distinct custody facts.
+                let delivery_index = self.deliveries.len();
+                self.deliveries.push(delivery);
+                let delivery = &self.deliveries[delivery_index];
                 if slots.input_origin.is_none() {
                     if let Some(map) = map.as_deref_mut() {
                         map.acknowledge_lowered(
@@ -287,12 +297,11 @@ impl<'a> BodyForeRoute<'a> {
                         .acknowledge_completed_event(node, call, offer.value)?;
                     self.acknowledged_inputs.push_back(AcknowledgedInput {
                         event,
-                        delivery_index: self.deliveries.len(),
+                        delivery_index,
                     });
                     slots.acknowledged_descriptor = Some(descriptor);
                     slots.acknowledged_physical_event = Some(physical_event);
                 }
-                self.deliveries.push(delivery);
             }
         }
         Ok(())
@@ -328,8 +337,8 @@ impl<'a> BodyForeRoute<'a> {
         Ok(())
     }
 
-    pub(super) fn into_deliveries(self) -> Vec<ExternalForeDelivery> {
-        self.deliveries
+    pub(super) fn into_custody(self) -> (Vec<ExternalForeDelivery>, Option<BodyForePendingOutput>) {
+        (self.deliveries, self.pending_output)
     }
 }
 

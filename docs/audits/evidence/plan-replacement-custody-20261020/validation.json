@@ -1,0 +1,194 @@
+{
+  "source": "8d5b6368e2937e8528e4cba14ad5be34ae8ad297",
+  "source_after": "8d5b6368e2937e8528e4cba14ad5be34ae8ad297",
+  "clean_before": true,
+  "clean_after": true,
+  "results": [
+    {
+      "name": "format",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "products/conduit/src/body_owner/checkpoint_once.rs",
+        "products/conduit/src/body_owner/continuing.rs",
+        "products/conduit/src/body_owner/thermostat_worker.rs",
+        "products/conduit/src/body_owner/todo_read.rs",
+        "products/conduit/src/body_owner/todo_waiting.rs",
+        "products/conduit/src/thermostat_run/evidence.rs",
+        "targets/std/src/body_causal_evidence_tests.rs",
+        "targets/std/src/body_execution.rs",
+        "targets/std/src/body_execution/fore_custody.rs",
+        "targets/std/src/installed_std/body_kernel.rs",
+        "targets/std/src/installed_std/body_kernel/fore_route.rs",
+        "targets/std/src/installed_std/body_kernel/fore_route/custody.rs",
+        "targets/std/tests/common/checkpoint_fixture.rs",
+        "targets/std/tests/replacement_fore_custody.rs",
+        "targets/std/tests/replacement_fore_custody/accepted_then_cancelled.rs",
+        "targets/std/tests/replacement_fore_custody/provider_loss.rs",
+        "targets/std/tests/todo_checkpoint_body_play.rs",
+        "tools/xtask/src/suites/todo.rs"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true
+    },
+    {
+      "name": "todo-durability",
+      "command": [
+        "cargo",
+        "xtask",
+        "check",
+        "todo-durability"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          7,
+          0,
+          0
+        ],
+        [
+          8,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          0
+        ],
+        [
+          9,
+          0,
+          0
+        ],
+        [
+          17,
+          0,
+          1
+        ]
+      ],
+      "expected_passed": 44,
+      "valid": true
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "--test",
+        "replacement_fore_custody",
+        "--test",
+        "todo_checkpoint_body_play",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true
+    },
+    {
+      "name": "parsec-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std::body_kernel::parsec_live_fore_tests",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          4,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 4,
+      "valid": true
+    },
+    {
+      "name": "cancellation-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "pending_keyboard_cancellation_releases_the_whole_workload_for_another_play",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 1,
+      "valid": true
+    },
+    {
+      "name": "release-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "release_failure_retains_the_original_pre_play_refusal",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 1,
+      "valid": true
+    },
+    {
+      "name": "verification",
+      "command": [
+        "python3",
+        "proof/performance/verify-plan-replacement-custody.py",
+        "../6102-todo-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true
+    },
+    {
+      "name": "negative-controls",
+      "command": [
+        "python3",
+        "proof/performance/check-plan-replacement-custody-negatives.py",
+        "../6102-todo-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true
+    }
+  ]
+}

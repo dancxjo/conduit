@@ -40,6 +40,7 @@ pub(super) fn render(
         "play":report.play,"terminal":report.terminal,"terminal_sign":report.terminal_sign,
         "kernel_events":report.kernel_events.iter().map(event_json).collect::<Vec<_>>(),"scan_child_signs":child_signs,
         "failure":report.failure,"cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
         "scan_cancellation_failed":report.scan_cancellation_failed,"scan_output_completion_failed":report.scan_output_completion_failed,
         "outputs":report.fore_deliveries.iter().map(|delivery| serde_json::json!({"front_port_id":delivery.front_port_id,"value_kind":delivery.value_kind,"sequence":delivery.sequence,"track":delivery.track,"bytes":delivery.bytes})).collect::<Vec<_>>()});
     Ok(Some(NativeEvidence {

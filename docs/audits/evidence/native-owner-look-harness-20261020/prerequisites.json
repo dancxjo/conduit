@@ -1,0 +1,9 @@
+{
+  "aarch64-linux-gnu-gcc": "not found on PATH",
+  "aarch64-linux-gnu-g++": "not found on PATH",
+  "cmake": "/usr/bin/cmake",
+  "uid": 1000,
+  "sudo_noninteractive": "interactive authentication is required",
+  "blocked_step": "fresh supported Linux release and installed Owner capture",
+  "not_claimed": "live owner Todo Look capture"
+}

@@ -88,6 +88,7 @@ impl Owner {
         write_receipt: serde_json::Value,
         maximum_millis: u64,
     ) -> Result<TodoState, String> {
+        self.ensure_execution_retained(state_root)?;
         self.todo_verified = None;
         let fresh_boot = committed.is_none();
         if !(1..=60_000).contains(&maximum_millis)
@@ -293,6 +294,7 @@ impl Owner {
             workload: list_key,
             missing_v2: MissingV2Disposition::Refuse,
         };
+        state::require_execution_capacity(state_root)?;
         let control = RunControl::default();
         let session = &mut self.session;
         let admissions = self.admissions.as_ref();
@@ -467,6 +469,7 @@ impl Owner {
                 "code":failure.code.as_str(), "detail":failure.detail,
             })),
             "read_cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "read_terminal_sign":report.terminal_sign,
             "read_host_call":report.requests.first().map(|call| serde_json::json!({
                 "node":call.node.0,"request":call.request.0,"call":call.call.0
@@ -475,16 +478,7 @@ impl Owner {
             "selected_residence":residence,
             "restored_fore_sha256":report.fore_deliveries.first().map(|fore| super::super::super::digest(&fore.bytes)),
         });
-        state::retain_session(
-            state_root,
-            &mut next,
-            Some(&receipt),
-            self.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        self.session = next;
-        self.last_execution = Some(receipt);
+        self.retain_execution(state_root, next, receipt)?;
         verified.map(|(restored, basis)| {
             self.todo_verified = Some((basis, restored.clone()));
             restored

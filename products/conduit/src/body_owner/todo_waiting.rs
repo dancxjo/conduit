@@ -161,6 +161,7 @@ impl Owner {
         checkpoint: NewTodoCheckpoint,
         maximum_millis: u64,
     ) -> Result<TodoWaitingWorker, String> {
+        self.ensure_execution_retained(state_root)?;
         let NewTodoCheckpoint {
             root: checkpoint_root,
             identity,
@@ -232,6 +233,7 @@ impl Owner {
             Duration::from_millis(maximum_millis),
         )?;
         self.persist(state_root)?;
+        state::require_execution_capacity(state_root)?;
         let mut host = self.host.take_for_play()?;
         let worker_control = control.clone();
         let worker_queue = queue.clone();
@@ -423,6 +425,7 @@ impl TodoWaitingWorker {
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "play":report.play, "terminal":report.terminal,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "terminal_sign":report.terminal_sign,
             "interaction_id":self.accepted_interaction.as_ref(),
             "initiating_show":self.accepted_mask.as_ref().map(|(show, _)| show),
@@ -453,16 +456,7 @@ impl TodoWaitingWorker {
                 "call":request.call.0,
             })),
         });
-        state::retain_session(
-            state_root,
-            &mut next,
-            Some(&receipt),
-            owner.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        owner.session = next;
-        owner.last_execution = Some(receipt);
+        owner.retain_execution(state_root, next, receipt)?;
         owner.todo_live = None;
         if committed.is_none() {
             owner.todo_verified = None;

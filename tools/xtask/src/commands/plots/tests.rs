@@ -109,7 +109,12 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-check")
         .collect();
-    assert_eq!(reusable.len(), 30);
+    let declared_reusable: Vec<_> = inventory
+        .plots
+        .iter()
+        .flat_map(|plot| &plot.reusable_entries)
+        .collect();
+    assert_eq!(reusable.len(), declared_reusable.len());
     assert!(reusable.iter().all(|result| {
         result.status == "passed"
             && result.source_document_id.is_some()
@@ -128,20 +133,26 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "composition-check")
         .collect();
-    assert_eq!(composition.len(), 30);
+    assert_eq!(composition.len(), declared_reusable.len());
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "passed")
             .count(),
-        27
+        declared_reusable
+            .iter()
+            .filter(|entry| entry.composition.is_some())
+            .count()
     );
     assert_eq!(
         composition
             .iter()
             .filter(|result| result.status == "unavailable")
             .count(),
-        3
+        declared_reusable
+            .iter()
+            .filter(|entry| entry.composition.is_none())
+            .count()
     );
     assert!(composition
         .iter()
@@ -157,7 +168,7 @@ fn explicit_inventory_covers_canonical_sources_and_checks_every_entry() {
         .iter()
         .filter(|result| result.proof_mode == "reusable-deterministic")
         .collect();
-    assert_eq!(reusable_deterministic.len(), 30);
+    assert_eq!(reusable_deterministic.len(), declared_reusable.len());
     assert!(reusable_deterministic
         .iter()
         .all(|result| result.status == "unavailable"));
@@ -424,6 +435,15 @@ fn workspace_catalog_preserves_memory_lantern_semantic_editor_requirement() {
     let bytes = fs::read(&output).unwrap();
     fs::remove_file(&output).unwrap();
     let catalog: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        catalog["maximum_plots"],
+        conduit_plot_library::MAX_LIBRARY_PLOTS
+    );
+    assert!(catalog["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|plot| plot["slug"] != "quantity-projection"));
     let memory = catalog["plots"]
         .as_array()
         .unwrap()

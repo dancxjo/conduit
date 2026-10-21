@@ -25,6 +25,8 @@ mod emitted_line;
 mod front_door_proof;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
+mod headless_profile;
+mod headless_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -62,6 +64,7 @@ mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod native_latency;
+mod native_progress;
 mod native_timing;
 mod opl2_proof;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_image.rs"]
@@ -241,6 +244,9 @@ struct LiveOwnerActionProofArgs {
 struct LiveOwnerTodoFaceProofArgs {
     #[command(flatten)]
     route: LiveOwnerActionProofArgs,
+    /// Exercise four independently selected native Looks through the owner route.
+    #[arg(long)]
+    look_selection: bool,
     /// Body expected in the exact installed Owner admission receipt.
     #[arg(long)]
     expected_body_id: String,
@@ -596,6 +602,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
+        ConduitosCommand::HeadlessProof { output } => headless_proof::execute(output, opts),
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),

@@ -28,6 +28,9 @@ mod input;
 #[path = "native_face_mask/preparation.rs"]
 mod preparation;
 
+#[path = "native_face_mask/encounter.rs"]
+mod encounter;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeFaceMaskError {
     Plan,
@@ -99,6 +102,7 @@ pub struct NativeFaceMask {
     visual_expression: Option<conduit_face::AdmittedVisualExpression>,
     visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
+    encounter_pending: bool,
 }
 
 impl NativeFaceMask {
@@ -199,6 +203,7 @@ impl NativeFaceMask {
             self.surface_admitted = false;
         }
         self.scene = None;
+        self.encounter_pending = false;
         Ok(())
     }
 
@@ -308,7 +313,7 @@ impl NativeFaceMask {
         })?;
         let width = u16::try_from(format.width).map_err(|_| NativeFaceMaskError::Face)?;
         let height = u16::try_from(format.height).map_err(|_| NativeFaceMaskError::Face)?;
-        let scene = if let Some(configuration) = &self.component_configuration {
+        let mut scene = if let Some(configuration) = &self.component_configuration {
             let (scene, expression, fallback) = Self::prepare_component_scene(
                 configuration,
                 &face,
@@ -324,6 +329,7 @@ impl NativeFaceMask {
             NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
                 .map_err(NativeFaceMaskError::Scene)?
         };
+        self.restore_pending_encounter(&mut scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face
             .subjects

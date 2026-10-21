@@ -1,0 +1,12 @@
+PASS: rejects missing old receipt: missing/duplicated initial
+PASS: rejects missing replacement stage: missing/reordered cost stage
+PASS: rejects fabricated net benefit: fabricated conservative net benefit
+PASS: rejects forecast terminal substitution: forecast lost actual terminal Sign
+PASS: rejects wrong output bytes: output custody differs
+PASS: rejects replayed Play: terminal rebound
+PASS: rejects missing admitted horizon request: unrecorded/replayed execution
+PASS: rejects noise retriggered: noise retriggered/reason lost
+PASS: rejects old receipt custody erased: old receipt changed or vanished
+PASS: rejects foreign stage custodian: stage source differs
+PASS: rejects fabricated clock interval: duration range differs
+PASS: rejects absent queued request: missing admitted backlog

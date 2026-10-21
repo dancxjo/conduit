@@ -48,6 +48,7 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             | "prepared"
             | "prepared-compact-local"
             | "prepared-matrix-local"
+            | "prepared-owned-matrix-local"
             | "prepared-matrix-source-cache"
     ) {
         return Err("unknown owner profile".into());

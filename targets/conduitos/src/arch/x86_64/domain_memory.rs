@@ -54,6 +54,15 @@ static POOL: Pool = Pool(UnsafeCell::new([Slot::empty(), Slot::empty()]));
 static OWNED: AtomicU8 = AtomicU8::new(0);
 static HHDM: AtomicU64 = AtomicU64::new(0);
 
+pub(super) fn hhdm_offset() -> Result<u64, DomainRefusal> {
+    let offset = HHDM.load(Ordering::Acquire);
+    if offset == 0 {
+        Err(DomainRefusal::Unsupported)
+    } else {
+        Ok(offset)
+    }
+}
+
 pub(super) fn initialize(hhdm: u64) {
     HHDM.store(hhdm, Ordering::Release);
 }

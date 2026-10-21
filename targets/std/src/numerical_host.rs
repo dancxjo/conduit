@@ -4,6 +4,7 @@ use conduit_core::{
     ConfigurationValue, ExactNumericWork, NumericalRealizationRequest, OfferGeneration,
 };
 use conduit_plot::ExpandedCanonicalPlot;
+mod each;
 mod expressions;
 pub(crate) mod ieee_encoding;
 pub(crate) mod ieee_native;
@@ -18,6 +19,13 @@ impl StdHost {
     pub fn prepare_numerical_realizations(
         &mut self,
         plot: &ExpandedCanonicalPlot,
+    ) -> Result<(), String> {
+        self.prepare_numerical_batch(plot, None)
+    }
+    fn prepare_numerical_batch(
+        &mut self,
+        plot: &ExpandedCanonicalPlot,
+        each: Option<conduit_core::CapabilityOffer>,
     ) -> Result<(), String> {
         let gears = plot
             .gears
@@ -45,7 +53,8 @@ impl StdHost {
             .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_NEAR_KIND)
             .take(33)
             .collect::<Vec<_>>();
-        if gears.is_empty()
+        if each.is_none()
+            && gears.is_empty()
             && ieee_gears.is_empty()
             && near_gears.is_empty()
             && !self.advertisement.capabilities.iter().any(|offer| {
@@ -108,6 +117,12 @@ impl StdHost {
                     .iter()
                     .cloned(),
             );
+        }
+        if let Some(offer) = each {
+            advertisement
+                .capabilities
+                .retain(|offer| !crate::flow_activation::owns_near_each_offer(offer));
+            advertisement.capabilities.push(offer);
         }
         normalize_capability_offers(&mut advertisement.capabilities)?;
         if advertisement.capabilities == self.advertisement.capabilities {

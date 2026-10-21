@@ -26,30 +26,38 @@ pub(super) struct InputState {
     keymap: PreparedKeymap,
     action: Option<usize>,
     values: Vec<Option<Vec<u8>>>,
-    submitted: bool,
+    pub(super) submitted: bool,
 }
 
 impl InputState {
-    pub fn preview(&self, focus: Option<FaceControl>) -> Option<String> {
-        let control = focus?;
+    pub fn preview(
+        &self,
+        focus: Option<FaceControl>,
+        chrome: &super::chrome::Chrome,
+        scale: u16,
+    ) -> Result<Option<String>, FaceSceneError> {
+        let Some(control) = focus else {
+            return Ok(None);
+        };
         if self.action != Some(control.action) {
-            return None;
+            return Ok(None);
         }
-        let bytes = self.values.get(control.argument?)?.as_ref()?;
+        let Some(bytes) = control
+            .argument
+            .and_then(|argument| self.values.get(argument))
+            .and_then(Option::as_ref)
+        else {
+            return Ok(None);
+        };
         let value = match bytes.as_slice() {
             [0] => "false",
             [1] => "true",
-            _ => core::str::from_utf8(bytes).ok()?,
+            _ => match core::str::from_utf8(bytes) {
+                Ok(value) => value,
+                Err(_) => return Ok(None),
+            },
         };
-        let mut start = value.len().saturating_sub(64);
-        while !value.is_char_boundary(start) {
-            start += 1;
-        }
-        Some(alloc::format!(
-            "Draft{}: {} · Enter applies",
-            if start > 0 { " (end)" } else { "" },
-            &value[start..]
-        ))
+        chrome.draft_preview(value, scale).map(Some)
     }
 }
 
@@ -481,3 +489,7 @@ impl NativeFaceScene {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "input_preview_tests.rs"]
+mod preview_tests;

@@ -1,0 +1,263 @@
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/tools/xtask)
+    Finished `test` profile [unoptimized] target(s) in 13.65s
+     Running unittests src/lib.rs (target/debug/deps/conduitos-c5a01266c4c089b1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1248 filtered out; finished in 0.00s
+
+     Running tests/bytes_literal_source.rs (target/debug/deps/bytes_literal_source-3140ff25a6f064d7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/compact_gear_cards.rs (target/debug/deps/compact_gear_cards-3f335efcb1892b36)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/ethernet_frame_device.rs (target/debug/deps/ethernet_frame_device-416d1c96a5c9654d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/face_offer_ownership.rs (target/debug/deps/face_offer_ownership-180a399085a2e917)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/native_compositor.rs (target/debug/deps/native_compositor-656fa5c10d8131f9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/native_compositor_input.rs (target/debug/deps/native_compositor_input-5082b669156afc62)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/native_compositor_scanout.rs (target/debug/deps/native_compositor_scanout-2a5a66ab05afee41)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/native_face_scene.rs (target/debug/deps/native_face_scene-23e6f475587e21c5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 99 filtered out; finished in 0.00s
+
+     Running tests/native_typography.rs (target/debug/deps/native_typography-e2c94297be36c456)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/proof_namespace.rs (target/debug/deps/proof_namespace-d79b253bcc0742e1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/protection_domain_lifecycle.rs (target/debug/deps/protection_domain_lifecycle-fde6de41cbb04baa)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/pure_protocol_play.rs (target/debug/deps/pure_protocol_play-80ebc4748c49c760)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/std_compatibility.rs (target/debug/deps/std_compatibility-bd804f1f282b8b12)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/tcp_poll_adapter.rs (target/debug/deps/tcp_poll_adapter-5b43e9f1737b2900)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/timing_profile.rs (target/debug/deps/timing_profile-91a0ef0e9e773149)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/usb_architecture_evidence.rs (target/debug/deps/usb_architecture_evidence-8dc2ea55458337d1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/usb_audio_plots.rs (target/debug/deps/usb_audio_plots-c06bec89d8088967)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 0.00s
+
+     Running tests/usb_bot_reentry_closure.rs (target/debug/deps/usb_bot_reentry_closure-04b044704d090450)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/usb_bot_reentry_source.rs (target/debug/deps/usb_bot_reentry_source-505754a6a6bb44d0)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
+     Running tests/usb_bot_storage_source.rs (target/debug/deps/usb_bot_storage_source-0af765f66d3a598a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+
+     Running tests/usb_cdc_serial_source.rs (target/debug/deps/usb_cdc_serial_source-4db9ad3e8fd83cfe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 0.00s
+
+     Running tests/usb_duplex_zip_progress.rs (target/debug/deps/usb_duplex_zip_progress-e34384a548598d02)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/usb_ecm_class_source.rs (target/debug/deps/usb_ecm_class_source-fcebe80182a223d5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 20 filtered out; finished in 0.00s
+
+     Running tests/usb_ecm_lifecycle.rs (target/debug/deps/usb_ecm_lifecycle-578d78e48c29b040)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/usb_ecm_source.rs (target/debug/deps/usb_ecm_source-bc38f9ccbffd6828)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/usb_endpoint_read.rs (target/debug/deps/usb_endpoint_read-1b2315433bb1a148)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/usb_hid_preparation.rs (target/debug/deps/usb_hid_preparation-7d5c9f02272cce25)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/usb_hid_reports.rs (target/debug/deps/usb_hid_reports-610a9470e03c81a1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.00s
+
+     Running tests/usb_mouse_lifecycle.rs (target/debug/deps/usb_mouse_lifecycle-c6aa7c52dc1efa24)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/usb_mouse_order.rs (target/debug/deps/usb_mouse_order-9d2217ac51e59b96)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/usb_protocol_plots.rs (target/debug/deps/usb_protocol_plots-52027618966f01d2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/xtask-1749f84d904cfb76)
+
+running 9 tests
+test commands::conduitos::native_timing::tests::accepts_nested_intervals_without_inventing_clock_frequency ... ok
+test commands::conduitos::native_timing::custody_clock_tests::custody_receipts_cannot_hide_counter_reversal_between_stage_records ... ok
+test commands::conduitos::native_progress::tests::validated_nested_progress_retains_refusal_and_unknown_frequency ... ok
+test commands::conduitos::native_latency::breakdown::tests::startup_acknowledgement_keeps_unknown_frequency_and_exact_show_custody ... ok
+test commands::conduitos::native_timing::tests::rejects_gaps_reboots_clock_reversal_and_exhaustion ... ok
+test commands::conduitos::native_progress::tests::dropped_truncated_reordered_and_relabelled_families_do_not_pass ... ok
+test commands::conduitos::native_latency::breakdown::tests::wrong_boot_stale_show_and_prepaint_focus_cannot_stand_in_for_usable_input ... ok
+test commands::conduitos::native_progress::tests::all_required_local_product_phases_must_be_observed_but_network_is_optional ... ok
+test commands::conduitos::native_latency::tests::repetition_admission_refuses_zero_and_unbounded_families ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 585 filtered out; finished in 0.01s
+
+     Running tests/architecture_vocabulary.rs (target/debug/deps/architecture_vocabulary-2936d7d05a9f6ad7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/capability_offer_hygiene.rs (target/debug/deps/capability_offer_hygiene-e89e1c43ec97319d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/ci_workflow_contract.rs (target/debug/deps/ci_workflow_contract-89278140a7214a0b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/conduit_source_canon.rs (target/debug/deps/conduit_source_canon-11def2e5ad8158d8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/output_cli.rs (target/debug/deps/output_cli-7e45729f9c663635)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/pico_midi_fixture.rs (target/debug/deps/pico_midi_fixture-d8e75e2ca9478dc5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/proof_dependency_boundary.rs (target/debug/deps/proof_dependency_boundary-ec5a428c0b4ac7bd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/startup_cue.rs (target/debug/deps/startup_cue-910c6f8713303519)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/terminology_safety.rs (target/debug/deps/terminology_safety-30cdf364e4f11948)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

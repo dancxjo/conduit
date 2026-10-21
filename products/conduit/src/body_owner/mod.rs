@@ -156,6 +156,7 @@ fn scoped_thermostat_initial(
 #[serde(tag = "operation", rename_all = "kebab-case", deny_unknown_fields)]
 enum Request {
     Inspect,
+    ExecutionHistory,
     Invite {
         ttl_seconds: u64,
     },
@@ -259,6 +260,9 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                     }
                     match request {
                         Request::Inspect => {}
+                        Request::ExecutionHistory => {
+                            emit(&state::execution_history(&root)?)?;
+                        }
                         Request::Invite { ttl_seconds } => {
                             let invitation = owner.issue_invitation(&root, ttl_seconds, None)?;
                             emit(&serde_json::to_value(invitation).map_err(|e| e.to_string())?)?;
@@ -294,6 +298,7 @@ pub(crate) fn run(source: &Path, directory: &Path, name: &str) -> Result<(), Str
                         Request::Plan => owner.plan_with_source(&canonical_source, &checked)?,
                         Request::Run { maximum_millis } => {
                             owner.persist(&root)?;
+                            state::require_execution_capacity(&root)?;
                             owner.execute(maximum_millis)?;
                         }
                         Request::Lull => owner.lull()?,

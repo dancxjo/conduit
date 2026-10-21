@@ -1,0 +1,11 @@
+{
+  "source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "normal_product_steps": 22,
+  "normal_product_pngs": 22,
+  "typography_tests_passed": 20,
+  "typography_tests_filtered": 1209,
+  "headless_fresh_boots": 2,
+  "old_receipt_source": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
+  "limits": "retains source-pinned evidence, not released image binaries; old narrow/Details proofs retain original source; Look selection deferred5628/5629",
+  "image_elf_local_retained": true
+}

@@ -1,0 +1,6 @@
+refused missing_profile
+refused wrong_materialization
+refused changed_sign
+refused changed_output
+refused wrong_custody
+verified real capture and five refusal controls

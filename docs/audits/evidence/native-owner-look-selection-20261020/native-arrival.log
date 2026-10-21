@@ -1,0 +1,10 @@
+
+running 5 tests
+test product_front_door::face_arrival::owner_selection::tests::independent_owner_axes_preserve_the_other_axis_and_checked_recipe ... ok
+test product_front_door::face_arrival::tests::read_only_owner_standby_requires_fresh_show_for_explicit_activation ... ok
+test product_front_door::face_arrival::tests::route_loss_retires_owner_show_before_read_only_republication ... ok
+test product_front_door::face_arrival::tests::owner_face_retires_arrival_revision_domain_once ... ok
+test product_front_door::face_arrival::look_selection::tests::local_selection_keeps_face_and_draft_while_retiring_each_old_show ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1233 filtered out; finished in 5.04s
+
