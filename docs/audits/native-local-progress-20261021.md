@@ -194,3 +194,16 @@ after documentation/visibility normalization. Native-compositor compilation
 passed (5 seconds). Full extraction validation (workspace tests/Clippy) remains
 deferred under tonight's instruction; no PR or CI run was created. The canvas
 consumers themselves are not yet migrated by this extraction.
+
+## Port/Cord fidelity before consumer migration
+
+The shared graph Face now retains exact Port IDs, Port and Cord temporal
+contracts using `PortTemporal::as_str`, and offered Port abnormal-kind identities.
+The existing native projection omitted these facts while the old canvas retained
+temporal data. This closes that specific semantic loss before migrating another
+consumer; it does not claim the entire adapter migration. New properties correctly
+change the resulting Face identity and remain subject to ordinary complete-Face
+admission and current-Show checks. No old Face/image is relabelled as this source.
+Application event/wire bounds and action authority are unchanged.
+Native-compositor compilation passed (5 seconds). No tests/proof/image rebuild
+or CI jobs were run for this delta.

@@ -95,6 +95,7 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
         property(content, &id, "source-port", &cord.source_port);
         property(content, &id, "sink-port", &cord.sink_port);
         property(content, &id, "value-kind", cord.value_kind.as_str());
+        text_property(content, &id, "temporal", cord.temporal.as_str());
         for endpoint in [&cord.source_port, &cord.sink_port] {
             relation(
                 content,
@@ -129,7 +130,12 @@ fn append_port(
     );
     relation(content, parent, &id, FaceRelationshipKind::Contains);
     property(content, &id, "semantic-id", identity);
+    property(content, &id, "port-id", descriptor.port_id.as_str());
     property(content, &id, "value-kind", descriptor.value_kind.as_str());
+    text_property(content, &id, "temporal", descriptor.temporal.as_str());
+    if let Some(kind) = &descriptor.abnormal_kind {
+        property(content, &id, "abnormal-kind", kind.as_str());
+    }
     content.properties.push(FaceProperty {
         subject: id,
         name: "direction".into(),
@@ -162,5 +168,13 @@ fn property(content: &mut Content<'_>, subject: &str, name: &str, value: &str) {
         subject: subject.into(),
         name: name.into(),
         value: FacePropertyValue::Identity(String::from(value)),
+    });
+}
+
+fn text_property(content: &mut Content<'_>, subject: &str, name: &str, value: &str) {
+    content.properties.push(FaceProperty {
+        subject: subject.into(),
+        name: name.into(),
+        value: FacePropertyValue::Text(String::from(value)),
     });
 }
