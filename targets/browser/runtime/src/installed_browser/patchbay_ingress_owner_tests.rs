@@ -184,3 +184,38 @@ fn emitted_malformed_and_replaced_show_requests_refuse_without_owner_changes() {
     assert!(receipt.transport_completion.is_err());
     assert_eq!(owner.observe_fragment(basis, &body).unwrap(), before);
 }
+
+#[test]
+fn revoked_show_transport_never_dispatches_pending_bytes_to_owner() {
+    let (mut owner, body, basis) = owner();
+    let current = face(&owner, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let subject = owner.graph().subject_identities().next().unwrap();
+    let input = edit(&current, &show, subject);
+    let before = owner.observe_fragment(basis.clone(), &body).unwrap();
+    let mut pending = transport(&input);
+    let capacity = pending.value_capacities();
+    pending.retire().unwrap();
+    pending.retire().unwrap();
+    assert!(pending.is_terminal());
+    assert!(pending.pending_input().is_err());
+    assert!(pending.admit(&input).is_err());
+    assert!(pending
+        .complete(conduit_kernel::HostCallOutcome {
+            disposition: conduit_kernel::HostCallDisposition::Completed,
+            output: None,
+            failure: None,
+        })
+        .is_err());
+    assert!(dispatch_to_owner(&mut pending, &mut owner, &body, &basis, &current, &show).is_err());
+    assert_eq!(pending.value_capacities(), capacity);
+    let mut host =
+        crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    host.capabilities.push(offer());
+    let mut ready =
+        PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap();
+    ready.retire().unwrap();
+    assert!(ready.is_terminal());
+    assert!(ready.admit(&input).is_err());
+    assert_eq!(owner.observe_fragment(basis, &body).unwrap(), before);
+}

@@ -642,3 +642,20 @@ fixture assumed revision zero, while `open` starts at one; the corrected test
 checks the exact increment and retains the first failure log. Fixture Show
 acknowledgements are not page Host evidence. No broad tests/CI/platform proof or
 image rebuild ran.
+
+## Revoke old Show transport before owner dispatch
+
+Added explicit ingress retirement for Show replacement and Body retirement.
+Revocation is set before kernel cancellation, and blocks admission, pending-byte
+access and late completion even if cancellation fails. Successful retirement is
+idempotent. It does not pretend to cancel an Edit/Mask request already returned
+to the owner. The eventual product lifetime caller remains unwired.
+
+One focused CPU check passes (456 filtered out): pending and ready transports
+retire, repeated retirement is harmless, late completion/resubmission/owner
+dispatch refuse, owner projection remains unchanged, and storage capacities stay
+fixed. No broad suite, CI, platform proof or image rebuild ran.
+
+Live goal-state refresh: #6055 MERGED; #5990, #5607 and #5992 CLOSED; #6158 and
+#6201 OPEN. These issue states do not supply the still-deferred native/product
+proof or finish Patchbay production installation. The full goal remains active.

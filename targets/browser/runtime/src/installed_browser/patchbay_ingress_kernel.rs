@@ -28,6 +28,7 @@ pub struct PreparedPatchbayIngress {
     submitted: bool,
     pending: Option<HostCallRequest>,
     terminal: bool,
+    revoked: bool,
 }
 
 impl PreparedPatchbayIngress {
@@ -91,6 +92,7 @@ impl PreparedPatchbayIngress {
             submitted: false,
             pending: None,
             terminal: false,
+            revoked: false,
         })
     }
 
@@ -104,11 +106,26 @@ impl PreparedPatchbayIngress {
         self.kernel.values().allocation_capacities()
     }
 
+    /// Revoke this transport on Show replacement or owner Play retirement.
+    /// No owner callback runs; this does not cancel an already returned domain
+    /// request. Revoke before cancelling so a cancellation failure cannot reopen
+    /// the old input or expose its pending bytes to a later owner dispatch.
+    pub fn retire(&mut self) -> Result<(), String> {
+        self.revoked = true;
+        if self.terminal {
+            return Ok(());
+        }
+        self.kernel.cancel().map_err(debug)?;
+        self.pending = None;
+        self.terminal = true;
+        Ok(())
+    }
+
     /// Copy into the preallocated exact input cord, then close this stream.
     /// No owner callback runs here. Even an uncertain later failure cannot make
     /// this consumed transport available for an implicit resubmission.
     pub fn admit(&mut self, bytes: &[u8]) -> Result<(), String> {
-        if self.submitted {
+        if self.submitted || self.revoked {
             return Err("Patchbay ingress is already consumed".into());
         }
         if bytes.is_empty() || bytes.len() > BYTES as usize {
@@ -151,6 +168,9 @@ impl PreparedPatchbayIngress {
     /// Borrow only bytes that actually reached the planned kernel Host Call.
     /// The owner must recheck current Face/Show and preserve its typed request.
     pub fn pending_input(&self) -> Result<&[u8], String> {
+        if self.revoked {
+            return Err("Patchbay ingress was revoked".into());
+        }
         let call = self
             .pending
             .ok_or("Patchbay ingress has no pending owner call")?;
@@ -160,6 +180,9 @@ impl PreparedPatchbayIngress {
     /// Complete the actual call after the owner reports its result. No output
     /// value is admitted by this sink, including on refusal or cancellation.
     pub fn complete(&mut self, outcome: HostCallOutcome) -> Result<(), String> {
+        if self.revoked {
+            return Err("Patchbay ingress was revoked".into());
+        }
         if outcome.output.is_some() {
             return Err("Patchbay ingress admits no Host Call output".into());
         }

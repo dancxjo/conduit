@@ -159,3 +159,14 @@ parent storage, retain the genuine acknowledged Show and handle the returned
 request/outcome. Local CPU fixtures exercise the complete kernel/model path;
 fixture Shows do not establish page Host acknowledgement or installed product
 behavior.
+
+## Revocation for Show/Play lifetime changes
+
+`PreparedPatchbayIngress::retire` revokes access before cancelling the kernel.
+After revocation, admission, pending-input access and late completion refuse;
+`dispatch_to_owner` therefore stops before invoking the model. Ready and pending
+transports can retire, and successful retirement is idempotent. If cancellation
+fails, revocation remains set, so the old stream cannot reopen. This revokes the
+transport only; a domain request already returned in a dispatch receipt remains
+the owner's responsibility. The eventual Show replacement/Body retirement
+caller must invoke this operation; current product wiring remains pending.
