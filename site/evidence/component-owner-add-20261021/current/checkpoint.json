@@ -1,0 +1,26 @@
+{
+  "source": "ab32b37aaaa0e70805630f6d4f911828e4e1face",
+  "branch": "fix/5645-live-component-proof",
+  "recovery_pushed": true,
+  "sdk_tests": 38,
+  "look_evidence_tests": 30,
+  "syntax": "pass",
+  "release": "pass",
+  "handbook": "pass",
+  "capture_attempts_this_source": 1,
+  "capture_seconds": 19.611,
+  "capture_status": "failed",
+  "capture_boundary": "Trusted Add returned without observing a new acknowledged Face/item within12s; underlying cause not yet established",
+  "look_observations": 3,
+  "large_text_percent": 200,
+  "retirement": {
+    "code": "StaleShow",
+    "layer": "sdk-before-wasm",
+    "owner_unchanged": true
+  },
+  "selected_back": "implementation/browser-component-mask",
+  "component_fallback": null,
+  "items_in_failed_view": 0,
+  "first_negative_source": "e362a6b07947f8befc6de1e70e97dc0d1e2c2cd8",
+  "first_negative_directory": "work/5645-live-component"
+}

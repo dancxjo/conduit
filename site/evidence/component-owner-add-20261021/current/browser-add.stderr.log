@@ -1,0 +1,12 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 12000ms exceeded.
+    at performAdd (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/browser/todo-owner-browser.mjs:395:16)
+    at async file:///home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/browser/todo-owner-browser.mjs:415:29 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Node.js v25.9.0

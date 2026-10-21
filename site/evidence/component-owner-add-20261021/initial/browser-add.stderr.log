@@ -1,0 +1,15 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: retirement proof must reach the WASM Show gate rather than fail argument validation
+    at file:///home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/browser/todo-owner-browser.mjs:251:16 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 'Current acknowledged owner Show is required for interaction.',
+  expected: /^owner Face interaction refused \(-5\)$/,
+  operator: 'match',
+  diff: 'simple'
+}
+
+Node.js v25.9.0

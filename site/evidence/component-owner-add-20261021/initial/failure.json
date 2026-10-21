@@ -1,0 +1,10 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: retirement proof must reach the WASM Show gate rather than fail argument validation",
+  "page_errors": [],
+  "owner_source_commit": "e362a6b07947f8befc6de1e70e97dc0d1e2c2cd8",
+  "browser_runtime_source_commit": "e362a6b07947f8befc6de1e70e97dc0d1e2c2cd8",
+  "handbook_ui_source_commit": "e362a6b07947f8befc6de1e70e97dc0d1e2c2cd8",
+  "handbook_ui_source_clean": true,
+  "handbook_package_digest": "sha256:4abf36dd45c89ce132e7d274404d1d4a3b5c13cb05b53d4c65e9d2cbf6d55ffe",
+  "source_relation": "exact-source"
+}
