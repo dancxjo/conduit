@@ -9,7 +9,7 @@
     "workspace",
     "--locked"
   ],
-  "status": "running",
+  "status": 1,
   "free_before": 179509624832,
   "environment": {
     "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target",
@@ -21,5 +21,7 @@
     "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
     "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
     "RUST_TEST_THREADS": "1"
-  }
+  },
+  "seconds": 1009.133490562439,
+  "free_after": 178609934336
 }

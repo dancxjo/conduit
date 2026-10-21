@@ -1,0 +1,79 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "tree": "9e1f38adb6f9425e0b772c9488bb5b55ab7a8060",
+  "args": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "check",
+    "workspace",
+    "--locked"
+  ],
+  "status": 1,
+  "free_before": 179509624832,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "RUST_TEST_THREADS": "1"
+  },
+  "seconds": 1009.133490562439,
+  "free_after": 178609934336,
+  "log_sha256": "2ee8a05845de664c2cc4e235e38bac4ca3cedbf4e6dd287fdb3f46594d44a034",
+  "test_results": [
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 4.56s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 447 filtered out; finished in 0.00s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 0.00s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 446 filtered out; finished in 0.52s"
+  ],
+  "warning_header_occurrences": 1,
+  "ignored_test_occurrences": 0,
+  "boundary": "Exactdb1 negative full-workspace proof; strict Clippy failed before workspace tests. No source repair/rerun. Historical253full52 pass anddb1focused/product proofs remain distinct.",
+  "gates_started": [
+    "check.committed-todo-mask-exchange",
+    "check.fmt",
+    "check.clippy"
+  ],
+  "gates_passed": [
+    "check.committed-todo-mask-exchange",
+    "check.fmt"
+  ],
+  "failed_gate": "check.clippy",
+  "first_failure": {
+    "file": "targets/conduitos/make/xtask/owner_todo_look_proof.rs",
+    "line": 39,
+    "lint": "unfulfilled_lint_expectations",
+    "expectation": "clippy::too_many_arguments",
+    "targets": [
+      "xtask bin",
+      "xtask bin test"
+    ]
+  },
+  "workspace_tests_started": false,
+  "source_clean_after": true,
+  "files": {
+    "workspace-ignored-tests.txt": {
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b"
+    },
+    "workspace.log": {
+      "bytes": 41594,
+      "sha256": "2ee8a05845de664c2cc4e235e38bac4ca3cedbf4e6dd287fdb3f46594d44a034"
+    },
+    "workspace-warnings.txt": {
+      "bytes": 64,
+      "sha256": "54d9bac66d0d102c06fcb6ef6723bd0c365c8d5eca1360d0a591f786b678acef"
+    },
+    "workspace-status.json": {
+      "bytes": 766,
+      "sha256": "0118533aa9b2a87549c8dc4122601b800c0f317ea60d6f2ad42a9ec7a3373de8"
+    }
+  }
+}

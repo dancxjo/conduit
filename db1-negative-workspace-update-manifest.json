@@ -1,0 +1,46 @@
+{
+  "parent": "da32bc4b0ce8995032356966b30976555b7c6fb9",
+  "scope": "Exact db1 workspace failure, tests not reached; no passing full-workspace claim",
+  "files": [
+    {
+      "source": "outputs/5628-current-owner-workspace/receipt.json",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/receipt.json",
+      "bytes": 2890,
+      "sha256": "c33353ccb49ca2ef8da7b4dd6bb09ef98b0678a07061aa408cd2d60b4e81c8c1",
+      "mode": "100644",
+      "blob": "07510427f7250bc78e5abc054791c47b98109cde"
+    },
+    {
+      "source": "outputs/5628-current-owner-workspace/workspace-ignored-tests.txt",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/workspace-ignored-tests.txt",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "mode": "100644",
+      "blob": "8b137891791fe96927ad78e64b0aad7bded08bdc"
+    },
+    {
+      "source": "outputs/5628-current-owner-workspace/workspace-status.json",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/workspace-status.json",
+      "bytes": 766,
+      "sha256": "0118533aa9b2a87549c8dc4122601b800c0f317ea60d6f2ad42a9ec7a3373de8",
+      "mode": "100644",
+      "blob": "7488f9ccb6effe76f22c6bf4272e7bbbc055add3"
+    },
+    {
+      "source": "outputs/5628-current-owner-workspace/workspace-warnings.txt",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/workspace-warnings.txt",
+      "bytes": 64,
+      "sha256": "54d9bac66d0d102c06fcb6ef6723bd0c365c8d5eca1360d0a591f786b678acef",
+      "mode": "100644",
+      "blob": "3e4129a6187117287dec71efbf2d865be75c612e"
+    },
+    {
+      "source": "outputs/5628-current-owner-workspace/workspace.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/workspace.log",
+      "bytes": 41594,
+      "sha256": "2ee8a05845de664c2cc4e235e38bac4ca3cedbf4e6dd287fdb3f46594d44a034",
+      "mode": "100644",
+      "blob": "38462f08e3b1b7ff021c42c529765016e3734717"
+    }
+  ]
+}
