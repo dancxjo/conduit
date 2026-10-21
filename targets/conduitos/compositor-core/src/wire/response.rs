@@ -51,6 +51,7 @@ pub enum Response {
     Frame(FrameSpan),
     Pointer(Option<Route>),
     Keyboard(Option<(Handle, u64)>),
+    Focused(Option<Handle>),
     Refused(Error),
 }
 pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError> {
@@ -128,6 +129,7 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError>
         } else {
             None
         }),
+        0x8009 => Response::Focused(if r.bool()? { Some(r.handle()?) } else { None }),
         0x8007 => Response::Refused(error(r.u16()?)?),
         0x8008 => Response::FrameIdle {
             cursor_visible: r.bool()?,
@@ -152,6 +154,7 @@ pub fn encode_response(
         Response::Pointer(value) => (5, if value.is_some() { 22 } else { 1 }),
         Response::Keyboard(value) => (6, if value.is_some() { 18 } else { 1 }),
         Response::Refused(_) => (7, 2),
+        Response::Focused(value) => (9, if value.is_some() { 10 } else { 1 }),
         Response::FrameIdle { .. } => (8, 2),
     };
     let length = HEADER_BYTES + size;
@@ -203,6 +206,12 @@ pub fn encode_response(
                 w.handle(h)?;
                 nonzero(revision)?;
                 w.u64(revision)?;
+            }
+        }
+        Response::Focused(value) => {
+            w.bool(value.is_some())?;
+            if let Some(handle) = value {
+                w.handle(handle)?;
             }
         }
         Response::Refused(value) => w.u16(error_code(value))?,

@@ -87,3 +87,9 @@ boolean bytes). Both flags come from the guest's logical affordance state even
 when no pixels are emitted. The Root client invalidates any previous frame grant;
 idle replies grant no scanout or acknowledgement work. `Refused` remains reserved
 for actual command failures rather than erasing a valid idle receipt's flags.
+
+`Focused` (request operation 20) returns `Focused(Option<Handle>)` (response
+operation `0x8009`), the guest's logical visual focus. It is a read-only query and
+does not cancel pending frame work. It is distinct from acknowledgement-gated
+`Keyboard` routing and grants no semantic input authority. The client must fence
+any returned handle against the active display/session's admitted handle map.

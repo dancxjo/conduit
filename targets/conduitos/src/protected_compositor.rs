@@ -102,7 +102,10 @@ impl CompositorService {
                 .frame_grant
                 .ack(sequence)
                 .map_err(|_| TransportError::Protocol)?,
-            Request::FrameStep { .. } | Request::Pointer { .. } | Request::Keyboard => {}
+            Request::FrameStep { .. }
+            | Request::Pointer { .. }
+            | Request::Keyboard
+            | Request::Focused => {}
             // Frames are transactions. Other commands cancel a pending Root
             // grant even when the renderer ultimately reports a no-op/refusal.
             _ => self.frame_grant.invalidate(),
@@ -204,6 +207,7 @@ fn response_matches(request: Request, response: Response) -> bool {
             | (Request::FrameStep { .. }, Response::Frame(_))
             | (Request::Pointer { .. }, Response::Pointer(_))
             | (Request::Keyboard, Response::Keyboard(_))
+            | (Request::Focused, Response::Focused(_))
             | (
                 Request::Remove(_)
                     | Request::Place { .. }

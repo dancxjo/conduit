@@ -191,6 +191,11 @@ impl Compositor<'_> {
             y: (i64::from(y) - i64::from(s.rect.y)) as u16,
         })
     }
+    /// Authoritative logical visual focus, distinct from acknowledgement-gated
+    /// keyboard routing and from the semantic owner's checked focus authority.
+    pub fn focused_surface(&self) -> Option<Handle> {
+        self.focus
+    }
     pub fn keyboard(&self) -> Option<(Handle, u64)> {
         let h = self.focus?;
         let i = self.index(h).ok()?;

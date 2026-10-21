@@ -121,3 +121,30 @@ fn idle_frame_retains_guest_logical_affordances_without_new_pixel_work() {
     assert_eq!(c.logical_affordances(), (true, false));
     assert_eq!(c.frame_plan(), None);
 }
+
+#[test]
+fn authoritative_logical_focus_precedes_ack_and_does_not_cancel_frame() {
+    let (mut a, mut b) = (vec![0; MAX_PIXELS], vec![0; MAX_PIXELS]);
+    let mut c = Compositor::new(&mut a, &mut b, 2, 2).unwrap();
+    assert_eq!(c.focused_surface(), None);
+    let rect = Rect {
+        x: 0,
+        y: 0,
+        width: 2,
+        height: 2,
+    };
+    let h = c.admit(rect, 0).unwrap();
+    c.begin_upload(h, 1, rect).unwrap();
+    assert!(c.prepare_upload(4).unwrap());
+    c.upload_chunk(0, &[7; 4]).unwrap();
+    c.commit_upload().unwrap();
+    c.focus(h).unwrap();
+    assert_eq!(c.focused_surface(), Some(h));
+    assert_eq!(c.keyboard(), None);
+    c.begin_frame().unwrap();
+    let plan = c.frame_plan();
+    assert_eq!(c.focused_surface(), Some(h));
+    assert_eq!(c.frame_plan(), plan);
+    c.remove(h).unwrap();
+    assert_eq!(c.focused_surface(), None);
+}

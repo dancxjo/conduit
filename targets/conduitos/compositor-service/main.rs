@@ -147,6 +147,7 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
         }
         Request::Pointer { x, y } => Ok(Response::Pointer(core.pointer(x, y))),
         Request::Keyboard => Ok(Response::Keyboard(core.keyboard())),
+        Request::Focused => Ok(Response::Focused(core.focused_surface())),
         Request::Initialize { .. } => Err(Error::Order),
     }
 }

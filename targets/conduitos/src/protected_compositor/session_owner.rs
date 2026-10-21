@@ -214,6 +214,12 @@ impl<T: Transport> SessionOwner<T> {
                     return Err(OwnerError::Protocol);
                 }
             }
+            (Request::Focused, Response::Focused(Some(handle))) => {
+                if self.handle(handle).is_err() {
+                    self.quarantine();
+                    return Err(OwnerError::Protocol);
+                }
+            }
             (Request::Keyboard, Response::Keyboard(Some((handle, _)))) => {
                 if self.handle(handle).is_err() {
                     self.quarantine();
@@ -338,3 +344,87 @@ impl SessionOwner<super::CompositorService> {
 #[cfg(test)]
 #[path = "session_owner/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod focused_query_tests {
+    use super::*;
+    struct FocusTransport {
+        returned: Option<Handle>,
+        quarantined: bool,
+    }
+    impl Transport for FocusTransport {
+        type Error = ();
+        fn instance(&self) -> u64 {
+            1
+        }
+        fn request(&mut self, request: Request) -> Result<Response, ()> {
+            Ok(match request {
+                Request::Focused => Response::Focused(self.returned),
+                Request::Admit { .. } => Response::Surface(Handle {
+                    slot: 0,
+                    generation: 1,
+                }),
+                _ => Response::Unit,
+            })
+        }
+        fn upload(&mut self, _: u32, _: &[u32]) -> Result<Response, ()> {
+            unreachable!()
+        }
+        fn visit_frame<R>(
+            &mut self,
+            _: u64,
+            _: u32,
+            _: impl FnOnce(FrameSpan, PixelBytes<'_>) -> R,
+        ) -> Result<Result<R, Error>, ()> {
+            unreachable!()
+        }
+        fn quarantine(&mut self) {
+            self.quarantined = true;
+        }
+    }
+    #[test]
+    fn logical_focus_query_refuses_foreign_handles_even_without_keyboard_route() {
+        let mut owner = SessionOwner::new(FocusTransport {
+            returned: None,
+            quarantined: false,
+        })
+        .unwrap();
+        let id = owner.activate().unwrap().session;
+        assert_eq!(
+            owner.request(id, Request::Focused),
+            Ok(Response::Focused(None))
+        );
+        let handle = Handle {
+            slot: 0,
+            generation: 1,
+        };
+        owner
+            .request(
+                id,
+                Request::Admit {
+                    rect: conduitos_compositor_core::Rect {
+                        x: 0,
+                        y: 0,
+                        width: 1,
+                        height: 1,
+                    },
+                    z: 0,
+                },
+            )
+            .unwrap();
+        owner.transport.returned = Some(handle);
+        assert_eq!(
+            owner.request(id, Request::Focused),
+            Ok(Response::Focused(Some(handle)))
+        );
+        owner.transport.returned = Some(Handle {
+            slot: 7,
+            generation: 1,
+        });
+        assert_eq!(
+            owner.request(id, Request::Focused),
+            Err(OwnerError::Protocol)
+        );
+        assert!(owner.transport.quarantined);
+    }
+}

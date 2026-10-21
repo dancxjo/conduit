@@ -75,6 +75,7 @@ fn every_request_roundtrips_and_rejects_truncation_or_trailing_bytes() {
             y: u32::MAX,
         },
         Request::Keyboard,
+        Request::Focused,
         Request::Initialize {
             width: u16::MAX,
             height: u16::MAX,
@@ -227,6 +228,8 @@ fn response_variants_roundtrip_and_frame_ranges_are_checked() {
             y: u16::MAX,
         })),
         Response::Keyboard(None),
+        Response::Focused(None),
+        Response::Focused(Some(HANDLE)),
         Response::Keyboard(Some((HANDLE, u64::MAX))),
         Response::Refused(Error::NoDamage),
         Response::Refused(Error::Exhausted),
@@ -410,4 +413,26 @@ fn idle_frame_affordances_are_exact_canonical_booleans() {
     }
     bytes[8..12].copy_from_slice(&35u32.to_le_bytes());
     assert_eq!(decode_response(&bytes[..35]), Err(CodecError::Length));
+}
+
+#[test]
+fn focused_reply_requires_canonical_presence_and_exact_valid_handle_payload() {
+    let mut bytes = [0; EXCHANGE_BYTES];
+    let n = encode_response(ENV, Response::Focused(Some(HANDLE)), &mut bytes).unwrap();
+    assert_eq!(n, 42);
+    for (offset, value) in [(32, 2), (33, 8)] {
+        let mut bad = bytes;
+        bad[offset] = value;
+        assert!(decode_response(&bad[..n]).is_err());
+    }
+    let mut bad = bytes;
+    bad[34..42].fill(0);
+    assert!(decode_response(&bad[..n]).is_err());
+    let mut bad = bytes;
+    bad[32] = 0;
+    assert_eq!(decode_response(&bad[..n]), Err(CodecError::Length));
+    let n = encode_request(ENV, Request::Focused, &mut bytes).unwrap();
+    assert_eq!(n, 32);
+    bytes[8..12].copy_from_slice(&33u32.to_le_bytes());
+    assert_eq!(decode_request(&bytes[..33]), Err(CodecError::Length));
 }
