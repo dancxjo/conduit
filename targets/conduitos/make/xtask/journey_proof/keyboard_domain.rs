@@ -1,6 +1,6 @@
 //! Ordinary graphical input, exact Body identity, and retained domain cost.
 use super::super::{
-    ConduitosError, journey_input, journey_records, qemu_artifacts::Artifacts, qmp,
+    journey_input, journey_records, qemu_artifacts::Artifacts, qmp, ConduitosError,
 };
 use serde_json::Value;
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
