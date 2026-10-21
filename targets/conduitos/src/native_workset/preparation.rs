@@ -1,5 +1,6 @@
 //! Reuse checked embedded Source; never cache offers, admission or execution.
 use super::{NativePlot, WorksetRefusal};
+use crate::native_observation::{Phase, Progress};
 use alloc::sync::Arc;
 use conduit_plot::{
     CanonicalBackCatalog, ExpandedAuthoringPlot, ExpandedCanonicalPlot, PreparationCacheLimits,
@@ -21,7 +22,8 @@ struct NativePreparation {
 
 impl NativePreparation {
     fn new() -> Result<Self, WorksetRefusal> {
-        let (startup, profile) = catalogs()?;
+        let (startup, profile) =
+            Progress::result(Phase::CatalogInstall, "native-inventory", catalogs)?;
         Ok(Self {
             startup: Arc::new(startup),
             profile: Arc::new(profile),
@@ -36,13 +38,20 @@ impl NativePreparation {
     }
 
     fn expanded(&mut self, plot: NativePlot) -> Result<Arc<ExpandedAuthoringPlot>, WorksetRefusal> {
+        let mut observer = preparation_observer(plot.name());
         let source = self
             .cache
-            .check(plot.source(), &self.startup)
+            .check_observed(plot.source(), &self.startup, &mut observer)
             .map_err(|_| WorksetRefusal::Catalog)?;
         let expanded = self
             .cache
-            .expand(&source, plot.name(), &self.profile, &self.backs)
+            .expand_observed(
+                &source,
+                plot.name(),
+                &self.profile,
+                &self.backs,
+                &mut observer,
+            )
             .map_err(|_| WorksetRefusal::Catalog)?;
         // Preserve the closed-root law of expand_canonical_plot. The general
         // authoring cache also supports open Fores, which this entrance does not.
@@ -50,6 +59,32 @@ impl NativePreparation {
             return Err(WorksetRefusal::Catalog);
         }
         Ok(expanded)
+    }
+}
+
+// Observe actual cold cache work. Hits must not claim parsing or expansion.
+fn preparation_observer(context: &'static str) -> impl FnMut(conduit_plot::SourcePreparationEvent) {
+    use conduit_plot::SourcePreparationEvent as Event;
+    let mut active: Option<Progress> = None;
+    move |event| match event {
+        Event::ParseStarted => active = Some(Progress::begin(Phase::SourceParse, context)),
+        Event::CheckStarted => active = Some(Progress::begin(Phase::SourceCheck, context)),
+        Event::ExpansionStarted => active = Some(Progress::begin(Phase::SourceExpand, context)),
+        Event::ParseFinished => {
+            if let Some(span) = active.take() {
+                span.finish();
+            }
+        }
+        Event::CheckFinished { accepted } | Event::ExpansionFinished { accepted } => {
+            if let Some(span) = active.take() {
+                if accepted {
+                    span.finish();
+                } else {
+                    span.refuse();
+                }
+            }
+        }
+        Event::CheckHit | Event::ExpansionHit => {}
     }
 }
 

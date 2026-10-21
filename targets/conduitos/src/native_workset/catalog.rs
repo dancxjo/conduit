@@ -1,5 +1,6 @@
 //! Checked meaning of the exact plots offered at native birth.
 use super::WorksetRefusal;
+use crate::native_observation::{Phase, Progress};
 use conduit_body::ResidentPlot;
 use conduit_plot::ExpandedCanonicalPlot;
 
@@ -116,10 +117,12 @@ pub fn resident(plot: NativePlot) -> Result<ResidentPlot, WorksetRefusal> {
 }
 
 pub fn resolve(identity: &ResidentPlot) -> Result<NativePlot, WorksetRefusal> {
-    for plot in profile().installed {
-        if &resident(plot)? == identity {
-            return Ok(plot);
+    Progress::result(Phase::IdentityResolve, "installed-inventory", || {
+        for plot in profile().installed {
+            if &resident(plot)? == identity {
+                return Ok(plot);
+            }
         }
-    }
-    Err(WorksetRefusal::UnknownPlot)
+        Err(WorksetRefusal::UnknownPlot)
+    })
 }

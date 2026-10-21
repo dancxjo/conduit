@@ -1,0 +1,26 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.34s
+     Running tests/preparation_cache.rs (target/debug/deps/preparation_cache-54d003573a4022c0)
+
+running 18 tests
+test changed_back_owner_is_not_hidden_by_a_cached_primitive_expansion ... ok
+test observations::observed_failures_finish_as_refused_and_are_not_cached_or_promoted_to_hits ... ok
+test observations::observed_cold_and_hit_paths_retain_exact_owners_and_cold_meaning ... ok
+test observations::checking_can_hit_when_only_the_expansion_dependency_changes ... ok
+test caller_mutation_uses_copy_on_write_and_cannot_poison_cached_truth ... ok
+test observations::removing_a_checking_dependency_rechecks_and_reports_the_real_refusal ... ok
+test entry_identity_fifo_eviction_and_retained_handles_remain_exact ... ok
+test repeated_exact_inputs_share_checked_and_expanded_owners_with_cold_equality ... ok
+test errors_are_not_cached_and_do_not_displace_successful_entries ... ok
+test dependencies::unrelated_kind_edits_reuse_checked_and_expanded_owners ... ok
+test dependencies::fore_changes_invalidate_shorthand_binding_without_a_generation_key ... ok
+test dependencies::absent_import_resolution_is_a_dependency_even_when_local_plot_supplies_meaning ... ok
+test source_bytes_and_observed_startup_context_are_invalidation_dependencies ... ok
+test observations::observations_do_not_turn_zero_retention_into_a_cache ... ok
+test profile_revision_laws_and_limits_invalidate_expansion_independently_of_check ... ok
+test zero_and_oversized_retention_limits_use_the_unmodified_cold_path ... ok
+test dependencies::private_initial_bytes_and_type_context_are_not_hidden_by_kind_read_slicing ... ok
+test dependencies::imported_native_type_range_and_law_changes_match_cold_refusals ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.34s
+

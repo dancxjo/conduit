@@ -13,6 +13,17 @@ pub(super) fn prepare(
 ) -> Result<NativeWorksetPlay, WorksetRefusal> {
     let _native_timing =
         crate::native_observation::Interval::begin(crate::native_observation::Stage::KernelPrepare);
+    crate::native_observation::Progress::result(
+        crate::native_observation::Phase::KernelPrepare,
+        "native-workset",
+        || prepare_inner(prepared, evidence),
+    )
+}
+
+fn prepare_inner(
+    prepared: &PreparedNativeWorkset,
+    evidence: Option<&conduit_body::BodyBiographyEvidence>,
+) -> Result<NativeWorksetPlay, WorksetRefusal> {
     let parts = &prepared.lowered.partitions;
     let count = parts.len();
     if count == 0

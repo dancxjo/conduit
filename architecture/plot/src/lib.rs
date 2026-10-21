@@ -25,7 +25,7 @@ mod preparation_cache;
 #[cfg(target_has_atomic = "ptr")]
 pub use preparation_cache::{
     CatalogueRead, CatalogueTable, PreparationCacheLimitError, PreparationCacheLimits,
-    PreparationCacheStats, PreparedSource, SourcePreparationCache,
+    PreparationCacheStats, PreparedSource, SourcePreparationCache, SourcePreparationEvent,
 };
 mod canonical_expansion;
 mod checked_syntax;

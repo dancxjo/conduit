@@ -1,6 +1,7 @@
 //! Graphical x86 startup and initialized input ownership.
 use crate::{emit_machine_refusal, emit_refusal};
 use alloc::format;
+use conduitos::native_observation::{Phase, Progress};
 use conduitos::{arch, boot, identity, sign_format};
 use conduitos::{display::PixelTarget, face_nucleus};
 
@@ -12,18 +13,17 @@ pub fn run(record: boot::BootRecord) -> ! {
         emit_machine_refusal("make-face-unavailable");
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE xhci-start\n");
-    let mut xhci =
-        match arch::initialize_xhci(record.hhdm_offset, boot::executable_physical_address) {
-            Ok(ready) => ready,
-            Err(error) => emit_machine_refusal(error.as_str()),
-        };
+    let mut xhci = match Progress::result(Phase::XhciSetup, "boot", || {
+        arch::initialize_xhci(record.hhdm_offset, boot::executable_physical_address)
+    }) {
+        Ok(ready) => ready,
+        Err(error) => emit_machine_refusal(error.as_str()),
+    };
     arch::early_write(b"CONDUIT_BOOT_STAGE xhci-ready\n");
     arch::early_write(b"CONDUIT_BOOT_STAGE usb-enumeration-start\n");
-    let mut usb_devices = match arch::enumerate_attached_at_epochs(
-        &mut xhci,
-        boot::executable_physical_address,
-        [1; 3],
-    ) {
+    let mut usb_devices = match Progress::result(Phase::UsbEnumeration, "boot", || {
+        arch::enumerate_attached_at_epochs(&mut xhci, boot::executable_physical_address, [1; 3])
+    }) {
         Ok(devices) => devices,
         Err(error) => emit_machine_refusal(error.as_str()),
     };
@@ -37,13 +37,18 @@ pub fn run(record: boot::BootRecord) -> ! {
         arch::early_write(b"CONDUIT_BOOT_STAGE usb-line-device-current\n");
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE usb-configured\n");
-    arch::initialize_machine(&record, boot::executable_physical_address);
-    let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
-    let identities = identity::derive(entropy, record.timestamp, record.image_physical_start);
-    let mut face_display = match boot::framebuffer_display() {
-        Ok(display) => display,
-        Err(error) => emit_machine_refusal(error.as_str()),
-    };
+    Progress::measure(Phase::MachineSetup, "boot", || {
+        arch::initialize_machine(&record, boot::executable_physical_address)
+    });
+    let identities = Progress::measure(Phase::IdentityGeneration, "boot", || {
+        let entropy = arch::boot_entropy(record.timestamp, record.image_physical_start);
+        identity::derive(entropy, record.timestamp, record.image_physical_start)
+    });
+    let mut face_display =
+        match Progress::result(Phase::DisplaySetup, "boot", boot::framebuffer_display) {
+            Ok(display) => display,
+            Err(error) => emit_machine_refusal(error.as_str()),
+        };
     let display_format = face_display.format();
     let display_base = identity::derive_base(&identities.boot, "conduitos/display/limine/0");
     let framebuffer_basis = conduit_observatory::FramebufferBasis {
@@ -238,19 +243,22 @@ pub fn run(record: boot::BootRecord) -> ! {
         arch::deterministic_exit(true);
     }
     arch::early_write(b"CONDUIT_BOOT_STAGE hid-start\n");
-    let hid_ready =
-        match arch::prepare_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address) {
-            Ok(ready) => ready,
-            Err(error) => emit_machine_refusal(error.as_str()),
-        };
+    let hid_ready = match Progress::result(Phase::InputSetup, "usb-keyboard", || {
+        arch::prepare_boot_keyboard(&mut xhci, &usb, boot::executable_physical_address)
+    }) {
+        Ok(ready) => ready,
+        Err(error) => emit_machine_refusal(error.as_str()),
+    };
     let pointer_ready = pointer_usb.as_ref().map(|device| {
-        arch::prepare_boot_pointer(&mut xhci, device, boot::executable_physical_address)
-            .unwrap_or_else(|error| emit_machine_refusal(error.as_str()))
+        Progress::result(Phase::InputSetup, "usb-pointer", || {
+            arch::prepare_boot_pointer(&mut xhci, device, boot::executable_physical_address)
+        })
+        .unwrap_or_else(|error| emit_machine_refusal(error.as_str()))
     });
     let mut ps2_input = None;
     let mut ps2_ready = None;
     if cfg!(feature = "ps2-input") {
-        let (input, ready) = arch::Ps2Input::initialize()
+        let (input, ready) = Progress::result(Phase::InputSetup, "ps2", arch::Ps2Input::initialize)
             .unwrap_or_else(|error| emit_machine_refusal(error.as_str()));
         arch::early_write(
         format!(
