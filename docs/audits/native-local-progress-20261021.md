@@ -94,3 +94,12 @@ component kind, without any Host Back/offer/grant. A rebuilt local conduit CLI
 reports no diagnostics for both todo-mask.conduit and todo-required-item.conduit.
 A focused catalog regression was added but not run tonight. This resolves the
 Source-checking defect; installed-owner runtime fallback proof stays deferred.
+
+## Runnable local image
+
+The normal `cargo +stable xtask make conduitos live x86_64` build completed
+successfully at source c135ca3eb. The local ISO is
+`target/conduitos/live/x86_64-pc/conduitos-x86_64.iso` in this worktree.
+No QEMU journey, acceptance suite or CI job was launched. Interactive
+`cargo +stable xtask make conduitos live-boot x86_64` requires a graphical display;
+this shell has none. The image build establishes compilation and packaging only.
