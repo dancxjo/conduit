@@ -1,0 +1,8 @@
+{
+  "source_commit": "ab32b37aaaa0e70805630f6d4f911828e4e1face",
+  "retained_html_sha256": "6519da24b03f4e78c74ed271023afffc2e9b12c3fc98fa6e6127b82e04157ab3",
+  "observation": "Read from the original failed capture HTML; no action replay or new capture.",
+  "action_result": "add an item refused: Body owner refused interaction: interaction-refused",
+  "face_status": "The browser is showing the owner\u2019s current Face.",
+  "participation_status": "Browser participation: admitted."
+}
