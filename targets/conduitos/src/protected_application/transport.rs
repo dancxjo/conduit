@@ -1,0 +1,137 @@
+//! Exclusive Application-profile lease and checked bounded blob exchange.
+use crate::{
+    arch::ServiceDomain,
+    protected_region::{DomainBackend, DomainReturn},
+    service_memory::{ServiceImage, ServiceProfile},
+};
+use alloc::vec::Vec;
+use conduitos_application_core::{
+    MAX_BLOB,
+    data::{self, Command, Refusal, Reply},
+    memory::TRANSFER_BYTES,
+    wire::{self, Envelope, Request, Response},
+};
+pub(super) struct Service {
+    domain: Option<ServiceDomain>,
+    instance: u64,
+    sequence: u64,
+}
+impl Service {
+    pub fn install() -> Result<Self, Refusal> {
+        #[cfg(conduitos_application_image)]
+        let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/application.elf"));
+        #[cfg(not(conduitos_application_image))]
+        let bytes: &[u8] = &[];
+        let image = ServiceImage::for_profile(bytes, ServiceProfile::Application)
+            .map_err(|_| Refusal::Application)?;
+        let domain = ServiceDomain::install(&image).map_err(|_| Refusal::Application)?;
+        Ok(Self {
+            instance: domain.instance(),
+            domain: Some(domain),
+            sequence: 1,
+        })
+    }
+    pub fn quarantine(&mut self) {
+        if let Some(mut domain) = self.domain.take() {
+            domain.quarantine();
+            drop(domain);
+        }
+    }
+    fn request(&mut self, request: Request) -> Result<Response, Refusal> {
+        let envelope = Envelope {
+            instance: self.instance,
+            sequence: self.sequence,
+        };
+        self.sequence = self.sequence.checked_add(1).ok_or(Refusal::Capacity)?;
+        let domain = self.domain.as_mut().ok_or(Refusal::Order)?;
+        let exchange = domain.exchange().map_err(|_| Refusal::Application)?;
+        exchange.fill(0);
+        wire::encode_request(envelope, request, exchange)?;
+        if domain.enter(1).map_err(|_| Refusal::Application)? != DomainReturn::Yielded {
+            return Err(Refusal::Application);
+        }
+        let exchange = domain.exchange().map_err(|_| Refusal::Application)?;
+        let (returned, response) =
+            wire::decode_response(exchange.get(..wire::BYTES).ok_or(Refusal::Malformed)?)?;
+        if returned != envelope {
+            return Err(Refusal::Malformed);
+        }
+        match (request, response) {
+            (_, Response::Refused(error)) => Err(error),
+            (Request::Begin { .. } | Request::Write { .. }, Response::Ready)
+            | (Request::Commit, Response::Blob { .. })
+            | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
+            _ => Err(Refusal::Malformed),
+        }
+    }
+    pub fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
+        let result = self.exchange_command(command);
+        if result.is_err() {
+            self.quarantine();
+        }
+        result
+    }
+    fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
+        let input = data::encode(command)?;
+        self.request(Request::Begin {
+            bytes: input.len() as u32,
+        })?;
+        let mut offset = 0;
+        for chunk in input.chunks(TRANSFER_BYTES) {
+            let window = self
+                .domain
+                .as_mut()
+                .ok_or(Refusal::Order)?
+                .transfer_window()
+                .map_err(|_| Refusal::Application)?;
+            window.fill(0);
+            window
+                .get_mut(..chunk.len())
+                .ok_or(Refusal::Bounds)?
+                .copy_from_slice(chunk);
+            self.request(Request::Write {
+                offset,
+                bytes: chunk.len() as u32,
+            })?;
+            offset += chunk.len() as u32;
+        }
+        let Response::Blob { bytes: total } = self.request(Request::Commit)? else {
+            return Err(Refusal::Malformed);
+        };
+        if total == 0 || total as usize > MAX_BLOB {
+            return Err(Refusal::Bounds);
+        }
+        let mut output = Vec::new();
+        output
+            .try_reserve_exact(total as usize)
+            .map_err(|_| Refusal::Capacity)?;
+        while output.len() < total as usize {
+            let offset = output.len() as u32;
+            let maximum = (total - offset).min(TRANSFER_BYTES as u32);
+            let Response::Chunk {
+                offset: at,
+                bytes,
+                total: reported,
+            } = self.request(Request::Read { offset, maximum })?
+            else {
+                return Err(Refusal::Malformed);
+            };
+            if at != offset || reported != total || bytes == 0 || bytes > maximum {
+                return Err(Refusal::Malformed);
+            }
+            let window = self
+                .domain
+                .as_ref()
+                .ok_or(Refusal::Order)?
+                .output()
+                .map_err(|_| Refusal::Application)?;
+            output.extend_from_slice(window.get(..bytes as usize).ok_or(Refusal::Malformed)?);
+        }
+        data::decode(&output)
+    }
+}
+impl Drop for Service {
+    fn drop(&mut self) {
+        self.quarantine();
+    }
+}

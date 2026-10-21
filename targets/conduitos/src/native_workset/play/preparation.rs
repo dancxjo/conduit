@@ -187,44 +187,8 @@ fn prepare_inner(
         crate::protected_runtime::Scheduler::new(admission).map_err(|_| WorksetRefusal::Kernel)?;
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let scheduler = admission.build().map_err(|_| WorksetRefusal::Kernel)?;
-    let mut applications = core::array::from_fn(|_| None);
-    for (plot, application) in applications.iter_mut().enumerate().take(count) {
-        let planned = &prepared.plan.plots[plot];
-        if !planned.plan.fragments[0]
-            .placements
-            .iter()
-            .any(|placement| {
-                placement.implementation_id.as_str()
-                    == super::super::application_delivery::STATE_IMPLEMENTATION
-            })
-        {
-            continue;
-        }
-        let placement = planned.plan.fragments[0]
-            .placements
-            .iter()
-            .find(|placement| {
-                placement.implementation_id.as_str()
-                    == super::super::application_delivery::STATE_IMPLEMENTATION
-            })
-            .ok_or(WorksetRefusal::Plan)?;
-        let selected = super::super::tutorial_application::selected_application(placement)?;
-        *application = Some(match selected {
-            "tutorial" => NativeApplication::Tutorial(
-                super::super::tutorial_application::TutorialApplication::prepare(
-                    evidence.ok_or(WorksetRefusal::Plan)?,
-                    conduit_tutorial_plot::TutorialPlayback::Playing,
-                )?,
-            ),
-            "tour" => NativeApplication::Tour(Box::new(
-                conduit_tour_model::TourApplicationPort::canonical(),
-            )),
-            "patchbay" => NativeApplication::Patchbay(
-                super::super::application_delivery::PatchbayTargets::prepare(prepared, plot)?,
-            ),
-            _ => return Err(WorksetRefusal::Plan),
-        });
-    }
+    let initial = super::super::application_delivery::initial(prepared, evidence)?;
+    let applications = NativeApplications::new(initial).map_err(|_| WorksetRefusal::Plan)?;
     Ok(NativeWorksetPlay {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         pure_results: core::array::from_fn(|_| None),

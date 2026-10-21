@@ -122,38 +122,9 @@ impl NativeWorksetPlay {
                 Ok(())
             }
             Effect::Application => {
-                let application = self.applications[plot]
-                    .as_mut()
-                    .ok_or(PlayRefusal::Kernel)?;
-                let (view, authority_request) = match application {
-                    NativeApplication::Tutorial(application) => application.apply(input)?,
-                    NativeApplication::Tour(application) => {
-                        let output = application.apply(input).map_err(|_| PlayRefusal::Kernel)?;
-                        let request = match output.request {
-                            Some(conduit_tour_model::TourWorkspaceRequest::Run {
-                                chapter,
-                                stage,
-                            }) => Some(super::super::NativeApplicationRequest::RunTour {
-                                chapter,
-                                stage,
-                            }),
-                            Some(conduit_tour_model::TourWorkspaceRequest::OpenPatchbay) => {
-                                Some(super::super::NativeApplicationRequest::OpenPatchbay)
-                            }
-                            None => None,
-                        };
-                        (output.view, request)
-                    }
-                    NativeApplication::Patchbay(application) => {
-                        let output = application.apply(input)?;
-                        (
-                            output.view,
-                            output
-                                .request
-                                .map(super::super::NativeApplicationRequest::EditCurrent),
-                        )
-                    }
-                };
+                let result = self.applications.apply(plot, input);
+                let (snapshot, authority_request) = self.application_result(result)?;
+                let view = snapshot.view;
                 if authority_request.is_some() && self.application_requests[plot].is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
