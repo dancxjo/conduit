@@ -59,6 +59,9 @@ impl FrontDoor {
             .is_some_and(|journey| journey.body_id.is_some())
             && !self.exact_details_open
         {
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            return self.workspace_mask_scene(display);
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             return super::workspace_scene::scene(
                 self.journey.as_ref().ok_or(Error::Scene)?,
                 self.workspace

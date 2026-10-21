@@ -12,6 +12,7 @@ use conduit_human::KeyEvent;
 use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod application_layout;
 mod arrival;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
@@ -26,6 +27,8 @@ mod presenter;
 mod projection;
 mod scene;
 mod workspace;
+mod workspace_mask;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod workspace_scene;
 pub use arrival::ArrivalInput;
 pub use home::{HomeInput, HomeView};
@@ -72,7 +75,10 @@ pub struct FrontDoor {
     patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     graph_facts: Option<conduitos_application_core::graph_facts::Contribution>,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     application_viewport: application_layout::ApplicationViewport,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    workspace_mask: core::cell::RefCell<crate::protected_workspace_mask::Owner>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -173,7 +179,12 @@ impl FrontDoor {
             patchbay_graph: None,
             #[cfg(all(target_arch = "x86_64", target_os = "none"))]
             graph_facts: None,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             application_viewport: application_layout::ApplicationViewport::default(),
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            workspace_mask: core::cell::RefCell::new(
+                crate::protected_workspace_mask::Owner::default(),
+            ),
         }
     }
 

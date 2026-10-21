@@ -163,7 +163,7 @@ pub fn scene(
     Ok(scene)
 }
 
-fn application_text(
+pub fn application_text(
     scene: &mut GraphicsScene,
     screen: LayoutRect,
     y: i16,
