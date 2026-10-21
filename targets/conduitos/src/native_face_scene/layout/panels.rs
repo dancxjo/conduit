@@ -18,6 +18,7 @@ struct Flow {
     gutter: u16,
     width: u16,
     column: u16,
+    single_lane: bool,
     top: u16,
     bottom: u16,
     y: u16,
@@ -50,6 +51,7 @@ impl Flow {
             gutter,
             width,
             column,
+            single_lane: false,
             top: chrome.top,
             bottom: chrome.bottom,
             y: chrome.top,
@@ -61,19 +63,41 @@ impl Flow {
     }
 
     fn lane(&self, region: Option<u8>) -> Option<usize> {
-        region.and_then(|region| self.groups.iter().position(|group| *group == region))
+        region.and_then(|region| {
+            self.groups
+                .iter()
+                .position(|group| *group == region)
+                .map(|lane| if self.single_lane { 0 } else { lane })
+        })
+    }
+
+    fn panel_width(&self) -> u16 {
+        if self.single_lane {
+            self.width
+        } else {
+            self.column
+        }
+    }
+
+    fn continuation_width(&self, region: Option<u8>) -> u16 {
+        if region == Some(self.groups[1]) {
+            self.width - EDGE * 2
+        } else {
+            self.width(self.lane(region))
+        }
     }
 
     fn finish_band(&mut self, rows: &mut [Row]) {
         let Some(band) = self.band.take() else {
             return;
         };
+        let column = self.panel_width();
         for lane in 0..2 {
             if let Some(first) = band.first[lane] {
                 rows[first].panel_bounds = Some(LayoutRect {
-                    x: (self.gutter + lane as u16 * (self.column + self.gutter)) as i16,
+                    x: (self.gutter + lane as u16 * (column + self.gutter)) as i16,
                     y: band.top as i16,
-                    width: self.column,
+                    width: column,
                     height: band.next[lane] - SPACE_SM + EDGE - band.top,
                 });
             }
@@ -103,7 +127,7 @@ impl Flow {
 
     fn width(&self, lane: Option<usize>) -> u16 {
         if lane.is_some() {
-            self.column - EDGE * 2
+            self.panel_width() - EDGE * 2
         } else {
             self.width
         }
@@ -122,18 +146,24 @@ impl Flow {
             && self.commands + cost <= conduit_face::MAX_GRAPHICS_COMMANDS
     }
 
-    fn next_page(&mut self, lane: Option<usize>, rows: &mut [Row]) {
+    fn next_page(&mut self, region: Option<u8>, rows: &mut [Row]) {
         self.finish_band(rows);
-        self.page += 1;
+        // Geometry is fixed before committing the first row of a page. Ordering
+        // exhausts the first region before the second: only the latter remains
+        // when its continuation starts, so it no longer reserves an empty lane.
+        self.page += usize::from(self.count != 0);
+        self.single_lane = region == Some(self.groups[1]);
         self.count = 0;
         self.commands = chrome::COMMANDS + 1;
         self.y = self.top;
-        self.select(lane, rows);
+        self.select(self.lane(region), rows);
     }
 
     fn bounds(&self, lane: Option<usize>, inset: u16, width: u16, height: u16) -> LayoutRect {
         let x = self.gutter
-            + lane.map_or(0, |lane| lane as u16 * (self.column + self.gutter) + EDGE)
+            + lane.map_or(0, |lane| {
+                lane as u16 * (self.panel_width() + self.gutter) + EDGE
+            })
             + inset;
         LayoutRect {
             x: x as i16,
@@ -190,11 +220,6 @@ pub(super) fn admit(
         let lane = flow.lane(item.region);
         flow.select(lane, &mut rows);
         let inset = u16::from(item.indent) * INDENT_STEP;
-        let width = flow
-            .width(lane)
-            .checked_sub(inset)
-            .ok_or(FaceSceneError::InvalidExtent)?;
-        let text_width = field_clusters::text_width(&item, width, padding)?;
         let maximum_height = flow
             .bottom
             .checked_sub(flow.top)
@@ -205,59 +230,74 @@ pub(super) fn admit(
             .ok_or(FaceSceneError::InvalidExtent)?;
         let mut region_start = item.region.is_some() && item.region != previous_region;
         previous_region = item.region;
-        if cluster_start
-            && let Some(demand) = field_clusters::measure(
-                core::iter::once(&item).chain(items.as_slice().iter().map(|(_, item)| item)),
-                field_clusters::Metrics {
-                    width: flow.width(lane),
-                    maximum_height,
-                    scale,
-                    typography,
-                    padding,
-                },
-                region_start,
-            )?
-        {
+        if cluster_start {
+            let measure = |width| {
+                field_clusters::measure(
+                    core::iter::once(&item).chain(items.as_slice().iter().map(|(_, item)| item)),
+                    field_clusters::Metrics {
+                        width,
+                        maximum_height,
+                        scale,
+                        typography,
+                        padding,
+                    },
+                    region_start,
+                )
+            };
             let edge = if lane.is_some() { EDGE } else { 0 };
-            let fresh = flow.top + edge;
             let bottom = flow.bottom - edge;
-            if demand.fits(
-                fresh,
-                bottom,
-                0,
-                chrome::COMMANDS + 1 + usize::from(lane.is_some()),
-            ) && !demand.fits(
-                flow.y(lane),
-                bottom,
-                flow.count,
-                flow.commands + 2 * usize::from(flow.new_panel(lane)),
-            ) {
-                flow.next_page(lane, &mut rows);
+            let current_fits = measure(flow.width(lane))?.is_some_and(|demand| {
+                demand.fits(
+                    flow.y(lane),
+                    bottom,
+                    flow.count,
+                    flow.commands + 2 * usize::from(flow.new_panel(lane)),
+                )
+            });
+            if !current_fits
+                && let Some(demand) = measure(flow.continuation_width(item.region))?
+                && demand.fits(
+                    flow.top + edge,
+                    bottom,
+                    0,
+                    chrome::COMMANDS + 1 + 2 * usize::from(lane.is_some()),
+                )
+            {
+                flow.next_page(item.region, &mut rows);
             }
         }
 
         let mut remaining = item.text.as_str();
         let mut chunk = 0usize;
         while !remaining.is_empty() {
-            let (end, height) = measure_prefix(
-                remaining,
-                item.role,
-                text_width,
-                maximum_height,
-                scale,
-                typography,
-            )?;
-            let height = height + padding * 2;
-            // Reserve the actual panel fill and outline before admitting its first row.
-            let mut cost =
-                row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
-            if !flow.fits(lane, height, cost) {
-                flow.next_page(lane, &mut rows);
-                cost = row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
-                if !flow.fits(lane, height, cost) {
+            let mut advanced = false;
+            let (lane, width, end, height, cost) = loop {
+                let lane = flow.lane(item.region);
+                let width = flow
+                    .width(lane)
+                    .checked_sub(inset)
+                    .ok_or(FaceSceneError::InvalidExtent)?;
+                let text_width = field_clusters::text_width(&item, width, padding)?;
+                let (end, height) = measure_prefix(
+                    remaining,
+                    item.role,
+                    text_width,
+                    maximum_height,
+                    scale,
+                    typography,
+                )?;
+                let height = height + padding * 2;
+                let cost =
+                    row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
+                if flow.fits(lane, height, cost) {
+                    break (lane, width, end, height, cost);
+                }
+                if advanced {
                     return Err(FaceSceneError::InvalidExtent);
                 }
-            }
+                flow.next_page(item.region, &mut rows);
+                advanced = true;
+            };
             if rows.len() == MAX_ROWS {
                 return Err(FaceSceneError::DocumentBound);
             }
