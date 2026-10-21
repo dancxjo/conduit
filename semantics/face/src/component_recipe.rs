@@ -216,7 +216,7 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     };
     Kind {
         kind_id: kind_id(COMPONENT_MASK_KIND),
-        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@1"),
+        kind_contract_revision: KindIdentity::from("conduit.face/component-mask@2"),
         startup_parameters: conduit_core::data_label_startup_front()
             .into_iter()
             .chain(fields.iter().map(|(name, value)| FrontStartupParameter {

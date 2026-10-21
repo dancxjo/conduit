@@ -71,7 +71,7 @@ test('configured groups preserve interleaved controls and user text scale', asyn
     component: { maximum_columns: 2, reflow_width: 720, gutter: 12,
       subject_regions: [0, 1, 2], groups: [0, 1, 0], fallback: null,
       expression: { expression: { identity: 'fixture/expression', density: 'compact',
-        palette: 'phosphor', text_scale_percent: 100 } } },
+        palette: 'phosphor', typography: 'editorial', version: 2, text_scale_percent: 100 } } },
   };
   await page.evaluate(async view => {
     await import('/targets/browser/handbook/owner-face-component.mjs');
@@ -1332,4 +1332,41 @@ test('nested choice metadata retains the generic facts instead of becoming a rad
   const element = page.locator('conduit-owner-face');
   await expect(element.getByRole('radio')).toHaveCount(0);
   await expect(element.getByText('choice-multiplicity: exclusive', {exact: true})).toHaveCount(2);
+});
+
+test('admitted typography changes title family independently of palette, density and actions', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const observations = await page.evaluate(async original => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    const element = document.createElement('conduit-owner-face');
+    document.body.replaceChildren(element);
+    const component = { maximum_columns: 1, reflow_width: 720, gutter: 12,
+      subject_regions: original.subjects.map(() => null), groups: [],
+      expression: { expression: { identity: 'fixture/selected-look', version: 2,
+        density: 'compact', palette: 'phosphor', typography: 'editorial', text_scale_percent: 100 } } };
+    const current = structuredClone(original);
+    current.subjects[0].role = 'Body';
+    current.component = component;
+    let invocations = 0;
+    const result = [];
+    for (const intent of ['editorial', 'engineering']) {
+      component.expression.expression.typography = intent;
+      element.show(current, { invoke: async () => { invocations++; } });
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      const title = element.shadowRoot.querySelector('[data-text-purpose="Title"]');
+      const button = element.shadowRoot.querySelector('button');
+      result.push({ intent: element.dataset.componentTypography,
+        palette: element.dataset.componentPalette, density: element.dataset.componentDensity,
+        family: getComputedStyle(title).fontFamily, text: title.textContent,
+        action: button.textContent, disabled: button.disabled });
+    }
+    return { result, invocations };
+  }, view);
+  expect(observations.invocations).toBe(0);
+  expect(observations.result[0].intent).toBe('editorial');
+  expect(observations.result[1].intent).toBe('engineering');
+  expect(observations.result[0].family).not.toBe(observations.result[1].family);
+  for (const key of ['palette', 'density', 'text', 'action', 'disabled']) {
+    expect(observations.result[0][key]).toEqual(observations.result[1][key]);
+  }
 });

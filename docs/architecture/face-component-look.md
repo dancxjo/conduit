@@ -17,7 +17,7 @@ selected renderer consumes that configuration from the actual planned placement;
 a copied Fore hash or handwritten parallel semantic tree is insufficient.
 
 `VisualExpression` is the initial finite visual Look facet, not a new multimodal
-Look language. Density, palette, text scale and restrained motion are independent
+Look language. Density, palette, typography, text scale and restrained motion are independent
 expression preferences. The closed schema cannot carry semantic selectors,
 actions, argument contracts, labels, role overrides, keyboard bindings, focus
 order or component topology. #5368 owns the common optional multimodal facets;
@@ -186,3 +186,29 @@ capacity refusal records a reason and selects the original generic one-column
 semantic projection at that user-respecting scale. This entrance and fallback
 remain subject to actual native execution and maximum-bound journey proof; their
 source implementation is not that proof.
+
+## Finite selected typography
+
+The development v2 expression carries an explicit `Editorial` or `Engineering`
+typography value. The same five semantic text purposes remain shared; the native
+Host admits six immutable profiles because Title can select Serif or Sans.
+Selection is resolved before measurement, wrapping, caret placement and paint.
+It is never inferred from a palette, density, subject name or action label.
+The component Fore and canonical Look/visual-expression data cut over together;
+v1 values remain negative fixtures rather than receiving an implicit default.
+
+The existing local Crèche F6/F7 density/palette selection and bounded encounter
+transfer remain available. Historical Crèche roots explicitly retain Editorial;
+original Todo compact/spacious roots select Engineering/Editorial. The additional
+crossed density/palette roots retain Editorial, preserving their prior Serif
+Title behavior. These are authored presets, not a runtime rule coupling axes.
+
+Authenticated owner replacement has a different custody boundary: a pending edit
+refuses replacement before an owner request, preserving the old Show and draft.
+Other route failures retire route custody. A successful replacement acknowledges
+the newly sealed Show before publishing its restored focus. The owner's unchanged
+Face/component/recipe do not imply an unchanged Mask or route Plan.
+
+Earlier density/palette QEMU captures stay bound to their recorded source. They
+do not establish v2 typography, owner replacement or acceptance of this combined
+development implementation; those need fresh source-bound proof.

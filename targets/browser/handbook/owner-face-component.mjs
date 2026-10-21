@@ -114,12 +114,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#layoutObserver?.disconnect();
     const component = view.component;
     const expression = component?.expression?.expression;
-    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentFallback', 'componentColumns']) delete this.dataset[key];
+    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
     for (const key of ['--face-columns', '--face-gutter', '--face-text-scale']) this.style.removeProperty(key);
     if (component && expression) {
       this.dataset.componentExpression = expression.identity;
       this.dataset.componentDensity = expression.density;
       this.dataset.componentPalette = expression.palette;
+      this.dataset.componentTypography = expression.typography;
       this.dataset.componentFallback = component.fallback ?? '';
       this.style.setProperty('--face-text-scale', String(expression.text_scale_percent / 100));
       this.style.setProperty('--face-gutter', `${component.gutter}px`);
@@ -255,7 +256,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
-      node.append(faceNode('h4', subject.name));
+      const heading = faceNode('h4', subject.name);
+      heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
+      node.append(heading);
       for (const text of subject.text) node.append(faceNode('p', text));
       if (subject.values?.length) {
         const values = document.createElement('dl');

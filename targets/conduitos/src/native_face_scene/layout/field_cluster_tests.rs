@@ -47,9 +47,16 @@ fn field_help_action_and_argument_stay_together_at_row_capacity() {
     ]);
     // Isolate the 20-row cap: all first twenty rows fit height and commands.
     let chrome = chrome::Chrome::prepare(screen, 100).unwrap();
-    let height = measure_prefix("Prefix", GraphicsTextRole::Label, 1200, 900, 100)
-        .unwrap()
-        .1;
+    let height = measure_prefix(
+        "Prefix",
+        GraphicsTextRole::Label,
+        1200,
+        900,
+        100,
+        Typography::EDITORIAL,
+    )
+    .unwrap()
+    .1;
     assert!(chrome.top + 20 * (height + SPACE_SM * 3) <= chrome.bottom);
     let rows = admit_with_expression(items, screen, 12, 1, 100, SPACE_SM).unwrap();
     assert_eq!(
@@ -147,6 +154,7 @@ fn large_text_height_pressure_keeps_field_in_flat_and_panel_geometry() {
             500,
             available - SPACE_SM * 2,
             200,
+            Typography::EDITORIAL,
         )
         .unwrap()
         .1 + SPACE_SM * 2;
