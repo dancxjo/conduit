@@ -1,0 +1,23 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "stage": "actual installed-owner plus pinned browser Unicode seed and normal product provisioning",
+  "seed_text": "Cr\u00e8me br\u00fbl\u00e9e \u00b7 \u0174 \u2014 portable typography",
+  "offered_contract": {
+    "action_id": "todo.add",
+    "target": "todo/list",
+    "action_name": "add an item",
+    "argument_name": "Item text"
+  },
+  "before_face": "e38f9f657c440b882e2c105ce5a31ad32216f1719cc69685df275ed8f57548bc",
+  "before_revision": "325503416880028723",
+  "after_face": "7be3d06d4b035ca48b7cbe2158c6ec85512650ac8eef4faad7848b856f899f19",
+  "after_revision": "325503416880028732",
+  "current_show": "show/f308659451b9950bde74c1dbeab22b1a7ce1e669c5b33f63cf3f8adca53974e8",
+  "item_observed_in_independent_owner_face": true,
+  "seed_observation_sha256": "3b095be96e6d287864f6dd74b260610ffdd9c3c841cc6ab502053c76cb70663f",
+  "private_spore_sha256": "bf7cc7b5ed64efa81c6363b449e0b72af75d28cf188d8db31f4e3dcdb30a34bd",
+  "provisioning_grants_membership": false,
+  "native_guest_proof": "running-not-accepted",
+  "no_physical_or_human_claim": true,
+  "timestamp": "2026-10-21T03:32:02Z"
+}
