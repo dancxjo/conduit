@@ -104,12 +104,20 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
         }
         Request::CommitUpload => core.commit_upload().map(|()| Response::Unit),
         Request::AbortUpload => core.abort_upload().map(|()| Response::Unit),
-        Request::BeginFrame => {
-            core.begin_frame()?;
-            core.frame_plan()
+        Request::BeginFrame => match core.begin_frame() {
+            Ok(_) => core
+                .frame_plan()
                 .map(Response::FrameStarted)
-                .ok_or(Error::Order)
-        }
+                .ok_or(Error::Order),
+            Err(Error::NoDamage) => {
+                let (cursor_visible, focus_visible) = core.logical_affordances();
+                Ok(Response::FrameIdle {
+                    cursor_visible,
+                    focus_visible,
+                })
+            }
+            Err(error) => Err(error),
+        },
         Request::FrameStep { sequence, pixels } => {
             let (start, count) = window(0, pixels)?;
             let output = unsafe { slice::from_raw_parts_mut(start as *mut u32, count) };

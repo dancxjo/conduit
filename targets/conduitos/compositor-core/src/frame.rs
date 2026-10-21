@@ -57,6 +57,11 @@ pub(crate) struct Progress {
     focus_visible: bool,
 }
 impl Compositor<'_> {
+    /// Logical native affordance presence, including zero-work frames. This is
+    /// neither observed ink nor physical/semantic presentation evidence.
+    pub fn logical_affordances(&self) -> (bool, bool) {
+        (self.cursor.is_some(), self.focus.is_some())
+    }
     pub fn begin_frame(&mut self) -> Result<u64, Error> {
         self.idle()?;
         self.invalidate();

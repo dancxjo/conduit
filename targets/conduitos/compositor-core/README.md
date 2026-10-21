@@ -80,3 +80,10 @@ human visibility. The final span's `selected_mask` records underlying surface
 selection before cursor/focus overlays, independently of unobscured coverage;
 a completely covered selected surface can have zero coverage. Intermediate spans
 carry zero selection mask and zero coverage. All metadata remains untrusted.
+
+When `BeginFrame` has no clipped damage, the guest replies
+`FrameIdle { cursor_visible, focus_visible }` (operation `0x8008`, two canonical
+boolean bytes). Both flags come from the guest's logical affordance state even
+when no pixels are emitted. The Root client invalidates any previous frame grant;
+idle replies grant no scanout or acknowledgement work. `Refused` remains reserved
+for actual command failures rather than erasing a valid idle receipt's flags.

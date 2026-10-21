@@ -109,3 +109,15 @@ fn damage_capacity_fallback_and_logical_affordance_flags_survive_clipping() {
     );
     assert!(plan.conservative_fallback && plan.cursor_visible && plan.focus_visible);
 }
+
+#[test]
+fn idle_frame_retains_guest_logical_affordances_without_new_pixel_work() {
+    let (mut a, mut b) = (vec![0; MAX_PIXELS], vec![0; MAX_PIXELS]);
+    let mut c = Compositor::new(&mut a, &mut b, 1, 1).unwrap();
+    assert_eq!(c.begin_frame(), Err(Error::NoDamage));
+    assert_eq!(c.logical_affordances(), (false, false));
+    c.cursor(Some((100, 100)), false).unwrap();
+    assert_eq!(c.begin_frame(), Err(Error::NoDamage));
+    assert_eq!(c.logical_affordances(), (true, false));
+    assert_eq!(c.frame_plan(), None);
+}
