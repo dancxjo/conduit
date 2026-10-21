@@ -181,7 +181,7 @@ impl NativeCompositor {
         if let (Some(owner), Some(session)) = (&self.owner, self.session) {
             if let Ok(mut owner) = owner.try_borrow_mut() {
                 if owner.sessions.is_active(session) {
-                    owner.sessions.quarantine();
+                    owner.quarantine();
                 }
             }
         }

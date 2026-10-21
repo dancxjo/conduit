@@ -2,6 +2,8 @@
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
 mod compositor;
+#[cfg(feature = "native-compositor")]
+mod compositor_recovery;
 mod gates;
 mod morse;
 mod retained_text;
@@ -54,6 +56,8 @@ pub fn run(record: &boot::BootRecord) -> ! {
     hostile_entries();
     service_memory::run();
     compositor::run();
+    #[cfg(feature = "native-compositor")]
+    compositor_recovery::run();
     timer::run();
     arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
     arch::deterministic_exit(true)

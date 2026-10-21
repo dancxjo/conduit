@@ -94,6 +94,15 @@ impl DisplayOwner {
         self.grant.format_matches(format)
     }
 
+    /// Terminally fence clients and return the cleared transient arena to the
+    /// admitted allocator. The exclusive owner borrow excludes every RasterLease.
+    /// An inert Rc can outlive this release without retaining pixel storage.
+    pub(crate) fn quarantine(&mut self) {
+        self.sessions.quarantine();
+        self.staging.fill(0);
+        drop(core::mem::take(&mut self.staging));
+    }
+
     pub(crate) fn service_cost(&self) -> DomainCost {
         self.sessions.service_cost()
     }
