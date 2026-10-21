@@ -12,7 +12,7 @@ use std::thread::JoinHandle;
 mod run;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum WorkerError {
+pub enum WorkerError {
     Busy,
     Stopped,
     Poisoned,
@@ -260,6 +260,11 @@ impl InitializedRegionWorker {
     }
     pub(crate) fn cancel(&mut self) -> Result<(), WorkerError> {
         self.submit(Command::Cancel, None)
+    }
+    pub(crate) fn is_alive(&self) -> bool {
+        self.thread
+            .as_ref()
+            .is_some_and(|thread| !thread.is_finished())
     }
     pub(crate) fn stack_bytes(&self) -> u32 {
         self.control.stack_bytes

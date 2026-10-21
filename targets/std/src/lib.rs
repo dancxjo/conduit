@@ -177,6 +177,10 @@ pub mod isolated_http_base;
 pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
+pub use kernel_preparation::{
+    InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
+    RegionWorkerEvidence,
+};
 mod kernel_signal;
 mod local_model_observation;
 mod local_model_pool_member;

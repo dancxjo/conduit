@@ -18,68 +18,22 @@ use conduit_plan_lowering::lowering::{
 mod pool_usage;
 use pool_usage::PoolUsage;
 mod region_resources;
-#[allow(dead_code, reason = "worker service admission remains uninstalled")]
+mod service;
+pub use service::{
+    InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
+    RegionWorkerEvidence,
+};
+#[allow(
+    dead_code,
+    reason = "service activation and controller dispatch remain uninstalled"
+)]
 mod worker;
 
-#[derive(Debug, Clone)]
-pub(super) struct KernelResourceLedger {
-    identity: (
-        conduit_core::HostId,
-        conduit_core::BootId,
-        conduit_core::OfferGeneration,
-    ),
-    pools: Vec<PoolUsage>,
-    instances: Vec<(conduit_core::CapabilityId, u16)>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) struct KernelResourceReservation {
-    plan_id: PlanId,
-    bindings: Vec<ResourceBinding>,
-    instances: Vec<(conduit_core::CapabilityId, u16)>,
-}
+mod ledger;
+pub(crate) use ledger::{KernelResourceLedger, KernelResourceReservation};
+mod placement_resources;
 
 impl KernelResourceLedger {
-    pub(super) fn is_idle(&self) -> bool {
-        self.pools.iter().all(|pool| pool.used_units == 0)
-            && self.instances.iter().all(|(_, active)| *active == 0)
-    }
-
-    pub(super) fn new(advertisement: &HostAdvertisement) -> Result<Self, String> {
-        if advertisement.protocol_version != PROTOCOL_VERSION {
-            return Err("kernel host advertisement uses the wrong protocol version".to_string());
-        }
-        let mut pools = Vec::with_capacity(advertisement.resources.len());
-        for offer in &advertisement.resources {
-            if pools
-                .iter()
-                .any(|pool: &PoolUsage| pool.pool_id == offer.pool_id)
-            {
-                return Err("kernel host resource offers are malformed".into());
-            }
-            pools.push(PoolUsage::new(offer)?);
-        }
-        let mut instances = Vec::with_capacity(advertisement.capabilities.len());
-        for capability in &advertisement.capabilities {
-            if instances
-                .iter()
-                .any(|(id, _)| id == &capability.capability_id)
-            {
-                return Err("kernel host capability identities are duplicated".into());
-            }
-            instances.push((capability.capability_id.clone(), 0));
-        }
-        Ok(Self {
-            identity: (
-                advertisement.host_id.clone(),
-                advertisement.boot_id.clone(),
-                advertisement.offer_generation,
-            ),
-            pools,
-            instances,
-        })
-    }
-
     pub(super) fn prepare_and_reserve(
         &mut self,
         advertisement: &HostAdvertisement,
@@ -273,123 +227,7 @@ impl KernelResourceLedger {
     ) -> Result<KernelResourceReservation, String> {
         validate_exact_profile(advertisement, fragment)?;
 
-        let mut instances = Vec::new();
-        for (id, used) in &mut self.instances {
-            let requested = u16::try_from(
-                fragment
-                    .placements
-                    .iter()
-                    .filter(|placement| &placement.capability_id == id)
-                    .count(),
-            )
-            .map_err(|_| "capability instance demand overflow".to_string())?;
-            if requested == 0 {
-                continue;
-            }
-            let offer = advertisement
-                .capabilities
-                .iter()
-                .find(|offer| &offer.capability_id == id)
-                .ok_or_else(|| "reserved capability is no longer offered".to_string())?;
-            let total = used
-                .checked_add(requested)
-                .filter(|total| *total <= offer.limits.max_active_instances)
-                .ok_or_else(|| {
-                    format!(
-                        "capability '{}' combined active-instance limit exceeded",
-                        id.as_str()
-                    )
-                })?;
-            *used = total;
-            instances.push((id.clone(), requested));
-        }
-        if fragment.placements.iter().any(|placement| {
-            !self
-                .instances
-                .iter()
-                .any(|(id, _)| id == &placement.capability_id)
-        }) {
-            return Err("planned capability is absent from the initialized ledger".into());
-        }
-
-        if lowered.resources.len() != lowered.identity.resources.len() {
-            return Err("lowered resource identity table width changed".to_string());
-        }
-        let mut bindings = Vec::with_capacity(lowered.resources.len());
-        for (numeric, (node, resource, semantic)) in
-            lowered.resources.iter().zip(&lowered.identity.resources)
-        {
-            if numeric.node != *node
-                || numeric.binding.resource != *resource
-                || numeric.binding.units != semantic.units
-            {
-                return Err("lowered numeric resource row lost its semantic identity".to_string());
-            }
-            bindings.push(semantic.clone());
-        }
-
-        PoolUsage::reserve_all(&mut self.pools, &bindings)?;
-        Ok(KernelResourceReservation {
-            plan_id: fragment.plan_id.clone(),
-            bindings,
-            instances,
-        })
-    }
-
-    pub(super) fn release(&mut self, reservation: KernelResourceReservation) -> Result<(), String> {
-        for (id, released) in &reservation.instances {
-            let (_, used) = self
-                .instances
-                .iter_mut()
-                .find(|(candidate, _)| candidate == id)
-                .ok_or_else(|| "released capability is absent from the ledger".to_string())?;
-            *used = used
-                .checked_sub(*released)
-                .ok_or_else(|| "capability release exceeded its reservation".to_string())?;
-        }
-        PoolUsage::release_all(&mut self.pools, &reservation.bindings)?;
-        Ok(())
-    }
-
-    pub(super) fn observe_bindings(
-        &self,
-        advertisement: &HostAdvertisement,
-        bindings: &[ResourceBinding],
-        sign_ids: &[SignId],
-    ) -> Result<Vec<ResourceObservation>, String> {
-        if bindings.len() != sign_ids.len() {
-            return Err(
-                "resource observation Sign width does not match the sealed bindings".into(),
-            );
-        }
-        let mut observations = Vec::with_capacity(bindings.len());
-        for (binding, sign_id) in bindings.iter().zip(sign_ids) {
-            if sign_id.as_str().is_empty() {
-                return Err("resource observation Sign identity is empty".into());
-            }
-            let pool = self
-                .pools
-                .iter()
-                .find(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
-                .ok_or_else(|| {
-                    format!(
-                        "sealed resource pool '{}' is absent from the current host ledger",
-                        binding.pool_id.as_str()
-                    )
-                })?;
-            observations.push(ResourceObservation {
-                host_id: advertisement.host_id.clone(),
-                boot_id: advertisement.boot_id.clone(),
-                offer_generation: advertisement.offer_generation,
-                pool_id: pool.pool_id.clone(),
-                class_id: pool.class_id.clone(),
-                health: ResourceHealth::Ready,
-                unreserved_units: pool.capacity_units - pool.used_units,
-                utilized_units: pool.used_units,
-                sign_id: sign_id.clone(),
-            });
-        }
-        Ok(observations)
+        self.reserve_verified_placement_resources(advertisement, fragment, &lowered)
     }
 
     #[cfg(test)]

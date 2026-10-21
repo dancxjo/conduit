@@ -1,26 +1,32 @@
 //! Region resource accounting preparation only; this token cannot start a kernel Play.
 use super::{pool_usage::PoolUsage, KernelResourceLedger, KernelResourceReservation};
-use conduit_plan_lowering::execution_regions::CheckedRegionResources;
+use conduit_core::{HostAdvertisement, ResourceObservation};
+use conduit_plan_lowering::execution_regions::PreparedExecutionRegions;
 
-#[allow(
-    dead_code,
-    reason = "region worker installation is a separate unfinished boundary"
-)]
 pub(crate) struct RegionResourceReservation(KernelResourceReservation);
 
 impl KernelResourceLedger {
-    /// Hold the checked region lane and worker-memory bindings in the existing concrete ledger.
-    /// Placement resources, initialized workers and backend eligibility remain
-    /// separate admission steps. The ordinary runner still refuses regions.
-    #[allow(
-        dead_code,
-        reason = "region worker installation is a separate unfinished boundary"
-    )]
-    pub(crate) fn reserve_region_resources(
+    /// Atomically reserve selected placements, lanes and managed worker memory.
+    /// The service prepares every executable instance before calling this; the
+    /// reservation alone is not permission to start a worker Play.
+    pub(crate) fn reserve_worker_resources(
         &mut self,
-        checked: &CheckedRegionResources<'_, '_>,
+        host: &HostAdvertisement,
+        prepared: &PreparedExecutionRegions<'_>,
+        observations: &[ResourceObservation],
     ) -> Result<RegionResourceReservation, String> {
-        let host = checked.host();
+        super::exact_profile::validate_selected_placements(host, prepared.fragment())?;
+        if prepared.fragment().placements.iter().any(|p| {
+            host.capabilities
+                .iter()
+                .find(|offer| offer.capability_id == p.capability_id)
+                .is_none_or(|offer| offer.limits != p.limits)
+        }) {
+            return Err("worker placement limits differ from the current offer".into());
+        }
+        let checked = prepared
+            .check_resource_offers(host, observations)
+            .map_err(|e| format!("worker resource admission: {e:?}"))?;
         if self.identity
             != (
                 host.host_id.clone(),
@@ -46,18 +52,23 @@ impl KernelResourceLedger {
             }
         }
         let bindings: Vec<_> = checked.bindings().iter().map(|b| (*b).clone()).collect();
-        PoolUsage::reserve_all(&mut self.pools, &bindings)?;
-        Ok(RegionResourceReservation(KernelResourceReservation {
-            plan_id: checked.plan_id().clone(),
-            bindings,
-            instances: Vec::new(),
-        }))
+        let mut staged = self.clone();
+        let mut reservation = staged.reserve_verified_placement_resources(
+            host,
+            prepared.fragment(),
+            prepared.lowered(),
+        )?;
+        PoolUsage::reserve_all(&mut staged.pools, &bindings)?;
+        reservation.bindings.extend(bindings);
+        for (live, admitted) in self.pools.iter_mut().zip(&staged.pools) {
+            live.copy_usage_from(admitted);
+        }
+        for (live, admitted) in self.instances.iter_mut().zip(&staged.instances) {
+            live.1 = admitted.1;
+        }
+        Ok(RegionResourceReservation(reservation))
     }
 
-    #[allow(
-        dead_code,
-        reason = "region worker installation is a separate unfinished boundary"
-    )]
     pub(crate) fn release_region_resources(
         &mut self,
         reservation: RegionResourceReservation,

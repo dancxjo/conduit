@@ -145,6 +145,9 @@ impl PreparedRegionKernel {
     pub fn scratch_mut(&mut self) -> &mut [u8] {
         &mut self.scratch
     }
+    pub fn original_cords(&self) -> &[CordId] {
+        &self.original_cords
+    }
     pub fn original_nodes(&self) -> &[NodeId] {
         &self.original_nodes
     }
@@ -223,6 +226,10 @@ impl PreparedRegionKernel {
             .remote_close_abnormal(RemoteEndpointId(original.0), local, value)
     }
     /// Evidence extraction allocates; use outside the bounded execution loop.
+    /// Remote lifecycle evidence extraction also belongs outside Play.
+    pub fn remote_signs(&self) -> Vec<(u32, conduit_kernel::RemoteLifecycleIdentity)> {
+        self.kernel.remote_signs()
+    }
     pub fn signs(&self) -> Vec<conduit_kernel::KernelEvent> {
         self.kernel.signs()
     }
