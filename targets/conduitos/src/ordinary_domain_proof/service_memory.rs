@@ -245,5 +245,5 @@ pub(super) fn run() {
     if &output[..count] != b"SIBLING-SENTINEL" || attempts != 26 {
         refuse("service-proof-count-or-sibling");
     }
-    arch::early_write(b"CONDUIT_SERVICE_MEMORY_PROOF {\"schema\":\"conduit.conduitos/service-memory-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator-fixture\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"hostile_entries\":26,\"retained_bytes\":8388608,\"scratch_bytes\":8388608,\"restart_boundary_samples_zero\":true,\"production_compositor\":false,\"driver_isolation\":false,\"dma_isolation\":false}\n");
+    arch::early_write(b"CONDUIT_SERVICE_MEMORY_PROOF {\"schema\":\"conduit.conduitos/service-memory-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"hostile_entries\":26,\"retained_bytes\":8388608,\"scratch_bytes\":8388608,\"restart_boundary_samples_zero\":true,\"production_compositor\":false,\"driver_isolation\":false,\"dma_isolation\":false}\n");
 }
