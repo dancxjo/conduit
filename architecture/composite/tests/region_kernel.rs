@@ -11,10 +11,8 @@ use conduit_plan_lowering::{
 mod allocation;
 #[path = "support/region_fixture.rs"]
 mod fixture;
+use fixture::fixtures;
 use fixture::{plan, Factory};
-#[allow(dead_code)]
-#[path = "../../plan-lowering/tests/common/execution_regions.rs"]
-mod fixtures;
 struct Unreported(Factory);
 impl KernelOperationFactory for Unreported {
     fn implementation_id(&self) -> &ImplementationId {

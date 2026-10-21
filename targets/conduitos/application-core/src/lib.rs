@@ -3,6 +3,8 @@
 extern crate alloc;
 pub mod data;
 pub mod models;
+#[doc(hidden)]
+pub mod private_heap;
 pub mod state;
 pub mod tutorial;
 pub mod wire;

@@ -43,19 +43,9 @@ use semantics::lifecycle_summary;
 #[cfg(test)]
 const ENTER: u8 = 40;
 #[cfg(test)]
-const ESCAPE: u8 = 41;
-#[cfg(test)]
 const TAB: u8 = 43;
 #[cfg(test)]
 const F2: u8 = 59;
-#[cfg(test)]
-const RIGHT: u8 = 79;
-#[cfg(test)]
-const LEFT: u8 = 80;
-#[cfg(test)]
-const DOWN: u8 = 81;
-#[cfg(test)]
-const UP: u8 = 82;
 
 pub struct FrontDoor {
     host_id: HostId,

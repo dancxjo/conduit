@@ -14,6 +14,8 @@ use conduit_face::{
     GraphicsShapeStyle, GraphicsTextRole, LayoutRect,
 };
 
+// These are the existing independent admitted scene inputs.
+#[allow(clippy::too_many_arguments)]
 pub fn scene(
     journey: &crate::data::Facts,
     foreground_title: &str,

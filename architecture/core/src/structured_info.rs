@@ -23,7 +23,7 @@ mod sequence;
 mod transport;
 mod tuple;
 mod typed_pair;
-mod validation;
+pub(crate) mod validation;
 use canonical::{
     check_encoding_size, decode_type, decode_value, digest, encode_type, encode_value_node,
     type_extent, validate_value, value_extent,

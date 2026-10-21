@@ -107,6 +107,13 @@ package_test_shard!(
         "conduit-conduitos-mask-offer",
         "conduit-little-seismograph-fixture",
         "conduitos",
+        "conduitos-application-core",
+        "conduitos-compositor-core",
+        "conduitos-creche-core",
+        "conduitos-mask-core",
+        "conduitos-network-core",
+        "conduitos-runtime-core",
+        "conduitos-tls-core",
         "patchbay-hosted",
         "conduit-patchbay-workbench",
         "patchbay-workbench-host-contract",
@@ -148,7 +155,16 @@ package_test_shard!(
     HOST_CONDUITOS_TEST_STEP,
     "check.test.hosts-conduitos",
     "Conduitos host unit and integration tests",
-    ["conduit-conduitos-mask-offer",],
+    [
+        "conduit-conduitos-mask-offer",
+        "conduitos-application-core",
+        "conduitos-compositor-core",
+        "conduitos-creche-core",
+        "conduitos-mask-core",
+        "conduitos-network-core",
+        "conduitos-runtime-core",
+        "conduitos-tls-core",
+    ],
     ["--", "--test-threads=1"]
 );
 

@@ -7,7 +7,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE as PORTS;
 #[allow(dead_code)]
 #[path = "../../../plan-lowering/tests/common/execution_regions.rs"]
-mod fixtures;
+pub(crate) mod fixtures;
 struct Back {
     source: bool,
     sent: bool,

@@ -167,15 +167,6 @@ fn show_value_id(
 }
 
 #[cfg(any(test, feature = "native-compositor"))]
-#[cfg(test)]
-fn scheduler(
-    fragment: &conduit_core::PlanFragment,
-    lowered: &LoweredPlanFragment,
-) -> Result<Scheduler, NativeMaskPlayError> {
-    scheduler_for_profile(fragment, lowered, NativeMaskStorageProfile::Standard)
-}
-
-#[cfg(any(test, feature = "native-compositor"))]
 fn scheduler_for_profile(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,

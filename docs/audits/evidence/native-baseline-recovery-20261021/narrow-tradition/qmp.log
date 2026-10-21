@@ -1,0 +1,39 @@
+RECV {"QMP": {"version": {"qemu": {"micro": 1, "minor": 2, "major": 10}, "package": "Debian 1:10.2.1+ds-1ubuntu3.2"}, "capabilities": ["oob"]}}
+SEND {"execute": "qmp_capabilities", "id": 1}
+RECV {"return": {}, "id": 1}
+SEND {"execute": "screendump", "id": 2, "arguments": {"filename": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-narrow-tradition/front-door.ppm"}}
+RECV {"return": {}, "id": 2}
+SEND {"execute": "input-send-event", "id": 3, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "ret"}}}]}}
+RECV {"return": {}, "id": 3}
+SEND {"execute": "input-send-event", "id": 4, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "ret"}}}]}}
+RECV {"return": {}, "id": 4}
+SEND {"execute": "screendump", "id": 5, "arguments": {"filename": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-narrow-tradition/creche-ready.ppm"}}
+RECV {"return": {}, "id": 5}
+SEND {"execute": "input-send-event", "id": 6, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 6}
+SEND {"execute": "input-send-event", "id": 7, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 7}
+SEND {"execute": "input-send-event", "id": 8, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 8}
+SEND {"execute": "input-send-event", "id": 9, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 9}
+SEND {"execute": "input-send-event", "id": 10, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 10}
+SEND {"execute": "input-send-event", "id": 11, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 11}
+SEND {"execute": "input-send-event", "id": 12, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 12}
+SEND {"execute": "input-send-event", "id": 13, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 13}
+SEND {"execute": "input-send-event", "id": 14, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 14}
+SEND {"execute": "input-send-event", "id": 15, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 15}
+SEND {"execute": "screendump", "id": 16, "arguments": {"filename": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-narrow-tradition/naming-action.ppm"}}
+RECV {"return": {}, "id": 16}
+SEND {"execute": "input-send-event", "id": 17, "arguments": {"events": [{"type": "key", "data": {"down": true, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 17}
+SEND {"execute": "input-send-event", "id": 18, "arguments": {"events": [{"type": "key", "data": {"down": false, "key": {"type": "qcode", "data": "tab"}}}]}}
+RECV {"return": {}, "id": 18}
+SEND {"execute": "screendump", "id": 19, "arguments": {"filename": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-narrow-tradition/naming-value.ppm"}}
+RECV {"return": {}, "id": 19}

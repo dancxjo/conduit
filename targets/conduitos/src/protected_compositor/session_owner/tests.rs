@@ -488,3 +488,6 @@ fn selected_but_fully_obscured_foreign_surface_cannot_escape_handle_fence() {
     assert!(!called);
     assert_eq!(owner.transport.quarantines, 1);
 }
+
+#[path = "handoff_tests.rs"]
+mod handoff;

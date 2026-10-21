@@ -13,3 +13,7 @@ site/evidence/todo-journey/*.txt whitespace=-trailing-space,cr-at-eol
 
 # Raw USB producer captures retain original terminal whitespace and CRLF bytes.
 targets/conduitos/plots/usb/evidence/**/*.log whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+
+# Native baseline serial captures preserve firmware CRLF bytes as evidence.
+docs/audits/evidence/native-baseline-recovery-20261021/**/serial.log whitespace=cr-at-eol
+docs/audits/evidence/native-baseline-recovery-20261021/journey-serial.log whitespace=cr-at-eol

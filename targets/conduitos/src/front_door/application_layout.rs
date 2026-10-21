@@ -181,7 +181,7 @@ mod tests {
         };
         let mut seen = String::new();
         let total = rows(&view, |_, row| {
-            assert!(row.text.chars().count() <= LINE_CHARACTERS);
+            assert!(row.text.chars().count() <= conduitos_mask_core::layout::LINE_CHARACTERS);
             seen.push_str(row.text);
         });
         assert!(total > 2);

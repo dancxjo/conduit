@@ -11,6 +11,7 @@ use conduit_face::ApplicationEventKind;
 mod home;
 mod home_presentation;
 mod presentation;
+#[derive(Default)]
 pub struct State {
     draft: Option<super::native::Controller>,
     home: Option<super::home::Controller>,
@@ -18,17 +19,7 @@ pub struct State {
     outgoing: Vec<u8>,
     read_offset: u32,
 }
-impl Default for State {
-    fn default() -> Self {
-        Self {
-            draft: None,
-            home: None,
-            incoming: None,
-            outgoing: Vec::new(),
-            read_offset: 0,
-        }
-    }
-}
+
 impl State {
     fn draft(&self) -> Result<&BirthDraft, Refusal> {
         self.draft
