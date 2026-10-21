@@ -19,7 +19,7 @@ impl Controller {
                 FaceProperty {
                     subject: subject.into(),
                     name: format!("active-plot/{index}/title"),
-                    value: FacePropertyValue::Text(plot.title.into()),
+                    value: FacePropertyValue::Text(plot.title.clone()),
                 },
                 FaceProperty {
                     subject: subject.into(),
