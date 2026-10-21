@@ -8,7 +8,7 @@ use conduit_face::{
 
 #[path = "diagram_geometry.rs"]
 mod geometry;
-use geometry::{DiagramGeometry, GAP, PORT_ROW, visible_ports};
+use geometry::{visible_ports, DiagramGeometry, GAP, PORT_ROW};
 #[path = "diagram_hits.rs"]
 mod hit_regions;
 use hit_regions::DiagramHits;
@@ -229,7 +229,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     GraphicsPaintRole::Muted,
-                    &preview(&readable(origin), 40),
+                    &preview(
+                        &readable(origin),
+                        crate::display::typography::TextRole::Body,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
             )?;
@@ -264,7 +268,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     paint,
-                    &preview(&super::ports::label(face, port), 30),
+                    &preview(
+                        &super::ports::label(face, port),
+                        crate::display::typography::TextRole::Label,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
             )?;
@@ -282,7 +290,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     GraphicsPaintRole::Muted,
-                    &more,
+                    &preview(
+                        &more,
+                        crate::display::typography::TextRole::Body,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
             )?;
@@ -358,15 +370,15 @@ fn property_text<'a>(face: &'a Face, subject: &str, name: &str) -> Option<&'a st
     })
 }
 
-fn preview(value: &str, limit: usize) -> alloc::string::String {
-    if value.chars().count() <= limit {
-        return value.into();
-    }
-    let end = value
-        .char_indices()
-        .nth(limit - 3)
-        .map_or(value.len(), |(index, _)| index);
-    alloc::format!("{}...", &value[..end])
+/// Fit to the actual card width using the same pinned font as painting.
+/// Full source labels remain in Details; an ellipsis marks a clipped preview.
+fn preview(
+    value: &str,
+    role: crate::display::typography::TextRole,
+    width: u16,
+) -> Result<alloc::string::String, FaceSceneError> {
+    crate::display::typography::single_line_preview(value, role, width)
+        .map_err(|_| FaceSceneError::SceneBound)
 }
 
 fn gear_labels(value: &str) -> (&str, &str) {

@@ -115,3 +115,14 @@ This is a local implementation correction for #5516/#5518, not cross-Mask proof.
 The previously built ISO predates this correction.
 `cargo +stable check -p patchbay-application` passed for this correction;
 no test suite, image rebuild or proof journey was run.
+
+## Patchbay card label measurement
+
+Port labels, origin/provenance lines and Port-overflow notices now use the same
+pinned-font, pixel-width preview admission already used for Gear headings. A
+character-count limit could wrap wide glyphs inside a fixed-height card. Each
+preview now fits its actual card text rectangle and marks clipping with an
+ellipsis; complete source labels remain in Details. Geometry and exact hit
+identities are unchanged. Native compositor compilation passed in 9 seconds;
+no runtime proof or image rebuild was run. This advances #5629's text readability
+boundary without claiming complete font coverage or shaping.
