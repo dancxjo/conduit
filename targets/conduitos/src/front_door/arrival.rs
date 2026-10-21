@@ -1,21 +1,41 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
-use alloc::{format, string::String, vec::Vec};
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+use crate::protected_creche::CrecheDraft as BirthDraft;
+use alloc::string::String;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use alloc::{format, vec::Vec};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_birth_plot::BirthDraft;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_birth_plot::BirthDraftRefusal;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthWidgetFace};
-use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
+use conduit_birth_plot::{BirthPlotChoice, BirthSelection};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_face::ApplicationEventKind;
-use conduit_human::{KeyEvent, KeyModifiers, KeyTransition, PreparedKeymap};
+use conduit_human::{KeyEvent, KeyTransition};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_human::{KeyModifiers, PreparedKeymap};
 
 use super::{Error, FrontDoor};
 
 mod mask_interaction;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod projection;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected_projection;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod scene;
 
 pub(super) struct Arrival {
     draft: BirthDraft,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     focus: usize,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     replace_name: bool,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     keymap: PreparedKeymap,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     refusal: Option<String>,
 }
 
@@ -72,9 +92,13 @@ impl FrontDoor {
         .map_err(|_| Error::Face)?;
         self.arrival = Some(Arrival {
             draft,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             focus: 0,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             replace_name: true,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             keymap: PreparedKeymap::default_layout(),
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             refusal: None,
         });
         self.advance()
@@ -110,6 +134,7 @@ impl FrontDoor {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl Arrival {
     fn accept(&mut self, event: KeyEvent) -> ArrivalInput {
         if event.transition() != KeyTransition::Pressed {
@@ -300,6 +325,7 @@ impl Arrival {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 fn refusal_text(error: BirthDraftRefusal) -> &'static str {
     match error {
         BirthDraftRefusal::InvalidName => "Give your body a name of at most 64 bytes.",
@@ -312,3 +338,24 @@ fn refusal_text(error: BirthDraftRefusal) -> &'static str {
 
 #[cfg(test)]
 mod tests;
+
+impl Arrival {
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    fn focus(&self) -> usize {
+        self.focus
+    }
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    fn refusal(&self) -> Option<&str> {
+        self.refusal.as_deref()
+    }
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    fn accept(&mut self, event: KeyEvent) -> ArrivalInput {
+        use conduitos_creche_core::native::NativeOutcome;
+        match self.draft.accept_native(event) {
+            Ok(NativeOutcome::Unchanged) => ArrivalInput::Unchanged,
+            Ok(NativeOutcome::Changed) => ArrivalInput::Changed,
+            Ok(NativeOutcome::Birth(selection)) => ArrivalInput::Birth(selection),
+            Err(_) => ArrivalInput::Changed,
+        }
+    }
+}

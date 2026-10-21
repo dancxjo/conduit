@@ -28,21 +28,29 @@ That graphical startup reaches these responsibilities:
 |---|---|---|
 | `main.rs`, boot, allocation, architecture setup | Root; physical memory, page tables, interrupts, machine entry | Narrow privileged mechanisms |
 | `graphical_startup.rs` | Root; xHCI initialization/enumeration, framebuffer, entropy, offers and product admission | Boot facts and explicit service grants; product preparation outside Root |
-| `product_front_door.rs::run` | Root; mutable `XhciReady`, HID sessions, `PixelTarget`, product bases and surface provider | Protected product service with capability-mediated requests |
+| `product_front_door` | Root; platform adapters own hardware input, rescue and execution providers; policy receives typed events and checked display effects | Protected product service with capability-mediated requests |
 | `native_face_mask`, front-door presenter | Root; Face projection, rasterization, compositor and display acknowledgement | Protected presentation services |
-| `native_compositor` | Root; retained surface pixels, damage, focus/cursor and direct `PixelTarget` writes | Protected retained compositor; Root initially retains scanout |
-| Ordinary runtime, planner and Body controllers | Root except explicitly protected regions | Protected runtime/service execution with existing semantic ownership |
+| `native_compositor`, compositor service | x86_64 native guest owns retained pixels, damage, visual focus/cursor and composition; Root validates scanout | Extend evidence and independent recovery; other architectures still need service backends |
+| Crèche draft service | x86_64 native guest owns canonical BirthDraft, naming and Birth Face projection; Root checks immutable snapshots/selections | Move remaining controller and presentation policy out of Root |
+| Home launcher/command bar | x86_64 Home guest owns canonical HomeModel, keyboard composition and refusals; guest also constructs scene/local Face content; Root validates replies and retains checked lifecycle effects | Relocate remaining general presentation and product control |
+| Native Body workset runtime | x86_64 Runtime guest owns the canonical fixed scheduler, values, Cords and Signs; Root checks effect requests and input provenance | Extend to remaining execution paths and establish runtime evidence |
+| Native-workset retained applications | Application guest owns canonical Tutorial/Tour/Patchbay models; Root checks action proposals against prior views and live admission facts | Migrate separate lifecycle Tutorial projection and remaining controller paths |
+| Ordinary/Tour runtime, planner and Body controllers | Root except explicitly protected regions | Protected runtime/service execution with existing semantic ownership |
 | USB, PCI, network, audio and display providers | Root; ports, MMIO, device buffers and physical addresses | Exact mediated grants; driver isolation needs DMA containment |
 | `domain/main.rs` | Separate immutable image; explicit command dispatch over a bounded frame, private stack/retained pages | Reuse hardware confinement, extend independently admitted services |
 
-The separate image currently handles text/keymap/editor, Morse and timer
-commands; it does not host retained graphical composition. x86_64 has two
-fixed domain slots and a 4 KiB exchange frame. A service architecture must
+The ordinary separate image handles text/keymap/editor, Morse and timer
+commands. x86_64 additionally has independently admitted compositor, Draft, Home, Runtime and Application
+service slots, each with its own address space and a 4 KiB exchange frame.
+The ordinary two-slot pool remains separate. A service architecture must
 account for simultaneous retained services and finite pixel memory; increasing
 slot counts or calling a Root module a service does not establish confinement.
-The text image refuses allocation, whereas the retained compositor uses bounded
-`Vec`/`String` preparation. A compositor image needs its own admitted arena and
-page mappings; weakening the text profile is not a substitute.
+The text image refuses allocation. Retained service images use closed private
+arenas and page mappings; the Draft profile also admits a bounded private RW/NX
+data template. Ordinary text and compositor executable admission remain
+immutable. The native configuration passes a targeted local compile; earlier
+compositor emulator evidence predates the later Crèche service work. Full
+service/runtime/driver isolation is not established by this source inventory.
 
 ## Build evidence
 

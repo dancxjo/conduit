@@ -21,6 +21,22 @@ static REMAINING: AtomicU32 = AtomicU32::new(0);
 static SOURCE_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 static USER_INTERRUPTS: AtomicU32 = AtomicU32::new(0);
 
+/// Closed mechanism profiles. Draft's larger bound is an unmeasured local
+/// preparation ceiling, not evidence that any canonical command fits it.
+#[derive(Clone, Copy)]
+pub(super) enum EntryBudget {
+    Ordinary,
+    Draft,
+}
+impl EntryBudget {
+    const fn ticks(self) -> u32 {
+        match self {
+            Self::Ordinary => ENTRY_BUDGET_TICKS,
+            Self::Draft => 64,
+        }
+    }
+}
+
 pub(super) struct Budget {
     rtc_a: u8,
     rtc_b: u8,
@@ -30,12 +46,12 @@ pub(super) struct Budget {
 }
 
 impl Budget {
-    pub fn arm() -> Result<Self, DomainRefusal> {
+    pub fn arm(profile: EntryBudget) -> Result<Self, DomainRefusal> {
         let flags: u64;
         unsafe {
             asm!("pushfq", "pop {}", "cli", out(reg) flags);
         }
-        let result = Self::arm_masked();
+        let result = Self::arm_masked(profile);
         if flags & 0x200 != 0 {
             unsafe {
                 asm!("sti", options(nostack));
@@ -43,7 +59,7 @@ impl Budget {
         }
         result
     }
-    fn arm_masked() -> Result<Self, DomainRefusal> {
+    fn arm_masked(profile: EntryBudget) -> Result<Self, DomainRefusal> {
         let rtc_a = read(0x0a);
         let rtc_b = read(0x0b);
         // This profile requires an unowned normal-running RTC interrupt channel.
@@ -89,7 +105,7 @@ impl Budget {
         }
         USER_INTERRUPTS.store(0, Ordering::Release);
         SOURCE_INTERRUPTS.store(0, Ordering::Release);
-        REMAINING.store(ENTRY_BUDGET_TICKS, Ordering::Release);
+        REMAINING.store(profile.ticks(), Ordering::Release);
         Ok(guard)
     }
 }

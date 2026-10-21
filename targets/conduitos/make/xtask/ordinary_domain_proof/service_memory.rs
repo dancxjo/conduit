@@ -34,7 +34,10 @@ pub(super) fn validate(transcript: &str) -> Result<Value, ConduitosError> {
     Ok(value)
 }
 fn refusal(reason: &'static str) -> ConduitosError {
-    ConduitosError::refusal(reason, "requires the complete x86_64 service-memory fixture; no production compositor, driver or DMA isolation claim")
+    ConduitosError::refusal(
+        reason,
+        "requires the complete x86_64 service-memory fixture; no production compositor, driver or DMA isolation claim",
+    )
 }
 
 #[cfg(test)]

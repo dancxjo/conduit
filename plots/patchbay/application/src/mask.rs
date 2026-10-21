@@ -9,14 +9,14 @@ use conduit_face::{
 
 pub const CHANGE_MASKS_ACTION_ID: &str = "patchbay.masks.change";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum PatchbayMaskMode {
     Graphical,
     GraphicalAndSpeech,
     Speech,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayMaskStage {
     pub manifestation_id: String,
     pub implementation_id: String,
@@ -31,7 +31,7 @@ pub struct PatchbayMaskStage {
     pub available: bool,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayMaskTopology {
     pub face_id: String,
     pub body_plan_id: PlanId,
@@ -41,7 +41,8 @@ pub struct PatchbayMaskTopology {
 }
 
 impl PatchbayMaskTopology {
-    pub(crate) const fn next_mode(&self) -> PatchbayMaskMode {
+    /// Pure proposal of the next mode; applying it still requires Body admission.
+    pub const fn next_mode(&self) -> PatchbayMaskMode {
         match self.mode {
             PatchbayMaskMode::Graphical => PatchbayMaskMode::GraphicalAndSpeech,
             PatchbayMaskMode::GraphicalAndSpeech => PatchbayMaskMode::Speech,

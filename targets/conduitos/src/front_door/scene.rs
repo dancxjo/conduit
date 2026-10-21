@@ -13,11 +13,12 @@ use super::{Error, FrontDoor};
 
 impl FrontDoor {
     pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
+        let reading = self.reading()?;
         if self.home.is_some() {
             return self.home_scene(display);
         }
         if let Some(arrival) = &self.arrival {
-            return arrival.scene(display);
+            return arrival.scene(display, self);
         }
         self.face()?.validate().map_err(|_| Error::Face)?;
         let format = display.format().validate().map_err(Error::Display)?;
@@ -42,7 +43,7 @@ impl FrontDoor {
         text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
         let face = self.face()?;
         if let Some(line) = &self.connectivity
-            && !self.exact_details_open
+            && !reading.exact_details_open
         {
             text(&mut scene, 18, 42, "CURRENT BODY")?;
             exact_text(&mut scene, 18, 66, line.body_id.as_str())?;
@@ -57,8 +58,11 @@ impl FrontDoor {
             .journey
             .as_ref()
             .is_some_and(|journey| journey.body_id.is_some())
-            && !self.exact_details_open
+            && !reading.exact_details_open
         {
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            return self.workspace_mask_scene(display);
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             return super::workspace_scene::scene(
                 self.journey.as_ref().ok_or(Error::Scene)?,
                 self.workspace
@@ -75,13 +79,13 @@ impl FrontDoor {
                 display,
             );
         }
-        if self.exact_details_open {
+        if reading.exact_details_open {
             let (label, value) = self.current_detail();
             text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
             text(&mut scene, 18, 76, label)?;
             exact_text(&mut scene, 18, 100, &value)?;
             text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-        } else if self.plot_open {
+        } else if reading.plot_open {
             text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
             text(&mut scene, 18, 76, "PLOT OPEN / INSPECTION ONLY")?;
             exact_text(&mut scene, 18, 100, &self.plot_subject)?;
@@ -106,7 +110,7 @@ impl FrontDoor {
                 &mut scene,
                 26,
                 118,
-                if self.selected_subject.starts_with("plot/") {
+                if reading.selected_plot {
                     "> CONDUITOS ENTRANCE PLOT"
                 } else {
                     "  CONDUITOS ENTRANCE PLOT"
@@ -116,7 +120,7 @@ impl FrontDoor {
                 &mut scene,
                 26,
                 140,
-                if !self.selected_subject.starts_with("plot/") {
+                if !reading.selected_plot {
                     "> DETAILS"
                 } else {
                     "  DETAILS"
@@ -133,7 +137,7 @@ impl FrontDoor {
     }
 
     pub fn current_detail(&self) -> (&'static str, String) {
-        match self.details_page {
+        match self.reading().map_or(0, |view| view.details_page) {
             0 => ("PROFILE ID", self.profile_id.clone()),
             1 => ("BUILD ID", self.build_id.clone()),
             2 => ("IMAGE BINDING", self.image_id.clone()),

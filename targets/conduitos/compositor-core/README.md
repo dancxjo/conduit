@@ -1,0 +1,104 @@
+# Retained compositor service core
+
+This dependency-free `no_std` crate supplies the independently linked x86_64
+compositor image selected by the native graphical product path. Root uses its
+wire codec and bounded work descriptors; retained pixels, damage, selection and
+composition execute in the service. Other architectures retain their existing
+renderer until separately integrated and proved. The full microkernel objective
+and production fault/restart acceptance remain open in ConduitOS #6177/#6175.
+
+The caller provides two disjoint 2,097,152-element `u32` arenas. One is the
+current retained raster store; the other holds a complete upload transaction.
+Eight fixed surface descriptors use variable-size packed allocations. Preparing
+an upload copies unchanged rasters in steps of at most 16,384 pixels. The new
+raster arrives in ordered chunks within the same limit. Only a complete upload
+can swap arena roles and publish its revision. Aborting preserves the current
+raster. No equal surface partition, allocator or hidden pixel store is used.
+
+The retained pixel ceiling bounds stored surfaces, not viewport area. Composition
+streams larger admitted viewports through a fixed output window.
+
+Composition emits horizontal spans of at most 16,384 canonical RGB pixels.
+Focus and cursor pixels follow the native compositor's frozen reference.
+Damage merges touching rectangles and falls back to a union after 16 disjoint
+rectangles. Per-step work is bounded. Native-style fixed scanline intervals
+select the top surface once per span, bulk-copy retained pixels and fill focus
+spans; only the small cursor overlay needs per-pixel masking. Conservative lifecycle damage can repaint more pixels than the optimized native
+path. Completed coverage alone cannot enable advisory input routes. A separate
+scanout-owner acknowledgement is required, and mutation invalidates old frame
+tokens. Unchanged surfaces retain input readiness across partial and cursor-only frames; replacing a raster requires a
+fresh positive scanout acknowledgement, and explicit frame/scanout failure
+invalidates all input readiness. The Root client must validate all spans, copy
+them successfully and correlate Host/Boot/service/display generations before acknowledging. It must still enforce
+the authoritative checked Show and typed semantic interaction.
+
+`wire` encodes version-2 little-endian requests and responses in at most 4 KiB.
+Its 32-byte envelope contains `CCMP`, version, operation, exact encoded length,
+zero reserved bits, a nonzero service instance and a nonzero request sequence.
+Every field is an explicit integer; in-memory Rust structures and pointers never
+cross this boundary. Upload and frame pixels use a separate 64 KiB transfer
+window with checked aligned byte offsets and pixel counts. Window direction is
+per request; the client and service must not execute concurrently. Pixel helpers
+perform endian conversion without alignment assumptions or allocation.
+
+Decode must finish successfully before the wrapper admits or invokes a command.
+Unknown operations, trailing fields, noncanonical booleans, zero generations and
+invalid extents/ranges refuse. A decoded envelope claims an instance; it does not
+prove it. The external wrapper must validate the kernel-admitted service instance,
+request ordering/replay policy, Host/Boot/capability/display scope and the exact
+work/output grant before effects. `Initialize` constructs a core only in a fresh
+instance; it grants no reset authority. Replacement is a service-owner lifecycle
+operation with a fresh instance, outside the codec. Responses must match the
+outstanding instance/request and expected operation; returned frame spans and
+coverage remain untrusted until the Root client checks them against that grant.
+Encode errors must never be published as successful messages. No dispatcher,
+capability table, semantic scheduler or parallel retained state is added here.
+Restart, hardware protection, production presenter integration and the unchanged
+graphical journey remain unproved. Tests use a test-only independent pixel oracle
+adapted from `native_compositor/frame_composition_reference.rs`; that oracle is
+not linked into the core.
+
+Core revisions are renderer-local monotonically increasing upload sequences,
+not semantic Face revisions. A repaint of the same Face therefore uses a fresh
+upload sequence. The Root presenter retains exact Face, Mask and Show bindings;
+the local sequence cannot establish any of those semantic identities.
+
+`Resize` reserves the replacement extent against all live surfaces, including
+pending ones, before changing state. A dimension change invalidates the old
+raster immediately, retains its upload-sequence fence and blocks covered input
+until a fresh upload and scanout acknowledgement. Equal-dimension resize is a
+placement operation and preserves the raster. Visual focus is allowed on a
+visible raster before its first scanout; pointer and keyboard routing remain
+acknowledgement-gated. Semantic focus/Show admission remains the Root owner's
+responsibility.
+
+A successful `BeginFrame` response is `FrameStarted(FramePlan)`: the exact ordered,
+clipped damage rectangles (1 through 16, zero unused entries), renderer sequence,
+and conservative fallback flag. This descriptor admits low-level bounded raster
+work, not semantic scheduling. Root must validate every returned span against the
+full descriptor and complete all declared work before acknowledging scanout.
+`cursor_visible` and `focus_visible` are logical affordance-presence snapshots,
+matching the existing native FrameReceipt. They are not observed ink, vblank, or
+human visibility. The final span's `selected_mask` records underlying surface
+selection before cursor/focus overlays, independently of unobscured coverage;
+a completely covered selected surface can have zero coverage. Intermediate spans
+carry zero selection mask and zero coverage. All metadata remains untrusted.
+
+When `BeginFrame` has no clipped damage, the guest replies
+`FrameIdle { cursor_visible, focus_visible }` (operation `0x8008`, two canonical
+boolean bytes). Both flags come from the guest's logical affordance state even
+when no pixels are emitted. The Root client invalidates any previous frame grant;
+idle replies grant no scanout or acknowledgement work. `Refused` remains reserved
+for actual command failures rather than erasing a valid idle receipt's flags.
+
+`Focused` (request operation 20) returns `Focused(Option<Handle>)` (response
+operation `0x8009`), the guest's logical visual focus. It is a read-only query and
+does not cancel pending frame work. It is distinct from acknowledgement-gated
+`Keyboard` routing and grants no semantic input authority. The client must fence
+any returned handle against the active display/session's admitted handle map.
+
+`DamagePending` (request operation 21; response `0x800a` with one canonical
+boolean) reports guest damage, upload, or frame work. The read-only query keeps
+pending frame grants intact. An unchanged focus, visibility or cursor command
+can leave this false; Root must consult this guest status when preserving prior
+acknowledgements rather than maintaining another damage-state truth.

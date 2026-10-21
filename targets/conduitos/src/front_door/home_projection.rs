@@ -1,6 +1,9 @@
 //! The picker observes only the exact residents in the current Body Play.
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use super::*;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use alloc::vec::Vec;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl FrontDoor {
     pub(super) fn home_face_content(&self) -> (Vec<FaceProperty>, Vec<FaceText>) {
         let Some(home) = self.home_model() else {

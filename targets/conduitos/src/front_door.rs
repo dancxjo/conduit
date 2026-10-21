@@ -12,9 +12,13 @@ use conduit_human::KeyEvent;
 use crate::display::DisplayError;
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod application_layout;
 mod arrival;
-mod commons;
+pub(crate) mod commons;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod graph_facts;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod graph_projection;
 mod home;
 mod home_projection;
@@ -22,8 +26,11 @@ mod joining;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
+mod reading;
 mod scene;
 mod workspace;
+mod workspace_mask;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod workspace_scene;
 pub use arrival::ArrivalInput;
 pub use home::{HomeInput, HomeView};
@@ -33,13 +40,21 @@ mod semantics;
 pub use presenter::{FrontDoorPresenter, PresenterError};
 use semantics::lifecycle_summary;
 
+#[cfg(test)]
 const ENTER: u8 = 40;
+#[cfg(test)]
 const ESCAPE: u8 = 41;
+#[cfg(test)]
 const TAB: u8 = 43;
+#[cfg(test)]
 const F2: u8 = 59;
+#[cfg(test)]
 const RIGHT: u8 = 79;
+#[cfg(test)]
 const LEFT: u8 = 80;
+#[cfg(test)]
 const DOWN: u8 = 81;
+#[cfg(test)]
 const UP: u8 = 82;
 
 pub struct FrontDoor {
@@ -52,13 +67,11 @@ pub struct FrontDoor {
     source_document_id: SourceDocumentId,
     checked_plot_id: CheckedPlotId,
     plot_subject: String,
-    selected_subject: String,
-    exact_details_open: bool,
-    plot_open: bool,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    reading: conduitos_mask_core::control::View,
     revision: u64,
     offer_count: u64,
     lifecycle_authority_admitted: bool,
-    details_page: u8,
     journey: Option<JourneyProjection>,
     connectivity: Option<ConnectivityProjection>,
     arrival: Option<arrival::Arrival>,
@@ -69,7 +82,12 @@ pub struct FrontDoor {
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_face::ApplicationView>,
     patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    graph_facts: Option<conduitos_application_core::graph_facts::Contribution>,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     application_viewport: application_layout::ApplicationViewport,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    workspace_mask: core::cell::RefCell<crate::protected_workspace_mask::Owner>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -141,7 +159,6 @@ impl FrontDoor {
         lifecycle_authority_admitted: bool,
     ) -> Self {
         let plot_subject = format!("plot/{}", checked_plot_id.as_str());
-        let selected_subject = format!("host/{}/{}", host_id.as_str(), boot_id.as_str());
         Self {
             host_id,
             boot_id,
@@ -152,13 +169,11 @@ impl FrontDoor {
             source_document_id,
             checked_plot_id,
             plot_subject,
-            selected_subject,
-            exact_details_open: false,
-            plot_open: false,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+            reading: conduitos_mask_core::control::View::default(),
             revision: 1,
             offer_count,
             lifecycle_authority_admitted,
-            details_page: 0,
             journey: None,
             connectivity: None,
             arrival: None,
@@ -169,12 +184,15 @@ impl FrontDoor {
             workspace: None,
             application_view: None,
             patchbay_graph: None,
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            graph_facts: None,
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             application_viewport: application_layout::ApplicationViewport::default(),
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            workspace_mask: core::cell::RefCell::new(
+                crate::protected_workspace_mask::Owner::default(),
+            ),
         }
-    }
-
-    pub const fn exact_details_open(&self) -> bool {
-        self.exact_details_open
     }
 
     pub const fn revision(&self) -> u64 {
@@ -182,6 +200,10 @@ impl FrontDoor {
     }
 
     pub fn observe_journey(&mut self, projection: JourneyProjection) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if projection
             .source_document_id
             .as_ref()
@@ -193,7 +215,10 @@ impl FrontDoor {
         {
             return Err(Error::Face);
         }
-        self.plot_open = projection.status == JourneyStatus::PlotOpened;
+        self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.reading_command(conduitos_mask_core::control::Operation::ObservePlot {
+            opened: projection.status == JourneyStatus::PlotOpened,
+        })?;
         self.journey = Some(projection);
         self.advance()
     }
@@ -219,43 +244,17 @@ impl FrontDoor {
         if revision != self.revision {
             return Err(Error::StaleInput);
         }
-        if event.transition() != conduit_human::KeyTransition::Pressed {
-            return Ok(false);
+        // The outer revision remains Root's pre-effect fence. Reserve it before
+        // asking the guest to mutate any presentation state.
+        let operation = conduitos_mask_core::control::Operation::Key(event.encode());
+        if operation.changes().map_err(|_| Error::Face)? {
+            self.revision.checked_add(1).ok_or(Error::Face)?;
         }
-        match event.usage() {
-            TAB | RIGHT | LEFT | DOWN | UP => {
-                let plot = self.plot_subject.clone();
-                let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
-                self.selected_subject = if self.selected_subject == plot {
-                    host
-                } else {
-                    plot
-                };
-                self.exact_details_open = false;
-                self.advance()?;
-                Ok(true)
-            }
-            F2 => {
-                if self.exact_details_open {
-                    self.details_page = (self.details_page + 1) % 16;
-                }
-                self.exact_details_open = true;
-                self.advance()?;
-                Ok(true)
-            }
-            ENTER => {
-                self.plot_open = self.selected_subject.starts_with("plot/");
-                self.exact_details_open = !self.plot_open;
-                self.advance()?;
-                Ok(true)
-            }
-            ESCAPE => {
-                self.exact_details_open = false;
-                self.advance()?;
-                Ok(true)
-            }
-            _ => Ok(false),
+        let changed = self.reading_command(operation)?;
+        if changed {
+            self.advance()?;
         }
+        Ok(changed)
     }
 
     pub fn startup_refused(&mut self, reason: &str) -> Result<(), Error> {

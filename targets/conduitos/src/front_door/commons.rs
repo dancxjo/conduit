@@ -7,14 +7,14 @@ use conduit_core::{StructuredInfoValue, StructuredInfoValueShape, kind_id};
 use core::cell::RefCell;
 mod heading;
 
-pub(super) struct Commons {
+pub(crate) struct Commons {
     source: RefCell<Box<Source>>,
     selected: String,
     generation: u64,
 }
 
 impl Commons {
-    pub(super) fn prepare() -> Result<Self, Error> {
+    pub(crate) fn prepare() -> Result<Self, Error> {
         let source = Box::new(Source::prepare().map_err(|_| Error::Face)?);
         let selected = place_text(&source.places, "hub", "identity")?.into();
         Ok(Self {
@@ -24,11 +24,11 @@ impl Commons {
         })
     }
 
-    pub(super) fn selected(&self) -> &str {
+    pub(crate) fn selected(&self) -> &str {
         &self.selected
     }
 
-    pub(super) fn creche(&self) -> bool {
+    pub(crate) fn creche(&self) -> bool {
         place_text(&self.source.borrow().places, "creche", "identity")
             .is_ok_and(|id| id == self.selected)
     }
@@ -56,7 +56,7 @@ impl Commons {
     }
 
     /// The zero-Body Hub has one meaningful destination: the Birth encounter.
-    pub(super) fn accept_birth(
+    pub(crate) fn accept_birth(
         &mut self,
         event: KeyEvent,
         journey: &JourneyProjection,
@@ -69,7 +69,7 @@ impl Commons {
         Ok(HomeInput::OpenCreche)
     }
 
-    pub(super) fn back_to_hub(&mut self, journey: &JourneyProjection) -> Result<(), Error> {
+    pub(crate) fn back_to_hub(&mut self, journey: &JourneyProjection) -> Result<(), Error> {
         let graph = self.source.borrow().places.clone();
         let hub = place_text(&graph, "hub", "identity")?;
         self.navigate(journey, hub, self.selected != hub)
@@ -90,7 +90,7 @@ impl Commons {
         Ok(())
     }
 
-    pub(super) fn project(
+    pub(crate) fn project(
         &self,
         mut face: Face,
         journey: &JourneyProjection,
@@ -161,7 +161,7 @@ impl Commons {
     }
 }
 
-pub(super) fn place_text<'a>(
+pub(crate) fn place_text<'a>(
     graph: &'a StructuredInfoValue,
     slot: &str,
     name: &str,

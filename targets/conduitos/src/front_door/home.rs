@@ -2,19 +2,29 @@
 
 use alloc::vec::Vec;
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_home_model::{HomeEvent, HomeModel};
-use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
+use conduit_human::KeyEvent;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_human::{KeyTransition, PreparedKeymap};
 
 use super::{Error, FrontDoor};
 use crate::product_journey::JourneyStatus;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod presentation;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod scene;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(super) use crate::protected_creche::Home;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 pub(super) struct Home {
     model: HomeModel,
     pub(super) commons: super::commons::Commons,
     keymap: PreparedKeymap,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl Home {
     fn new() -> Result<Self, Error> {
         Ok(Self {
@@ -24,6 +34,31 @@ impl Home {
         })
     }
 
+    fn try_new() -> Result<Self, Error> {
+        Self::new()
+    }
+
+    fn reset(&mut self) -> Result<(), Error> {
+        self.model = HomeModel::plots();
+        Ok(())
+    }
+
+    fn model(&self) -> &HomeModel {
+        &self.model
+    }
+    fn application_view(
+        &self,
+        revision: u32,
+        titles: &[&str],
+    ) -> Result<conduit_face::ApplicationView, Error> {
+        self.model
+            .face(revision, titles)
+            .lower()
+            .map_err(|_| Error::Face)
+    }
+    fn accept_checked(&mut self, event: KeyEvent, plots: &[&str]) -> Result<HomeInput, Error> {
+        Ok(self.accept(event, plots))
+    }
     fn accept(&mut self, event: KeyEvent, plots: &[&str]) -> HomeInput {
         if event.transition() != KeyTransition::Pressed {
             let _ = self.keymap.apply(event);
@@ -76,6 +111,7 @@ impl FrontDoor {
             .collect()
     }
 
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     pub(super) fn home_model(&self) -> Option<&HomeModel> {
         self.home.as_ref().map(|home| &home.model)
     }
@@ -91,10 +127,10 @@ impl FrontDoor {
             retained
                 .commons
                 .back_to_hub(self.journey.as_ref().ok_or(Error::Face)?)?;
-            retained.model = HomeModel::plots();
+            retained.reset()?;
             retained
         } else {
-            Home::new()?
+            Home::try_new()?
         };
         self.home = Some(home);
         self.advance()
@@ -138,26 +174,23 @@ impl FrontDoor {
     }
 
     pub fn home_view(&self) -> Option<HomeView> {
-        self.home.as_ref().map(|home| home.model.view())
+        self.home.as_ref().map(|home| home.model().view())
     }
 
     pub fn home_selection(&self) -> Option<usize> {
         self.home
             .as_ref()
-            .map(|home| home.model.selected_plot_index())
+            .map(|home| home.model().selected_plot_index())
     }
 
     pub fn home_application_view(&self) -> Result<Option<conduit_face::ApplicationView>, Error> {
         self.home
             .as_ref()
             .map(|home| {
-                home.model
-                    .face(
-                        u32::try_from(self.revision).map_err(|_| Error::Face)?,
-                        &self.home_installed_titles(),
-                    )
-                    .lower()
-                    .map_err(|_| Error::Face)
+                home.application_view(
+                    u32::try_from(self.revision).map_err(|_| Error::Face)?,
+                    &self.home_installed_titles(),
+                )
             })
             .transpose()
     }
@@ -176,7 +209,7 @@ impl FrontDoor {
         } else if journey.active_play_id.is_some()
             && journey.status == JourneyStatus::QuiescentAwaitingInput
         {
-            home.accept(event, &titles)
+            home.accept_checked(event, &titles)?
         } else {
             HomeInput::Unchanged
         };
@@ -199,7 +232,7 @@ mod tests {
     #[test]
     fn picker_cycles_only_the_provided_residents_and_has_no_second_launcher() {
         let mut home = Home::new().unwrap();
-        assert_eq!(home.model.view(), HomeView::Plots);
+        assert_eq!(home.model().view(), HomeView::Plots);
         for index in 0..5 {
             assert_eq!(
                 home.accept(key(40), &["Text editor", "Canvas"]),
@@ -211,7 +244,7 @@ mod tests {
             );
         }
         assert_eq!(home.accept(key(41), &[]), HomeInput::Unchanged);
-        assert_eq!(home.model.view(), HomeView::Plots);
+        assert_eq!(home.model().view(), HomeView::Plots);
         assert_eq!(home.accept(key(40), &[]), HomeInput::Unchanged);
     }
 

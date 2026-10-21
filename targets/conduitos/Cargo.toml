@@ -181,10 +181,12 @@ native-compositor = ["dep:fontdue", "native-owner-network"]
 native-latency-observation = ["native-compositor"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.
-native-owner-network = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
+native-owner-network = ["dep:conduitos-tls-core", "dep:conduitos-network-core", "dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
 native-http-client = []
 conduitos-isolation-proof = []
 ordinary-domain-proof = []
+# Explicit native Make-profile semantic recovery appliance; not the product entry.
+compositor-semantic-recovery-proof = ["native-compositor"]
 emergency-halt-proof = []
 virtio-net-proof = ["native-owner-network"]
 ps2-input = []
@@ -227,6 +229,11 @@ patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduitos-runtime-core = { path = "runtime-core" }
+conduitos-network-core = { path = "network-core", optional = true }
+conduitos-tls-core = { path = "tls-core", optional = true }
+conduitos-application-core = { path = "application-core" }
+conduitos-mask-core = { path = "mask-core" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }
@@ -258,7 +265,12 @@ serde_json = { version = "1", default-features = false, features = ["alloc"] }
 [target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "riscv64", target_arch = "loongarch64"))'.dependencies]
 limine = "=0.5.0"
 
+[target.'cfg(all(target_arch = "x86_64", target_os = "none"))'.dependencies]
+conduitos-compositor-core = { path = "compositor-core" }
+conduitos-creche-core = { path = "creche-core" }
+
 [dev-dependencies]
+conduitos-compositor-core = { path = "compositor-core" }
 conduit-std-host = { path = "../std" }
 conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-todo-plot = { path = "../../plots/todo/model" }

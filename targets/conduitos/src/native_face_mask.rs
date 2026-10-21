@@ -401,13 +401,15 @@ impl NativeFaceMask {
         self.compositor
             .compose_frame(display)
             .map_err(NativeFaceMaskError::Compositor)?;
-        let acknowledgement = self
-            .compositor
-            .scanout_acknowledgement(&composition, published.face.revision)
-            .ok_or(NativeFaceMaskError::Face)?;
-        let session = pending
-            .complete_render(&acknowledgement)
-            .map_err(NativeFaceMaskError::Mask)?;
+        let session = {
+            let acknowledgement = self
+                .compositor
+                .scanout_acknowledgement(&composition, published.face.revision)
+                .ok_or(NativeFaceMaskError::Face)?;
+            pending
+                .complete_render(&acknowledgement)
+                .map_err(NativeFaceMaskError::Mask)?
+        }; // Release the shared renderer guard before exclusive focus/scanout.
         self.compositor
             .focus_surface(&self.surface_id)
             .map_err(NativeFaceMaskError::Compositor)?;
@@ -427,6 +429,10 @@ impl NativeFaceMask {
         &mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.compositor
+            .validate_active_session()
+            .map_err(NativeFaceMaskError::Compositor)?;
         if !self.interaction_admitted {
             return Err(NativeFaceMaskError::InputUnavailable);
         }

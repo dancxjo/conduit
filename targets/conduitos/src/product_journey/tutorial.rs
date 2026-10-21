@@ -45,21 +45,28 @@ impl ProductJourney {
 
     pub fn tutorial_view(&self) -> Result<ApplicationView, TutorialRefusal> {
         let evidence = self.biography().ok_or(TutorialRefusal::InvalidAction)?;
-        let playback = if matches!(
+        let lulled = matches!(
             self.status,
             JourneyStatus::BornLulled | JourneyStatus::Lulled
-        ) {
-            conduit_tutorial_plot::TutorialPlayback::Lulled
-        } else {
-            conduit_tutorial_plot::TutorialPlayback::Playing
-        };
-        conduit_tutorial_plot::face_from_evidence(
-            evidence,
-            u32::try_from(evidence.records.len()).map_err(|_| TutorialRefusal::InvalidAction)?,
-            playback,
-        )
-        .and_then(|view| view.lower())
-        .map_err(|_| TutorialRefusal::InvalidAction)
+        );
+        let scope =
+            conduitos_application_core::data::TutorialScope::new(evidence, self.revision, lulled)
+                .map_err(|_| TutorialRefusal::InvalidAction)?;
+        if let Some(kernel) = self.kernel.as_ref() {
+            return kernel
+                .project_tutorial(evidence, scope)
+                .map_err(|_| TutorialRefusal::InvalidAction);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            crate::protected_application::project_tutorial(evidence, scope)
+                .map_err(|_| TutorialRefusal::InvalidAction)
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            conduitos_application_core::tutorial::project(evidence, lulled)
+                .map_err(|_| TutorialRefusal::InvalidAction)
+        }
     }
 
     pub fn accept_tutorial_action(

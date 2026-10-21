@@ -3,6 +3,7 @@ use super::*;
 
 impl FrontDoor {
     pub fn face(&self) -> Result<Face, Error> {
+        let reading = self.reading()?;
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }
@@ -10,6 +11,10 @@ impl FrontDoor {
             && let Some(arrival) = &self.arrival
         {
             return arrival.face(self);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if self.home.is_none() && self.workspace.is_some() && !self.workspace_mask_healthy() {
+            return Err(Error::Scene);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
         let plot = self.plot_subject.clone();
@@ -69,9 +74,9 @@ impl FrontDoor {
                 "checked-plot-id",
                 identity(self.checked_plot_id.as_str()),
             ),
-            property(&plot, "opened", FacePropertyValue::Flag(self.plot_open)),
+            property(&plot, "opened", FacePropertyValue::Flag(reading.plot_open)),
         ];
-        if self.exact_details_open {
+        if reading.exact_details_open {
             properties.extend([
                 property(&host, "profile-id", identity(&self.profile_id)),
                 property(&host, "build-id", identity(&self.build_id)),
@@ -230,7 +235,7 @@ impl FrontDoor {
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
-        let (home_properties, home_texts) = self.home_face_content();
+        let (home_properties, home_texts) = self.home_face_content()?;
         properties.extend(home_properties);
         let basis = self.journey.as_ref().map_or_else(
             || FaceBasis {
@@ -352,6 +357,7 @@ impl FrontDoor {
                 .as_ref()
                 .and_then(|journey| journey.body_id.as_ref()),
         ) {
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             super::graph_projection::append(
                 graph,
                 &format!("body/{}", body.as_str()),
@@ -363,6 +369,16 @@ impl FrontDoor {
                     disclosures: &mut disclosures,
                 },
             );
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            self.append_graph_facts(
+                graph,
+                body,
+                &mut subjects,
+                &mut relationships,
+                &mut properties,
+                &mut texts,
+                &mut disclosures,
+            )?;
         }
         let face = Face::new_with_semantics(
             self.revision,

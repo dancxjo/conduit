@@ -68,8 +68,8 @@ fn private_ranges(layout: ServiceMemoryLayout) -> [MemoryRange; 5] {
         layout.output(),
         layout.stack(),
         layout.metadata(),
-        layout.pixels(),
-        layout.scratch(),
+        layout.pixels().expect("compositor pixel range"),
+        layout.scratch().expect("compositor scratch range"),
     ]
 }
 fn sentinel(address: u64) -> u32 {
@@ -136,7 +136,10 @@ pub(super) fn run() {
             }
         }
         // Separate entries retained both full pixel-region boundaries.
-        for range in [layout.pixels(), layout.scratch()] {
+        for range in [
+            layout.pixels().expect("compositor pixel range"),
+            layout.scratch().expect("compositor scratch range"),
+        ] {
             for address in edges(range) {
                 if read(&mut service, address) != VALUE {
                     refuse("service-retained-state");
@@ -152,7 +155,11 @@ pub(super) fn run() {
             refuse("service-instance-reused");
         }
         previous = service.instance();
-        for range in [layout.metadata(), layout.pixels(), layout.scratch()] {
+        for range in [
+            layout.metadata(),
+            layout.pixels().expect("compositor pixel range"),
+            layout.scratch().expect("compositor scratch range"),
+        ] {
             for address in edges(range) {
                 if read(&mut service, address) != 0 {
                     refuse("service-fresh-not-zero");
@@ -200,8 +207,8 @@ pub(super) fn run() {
         layout.output(),
         layout.stack(),
         layout.metadata(),
-        layout.pixels(),
-        layout.scratch(),
+        layout.pixels().expect("compositor pixel range"),
+        layout.scratch().expect("compositor scratch range"),
     ] {
         hostile(3, range.start(), DomainFault::Memory);
     }
@@ -213,8 +220,8 @@ pub(super) fn run() {
         layout.output(),
         layout.stack(),
         layout.metadata(),
-        layout.pixels(),
-        layout.scratch(),
+        layout.pixels().expect("compositor pixel range"),
+        layout.scratch().expect("compositor scratch range"),
     ] {
         hostile(2, range.end(), DomainFault::Memory);
     }
@@ -236,7 +243,11 @@ pub(super) fn run() {
             refuse("service-restart-output-not-zero");
         }
         // Boundary samples plus the backend's charged whole-arena zero count.
-        for range in [layout.metadata(), layout.pixels(), layout.scratch()] {
+        for range in [
+            layout.metadata(),
+            layout.pixels().expect("compositor pixel range"),
+            layout.scratch().expect("compositor scratch range"),
+        ] {
             for address in edges(range) {
                 if read(&mut restarted, address) != 0 {
                     refuse("service-restart-not-zero");

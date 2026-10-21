@@ -1,6 +1,8 @@
 //! Borrowed evidence minted only after an entirely successful scanout frame.
 
-use super::{CompositionReceipt, NativeCompositor};
+use super::CompositionReceipt;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use super::NativeCompositor;
 
 /// Evidence of actual, unobscured surface pixels written in one completed frame.
 ///
@@ -12,9 +14,28 @@ pub struct ScanoutAcknowledgement<'a> {
     face_revision: u64,
     frame_sequence: u64,
     pixels_written: u32,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    _owner: core::cell::Ref<'a, crate::protected_compositor::display_owner::DisplayOwner>,
 }
 
-impl ScanoutAcknowledgement<'_> {
+impl<'a> ScanoutAcknowledgement<'a> {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(super) fn protected(
+        composition: &'a CompositionReceipt,
+        face_revision: u64,
+        frame_sequence: u64,
+        pixels_written: u32,
+        owner: core::cell::Ref<'a, crate::protected_compositor::display_owner::DisplayOwner>,
+    ) -> Self {
+        Self {
+            composition,
+            face_revision,
+            frame_sequence,
+            pixels_written,
+            _owner: owner,
+        }
+    }
+
     pub fn composition(&self) -> &CompositionReceipt {
         self.composition
     }
@@ -29,6 +50,7 @@ impl ScanoutAcknowledgement<'_> {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl NativeCompositor {
     /// Look up an exact retained revision in the last successful frame.
     /// Pending scene damage conservatively refuses all acknowledgements until

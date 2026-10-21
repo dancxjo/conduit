@@ -25,7 +25,9 @@ const VALUE_BYTES: usize =
     conduit_text::MAXIMUM_MORSE_PATTERN_BYTES * 4 + conduit_text::MAX_TEXT_BYTES as usize * 4;
 const SIGN_CAPACITY: usize = 96;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type Driver = TourMorseBack;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
@@ -40,6 +42,10 @@ type Scheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod native;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+type Scheduler = crate::protected_runtime::Scheduler;
 pub struct TourMorseKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
@@ -61,69 +67,83 @@ impl TourMorseKernel {
         let morse_index = node(fragment, conduit_text::TEXT_MORSE_KIND)?;
         let indicator_index = node(fragment, conduit_semantic_catalog::INDICATOR_FACE_KIND)?;
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
-        let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
-        let text = values.store(literal.as_bytes())?;
-        let nodes = lowered
-            .node_specs
-            .as_slice()
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let cords = [
-            lowered.cords[0].spec,
-            lowered.cords[1].spec,
-            lowered.cords[2].spec,
-            lowered.cords[3].spec,
-        ];
-        let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
-        for route in &lowered.routes {
-            routes.install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )?;
-        }
-        routes.seal()?;
-        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_calls {
-            bindings.install(operation.node, operation.binding)?;
-        }
-        bindings.seal()?;
-        let mut drivers: [Option<Driver>; MAX_NODES] = [None, None, None, None, None];
-        drivers[literal_index] = Some(TourMorseBack::Literal(LiteralBack {
-            text,
-            state: LiteralState::Emitting,
-        }));
-        drivers[upper_index] = Some(TourMorseBack::Upper(UpperBack {
-            pending: false,
-            emitted: false,
-        }));
-        drivers[text_face_index] = Some(TourMorseBack::TextFace(FaceBack {
-            pending: false,
-            complete: false,
-        }));
-        drivers[morse_index] = Some(TourMorseBack::Morse(MorseBack {
-            pending: false,
-            emitted: false,
-        }));
-        drivers[indicator_index] = Some(TourMorseBack::Indicator(IndicatorBack {
-            pending: false,
-            complete: false,
-        }));
-        let [
-            Some(first),
-            Some(second),
-            Some(third),
-            Some(fourth),
-            Some(fifth),
-        ] = drivers
-        else {
-            return Err(SchedulerError::InvalidPlan);
-        };
-        let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
-        let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
-        Ok(Self {
-            scheduler: FixedScheduler::new_with_host_calls(
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let scheduler = native::prepare(
+            lowered,
+            literal,
+            [
+                literal_index,
+                upper_index,
+                text_face_index,
+                morse_index,
+                indicator_index,
+            ],
+        )?;
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let scheduler = {
+            let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
+            let text = values.store(literal.as_bytes())?;
+            let nodes = lowered
+                .node_specs
+                .as_slice()
+                .try_into()
+                .map_err(|_| SchedulerError::InvalidPlan)?;
+            let cords = [
+                lowered.cords[0].spec,
+                lowered.cords[1].spec,
+                lowered.cords[2].spec,
+                lowered.cords[3].spec,
+            ];
+            let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
+            for route in &lowered.routes {
+                routes.install(
+                    route.source_node,
+                    route.source_port,
+                    route.range,
+                    &route.targets,
+                )?;
+            }
+            routes.seal()?;
+            let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+            for operation in &lowered.host_calls {
+                bindings.install(operation.node, operation.binding)?;
+            }
+            bindings.seal()?;
+            let mut drivers: [Option<Driver>; MAX_NODES] = [None, None, None, None, None];
+            drivers[literal_index] = Some(TourMorseBack::Literal(LiteralBack {
+                text,
+                state: LiteralState::Emitting,
+            }));
+            drivers[upper_index] = Some(TourMorseBack::Upper(UpperBack {
+                pending: false,
+                emitted: false,
+            }));
+            drivers[text_face_index] = Some(TourMorseBack::TextFace(FaceBack {
+                pending: false,
+                complete: false,
+            }));
+            drivers[morse_index] = Some(TourMorseBack::Morse(MorseBack {
+                pending: false,
+                emitted: false,
+            }));
+            drivers[indicator_index] = Some(TourMorseBack::Indicator(IndicatorBack {
+                pending: false,
+                complete: false,
+            }));
+            let [
+                Some(first),
+                Some(second),
+                Some(third),
+                Some(fourth),
+                Some(fifth),
+            ] = drivers
+            else {
+                return Err(SchedulerError::InvalidPlan);
+            };
+            let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
+            let signs =
+                FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
+            let scheduler = FixedScheduler::new_with_host_calls(
                 nodes,
                 cords,
                 routes,
@@ -131,7 +151,11 @@ impl TourMorseKernel {
                 [first, second, third, fourth, fifth],
                 values,
                 signs,
-            )?,
+            )?;
+            scheduler
+        };
+        Ok(Self {
+            scheduler,
             upper_node: NodeId(upper_index as u16),
             text_face_node: NodeId(text_face_index as u16),
             morse_node: NodeId(morse_index as u16),
@@ -239,7 +263,14 @@ impl TourMorseKernel {
     }
 
     pub fn sign_count(&self) -> u16 {
-        self.scheduler.signs().len()
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.scheduler.sign_count()
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            self.scheduler.signs().len()
+        }
     }
 
     pub fn pending_host_calls(&self) -> usize {
