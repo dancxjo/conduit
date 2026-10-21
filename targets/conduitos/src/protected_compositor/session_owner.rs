@@ -5,7 +5,7 @@ use conduitos_compositor_core::{Error, Handle, MAX_SURFACES};
 
 /// Private seam for bounded effect tests; the real transport retains its own
 /// correlation, response-kind, span/work and hardware confinement checks.
-pub(super) trait Transport {
+pub(crate) trait Transport {
     type Error;
     fn instance(&self) -> u64;
     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
@@ -20,18 +20,18 @@ pub(super) trait Transport {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct SessionId {
+pub(crate) struct SessionId {
     instance: u64,
     namespace: u64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) struct Activation {
+pub(crate) struct Activation {
     pub session: SessionId,
     pub retired: Option<SessionId>,
     pub removed: u8,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum OwnerError<E> {
+pub(crate) enum OwnerError<E> {
     Terminated,
     InactiveSession,
     ForeignHandle,
@@ -41,7 +41,7 @@ pub(super) enum OwnerError<E> {
     Transport(E),
 }
 
-pub(super) struct SessionOwner<T: Transport> {
+pub(crate) struct SessionOwner<T: Transport> {
     transport: T,
     instance: u64,
     namespace: u64,

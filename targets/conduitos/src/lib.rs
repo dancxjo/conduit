@@ -20,6 +20,12 @@ pub mod composition;
 #[cfg(test)]
 #[path = "protected_compositor/frame_grant.rs"]
 mod compositor_frame_grant_tests;
+#[cfg(test)]
+#[path = "protected_compositor/raster_staging.rs"]
+mod compositor_raster_staging_tests;
+#[cfg(test)]
+#[path = "protected_compositor/session_owner.rs"]
+mod compositor_session_owner_tests;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;

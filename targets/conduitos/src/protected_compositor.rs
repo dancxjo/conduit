@@ -2,6 +2,8 @@
 //! grants no display or semantic authority. The admitted presenter must bind
 //! numeric surfaces to its checked Face/Mask/Show and validate advisory routes.
 mod frame_grant;
+pub(crate) mod raster_staging;
+pub(crate) mod session_owner;
 use frame_grant::FrameGrant;
 
 use crate::{
@@ -191,6 +193,7 @@ fn response_matches(request: Request, response: Response) -> bool {
             | (
                 Request::Remove(_)
                     | Request::Place { .. }
+                    | Request::Resize { .. }
                     | Request::Visible { .. }
                     | Request::Focus(_)
                     | Request::Cursor { .. }
