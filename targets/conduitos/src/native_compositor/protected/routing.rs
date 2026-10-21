@@ -3,17 +3,12 @@ use crate::native_compositor::input_routing::ProtectedRouteScope;
 use crate::native_compositor::{InputRoute, RoutedKeyboard, RoutedPointer};
 impl NativeCompositor {
     pub fn focused_surface(&self) -> Option<&str> {
-        let Response::Keyboard(Some((handle, revision))) = self.request(Request::Keyboard).ok()?
-        else {
+        let Response::Focused(Some(handle)) = self.request(Request::Focused).ok()? else {
             return None;
         };
         self.surfaces
             .iter()
-            .find(|surface| {
-                surface.handle == handle
-                    && surface.upload_sequence == revision
-                    && surface.receipt.is_some()
-            })
+            .find(|surface| surface.handle == handle)
             .map(|surface| surface.id.as_str())
     }
     pub fn route_keyboard(
