@@ -1,0 +1,41 @@
+{
+  "source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "stages": [
+    {
+      "name": "build",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-native.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5992-native-current-1/image",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 621.9291679859161
+    },
+    {
+      "name": "journey",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5992-native-current-1/image",
+        "--journey",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 111.98321580886841
+    }
+  ],
+  "success": true,
+  "scope": "actual canonical PROFILE product image and real QEMU journey; not architecture appliance",
+  "final_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "source_clean": true,
+  "source_unchanged": true
+}
