@@ -1,0 +1,11 @@
+{
+  "capture_source": "ab32b37aaaa0e70805630f6d4f911828e4e1face",
+  "observed_service_error": "browser presence leave could not be retained: Body owner refused browser leave: <private-state>/body/owner-execution.json violates its finite file bound",
+  "original_service_stderr_sha256": "fafddac931f1cb944a1337c940ae6d81fc1316a620a533c2003b36c5ba3abba7",
+  "index_schema": "conduit.body/owner-execution@2",
+  "index_bytes": 208441,
+  "compact_index_bytes": 34635,
+  "read_limit_bytes": 196608,
+  "history_count": 1,
+  "scope": "Read-only inspection of original failed installation. Add returned generic interaction-refused; this establishes a durable storage fault reachable by its admission path, not a full successful repair receipt or mutation count."
+}
