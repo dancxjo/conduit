@@ -57,7 +57,7 @@ impl Initial {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TutorialScope {
-    pub body: conduit_core::BodyId,
+    pub body: conduit_body::BodyId,
     pub outer_revision: u64,
     pub evidence_revision: u32,
     pub lulled: bool,
