@@ -67,32 +67,6 @@ pub fn run(
     surface_provider: crate::product_bases::NativeSurfaceProvider,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
-    // Prepare one isolated renderer for this display. Presenter/provider clones
-    // share only this explicit owner; no global service or implicit restart.
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-    let (surface_provider, display_owner) = {
-        let format = display
-            .format()
-            .validate()
-            .map_err(|error| error.as_str())?;
-        let width = u16::try_from(format.width).map_err(|_| "compositor-display-bounds")?;
-        let height = u16::try_from(format.height).map_err(|_| "compositor-display-bounds")?;
-        let owner =
-            crate::protected_compositor::display_owner::DisplayOwner::prepare(width, height)
-                .map_err(|_| "compositor-display-preparation-refused")?;
-        let report = owner.borrow().preparation_report();
-        arch::early_write(format!(
-            "CONDUIT_COMPOSITOR_SERVICE_PREPARED {{\"schema\":\"conduit.conduitos/compositor-service-preparation@1\",\"service_reserved_bytes\":{},\"staging_logical_bytes\":{},\"staging_reserved_bytes\":{},\"initialization_entries\":{},\"initialization_privilege_transitions\":{}}}\n",
-            report.service_reserved_bytes,
-            report.staging_logical_bytes,
-            report.staging_reserved_bytes,
-            report.service_cost_at_preparation.entries,
-            report.service_cost_at_preparation.privilege_transitions,
-        ).as_bytes());
-        let mut provider = surface_provider;
-        provider.display_owner = Some(owner.clone());
-        (provider, owner)
-    };
     let (pending_join, owner_receipt, owner_face, owner_route, owner_return_refusal) =
         match pending_join {
             Some(join) => (
@@ -132,6 +106,45 @@ pub fn run(
     {
         return Err("product-framebuffer-provider-changed");
     }
+    // Prepare one isolated renderer for this display. Presenter/provider clones
+    // share only this explicit owner; no global service or implicit restart.
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let (surface_provider, display_owner) = {
+        let format = display
+            .format()
+            .validate()
+            .map_err(|error| error.as_str())?;
+        if surface_provider.entry.base_id != framebuffer_basis.base_id
+            || format.width != framebuffer_basis.width
+            || format.height != framebuffer_basis.height
+            || format.pitch != framebuffer_basis.pitch_bytes
+            || format.bits_per_pixel != framebuffer_basis.bits_per_pixel
+        {
+            return Err("compositor-display-grant-mismatch");
+        }
+        let grant = crate::protected_compositor::display_grant::DisplayGrant::new(
+            host_id.clone(),
+            boot_id.clone(),
+            generation,
+            framebuffer_basis.base_id.clone(),
+            format,
+        )
+        .map_err(|error| error.as_str())?;
+        let owner = crate::protected_compositor::display_owner::DisplayOwner::prepare(grant)
+            .map_err(|_| "compositor-display-preparation-refused")?;
+        let report = owner.borrow().preparation_report();
+        arch::early_write(format!(
+            "CONDUIT_COMPOSITOR_SERVICE_PREPARED {{\"schema\":\"conduit.conduitos/compositor-service-preparation@1\",\"service_reserved_bytes\":{},\"staging_logical_bytes\":{},\"staging_reserved_bytes\":{},\"initialization_entries\":{},\"initialization_privilege_transitions\":{}}}\n",
+            report.service_reserved_bytes,
+            report.staging_logical_bytes,
+            report.staging_reserved_bytes,
+            report.service_cost_at_preparation.entries,
+            report.service_cost_at_preparation.privilege_transitions,
+        ).as_bytes());
+        let mut provider = surface_provider;
+        provider.display_owner = Some(owner.clone());
+        (provider, owner)
+    };
     journey.admit_surface_provider(surface_provider.clone());
     // The embedded defaults are Crèche inventory, not ProductJourney state.
     let plot = keyboard_text_plan::checked_plot_identity().map_err(|error| error.as_str())?;

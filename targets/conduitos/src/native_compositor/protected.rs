@@ -79,6 +79,13 @@ impl NativeCompositor {
         &mut self,
         owner: SharedDisplayOwner,
     ) -> Result<(), NativeCompositorError> {
+        if !owner
+            .try_borrow()
+            .map_err(|_| NativeCompositorError::ServiceBusy)?
+            .matches_admission(&self.admission)
+        {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
         if let Some(current) = &self.owner {
             if !Rc::ptr_eq(current, &owner) {
                 return Err(NativeCompositorError::ServiceBusy);

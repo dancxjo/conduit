@@ -18,6 +18,9 @@ pub mod bounded_host_calls;
 pub(crate) mod bounded_websocket;
 pub mod composition;
 #[cfg(test)]
+#[path = "protected_compositor/display_grant.rs"]
+mod compositor_display_grant_tests;
+#[cfg(test)]
 #[path = "protected_compositor/frame_grant.rs"]
 mod compositor_frame_grant_tests;
 #[cfg(test)]

@@ -1,6 +1,7 @@
 //! Root transport for the isolated renderer. This owns no retained raster and
 //! grants no display or semantic authority. The admitted presenter must bind
 //! numeric surfaces to its checked Face/Mask/Show and validate advisory routes.
+pub(crate) mod display_grant;
 pub(crate) mod display_owner;
 mod frame_grant;
 pub(crate) mod raster_staging;

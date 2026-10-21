@@ -43,6 +43,9 @@ impl NativeCompositor {
             .owner()?
             .try_borrow_mut()
             .map_err(|_| NativeCompositorError::ServiceBusy)?;
+        if !owner.format_matches(format) {
+            return Err(NativeCompositorError::Display(DisplayError::InvalidExtent));
+        }
         let returned = owner
             .sessions
             .request(session, Request::BeginFrame)

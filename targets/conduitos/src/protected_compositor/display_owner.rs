@@ -3,6 +3,7 @@
 //! Wire this module only for the actual x86_64 freestanding service backend.
 use super::{
     CompositorService, TransportError,
+    display_grant::DisplayGrant,
     raster_staging::{RasterLease, RasterStaging, STAGING_PIXELS},
     session_owner::{OwnerError, SessionOwner},
 };
@@ -42,6 +43,7 @@ pub(crate) struct DisplayOwner {
     pub(crate) sessions: SessionOwner<CompositorService>,
     staging: Vec<u32>,
     report: PreparationReport,
+    grant: DisplayGrant,
 }
 
 impl DisplayOwner {
@@ -49,10 +51,8 @@ impl DisplayOwner {
     /// this display. There is no automatic restart, replacement, or retry.
     /// The large arena reservation is fallible. Stable Rc::new follows the
     /// allocator's ordinary failure policy for its small metadata allocation.
-    pub(crate) fn prepare(width: u16, height: u16) -> Result<SharedDisplayOwner, PreparationError> {
-        if width == 0 || height == 0 {
-            return Err(PreparationError::Transport(TransportError::Bounds));
-        }
+    pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+        let (width, height) = grant.extent();
         let mut staging = Vec::new();
         staging
             .try_reserve_exact(STAGING_PIXELS)
@@ -79,7 +79,24 @@ impl DisplayOwner {
             sessions,
             staging,
             report,
+            grant,
         })))
+    }
+
+    pub(crate) fn matches_admission(
+        &self,
+        admission: &crate::native_compositor::CompositorAdmission,
+    ) -> bool {
+        self.grant.matches(
+            &admission.host_id,
+            &admission.boot_id,
+            admission.offer_generation,
+            &admission.display_base_id,
+        )
+    }
+
+    pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {
+        self.grant.format_matches(format)
     }
 
     pub(crate) fn service_cost(&self) -> DomainCost {
