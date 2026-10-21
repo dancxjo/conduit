@@ -60,10 +60,16 @@ impl<S: Read + Write> Tls<S> {
     ) -> Result<Self, VirtioTlsError> {
         if host.is_empty() || host.len() > 64 || certificate.is_empty() || certificate.len() > 1024
         {
-            seed.fill(0);
+            erase(&mut seed);
             return Err(VirtioTlsError::InvalidDescriptor);
         }
-        let service = Service::install().map_err(|_| VirtioTlsError::Handshake)?;
+        let service = match Service::install() {
+            Ok(service) => service,
+            Err(_) => {
+                erase(&mut seed);
+                return Err(VirtioTlsError::Handshake);
+            }
+        };
         let mut tls = Self {
             stream,
             service,
@@ -74,7 +80,7 @@ impl<S: Read + Write> Tls<S> {
         };
         let mut descriptor = [0; 32 + 64 + 1024];
         descriptor[..32].copy_from_slice(&seed);
-        seed.fill(0);
+        erase(&mut seed);
         descriptor[32..32 + host.len()].copy_from_slice(host.as_bytes());
         descriptor[32 + host.len()..32 + host.len() + certificate.len()]
             .copy_from_slice(certificate);
@@ -91,7 +97,7 @@ impl<S: Read + Write> Tls<S> {
             tls.run(Operation::Open, &[], &mut [])?;
             Ok(())
         })();
-        descriptor.fill(0);
+        erase(&mut descriptor);
         if let Err(error) = initialized {
             tls.service.abort();
             return Err(match error {
@@ -243,7 +249,7 @@ impl<S: Read + Write> Tls<S> {
         Err(Failure::Protocol)
     }
     fn admit_event(&mut self, expected: u64, returned: u64, event: u64) -> Result<(), Failure> {
-        if returned != expected || event == 0 || event <= self.event {
+        if returned != expected || self.event.checked_add(1) != Some(event) {
             return Err(Failure::Protocol);
         }
         self.event = event;
@@ -307,6 +313,12 @@ impl<S: Read + Write> Tls<S> {
             Ok(_) => Ok(self.stream),
             Err(error) => Err((self.stream, io_error(error))),
         }
+    }
+}
+// Keep admitted entropy erasure observable even on early construction refusal.
+fn erase(bytes: &mut [u8]) {
+    for byte in bytes {
+        unsafe { core::ptr::write_volatile(byte, 0) };
     }
 }
 fn io_error(failure: Failure) -> IoError {
