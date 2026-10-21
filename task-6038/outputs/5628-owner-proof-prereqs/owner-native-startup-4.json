@@ -1,0 +1,11 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "status": "failed-before-guest-boot",
+  "cause": "Proof entrance inherited the default empty Cargo target instead of the prepared native-panels cache; compilation exceeded its fixed 120-second QMP startup deadline.",
+  "browser_unicode_seed_and_provisioning": "succeeded; preserved separately",
+  "native_serial_bytes": 0,
+  "qmp_socket_created": false,
+  "domain_actions_after_seed": 0,
+  "correction": "Next fresh independent proof must explicitly inherit the existing native-panels-host-target and its build profile before launching the supported entrance. Preserve this negative attempt; do not treat its observation timeout as native product failure.",
+  "timestamp": "2026-10-21T03:33:21Z"
+}

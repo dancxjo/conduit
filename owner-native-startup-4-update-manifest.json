@@ -1,0 +1,14 @@
+{
+  "parent": "786cd3587524fd3b54476f4842cfb0498070fcec",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-native-startup-4.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-native-startup-4.json",
+      "bytes": 758,
+      "sha256": "67cdb09fd47c7f7d5fe16c9aaf4239dd03c451c35b5b152d49a7a413c4802366",
+      "mode": "100644",
+      "blob": "91fb44a53a09d591786dff3dc9c578c8a8cf9657"
+    }
+  ]
+}
