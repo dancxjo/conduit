@@ -1,0 +1,3024 @@
+{
+  "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+  "breakdown": {
+    "boot_entry_ticks": 1283912724,
+    "boot_to_first_commit_ticks": 10583941646,
+    "boot_to_first_usable_input_ack_ticks": 11529667812,
+    "clock": "x86-tsc-lfence",
+    "drawn_journey_receipts": [
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "4a10d77170a6a94188fa4aa1ee64e50d40b5a996de1b10cecb5f7571ebb46ae1",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "0a72d47b3428aa956876e7d4b53ae4a509d4c0415c82b7bbccad1cbd2995433b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 11871594696
+        },
+        "revision": 1,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "world"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "89943123093e9ce9e1c6ec13e1c5e2df2a927733a9f16bc5a16c0815df938edf",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "e2d69bf812f750f4033f6bf0437a897a1cd2cd168a302d2e708d28b595012f50",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 73200845518
+        },
+        "revision": 3,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "born-lulled"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "88181b604cc8760a17ca8ceef055c4bd640255d2b3c7c1897ba24c269290273b",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "eea33d8d18aa7ee9d45eb551454305f54dac09957fd80a42d7e5bf4ccde20e02",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 111998934086
+        },
+        "revision": 4,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "awake"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c1577e2dac46cd38d67a83315014ec8358c49ecfca5f1a8eb681e31b8955f247",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "b3105efee92eefc25857c11f3a812eac5a70f610c4b3506f9c3b512bd379d5b8",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 113106399191
+        },
+        "revision": 4,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "awake"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "ca87235228b10e74db594632c31e3f644c083b06e4357f5525642df86dd3eacd",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "0d49f4039d12dda2d1df5c930e906f2c14029f915498a82ef88965986445df6c",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 170970408559
+        },
+        "revision": 5,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "planned"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "0f99fcd484bf91ed75c98b21fa1488f2cdb95b43b49a65a3d2405bf61f0f06cd",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "0c4a855d4ffd58c70913e2f77ce4a99db2e6c26c2621f07cb8b27ea2b8742dcc",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 172310558607
+        },
+        "revision": 6,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "740b464509f3ce9a32b5f0b54ab37992a0e54d197116e10ce4cc44f0e506a391",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "ff7a4dbc39dbab6d44ddc998a902672abfd25a217da9938e646bd8a24b6d2bf2",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 173746897991
+        },
+        "revision": 7,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7add4185696c0eba8feb7987dfdbe88677d356e30b2131d15ee42c777daca51",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 0,
+        "input_sign_id": null,
+        "manifestation_id": "3b4d260e4822d8315fc82fdceef782bb13659bac8f83e87b91444d7e52b60418",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 173812660678
+        },
+        "revision": 8,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "0e1e6f7a2c8df2d763f8a7835e8e6905a610163a0aecfdfcdd735ab44c2e062e",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 2,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/1",
+        "manifestation_id": "648c66a668c43dfad905342d5b20af1425fc78ec10e2d72bb8645b5853cc212c",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 173856846240
+        },
+        "revision": 10,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "50251ba02fcdc08b8a625cb1954f9375fafee9b3fca9fc2b3a61613056772163",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 2,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/1",
+        "manifestation_id": "6c12b4396e398cc1b17f52c1f0c1b15c4a27cd224cce80e56cfeb1dc6934e9a9",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175251830999
+        },
+        "revision": 11,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "706e0e36ff35f2c60e3902e98db8fe55e33e238d310043883789b9b68722d691",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 2,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/1",
+        "manifestation_id": "e7cc18f4ba40b203097f2f9f9b867b32281f38ed525235984044c1e1a1b728d6",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175294591548
+        },
+        "revision": 12,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "6ddb82f2eff9dcb09530e5a05a2ee248af8b4cd423d9624a25562d8da6eaaef6",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 2,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/1",
+        "manifestation_id": "2d2eae536f7d76fa6a6c0a972543c570ad9b1af607740b06dc708ff28071c69e",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175379843057
+        },
+        "revision": 13,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "e303416f99a0f3e6c17963a00976ec171b5d78b9f7f1ffad58087db3e70b1dfc",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 3,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/2",
+        "manifestation_id": "a21773970437a050839cedcf091f1ac985679c84af12c0da9b058fb313b6f8d8",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175473549236
+        },
+        "revision": 14,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "5372b9503dc684ca7cb2545dfa5e45dc386d3b9a3ec4743dcaff1a3ecb6575ba",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 4,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/3",
+        "manifestation_id": "a34a3d0c8dcbdc321a2ca19ac156e722006ba8109818c09f48277d7b17fe738f",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175557798018
+        },
+        "revision": 15,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "0d5d4d8f4a41102780fb7269b33ddb7229d5f76d04d428d3b0f8b6ab8dc198b1",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 5,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/4",
+        "manifestation_id": "edb45cc73a7ef310535e22bb1dd869083caf23fda114f67e89524917e08e904b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 175920564973
+        },
+        "revision": 16,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "0c650643cf66e19a70981257b0ab1112bcb2195cb766955ec6dc775ec3ae62eb",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 6,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/5",
+        "manifestation_id": "336aecf962c0d6329dfa6fc4bea1d4ef97e467bf76f2e9530881eea1060713c0",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 176003213406
+        },
+        "revision": 17,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "dc8e0fce2040ae8a6c47179be200ca2e61d404321f1af029cec1564d4cc5b97f",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 7,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/6",
+        "manifestation_id": "a11d7ba91c31417d8be4cc3059eda1418fdc785c17cda70c327c5857c0ef60c4",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 176372513792
+        },
+        "revision": 18,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "131d3148719b4e7b1a050af33c33c8fe87e549cc1ee022a4a953f5535b64f1b8",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 8,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/7",
+        "manifestation_id": "b0b3c502c0246a77541cdd4427ba46da23e0aa68f825837a5b3c782fc91f8390",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 176457015073
+        },
+        "revision": 19,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "faadd0b6b4bb96195f5d177d2c4894577ffa1d7d62676ae5363cdab9c7637a96",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 9,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/8",
+        "manifestation_id": "67489d0ca00307d780cee1eca0e81a5bc389897a6be3055f781875b1f185d4b4",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 176829188712
+        },
+        "revision": 20,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "3eb5deeeeee9da618c71cdc3dda7df085e03ced6c820c7dad11999fff61e97d2",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 10,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/9",
+        "manifestation_id": "ec0ed98d5e0d2cca0dadde75c6d207148be3f854b73dd020b844659d40e7e4bb",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 176912414099
+        },
+        "revision": 21,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "14f695e518d542af14313261096bc47f91b626f5e836f01469cd57e1c7085a57",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 11,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/10",
+        "manifestation_id": "48fc87a8b71beaf26a255ea077b5c475c3ef2cda519ddaa4c41124ddbb458361",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 177287620296
+        },
+        "revision": 22,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "29fb07678e4fd0370772733a6e64f8dbbe83f64547336ad6108d1d2b5faba4e9",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 12,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/11",
+        "manifestation_id": "1d04201b4461c996a268007ed1ea51da13d492a0c4640b2c896398a9ca3d33cd",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 177371234932
+        },
+        "revision": 23,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "02f3283a20e97408e6408013a9f176ab135ba03acead87845d9ddccc03758470",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 13,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/12",
+        "manifestation_id": "6d75d017d87b160ff0ef8d1533227185f5c4e1ce680fbdc0c7f7b50ab1209c02",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 177757546586
+        },
+        "revision": 24,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "be943e896a3dda8831dacf03c5655050734d90b47204fa7752060082d9080f29",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 14,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/13",
+        "manifestation_id": "77c6e40a5c51a519d9dee3a691ea066dfe58771ccdc6a702c8ab0a9d967630b7",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 177842580033
+        },
+        "revision": 25,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "3eb79b9585a452126ae816f941422aae831da303053b64bab2db0103b51f4962",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 15,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/14",
+        "manifestation_id": "8ff72270cf4088e6a36b3c4d7bf33596b22ff9b3e8a16368f6d7ee4e68d881c7",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 177926581761
+        },
+        "revision": 26,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "204ffc8726427d9c7e1e09794a71555335fd86a27987fc83e4f72466b78ad1ee",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "fb93225721240af204cabaa41eeb6cbc9ee9236ae5d31be0168be82753477c61",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 178011456781
+        },
+        "revision": 27,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "7c75e03c1220bf3641b6f20eaa484a801cbc8fb7f40386a065fa0fbb4470385d",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "a4237e189a542b8059013c18628637edf64531229fdc777065533365f692a57d",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 179651715599
+        },
+        "revision": 28,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "f0dd6880b35d842b9085c2af89b038900609c9ae0a367cfba54002e5e8761421",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "d113d84302484f753d106f2cf8e4b11f5fc2d8c52a290e488f78c877e40644ad",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 179706383175
+        },
+        "revision": 28,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "615c4ad27ed30b8839000f563dbd96c036356c305c541cb95a2081943a909a20",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 184106735036
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 184919503978
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185377611597
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185832434891
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 186300760818
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187022505462
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187316927468
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187492807671
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": "body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278",
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 188179759861
+        },
+        "revision": 29,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "quiescent-awaiting-input"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "b690b27ff74dcb94fe7364c4f8db2bb81ed4014fa68fe74aabf5eeb4a3901ac1",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "3876f6e05808e5cbee18fdf72865b04c404c1726462055f2df9aea24c3165b0c",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 188990911566
+        },
+        "revision": 30,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "stopped"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "b690b27ff74dcb94fe7364c4f8db2bb81ed4014fa68fe74aabf5eeb4a3901ac1",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "9df983f00da2041416c2a1e981548fc4f8eeab5e8ec0b6fa09843406fc5550ae",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 189454133244
+        },
+        "revision": 30,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "stopped"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "b6ec88babac065ccd0e4b20c9aa10ff6f6f82635b375b17ac17fa447dc83f311",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "f0dde9c43f4a9e12b5b190bd9836478a70abf870414e0a1971d0643a19c0e22c",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 189484094474
+        },
+        "revision": 30,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "stopped"
+      },
+      {
+        "active_play_id": null,
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "face_id": "8560dbfd16ee099be7e94f6a177ae6d31158a245efe6c8a39dfa6d03307ebc52",
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "input_count": 16,
+        "input_sign_id": "conduitos/product/input/body-play/sha256:3e27b2f4cf570f46a5a53a6dde65b2f110df82394c8b44a9f055a720f3f4b278/15",
+        "manifestation_id": "74e3efc6019ed0491e9814cf30fd4c37c0f530bd6db434f0f0c34786d7b1d89b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 193921189670
+        },
+        "revision": 30,
+        "schema": "conduit.native-journey-timing/v1",
+        "status": "stopped"
+      }
+    ],
+    "first_framebuffer_commit_ticks": 11867854370,
+    "first_usable_input_ack_ticks": 12813580536,
+    "first_usable_input_custody": {
+      "action_id": "creche.plot.0",
+      "argument_name": null,
+      "display_bounds": {
+        "height": 800,
+        "width": 1280,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "4a10d77170a6a94188fa4aa1ee64e50d40b5a996de1b10cecb5f7571ebb46ae1",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 578,
+        "x": 682,
+        "y": 495
+      },
+      "native_observer": {
+        "clock": "x86-tsc-lfence",
+        "ticks": 12813580536
+      },
+      "page": 1,
+      "pages": 2,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/10c535febbbb87e4e296d323a93741c691f598a9997a937423c55ca4b230e07a"
+    },
+    "frequency_hz": null,
+    "interpretation": "First usable input is an actual acknowledged current-Show focus input after initial framebuffer commit. Its elapsed Boot interval includes harness arrival/capture and input dispatch; it is not time-to-input-readiness. Stage intervals may overlap and include nested observation publication; do not sum them or infer a counter frequency. Host typing and page-navigation intervals are retained separately.",
+    "reading_receipts": [
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185376376378
+        },
+        "page": 0,
+        "pages": 11,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 59
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 185831243259
+        },
+        "page": 1,
+        "pages": 11,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 78
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 186299563295
+        },
+        "page": 0,
+        "pages": 11,
+        "previous_page": 1,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 75
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187021325708
+        },
+        "page": 0,
+        "pages": 2,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 59
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187315745579
+        },
+        "page": 0,
+        "pages": 1,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 60
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 187491593982
+        },
+        "page": 0,
+        "pages": 11,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 30
+      },
+      {
+        "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+        "disposition": "mask-local-input-acknowledged-and-drawn",
+        "face_id": "c7cfbfbd94dcfac6d543541653e125fdaca870cef4560c1dd6ec7eb4f2a67840",
+        "face_revision": 49,
+        "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+        "manifestation_id": "8135966edd695498ea69f4255193ec504d3ee6d3b3798d59aae71c81be3d656b",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 188178570879
+        },
+        "page": 0,
+        "pages": 1,
+        "previous_page": 0,
+        "schema": "conduit.native-reading/v1",
+        "show_id": "show/e4d045d7b349801e79fcdc6a87f5c45c54e3bc842a77758ac8a194496b385475",
+        "usage": 60
+      }
+    ],
+    "stages": {
+      "kernel-prepare": [
+        {
+          "elapsed_ticks": 18119947061,
+          "end_ticks": 170570506633,
+          "sequence": 109,
+          "start_ticks": 152450559572
+        }
+      ],
+      "plan-seal": [
+        {
+          "elapsed_ticks": 28947969,
+          "end_ticks": 111586430350,
+          "sequence": 73,
+          "start_ticks": 111557482381
+        }
+      ],
+      "play-input": [
+        {
+          "elapsed_ticks": 5440940,
+          "end_ticks": 173831535590,
+          "sequence": 111,
+          "start_ticks": 173826094650
+        },
+        {
+          "elapsed_ticks": 403516,
+          "end_ticks": 173832923460,
+          "sequence": 112,
+          "start_ticks": 173832519944
+        },
+        {
+          "elapsed_ticks": 3107655,
+          "end_ticks": 175397281298,
+          "sequence": 113,
+          "start_ticks": 175394173643
+        },
+        {
+          "elapsed_ticks": 529664,
+          "end_ticks": 175482564940,
+          "sequence": 114,
+          "start_ticks": 175482035276
+        },
+        {
+          "elapsed_ticks": 1402064,
+          "end_ticks": 175846563167,
+          "sequence": 115,
+          "start_ticks": 175845161103
+        },
+        {
+          "elapsed_ticks": 454911,
+          "end_ticks": 175929417991,
+          "sequence": 116,
+          "start_ticks": 175928963080
+        },
+        {
+          "elapsed_ticks": 932997,
+          "end_ticks": 176298014269,
+          "sequence": 117,
+          "start_ticks": 176297081272
+        },
+        {
+          "elapsed_ticks": 442420,
+          "end_ticks": 176381346387,
+          "sequence": 118,
+          "start_ticks": 176380903967
+        },
+        {
+          "elapsed_ticks": 1115995,
+          "end_ticks": 176754711740,
+          "sequence": 119,
+          "start_ticks": 176753595745
+        },
+        {
+          "elapsed_ticks": 428214,
+          "end_ticks": 176838079872,
+          "sequence": 120,
+          "start_ticks": 176837651658
+        },
+        {
+          "elapsed_ticks": 1146236,
+          "end_ticks": 177213019243,
+          "sequence": 121,
+          "start_ticks": 177211873007
+        },
+        {
+          "elapsed_ticks": 445940,
+          "end_ticks": 177296681133,
+          "sequence": 122,
+          "start_ticks": 177296235193
+        },
+        {
+          "elapsed_ticks": 604888,
+          "end_ticks": 177682261436,
+          "sequence": 123,
+          "start_ticks": 177681656548
+        },
+        {
+          "elapsed_ticks": 1101418,
+          "end_ticks": 177767142204,
+          "sequence": 124,
+          "start_ticks": 177766040786
+        },
+        {
+          "elapsed_ticks": 468416,
+          "end_ticks": 177851581793,
+          "sequence": 125,
+          "start_ticks": 177851113377
+        },
+        {
+          "elapsed_ticks": 520840,
+          "end_ticks": 177935508618,
+          "sequence": 126,
+          "start_ticks": 177934987778
+        },
+        {
+          "elapsed_ticks": 200147,
+          "end_ticks": 184116298328,
+          "sequence": 131,
+          "start_ticks": 184116098181
+        }
+      ],
+      "play-start": [
+        {
+          "elapsed_ticks": 115108021,
+          "end_ticks": 171847018764,
+          "sequence": 110,
+          "start_ticks": 171731910743
+        }
+      ],
+      "plot-build": [
+        {
+          "elapsed_ticks": 1986811027,
+          "end_ticks": 5671070896,
+          "sequence": 1,
+          "start_ticks": 3684259869
+        },
+        {
+          "elapsed_ticks": 1980414852,
+          "end_ticks": 7652985531,
+          "sequence": 2,
+          "start_ticks": 5672570679
+        },
+        {
+          "elapsed_ticks": 579974338,
+          "end_ticks": 8233489621,
+          "sequence": 3,
+          "start_ticks": 7653515283
+        },
+        {
+          "elapsed_ticks": 569363811,
+          "end_ticks": 8803252869,
+          "sequence": 4,
+          "start_ticks": 8233889058
+        },
+        {
+          "elapsed_ticks": 573050062,
+          "end_ticks": 9376803341,
+          "sequence": 5,
+          "start_ticks": 8803753279
+        },
+        {
+          "elapsed_ticks": 2007672126,
+          "end_ticks": 24983601313,
+          "sequence": 15,
+          "start_ticks": 22975929187
+        },
+        {
+          "elapsed_ticks": 1988050226,
+          "end_ticks": 26972277404,
+          "sequence": 16,
+          "start_ticks": 24984227178
+        },
+        {
+          "elapsed_ticks": 574173977,
+          "end_ticks": 27547287664,
+          "sequence": 17,
+          "start_ticks": 26973113687
+        },
+        {
+          "elapsed_ticks": 574907302,
+          "end_ticks": 28122813451,
+          "sequence": 18,
+          "start_ticks": 27547906149
+        },
+        {
+          "elapsed_ticks": 1983782012,
+          "end_ticks": 30107282570,
+          "sequence": 19,
+          "start_ticks": 28123500558
+        },
+        {
+          "elapsed_ticks": 1991317932,
+          "end_ticks": 32099184830,
+          "sequence": 20,
+          "start_ticks": 30107866898
+        },
+        {
+          "elapsed_ticks": 573969556,
+          "end_ticks": 32673754667,
+          "sequence": 21,
+          "start_ticks": 32099785111
+        },
+        {
+          "elapsed_ticks": 573393427,
+          "end_ticks": 33247743768,
+          "sequence": 22,
+          "start_ticks": 32674350341
+        },
+        {
+          "elapsed_ticks": 1989600874,
+          "end_ticks": 35238006192,
+          "sequence": 23,
+          "start_ticks": 33248405318
+        },
+        {
+          "elapsed_ticks": 1985333796,
+          "end_ticks": 37223731451,
+          "sequence": 24,
+          "start_ticks": 35238397655
+        },
+        {
+          "elapsed_ticks": 574826274,
+          "end_ticks": 37798941092,
+          "sequence": 25,
+          "start_ticks": 37224114818
+        },
+        {
+          "elapsed_ticks": 1983908547,
+          "end_ticks": 39783317292,
+          "sequence": 26,
+          "start_ticks": 37799408745
+        },
+        {
+          "elapsed_ticks": 1980451131,
+          "end_ticks": 41764150220,
+          "sequence": 27,
+          "start_ticks": 39783699089
+        },
+        {
+          "elapsed_ticks": 572982888,
+          "end_ticks": 42337514580,
+          "sequence": 28,
+          "start_ticks": 41764531692
+        },
+        {
+          "elapsed_ticks": 1986019773,
+          "end_ticks": 44324011315,
+          "sequence": 29,
+          "start_ticks": 42337991542
+        },
+        {
+          "elapsed_ticks": 1989867084,
+          "end_ticks": 46314259076,
+          "sequence": 30,
+          "start_ticks": 44324391992
+        },
+        {
+          "elapsed_ticks": 1991621665,
+          "end_ticks": 48306373740,
+          "sequence": 31,
+          "start_ticks": 46314752075
+        },
+        {
+          "elapsed_ticks": 1981826941,
+          "end_ticks": 50288576130,
+          "sequence": 32,
+          "start_ticks": 48306749189
+        },
+        {
+          "elapsed_ticks": 1990006757,
+          "end_ticks": 52279092219,
+          "sequence": 33,
+          "start_ticks": 50289085462
+        },
+        {
+          "elapsed_ticks": 1981839170,
+          "end_ticks": 54261412749,
+          "sequence": 34,
+          "start_ticks": 52279573579
+        },
+        {
+          "elapsed_ticks": 1988598103,
+          "end_ticks": 56250626412,
+          "sequence": 35,
+          "start_ticks": 54262028309
+        },
+        {
+          "elapsed_ticks": 573185865,
+          "end_ticks": 56842303330,
+          "sequence": 36,
+          "start_ticks": 56269117465
+        },
+        {
+          "elapsed_ticks": 575717550,
+          "end_ticks": 57419273228,
+          "sequence": 37,
+          "start_ticks": 56843555678
+        },
+        {
+          "elapsed_ticks": 1989879652,
+          "end_ticks": 59421533406,
+          "sequence": 38,
+          "start_ticks": 57431653754
+        },
+        {
+          "elapsed_ticks": 1992427568,
+          "end_ticks": 61414339091,
+          "sequence": 39,
+          "start_ticks": 59421911523
+        },
+        {
+          "elapsed_ticks": 578823781,
+          "end_ticks": 61993545285,
+          "sequence": 40,
+          "start_ticks": 61414721504
+        },
+        {
+          "elapsed_ticks": 583116865,
+          "end_ticks": 62577028751,
+          "sequence": 41,
+          "start_ticks": 61993911886
+        },
+        {
+          "elapsed_ticks": 1999731250,
+          "end_ticks": 64577268845,
+          "sequence": 42,
+          "start_ticks": 62577537595
+        },
+        {
+          "elapsed_ticks": 1989030807,
+          "end_ticks": 66566692533,
+          "sequence": 43,
+          "start_ticks": 64577661726
+        },
+        {
+          "elapsed_ticks": 595430564,
+          "end_ticks": 67162505029,
+          "sequence": 44,
+          "start_ticks": 66567074465
+        },
+        {
+          "elapsed_ticks": 1994920651,
+          "end_ticks": 69157789635,
+          "sequence": 45,
+          "start_ticks": 67162868984
+        },
+        {
+          "elapsed_ticks": 1988522513,
+          "end_ticks": 71146832493,
+          "sequence": 46,
+          "start_ticks": 69158309980
+        },
+        {
+          "elapsed_ticks": 2003914187,
+          "end_ticks": 73151276006,
+          "sequence": 47,
+          "start_ticks": 71147361819
+        },
+        {
+          "elapsed_ticks": 2023452149,
+          "end_ticks": 75940741635,
+          "sequence": 48,
+          "start_ticks": 73917289486
+        },
+        {
+          "elapsed_ticks": 2008591292,
+          "end_ticks": 77949719377,
+          "sequence": 49,
+          "start_ticks": 75941128085
+        },
+        {
+          "elapsed_ticks": 570825567,
+          "end_ticks": 78520927314,
+          "sequence": 50,
+          "start_ticks": 77950101747
+        },
+        {
+          "elapsed_ticks": 568790088,
+          "end_ticks": 79090073979,
+          "sequence": 51,
+          "start_ticks": 78521283891
+        },
+        {
+          "elapsed_ticks": 2013098723,
+          "end_ticks": 81103613264,
+          "sequence": 52,
+          "start_ticks": 79090514541
+        },
+        {
+          "elapsed_ticks": 2011809666,
+          "end_ticks": 83115807555,
+          "sequence": 53,
+          "start_ticks": 81103997889
+        },
+        {
+          "elapsed_ticks": 569634548,
+          "end_ticks": 83685827074,
+          "sequence": 54,
+          "start_ticks": 83116192526
+        },
+        {
+          "elapsed_ticks": 2012713316,
+          "end_ticks": 85698910214,
+          "sequence": 55,
+          "start_ticks": 83686196898
+        },
+        {
+          "elapsed_ticks": 2006166226,
+          "end_ticks": 87705458718,
+          "sequence": 56,
+          "start_ticks": 85699292492
+        },
+        {
+          "elapsed_ticks": 2013586105,
+          "end_ticks": 89719428018,
+          "sequence": 57,
+          "start_ticks": 87705841913
+        },
+        {
+          "elapsed_ticks": 2000586248,
+          "end_ticks": 91967384333,
+          "sequence": 58,
+          "start_ticks": 89966798085
+        },
+        {
+          "elapsed_ticks": 1990815850,
+          "end_ticks": 93958581616,
+          "sequence": 59,
+          "start_ticks": 91967765766
+        },
+        {
+          "elapsed_ticks": 573017574,
+          "end_ticks": 94531990115,
+          "sequence": 60,
+          "start_ticks": 93958972541
+        },
+        {
+          "elapsed_ticks": 570607349,
+          "end_ticks": 95102987342,
+          "sequence": 61,
+          "start_ticks": 94532379993
+        },
+        {
+          "elapsed_ticks": 569365425,
+          "end_ticks": 95672796760,
+          "sequence": 62,
+          "start_ticks": 95103431335
+        },
+        {
+          "elapsed_ticks": 1995439741,
+          "end_ticks": 97675697951,
+          "sequence": 63,
+          "start_ticks": 95680258210
+        },
+        {
+          "elapsed_ticks": 1986311187,
+          "end_ticks": 99662390310,
+          "sequence": 64,
+          "start_ticks": 97676079123
+        },
+        {
+          "elapsed_ticks": 578858987,
+          "end_ticks": 100241628145,
+          "sequence": 65,
+          "start_ticks": 99662769158
+        },
+        {
+          "elapsed_ticks": 573671863,
+          "end_ticks": 100815668924,
+          "sequence": 66,
+          "start_ticks": 100241997061
+        },
+        {
+          "elapsed_ticks": 1984502110,
+          "end_ticks": 102802742973,
+          "sequence": 67,
+          "start_ticks": 100818240863
+        },
+        {
+          "elapsed_ticks": 1982071420,
+          "end_ticks": 104785196808,
+          "sequence": 68,
+          "start_ticks": 102803125388
+        },
+        {
+          "elapsed_ticks": 1986353380,
+          "end_ticks": 106771948138,
+          "sequence": 69,
+          "start_ticks": 104785594758
+        },
+        {
+          "elapsed_ticks": 1996651842,
+          "end_ticks": 108819809313,
+          "sequence": 70,
+          "start_ticks": 106823157471
+        },
+        {
+          "elapsed_ticks": 2003095235,
+          "end_ticks": 110823286994,
+          "sequence": 71,
+          "start_ticks": 108820191759
+        },
+        {
+          "elapsed_ticks": 570153561,
+          "end_ticks": 111549884425,
+          "sequence": 72,
+          "start_ticks": 110979730864
+        },
+        {
+          "elapsed_ticks": 574882455,
+          "end_ticks": 114387636428,
+          "sequence": 74,
+          "start_ticks": 113812753973
+        },
+        {
+          "elapsed_ticks": 1996706110,
+          "end_ticks": 116414179909,
+          "sequence": 75,
+          "start_ticks": 114417473799
+        },
+        {
+          "elapsed_ticks": 1999046084,
+          "end_ticks": 118413617031,
+          "sequence": 76,
+          "start_ticks": 116414570947
+        },
+        {
+          "elapsed_ticks": 574043846,
+          "end_ticks": 118988053274,
+          "sequence": 77,
+          "start_ticks": 118414009428
+        },
+        {
+          "elapsed_ticks": 572163182,
+          "end_ticks": 119560589748,
+          "sequence": 78,
+          "start_ticks": 118988426566
+        },
+        {
+          "elapsed_ticks": 1994991324,
+          "end_ticks": 121555956162,
+          "sequence": 79,
+          "start_ticks": 119560964838
+        },
+        {
+          "elapsed_ticks": 1999110624,
+          "end_ticks": 123555449547,
+          "sequence": 80,
+          "start_ticks": 121556338923
+        },
+        {
+          "elapsed_ticks": 572245942,
+          "end_ticks": 124128087851,
+          "sequence": 81,
+          "start_ticks": 123555841909
+        },
+        {
+          "elapsed_ticks": 1998680810,
+          "end_ticks": 126127144803,
+          "sequence": 82,
+          "start_ticks": 124128463993
+        },
+        {
+          "elapsed_ticks": 1998148250,
+          "end_ticks": 128125694225,
+          "sequence": 83,
+          "start_ticks": 126127545975
+        },
+        {
+          "elapsed_ticks": 1995645612,
+          "end_ticks": 130121732380,
+          "sequence": 84,
+          "start_ticks": 128126086768
+        },
+        {
+          "elapsed_ticks": 2040217819,
+          "end_ticks": 132374744704,
+          "sequence": 85,
+          "start_ticks": 130334526885
+        },
+        {
+          "elapsed_ticks": 2053594918,
+          "end_ticks": 134428721399,
+          "sequence": 86,
+          "start_ticks": 132375126481
+        },
+        {
+          "elapsed_ticks": 582509408,
+          "end_ticks": 135011837581,
+          "sequence": 87,
+          "start_ticks": 134429328173
+        },
+        {
+          "elapsed_ticks": 579345134,
+          "end_ticks": 135591687801,
+          "sequence": 88,
+          "start_ticks": 135012342667
+        },
+        {
+          "elapsed_ticks": 579900086,
+          "end_ticks": 136172092271,
+          "sequence": 89,
+          "start_ticks": 135592192185
+        },
+        {
+          "elapsed_ticks": 2044245272,
+          "end_ticks": 138218932775,
+          "sequence": 90,
+          "start_ticks": 136174687503
+        },
+        {
+          "elapsed_ticks": 2063328160,
+          "end_ticks": 140282646106,
+          "sequence": 91,
+          "start_ticks": 138219317946
+        },
+        {
+          "elapsed_ticks": 585743084,
+          "end_ticks": 140868774915,
+          "sequence": 92,
+          "start_ticks": 140283031831
+        },
+        {
+          "elapsed_ticks": 585659351,
+          "end_ticks": 141454799831,
+          "sequence": 93,
+          "start_ticks": 140869140480
+        },
+        {
+          "elapsed_ticks": 2037705721,
+          "end_ticks": 143494985908,
+          "sequence": 94,
+          "start_ticks": 141457280187
+        },
+        {
+          "elapsed_ticks": 2035048076,
+          "end_ticks": 145530432652,
+          "sequence": 95,
+          "start_ticks": 143495384576
+        },
+        {
+          "elapsed_ticks": 2044746523,
+          "end_ticks": 147575579443,
+          "sequence": 96,
+          "start_ticks": 145530832920
+        },
+        {
+          "elapsed_ticks": 2018572480,
+          "end_ticks": 149636867934,
+          "sequence": 97,
+          "start_ticks": 147618295454
+        },
+        {
+          "elapsed_ticks": 2029126008,
+          "end_ticks": 151666396856,
+          "sequence": 98,
+          "start_ticks": 149637270848
+        },
+        {
+          "elapsed_ticks": 2063087292,
+          "end_ticks": 154591761443,
+          "sequence": 100,
+          "start_ticks": 152528674151
+        },
+        {
+          "elapsed_ticks": 2068027369,
+          "end_ticks": 156660178361,
+          "sequence": 101,
+          "start_ticks": 154592150992
+        },
+        {
+          "elapsed_ticks": 589356891,
+          "end_ticks": 157249923188,
+          "sequence": 102,
+          "start_ticks": 156660566297
+        },
+        {
+          "elapsed_ticks": 592854001,
+          "end_ticks": 157843222871,
+          "sequence": 103,
+          "start_ticks": 157250368870
+        },
+        {
+          "elapsed_ticks": 2061874212,
+          "end_ticks": 160619380519,
+          "sequence": 104,
+          "start_ticks": 158557506307
+        },
+        {
+          "elapsed_ticks": 2055124223,
+          "end_ticks": 162674891392,
+          "sequence": 105,
+          "start_ticks": 160619767169
+        },
+        {
+          "elapsed_ticks": 2053348367,
+          "end_ticks": 164728635618,
+          "sequence": 106,
+          "start_ticks": 162675287251
+        },
+        {
+          "elapsed_ticks": 2037271950,
+          "end_ticks": 167672964460,
+          "sequence": 107,
+          "start_ticks": 165635692510
+        },
+        {
+          "elapsed_ticks": 2033623654,
+          "end_ticks": 169706991791,
+          "sequence": 108,
+          "start_ticks": 167673368137
+        },
+        {
+          "elapsed_ticks": 1517502195,
+          "end_ticks": 181649474239,
+          "sequence": 127,
+          "start_ticks": 180131972044
+        },
+        {
+          "elapsed_ticks": 1529151061,
+          "end_ticks": 183179009092,
+          "sequence": 128,
+          "start_ticks": 181649858031
+        },
+        {
+          "elapsed_ticks": 446655640,
+          "end_ticks": 183626049469,
+          "sequence": 129,
+          "start_ticks": 183179393829
+        },
+        {
+          "elapsed_ticks": 446881763,
+          "end_ticks": 184073289168,
+          "sequence": 130,
+          "start_ticks": 183626407405
+        },
+        {
+          "elapsed_ticks": 1523468927,
+          "end_ticks": 191471038346,
+          "sequence": 132,
+          "start_ticks": 189947569419
+        },
+        {
+          "elapsed_ticks": 1522553334,
+          "end_ticks": 192993969180,
+          "sequence": 133,
+          "start_ticks": 191471415846
+        },
+        {
+          "elapsed_ticks": 451875649,
+          "end_ticks": 193446228686,
+          "sequence": 134,
+          "start_ticks": 192994353037
+        },
+        {
+          "elapsed_ticks": 448544189,
+          "end_ticks": 193895153817,
+          "sequence": 135,
+          "start_ticks": 193446609628
+        }
+      ],
+      "pointer-feedback": [
+        {
+          "elapsed_ticks": 3571002,
+          "end_ticks": 17010781798,
+          "sequence": 7,
+          "start_ticks": 17007210796
+        },
+        {
+          "elapsed_ticks": 874431,
+          "end_ticks": 17022452749,
+          "sequence": 8,
+          "start_ticks": 17021578318
+        },
+        {
+          "elapsed_ticks": 997729,
+          "end_ticks": 17039452141,
+          "sequence": 9,
+          "start_ticks": 17038454412
+        },
+        {
+          "elapsed_ticks": 1090684996,
+          "end_ticks": 18146111942,
+          "sequence": 10,
+          "start_ticks": 17055426946
+        },
+        {
+          "elapsed_ticks": 907620,
+          "end_ticks": 18155119359,
+          "sequence": 11,
+          "start_ticks": 18154211739
+        },
+        {
+          "elapsed_ticks": 865643,
+          "end_ticks": 18503243827,
+          "sequence": 12,
+          "start_ticks": 18502378184
+        },
+        {
+          "elapsed_ticks": 1102433018,
+          "end_ticks": 19615593549,
+          "sequence": 13,
+          "start_ticks": 18513160531
+        },
+        {
+          "elapsed_ticks": 881477,
+          "end_ticks": 19954325851,
+          "sequence": 14,
+          "start_ticks": 19953444374
+        }
+      ],
+      "workset-prepare": [
+        {
+          "elapsed_ticks": 38060690288,
+          "end_ticks": 152449117343,
+          "sequence": 99,
+          "start_ticks": 114388427055
+        }
+      ]
+    },
+    "units": "ticks"
+  },
+  "build_id": "build:sha256:583ff7dec76758a64199af8aea5d4d6578169e6b5c22d2feb77dfc8e9776000b",
+  "frame_manifest": "journey-frames/manifest.json",
+  "guest": {
+    "clock": "x86-tsc-lfence",
+    "frequency_hz": null,
+    "interpretation": "Instrumented Root intervals include nested observer publication and may end on refusal. Outcomes and identities belong to the correlated guest records. First framebuffer commit is not a physical display observation. No ticks-to-time conversion or physical latency claim.",
+    "records": [
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 1283912724,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 0,
+        "stage": "boot-entry",
+        "start_ticks": 1283912724
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 5671070896,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 1,
+        "stage": "plot-build",
+        "start_ticks": 3684259869
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 7652985531,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 2,
+        "stage": "plot-build",
+        "start_ticks": 5672570679
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 8233489621,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 3,
+        "stage": "plot-build",
+        "start_ticks": 7653515283
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 8803252869,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 4,
+        "stage": "plot-build",
+        "start_ticks": 8233889058
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 9376803341,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 5,
+        "stage": "plot-build",
+        "start_ticks": 8803753279
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 11867854370,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 6,
+        "stage": "first-framebuffer-commit",
+        "start_ticks": 11867854370
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 17010781798,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 7,
+        "stage": "pointer-feedback",
+        "start_ticks": 17007210796
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 17022452749,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 8,
+        "stage": "pointer-feedback",
+        "start_ticks": 17021578318
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 17039452141,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 9,
+        "stage": "pointer-feedback",
+        "start_ticks": 17038454412
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 18146111942,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 10,
+        "stage": "pointer-feedback",
+        "start_ticks": 17055426946
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 18155119359,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 11,
+        "stage": "pointer-feedback",
+        "start_ticks": 18154211739
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 18503243827,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 12,
+        "stage": "pointer-feedback",
+        "start_ticks": 18502378184
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 19615593549,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 13,
+        "stage": "pointer-feedback",
+        "start_ticks": 18513160531
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 19954325851,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 14,
+        "stage": "pointer-feedback",
+        "start_ticks": 19953444374
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 24983601313,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 15,
+        "stage": "plot-build",
+        "start_ticks": 22975929187
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 26972277404,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 16,
+        "stage": "plot-build",
+        "start_ticks": 24984227178
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 27547287664,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 17,
+        "stage": "plot-build",
+        "start_ticks": 26973113687
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 28122813451,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 18,
+        "stage": "plot-build",
+        "start_ticks": 27547906149
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 30107282570,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 19,
+        "stage": "plot-build",
+        "start_ticks": 28123500558
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 32099184830,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 20,
+        "stage": "plot-build",
+        "start_ticks": 30107866898
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 32673754667,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 21,
+        "stage": "plot-build",
+        "start_ticks": 32099785111
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 33247743768,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 22,
+        "stage": "plot-build",
+        "start_ticks": 32674350341
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 35238006192,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 23,
+        "stage": "plot-build",
+        "start_ticks": 33248405318
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 37223731451,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 24,
+        "stage": "plot-build",
+        "start_ticks": 35238397655
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 37798941092,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 25,
+        "stage": "plot-build",
+        "start_ticks": 37224114818
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 39783317292,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 26,
+        "stage": "plot-build",
+        "start_ticks": 37799408745
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 41764150220,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 27,
+        "stage": "plot-build",
+        "start_ticks": 39783699089
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 42337514580,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 28,
+        "stage": "plot-build",
+        "start_ticks": 41764531692
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 44324011315,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 29,
+        "stage": "plot-build",
+        "start_ticks": 42337991542
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 46314259076,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 30,
+        "stage": "plot-build",
+        "start_ticks": 44324391992
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 48306373740,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 31,
+        "stage": "plot-build",
+        "start_ticks": 46314752075
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 50288576130,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 32,
+        "stage": "plot-build",
+        "start_ticks": 48306749189
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 52279092219,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 33,
+        "stage": "plot-build",
+        "start_ticks": 50289085462
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 54261412749,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 34,
+        "stage": "plot-build",
+        "start_ticks": 52279573579
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 56250626412,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 35,
+        "stage": "plot-build",
+        "start_ticks": 54262028309
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 56842303330,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 36,
+        "stage": "plot-build",
+        "start_ticks": 56269117465
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 57419273228,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 37,
+        "stage": "plot-build",
+        "start_ticks": 56843555678
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 59421533406,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 38,
+        "stage": "plot-build",
+        "start_ticks": 57431653754
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 61414339091,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 39,
+        "stage": "plot-build",
+        "start_ticks": 59421911523
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 61993545285,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 40,
+        "stage": "plot-build",
+        "start_ticks": 61414721504
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 62577028751,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 41,
+        "stage": "plot-build",
+        "start_ticks": 61993911886
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 64577268845,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 42,
+        "stage": "plot-build",
+        "start_ticks": 62577537595
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 66566692533,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 43,
+        "stage": "plot-build",
+        "start_ticks": 64577661726
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 67162505029,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 44,
+        "stage": "plot-build",
+        "start_ticks": 66567074465
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 69157789635,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 45,
+        "stage": "plot-build",
+        "start_ticks": 67162868984
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 71146832493,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 46,
+        "stage": "plot-build",
+        "start_ticks": 69158309980
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 73151276006,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 47,
+        "stage": "plot-build",
+        "start_ticks": 71147361819
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 75940741635,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 48,
+        "stage": "plot-build",
+        "start_ticks": 73917289486
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 77949719377,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 49,
+        "stage": "plot-build",
+        "start_ticks": 75941128085
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 78520927314,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 50,
+        "stage": "plot-build",
+        "start_ticks": 77950101747
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 79090073979,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 51,
+        "stage": "plot-build",
+        "start_ticks": 78521283891
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 81103613264,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 52,
+        "stage": "plot-build",
+        "start_ticks": 79090514541
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 83115807555,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 53,
+        "stage": "plot-build",
+        "start_ticks": 81103997889
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 83685827074,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 54,
+        "stage": "plot-build",
+        "start_ticks": 83116192526
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 85698910214,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 55,
+        "stage": "plot-build",
+        "start_ticks": 83686196898
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 87705458718,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 56,
+        "stage": "plot-build",
+        "start_ticks": 85699292492
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 89719428018,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 57,
+        "stage": "plot-build",
+        "start_ticks": 87705841913
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 91967384333,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 58,
+        "stage": "plot-build",
+        "start_ticks": 89966798085
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 93958581616,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 59,
+        "stage": "plot-build",
+        "start_ticks": 91967765766
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 94531990115,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 60,
+        "stage": "plot-build",
+        "start_ticks": 93958972541
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 95102987342,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 61,
+        "stage": "plot-build",
+        "start_ticks": 94532379993
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 95672796760,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 62,
+        "stage": "plot-build",
+        "start_ticks": 95103431335
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 97675697951,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 63,
+        "stage": "plot-build",
+        "start_ticks": 95680258210
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 99662390310,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 64,
+        "stage": "plot-build",
+        "start_ticks": 97676079123
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 100241628145,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 65,
+        "stage": "plot-build",
+        "start_ticks": 99662769158
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 100815668924,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 66,
+        "stage": "plot-build",
+        "start_ticks": 100241997061
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 102802742973,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 67,
+        "stage": "plot-build",
+        "start_ticks": 100818240863
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 104785196808,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 68,
+        "stage": "plot-build",
+        "start_ticks": 102803125388
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 106771948138,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 69,
+        "stage": "plot-build",
+        "start_ticks": 104785594758
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 108819809313,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 70,
+        "stage": "plot-build",
+        "start_ticks": 106823157471
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 110823286994,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 71,
+        "stage": "plot-build",
+        "start_ticks": 108820191759
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 111549884425,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 72,
+        "stage": "plot-build",
+        "start_ticks": 110979730864
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 111586430350,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 73,
+        "stage": "plan-seal",
+        "start_ticks": 111557482381
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 114387636428,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 74,
+        "stage": "plot-build",
+        "start_ticks": 113812753973
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 116414179909,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 75,
+        "stage": "plot-build",
+        "start_ticks": 114417473799
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 118413617031,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 76,
+        "stage": "plot-build",
+        "start_ticks": 116414570947
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 118988053274,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 77,
+        "stage": "plot-build",
+        "start_ticks": 118414009428
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 119560589748,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 78,
+        "stage": "plot-build",
+        "start_ticks": 118988426566
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 121555956162,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 79,
+        "stage": "plot-build",
+        "start_ticks": 119560964838
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 123555449547,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 80,
+        "stage": "plot-build",
+        "start_ticks": 121556338923
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 124128087851,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 81,
+        "stage": "plot-build",
+        "start_ticks": 123555841909
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 126127144803,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 82,
+        "stage": "plot-build",
+        "start_ticks": 124128463993
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 128125694225,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 83,
+        "stage": "plot-build",
+        "start_ticks": 126127545975
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 130121732380,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 84,
+        "stage": "plot-build",
+        "start_ticks": 128126086768
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 132374744704,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 85,
+        "stage": "plot-build",
+        "start_ticks": 130334526885
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 134428721399,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 86,
+        "stage": "plot-build",
+        "start_ticks": 132375126481
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 135011837581,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 87,
+        "stage": "plot-build",
+        "start_ticks": 134429328173
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 135591687801,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 88,
+        "stage": "plot-build",
+        "start_ticks": 135012342667
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 136172092271,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 89,
+        "stage": "plot-build",
+        "start_ticks": 135592192185
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 138218932775,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 90,
+        "stage": "plot-build",
+        "start_ticks": 136174687503
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 140282646106,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 91,
+        "stage": "plot-build",
+        "start_ticks": 138219317946
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 140868774915,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 92,
+        "stage": "plot-build",
+        "start_ticks": 140283031831
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 141454799831,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 93,
+        "stage": "plot-build",
+        "start_ticks": 140869140480
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 143494985908,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 94,
+        "stage": "plot-build",
+        "start_ticks": 141457280187
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 145530432652,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 95,
+        "stage": "plot-build",
+        "start_ticks": 143495384576
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 147575579443,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 96,
+        "stage": "plot-build",
+        "start_ticks": 145530832920
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 149636867934,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 97,
+        "stage": "plot-build",
+        "start_ticks": 147618295454
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 151666396856,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 98,
+        "stage": "plot-build",
+        "start_ticks": 149637270848
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 152449117343,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 99,
+        "stage": "workset-prepare",
+        "start_ticks": 114388427055
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 154591761443,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 100,
+        "stage": "plot-build",
+        "start_ticks": 152528674151
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 156660178361,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 101,
+        "stage": "plot-build",
+        "start_ticks": 154592150992
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 157249923188,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 102,
+        "stage": "plot-build",
+        "start_ticks": 156660566297
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 157843222871,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 103,
+        "stage": "plot-build",
+        "start_ticks": 157250368870
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 160619380519,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 104,
+        "stage": "plot-build",
+        "start_ticks": 158557506307
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 162674891392,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 105,
+        "stage": "plot-build",
+        "start_ticks": 160619767169
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 164728635618,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 106,
+        "stage": "plot-build",
+        "start_ticks": 162675287251
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 167672964460,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 107,
+        "stage": "plot-build",
+        "start_ticks": 165635692510
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 169706991791,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 108,
+        "stage": "plot-build",
+        "start_ticks": 167673368137
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 170570506633,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 109,
+        "stage": "kernel-prepare",
+        "start_ticks": 152450559572
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 171847018764,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 110,
+        "stage": "play-start",
+        "start_ticks": 171731910743
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 173831535590,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 111,
+        "stage": "play-input",
+        "start_ticks": 173826094650
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 173832923460,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 112,
+        "stage": "play-input",
+        "start_ticks": 173832519944
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 175397281298,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 113,
+        "stage": "play-input",
+        "start_ticks": 175394173643
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 175482564940,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 114,
+        "stage": "play-input",
+        "start_ticks": 175482035276
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 175846563167,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 115,
+        "stage": "play-input",
+        "start_ticks": 175845161103
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 175929417991,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 116,
+        "stage": "play-input",
+        "start_ticks": 175928963080
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 176298014269,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 117,
+        "stage": "play-input",
+        "start_ticks": 176297081272
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 176381346387,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 118,
+        "stage": "play-input",
+        "start_ticks": 176380903967
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 176754711740,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 119,
+        "stage": "play-input",
+        "start_ticks": 176753595745
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 176838079872,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 120,
+        "stage": "play-input",
+        "start_ticks": 176837651658
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177213019243,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 121,
+        "stage": "play-input",
+        "start_ticks": 177211873007
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177296681133,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 122,
+        "stage": "play-input",
+        "start_ticks": 177296235193
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177682261436,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 123,
+        "stage": "play-input",
+        "start_ticks": 177681656548
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177767142204,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 124,
+        "stage": "play-input",
+        "start_ticks": 177766040786
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177851581793,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 125,
+        "stage": "play-input",
+        "start_ticks": 177851113377
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 177935508618,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 126,
+        "stage": "play-input",
+        "start_ticks": 177934987778
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 181649474239,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 127,
+        "stage": "plot-build",
+        "start_ticks": 180131972044
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 183179009092,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 128,
+        "stage": "plot-build",
+        "start_ticks": 181649858031
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 183626049469,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 129,
+        "stage": "plot-build",
+        "start_ticks": 183179393829
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 184073289168,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 130,
+        "stage": "plot-build",
+        "start_ticks": 183626407405
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 184116298328,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 131,
+        "stage": "play-input",
+        "start_ticks": 184116098181
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 191471038346,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 132,
+        "stage": "plot-build",
+        "start_ticks": 189947569419
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 192993969180,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 133,
+        "stage": "plot-build",
+        "start_ticks": 191471415846
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 193446228686,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 134,
+        "stage": "plot-build",
+        "start_ticks": 192994353037
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "counter_reversed": false,
+        "end_ticks": 193895153817,
+        "frequency_hz": null,
+        "schema": "conduit.conduitos/native-timing@1",
+        "sequence": 135,
+        "stage": "plot-build",
+        "start_ticks": 193446609628
+      }
+    ],
+    "units": "ticks"
+  },
+  "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+  "index": 1,
+  "journey_ns": 92208179997,
+  "phase": "repeated-fresh-process",
+  "process": "fresh-qemu",
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "reading_observations": "journey-reading-timing.json",
+  "typing_observations": "journey-typing-timing.json"
+}
