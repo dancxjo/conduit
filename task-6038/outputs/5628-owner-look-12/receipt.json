@@ -1,13 +1,13 @@
 {
   "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
-  "status": "passed-pending-independent-capture-review",
+  "status": "local-source-bound-palette-journey-passed-with-explicit-glyph-fallback",
   "matrix": "axis-palette",
   "refresh_budget": {
     "limit": 4,
     "requests": 4,
     "meaning": "F5 activation, F6 baseline, two replacements"
   },
-  "capture_review": "pending",
+  "capture_review": "All nine captures inspected: palette changes and restores with compact density, editorial serif title selected by the authored palette preset, gold argument focus, refusal footer, retained Draft: ab, and exact Details argument bounds. \u0174 replacement visible; no full Unicode glyph coverage claim.",
   "native_serial_sha256": "8e2194ad85c6754c6f664a363012c928da127a94db7c51694eaa29281467f91c",
   "private_controller_receipt_sha256": "76f662f30a14edfb263f7e682ead8a56e497cc961504d39b002e2af7f67dc27f",
   "captures": [
@@ -144,5 +144,6 @@
   "boundaries": [
     "No stable, physical or human claim",
     "Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained"
-  ]
+  ],
+  "known_glyph_boundary": "\u0174 U+0174 uses replacement glyph; exact complete Unicode Face retained."
 }

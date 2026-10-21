@@ -1,0 +1,148 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "status": "passed-pending-independent-capture-review",
+  "matrix": "typography",
+  "refresh_budget": {
+    "limit": 4,
+    "requests": 4,
+    "meaning": "F5 activation, F6 baseline, two replacements"
+  },
+  "capture_review": "pending",
+  "native_serial_sha256": "b8ee21edeb843f5a12ab56af50b7e1cc6cf09af8e46b2ec0677ebed2eeb60336",
+  "private_controller_receipt_sha256": "06efe8b06f330209f6f5afc8f16c83e1378e0b4a1840d34b6985eed42edaed87",
+  "captures": [
+    {
+      "file": "compact-engineering.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "77eb9e9d27d6b95e0342202a151754ec373068327ab820432d3fb522178bd210",
+      "png_sha256": "f9309e644d043baa75c11fcd443f905179fe70c05deae9c9099f283c57ce6a77",
+      "rgb_sha256": "21b27e63ccc5887e5d34c87b9868511e051c77090abf8d1157b8e78640c73a21"
+    },
+    {
+      "file": "details.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "cfe411ad7b09a348d719e68cfd13f39106c4bdbf623098bb53929577f30efc28",
+      "png_sha256": "d520a60f49ce48c05e4b87ad554f10edb001f86796361fd200089ab7fe711309",
+      "rgb_sha256": "cc45fcd6e1075db0a1ae3d7c11910bed24306f1aa3847fb020565d69b947fce7"
+    },
+    {
+      "file": "draft-after-refusal-append.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "e1a22a4fc03b4f6241f1a0be3e95e93be55482a8b319ea8f97f313edbecc78ea",
+      "png_sha256": "1ac4a270b54e3352b061c0f3c68db676164cfaf4661f0643501998fd87514001",
+      "rgb_sha256": "cc69e0d6a833c492913c914b242b8d42a14e750059692380a43853fedaea7ebe"
+    },
+    {
+      "file": "draft-after-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "72c7d7948d25c9f1b17a1bfa7246e763e260989ad92e629f1326ba399e47b9d0",
+      "png_sha256": "95b3289e5242e3a75209a6882ed9b210178bb3f85fcfe698e0b104c4868418be",
+      "rgb_sha256": "ca9401c483095c38e86ee5102070de9d5b02ae4e886448d795842e0a32dbbcea"
+    },
+    {
+      "file": "draft-before-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "9b2c2e7a1b6eeff6cd4ceb5d18be96587ff55dd525d52b5b6d78b69a7ba2bef9",
+      "png_sha256": "aa2b2ecece15f1c9e7864ff64e95ddf655b5975e4057140dd3a0a624b30e8fe5",
+      "rgb_sha256": "37c31176be15e5dd0c9e3192f19412ea50d1f958d5dd5458c8d2d76f99930cbf"
+    },
+    {
+      "file": "f5-acknowledged.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "ec852be56cb3009159eba0f0d36d38ddce10049ec13eeb693aa4735cc3cf9241",
+      "png_sha256": "4569cb2f98d3f0afbb54546b2ba982102e32fa25160c97d12c791e90282b3718",
+      "rgb_sha256": "30beba705df19402833e4bf5869b49ff415de04f620f7770996518548569dc6e"
+    },
+    {
+      "file": "minimum-scale-200.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "7eaff6532f65c361aa29f4c81850c5a2b65cdd743b15701b99d51f8b7014bea2",
+      "png_sha256": "a0734a6fbc7c60c61ba9ddefe804a42c905cf529c364920b34697176f2fc6b34",
+      "rgb_sha256": "28b4e5c81578da16473f170e512e6a8b0b2e4c6528cf2973f611177be18fc49b"
+    },
+    {
+      "file": "provisional-refused.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "72c7d7948d25c9f1b17a1bfa7246e763e260989ad92e629f1326ba399e47b9d0",
+      "png_sha256": "95b3289e5242e3a75209a6882ed9b210178bb3f85fcfe698e0b104c4868418be",
+      "rgb_sha256": "ca9401c483095c38e86ee5102070de9d5b02ae4e886448d795842e0a32dbbcea"
+    },
+    {
+      "file": "spacious-editorial.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "475acbff8000b08ea90faf84ae8dfa638b065e6241568332cc328791b91a7ba1",
+      "png_sha256": "ff52ba7c5d38ab54107dc6151f1b90aadffda1169e141b6176f189a696a784ee",
+      "rgb_sha256": "31475308d6e7b2aa3c6cb13d946e57cf5b07c6eb6b85b17fd05feb28c6531c43"
+    }
+  ],
+  "observations": [
+    {
+      "label": "compact-engineering",
+      "show": "show/401941f92b004e6ecc5a2f7d2031e2be6f5265d20718c7481070e32feda7106a",
+      "face": "4a31b058c48f9ed9259b0e5a4e2fcbe14700398edfc2477d2ee5b06dbc67d426",
+      "revision": "3846171233081181571",
+      "capture": {
+        "file": "compact-engineering.ppm",
+        "sha256": "77eb9e9d27d6b95e0342202a151754ec373068327ab820432d3fb522178bd210",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "provisional-refused",
+      "show": "show/401941f92b004e6ecc5a2f7d2031e2be6f5265d20718c7481070e32feda7106a",
+      "face": "4a31b058c48f9ed9259b0e5a4e2fcbe14700398edfc2477d2ee5b06dbc67d426",
+      "revision": "3846171233081181571",
+      "capture": {
+        "file": "provisional-refused.ppm",
+        "sha256": "72c7d7948d25c9f1b17a1bfa7246e763e260989ad92e629f1326ba399e47b9d0",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "spacious-editorial",
+      "show": "show/d85c1e1e3210949ef3f103d0bde3946f6479b5395b7a395e6b4218ff46b1ac00",
+      "face": "4a31b058c48f9ed9259b0e5a4e2fcbe14700398edfc2477d2ee5b06dbc67d426",
+      "revision": "3846171233081181571",
+      "capture": {
+        "file": "spacious-editorial.ppm",
+        "sha256": "475acbff8000b08ea90faf84ae8dfa638b065e6241568332cc328791b91a7ba1",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "minimum-scale-200",
+      "show": "show/76aafa68470ef0b4b88ee6dff77f432147fe47b7d2f2b47634b130a9f556a854",
+      "face": "4a31b058c48f9ed9259b0e5a4e2fcbe14700398edfc2477d2ee5b06dbc67d426",
+      "revision": "3846171233081181571",
+      "capture": {
+        "file": "minimum-scale-200.ppm",
+        "sha256": "7eaff6532f65c361aa29f4c81850c5a2b65cdd743b15701b99d51f8b7014bea2",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "details",
+      "show": "show/76aafa68470ef0b4b88ee6dff77f432147fe47b7d2f2b47634b130a9f556a854",
+      "face": "4a31b058c48f9ed9259b0e5a4e2fcbe14700398edfc2477d2ee5b06dbc67d426",
+      "revision": "3846171233081181571",
+      "capture": {
+        "file": "details.ppm",
+        "sha256": "cfe411ad7b09a348d719e68cfd13f39106c4bdbf623098bb53929577f30efc28",
+        "bytes": 3072016
+      }
+    }
+  ],
+  "boundaries": [
+    "No stable, physical or human claim",
+    "Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained"
+  ]
+}
