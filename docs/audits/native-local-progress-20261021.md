@@ -207,3 +207,16 @@ admission and current-Show checks. No old Face/image is relabelled as this sourc
 Application event/wire bounds and action authority are unchanged.
 Native-compositor compilation passed (5 seconds). No tests/proof/image rebuild
 or CI jobs were run for this delta.
+
+## Focused continuation regressions executed
+
+Both new continuation regressions now pass: sole-region full-width continuation
+and naming help/action/current-value grouping at the row cap. Exactly two tests
+ran, 1,255 were filtered out; no workspace suite or platform journey ran. The
+first compile attempt failed before test execution because the earlier diagram
+test extraction retained a stale relative fixture path. Corrected that one path;
+the same selected run then compiled in 14 seconds and passed both tests. Local
+logs `native-local-continuation-regressions.log` and
+`native-local-continuation-regressions-fixed.log` retain those distinct outcomes.
+This supersedes only the pending-execution status of these two specifications,
+not #6158's source/image-bound normal-product acceptance or other unrun tests.
