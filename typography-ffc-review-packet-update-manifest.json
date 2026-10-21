@@ -1,0 +1,38 @@
+{
+  "parent": "1795d79aa4bd129b73b314691268aeb1ccdd30e2",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "work/5992-refreshed-pr-body.md",
+      "tree_path": "task-6038/work/5992-refreshed-pr-body.md",
+      "bytes": 2992,
+      "sha256": "f2b45c4fa56c9d0eaedd37a05268bea00cb92a655d000f63ee5761cf2b6f90d6",
+      "mode": "100644",
+      "blob": "5ff14c5495c9c136583ee534536fb160df0cdea7"
+    },
+    {
+      "source": "work/5992-ffc-proof-progress.md",
+      "tree_path": "task-6038/work/5992-ffc-proof-progress.md",
+      "bytes": 1211,
+      "sha256": "31e4640f669bb5aed4481f9ee9bd6180ecd7913a2566f1c3d38bf3a5aa90bf7b",
+      "mode": "100644",
+      "blob": "658647cf14cb4b756aa534a7ed4f1986429cc62e"
+    },
+    {
+      "source": "work/6167-ffc-proof-progress.md",
+      "tree_path": "task-6038/work/6167-ffc-proof-progress.md",
+      "bytes": 893,
+      "sha256": "79db909593eedf8a57db7549169c1b54fa643a6e5e78c42af1c8872da7179bee",
+      "mode": "100644",
+      "blob": "ab2fa2b088b3cc65fd0aefc41440698c19690a4f"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 5639,
+      "sha256": "b518f928e92556aeef19c587c5e7ae66b3ea42fb9486b10e48609778b5f33ab5",
+      "mode": "100644",
+      "blob": "364e49312e62b9a9dca535f6563dd4fa653a8267"
+    }
+  ]
+}
