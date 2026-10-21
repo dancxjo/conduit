@@ -3,8 +3,8 @@ use conduit_composite::{
     ChildExecutionError, ChildTransportError, PreparedRegionKernel, RegionMemoryReceipt,
 };
 use conduit_kernel::{
-    scheduler::{RemoteIngressOutcome, SchedulerError, SchedulerStatus},
     CanonicalValue, CordId, RemoteTerminalDisposition,
+    scheduler::{RemoteIngressOutcome, SchedulerError, SchedulerStatus},
 };
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
@@ -42,6 +42,8 @@ pub enum WorkerReply {
     Closed,
     Cancelled,
 }
+// The single prepared command slot owns the kernel without another allocation.
+#[allow(clippy::large_enum_variant)]
 enum Command {
     Install(PreparedRegionKernel),
     Start,
@@ -84,7 +86,7 @@ impl InitializedRegionWorker {
     pub(crate) fn spawn(stack_bytes: u32, transfer_bytes: u32) -> Result<Self, String> {
         if !cfg!(target_os = "linux")
             || !(2 * 1024 * 1024..=16 * 1024 * 1024).contains(&stack_bytes)
-            || stack_bytes % 4096 != 0
+            || !stack_bytes.is_multiple_of(4096)
             || !(1..=512 * 1024).contains(&transfer_bytes)
         {
             return Err(

@@ -34,6 +34,8 @@ pub struct Target {
     pub body: PlanId,
 }
 #[derive(Clone, Serialize, Deserialize)]
+// Keep the admitted finite payload inline in the shared application wire.
+#[allow(clippy::large_enum_variant)]
 pub enum Initial {
     Tutorial {
         evidence: BodyBiographyEvidence,
@@ -86,6 +88,8 @@ impl TutorialScope {
     }
 }
 #[derive(Clone, Serialize, Deserialize)]
+// Keep the admitted finite payload inline in the shared application wire.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     ProjectGraph {
         graph: PatchbayGraph,
