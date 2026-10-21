@@ -81,3 +81,30 @@ and native must still select an exact typed input port, reserve canonical input
 and output storage before Play, retain acknowledged Show evidence, and invoke
 this callback only at that admitted boundary. No route may be inferred from the
 presence of this Rust method or from the old event Host Call.
+
+## Selected canonical input Fore
+
+The portable domain now owns `patchbay/accept-interaction` with one input,
+`interaction: face/interaction@2...|`, no outputs or startup/configuration
+parameters, one queue item and the existing 8 KiB canonical interaction bound.
+The separate `plots/patchbay/interaction.conduit` forwards that closing Fore;
+it contains no Host, owner address or runtime resource facts. It is a migration
+Source, not the resident entry point selected by the current product.
+
+The browser `patchbay_ingress` preparation primitive offers that exact semantic
+Kind and a distinct bounded Host Call, with one in flight and zero output bytes.
+It reuses the existing finite Host Call sink verb: no initial sentinel, one
+pending call, input closure completes, failed/denied outcomes propagate. Exact
+preparation rejects legacy event typing, open flows, changed implementation and
+Host Call facts, configuration, capability identity and widened queue limits.
+
+The primitive is intentionally absent from ordinary profile advertisement and
+factory registration until an installing owner binds the exact resident actor,
+reserves its typed cord/Host Call storage, and retains its genuine current
+Face/Show. A Host Call handler must invoke `apply_face_interaction` and retain or
+dispatch its typed owner request with an admitted outcome; it must not discard
+an Edit/Mask request after changing application revision. No initial Face is
+required on this command stream: the existing read-only observation produces
+that first meaning. Owner-controlled publication and explicit replacement or
+retirement delimit each Show's interaction stream; no implicit retry crosses a
+replacement. Wiring, publication and consumer retirement remain unfinished.

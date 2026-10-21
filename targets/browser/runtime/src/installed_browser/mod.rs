@@ -15,6 +15,7 @@ mod distance_frequency;
 pub(crate) mod typed_state;
 pub(crate) use conduit_browser_mask_offer as dom_mask;
 mod face;
+pub mod patchbay_ingress;
 mod factory;
 mod final_normalized_pattern;
 mod flow_collect;

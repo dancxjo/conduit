@@ -565,3 +565,20 @@ The first refusal fixture tried the forbidden Available-to-Failed transition;
 its negative log is retained and the fixture now constructs a genuine Prepared
 Show. The production state machine was not relaxed. No broad suite, CI, image
 rebuild or platform proof ran.
+
+## Portable canonical Fore and browser Back preparation
+
+Added the domain-owned `patchbay/accept-interaction` Kind, a separate canonical
+closing-Fore Source, and a browser Back offer/preparation primitive. The sink
+uses the existing kernel Host Call verb with one pending request, no initial
+sentinel and no output. Its exact contract retains the canonical 8 KiB bound
+and one queue item. Preparation rejects old event/open-flow types and widened
+limits. Ordinary browser capability advertisement, factory registration and the
+legacy resident entry remain unchanged until actual owner/transport admission.
+
+Browser compilation passes after moving the module into its owning installed-
+Back namespace (initial private-module access error retained in its log). A
+focused preparation test passes; it checks authored Source expansion, canonical
+Mask-output correspondence, valid preparation and legacy/open/widened refusal.
+No actual Host Call was dispatched, owner route installed, storage reserved by
+this new primitive, Show acknowledged, platform proof or CI job run.

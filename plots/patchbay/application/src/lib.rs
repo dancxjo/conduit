@@ -40,6 +40,8 @@ mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
+mod interaction_contract;
+pub use interaction_contract::{patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION};
 mod resident_actions;
 pub use resident_actions::PatchbayFaceProjectionError;
 mod resident_canvas;
