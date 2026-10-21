@@ -13,6 +13,8 @@ mod prebirth;
 mod runtime;
 mod startup;
 pub use platform::run;
+#[cfg(test)]
+pub(crate) use startup::tests::Encounter as StartupEncounter;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};

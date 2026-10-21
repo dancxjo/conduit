@@ -8,10 +8,10 @@ use crate::{
 use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 
-struct Encounter {
+pub(crate) struct Encounter {
     ids: BootIdentities,
     offer: HostOffer<'static>,
-    journey: ProductJourney,
+    pub(crate) journey: ProductJourney,
     door: FrontDoor,
     presenter: FrontDoorPresenter,
     workspace: FaceWorkspace,
@@ -20,7 +20,7 @@ struct Encounter {
 }
 
 impl Encounter {
-    fn born() -> Self {
+    pub(crate) fn born() -> Self {
         let (ids, offer, mut journey) = fixture();
         journey
             .birth_from_creche(BirthSelection {
@@ -97,7 +97,28 @@ impl Encounter {
         )
     }
 
-    fn invoke(&mut self, action: PatchbayAction) -> Result<(), &'static str> {
+    pub(crate) fn remaining(&mut self) -> Result<(), &'static str> {
+        remaining_stages(
+            &mut self.door,
+            &mut self.journey,
+            &mut self.presenter,
+            &mut self.workspace,
+            &mut self.display,
+            &self.ids,
+            &self.offer,
+            &self.make,
+        )
+    }
+
+    pub(crate) fn assert_startup_refused(&self, stage: &str) {
+        let face = alloc::format!("{:?}", self.door.face().unwrap());
+        assert!(face.contains(stage), "stage-specific refusal: {face}");
+        assert!(!self.workspace.active());
+        assert!(self.presenter.route_keyboard().is_ok());
+        assert!(self.journey.projection().active_play_id.is_none());
+    }
+
+    pub(crate) fn invoke(&mut self, action: PatchbayAction) -> Result<(), &'static str> {
         self.workspace
             .invoke_from_presenter(
                 action,
@@ -244,5 +265,28 @@ fn unavailable_play_and_failed_plan_preserve_birth_and_allow_checked_recovery() 
     let active = encounter.journey.projection();
     assert_eq!(active.body_id, born.body_id);
     assert_eq!(active.plan_id, planned.plan_id);
+    assert!(active.active_play_id.is_some());
+}
+
+#[test]
+fn automatic_remaining_plan_refusal_retains_the_awake_body_and_visible_stage() {
+    let mut encounter = Encounter::born();
+    encounter.invoke(PatchbayAction::Wake).unwrap();
+    assert_eq!(encounter.journey.status(), JourneyStatus::Awake);
+    let awake = encounter.journey.projection();
+    let evidence = encounter.journey.biography().unwrap().clone();
+    let keyboard = encounter.offer.keyboard.take();
+    encounter.remaining().unwrap();
+    assert_eq!(encounter.journey.projection(), awake);
+    assert_eq!(encounter.journey.biography(), Some(&evidence));
+    encounter.assert_startup_refused("plan:");
+    // Recovery remains explicit and uses the unchanged admitted proposal.
+    encounter.offer.keyboard = keyboard;
+    encounter.invoke(PatchbayAction::Plan).unwrap();
+    encounter.invoke(PatchbayAction::Play).unwrap();
+    let active = encounter.journey.projection();
+    assert_eq!(active.body_id, awake.body_id);
+    assert_eq!(active.born_sign_id, awake.born_sign_id);
+    assert_eq!(active.plan_id, awake.plan_id);
     assert!(active.active_play_id.is_some());
 }
