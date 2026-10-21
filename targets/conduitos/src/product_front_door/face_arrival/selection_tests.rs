@@ -132,3 +132,80 @@ fn failed_pre_swap_preparation_preserves_show_preferences_and_publication() {
         assert_eq!(arrival.owner_face.as_ref(), Some(fresh.face()));
     }
 }
+
+#[test]
+fn local_selection_disposition_preserves_pending_mask_and_opaque_route() {
+    use crate::product_front_door::owner_selection::{AppliedSelection, apply_result};
+    use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+    let provider = crate::product_bases::fixture_surface_provider();
+    let mut arrival = FaceArrival::prepare(
+        "host/native".into(),
+        "boot/native".into(),
+        OfferGeneration(1),
+        "build",
+        provider.entry.base_id.clone(),
+        &provider,
+        None,
+    )
+    .unwrap();
+    let face = crate::native_face_scene::tests::face(1);
+    let mut display = Display(0);
+    arrival.retire_arrival_surface().unwrap();
+    arrival.owner_face = Some(face.clone());
+    arrival
+        .mask
+        .present(face.clone(), 1, 1, &mut display)
+        .unwrap();
+    let focus = FaceFocusRequest {
+        action_id: "edit".into(),
+        argument_name: Some("value".into()),
+    };
+    arrival.mask.focus_named(&focus, &mut display).unwrap();
+    let key = |usage| KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    arrival.mask.key(key(4), 1, &mut display).unwrap();
+    let show = arrival.mask.show().unwrap().clone();
+    let mut route = Some(7u8); // Opaque custody sentinel, not an authenticated owner.
+    let mut current = None;
+    let error = arrival.ensure_look_replacement_ready().unwrap_err();
+    assert_eq!(error, OwnerSelectionError::ProvisionalInput);
+    assert_eq!(
+        apply_result(
+            &mut arrival,
+            &mut current,
+            &mut route,
+            Err(error),
+            &mut display
+        )
+        .unwrap(),
+        AppliedSelection::LocalRefused("owner-look-provisional-input")
+    );
+    assert_eq!(route, Some(7));
+    assert!(current.is_none());
+    assert_eq!(arrival.mask.show(), Some(&show));
+    assert_eq!(arrival.mask.scene().unwrap().focused_request(), Some(focus));
+    assert_eq!(arrival.mask.scene().unwrap().face(), &face);
+    assert!(arrival.mask.scene().unwrap().has_pending_input());
+    let NativeFaceMaskInput::Submitted { correlation, .. } =
+        arrival.mask.key(key(40), 2, &mut display).unwrap()
+    else {
+        panic!("retained draft must submit");
+    };
+    assert_eq!(correlation.interaction.action_id, "edit");
+    assert_eq!(correlation.interaction.arguments[0].name, "value");
+    assert_eq!(correlation.interaction.arguments[0].value, b"a");
+    assert_eq!(
+        apply_result(
+            &mut arrival,
+            &mut current,
+            &mut route,
+            Err(OwnerSelectionError::Route("owner-outcome-unknown")),
+            &mut display
+        )
+        .unwrap(),
+        AppliedSelection::RouteFailed("owner-outcome-unknown")
+    );
+    assert!(
+        route.is_none(),
+        "uncertain owner failure must retire route custody"
+    );
+}

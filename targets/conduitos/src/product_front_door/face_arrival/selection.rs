@@ -1,14 +1,35 @@
 //! Authenticated owner Mask/Look replacement with exact named focus retention.
 use super::*;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::product_front_door) enum OwnerSelectionError {
+    ProvisionalInput,
+    Route(&'static str),
+}
+impl OwnerSelectionError {
+    pub(in crate::product_front_door) fn code(self) -> &'static str {
+        match self {
+            Self::ProvisionalInput => "owner-look-provisional-input",
+            Self::Route(code) => code,
+        }
+    }
+}
+impl From<&'static str> for OwnerSelectionError {
+    fn from(code: &'static str) -> Self {
+        Self::Route(code)
+    }
+}
+
 impl FaceArrival {
-    fn ensure_look_replacement_ready(&self) -> Result<(), &'static str> {
+    pub(in crate::product_front_door) fn ensure_look_replacement_ready(
+        &self,
+    ) -> Result<(), OwnerSelectionError> {
         if self
             .mask
             .scene()
             .is_some_and(|scene| scene.has_pending_input())
         {
-            return Err("owner-look-provisional-input");
+            return Err(OwnerSelectionError::ProvisionalInput);
         }
         Ok(())
     }
@@ -23,7 +44,7 @@ impl FaceArrival {
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
         display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         let preferences = (
             self.preparation.forced_colors,
             self.preparation.minimum_text_scale_percent,
@@ -49,7 +70,7 @@ impl FaceArrival {
         ),
         preferences: (bool, u16),
         display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         let (look, recipe) = selection;
         self.ensure_look_replacement_ready()?;
         let prior_focus = self.mask.scene().and_then(|scene| scene.focused_request());
@@ -107,7 +128,7 @@ impl FaceArrival {
         route: &mut NativeOwnerReturnRoute,
         identities: BootIdentities,
         display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         self.ensure_look_replacement_ready()?;
         let scale = if self.preparation.minimum_text_scale_percent == 100 {
             200
@@ -134,7 +155,7 @@ impl FaceArrival {
         route: &mut NativeOwnerReturnRoute,
         identities: BootIdentities,
         display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         self.ensure_look_replacement_ready()?;
         let forced_colors = !self.preparation.forced_colors;
         let (look, recipe) = self.preparation.selected.unwrap_or((

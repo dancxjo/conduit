@@ -19,6 +19,7 @@ use conduit_human::KeyEvent;
 
 #[path = "face_arrival/selection.rs"]
 mod selection;
+pub(super) use selection::OwnerSelectionError;
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
