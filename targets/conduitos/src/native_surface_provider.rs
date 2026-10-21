@@ -10,4 +10,7 @@ pub struct NativeSurfaceProvider {
     pub entry: BaseProviderEntry,
     #[allow(dead_code)] // Reserved for the resource-bound renderer Host Call.
     pub(crate) issuer_key: [u8; 32],
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) display_owner:
+        Option<crate::protected_compositor::display_owner::SharedDisplayOwner>,
 }

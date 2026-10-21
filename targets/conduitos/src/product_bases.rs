@@ -190,6 +190,8 @@ impl NativeProductBases {
         Ok(NativeSurfaceProvider {
             entry: entry.clone(),
             issuer_key,
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            display_owner: None,
         })
     }
 }
@@ -219,6 +221,8 @@ pub(crate) fn fixture_surface_provider() -> NativeSurfaceProvider {
             resources: vec![framebuffer_resource("conduitos/test/framebuffer")],
         },
         issuer_key: [7; 32],
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        display_owner: None,
     }
 }
 

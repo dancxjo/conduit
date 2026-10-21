@@ -67,6 +67,23 @@ pub fn run(
     surface_provider: crate::product_bases::NativeSurfaceProvider,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
 ) -> Result<(), &'static str> {
+    // Prepare one isolated renderer for this display. Presenter/provider clones
+    // share only this explicit owner; no global service or implicit restart.
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let (surface_provider, display_owner) = {
+        let format = display
+            .format()
+            .validate()
+            .map_err(|error| error.as_str())?;
+        let width = u16::try_from(format.width).map_err(|_| "compositor-display-bounds")?;
+        let height = u16::try_from(format.height).map_err(|_| "compositor-display-bounds")?;
+        let owner =
+            crate::protected_compositor::display_owner::DisplayOwner::prepare(width, height)
+                .map_err(|_| "compositor-display-preparation-refused")?;
+        let mut provider = surface_provider;
+        provider.display_owner = Some(owner.clone());
+        (provider, owner)
+    };
     let (pending_join, owner_receipt, owner_face, owner_route, owner_return_refusal) =
         match pending_join {
             Some(join) => (
@@ -172,6 +189,10 @@ pub fn run(
         make.face_surface_slots,
     )
     .map_err(|error| error.as_str())?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    presenter
+        .attach_display_owner(display_owner)
+        .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
     let mut owner_route_standby = owner_route.as_ref().is_some_and(|route| route.available());
     let receipt = if let Some(owner_face) = owner_face {
