@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "repaired589WorkspaceRunning;selectedLookFocusedCompilationInSeparateCache;PatchbayQueued",
+  "current_stage": "reconcileExternalNativeLookSelectionBeforeRefresh",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -240,5 +240,19 @@
     "issue": 5516,
     "plan": "work/5516-bounded-input-plan.md",
     "state": "readOnlyPlan;noSourceImplementation;checkedNavigationDistinctOwnerInvocation"
+  },
+  "latest_observation": {
+    "repair_pr": 6187,
+    "merged": "d79897e6a5e6f40a0861a2b0e5f816374eb8f0c3",
+    "candidate": 39529095181,
+    "candidate_result": "success",
+    "dev": "c4c10b3e38bc0d217e001f980f65a642dfe82280",
+    "integration": 39532642516,
+    "integration_status": "pending",
+    "selected_source": "ba44c5cb3ddf9447b46349346d16ee490ec9a173",
+    "selection_regressions": "2 passed",
+    "private_qmp_adapter": "16 negative mutations rejected; synthetic only; no guest",
+    "virtual_display": "1600x1200 Xvfb verified; QEMU GTK available",
+    "overlap": "cedf08fb2 adds current-dev local density/palette swaps; reconcile before refresh"
   }
 }

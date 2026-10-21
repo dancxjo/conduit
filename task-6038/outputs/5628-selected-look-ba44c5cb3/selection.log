@@ -1,0 +1,11 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 40.83s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 2 tests
+CONDUIT_CRECHE_FOCUS {"action_id":"edit","argument_name":"value","display_bounds":{"height":480,"width":640,"x":0,"y":0},"face_id":"f28bd38d85c83331c07aaf19bccdad6e09ad376cdc92e11426e17c2b1ab0829b","face_revision":1,"hit_bounds":{"height":36,"width":602,"x":26,"y":351},"page":1,"pages":1,"schema":"conduit.creche-focus/v1","show_id":"show/380b9baac97778a60194cc446612d80b8694620f0bfd65edf9701ba91783e7d7"}
+test product_front_door::face_arrival::selection::tests::local_selection_disposition_preserves_pending_mask_and_opaque_route ... ok
+test product_front_door::face_arrival::selection::tests::failed_pre_swap_preparation_preserves_show_preferences_and_publication ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 0.06s
+

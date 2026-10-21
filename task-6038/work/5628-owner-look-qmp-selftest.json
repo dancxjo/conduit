@@ -1,0 +1,25 @@
+{
+  "status": "selftest-passed",
+  "actual_guest_runs": 0,
+  "positive_switch": true,
+  "changed_route_plan_accepted": true,
+  "mutation_checks": {
+    "wrongFace": "rejected",
+    "reusedShow": "rejected",
+    "missingAck": "rejected",
+    "mismatchedFocus": "rejected",
+    "changedOwnerHost": "rejected",
+    "emptyRoutePlan": "rejected",
+    "preAckFocus": "rejected",
+    "changedComponentSource": "rejected",
+    "changedComponentChecked": "rejected",
+    "changedComponentFore": "rejected",
+    "missingComponent": "rejected",
+    "emptyComponent": "rejected",
+    "wrongRecipe": "rejected",
+    "staleFocusShow": "rejected",
+    "refusalAck": "rejected",
+    "preCursorAck": "rejected"
+  },
+  "complete_record_cursor": true
+}

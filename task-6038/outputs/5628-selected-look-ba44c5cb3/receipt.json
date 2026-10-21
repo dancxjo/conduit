@@ -1,0 +1,32 @@
+{
+  "source": "ba44c5cb3ddf9447b46349346d16ee490ec9a173",
+  "status": 0,
+  "passed": 2,
+  "failed": 0,
+  "log_sha256": "32a22e1783ede103bb61fe79b33dca593355d03584f9a20fa9db272652cf2a0e",
+  "focus_records": [
+    {
+      "action_id": "edit",
+      "argument_name": "value",
+      "display_bounds": {
+        "height": 480,
+        "width": 640,
+        "x": 0,
+        "y": 0
+      },
+      "face_id": "f28bd38d85c83331c07aaf19bccdad6e09ad376cdc92e11426e17c2b1ab0829b",
+      "face_revision": 1,
+      "hit_bounds": {
+        "height": 36,
+        "width": 602,
+        "x": 26,
+        "y": 351
+      },
+      "page": 1,
+      "pages": 1,
+      "schema": "conduit.creche-focus/v1",
+      "show_id": "show/380b9baac97778a60194cc446612d80b8694620f0bfd65edf9701ba91783e7d7"
+    }
+  ],
+  "proof_class": "hosted CPU owner-key/disposition/preparation tests only; no owner network/guest"
+}

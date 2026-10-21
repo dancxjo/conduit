@@ -1,0 +1,86 @@
+{
+  "parent": "d4f3681e2c6c1c81df5a2fa0d0e33150146caee6",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 11684,
+      "sha256": "5696d019f36c38799cdd7f8f2553fb299c9b2af91cdd760f0840cdf16bd0ee7a",
+      "mode": "100644",
+      "blob": "6b50801f4c5f11af389850b711f3dde9fb8f488a"
+    },
+    {
+      "source": "work/5628-owner-proof-driver-seam.md",
+      "tree_path": "task-6038/work/5628-owner-proof-driver-seam.md",
+      "bytes": 6266,
+      "sha256": "26b548ba170fc3cfa7aca1d5f3ced06d6bca72a6d38e700c43a7fafb216ef100",
+      "mode": "100644",
+      "blob": "cf955bf9d2c04961d3dc3534c5952952e037996d"
+    },
+    {
+      "source": "work/5628-owner-look-qmp.py",
+      "tree_path": "task-6038/work/5628-owner-look-qmp.py",
+      "bytes": 19468,
+      "sha256": "e59a8834c4a458c57adb54a8ce92cebad299c529b2e0e70dc05ff99e18acbf8c",
+      "mode": "100644",
+      "blob": "0479330b65dae682ac22df9cacc13ca4190d8491"
+    },
+    {
+      "source": "work/5628-owner-look-qmp-audit.md",
+      "tree_path": "task-6038/work/5628-owner-look-qmp-audit.md",
+      "bytes": 4108,
+      "sha256": "56c344a4e4670a1445622ffd6c1e1b265cd19ea4d66d2b449abbb5ef54712a68",
+      "mode": "100644",
+      "blob": "1c89713d730fc8f5db70d7191dec1175e8d6fce8"
+    },
+    {
+      "source": "work/5628-owner-look-qmp-selftest.json",
+      "tree_path": "task-6038/work/5628-owner-look-qmp-selftest.json",
+      "bytes": 734,
+      "sha256": "621815087649ebb5900c460993610fbf0af44e58c214822b348dda53cab67e10",
+      "mode": "100644",
+      "blob": "0d1cbc9384adcf6c2aff0a8e1826c89a39147a7a"
+    },
+    {
+      "source": "outputs/5628-selected-look-ba44c5cb3/receipt.json",
+      "tree_path": "task-6038/outputs/5628-selected-look-ba44c5cb3/receipt.json",
+      "bytes": 883,
+      "sha256": "161ef8eff8fac4d453d83ec1c2827b2a589304084f0bbb864649a91081f8f966",
+      "mode": "100644",
+      "blob": "54f610518748bbb5d9012b810adb708f50896ec3"
+    },
+    {
+      "source": "outputs/5628-selected-look-ba44c5cb3/selection.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-ba44c5cb3/selection.log",
+      "bytes": 1143,
+      "sha256": "32a22e1783ede103bb61fe79b33dca593355d03584f9a20fa9db272652cf2a0e",
+      "mode": "100644",
+      "blob": "3f20dc6f3686c119be64d60652d31fe7f30f6258"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/receipt.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/receipt.json",
+      "bytes": 435,
+      "sha256": "21e861d2ab2807d6b64efd3b98adb82167e67303da8d4e2386fa99861de4e0aa",
+      "mode": "100644",
+      "blob": "0033b247e134da4741434c5a73697d2f4f924418"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/qemu-displays.log",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/qemu-displays.log",
+      "bytes": 317,
+      "sha256": "fd932fac76677eadbdc336958c089e9fb5e57b68a4e3830af36dcce469d2b1a4",
+      "mode": "100644",
+      "blob": "9ced32514a0db94bab02c7022d392adbb859eef9"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/x-display.log",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/x-display.log",
+      "bytes": 83616,
+      "sha256": "c164be2fd09ec3d1e7e3eb2293ddf758aee2868ce6b77e8b9709da1a29f8e0b8",
+      "mode": "100644",
+      "blob": "6dbaf69d7c602e8e4d29338bec66c6587d48ac72"
+    }
+  ]
+}

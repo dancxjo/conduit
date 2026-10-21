@@ -1,0 +1,12 @@
+{
+  "host": "forebrain",
+  "virtual_x_server_smoke": "xdpyinfo via owned xvfb-run passed at1600x1200",
+  "qemu_gtk_available": true,
+  "physical_display": false,
+  "owner_state_or_invitation_created": false,
+  "guest_launched": false,
+  "files": {
+    "x-display.log": "c164be2fd09ec3d1e7e3eb2293ddf758aee2868ce6b77e8b9709da1a29f8e0b8",
+    "qemu-displays.log": "fd932fac76677eadbdc336958c089e9fb5e57b68a4e3830af36dcce469d2b1a4"
+  }
+}
