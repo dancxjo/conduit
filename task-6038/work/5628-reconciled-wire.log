@@ -1,0 +1,16 @@
+✔ canonical Rust Look preserves paint and independent modality parameters (3.453813ms)
+✔ retired theme, altered type, truncation, trailing data and oversize refuse (2.028968ms)
+✔ Source metric and version bounds cannot be bypassed with canonical type bytes (1.81035ms)
+✔ foreign visual identity and injected semantic fields refuse (0.913302ms)
+✔ Look field identities cannot hide a leading BOM (0.389676ms)
+✔ Look identity text preserves leading BOM instead of creating an alias (0.387763ms)
+✔ Look byte admission refuses coercion and checks bounds before conversion (3.408674ms)
+✔ historical v1 Look wire refuses instead of acquiring implicit typography (0.241299ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.016743

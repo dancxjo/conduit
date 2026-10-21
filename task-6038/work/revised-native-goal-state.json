@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "reconciledSelectedLookFocusedNativeTestRunning",
+  "current_stage": "reconciled253WorkspaceAndNormalProductBuildRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -259,6 +259,12 @@
     "reconciled_origin_verified": true,
     "focused_native_session": 43507,
     "fmt": "passed",
-    "native_proof": "running; not acceptance"
+    "native_proof": "running; not acceptance",
+    "focused_native": "6passed/0failed/0ignored/1237filtered",
+    "workspace_session": 16467,
+    "product_build_session": 53194,
+    "wire": "8passed/0failed",
+    "selected_cache_owner": "native_ci_validation",
+    "product_cache_owner": "root/native-panels-host-target"
   }
 }

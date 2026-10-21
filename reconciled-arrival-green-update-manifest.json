@@ -1,0 +1,46 @@
+{
+  "parent": "1246fb0422914493612f620fef4b0ad237b58395",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/workspace-5628-reconciled-253dcb985.py",
+      "tree_path": "task-6038/work/workspace-5628-reconciled-253dcb985.py",
+      "bytes": 2736,
+      "sha256": "88e691d1248bdbbc3d64cf1cb0b6ac54505c56e1040d06840c4ea4f3d6f3b138",
+      "mode": "100644",
+      "blob": "80de04f488bee0c6491ad12dc97852e4fe10fec3"
+    },
+    {
+      "source": "work/5628-reconciled-wire.log",
+      "tree_path": "task-6038/work/5628-reconciled-wire.log",
+      "bytes": 799,
+      "sha256": "7c143840fb763f941d48ce2093f6c566982d1db1a6cbdf0a58808a03e7d7397a",
+      "mode": "100644",
+      "blob": "38184e21d0e315df9afd33b7eb30722f0ded03b0"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/arrival-focused.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/arrival-focused.json",
+      "bytes": 447,
+      "sha256": "21c4e97876e42fb04cb9c54e5bdfb012647400b20c7e8aed242caecf9e8c4098",
+      "mode": "100644",
+      "blob": "7c875cc26448e5bed1276890c4de48209eca40b7"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/arrival-focused.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/arrival-focused.log",
+      "bytes": 151603,
+      "sha256": "f64dbddca7cc664da194c15696d39722b90b788e0cf6aa06b55e9773ee48160f",
+      "mode": "100644",
+      "blob": "441734bcc7e885adea405e96abe992c130239638"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 12234,
+      "sha256": "9b2468028e05f3c88cf5bc956d10d5fb94ee32a49868d978f7c1eecd1d0a595f",
+      "mode": "100644",
+      "blob": "15a51499a38332607cebe5865088edba3d3b64a8"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "tree": "94ba159f74a6a1bac2443ad70bc0794d970ac4a4",
+  "passed": 6,
+  "failed": 0,
+  "ignored": 0,
+  "filtered": 1237,
+  "log_sha256": "f64dbddca7cc664da194c15696d39722b90b788e0cf6aa06b55e9773ee48160f",
+  "boundary": "Existing root-owned PID2850181 terminated; actual log successful. Test began before final merge commit on same Rust tree, with doc-only commit timing; no guest proof."
+}
