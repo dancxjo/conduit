@@ -1,62 +1,34 @@
 //! Portable checked focus/disclosure for exact Gear, Port and Cord subjects.
 //! All subjects remain reachable even when their geometry is omitted or off-page.
 use super::*;
-use alloc::vec;
 use conduit_face::{
-    FaceAspect, FaceCursor, FaceDepth, FaceNavigation, FacePlace, FaceRole, NavigationAspect,
-    NavigationOperation, NavigationPlace, NavigationState,
+    FaceCursor, FaceDepth, FaceNavigation, FaceRole, NavigationOperation, NavigationState,
 };
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+use patchbay_application::PatchbayNavigationProjection;
 
 pub(super) struct GraphReading {
-    navigation: FaceNavigation,
-    cursor: FaceCursor,
+    bundle: PatchbayNavigationProjection,
     pub active: bool,
     pub diagram_page: usize,
 }
 
 impl GraphReading {
     pub fn prepare(face: &Face) -> Result<Option<Self>, FaceSceneError> {
-        let subjects: Vec<_> = face
-            .subjects
-            .iter()
-            .filter(|subject| {
-                matches!(
-                    subject.role,
-                    FaceRole::Gear | FaceRole::Port | FaceRole::Cord
-                )
-            })
-            .map(|subject| subject.identity.clone())
-            .collect();
-        let Some(root) = subjects.first() else {
+        if !face.subjects.iter().any(|subject| {
+            matches!(
+                subject.role,
+                FaceRole::Gear | FaceRole::Port | FaceRole::Cord
+            )
+        }) {
             return Ok(None);
-        };
-        let navigation = FaceNavigation::new(
-            face,
-            vec![NavigationPlace {
-                place: FacePlace::Program,
-                root_subject: root.clone(),
-                name: "Structure".into(),
-                aspects: vec![NavigationAspect {
-                    aspect: FaceAspect::Structure,
-                    focusable_subjects: subjects,
-                }],
-            }],
-            vec![],
-        )
-        .map_err(|_| FaceSceneError::InvalidFace)?;
-        let cursor = FaceCursor {
-            face: face.identity.clone(),
-            revision: face.revision,
-            navigation: navigation.identity.clone(),
-            place: FacePlace::Program,
-            aspect: FaceAspect::Structure,
-            focus: None,
-            depth: FaceDepth::Primary,
-        };
+        }
+        let mut bundle = PatchbayNavigationProjection::for_graph(face)
+            .map_err(|_| FaceSceneError::InvalidFace)?;
+        // No local reading target is selected until the first navigation input.
+        bundle.cursor.focus = None;
         Ok(Some(Self {
-            navigation,
-            cursor,
+            bundle,
             active: false,
             diagram_page: 0,
         }))
@@ -65,24 +37,26 @@ impl GraphReading {
     fn focus(&mut self, face: &Face, identity: &str) -> Result<(), FaceSceneError> {
         // Each local selection is one checked operation. Do not accumulate a
         // hidden 64-entry history that would prevent traversing a larger Face.
-        let mut state = NavigationState::new(&self.navigation, self.cursor.clone(), 1)
-            .map_err(|_| FaceSceneError::StaleFace)?;
+        let mut state =
+            NavigationState::new(&self.bundle.navigation, self.bundle.cursor.clone(), 1)
+                .map_err(|_| FaceSceneError::StaleFace)?;
         state
             .navigate(
                 face,
-                &self.navigation,
+                &self.bundle.navigation,
                 face.revision,
-                NavigationOperation::FocusAndDisclose(identity.into(), FaceDepth::Detail),
+                NavigationOperation::FocusAndDisclose(identity.into(), FaceDepth::Exact),
             )
             .map_err(|_| FaceSceneError::UnknownControl)?;
-        self.cursor = state.cursor().clone();
+        self.bundle.cursor = state.cursor().clone();
         self.active = true;
         Ok(())
     }
 
     fn adjacent(&self, forward: bool) -> Option<String> {
-        let subjects = &self.navigation.places[0].aspects[0].focusable_subjects;
+        let subjects = &self.bundle.navigation.places[0].aspects[0].focusable_subjects;
         let current = self
+            .bundle
             .cursor
             .focus
             .as_ref()
@@ -101,7 +75,13 @@ impl NativeFaceScene {
     pub fn graph_navigation(&self) -> Option<(&FaceNavigation, &FaceCursor)> {
         self.graph_reading
             .as_ref()
-            .map(|reading| (&reading.navigation, &reading.cursor))
+            .map(|reading| (&reading.bundle.navigation, &reading.bundle.cursor))
+    }
+
+    /// Same serializable bundle accepted by the browser workbench and existing
+    /// render_linear_navigation; no native positions enter this description.
+    pub fn graph_projection(&self) -> Option<&PatchbayNavigationProjection> {
+        self.graph_reading.as_ref().map(|reading| &reading.bundle)
     }
 
     /// Pure reading: no editable graph operation or producer action is invented.
@@ -202,7 +182,8 @@ impl NativeFaceScene {
                     && index
                         .and_then(|index| self.face.subjects.get(index))
                         .is_some_and(|subject| {
-                            reading.cursor.focus.as_deref() == Some(subject.identity.as_str())
+                            reading.bundle.cursor.focus.as_deref()
+                                == Some(subject.identity.as_str())
                         })
             })
     }

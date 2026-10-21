@@ -28,11 +28,15 @@ off-page subjects, through the existing checked FaceNavigation FocusAndDisclose
 operation. Details retains complete source facts and marks the selected subject.
 Escape returns to the originating diagram page; Enter on a reading target does
 not Invoke. Existing Show/Face checks and pending-draft refusal precede changes.
-The exposed navigation/cursor can be consumed by existing portable observation
-and linear projection paths; actual cross-Mask comparison and QEMU acceptance
-remain outstanding.
+Native now consumes `PatchbayNavigationProjection::for_graph`, a shared
+structure reader built with the existing Patchbay navigation/membership machinery.
+It exposes the complete serializable navigation/projection/cursor bundle accepted
+by the browser workbench and `render_linear_navigation`. Focus discloses Exact
+depth, retaining endpoint IDs and provenance in those projections. Native geometry
+never defines membership. Actual cross-Mask comparison and QEMU acceptance remain
+outstanding.
 
-Read-only review found no blocking defect. Formatting and one compile-only check
+Read-only review found no blocking defect. Formatting and compile-only checks (the shared-projection update took 6 seconds)
 are the local verification scope; broad tests and product proof are deferred.
 
 ## Coordination

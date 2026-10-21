@@ -19,6 +19,43 @@ pub struct PatchbayNavigationProjection {
 }
 
 impl PatchbayNavigationProjection {
+    /// A structure reader over the exact graph subjects of any Face. Native,
+    /// browser and linear readers can share this bundle without sharing geometry.
+    /// Root identity and focus order come directly from the retained Face.
+    pub fn for_graph(face: &Face) -> Result<Self, String> {
+        face.validate()
+            .map_err(|error| format!("invalid graph Face: {error:?}"))?;
+        let subjects: Vec<_> = face
+            .subjects
+            .iter()
+            .filter(|subject| {
+                matches!(
+                    subject.role,
+                    FaceRole::Gear | FaceRole::Port | FaceRole::Cord
+                )
+            })
+            .map(|subject| subject.identity.clone())
+            .collect();
+        let root = subjects
+            .first()
+            .cloned()
+            .ok_or_else(|| "Face has no graph subjects".to_owned())?;
+        Self::build(
+            face,
+            vec![NavigationPlace {
+                place: FacePlace::Program,
+                root_subject: root.clone(),
+                name: "Structure".into(),
+                aspects: vec![NavigationAspect {
+                    aspect: FaceAspect::Structure,
+                    focusable_subjects: subjects,
+                }],
+            }],
+            FacePlace::Program,
+            root,
+        )
+    }
+
     pub fn for_zero_body(face: &Face, selected_plot: bool) -> Result<Self, String> {
         let entrance_root = face
             .properties
