@@ -56,6 +56,8 @@ pub enum CheckSuite {
     SpeechIpa,
     /// Prove finite categorical request custody, kernel ACKs and retained Sign capacity.
     CategoricalRuntime,
+    /// Validate exact graphical privilege inventory associations and proof boundaries.
+    PrivilegeInventory,
     /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
     ModelInference,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
