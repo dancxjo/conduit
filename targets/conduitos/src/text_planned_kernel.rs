@@ -1,13 +1,18 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use crate::text_kernel_backs::{FaceBack, LiteralBack, LiteralState, PlannedBack, UpperBack};
 use conduit_core::{ConfigurationValue, PlanFragment};
 #[cfg(test)]
 use conduit_kernel::RequestId;
 use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
-    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, NodeId, ValueRef,
+    scheduler::{HostCallRequest, SchedulerError, SchedulerStatus},
+};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_kernel::{
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, SignSink,
+    ValueStorage, scheduler::FixedScheduler,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 

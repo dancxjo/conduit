@@ -80,7 +80,7 @@ impl Scheduler {
         }
         Ok(result)
     }
-    fn refresh_stats(
+    pub(super) fn refresh_stats(
         &mut self,
         request: Request,
         response: Response,
