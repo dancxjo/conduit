@@ -44,7 +44,7 @@ pub(super) fn facts(
 impl FrontDoor {
     // An uninstalled owner is healthy before the first Show. A failed or busy
     // owner cannot authorize cached workspace views or a new actionable Face.
-    fn workspace_mask_healthy(&self) -> bool {
+    pub(super) fn workspace_mask_healthy(&self) -> bool {
         self.workspace_mask
             .try_borrow()
             .is_ok_and(|owner| !owner.is_failed())
