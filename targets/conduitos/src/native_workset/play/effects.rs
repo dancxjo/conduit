@@ -157,8 +157,9 @@ impl NativeWorksetPlay {
                 if authority_request.is_some() && self.application_requests[plot].is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
+                self.output(request, Some(&view))?;
                 self.application_requests[plot] = authority_request;
-                self.output(request, Some(&view))
+                Ok(())
             }
             Effect::ApplicationFace => {
                 let view = conduit_face::ApplicationView::decode(input)
@@ -173,6 +174,18 @@ impl NativeWorksetPlay {
         }
     }
     pub(super) fn output(
+        &mut self,
+        request: HostCallRequest,
+        bytes: Option<&[u8]>,
+    ) -> Result<(), PlayRefusal> {
+        let result = self.output_inner(request, bytes);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.fence_runtime_failure();
+        }
+        result
+    }
+    fn output_inner(
         &mut self,
         request: HostCallRequest,
         bytes: Option<&[u8]>,
@@ -220,7 +233,8 @@ impl NativeWorksetPlay {
         code: FailureCode,
         detail: u16,
     ) -> Result<(), PlayRefusal> {
-        self.scheduler
+        let result = self
+            .scheduler
             .complete_host_call(
                 request.node,
                 request.request,
@@ -230,7 +244,12 @@ impl NativeWorksetPlay {
                     failure: Some(Failure { code, detail }),
                 },
             )
-            .map_err(|_| PlayRefusal::Kernel)
+            .map_err(|_| PlayRefusal::Kernel);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.fence_runtime_failure();
+        }
+        result
     }
 
     pub fn input_lost(&mut self) -> Result<(), PlayRefusal> {

@@ -1,11 +1,6 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
-use crate::keyboard_text_backs::{ApplicationBack, FaceBack, KeyboardBack, StreamTransformBack};
-use alloc::vec::Vec;
-use conduit_kernel::{
-    FixedHostCallBindings, FixedRoutes, ValueStorage,
-    scheduler::{CordSpec, NodeSpec},
-};
+use conduitos_runtime_core::admission::{Admission, BackKind};
 
 pub(super) fn prepare(
     prepared: &PreparedNativeWorkset,
@@ -34,15 +29,13 @@ fn prepare_inner(
     {
         return Err(WorksetRefusal::Kernel);
     }
-    let mut values =
-        FixedValueStore::<10, 3072>::new(24_576).map_err(|_| WorksetRefusal::Kernel)?;
-    let empty = values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?;
+    let mut admission = Admission::new(prepared.lowered.nodes, prepared.lowered.cords);
     let mut bindings = [None; NODES];
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut editors = core::array::from_fn(|_| None);
     let mut keymaps = core::array::from_fn(|_| PreparedKeymap::default_layout());
     let mut admitted_editors = [false; PLOTS];
-    let mut operations = Vec::with_capacity(NODES);
+    let mut operation_count = 0;
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
         if part.identity.plan_id != fragment.plan_id
@@ -53,7 +46,7 @@ fn prepare_inner(
             return Err(WorksetRefusal::Plan);
         }
         for node in &part.nodes {
-            if usize::from(node.node.0) != operations.len() {
+            if usize::from(node.node.0) != operation_count {
                 return Err(WorksetRefusal::Lowering);
             }
             let placement = fragment
@@ -62,40 +55,18 @@ fn prepare_inner(
                 .find(|placement| placement.placement_id == node.placement_id)
                 .ok_or(WorksetRefusal::Plan)?;
             let (effect, operation) = match placement.implementation_id.as_str() {
-                super::super::keyboard_delivery::IMPLEMENTATION => (
-                    Effect::Keyboard,
-                    PlannedBack::Keyboard(KeyboardBack {
-                        empty,
-                        pending: None,
-                        next: 0,
-                        maximum: None,
-                    }),
-                ),
-                super::super::application_delivery::EVENT_IMPLEMENTATION => (
-                    Effect::ApplicationEvent,
-                    PlannedBack::Keyboard(KeyboardBack {
-                        empty,
-                        pending: None,
-                        next: 0,
-                        maximum: None,
-                    }),
-                ),
-                super::super::application_delivery::STATE_IMPLEMENTATION => (
-                    Effect::Application,
-                    PlannedBack::Application(ApplicationBack {
-                        empty: values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
-                        pending: None,
-                        next: 0,
-                        initial: true,
-                    }),
-                ),
-                super::super::application_delivery::FACE_IMPLEMENTATION => (
-                    Effect::ApplicationFace,
-                    PlannedBack::Face(FaceBack {
-                        pending: None,
-                        next: 0,
-                    }),
-                ),
+                super::super::keyboard_delivery::IMPLEMENTATION => {
+                    (Effect::Keyboard, BackKind::Keyboard)
+                }
+                super::super::application_delivery::EVENT_IMPLEMENTATION => {
+                    (Effect::ApplicationEvent, BackKind::Keyboard)
+                }
+                super::super::application_delivery::STATE_IMPLEMENTATION => {
+                    (Effect::Application, BackKind::Application)
+                }
+                super::super::application_delivery::FACE_IMPLEMENTATION => {
+                    (Effect::ApplicationFace, BackKind::Face)
+                }
                 crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => {
                     // This Back has no selected-layout Host Call. Refuse a
                     // wired selection rather than silently keep the startup layout.
@@ -122,15 +93,9 @@ fn prepare_inner(
                     }
                     keymaps[plot] =
                         PreparedKeymap::new(layout).map_err(|_| WorksetRefusal::Plan)?;
-                    (
-                        Effect::Keymap,
-                        PlannedBack::Keymap(StreamTransformBack::new(true)),
-                    )
+                    (Effect::Keymap, BackKind::Keymap)
                 }
-                crate::offer::TEXT_UPPER_IMPLEMENTATION => (
-                    Effect::Upper,
-                    PlannedBack::Upper(StreamTransformBack::new(false)),
-                ),
+                crate::offer::TEXT_UPPER_IMPLEMENTATION => (Effect::Upper, BackKind::Upper),
                 super::super::text_state::TEXT_EDIT_IMPLEMENTATION => {
                     let maximum = placement
                         .configuration
@@ -162,64 +127,45 @@ fn prepare_inner(
                     admitted_editors[plot] = true;
                     // Edit is an ordinary one-input/one-output transform; the
                     // installed host binding gives it retained text semantics.
-                    (
-                        Effect::Edit,
-                        PlannedBack::TextEdit(StreamTransformBack::initially_empty(
-                            values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
-                        )),
-                    )
+                    (Effect::Edit, BackKind::Edit)
                 }
                 crate::offer::TEXT_FACE_IMPLEMENTATION => {
                     if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
                     {
                         return Err(WorksetRefusal::Plan);
                     }
-                    (
-                        Effect::Face,
-                        PlannedBack::Face(FaceBack {
-                            pending: None,
-                            next: 0,
-                        }),
-                    )
+                    (Effect::Face, BackKind::Face)
                 }
                 _ => return Err(WorksetRefusal::Capability),
             };
-            bindings[operations.len()] = Some(Binding {
+            bindings[operation_count] = Some(Binding {
                 plot: plot as u8,
                 effect,
             });
-            operations.push(operation);
+            admission.backs[operation_count] = operation;
+            operation_count += 1;
         }
     }
-    while operations.len() < NODES {
-        operations.push(PlannedBack::Upper(StreamTransformBack::new(false)));
+    if operation_count != usize::from(admission.active_nodes) {
+        return Err(WorksetRefusal::Lowering);
     }
-    let drivers = operations
-        .into_iter()
-        .collect::<Vec<_>>()
-        .try_into()
-        .map_err(|_| WorksetRefusal::Kernel)?;
-    let mut nodes = [NodeSpec {
-        input_cords: [None; PORTS],
-        maximum_step_fuel: 1,
-    }; NODES];
-    for (target, spec) in nodes
+    for (target, spec) in admission
+        .nodes
         .iter_mut()
         .zip(parts.iter().flat_map(|part| &part.node_specs))
     {
         *target = *spec;
     }
-    let mut cords = [CordSpec::inactive(); CORDS];
-    for (target, cord) in cords
+    for (target, cord) in admission
+        .cords
         .iter_mut()
         .zip(parts.iter().flat_map(|part| &part.cords))
     {
         *target = cord.spec;
     }
-    let mut routes = FixedRoutes::<{ NODES * PORTS }, CORDS>::new(PORTS as u16);
     for route in parts.iter().flat_map(|part| &part.routes) {
-        routes
-            .install(
+        admission
+            .install_route(
                 route.source_node,
                 route.source_port,
                 route.range,
@@ -227,29 +173,20 @@ fn prepare_inner(
             )
             .map_err(|_| WorksetRefusal::Kernel)?;
     }
-    routes.seal().map_err(|_| WorksetRefusal::Kernel)?;
-    let mut host_bindings = FixedHostCallBindings::<NODES>::new(1);
     for operation in parts.iter().flat_map(|part| &part.host_calls) {
-        host_bindings
-            .install(operation.node, operation.binding)
-            .map_err(|_| WorksetRefusal::Kernel)?;
+        let destination = admission
+            .bindings
+            .get_mut(usize::from(operation.node.0))
+            .ok_or(WorksetRefusal::Kernel)?;
+        if destination.replace(operation.binding).is_some() {
+            return Err(WorksetRefusal::Kernel);
+        }
     }
-    host_bindings.seal().map_err(|_| WorksetRefusal::Kernel)?;
-    let signs =
-        FixedSignLog::<SIGN_ITEMS>::new((SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32)
-            .map_err(|_| WorksetRefusal::Kernel)?;
-    let scheduler = Scheduler::new_with_active_counts_and_host_calls(
-        usize::from(prepared.lowered.nodes),
-        usize::from(prepared.lowered.cords),
-        nodes,
-        cords,
-        routes,
-        host_bindings,
-        drivers,
-        values,
-        signs,
-    )
-    .map_err(|_| WorksetRefusal::Kernel)?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let scheduler =
+        crate::protected_runtime::Scheduler::new(admission).map_err(|_| WorksetRefusal::Kernel)?;
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    let scheduler = admission.build().map_err(|_| WorksetRefusal::Kernel)?;
     let mut applications = core::array::from_fn(|_| None);
     for (plot, application) in applications.iter_mut().enumerate().take(count) {
         let planned = &prepared.plan.plots[plot];

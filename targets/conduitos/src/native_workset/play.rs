@@ -8,12 +8,11 @@ mod tests;
 
 use super::application_delivery::NativeApplication;
 use super::{AdmittedPlotInput, PreparedNativeWorkset, WorksetRefusal};
-use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
 use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 use conduit_kernel::{
-    FixedSignLog, FixedValueStore, KernelEvent, NodeId,
-    scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
+    NodeId,
+    scheduler::{HostCallRequest, SchedulerStatus},
 };
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_semantic_catalog::BoundedTextState;
@@ -21,21 +20,10 @@ use conduit_semantic_catalog::BoundedTextState;
 const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
 const NODES: usize = 14;
 const CORDS: usize = 10;
-const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-const SIGN_ITEMS: usize = 1024;
-type Scheduler = FixedScheduler<
-    PlannedBack,
-    FixedValueStore<10, 3072>,
-    FixedSignLog<SIGN_ITEMS>,
-    NODES,
-    CORDS,
-    PORTS,
-    CORDS,
-    { NODES * PORTS },
-    CORDS,
-    NODES,
-    NODES,
->;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+type Scheduler = conduitos_runtime_core::Scheduler;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+type Scheduler = crate::protected_runtime::Scheduler;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Effect {
@@ -200,12 +188,27 @@ impl NativeWorksetPlay {
         Ok(())
     }
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
-        conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
+        {
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            {
+                self.scheduler.sign_retention_gap()
+            }
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+            {
+                conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
+            }
+        }
     }
     pub fn take_face(&mut self, plot: usize) -> Option<NativeFace> {
+        if self.cancelled {
+            return None;
+        }
         self.faces.get_mut(plot)?.take()
     }
     pub fn application_view(&self, plot: usize) -> Option<&conduit_face::ApplicationView> {
+        if self.cancelled {
+            return None;
+        }
         self.application_views.get(plot)?.as_ref()
     }
     pub fn patchbay_graph(&self, plot: usize) -> Option<&patchbay_graph::PatchbayGraph> {
@@ -230,12 +233,18 @@ impl NativeWorksetPlay {
         self.drive()
     }
     pub fn take_application_view(&mut self, plot: usize) -> Option<conduit_face::ApplicationView> {
+        if self.cancelled {
+            return None;
+        }
         self.application_views.get_mut(plot)?.take()
     }
     pub fn take_application_request(
         &mut self,
         plot: usize,
     ) -> Option<super::NativeApplicationRequest> {
+        if self.cancelled {
+            return None;
+        }
         self.application_requests.get_mut(plot)?.take()
     }
     pub fn set_mask_topology(
@@ -363,9 +372,22 @@ impl NativeWorksetPlay {
         let result = self.drive_inner();
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if result.is_err() {
-            self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayFailed);
+            self.fence_runtime_failure();
         }
         result
+    }
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    fn fence_runtime_failure(&mut self) {
+        self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayFailed);
+        self.scheduler.abort();
+        self.pending.fill(None);
+        self.application_requests.fill(None);
+        self.held.fill(None);
+        self.pure_results.fill(None);
+        self.active_body_play = None;
+        self.faces.fill(None);
+        self.application_views.fill_with(|| None);
+        self.cancelled = true;
     }
     fn drive_inner(&mut self) -> Result<(), PlayRefusal> {
         for _ in 0..512 {
