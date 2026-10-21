@@ -7,8 +7,9 @@ use std::{
 
 use crate::cli::GlobalOpts;
 
-use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
+use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
 
+mod baseline;
 mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
@@ -17,6 +18,9 @@ mod service_memory;
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+    let paths = Paths::new(ConduitosArch::X86_64)?;
+    let source = super::report::git_head(&paths.root)?;
+    require_clean(&paths.root)?;
     build::execute_ordinary_domain_proof(opts)?
         .artifact_role
         .require(ArtifactRole::ArchitectureProofAppliance)?;
@@ -27,10 +31,19 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "dry-run cannot manufacture processor-enforced evidence",
         ));
     }
-    let paths = Paths::new(ConduitosArch::X86_64)?;
     let serial_path = paths.target.join("ordinary-domain-proof.log");
     let _ = fs::remove_file(&serial_path);
     let serial = format!("file:{}", serial_path.to_string_lossy());
+    let qemu_version = Command::new("qemu-system-x86_64")
+        .arg("--version")
+        .output()
+        .map_err(|e| ConduitosError::refusal("missing-qemu", e.to_string()))?;
+    if !qemu_version.status.success() {
+        return Err(ConduitosError::refusal(
+            "qemu-version-failed",
+            "cannot identify emulator",
+        ));
+    }
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -90,6 +103,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             format!("{status}; {transcript}"),
         ));
     }
+    require_clean(&paths.root)?;
+    if super::report::git_head(&paths.root)? != source {
+        return Err(ConduitosError::refusal(
+            "service-baseline-source-changed",
+            "source changed during proof",
+        ));
+    }
+    let service_baseline = baseline::validate(&transcript)?;
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
@@ -231,13 +252,33 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             ConduitosError::refusal("service-memory-build-record-invalid", error.to_string())
         })?;
     let elf_sha256 = super::report::sha256_file(&paths.kernel)?;
-    if build["elf_sha256"] != elf_sha256 || build["artifact_role"] != "architecture-proof-appliance"
+    if build["elf_sha256"] != elf_sha256
+        || build["artifact_role"] != "architecture-proof-appliance"
+        || build["base_commit"] != source
     {
         return Err(ConduitosError::refusal(
             "service-memory-build-record-mismatch",
             "requires the actual fixture appliance ELF",
         ));
     }
+    let baseline_receipt = serde_json::json!({
+        "schema":"conduit.conduitos/service-baseline-evidence@1",
+        "proof_class":"freestanding-emulator", "fixture":true, "source_commit":source,
+        "machine":{"emulator":"qemu-system-x86_64", "version":String::from_utf8_lossy(&qemu_version.stdout),
+            "model":"q35","cpu":"max","memory_mib":128,"vcpus":1,"accelerator":"qemu-default",
+            "arguments":["-M","q35","-cpu","max","-m","128M","-smp","1","-display","none",
+                "-monitor","none","-serial",serial,"-no-reboot","-net","none","-device",
+                "isa-debug-exit,iobase=0xf4,iosize=0x04","-cdrom",paths.iso,"-boot","d"]},
+        "build":build,"iso_sha256":super::report::sha256_file(&paths.iso)?,
+        "transcript_sha256":super::report::sha256_file(&serial_path)?,"observations":service_baseline
+    });
+    fs::write(
+        paths.target.join("service-baseline-proof.json"),
+        serde_json::to_vec_pretty(&baseline_receipt).map_err(|e| {
+            ConduitosError::refusal("service-baseline-receipt-invalid", e.to_string())
+        })?,
+    )
+    .map_err(|e| ConduitosError::refusal("service-baseline-write-failed", e.to_string()))?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
@@ -321,6 +362,23 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         println!(
             "PROVED checked ordinary text computation and service-memory/compositor guest fixtures in x86_64 CPL3"
         );
+    }
+    Ok(())
+}
+
+fn require_clean(root: &std::path::Path) -> Result<(), ConduitosError> {
+    let status = Command::new("git")
+        .args(["status", "--porcelain", "--untracked-files=normal"])
+        .current_dir(root)
+        .output()
+        .map_err(|e| {
+            ConduitosError::refusal("service-baseline-source-unavailable", e.to_string())
+        })?;
+    if !status.status.success() || !status.stdout.is_empty() {
+        return Err(ConduitosError::refusal(
+            "service-baseline-source-dirty",
+            "baseline requires exact clean committed source",
+        ));
     }
     Ok(())
 }
