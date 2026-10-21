@@ -166,15 +166,24 @@
   "next_look_preparation": {
     "issue": 5628,
     "branch": "codex/5628-selected-typography",
-    "base": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+    "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
     "worktree": "work/selected-typography-look",
-    "state": "sourceFrozenFirstFocusedCompileLive;separateCache;refreshOnto0d553AfterTerminalBeforeWireFixtures;noPRAdmissionBeforeCombinedGreen",
+    "state": "rebasedCleanExportCheckRunning;preservesExternalAAAndSurfaces;noNativeProductProof",
     "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
-    "head": "4f1263b054db98bd1f9d1b6f246332d83dce5071",
+    "head": "f017920f798c435d7dea643d683ec1dd976ed0e6",
     "origin_verified": true,
     "target_cache": "work/selected-typography-host-target",
     "root_review": "work/5628-root-source-review.md",
-    "current_dev_target": "0d5530bc9fd0cfc29f3548ce28e93e620814173b"
+    "current_dev_target": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
+    "remote_branch": "codex/5628-selected-typography-current-dev",
+    "first_face_check": {
+      "source": "4f1263b054db98bd1f9d1b6f246332d83dce5071",
+      "passed": 298,
+      "failed": 1,
+      "ignored": 2,
+      "failure": "expected stale browser type binding",
+      "directory": "outputs/5628-selected-look-4f1263b05"
+    }
   },
   "latest_ci_observation": {
     "time": "2026-10-21T01:21:00Z",

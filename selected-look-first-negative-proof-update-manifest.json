@@ -1,0 +1,38 @@
+{
+  "parent": "3c9349489b0b0f00a890b3919c815cc9687ef4fd",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 9267,
+      "sha256": "f7ba521056e3a78abe367e78015c2c0f1badf5b06e7068cf1eb64a0ec40e5758",
+      "mode": "100644",
+      "blob": "922cc72331bdafa867acfc3d4dbd85debb983989"
+    },
+    {
+      "source": "outputs/5628-selected-look-4f1263b05/receipt.json",
+      "tree_path": "task-6038/outputs/5628-selected-look-4f1263b05/receipt.json",
+      "bytes": 822,
+      "sha256": "d050b6e85b472ed4e35452055104298ffbe00083b6bf5adf336f3dedbbb4a78a",
+      "mode": "100644",
+      "blob": "ec7745adfc9249b581ea32f09e3032e118208d3f"
+    },
+    {
+      "source": "outputs/5628-selected-look-4f1263b05/face-first-compile.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-4f1263b05/face-first-compile.log",
+      "bytes": 111892,
+      "sha256": "321220c3a267d82eb4717d72280b75c1b7323ead14a65a7770a9098bc561344a",
+      "mode": "100644",
+      "blob": "7afb9680363c83e4e9d8fd39829bd1f0453d2a4c"
+    },
+    {
+      "source": "outputs/5628-selected-look-4f1263b05/phosphor-look-v2.bin.type.hex",
+      "tree_path": "task-6038/outputs/5628-selected-look-4f1263b05/phosphor-look-v2.bin.type.hex",
+      "bytes": 10826,
+      "sha256": "411f63abfdcb50bc5bc45e7521a0d11df7fb71c3ed0d57bb7681c0590d3566c5",
+      "mode": "100644",
+      "blob": "cdac93cee6a2e99e906a665b179ddfcbd547795a"
+    }
+  ]
+}
