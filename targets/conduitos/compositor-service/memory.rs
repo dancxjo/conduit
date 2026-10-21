@@ -24,7 +24,7 @@ struct Retained {
     compositor: MaybeUninit<Compositor<'static>>,
 }
 const _: () = assert!(size_of::<Retained>() <= METADATA_BYTES);
-const _: () = assert!(METADATA % align_of::<Retained>() == 0);
+const _: () = assert!(METADATA.is_multiple_of(align_of::<Retained>()));
 const _: () = assert!(MAX_PIXELS * size_of::<u32>() == 8 * 1024 * 1024);
 
 #[derive(Clone, Copy, Debug)]

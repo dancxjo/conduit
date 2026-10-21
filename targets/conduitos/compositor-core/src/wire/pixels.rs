@@ -8,8 +8,10 @@ impl<'a> PixelBytes<'a> {
     }
     pub fn pixels(self) -> impl Iterator<Item = u32> + 'a {
         self.0
-            .chunks_exact(4)
-            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|b| u32::from_le_bytes(*b))
     }
 }
 /// The window direction belongs to one admitted request; Root and service do
@@ -43,7 +45,7 @@ pub fn encode_pixels(window: &mut [u8], offset: u32, pixels: &[u32]) -> Result<(
     let bytes = pixels.len().checked_mul(4).ok_or(CodecError::Length)?;
     let end = start.checked_add(bytes).ok_or(CodecError::Length)?;
     let output = window.get_mut(start..end).ok_or(CodecError::Truncated)?;
-    for (chunk, pixel) in output.chunks_exact_mut(4).zip(pixels) {
+    for (chunk, pixel) in output.as_chunks_mut::<4>().0.iter_mut().zip(pixels) {
         chunk.copy_from_slice(&pixel.to_le_bytes());
     }
     Ok(())

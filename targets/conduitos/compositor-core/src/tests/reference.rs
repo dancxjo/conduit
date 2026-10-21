@@ -46,10 +46,11 @@ pub fn compose(
             if let Some(color) = overlay {
                 pixel = color;
             }
-            if !focused && overlay.is_none() {
-                if let Some((i, _)) = selected {
-                    coverage[i] += 1;
-                }
+            if !focused
+                && overlay.is_none()
+                && let Some((i, _)) = selected
+            {
+                coverage[i] += 1;
             }
             output[y * width + x] = pixel;
         }

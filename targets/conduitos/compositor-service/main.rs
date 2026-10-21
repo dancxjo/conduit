@@ -11,7 +11,8 @@ use conduitos_compositor_core::wire::{self, FrameSpan, Request, Response};
 use conduitos_compositor_core::{Compositor, Error, MAX_SURFACES};
 use core::slice;
 
-/// SAFETY: caller installs precisely the admitted service grants and supplies the
+/// # Safety
+/// The caller installs precisely the admitted service grants and supplies the
 /// fixed exchange pointer in rdi. Each entry starts a fresh stack; persistent
 /// state exists only in private metadata. A fault requires Root quarantine.
 #[unsafe(no_mangle)]
@@ -155,7 +156,7 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
 fn window(offset: u32, pixels: u32) -> Result<(usize, usize), Error> {
     let offset = offset as usize;
     let count = pixels as usize;
-    if offset % 4 != 0
+    if !offset.is_multiple_of(4)
         || count == 0
         || count > conduitos_compositor_core::MAX_CHUNK
         || count

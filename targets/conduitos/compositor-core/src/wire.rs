@@ -59,7 +59,7 @@ mod tests;
 
 fn window_range(offset: u32, pixels: u32) -> Result<(), CodecError> {
     limit(pixels)?;
-    if offset % 4 != 0
+    if !offset.is_multiple_of(4)
         || pixels
             .checked_mul(4)
             .and_then(|bytes| offset.checked_add(bytes))

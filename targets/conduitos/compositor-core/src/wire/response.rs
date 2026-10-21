@@ -38,6 +38,9 @@ impl FrameSpan {
         Ok(())
     }
 }
+// The fixed descriptor is bounded to 16 rectangles. Keep it inline and Copy:
+// indirection would require an allocator in the freestanding message path.
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Response {
     Unit,
