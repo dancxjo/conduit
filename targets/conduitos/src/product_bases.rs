@@ -206,7 +206,7 @@ fn framebuffer_resource(base_id: &str) -> ResourceOffer {
     }
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "ordinary-domain-proof"))]
 pub(crate) fn fixture_surface_provider() -> NativeSurfaceProvider {
     NativeSurfaceProvider {
         entry: BaseProviderEntry {

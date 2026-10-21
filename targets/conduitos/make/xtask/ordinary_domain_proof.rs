@@ -12,6 +12,7 @@ use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report:
 mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
+mod compositor_semantic_recovery;
 mod service_memory;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
@@ -107,6 +108,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     sign["protected_standing_timer"] = timer;
     sign["service_memory_fixture"] = service_memory::validate(&transcript)?;
     let compositor_guest = compositor::validate(&transcript)?;
+    sign["compositor_semantic_recovery_fixture"] =
+        compositor_semantic_recovery::validate(&transcript)?;
     sign["compositor_hostile_fixture"] = compositor_hostile::validate(&transcript)?;
     sign["compositor_copy_recovery_fixture"] = compositor_recovery::validate(&transcript)?;
     if sign["status"] != "completed"
@@ -316,6 +319,31 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     )
     .map_err(|error| {
         ConduitosError::refusal("compositor-hostile-receipt-write-failed", error.to_string())
+    })?;
+    let semantic_recovery_receipt = serde_json::json!({
+        "schema": "conduit.conduitos/compositor-semantic-copy-recovery-evidence@1",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+        "build": build, "observations": sign["compositor_semantic_recovery_fixture"],
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+    });
+    fs::write(
+        paths
+            .target
+            .join("compositor-semantic-copy-recovery-fixture-proof.json"),
+        serde_json::to_vec_pretty(&semantic_recovery_receipt).map_err(|error| {
+            ConduitosError::refusal(
+                "compositor-semantic-copy-recovery-receipt-invalid",
+                error.to_string(),
+            )
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal(
+            "compositor-semantic-copy-recovery-receipt-write-failed",
+            error.to_string(),
+        )
     })?;
     if !opts.quiet && !opts.json {
         println!(

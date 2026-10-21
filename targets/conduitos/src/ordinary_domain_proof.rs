@@ -6,6 +6,8 @@ mod compositor;
 mod compositor_hostile;
 #[cfg(feature = "native-compositor")]
 mod compositor_recovery;
+#[cfg(feature = "native-compositor")]
+mod compositor_semantic_recovery;
 mod gates;
 mod morse;
 mod retained_text;
@@ -62,6 +64,8 @@ pub fn run(record: &boot::BootRecord) -> ! {
     compositor_hostile::run();
     #[cfg(feature = "native-compositor")]
     compositor_recovery::run();
+    #[cfg(feature = "native-compositor")]
+    compositor_semantic_recovery::run();
     timer::run();
     arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
     arch::deterministic_exit(true)
