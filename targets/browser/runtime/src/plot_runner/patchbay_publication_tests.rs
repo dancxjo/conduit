@@ -353,4 +353,104 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     );
     assert!(session.patchbay_interact(input()).is_err());
     assert_eq!(session.patchbay_observation().unwrap(), accepted);
+    let stale_target = publication_target(&session);
+    let refreshed = session.patchbay_refresh(stale_target.clone()).unwrap();
+    assert_ne!(
+        refreshed["publication"]["effect"]["show_id"],
+        effect.show_id
+    );
+    assert_eq!(
+        refreshed["publication"]["dispatch"]["show_id"],
+        effect.show_id
+    );
+    assert_eq!(refreshed["publication"]["interaction_admitted"], false);
+    assert!(session.patchbay_refresh(stale_target).is_err());
+    assert!(session.patchbay_acknowledge(acknowledgement()).is_err());
+    let prepared = session.patchbay_publication.as_ref().unwrap();
+    let fresh_effect = prepared.effect.clone();
+    let fresh_face = prepared.publication.observation().face;
+    let edit = fresh_face
+        .actions
+        .iter()
+        .find(|action| action.identity == EDIT_CURRENT_ACTION_ID)
+        .unwrap()
+        .clone();
+    let node = session.patchbay_face.as_ref().unwrap().owner_node;
+    let Some(application_state::PreparedApplication::Patchbay(owner)) =
+        session.scheduler.applications[usize::from(node.0)].as_deref()
+    else {
+        panic!("owner absent");
+    };
+    let subject = owner
+        .port
+        .graph()
+        .subject_identities()
+        .into_iter()
+        .next()
+        .unwrap()
+        .to_string();
+    session
+        .patchbay_acknowledge(BrowserMaskAcknowledgement {
+            show_id: fresh_effect.show_id.clone(),
+            manifestation_id: fresh_effect.manifestation_id,
+            mask_plan_id: fresh_effect.mask_plan_id,
+            active_play_id: fresh_effect.mask_play.active_play_id,
+            placement_id: fresh_effect.placement_id,
+            face_id: fresh_effect.face_id.clone(),
+            face_revision: fresh_effect.face_revision,
+        })
+        .unwrap();
+    let edited = session
+        .patchbay_interact(BrowserMaskInteraction {
+            show_id: fresh_effect.show_id.clone(),
+            face_id: fresh_effect.face_id,
+            face_revision: fresh_effect.face_revision,
+            action_id: edit.identity,
+            target: edit.target,
+            arguments: vec![FaceInteractionArgument {
+                name: "subject".into(),
+                value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                value: subject.as_bytes().to_vec(),
+            }],
+            sequence: 1,
+        })
+        .unwrap();
+    assert_eq!(
+        edited["pending_owner_request"]["request"]["kind"],
+        "EditCurrent"
+    );
+    let pending = edited["pending_owner_request"].clone();
+    let target = publication_target(&session);
+    let waiting = session.patchbay_refresh(target).unwrap();
+    assert_eq!(waiting["pending_owner_request"], pending);
+    assert_eq!(
+        waiting["publication"]["dispatch"]["show_id"],
+        fresh_effect.show_id
+    );
+    assert!(!session
+        .patchbay_publication
+        .as_ref()
+        .unwrap()
+        .publication
+        .observation()
+        .face
+        .actions
+        .iter()
+        .any(|action| action.identity.starts_with("patchbay.")
+            && action.availability == FaceActionAvailability::Available));
+    assert!(session.patchbay_publication.as_ref().unwrap().publication.observation().face.actions.iter()
+        .filter(|action| action.identity.starts_with("patchbay."))
+        .all(|action| matches!(&action.availability, FaceActionAvailability::Unavailable { reason_code, .. }
+            if reason_code == "patchbay-owner-request-pending")));
+}
+
+fn publication_target(session: &TourSession) -> super::super::patchbay_commands::PublicationTarget {
+    let effect = &session.patchbay_publication.as_ref().unwrap().effect;
+    super::super::patchbay_commands::PublicationTarget {
+        body_plan_id: session.patchbay_face.as_ref().unwrap().plan.plan_id.clone(),
+        active_play_id: session.active_play_id.clone(),
+        show_id: effect.show_id.clone(),
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
+    }
 }

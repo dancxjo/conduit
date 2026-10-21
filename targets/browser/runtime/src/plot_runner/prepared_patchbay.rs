@@ -25,6 +25,24 @@ impl PreparedPatchbay {
         }
     }
 
+    /// Source action meaning plus this retained owner's actual delivery pressure.
+    pub(super) fn canonical_face_fragment(
+        &self,
+        basis: conduit_face::FaceContributionBasis,
+        body: &conduit_body::BodyId,
+    ) -> Result<conduit_face::FaceFragment, patchbay_application::PatchbayFaceProjectionError> {
+        let mut fragment = self.port.face_fragment(basis, body, true)?;
+        if self.pending.is_some() {
+            for action in &mut fragment.actions {
+                action.availability = conduit_face::FaceActionAvailability::Unavailable {
+                    reason_code: "patchbay-owner-request-pending".into(),
+                    explanation: "A prior owner request awaits disposition.".into(),
+                };
+            }
+        }
+        Ok(fragment)
+    }
+
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
         if let Some(pending) = &self.pending {
             if !input.is_empty() {

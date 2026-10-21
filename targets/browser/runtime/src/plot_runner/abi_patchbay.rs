@@ -100,3 +100,8 @@ pub extern "C" fn conduit_browser_patchbay_acknowledge(length: usize) -> i32 {
 pub extern "C" fn conduit_browser_patchbay_interact(length: usize) -> i32 {
     canonical_command(length, |session, input| session.patchbay_interact(input))
 }
+
+#[no_mangle]
+pub extern "C" fn conduit_browser_patchbay_refresh(length: usize) -> i32 {
+    canonical_command(length, |session, input| session.patchbay_refresh(input))
+}

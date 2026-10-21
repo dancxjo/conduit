@@ -1120,3 +1120,34 @@ this publication through its actual Host UI. Fresh-Show preparation after the
 closing turn, complete Host-memory admission, legacy adapter retirement and
 native Edit fulfillment remain unfinished. No production enactment or closure
 claim follows from the new Rust/ABI path.
+
+## Explicit fresh-Show replacement after a closing turn (#6201)
+
+Added a bounded refresh entrance scoped to the current Body Plan, active Play,
+Show, Face and revision. It prepares a successor from current authoritative owner
+state with a checked next sequence, holding both publications' value leases,
+then revokes/retires the old turn before replacing it. No owner command is replayed.
+Stale replacement targets refuse before preparation; the new Show requires its
+own genuine Host acknowledgement. Replacement preparation does not reseal Plans.
+
+The latest dispatch receipt transfers without its request payload being cloned,
+and retains its original Show/Face/revision beside the outcome. Observation can
+therefore distinguish a prior accepted command from a newly prepared unacted Show.
+This is one bounded latest receipt, not durable history or evidence that an
+Editor/Mask-change effect was fulfilled. Pending requests remain in the existing
+owner slot. A fresh pending view retains Source action contracts but marks them
+unavailable specifically for owner-request pressure, rather than pretending the
+return route is absent; Source values and request state are unchanged.
+
+The focused resident command CPU case passes: selection, explicit replacement,
+stale target/old acknowledgement refusal, new acknowledgement, typed Edit through
+the second Show, and another replacement while preserving the pending Edit and
+its original dispatch scope. Initial compilation found a borrowed test subject
+spanning a mutable session call; made that client argument owned. An intermediate
+assertion incorrectly expected unavailable contracts to be absent; corrected the
+availability projection/reason and test. Negative logs remain local. No broad
+suite, CI, DOM/QEMU or artifact rebuild ran.
+
+SDK/Host rendering and planner selection, complete Host-memory admission, actual
+Editor/Mask-change fulfillment, legacy adapter retirement and native Edit remain
+unfinished. Host acknowledgement in these CPU cases is a fixture.

@@ -377,3 +377,14 @@ read-only Source snapshot remains separate from displayed Show evidence. CPU
 checks exercise automatic assembly and these command entrances, with fixture
 acknowledgements. SDK/DOM rendering, planner selection, fresh-Show replacement,
 complete Host-memory admission and native Edit remain required #6201 work.
+
+## Fresh publication lifecycle
+
+`conduit_browser_patchbay_refresh` explicitly targets the current owner Plan/Play
+and Show/Face/revision. Successor preparation shares the same leased pool, retires
+the prior route, and requires a fresh acknowledgement. It never replays the prior
+owner command. The latest receipt retains its original presentation identity
+when carried forward; pending owner requests retain their existing slot and
+produce unavailable contracts with a pressure-specific reason. A local command
+case exercises selection followed by a new acknowledged Edit turn. SDK/DOM
+presentation and effect fulfillment remain separate unfinished work.

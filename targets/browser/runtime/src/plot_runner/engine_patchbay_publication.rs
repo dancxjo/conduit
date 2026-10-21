@@ -10,6 +10,8 @@ use conduit_face::FaceContributionBasis;
 pub(in crate::plot_runner) struct PreparedPatchbayPublication {
     pub(in crate::plot_runner) publication: PatchbayPublication,
     pub(in crate::plot_runner) effect: BrowserMaskEffect,
+    pub(in crate::plot_runner) sequence: u64,
+    pub(in crate::plot_runner) previous_dispatch: Option<RetainedPatchbayDispatch>,
 }
 
 pub(in crate::plot_runner) fn prepare_publication(
@@ -49,8 +51,7 @@ pub(in crate::plot_runner) fn prepare_publication(
         required_interaction_context: None,
     };
     let fragment = owner
-        .port
-        .face_fragment(basis.clone(), &context.plan.body_id, true)
+        .canonical_face_fragment(basis.clone(), &context.plan.body_id)
         .map_err(|error| format!("canonical Patchbay Face: {error:?}"))?;
     let face = context.project_fragment(fragment, owner.port.revision())?;
     let (mask, effect) = context.prepare_mask(face, host.clone(), boot.clone(), sequence)?;
@@ -58,6 +59,8 @@ pub(in crate::plot_runner) fn prepare_publication(
     Ok(Some(PreparedPatchbayPublication {
         publication,
         effect,
+        sequence,
+        previous_dispatch: None,
     }))
 }
 
@@ -77,5 +80,42 @@ pub(in crate::plot_runner) fn interact_publication(
             Ok(())
         }
         _ => Err("canonical interaction has no exact prepared Patchbay owner".into()),
+    }
+}
+
+pub(in crate::plot_runner) struct RetainedPatchbayDispatch {
+    pub(in crate::plot_runner) show_id: String,
+    pub(in crate::plot_runner) face_id: String,
+    pub(in crate::plot_runner) face_revision: u64,
+    pub(in crate::plot_runner) receipt: crate::patchbay_ingress::PatchbayIngressDispatch,
+}
+
+impl PreparedPatchbayPublication {
+    pub(in crate::plot_runner) fn dispatch_observation(&self) -> Option<serde_json::Value> {
+        let (show, face, revision, receipt) = if let Some(receipt) = self.publication.receipt() {
+            (
+                &self.effect.show_id,
+                &self.effect.face_id,
+                self.effect.face_revision,
+                receipt,
+            )
+        } else {
+            let retained = self.previous_dispatch.as_ref()?;
+            (
+                &retained.show_id,
+                &retained.face_id,
+                retained.face_revision,
+                &retained.receipt,
+            )
+        };
+        Some(serde_json::json!({
+            "show_id": show, "face_id": face, "face_revision": revision,
+            "ingress_plan_id": receipt.ingress_plan_id,
+            "owner_accepted": receipt.owner_result.is_ok(),
+            "owner_refusal": receipt.owner_result.as_ref().err().map(|error| format!("{error:?}")),
+            "request_delivery": receipt.request_delivery,
+            "transport_completed": receipt.transport_completion.is_ok(),
+            "transport_error": receipt.transport_completion.as_ref().err(),
+        }))
     }
 }

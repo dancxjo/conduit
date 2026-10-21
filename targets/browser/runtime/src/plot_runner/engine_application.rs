@@ -119,4 +119,5 @@ mod publication;
 #[cfg(feature = "creche-surface")]
 pub(in crate::plot_runner) use publication::{
     interact_publication, prepare_publication, PreparedPatchbayPublication,
+    RetainedPatchbayDispatch,
 };

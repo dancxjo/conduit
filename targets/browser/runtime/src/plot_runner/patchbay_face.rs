@@ -143,14 +143,7 @@ impl TourSession {
             "publication": self.patchbay_publication.as_ref().map(|prepared| serde_json::json!({
                 "effect": prepared.effect, "observation": prepared.publication.observation(),
                 "interaction_admitted": interaction_ready,
-                "dispatch": prepared.publication.receipt().map(|receipt| serde_json::json!({
-                    "ingress_plan_id": receipt.ingress_plan_id,
-                    "owner_accepted": receipt.owner_result.is_ok(),
-                    "owner_refusal": receipt.owner_result.as_ref().err().map(|error| format!("{error:?}")),
-                    "request_delivery": receipt.request_delivery,
-                    "transport_completed": receipt.transport_completion.is_ok(),
-                    "transport_error": receipt.transport_completion.as_ref().err(),
-                })),
+                "dispatch": prepared.dispatch_observation(),
             })),
         }))
     }
