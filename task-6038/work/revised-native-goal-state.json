@@ -117,5 +117,16 @@
     "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
     "candidate_status": "terminal_success23:48UTC",
     "browser": "263passed/31specs/onebatch/oneworker/zeroretries"
+  },
+  "visual_reference": {
+    "tracker": 6174,
+    "image_origin": "c8fdc8949a426873364665abd98bf8dc34edf98c",
+    "owners": [
+      5628,
+      6159,
+      5629,
+      5992
+    ],
+    "state": "mapped_and_linked;queued;currentFontPRgateUnchanged"
   }
 }

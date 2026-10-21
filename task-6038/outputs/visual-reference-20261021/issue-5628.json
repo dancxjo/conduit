@@ -1,0 +1,7 @@
+{
+  "number": 5628,
+  "title": "[VisualLook V2] Select two actual visual Looks on one reusable component",
+  "state": "open",
+  "body": "Parent #5366.\n\n## Scope\nProvide bounded compact vs spacious (and independent palette) selection over same Todo/Face component using current Host-admitted expression policy.\n\n## Acceptance\n- [ ] Same checked component/Face IDs and available actions in both.\n- [ ] Missing Look or unsupported feature falls back honestly.\n- [ ] Style resources and selection inspectable.\n\n## Stop line\nDo not smuggle CSS parsing into ConduitOS core.\n\nContract #5368, separation #5364, component #5365. CSS browser implementation #5379 is separate.\n\nOne focused PR should carry needed safety regressions and identify proof class.",
+  "html_url": "https://github.com/dancxjo/conduit/issues/5628"
+}

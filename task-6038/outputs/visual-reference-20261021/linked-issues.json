@@ -1,0 +1,32 @@
+[
+  {
+    "issue": 6159,
+    "url": "https://github.com/dancxjo/conduit/issues/6159",
+    "operation": "append scoped reference"
+  },
+  {
+    "issue": 5628,
+    "url": "https://github.com/dancxjo/conduit/issues/5628",
+    "operation": "append scoped reference"
+  },
+  {
+    "issue": 5629,
+    "url": "https://github.com/dancxjo/conduit/issues/5629",
+    "operation": "append scoped reference"
+  },
+  {
+    "issue": 5994,
+    "url": "https://github.com/dancxjo/conduit/issues/5994#issuecomment-6304906829",
+    "operation": "cross-link comment"
+  },
+  {
+    "issue": 5366,
+    "url": "https://github.com/dancxjo/conduit/issues/5366#issuecomment-6304907009",
+    "operation": "cross-link comment"
+  },
+  {
+    "issue": 5992,
+    "url": "https://github.com/dancxjo/conduit/issues/5992#issuecomment-6304907250",
+    "operation": "cross-link comment"
+  }
+]

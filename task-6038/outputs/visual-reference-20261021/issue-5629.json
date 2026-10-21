@@ -1,0 +1,7 @@
+{
+  "number": 5629,
+  "title": "[VisualLook V3] Prove visual Looks preserve focus, reading order and accessibility",
+  "state": "open",
+  "body": "Parent: #5366. Narrowed after second-pass issue granularity audit.\n\n## Outcome\nExercise two accepted Looks under long/Unicode labels, reduced motion, contrast/forced colors and focus with actual source-linked action traversal and safe fallback. Certified accessibility remains owned by #5367.\n\n## Acceptance\n- [ ] Meaningful action order and focused item remain reachable after Look swap.\n- [ ] Unsupported or unsafe stylistic change refuses or uses trusted fallback.\n- [ ] Actual browser/native profile and test evidence correctly classified.\n\n## Migration coordination\nOne-time Phosphor/ApplicationTheme migration is owned by #5627. #5765 is closed as not planned: no ongoing legacy compatibility tier.\n\nSource, Face/Look/model identity and original #5366 acceptance remain authoritative. Do not duplicate implementation across branches.",
+  "html_url": "https://github.com/dancxjo/conduit/issues/5629"
+}

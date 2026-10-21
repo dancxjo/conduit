@@ -1,0 +1,174 @@
+{
+  "parent": "c8fdc8949a426873364665abd98bf8dc34edf98c",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/visual-reference-20261021/created-issue.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/created-issue.json",
+      "bytes": 4291,
+      "sha256": "416d72953dd9255bf14709c87898659cca714609db090376c49ef0f172e02e72",
+      "mode": "100644",
+      "blob": "26cf22347ea3b228fcb73b4acedef9ca8f44bcb8"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-3164.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-3164.json",
+      "bytes": 2351,
+      "sha256": "acb45fb4725f186be938c18161255a3777c6e64b2543bdba0d3ac404e59146fc",
+      "mode": "100644",
+      "blob": "a5042839edcda4e78bec9d5c8f97d0a8e0583dcd"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5365.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5365.json",
+      "bytes": 7676,
+      "sha256": "475d19f549b66a38cbae8ee280482aba4f2cd5129619f7b66ff62725a7aad2e9",
+      "mode": "100644",
+      "blob": "3d0fbe86394773ae3ad10cb5508bc6d1f6ff37a7"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5366.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5366.json",
+      "bytes": 10779,
+      "sha256": "1545d9a353a3a6f07e3633cce85385b4df289e677260d131026ec4530748eed3",
+      "mode": "100644",
+      "blob": "74124aa732b852e35bf798a4d3e7b2e73fb1e925"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5367.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5367.json",
+      "bytes": 7801,
+      "sha256": "609b178f78ecd5a7233863255dcae242e8c5806822948f9071a4641727ae82d3",
+      "mode": "100644",
+      "blob": "a93a1a0323f5fbfeac679729a15ea841c7a756bd"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5379.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5379.json",
+      "bytes": 5162,
+      "sha256": "7a26ca0102b34f8f847261bdf8f3cff52c5a896ec55cb820a7cd9e92645f1383",
+      "mode": "100644",
+      "blob": "2ce544ba635ef876a0d1d1527b80861f7ef92d4a"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5628-updated.md",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5628-updated.md",
+      "bytes": 1232,
+      "sha256": "5217134d1f87c978603e96f0e21d177907903186d3ac5e02a6ec197dc7dd4b8d",
+      "mode": "100644",
+      "blob": "56151b3b961aedc94c8a17bc8ff91ce66906bd1c"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5628.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5628.json",
+      "bytes": 829,
+      "sha256": "63f10bbafcfb2c496ea8cbe8e77d03f362518670e67fbaec5ec15142e03abba2",
+      "mode": "100644",
+      "blob": "269d363bff08477633294c999e88f4e365977e1e"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5629-updated.md",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5629-updated.md",
+      "bytes": 1339,
+      "sha256": "7461f3e01529c04631f8e336d2b477ddee25654fa15834ac1f392bd676060f1f",
+      "mode": "100644",
+      "blob": "7fb2e7908175bcd442175d4abcd8a7aff5858fb1"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5629.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5629.json",
+      "bytes": 1067,
+      "sha256": "2dd340658e6a70a459459a5812f41d015aa3fa05d7ea2ad957fb8c8bd3a6ad30",
+      "mode": "100644",
+      "blob": "eeb82bb07c1f0f7058bdc5c0ee3e7c4b9fb4323b"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5989.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5989.json",
+      "bytes": 4796,
+      "sha256": "1984b61c08f97901e2b053db8d04654d943ea851b57b22e60d5d70f3588cb543",
+      "mode": "100644",
+      "blob": "e8c686fc4c8452bf555a3fe2d3171c7feaff5cdb"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5990.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5990.json",
+      "bytes": 4091,
+      "sha256": "ef123bc99638a653a13052122983abab2b71a4c94fe857ff1176041383799252",
+      "mode": "100644",
+      "blob": "c6ada6a1f332ad9bb1bcbfc85521118c004efc6b"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5991.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5991.json",
+      "bytes": 4385,
+      "sha256": "b42dc0f7f5d15f5ed5354d39233bbea3034dbc25e4693b5d07671719077fbbd6",
+      "mode": "100644",
+      "blob": "965d480403ca32e30feed6bb4814cc891c78dd28"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5992.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5992.json",
+      "bytes": 7110,
+      "sha256": "26af4566206a0a5a49e7d2a90072e81a7ab9dffca6267e759c5659095ad20a68",
+      "mode": "100644",
+      "blob": "56208105acb4b1214c4481c3f15b09232f1458e6"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-5994.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-5994.json",
+      "bytes": 9374,
+      "sha256": "29389e935cb202ceb1f0d180096ee7ecfb4ba4398f740ccc7860bbacfb0eb726",
+      "mode": "100644",
+      "blob": "9aee6801dffbf6a5a151f9f0868049eb3c37e2bb"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-6159-updated.md",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-6159-updated.md",
+      "bytes": 8568,
+      "sha256": "293f36bc7a2c892b001231c02992245f518564ef10b4b63709403e227b0b1c2e",
+      "mode": "100644",
+      "blob": "3c10aca3d44eae49edafb710dacf44810ec30614"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/issue-6159.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/issue-6159.json",
+      "bytes": 8336,
+      "sha256": "70c552d108c798efd92c453dc2a97ce0c58eb8056a57155d492cf2ec98349d9b",
+      "mode": "100644",
+      "blob": "3673b5223c2b20b2cbde26d59a372a90d19f33fb"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/linked-issues.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/linked-issues.json",
+      "bytes": 852,
+      "sha256": "275406e8bd563c65ca17dcb1d97e12b78b6ee4cbdec7d35c90b90ab3b0664ec3",
+      "mode": "100644",
+      "blob": "d054d9d243f1c5abc6551274dcf8339baaaffdd8"
+    },
+    {
+      "source": "outputs/visual-reference-20261021/reference.json",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/reference.json",
+      "bytes": 316,
+      "sha256": "6bd92f3c67b03768fadccf5587fa180964de76a46c3415dd8afd8d0fefd9b691",
+      "mode": "100644",
+      "blob": "134f1f35b8e9d34718ec69c2690f37fb08991268"
+    },
+    {
+      "source": "work/creche-visual-reference-issue.md",
+      "tree_path": "task-6038/work/creche-visual-reference-issue.md",
+      "bytes": 4150,
+      "sha256": "921ff86ab582a35bce528a71c0fc5434ff8f19b3b1d5cf36cb8ca809f0315fe8",
+      "mode": "100644",
+      "blob": "1ac1d2c82679ab0e551596b20767de1a8c146b47"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 5890,
+      "sha256": "8f87317f2977d7d5168bc3b5ce31cb15b3d9c6f259e175db3fcfe825f0ccb841",
+      "mode": "100644",
+      "blob": "2ab4eb857618be7efa00b7bd8fad285804d2fb6a"
+    }
+  ]
+}
