@@ -121,10 +121,11 @@ impl TutorialScope {
 // Keep the admitted finite payload inline in the shared application wire.
 #[allow(clippy::large_enum_variant)]
 pub enum Command {
-    ProjectGraph {
+    PrepareGraphProjection {
         graph: PatchbayGraph,
         scope: crate::graph_facts::Scope,
     },
+    FinishGraphProjection,
     ProjectTutorial {
         evidence: BodyBiographyEvidence,
         scope: TutorialScope,

@@ -279,26 +279,44 @@ pub fn run() {
                 false,
             )
             .unwrap();
-            Command::ProjectGraph { graph, scope }
+            Command::PrepareGraphProjection { graph, scope }
         });
-        let Reply::GraphFacts { contribution } = exchange(&mut state, &projection, &mut transfer)
+        assert!(matches!(
+            exchange(&mut state, &projection, &mut transfer),
+            Reply::Prepared
+        ));
+        let Reply::GraphFacts { contribution } =
+            exchange(&mut state, &Command::FinishGraphProjection, &mut transfer)
         else {
             panic!("Graph projection reply");
         };
-        let Command::ProjectGraph { scope, .. } = projection else {
+        let Command::PrepareGraphProjection { scope, .. } = projection else {
             unreachable!()
         };
         assert_eq!(contribution.scope, scope);
         assert!(!contribution.subjects.is_empty());
     }
-    // A duplicate initialization after the full retained workset is terminal;
-    // it cannot replace models or leave them usable after an Order refusal.
-    let duplicate = on_caller(|| {
-        data::encode_command(&Command::PrepareInit {
-            manifest: data::InitManifest { slots: [None; 4] },
-        })
-        .unwrap()
+    // A full second compressed graph must refuse at the pending command tag,
+    // without allocating another typed graph beside the retained first query.
+    let pending = on_caller(|| {
+        let graph = targets[3].as_ref().unwrap().graph.clone();
+        let scope = conduitos_application_core::graph_facts::Scope::new(
+            "host/allocator-proof".into(),
+            "boot/allocator-proof".into(),
+            evidence.body_id.clone(),
+            1,
+            &graph,
+            false,
+        )
+        .unwrap();
+        Command::PrepareGraphProjection { graph, scope }
     });
+    assert!(matches!(
+        exchange(&mut state, &pending, &mut transfer),
+        Reply::Prepared
+    ));
+    let duplicate = on_caller(|| data::encode_command(&pending).unwrap());
+    assert!(duplicate.starts_with(b"CAPZ"));
     state
         .execute(
             Request::Begin {
@@ -307,16 +325,18 @@ pub fn run() {
             &mut transfer,
         )
         .unwrap();
-    transfer[..duplicate.len()].copy_from_slice(&duplicate);
-    state
-        .execute(
-            Request::Write {
-                offset: 0,
-                bytes: duplicate.len() as u32,
-            },
-            &mut transfer,
-        )
-        .unwrap();
+    for (index, chunk) in duplicate.chunks(transfer.len()).enumerate() {
+        transfer[..chunk.len()].copy_from_slice(chunk);
+        state
+            .execute(
+                Request::Write {
+                    offset: (index * transfer.len()) as u32,
+                    bytes: chunk.len() as u32,
+                },
+                &mut transfer,
+            )
+            .unwrap();
+    }
     assert_eq!(
         state.execute(Request::Commit, &mut transfer),
         Err(data::Refusal::Order)

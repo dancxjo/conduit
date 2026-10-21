@@ -9,10 +9,14 @@ fn query(
     scope: Scope,
 ) -> Result<Contribution, Refusal> {
     scope.validate(graph)?;
-    let reply = service.command(&Command::ProjectGraph {
+    let prepared = service.command(&Command::PrepareGraphProjection {
         graph: graph.clone(),
         scope: scope.clone(),
     })?;
+    if !matches!(prepared, Reply::Prepared) {
+        return Err(Refusal::Malformed);
+    }
+    let reply = service.command(&Command::FinishGraphProjection)?;
     let Reply::GraphFacts { contribution } = reply else {
         return Err(Refusal::Malformed);
     };
