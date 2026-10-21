@@ -1,0 +1,9 @@
+
+running 4 tests
+test tests::owner_and_native_guest_plan_the_same_observed_surface_offer ... ok
+test configured::tests::creche_checked_roots_select_structure_independently_of_look ... ok
+test configured::tests::native_checked_component_two_looks_and_recipes ... ok
+test configured::tests::selection_axes_reproduce_one_checked_component_in_both_domains ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.37s
+

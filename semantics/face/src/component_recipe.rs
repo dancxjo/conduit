@@ -2,8 +2,8 @@
 //! Look never enters this preparation, so expression changes cannot rearrange
 //! semantics, actions, disclosure, or navigation.
 use crate::{
-    plan_face_utterances, ComponentRecipeInfo, ComponentSubjectSelector, Face, FaceRole,
-    FaceUtterancePlan, FaceUtterancePlanError,
+    ComponentRecipeInfo, ComponentSubjectSelector, Face, FaceRole, FaceUtterancePlan,
+    FaceUtterancePlanError, plan_face_utterances,
 };
 use alloc::{collections::BTreeSet, vec, vec::Vec};
 use conduit_core::StructuredInfoValue;
@@ -278,7 +278,7 @@ pub const COMPONENT_MASK_KIND: &str = "face/component-mask";
 pub const TODO_COMPONENT_MASK_SOURCE: &str = include_str!("../components/todo-mask.conduit");
 
 /// Crèche structure admits its three actual fields and full bounded inventory.
-/// Both roots share one visual expression; selecting structure is not a Look.
+/// Independent finite expression roots retain each checked component structure.
 pub const CRECHE_COMPONENT_MASK_SOURCE: &str = include_str!("../components/creche-mask.conduit");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -311,10 +311,9 @@ pub fn todo_component_mask_root(
     look: ComponentMaskLook,
     recipe: TodoComponentRecipe,
 ) -> &'static str {
-    match (recipe, look) {
-        (TodoComponentRecipe::Flat, ComponentMaskLook::Compact) => "todo-mask-flat-compact",
-        (TodoComponentRecipe::Flat, ComponentMaskLook::Spacious) => "todo-mask-flat-spacious",
-        (TodoComponentRecipe::Grouped, ComponentMaskLook::Compact) => "todo-mask-grouped-compact",
-        (TodoComponentRecipe::Grouped, ComponentMaskLook::Spacious) => "todo-mask-grouped-spacious",
-    }
+    ComponentVisualSelection::from(look).todo_root(recipe)
 }
+
+#[path = "component_recipe/selection.rs"]
+mod selection;
+pub use selection::ComponentVisualSelection;

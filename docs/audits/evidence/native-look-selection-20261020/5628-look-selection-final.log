@@ -1,0 +1,31 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 6.86s
+     Running unittests src/lib.rs (target/debug/deps/conduit_conduitos_mask_offer-cf05294ff99810b4)
+
+running 1 test
+test configured::tests::selection_axes_reproduce_one_checked_component_in_both_domains ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 3.73s
+
+     Running unittests src/lib.rs (target/debug/deps/conduitos-3a4f10f452ab3861)
+
+running 16 tests
+test arch::x86_64::i2c_pci::tests::invalid_selection_never_accesses_configuration_ports ... ok
+test boot::limine::module_tests::missing_module_and_invalid_selection_remain_distinct_without_bootloader_data ... ok
+test arch::xhci_mechanism::completion_inbox::tests::endpoint_selection_never_skips_an_older_wrong_trb_for_a_later_match ... ok
+test boot::modules::tests::selection_borrows_only_the_exact_named_module ... ok
+test domain_serial_scope::tests::current_offer_contract_must_match_the_sealed_selection ... ok
+test native_face_scene::navigation_tests::pointer_selection_survives_keyboard_details_and_return ... ok
+test domain_serial_scope::tests::current_offer_artifact_must_match_the_sealed_selection ... ok
+test native_face_scene::encounter::tests::selection_state_refuses_a_different_face_revision ... ok
+test tour_product::pointer::tests::native_card_gaps_clear_hover_without_changing_selection ... ok
+test native_face_mask::encounter::tests::selection_state_refuses_a_different_producer_host_before_moving_any_scene ... ok
+test front_door::arrival::tests::native_draft_edits_name_and_submits_exact_checked_selection_without_birth ... ok
+test front_door::arrival::tests::selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth ... ok
+test native_workset::eligibility::tests::selection_eligibility_does_not_claim_resource_admission ... ok
+test product_front_door::face_arrival::look_selection::tests::local_selection_keeps_face_and_draft_while_retiring_each_old_show ... ok
+test product_journey::workset_tests::foreground_selection_before_admission_does_not_invent_a_plan_or_play ... ok
+test product_front_door::workspace_input::service_tests::held_release_after_selection_is_observed_without_repainting_the_new_plot ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 1220 filtered out; finished in 46.30s
+
