@@ -1,0 +1,37 @@
+{
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "08a8352297ec35a18138b5e02e958cce5331d395",
+    "elf_sha256": "53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "observations": {
+    "architecture": "x86_64",
+    "dma_isolation": false,
+    "driver_isolation": false,
+    "fixture": true,
+    "hostile_entries": 26,
+    "privilege": "ring3",
+    "production_compositor": false,
+    "proof_class": "freestanding-emulator",
+    "restart_boundary_samples_zero": true,
+    "retained_bytes": 8388608,
+    "schema": "conduit.conduitos/service-memory-fixture@1",
+    "scratch_bytes": 8388608,
+    "status": "completed"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/service-memory-evidence@1",
+  "transcript_sha256": "303d070ef744eb75db14e24e25067005cc3f331621fba8f68e0c95dd9eec2c0a"
+}
