@@ -305,6 +305,13 @@ pub struct FixedConcatenateBack<const LEFT: usize, const RIGHT: usize, const OUT
 impl<const LEFT: usize, const RIGHT: usize, const OUTPUT: usize>
     FixedConcatenateBack<LEFT, RIGHT, OUTPUT>
 {
+    /// Owned codec backing, additional to the concrete Back's inline state.
+    pub fn worker_owned_heap_bytes(&self) -> usize {
+        self.left.allocation_capacity()
+            + self.right.allocation_capacity()
+            + self.output.allocation_capacity()
+    }
+
     pub fn prepare_planned<const PORTS: usize>(
         placement: &PlannedGear,
         fuel: u16,
