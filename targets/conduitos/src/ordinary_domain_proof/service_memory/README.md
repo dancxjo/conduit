@@ -4,7 +4,14 @@ The existing supported `cargo xtask make conduitos ordinary-domain-proof`
 entrance now requires clean committed source and retains
 `service-baseline-proof.json` beside its existing protection receipts. This is
 an architecture proof appliance, not the normal product or a completed #6183
-benchmark. No recorded measurements accompany this implementation yet.
+benchmark. No recorded measurements accompany this implementation yet. See
+[evidence/manifest.json](evidence/manifest.json) for both retained compilation
+failures and their exact sources. The first attempt stopped in existing base
+Crèche code. After merging its reviewed repair, real compilation caught this
+recorder's incorrect assumption that `Serial` implements `fmt::Write`. The
+publication correction uses the existing `FixedText`/`early_write` mechanism;
+that corrected source has **not** been compiled or executed. The mock API
+harness missed this defect and is not freestanding compilation proof.
 
 The fixed recorder admits 20 observations: three trials each of terminal no-op,
 eight-byte uppercase and 256-byte uppercase on fresh and reused service domains,
