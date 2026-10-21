@@ -2,10 +2,10 @@
 mod transport;
 use crate::bounded_websocket::BinaryWebSocketIo;
 use conduitos_network_core::{
+    FRAME_BYTES, HANDSHAKE_BYTES, MAXIMUM_BINARY_MESSAGE_BYTES, WebSocketError as E,
     memory::TRANSFER_BYTES,
     state::encode_initialize,
     wire::{InputKind, OutputKind, Request, Response},
-    WebSocketError as E, FRAME_BYTES, HANDSHAKE_BYTES, MAXIMUM_BINARY_MESSAGE_BYTES,
 };
 use core::marker::PhantomData;
 use embedded_io::{Read, Write};
@@ -100,7 +100,13 @@ impl<'a, S: Read + Write, R: RngCore> BoundedWebSocket<'a, S, R> {
             }
         }
     }
-    fn write_blob(&mut self, response: Response, maximum: usize, error: E) -> Result<(), E> {
+    fn write_blob(
+        &mut self,
+        response: Response,
+        maximum: usize,
+        error: E,
+        after_codec_refusal: bool,
+    ) -> Result<(), E> {
         let Response::Blob {
             kind: OutputKind::WireFrame,
             bytes,
@@ -109,7 +115,12 @@ impl<'a, S: Read + Write, R: RngCore> BoundedWebSocket<'a, S, R> {
         else {
             return Err(E::UnexpectedFrame);
         };
-        if bytes == 0 || bytes as usize > maximum || buffered as usize != self.buffered {
+        let retained_matches = if after_codec_refusal {
+            buffered as usize <= self.buffered
+        } else {
+            buffered as usize == self.buffered
+        };
+        if bytes == 0 || bytes as usize > maximum || !retained_matches {
             return Err(E::UnexpectedFrame);
         }
         let mut wire = [0; FRAME_BYTES];
@@ -120,23 +131,27 @@ impl<'a, S: Read + Write, R: RngCore> BoundedWebSocket<'a, S, R> {
         self.stream.flush().map_err(|_| error)
     }
     pub(crate) fn send_binary(&mut self, payload: &[u8]) -> Result<(), E> {
+        // Caller bounds do not enter or mutate the connection, as in the local codec.
+        if payload.is_empty() || payload.len() > MAXIMUM_BINARY_MESSAGE_BYTES {
+            return Err(E::RequestTooLarge);
+        }
         let result = (|| {
             self.service.live()?;
-            if payload.is_empty() || payload.len() > MAXIMUM_BINARY_MESSAGE_BYTES {
-                return Err(E::RequestTooLarge);
-            }
             let response = self.service.input(InputKind::SendBinary, payload)?;
-            self.write_blob(response, payload.len() + 14, E::FrameWrite)
+            self.write_blob(response, payload.len() + 14, E::FrameWrite, false)
         })();
         if let Err(error) = result {
-            self.service.abort(error);
+            self.service.abort_unless_codec(error);
         }
         result
     }
     pub(crate) fn receive_binary(&mut self, output: &mut [u8]) -> Result<usize, E> {
+        if output.is_empty() || output.len() > MAXIMUM_BINARY_MESSAGE_BYTES {
+            return Err(E::ResponseTooLarge);
+        }
         let result = self.receive(output);
         if let Err(error) = result {
-            self.service.abort(error);
+            self.service.abort_unless_codec(error);
         }
         result
     }
@@ -231,13 +246,16 @@ impl<'a, S: Read + Write, R: RngCore> BoundedWebSocket<'a, S, R> {
         Err(E::ResponseTooLarge)
     }
     pub(crate) fn close(mut self) -> Result<(), E> {
+        let after_codec_refusal = self.service.codec_refused();
         let result = (|| {
-            self.service.live()?;
             let response = self.service.request(Request::Close)?;
-            self.write_blob(response, 14 + 125, E::Close)
+            // A codec refusal can consume bytes before returning its error. Only
+            // Close may use this conservative retained-byte upper bound; no
+            // ordinary receive resumes with an uncertain ledger.
+            self.write_blob(response, 14 + 125, E::Close, after_codec_refusal)
         })();
         if let Err(error) = result {
-            self.service.abort(error);
+            self.service.abort_unless_codec(error);
         }
         result
     }

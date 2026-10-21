@@ -52,9 +52,23 @@ Root retains a finite deadline/poll/step bound around the complete operation;
 Continue is a parser step, not permission for an unbounded Root loop. On any
 transport/descriptor/correlation failure, quarantine rather than reuse stale
 bytes. Root stream EOF/failure maps to the existing HandshakeRead/FrameRead errors
-and terminally releases the connection. Guest codec refusals map exactly to the
-existing WebSocketError variants; Root may still attempt its normal explicit
-close, as the existing enclosing adapter does after an operation error.
+and terminally releases the connection. Local empty/oversized send arguments or
+invalid caller receive-buffer bounds return their existing errors without a
+service entry or connection mutation.
+
+A correlated guest `Refused(WebSocketError)` is accepted only when that exact
+codec operation can produce that error. It fences ordinary send/receive work,
+but Root may perform the existing explicit Close on that same live instance if
+the canonical codec state permits it. A codec error can consume bytes before
+refusing, so the previous retained-byte ledger is then only an upper bound for
+Close; ordinary receiving does not resume with uncertain progress. Close still
+requires a bounded guest-produced frame and Root-owned write/flush, followed by
+normal lease release. This is not automatic retry or reconnection.
+
+Malformed/correlation/backend faults, guest transport Bounds/Order/Capacity
+refusals, unrelated fabricated codec errors, and every Root IO failure remain
+terminal and quarantine immediately. Guest-reported IO errors are never accepted
+as codec refusals: actual stream IO and its failures remain Root-owned.
 
 ## Required memory profile
 
