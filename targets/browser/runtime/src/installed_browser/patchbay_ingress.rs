@@ -1,5 +1,5 @@
 //! Explicit preparation primitive for the canonical Patchbay sink.
-//! Not advertised by the legacy browser profile until its owner route is wired.
+//! Installed by exact resident preparation; absent from the general browser offer.
 use conduit_core::{Back, BackOfferBuilder, CapabilityOffer, HostCallRequirement, PlannedGear};
 use conduit_kernel::scheduler::StepBack;
 

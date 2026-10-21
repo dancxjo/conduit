@@ -361,3 +361,19 @@ interaction without claiming presentation erasure. The composed CPU path uses
 the real scheduler-owned actor and budget and checks parent cancellation.
 Automatic pre-start assembly and complete Sign/kernel/Face/JSON/Host memory
 admission are still required, alongside production presentation and native Edit.
+
+## Automatic preparation and explicit resident entry points
+
+A captured Body-composed Patchbay Mask selector now triggers automatic prepared
+publication assembly against the exact scheduler actor, checked ingress and
+parent value/scratch budget before the first Body effect is polled. An absent
+selector retains legacy behavior; incompatible selected chains refuse. The
+scoped Back is not added to the general browser advertisement.
+
+The session exposes a separate canonical publication observation and bounded
+acknowledgement/interaction ABI commands. Actual current owner dispatch uses the
+bound node; one acknowledged Show consumes one closing canonical input. The
+read-only Source snapshot remains separate from displayed Show evidence. CPU
+checks exercise automatic assembly and these command entrances, with fixture
+acknowledgements. SDK/DOM rendering, planner selection, fresh-Show replacement,
+complete Host-memory admission and native Edit remain required #6201 work.

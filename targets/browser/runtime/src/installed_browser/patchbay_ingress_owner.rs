@@ -20,7 +20,7 @@ pub struct PatchbayIngressDispatch {
     pub transport_completion: Result<(), String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
 pub enum PatchbayRequestDelivery {
     NotRequested,
     Returned,

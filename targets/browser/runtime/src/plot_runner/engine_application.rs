@@ -112,3 +112,11 @@ pub(in crate::plot_runner) fn record_patchbay_disposition(
         _ => Err("exact resident Patchbay owner is not prepared".into()),
     }
 }
+
+#[cfg(feature = "creche-surface")]
+#[path = "engine_patchbay_publication.rs"]
+mod publication;
+#[cfg(feature = "creche-surface")]
+pub(in crate::plot_runner) use publication::{
+    interact_publication, prepare_publication, PreparedPatchbayPublication,
+};

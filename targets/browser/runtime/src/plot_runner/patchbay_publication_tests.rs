@@ -33,8 +33,13 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         active_play_id: play.active_play_id,
         required_interaction_context: None,
     };
-    let (mut publication, effect, face) =
-        publication_for(&request, &basis, &owner.port, budget, 19);
+    let prepared = session
+        .patchbay_publication
+        .take()
+        .expect("Body preparation installed its captured Mask route");
+    let mut publication = prepared.publication;
+    let effect = prepared.effect;
+    let face = publication.observation().face;
     let action = face
         .actions
         .iter()
@@ -289,4 +294,63 @@ fn seal_publication_masks(request: &mut body_start::BodyStartRequest) {
         }],
     )
     .unwrap();
+}
+
+#[test]
+fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() {
+    let source = include_str!("../../../../../plots/patchbay/main.conduit");
+    let mut request = body_start::tests::request_from_sources(&[source]);
+    request.source = source.into();
+    seal_publication_masks(&mut request);
+    let (mut session, _) = body_start::prepare(request).unwrap();
+    let before = session.patchbay_observation().unwrap();
+    assert_eq!(before["publication"]["interaction_admitted"], false);
+    let prepared = session.patchbay_publication.as_ref().unwrap();
+    let effect = prepared.effect.clone();
+    let face = prepared.publication.observation().face;
+    let action = face
+        .actions
+        .iter()
+        .find(|action| action.identity == "patchbay.plot.0")
+        .unwrap()
+        .clone();
+    let input = || BrowserMaskInteraction {
+        show_id: effect.show_id.clone(),
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
+        action_id: action.identity.clone(),
+        target: action.target.clone(),
+        arguments: vec![],
+        sequence: 1,
+    };
+    assert!(session.patchbay_interact(input()).is_err());
+    let acknowledgement = || BrowserMaskAcknowledgement {
+        show_id: effect.show_id.clone(),
+        manifestation_id: effect.manifestation_id.clone(),
+        mask_plan_id: effect.mask_plan_id.clone(),
+        active_play_id: effect.mask_play.active_play_id.clone(),
+        placement_id: effect.placement_id.clone(),
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
+    };
+    let mut stale = acknowledgement();
+    stale.face_revision += 1;
+    assert!(session.patchbay_acknowledge(stale).is_err());
+    let available = session.patchbay_acknowledge(acknowledgement()).unwrap();
+    assert_eq!(available["publication"]["interaction_admitted"], true);
+    let accepted = session.patchbay_interact(input()).unwrap();
+    assert_eq!(accepted["publication"]["dispatch"]["owner_accepted"], true);
+    assert_eq!(
+        accepted["publication"]["dispatch"]["transport_completed"],
+        true
+    );
+    assert_eq!(accepted["publication"]["interaction_admitted"], false);
+    assert_eq!(
+        accepted["face"]["revision"].as_u64(),
+        before["face"]["revision"]
+            .as_u64()
+            .map(|revision| revision + 1)
+    );
+    assert!(session.patchbay_interact(input()).is_err());
+    assert_eq!(session.patchbay_observation().unwrap(), accepted);
 }

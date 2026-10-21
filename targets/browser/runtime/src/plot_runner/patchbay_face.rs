@@ -1,5 +1,5 @@
-//! Read-only canonical observation of the existing resident Patchbay instance.
-//! No application clone, extra scheduler, Mask Show or effect ingress lives here.
+//! Source observation and Body-owned Face projection for the exact resident.
+//! Prepared canonical publication is a separate record with its own Show lifecycle.
 use super::TourSession;
 use conduit_body::{BodyBiographyEvidence, BodyPlan, ResidentPlot, Wake};
 use conduit_face::{
@@ -120,42 +120,38 @@ impl TourSession {
             &context.plan.body_id,
             basis,
         )?;
-        let names = [FaceResidentPlotName {
-            source_document_id: &context.resident.source_document_id,
-            checked_plot_id: &context.resident.checked_plot_id,
-            name: "Patchbay",
-        }];
-        let projected = BodyFace::project_with_names(
-            &context.evidence.body,
-            Some(&context.wake),
-            u64::from(source.revision),
-            FaceContext::ResidentPlot(context.resident.checked_plot_id.clone()),
-            FaceFocus::Contribution {
-                role: FaceContributionRole::Foreground,
-                node_key: None,
-            },
-            vec![FaceContribution::from_face(
-                FaceContributionRole::Foreground,
-                source.fragment,
-            )],
-            FaceNames {
-                body_name: Some(&context.evidence.friendly_name),
-                resident_plots: &names,
-            },
-        )
-        .map_err(|error| format!("Patchbay Body Face refused: {error:?}"))?;
+        let projected = context.project_fragment(source.fragment, source.revision)?;
+        let interaction_ready = self.patchbay_publication.as_ref().is_some_and(|prepared| {
+            prepared.publication.can_submit()
+                && prepared.publication.observation().face.revision == u64::from(source.revision)
+                && source.pending_request.is_none()
+        });
         Ok(serde_json::json!({
             "schema": "conduit.browser/patchbay-observation@1",
             "body_plan_id": context.plan.plan_id,
             "active_play_id": self.active_play_id,
-            "face": projected.face,
+            "face": projected,
             "owner_checked_plot_id": context.resident.checked_plot_id,
             "pending_owner_request": source.pending_request,
             "last_owner_disposition": source.last_disposition,
             "last_input_refusal": source.input_refusal,
             "mask_show": null,
             "interaction_admitted": false,
-            "reason_code": "patchbay-canonical-ingress-not-admitted",
+            "reason_code": if self.patchbay_publication.is_some() {
+                "patchbay-canonical-publication-observed-separately"
+            } else { "patchbay-canonical-ingress-not-admitted" },
+            "publication": self.patchbay_publication.as_ref().map(|prepared| serde_json::json!({
+                "effect": prepared.effect, "observation": prepared.publication.observation(),
+                "interaction_admitted": interaction_ready,
+                "dispatch": prepared.publication.receipt().map(|receipt| serde_json::json!({
+                    "ingress_plan_id": receipt.ingress_plan_id,
+                    "owner_accepted": receipt.owner_result.is_ok(),
+                    "owner_refusal": receipt.owner_result.as_ref().err().map(|error| format!("{error:?}")),
+                    "request_delivery": receipt.request_delivery,
+                    "transport_completed": receipt.transport_completion.is_ok(),
+                    "transport_error": receipt.transport_completion.as_ref().err(),
+                })),
+            })),
         }))
     }
 }
@@ -163,3 +159,75 @@ impl TourSession {
 #[cfg(test)]
 #[path = "patchbay_face_tests.rs"]
 mod tests;
+
+impl PatchbayObservation {
+    pub(super) fn has_composed_mask(&self) -> Result<bool, String> {
+        let selected = self
+            .plan
+            .mask_topologies
+            .iter()
+            .find(|topology| topology.face.plot.as_ref() == Some(&self.resident));
+        if selected.is_some_and(|topology| topology.face.source_placement_id.is_some()) {
+            return Err(
+                "resident Patchbay canonical Face requires a Body-composed Mask selector".into(),
+            );
+        }
+        Ok(selected.is_some())
+    }
+
+    pub(super) fn project_fragment(
+        &self,
+        fragment: conduit_face::FaceFragment,
+        revision: u32,
+    ) -> Result<conduit_face::Face, String> {
+        let names = [FaceResidentPlotName {
+            source_document_id: &self.resident.source_document_id,
+            checked_plot_id: &self.resident.checked_plot_id,
+            name: "Patchbay",
+        }];
+        let projected = BodyFace::project_with_names(
+            &self.evidence.body,
+            Some(&self.wake),
+            u64::from(revision),
+            FaceContext::ResidentPlot(self.resident.checked_plot_id.clone()),
+            FaceFocus::Contribution {
+                role: FaceContributionRole::Foreground,
+                node_key: None,
+            },
+            vec![FaceContribution::from_face(
+                FaceContributionRole::Foreground,
+                fragment,
+            )],
+            FaceNames {
+                body_name: Some(&self.evidence.friendly_name),
+                resident_plots: &names,
+            },
+        )
+        .map_err(|error| format!("Patchbay Body Face refused: {error:?}"))?;
+        Ok(projected.face)
+    }
+
+    pub(super) fn prepare_mask(
+        &self,
+        face: conduit_face::Face,
+        host: conduit_core::HostId,
+        boot: conduit_core::BootId,
+        sequence: u64,
+    ) -> Result<
+        (
+            crate::workspace_mask::BrowserMaskRuntime,
+            crate::workspace_mask::BrowserMaskEffect,
+        ),
+        String,
+    > {
+        crate::workspace_mask::BrowserMaskRuntime::prepare_in_body_plan(
+            self.plan.body_id.clone(),
+            host,
+            boot,
+            face,
+            self.wake.clone(),
+            self.plan.clone(),
+            sequence,
+        )
+    }
+}

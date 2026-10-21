@@ -310,7 +310,9 @@ pub(super) fn prepare(
     )?;
     #[cfg(feature = "creche-surface")]
     let patchbay_face = super::patchbay_face::PatchbayObservation::prepare(
-        &request.plan, &wake_at_start, started_evidence.as_ref(),
+        &request.plan,
+        &wake_at_start,
+        started_evidence.as_ref(),
         &request.foreground_checked_plot_id,
         &lowered.partitions,
     )?;
@@ -328,6 +330,21 @@ pub(super) fn prepare(
             foreground_checked_plot_id: &request.foreground_checked_plot_id,
         }),
     )?;
+    #[cfg(feature = "creche-surface")]
+    let patchbay_publication = patchbay_face
+        .as_ref()
+        .map(|context| {
+            engine::application::prepare_publication(
+                &scheduler,
+                context,
+                &host.host_id,
+                &host.boot_id,
+                &play.active_play_id,
+                request.play_sequence,
+            )
+        })
+        .transpose()?
+        .flatten();
     let mut session = TourSession {
         _resource_admissions: Some(resources),
         cancellation: None,
@@ -340,6 +357,8 @@ pub(super) fn prepare(
         thermostat_face: thermostat_face.map(Box::new),
         #[cfg(feature = "creche-surface")]
         patchbay_face: patchbay_face.map(Box::new),
+        #[cfg(feature = "creche-surface")]
+        patchbay_publication,
         host_id: host.host_id,
         boot_id: host.boot_id,
         realization: MorseRealization::Direct,

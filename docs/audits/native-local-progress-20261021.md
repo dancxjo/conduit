@@ -1082,3 +1082,41 @@ stage automatic publication construction before Body start, count Sign/kernel/
 Face/JSON/other Host memory, publish actual DOM effects or retire the legacy
 adapter. Those complete-admission/installation requirements and native Edit
 fulfillment remain open under #6201.
+
+## Automatic captured-route preparation and resident commands (#6201)
+
+Body preparation now checks the exact resident's captured Mask topology. For a
+Body-composed Patchbay selector, it binds the actual scheduler-owned actor/node,
+installs the canonical Back in that scoped preparation context, prepares its
+checked ingress and Mask, and acquires the parent's value/scratch lease before
+polling the Body's first platform effect. The generic browser advertisement is
+unchanged. Missing selected topology preserves existing legacy callers; an
+incompatible explicitly selected route refuses rather than being resealed or
+silently substituted. No application clone or legacy-event conversion is used.
+
+The session retains that prepared publication. Source observation remains a
+read-only record; a distinct nested publication record carries the exact prepared
+Face/Show, effect, readiness and dispatch summary. Readiness also checks current
+owner revision and pending delivery pressure. A planning record does not become
+an available Show merely because preparation succeeded.
+
+Added separately bounded canonical acknowledgement/interaction ABI entrances
+(8 KiB JSON envelopes, canonical Fore encoding still checked independently).
+Acknowledgement delegates to the full exact Show/effect check. Interaction reaches
+only the context's exact scheduler node through Mask and ingress kernels and the
+existing owner wrapper. The returned record distinguishes owner acceptance,
+request transfer and transport completion; it is not a claim that an Editor or
+Mask-change Host effect ran. One Show still permits one closing interaction.
+
+The browser-runtime compile check passes. The composed CPU test now obtains its
+initial publication from automatic Body preparation and passes. A focused session
+command case passes on final source: unacknowledged input, stale acknowledgement,
+exact acknowledgement, one owner selection, receipt visibility and replay refusal
+without another state change. Host acknowledgement is a fixture; no DOM/QEMU,
+broad suite, CI or artifact rebuild ran.
+
+The default product planner/SDK does not yet select these chains or render/ack
+this publication through its actual Host UI. Fresh-Show preparation after the
+closing turn, complete Host-memory admission, legacy adapter retirement and
+native Edit fulfillment remain unfinished. No production enactment or closure
+claim follows from the new Rust/ABI path.
