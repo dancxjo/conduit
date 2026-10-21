@@ -621,3 +621,24 @@ file to add explicit cancellation propagation without growing that file.
 Full extraction workspace tests/Clippy are deferred under tonight's instruction;
 only this directly relevant fixture ran. No Host owner effect, current Body
 installation, platform proof, image rebuild or CI job was claimed or launched.
+
+## Connect emitted canonical Host Call to retained owner callback
+
+Added `dispatch_to_owner` and a must-use receipt that retains the exact ingress
+Plan identity, typed owner result/request and separate transport completion.
+It reads actual emitted kernel-call bytes, uses independent current owner
+evidence, invokes the shared canonical callback, and completes the planned call.
+Wrong owner/contribution is Denied; revision exhaustion retains an identity
+capacity failure; other domain refusals remain failed input with their full
+typed refusal in the receipt. An Edit/Mask request is not dropped merely because
+later kernel completion is uncertain. No effect is dispatched or implicit retry
+introduced. Current Body actor/Show/storage installation remains unfinished.
+
+Browser compilation and two focused CPU kernel/model/Show fixture checks pass
+(454 filtered out). A real checked Source graph reaches typed EditCurrent with
+one owner revision increment; consumed transport and stale replay refuse;
+malformed bytes and replaced Shows fail before owner state changes. An initial
+fixture assumed revision zero, while `open` starts at one; the corrected test
+checks the exact increment and retains the first failure log. Fixture Show
+acknowledgements are not page Host evidence. No broad tests/CI/platform proof or
+image rebuild ran.

@@ -62,3 +62,11 @@ pub use plan::PlannedPatchbayIngress;
 #[path = "patchbay_ingress_kernel.rs"]
 mod kernel;
 pub use kernel::PreparedPatchbayIngress;
+
+#[path = "patchbay_ingress_owner.rs"]
+mod owner;
+pub use owner::{dispatch_to_owner, PatchbayIngressDispatch};
+
+#[cfg(test)]
+#[path = "patchbay_ingress_owner_tests.rs"]
+mod owner_tests;

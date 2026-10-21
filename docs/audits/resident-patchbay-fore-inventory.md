@@ -141,3 +141,21 @@ Semantic decoding/admission belongs to that callback; transport delivery alone
 does not authorize the bytes. A failed/denied/cancelled call remains terminal
 failure. The common sink verb was extracted from `back.rs` to its own module;
 its cancelled completion now propagates `FailureCode::Cancelled` explicitly.
+
+## Kernel-to-owner dispatch
+
+`dispatch_to_owner` borrows bytes only from the prepared kernel's actual pending
+Host Call, invokes the existing canonical callback against independently
+supplied retained owner/Body/basis/Face/Show, then completes that call. Owner
+refusals remain typed in the returned receipt; owner-scope refusal maps to
+Denied, exhausted revision to identity capacity failure, and other refusals to
+failed input. The receipt is marked must-use and retains the typed Edit/Mask
+request even when transport completion reports uncertainty. It never dispatches
+that effect, creates another application instance or converts a legacy event.
+
+This connects the reusable transport and owner callback, not the current Body's
+production installation. Its caller must bind the actual resident port, charge
+parent storage, retain the genuine acknowledged Show and handle the returned
+request/outcome. Local CPU fixtures exercise the complete kernel/model path;
+fixture Shows do not establish page Host acknowledgement or installed product
+behavior.
