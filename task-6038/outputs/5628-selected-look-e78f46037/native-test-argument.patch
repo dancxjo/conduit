@@ -1,0 +1,14 @@
+diff --git a/targets/conduitos/src/native_face_scene/text_editor.rs b/targets/conduitos/src/native_face_scene/text_editor.rs
+index 3ee5db553..8181a3efa 100644
+--- a/targets/conduitos/src/native_face_scene/text_editor.rs
++++ b/targets/conduitos/src/native_face_scene/text_editor.rs
+@@ -245,7 +245,8 @@ mod tests {
+                             width,
+                             height
+                         },
+-                        scale
++                        scale,
++                        Typography::EDITORIAL
+                     )
+                     .unwrap()
+                 );

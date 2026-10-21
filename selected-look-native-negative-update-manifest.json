@@ -1,0 +1,46 @@
+{
+  "parent": "7e22ff43747cc93d28f0ff9179cd86cefa6758bd",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 10185,
+      "sha256": "be1e71830e46c9a9d5bb8ffe7755fc235da7d450302ac62188664f75eaa9a14f",
+      "mode": "100644",
+      "blob": "824f9f6e90a112fb5f2126e41cc0759f8380b28b"
+    },
+    {
+      "source": "work/5628-owner-proof-sequence.md",
+      "tree_path": "task-6038/work/5628-owner-proof-sequence.md",
+      "bytes": 2994,
+      "sha256": "079405b6e612951d9ba7448049b3c592807b70196c6f8c81ea342c5aae133365",
+      "mode": "100644",
+      "blob": "46cb28488bd63266c6d05b47439a73710fd39e49"
+    },
+    {
+      "source": "outputs/5628-selected-look-e78f46037/native-first-compile.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-e78f46037/native-first-compile.log",
+      "bytes": 16356,
+      "sha256": "b1072aadaacec60a6e38726b9962256a8e765fe20a8eafa3dd5a38176913cfc5",
+      "mode": "100644",
+      "blob": "d8fe78873f7fa54819438e0487c26c37d1cb6a34"
+    },
+    {
+      "source": "outputs/5628-selected-look-e78f46037/native-first-compile-receipt.json",
+      "tree_path": "task-6038/outputs/5628-selected-look-e78f46037/native-first-compile-receipt.json",
+      "bytes": 287,
+      "sha256": "d8dbd270c7c9fb8ce65d052dbe7bb7020ed28ad68812d89a537e1f651fc38c1d",
+      "mode": "100644",
+      "blob": "724f51d13a5ee3a5ccfb9db835eaf96a79ff2856"
+    },
+    {
+      "source": "outputs/5628-selected-look-e78f46037/native-test-argument.patch",
+      "tree_path": "task-6038/outputs/5628-selected-look-e78f46037/native-test-argument.patch",
+      "bytes": 597,
+      "sha256": "a1d4c69a0cc5b0f79274941a9c388f3780b52bb92d7d614ec967fb5f552d26ab",
+      "mode": "100644",
+      "blob": "367eba7ec08f11248f5b738b533047e945b2e59a"
+    }
+  ]
+}

@@ -168,7 +168,7 @@
     "branch": "codex/5628-selected-typography",
     "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
     "worktree": "work/selected-typography-look",
-    "state": "supportedFoundationPassedOnb2b;NativeFirstCompileLiveOneSubsequentVisibilityFix;NoProductProof",
+    "state": "foundationPassed;nativeFirstCompileFailedSingleTestHelperArgument;RetryLiveWithExactTestOnlyPatch;NoProductProof",
     "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
     "head": "e78f4603794aef65c338aa51c1505ffebdc9dcfb",
     "origin_verified": true,
@@ -202,19 +202,29 @@
         "passed": 8,
         "failed": 0
       }
+    },
+    "native_first_compile": {
+      "source": "e78f4603794aef65c338aa51c1505ffebdc9dcfb",
+      "status": "failed",
+      "failure": "E0061 text_editor unit-test append helper missing Typography",
+      "directory": "outputs/5628-selected-look-e78f46037",
+      "retry": "live with native-test-argument.patch;source frozen;not clean e78 proof"
     }
   },
   "latest_ci_observation": {
-    "time": "2026-10-21T01:21:00Z",
+    "time": "2026-10-21T01:36:00Z",
     "old_6a8_run": 39519886483,
-    "old_6a8_state": "foundation/browserRunning;knownPre6171ProductsFailure",
-    "coalesced_a066_run": 39525183575,
-    "current_dev": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
-    "integration": 39526786633,
-    "state": "pending",
-    "publisher": 39526791364,
-    "publisher_state": "skipped;notAcceptance",
-    "next_observation_not_before": "2026-10-21T01:36:00Z"
+    "old_6a8_state": "terminalFailure;knownPre6171ProductsOnly;browserFoundationPassed",
+    "current_dev": "77919bfa492626e0cbc566b77f7cbc32f74088b7",
+    "integration": 39527187309,
+    "state": "terminalFailureQuickFmtOnly;laterProofNotRun",
+    "repair": {
+      "pr": 6187,
+      "head": "ac2d854f3c873d45d453e72dcc87e62d72a6e223",
+      "candidate": 39527481470,
+      "state": "quickPassed;admissionTargetsRunning;autoMergeEnabled;existingOwnerNoDuplicate"
+    },
+    "next_observation_not_before": "2026-10-21T01:51:00Z"
   },
   "patchbay_preparation": {
     "issue": 5516,

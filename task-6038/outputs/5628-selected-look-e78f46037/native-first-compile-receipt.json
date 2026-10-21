@@ -1,0 +1,7 @@
+{
+  "source": "e78f4603794aef65c338aa51c1505ffebdc9dcfb",
+  "exit": 101,
+  "result": "compile failure; no tests executed",
+  "error": "E0061 missing Typography in text_editor.rs unit-test append call",
+  "log_sha256": "b1072aadaacec60a6e38726b9962256a8e765fe20a8eafa3dd5a38176913cfc5"
+}
