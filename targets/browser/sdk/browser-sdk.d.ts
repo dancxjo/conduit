@@ -345,6 +345,11 @@ export interface PatchbayObservation {
   readonly body_plan_id: string;
   readonly active_play_id: string;
   readonly face: Readonly<Record<string, unknown>>;
+  readonly pending_owner_request: null | Readonly<{
+    application_revision: number;
+    request: Readonly<{ kind: "EditCurrent"; expanded_plot_id: string; subject_identity: string }>
+      | Readonly<{ kind: "ChangeMasks"; body_plan_id: string; mode: "graphical" | "graphical-and-speech" | "speech" }>;
+  }>;
   readonly mask_show: null;
   readonly interaction_admitted: false;
   readonly reason_code: "patchbay-canonical-ingress-not-admitted";

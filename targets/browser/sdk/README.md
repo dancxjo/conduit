@@ -146,7 +146,10 @@ the returned Body, Plan and Play identities and retains the runtime's explicit
 `mask_show: null` and `interaction_admitted: false`. This development API does
 not publish a Show or enable actions. Missing optional observation context,
 retiring Plays and unavailable owners refuse; the legacy interface remains the
-production interaction route pending #6201. The bridge has local CPU checks;
+production interaction route pending #6201. `pending_owner_request` retains any
+legacy Edit/Mask request with its application revision; further legacy actions
+refuse while it awaits disposition. Observation does not perform that request.
+The owner disposition/effect handler remains unfinished. The bridge has local CPU checks;
 WASM/browser enactment of this accessor remains unverified.
 
 The initial SDK profile has a finite, reviewed local adapter set. A capability

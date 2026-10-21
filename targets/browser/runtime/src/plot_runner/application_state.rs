@@ -287,7 +287,7 @@ pub(super) enum PreparedApplication {
     Tutorial(conduit_face::ApplicationView),
     Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
-    Patchbay(patchbay_application::PatchbayApplicationPort),
+    Patchbay(super::prepared_patchbay::PreparedPatchbay),
 }
 
 impl PreparedApplication {
@@ -354,7 +354,7 @@ impl PreparedApplication {
                         Some(active_play_id.clone()),
                     )
                     .map_err(|error| format!("prepare resident Patchbay: {error:?}"))?;
-                    Ok(Some(Self::Patchbay(port)))
+                    Ok(Some(Self::Patchbay(super::prepared_patchbay::PreparedPatchbay::new(port))))
                 }
             }
             _ => Err(format!("unknown retained application {application:?}")),
@@ -387,10 +387,7 @@ impl PreparedApplication {
                 Ok(output.view)
             }
             #[cfg(feature = "creche-surface")]
-            Self::Patchbay(port) => port
-                .apply(input)
-                .map(|output| output.view)
-                .map_err(|error| format!("resident Patchbay event: {error:?}")),
+            Self::Patchbay(application) => application.execute(input),
         }
     }
 }

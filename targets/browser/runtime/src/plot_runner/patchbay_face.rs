@@ -91,12 +91,13 @@ impl TourSession {
             active_play_id: self.active_play_id.clone(),
             required_interaction_context: None,
         };
-        let (revision, fragment) = super::engine::application::observe_patchbay(
-            &self.scheduler,
-            context.owner_node,
-            &context.plan.body_id,
-            basis,
-        )?;
+        let (revision, fragment, pending_owner_request) =
+            super::engine::application::observe_patchbay(
+                &self.scheduler,
+                context.owner_node,
+                &context.plan.body_id,
+                basis,
+            )?;
         let names = [FaceResidentPlotName {
             source_document_id: &context.resident.source_document_id,
             checked_plot_id: &context.resident.checked_plot_id,
@@ -126,6 +127,7 @@ impl TourSession {
             "body_plan_id": context.plan.plan_id,
             "active_play_id": self.active_play_id,
             "face": projected.face,
+            "pending_owner_request": pending_owner_request,
             "mask_show": null,
             "interaction_admitted": false,
             "reason_code": "patchbay-canonical-ingress-not-admitted",

@@ -61,7 +61,7 @@ pub(in crate::plot_runner) fn observe_patchbay(
     owner: conduit_kernel::NodeId,
     body: &conduit_body::BodyId,
     basis: conduit_face::FaceContributionBasis,
-) -> Result<(u32, conduit_face::FaceFragment), String> {
+) -> Result<(u32, conduit_face::FaceFragment, Option<serde_json::Value>), String> {
     let port = match scheduler
         .applications
         .get(usize::from(owner.0))
@@ -71,7 +71,12 @@ pub(in crate::plot_runner) fn observe_patchbay(
         _ => return Err("exact resident Patchbay owner is not prepared".into()),
     };
     let fragment = port
+        .port
         .face_fragment(basis, body, false)
         .map_err(|error| format!("Patchbay observation refused: {error:?}"))?;
-    Ok((port.revision(), fragment))
+    Ok((port.port.revision(), fragment, port.pending_observation()))
 }
+
+#[cfg(test)]
+#[path = "prepared_patchbay_tests.rs"]
+mod retention_tests;

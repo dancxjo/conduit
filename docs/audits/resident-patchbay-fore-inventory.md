@@ -204,3 +204,20 @@ Mask kernel and ingress kernel. Host acknowledgements remain CPU fixture input;
 there is no browser painting or normal Body route installation claim. The
 installing product still must charge/select both Plays, bind the actual current
 resident, publish real effects and handle owner requests before legacy retirement.
+
+## Preserve requests from the current legacy adapter
+
+The production browser retained callback previously mapped Patchbay output to
+`view`, discarding `output.request`. `PreparedPatchbay` now holds the existing
+port and one pending request, moved from the output before returning its view.
+It blocks further nonempty legacy input while that request awaits disposition;
+empty observations preserve it. No second application model or unbounded queue
+is introduced. The exact-node observation path exposes the typed pending request
+and its application revision under `pending_owner_request`.
+
+This fixes silent request loss during the migration, not effect fulfillment.
+There is not yet a production disposition/handler operation to clear or perform
+that request. Current Play cancellation remains the existing explicit lifetime
+boundary; no durable cross-Play request delivery is claimed. Canonical consumer
+installation must unify this pending-owner outcome with its retained turn result
+before retiring the legacy path.

@@ -23,7 +23,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         .iter()
         .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND)
         .unwrap();
-    let Some(application_state::PreparedApplication::Patchbay(mut owner)) =
+    let Some(application_state::PreparedApplication::Patchbay(application)) =
         application_state::PreparedApplication::prepare(
             placement,
             &request.plan,
@@ -36,6 +36,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     else {
         panic!("exact Patchbay owner was not prepared");
     };
+    let mut owner = application.port;
     let basis = FaceContributionBasis {
         checked_plot_id: part.plot.checked_plot_id.clone(),
         plan_id: request.plan.plan_id.clone(),

@@ -699,3 +699,23 @@ lifecycle/action check was weakened. Negative logs remain beside the passing
 log. No broad tests, CI, platform proof or image rebuild ran. Production Body
 storage/Play selection, effect publication, exact resident installation and
 owner-request handling remain unfinished #6201 work.
+
+## Stop discarding production browser Patchbay owner requests
+
+Inspection found the actual retained adapter used `.map(|output| output.view)`,
+silently losing returned Edit/Mask owner requests. Added `PreparedPatchbay`,
+which wraps the same port and one pending request plus application revision.
+It moves the request into that finite slot before returning the view, preserves
+it through empty observations, and refuses further nonempty input before model
+mutation. Exact-node current observation now exposes `pending_owner_request`;
+SDK declarations and development documentation describe its unfinished handler.
+No application clone, new Host capability or automatic effect dispatch was added.
+
+Browser compilation and one focused CPU adapter check pass (460 filtered out).
+It uses the current Body session's actual prepared instance: canonical inventory
+Source, legacy Plot selection/Edit, retained exact expanded Plot/subject/revision
+in observation, refusal of a valid overwrite action, stable empty/repeated reads.
+The fixture calls the production adapter directly; it is not Host-effect or DOM
+proof. Disposition/effect handling and durable cross-Play delivery remain absent;
+this checkpoint does not claim Edit was performed. No broad tests, CI, platform
+proof or image rebuild ran.
