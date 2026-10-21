@@ -147,3 +147,14 @@ most once. The retry remeasures indent, text width, wrapping and command cost;
 other errors and a failure at full continuation width remain explicit refusals.
 Native compositor compilation passed (4 seconds). No regression suite, image
 rebuild or QEMU proof was run tonight; #6158 acceptance remains open.
+
+## Pending deterministic pagination regressions
+
+Added two CPU regression specifications in `layout/panels/continuation_tests.rs`:
+a sole populated region keeps full width through continuation, and naming
+help/action/current-value move together to full-width continuation when the
+20-row cap prevents their cluster fitting the first page. Assertions retain
+source text/control identities and check disjoint bounds. Existing small test
+builders are shared. These new tests were neither compiled nor run tonight;
+only whitespace validation was performed. They are pending verification, not
+passing evidence or a replacement for the required source-pinned QEMU comparison.

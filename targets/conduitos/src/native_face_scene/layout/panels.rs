@@ -365,3 +365,7 @@ pub(super) fn admit(
 #[cfg(test)]
 #[path = "panels/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "panels/continuation_tests.rs"]
+mod continuation_tests;
