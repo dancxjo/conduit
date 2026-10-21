@@ -14,4 +14,4 @@ mod exact_profile;
 #[path = "../../src/kernel_preparation/placement_resources.rs"]
 mod placement_resources;
 #[path = "../../src/kernel_preparation/region_resources.rs"]
-mod region_resources;
+pub(crate) mod region_resources;

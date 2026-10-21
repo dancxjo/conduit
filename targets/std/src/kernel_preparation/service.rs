@@ -4,13 +4,19 @@ use crate::StdHost;
 use conduit_core::{
     BaseLifecycle, BaseProviderEntry, BaseRegistry, HostAdvertisement, OfferGeneration,
 };
+#[path = "service/activation.rs"]
 mod activation;
+#[path = "service/controller.rs"]
 mod controller;
+#[path = "service/execution.rs"]
 mod execution;
 pub use controller::{RegionAdvance, RegionRoundState};
 pub use execution::RegionExecution;
+#[path = "service/offers.rs"]
 mod offers;
+#[path = "service/preparation.rs"]
 mod preparation;
+#[path = "service/planning.rs"]
 mod planning;
 pub use activation::RegionWorkerCommand;
 pub use offers::RegionServiceConfig;
