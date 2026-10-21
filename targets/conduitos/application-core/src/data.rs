@@ -87,6 +87,10 @@ impl TutorialScope {
 }
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Command {
+    ProjectGraph {
+        graph: PatchbayGraph,
+        scope: crate::graph_facts::Scope,
+    },
     ProjectTutorial {
         evidence: BodyBiographyEvidence,
         scope: TutorialScope,
@@ -130,6 +134,9 @@ pub struct Snapshot {
 }
 #[derive(Serialize, Deserialize)]
 pub enum Reply {
+    GraphFacts {
+        contribution: crate::graph_facts::Contribution,
+    },
     Tutorial {
         scope: TutorialScope,
         view: Vec<u8>,

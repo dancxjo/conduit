@@ -1,5 +1,7 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
 mod authority;
+mod graph_facts;
+pub(crate) use graph_facts::project_graph;
 mod projection;
 mod transport;
 use alloc::boxed::Box;

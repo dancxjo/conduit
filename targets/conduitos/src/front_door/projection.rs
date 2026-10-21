@@ -350,6 +350,7 @@ impl FrontDoor {
                 .as_ref()
                 .and_then(|journey| journey.body_id.as_ref()),
         ) {
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             super::graph_projection::append(
                 graph,
                 &format!("body/{}", body.as_str()),
@@ -361,6 +362,16 @@ impl FrontDoor {
                     disclosures: &mut disclosures,
                 },
             );
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            self.append_graph_facts(
+                graph,
+                body,
+                &mut subjects,
+                &mut relationships,
+                &mut properties,
+                &mut texts,
+                &mut disclosures,
+            )?;
         }
         Face::new_with_semantics(
             self.revision,

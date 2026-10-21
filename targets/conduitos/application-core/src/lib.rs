@@ -21,3 +21,4 @@ pub mod memory {
     pub const HEAP_START: usize = METADATA + HEADER_BYTES;
     pub const HEAP_BYTES: usize = METADATA_BYTES - HEADER_BYTES;
 }
+pub mod graph_facts;

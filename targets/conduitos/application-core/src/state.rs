@@ -49,6 +49,9 @@ impl State {
                 }
                 let command: Command = data::decode(&incoming)?;
                 let reply = match command {
+                    Command::ProjectGraph { graph, scope } => Reply::GraphFacts {
+                        contribution: crate::graph_facts::project(&graph, scope)?,
+                    },
                     Command::ProjectTutorial { evidence, scope } => {
                         scope.validate(&evidence)?;
                         let view = crate::tutorial::project(&evidence, scope.lulled)?;

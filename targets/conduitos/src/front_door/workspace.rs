@@ -53,6 +53,10 @@ impl FrontDoor {
         &mut self,
         journey: &crate::product_journey::ProductJourney,
     ) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if let Some(workspace) = journey.workspace_projection() {
             let application_view = if journey.foreground_is_tutorial() {
                 Some(journey.tutorial_view().map_err(|_| Error::Face)?)
@@ -73,7 +77,24 @@ impl FrontDoor {
                         .iter()
                         .find(|plot| plot.foreground)
                         .map(|plot| &plot.plot);
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            let graph_facts = journey
+                .foreground_patchbay_graph()
+                .map(|graph| {
+                    let present = workspace
+                        .plots
+                        .iter()
+                        .any(|plot| plot.plot.checked_plot_id == graph.checked_plot_id);
+                    journey
+                        .graph_face_facts(graph, present)
+                        .map_err(|_| Error::Face)
+                })
+                .transpose()?;
             self.observe_body(journey.projection(), workspace)?;
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            {
+                self.graph_facts = graph_facts;
+            }
             if changed {
                 self.reset_application_navigation();
             }
@@ -113,6 +134,10 @@ impl FrontDoor {
         journey: JourneyProjection,
         workspace: WorkspaceProjection,
     ) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if journey.body_id.as_ref() != Some(&workspace.body_id)
             || journey.revision != workspace.revision
             || workspace.plots.is_empty()

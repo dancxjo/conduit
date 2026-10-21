@@ -14,6 +14,9 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod application_layout;
 mod arrival;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod graph_facts;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod graph_projection;
 mod home;
 mod home_projection;
@@ -67,6 +70,8 @@ pub struct FrontDoor {
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_face::ApplicationView>,
     patchbay_graph: Option<patchbay_graph::PatchbayGraph>,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    graph_facts: Option<conduitos_application_core::graph_facts::Contribution>,
     application_viewport: application_layout::ApplicationViewport,
 }
 
@@ -166,6 +171,8 @@ impl FrontDoor {
             workspace: None,
             application_view: None,
             patchbay_graph: None,
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            graph_facts: None,
             application_viewport: application_layout::ApplicationViewport::default(),
         }
     }
@@ -179,6 +186,10 @@ impl FrontDoor {
     }
 
     pub fn observe_journey(&mut self, projection: JourneyProjection) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if projection
             .source_document_id
             .as_ref()

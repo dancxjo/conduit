@@ -185,7 +185,9 @@ impl Models {
     }
     pub fn execute(&mut self, command: Command) -> Result<Reply, Refusal> {
         match command {
-            Command::Init { .. } | Command::ProjectTutorial { .. } => Err(Refusal::Order),
+            Command::Init { .. }
+            | Command::ProjectTutorial { .. }
+            | Command::ProjectGraph { .. } => Err(Refusal::Order),
             Command::Apply { slot, input } => {
                 let (snapshot, proposal) = self.apply(usize::from(slot), &input)?;
                 Ok(Reply::Applied { snapshot, proposal })

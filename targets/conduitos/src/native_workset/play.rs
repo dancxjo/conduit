@@ -136,6 +136,19 @@ impl NativeWorksetPlay {
     ) -> Result<Self, WorksetRefusal> {
         preparation::prepare(prepared, Some(evidence))
     }
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) fn project_graph(
+        &self,
+        graph: &patchbay_graph::PatchbayGraph,
+        scope: conduitos_application_core::graph_facts::Scope,
+    ) -> Result<conduitos_application_core::graph_facts::Contribution, PlayRefusal> {
+        if self.cancelled || !self.applications_live() {
+            return Err(PlayRefusal::Cancelled);
+        }
+        self.applications
+            .project_graph(graph, scope)
+            .map_err(|_| PlayRefusal::Kernel)
+    }
     /// Read-only lifecycle Tutorial projection, never an application event.
     pub fn project_tutorial(
         &self,
