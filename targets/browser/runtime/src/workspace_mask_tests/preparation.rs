@@ -39,6 +39,8 @@ fn installed_mask_preparation_preserves_admitted_body_plan_and_refuses_missing_r
         9,
     )
     .unwrap();
+    assert!(installed.reserved_value_storage_bytes() >= 3 * MASK_BYTES as usize);
+    assert!(installed.reserved_value_storage_bytes() < 4 * MASK_BYTES as usize);
     assert_eq!(installed.observation().body_plan, admitted);
     assert_eq!(installed.observation().face, face);
     assert_eq!(
@@ -46,6 +48,14 @@ fn installed_mask_preparation_preserves_admitted_body_plan_and_refuses_missing_r
         ManifestationLifecycle::Prepared
     );
     installed.acknowledge(&acknowledgement(&effect)).unwrap();
+    let used = conduit_kernel::ValueStorage::used_items(installed.scheduler.values());
+    for _ in 0..8 {
+        assert!(installed.acknowledge(&acknowledgement(&effect)).is_err());
+    }
+    assert_eq!(
+        conduit_kernel::ValueStorage::used_items(installed.scheduler.values()),
+        used
+    );
     assert_eq!(installed.observation().body_plan, admitted);
     assert_eq!(
         installed.observation().mask_show.show.lifecycle,

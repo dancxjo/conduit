@@ -117,6 +117,7 @@ pub struct BrowserMaskRuntime {
     interaction_boundary: LoweredForePort,
     pending_node: conduit_kernel::NodeId,
     pending_request: RequestId,
+    acknowledgement_started: bool,
     fore_receipt: Vec<BrowserMaskForeReceipt>,
     pending_interaction_node: Option<conduit_kernel::NodeId>,
     pending_interaction_request: Option<RequestId>,
@@ -168,7 +169,13 @@ impl BrowserMaskRuntime {
         if !exact {
             return Err("browser Mask acknowledgement is stale or mismatched".into());
         }
+        if self.acknowledgement_started {
+            return Err("browser Mask acknowledgement has already started".into());
+        }
         let show_bytes = serde_json::to_vec(&self.show.show).map_err(|error| error.to_string())?;
+        // An uncertain/partial completion must not allocate another Show frame
+        // on retry. Only mismatched evidence above leaves this entrance unused.
+        self.acknowledgement_started = true;
         let output = self
             .scheduler
             .store_host_value(&show_bytes)
@@ -250,6 +257,12 @@ impl BrowserMaskRuntime {
         self.show
             .validate(&self.face)
             .map_err(|error| format!("{error:?}"))
+    }
+
+    /// Actual value backing reserved during preparation, including slot metadata.
+    /// Sign/kernel tables and other Host allocations are separate reservations.
+    pub fn reserved_value_storage_bytes(&self) -> usize {
+        self.scheduler.values().reserved_storage_bytes()
     }
 
     pub fn observation(&self) -> BrowserMaskObservation {

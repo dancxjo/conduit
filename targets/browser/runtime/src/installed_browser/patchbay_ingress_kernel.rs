@@ -96,6 +96,11 @@ impl PreparedPatchbayIngress {
         })
     }
 
+    /// Actual prepared value backing, not the live logical byte quota.
+    pub fn reserved_value_storage_bytes(&self) -> usize {
+        self.kernel.values().reserved_storage_bytes()
+    }
+
     pub fn is_ready(&self) -> bool {
         !self.submitted && !self.revoked && !self.terminal
     }

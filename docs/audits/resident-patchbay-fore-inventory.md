@@ -339,3 +339,13 @@ The composed CPU path now seals Mask topology before preparing the actual owner
 and uses that same captured plan for every publication. The older recipe remains
 for existing prototype/journey callers. This does not charge aggregate Host
 storage, automatically install both Plays, or publish a genuine DOM effect.
+
+## Actual Mask value-backing bound
+
+The closing Mask protocol now reserves three 512 KiB payload slots instead of
+twelve: one each for Face, Show and interaction, including simultaneous retention.
+Acknowledgement-attempt and live-interaction guards prevent refusal/retry paths
+from accumulating extra frames. This reduces payload backing from 6 MiB to
+1.5 MiB per prepared Mask without widening a profile. Mask/ingress report actual
+value-store backing for aggregate admission. Sign/kernel/other Host storage is
+separate; the parent still must charge and own the complete publication lifetime.

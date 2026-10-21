@@ -246,6 +246,7 @@ impl BrowserMaskRuntime {
                 interaction_boundary,
                 pending_node: pending.node,
                 pending_request: pending.request,
+                acknowledgement_started: false,
                 fore_receipt,
                 pending_interaction_node: None,
                 pending_interaction_request: None,

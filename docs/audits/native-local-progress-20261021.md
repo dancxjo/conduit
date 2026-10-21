@@ -1018,3 +1018,33 @@ uses an explicit path; corrected its child path and retained the failed log.
 Acknowledgements remain fixtures. No broad suite, CI, DOM/QEMU journey or artifact
 rebuild ran. Parent storage admission, live publication, adapter retirement and
 native editor fulfillment remain unfinished #6201 work.
+
+## Remove excess Mask value backing before aggregate admission (#6201)
+
+Inspection found the Mask kernel allocated twelve uniform 512 KiB value slots
+(6 MiB payload backing), although its closing lifecycle creates only three
+payloads: supplied Face, acknowledged Show and emitted interaction. Queues and
+Host Calls retain references to those values; their table capacities do not
+create additional distinct payloads. Preparation now reserves all three at once
+(1.5 MiB payload backing), saving 4.5 MiB per prepared Mask without changing the
+512 KiB per-value bound, generic Host pool, kernel routes or Source contracts.
+The live-byte quota covers those three full-size frames.
+
+Repeated acknowledgement previously allocated a Show before discovering that
+the Host request was already consumed. An acknowledgement-attempt fence now
+precedes allocation/Host completion, so partial or uncertain completion cannot
+leak frames through retry. Mismatched evidence still refuses before that fence.
+Interaction admission likewise checks for its live request before allocating a
+frame, including after partial completion. Availability still requires the
+existing complete acknowledged Show path; the fence does not manufacture proof.
+
+Mask and ingress expose their actual prepared value-store backing, including
+slot metadata, for parent accounting. These measurements explicitly exclude
+Sign/kernel tables and other Host allocations; they are not a total-memory
+receipt or aggregate reservation. Aggregate parent admission remains unfinished.
+
+Two focused CPU cases pass on final source: captured-plan preparation checks the
+smaller backing and eight duplicate acknowledgements with unchanged live value
+count; the composed owner/Mask/typed-ingress selection/Edit/request-retention path
+completes with three slots. No broad suite, CI, DOM/QEMU or artifact rebuild ran.
+Automatic installation, complete resource admission and native Edit remain open.
