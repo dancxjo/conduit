@@ -45,8 +45,22 @@ fn compositor_admits_larger_immutable_image_without_widening_text_contract() {
     assert!(DomainImage::parse(&bytes, 62).is_err());
     assert_eq!(crate::domain_image::MAXIMUM_IMAGE_BYTES, 128 * 1024);
     assert_eq!(ordinary_layout::RETAINED_BYTES, 16 * 1024);
-    assert_eq!(admitted.layout().pixels().bytes(), 8 * 1024 * 1024);
-    assert_eq!(admitted.layout().scratch().bytes(), 8 * 1024 * 1024);
+    assert_eq!(
+        admitted
+            .layout()
+            .pixels()
+            .expect("compositor pixel range")
+            .bytes(),
+        8 * 1024 * 1024
+    );
+    assert_eq!(
+        admitted
+            .layout()
+            .scratch()
+            .expect("compositor scratch range")
+            .bytes(),
+        8 * 1024 * 1024
+    );
     assert_eq!(
         admitted.layout().mapped_bytes(),
         2 * 1024 * 1024 + 4096 + 64 * 1024 + 64 * 1024 + 256 * 1024 + 16 * 1024 * 1024
@@ -108,6 +122,42 @@ fn layout_refuses_overlap_missing_guards_overflow_and_unaligned_ranges() {
     ] {
         let mut layout = original;
         layout.ranges[index] = MemoryRange { start, bytes };
+        assert_eq!(layout.validate(), Err(ImageRefusal::InvalidMapping));
+    }
+}
+
+#[test]
+fn draft_has_finite_distinct_admission_and_no_raster_arenas() {
+    let layout = ServiceProfile::Draft.layout();
+    assert!(layout.validate().is_ok());
+    assert_eq!(layout.active_ranges().len(), 5);
+    assert_eq!(layout.mapped_bytes(), 610_304);
+    assert_eq!(layout.pixels(), None);
+    assert_eq!(layout.scratch(), None);
+    assert!(ServiceImage::for_profile(&artifact(), ServiceProfile::Draft).is_err());
+    let mut bytes = artifact();
+    put64(&mut bytes, 120 + 16, 0x0042_0000);
+    let admitted = ServiceImage::for_profile(&bytes, ServiceProfile::Draft).unwrap();
+    assert_eq!(admitted.profile(), ServiceProfile::Draft);
+    assert_eq!(admitted.layout(), layout);
+    assert!(ServiceImage::compositor(&bytes).is_ok());
+    put32(&mut bytes, 120 + 4, 6);
+    assert!(ServiceImage::for_profile(&bytes, ServiceProfile::Draft).is_err());
+}
+
+#[test]
+fn every_draft_range_and_absent_arena_is_validated() {
+    let original = ServiceMemoryLayout::draft();
+    for index in 0..7 {
+        let mut layout = original;
+        if index < 5 {
+            layout.ranges[index].bytes = 0;
+        } else {
+            layout.ranges[index] = MemoryRange {
+                start: 0x600000,
+                bytes: 4096,
+            };
+        }
         assert_eq!(layout.validate(), Err(ImageRefusal::InvalidMapping));
     }
 }

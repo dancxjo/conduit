@@ -3,7 +3,7 @@
 use super::{domain_memory::enable_no_execute, domain_transition, service_memory::AddressSpace};
 use crate::{
     protected_region::{DomainBackend, DomainCost, DomainFault, DomainRefusal, DomainReturn},
-    service_memory::ServiceImage,
+    service_memory::{ServiceImage, ServiceProfile},
 };
 use core::sync::atomic::{AtomicU64, Ordering};
 
@@ -21,6 +21,7 @@ impl ServiceDomain {
         let started = super::domain_ticks();
         enable_no_execute()?;
         let space = AddressSpace::install(image)?;
+        let reserved_bytes = space.reserved_bytes();
         let instance = NEXT_INSTANCE
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
                 value.checked_add(1)
@@ -31,7 +32,7 @@ impl ServiceDomain {
             instance,
             quarantined: false,
             cost: DomainCost {
-                reserved_bytes: Self::RESERVED_BYTES,
+                reserved_bytes,
                 root_metadata_bytes: core::mem::size_of::<Self>() as u32,
                 setup_copied_bytes: image
                     .image()
@@ -47,6 +48,9 @@ impl ServiceDomain {
     /// Boot-local instance sequence, never a substitute for Host/Boot/grant scope.
     pub const fn instance(&self) -> u64 {
         self.instance
+    }
+    pub fn profile(&self) -> ServiceProfile {
+        self.space.profile()
     }
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         self.space.exchange()

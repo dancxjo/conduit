@@ -13,8 +13,22 @@ fn main() {
     assert_eq!(admitted.layout().exchange().start(), 0x601000);
     assert_eq!(admitted.layout().output().start(), 0x603000);
     assert_eq!(admitted.layout().metadata().start(), 0x625000);
-    assert_eq!(admitted.layout().pixels().start(), 0x666000);
-    assert_eq!(admitted.layout().scratch().start(), 0xe67000);
+    assert_eq!(
+        admitted
+            .layout()
+            .pixels()
+            .expect("compositor pixel range")
+            .start(),
+        0x666000
+    );
+    assert_eq!(
+        admitted
+            .layout()
+            .scratch()
+            .expect("compositor scratch range")
+            .start(),
+        0xe67000
+    );
     println!(
         "immutable compositor ELF admitted; entry={:#x}, image_bytes={}, private_grants={}",
         admitted.image().entry,
