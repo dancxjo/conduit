@@ -48,10 +48,13 @@ page mappings; weakening the text profile is not a substitute.
 
 Product/profile builds through the common builder (including
 `cargo xtask make conduitos live x86_64 --locked`) retain
-`privilege-inventory.json` beside `build.json`. The sidecar binds the ELF digest,
+`privilege-inventory-<elf-sha256>-<artifact-role>.json` beside `build.json`. The sidecar binds the ELF digest,
 source base commit, artifact role, target, requested features, Cargo's resolved
 normal/build dependencies and their enabled features, and observed dirty status.
-Dry runs do not create this evidence.
+Dry runs do not create this evidence. Collectors must select the current
+ELF digest and artifact role and compare the embedded build record. Separate
+architecture-appliance builders need not emit an inventory; an older product
+inventory is not evidence for their replacement artifact.
 
 Normal dependencies conservatively identify potentially included code; build
 dependencies run on the build host and are not automatically Root code. Dead-code
