@@ -1,0 +1,14 @@
+{
+  "parent": "bd010341b59e7f5dcd8b1a7cc6e074b287830d3b",
+  "scope": "Exact user-provided 1617512-byte PNG reference; explicit one-file 2MiB allowance, not runtime proof",
+  "files": [
+    {
+      "source": "outputs/visual-reference-20261021/creche-editorial-reference.png",
+      "tree_path": "task-6038/outputs/visual-reference-20261021/creche-editorial-reference.png",
+      "bytes": 1617512,
+      "sha256": "7a2cff6e552733601efca1dc5e07295468a5eebe183a4901dcb5cf77b87465e0",
+      "mode": "100644",
+      "blob": "33dc17c23bb4a2ab885fd7b57da7c0e5c4cd6d8f"
+    }
+  ]
+}
