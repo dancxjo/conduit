@@ -532,3 +532,19 @@ introduced. Typed transport/Show publication and consumer replacement remain
 unfinished #6201 work; no platform or CI proof ran.
 
 Final exact-owner run: 4 passed, 0 failed, 447 filtered out (CPU only).
+
+## Connect canonical observation to the browser caller
+
+The bounded runtime bridge now reads `conduit_browser_patchbay_observation`
+without submitting input, preserves runtime refusal evidence, and rejects a
+response that claims a Show or admitted interaction. The existing Body Host
+adapter applies its current-lifetime guard. `BrowserPlay.patchbayObservation()`
+additionally checks the actual Body, Plan and active Play identities before
+returning the canonical Face. Type declarations and SDK documentation retain
+the read-only/development boundary. No application state, queue, renderer or
+owner effect was added, and the legacy interaction route remains working.
+
+Three JavaScript syntax checks pass. Two focused bridge CPU checks pass,
+including memory growth during observation, exact output forwarding and refusal
+of malformed schemas/claimed interaction authority. This is a mock ABI fixture,
+not WASM/browser/platform enactment. No broad tests, CI or image rebuild ran.

@@ -339,6 +339,17 @@ export interface BrowserBodyEvent {
   readonly evidence: Readonly<Record<string, unknown>>;
 }
 
+/** Read-only canonical meaning; unavailable actions grant no interaction route. */
+export interface PatchbayObservation {
+  readonly schema: "conduit.browser/patchbay-observation@1";
+  readonly body_plan_id: string;
+  readonly active_play_id: string;
+  readonly face: Readonly<Record<string, unknown>>;
+  readonly mask_show: null;
+  readonly interaction_admitted: false;
+  readonly reason_code: "patchbay-canonical-ingress-not-admitted";
+}
+
 export class BrowserPlay {
   private constructor();
   readonly schema: "conduit.browser/play@1";
@@ -347,6 +358,7 @@ export class BrowserPlay {
   readonly plan: Readonly<{ planId: string; wakeId: string; bodyId: string }>;
   readonly state: "playing" | "terminal" | "failed";
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
+  patchbayObservation(): PatchbayObservation;
   dispatch(): Promise<Readonly<Record<string, unknown>> | null>;
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }

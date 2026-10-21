@@ -504,3 +504,46 @@ for (const field of ['disposition','detail']) test(`effect refusal rejects non-u
     bridge.browserPlotRefuseEffect('play/1','placement/1',1,field === 'disposition' ? value : 1,field === 'detail' ? value : 0),/u32/);
   assert.equal(calls,0);
 });
+
+test('Patchbay observation reads bounded output without submitting input or inventing a Show', () => {
+  const api = runtime();
+  const observation = {
+    schema: 'conduit.browser/patchbay-observation@1',
+    body_plan_id: 'body-plan/current', active_play_id: 'play/current',
+    face: { basis: { body_id: 'body/current' } },
+    mask_show: null, interaction_admitted: false,
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(observation));
+  let calls = 0;
+  api.conduit_browser_plot_output_ptr = () => 4096;
+  api.conduit_browser_plot_output_len = () => bytes.length;
+  api.conduit_browser_patchbay_observation = (...args) => {
+    assert.deepEqual(args, []);
+    calls += 1;
+    api.memory.grow(1);
+    new Uint8Array(api.memory.buffer, 4096, bytes.length).set(bytes);
+    return 1;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay observation fixture' });
+  assert.deepEqual(bridge.patchbayObservation(), observation);
+  assert.equal(calls, 1);
+});
+
+test('Patchbay observation preserves refusal and rejects claimed interaction authority', () => {
+  for (const [status, output, expected] of [
+    [-1, { message: 'exact resident Patchbay owner is not prepared', code: 'OwnerAbsent' }, /exact resident/],
+    [1, { schema: 'conduit.browser/patchbay-observation@1', mask_show: {}, interaction_admitted: true }, /Malformed read-only/],
+    [1, { schema: 'foreign/observation@1', mask_show: null, interaction_admitted: false }, /Malformed read-only/],
+  ]) {
+    const api = runtime();
+    const bytes = new TextEncoder().encode(JSON.stringify(output));
+    api.conduit_browser_plot_output_ptr = () => 4096;
+    api.conduit_browser_plot_output_len = () => bytes.length;
+    api.conduit_browser_patchbay_observation = () => {
+      new Uint8Array(api.memory.buffer, 4096, bytes.length).set(bytes);
+      return status;
+    };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay observation fixture' });
+    assert.throws(() => bridge.patchbayObservation(), expected);
+  }
+});

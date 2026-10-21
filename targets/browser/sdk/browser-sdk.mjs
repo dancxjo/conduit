@@ -504,6 +504,19 @@ export class BrowserPlay {
   get plan() { return Object.freeze({ planId: this.#started.play.plan_id, wakeId: this.#started.play.wake_id, bodyId: this.#started.play.body_id }); }
   get state() { return this.#terminal ? "terminal" : this.#failure ? "failed" : "playing"; }
   get receipts() { return Object.freeze(this.#terminal ? [this.#terminal] : []); }
+  /** Read canonical resident Patchbay meaning; this does not publish or acknowledge a Show. */
+  patchbayObservation() {
+    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+    const observation = this.#adapter.patchbayObservation();
+    if (observation?.schema !== 'conduit.browser/patchbay-observation@1'
+        || observation.mask_show !== null || observation.interaction_admitted !== false
+        || observation.active_play_id !== this.id
+        || observation.body_plan_id !== this.#started.play.plan_id
+        || observation.face?.basis?.body_id !== this.#started.play.body_id) {
+      throw new Error('Patchbay observation differs from this Body Play');
+    }
+    return observation;
+  }
   /** Read the contributed Face of this Play's admitted Thermostat scan. */
   thermostatFace() {
     if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');

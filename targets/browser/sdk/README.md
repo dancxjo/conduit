@@ -140,6 +140,15 @@ truth. A Plan proposal is not exposed as a Play, and a rejected start does not
 produce a successful lifecycle receipt. Host, Boot, Body, Plan, Wake, and Play
 identities therefore keep their separate meanings even on one page.
 
+For an admitted foreground resident Patchbay, `play.patchbayObservation()` reads
+its current canonical Face from the existing application instance. It checks
+the returned Body, Plan and Play identities and retains the runtime's explicit
+`mask_show: null` and `interaction_admitted: false`. This development API does
+not publish a Show or enable actions. Missing optional observation context,
+retiring Plays and unavailable owners refuse; the legacy interface remains the
+production interaction route pending #6201. The bridge has local CPU checks;
+WASM/browser enactment of this accessor remains unverified.
+
 The initial SDK profile has a finite, reviewed local adapter set. A capability
 that is absent, unselected, unavailable, permission-denied, or lost remains a
 distinct Host/runtime outcome; the SDK does not infer readiness from bundled

@@ -199,6 +199,18 @@ export function bindBrowserRuntimeBridge(api, { context }) {
     abi: ABI,
     encodeJson: (value) => encoder.encode(JSON.stringify(value)),
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
+    patchbayObservation() {
+      const status = call('conduit_browser_patchbay_observation');
+      const output = maybeReadPlotOutputJson(api, 1);
+      if (status < 0) throw Object.assign(new Error(output?.message ?? 'Patchbay observation refused'), {
+        code: output?.code ?? 'PatchbayObservationRefused', evidence: output,
+      });
+      if (output?.schema !== 'conduit.browser/patchbay-observation@1'
+          || output.mask_show !== null || output.interaction_admitted !== false) {
+        throw new Error('Malformed read-only Patchbay observation');
+      }
+      return output;
+    },
     thermostatFace: () => localThermostat('conduit_browser_thermostat_face'),
     thermostatAcknowledge: message => localThermostat('conduit_browser_thermostat_acknowledge', message),
     thermostatInteract: message => localThermostat('conduit_browser_thermostat_interact', message),
