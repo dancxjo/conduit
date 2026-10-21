@@ -1,30 +1,14 @@
 //! Fixed proof-appliance baseline, not calibrated time or a product benchmark.
 use super::{IMAGE, exchange, installed, request};
+use crate::ordinary_domain_baseline_format::{self as format, RECORDS, Sample, TRIALS};
 use crate::{
     arch,
     protected_region::{DomainBackend, DomainFault, DomainReturn},
     service_memory::ServiceImage,
 };
-use core::fmt::Write;
 #[path = "../../native_observation/raw_counter.rs"]
 mod counter;
 
-const TRIALS: usize = 3;
-const RECORDS: usize = 3 * 2 * TRIALS + 2;
-#[derive(Clone, Copy, Default)]
-struct Sample {
-    mode: u8,
-    case: u8,
-    trial: usize,
-    instance: u64,
-    setup: u64,
-    request: u64,
-    entry: u64,
-    response: u64,
-    teardown: u64,
-    interrupts: u64,
-    preemptions: u64,
-}
 fn elapsed(start: u64) -> u64 {
     counter::read()
         .checked_sub(start)
@@ -154,12 +138,11 @@ pub(super) fn run() {
     let extended = core::arch::x86_64::__cpuid(0x8000_0000).eax;
     let invariant =
         extended >= 0x8000_0007 && core::arch::x86_64::__cpuid(0x8000_0007).edx & (1 << 8) != 0;
-    let mut serial = crate::sign_format::FixedText::new();
-    writeln!(serial, "CONDUIT_SERVICE_BASELINE {{\"schema\":\"conduit.conduitos/service-baseline@1\",\"units\":\"raw-tsc\",\"calibrated\":false,\"component_attribution\":false,\"fixture_capacity\":256,\"records\":20,\"cpuid1_eax\":{},\"cpuid1_ecx\":{},\"cpuid1_edx\":{},\"invariant_tsc\":{},\"counter_pair_ticks\":[{},{},{}]}}", basic.eax,basic.ecx,basic.edx,invariant,overhead[0],overhead[1],overhead[2]).unwrap_or_else(|_| super::refuse("baseline-serial"));
+    let serial = format::header([basic.eax, basic.ecx, basic.edx], invariant, overhead)
+        .unwrap_or_else(|_| super::refuse("baseline-serial"));
     arch::early_write(serial.as_bytes());
     for row in rows {
-        let mut serial = crate::sign_format::FixedText::new();
-        writeln!(serial, "CONDUIT_SERVICE_SAMPLE {{\"mode\":{},\"case\":{},\"trial\":{},\"instance\":{},\"setup\":{},\"request\":{},\"entry\":{},\"response\":{},\"teardown\":{},\"interrupts\":{},\"preemptions\":{}}}",row.mode,row.case,row.trial,row.instance,row.setup,row.request,row.entry,row.response,row.teardown,row.interrupts,row.preemptions).unwrap_or_else(|_| super::refuse("baseline-serial"));
+        let serial = format::sample(row).unwrap_or_else(|_| super::refuse("baseline-serial"));
         arch::early_write(serial.as_bytes());
     }
 }
