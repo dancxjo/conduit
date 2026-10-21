@@ -248,15 +248,15 @@ try {
           }
         }, { view: retired, action });
         assert.equal(refusal.refused, true, 'old Show interaction must be refused');
-        assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/,
-          'retirement proof must reach the WASM Show gate rather than fail argument validation');
+        assert.equal(refusal.code, 'StaleShow',
+          'the production SDK must reject the retired acknowledged Show before WASM dispatch');
         const ownerAfterRefusal = face();
         assert.deepEqual(ownerAfterRefusal.face, currentOwner.face,
           'retired Show refusal must preserve the entire canonical owner Face');
         assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id),
           occurrence.view.show_id, 'refusal must preserve the replacement Show');
         retirement = { retired_show_id: retired.show_id,
-          current_show_id: occurrence.view.show_id, refusal,
+          current_show_id: occurrence.view.show_id, refusal, refusalLayer: 'sdk-before-wasm',
           owner_before: currentOwner, owner_after: ownerAfterRefusal };
       }
       observations.push({ look, recipe, ...occurrence, owner: currentOwner, screenshot, retirement });
@@ -300,8 +300,8 @@ try {
     const replacementEvidence = { before: occurrenceEvidence(observations[0]),
       after: occurrenceEvidence(observations[1]), retirement: {
         attemptedShowId: retired.retired_show_id, currentShowId: retired.current_show_id,
-        refusedBeforeSourceAdmission: retired.refusal.refused &&
-          retired.refusal.message === 'owner Face interaction refused (-5)',
+        refusedBeforeSourceAdmission: retired.refusal.refused && retired.refusal.code === 'StaleShow',
+        refusalCode: retired.refusal.code, refusalLayer: retired.refusalLayer,
         ownerBefore: ownerEvidence(retired.owner_before), ownerAfter: ownerEvidence(retired.owner_after),
         faceBefore: exactFace(retired.owner_before), faceAfter: exactFace(retired.owner_after),
       } };
