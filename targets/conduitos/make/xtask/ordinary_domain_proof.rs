@@ -7,7 +7,7 @@ use std::{
 
 use crate::cli::GlobalOpts;
 
-use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
+use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
 
 mod compositor;
 mod service_memory;
@@ -253,7 +253,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ConduitosError::refusal("service-memory-receipt-write-failed", error.to_string())
     })?;
     let compositor_receipt = serde_json::json!({
-        "schema": "conduit.conduitos/compositor-guest-evidence@1",
+        "schema": "conduit.conduitos/compositor-guest-evidence@2",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
             "cpu": "max", "memory_mib": 128, "vcpus": 1},
@@ -270,7 +270,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ConduitosError::refusal("compositor-guest-receipt-write-failed", error.to_string())
     })?;
     if !opts.quiet && !opts.json {
-        println!("PROVED checked ordinary text computation and service-memory/compositor guest fixtures in x86_64 CPL3");
+        println!(
+            "PROVED checked ordinary text computation and service-memory/compositor guest fixtures in x86_64 CPL3"
+        );
     }
     Ok(())
 }

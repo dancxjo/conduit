@@ -4,13 +4,13 @@ use serde_json::Value;
 
 const PREFIX: &str = "CONDUIT_COMPOSITOR_GUEST_PROOF ";
 const STRINGS: [(&str, &str); 5] = [
-    ("schema", "conduit.conduitos/compositor-guest-fixture@1"),
+    ("schema", "conduit.conduitos/compositor-guest-fixture@2"),
     ("status", "completed"),
     ("proof_class", "freestanding-emulator"),
     ("architecture", "x86_64"),
     ("privilege", "ring3"),
 ];
-const FLAGS: [(&str, bool); 9] = [
+const FLAGS: [(&str, bool); 11] = [
     ("fixture", true),
     ("production_compositor", false),
     ("physical_scanout", false),
@@ -18,6 +18,8 @@ const FLAGS: [(&str, bool); 9] = [
     ("driver_isolation", false),
     ("dma_isolation", false),
     ("old_instance_quarantined", true),
+    ("replacement_while_old_alive", true),
+    ("stale_drop_preserves_replacement", true),
     ("fresh_instance_empty", true),
     ("old_handle_rejected", true),
 ];
