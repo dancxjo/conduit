@@ -5,6 +5,9 @@
 //! and install execution before starting Play. Cross-region execution remains
 //! unsupported; in particular, this API never invents a transfer or moves an effect.
 
+mod lane_offers;
+pub use lane_offers::{CheckedRegionLaneOffers, LaneOfferError};
+
 use alloc::vec::Vec;
 use conduit_core::{ExecutionRegion, FragmentId, Plan, PlanFragment};
 use conduit_kernel::{CordId, NodeId};

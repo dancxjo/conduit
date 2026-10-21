@@ -133,3 +133,155 @@ fn independent_regions_keep_original_nodes_and_refuse_cross_region_startup() {
         Err(RegionPreparationError::UnsupportedCrossRegionDependency)
     ));
 }
+
+fn lane_host(plan: &Plan, capacity: u32) -> (HostAdvertisement, Vec<ResourceObservation>) {
+    let fragment = &plan.fragments[0];
+    let host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: fragment.host_id.clone(),
+        boot_id: fragment.boot_id.clone(),
+        offer_generation: fragment.offer_generation,
+        profile: HostProfileId::from("fixture"),
+        bases: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+        resources: vec![ResourceOffer {
+            pool_id: ResourcePoolId::from("lanes"),
+            class_id: ResourceClassId::from("conduit.resource/execution-lane@1"),
+            capacity_units: capacity,
+            content: None,
+            compute: Some(ComputePoolContract {
+                service_guarantee: ComputeServiceGuarantee::Shared,
+                architecture_base_id: ArchitectureBaseId::from("base"),
+                architecture_base_kind: ArchitectureBaseKind::HostedOs,
+                topology_groups: vec![],
+            }),
+        }],
+    };
+    let observations = vec![ResourceObservation {
+        host_id: host.host_id.clone(),
+        boot_id: host.boot_id.clone(),
+        offer_generation: host.offer_generation,
+        pool_id: host.resources[0].pool_id.clone(),
+        class_id: host.resources[0].class_id.clone(),
+        health: ResourceHealth::Ready,
+        unreserved_units: capacity,
+        utilized_units: 0,
+        sign_id: SignId::from("current"),
+    }];
+    (host, observations)
+}
+
+#[test]
+fn lane_offers_check_current_capacity_and_aggregate_shared_pool_demand() {
+    let limits = ExecutionRegionLimits {
+        maximum_regions: 2,
+        maximum_lanes: 4,
+        maximum_nodes: 2,
+        maximum_cords: 0,
+    };
+    for lanes in [1, 2, 4] {
+        let plan = plan(lanes);
+        let prepared =
+            PreparedExecutionRegions::prepare(&plan, &plan.fragments[0].fragment_id, limits)
+                .unwrap();
+        for capacity in [1, 2, 4] {
+            let (host, mut observations) = lane_host(&plan, capacity);
+            assert_eq!(
+                prepared.check_lane_offers(&host, &observations).is_ok(),
+                lanes <= capacity
+            );
+            if lanes > capacity {
+                continue;
+            }
+            let checked = prepared.check_lane_offers(&host, &observations).unwrap();
+            assert!(std::ptr::eq(
+                checked.bindings()[0],
+                &plan.fragments[0].execution_regions[0].lane_resource
+            ));
+            observations[0].unreserved_units = lanes - 1;
+            assert!(matches!(
+                prepared.check_lane_offers(&host, &observations),
+                Err(LaneOfferError::CapacityExceeded)
+            ));
+            observations[0].offer_generation = OfferGeneration(0);
+            assert!(matches!(
+                prepared.check_lane_offers(&host, &observations),
+                Err(LaneOfferError::StaleObservation)
+            ));
+            let (mut stale, observations) = lane_host(&plan, capacity);
+            stale.boot_id = BootId::from("other");
+            assert!(matches!(
+                prepared.check_lane_offers(&stale, &observations),
+                Err(LaneOfferError::StaleHost)
+            ));
+        }
+    }
+    let mut fragment = plan(1).fragments.remove(0);
+    let mut second = fragment.placements[0].clone();
+    second.placement_id = PlacementId::from("second");
+    second.gear_id = GearId::from("second");
+    fragment.startup_order.push(second.placement_id.clone());
+    let mut region = fragment.execution_regions[0].clone();
+    region.region_id = ExecutionRegionId::from("second");
+    region.admitted_placements = vec![second.placement_id.clone()];
+    fragment.placements.push(second);
+    fragment.execution_regions.push(region);
+    let plan = common::seal(fragment);
+    let prepared =
+        PreparedExecutionRegions::prepare(&plan, &plan.fragments[0].fragment_id, limits).unwrap();
+    let (host, observations) = lane_host(&plan, 1);
+    assert!(matches!(
+        prepared.check_lane_offers(&host, &observations),
+        Err(LaneOfferError::CapacityExceeded)
+    ));
+    let (mut host, observations) = lane_host(&plan, 2);
+    assert!(prepared.check_lane_offers(&host, &observations).is_ok());
+    // A pool can have spare total lanes while one selected topology group
+    // is full. The same aggregate accounting must hold inside that group.
+    let mut fragment = plan.fragments[0].clone();
+    for region in &mut fragment.execution_regions {
+        region
+            .lane_resource
+            .compute
+            .as_mut()
+            .unwrap()
+            .topology_group_id = Some(ComputeTopologyGroupId::from("group"));
+    }
+    let grouped = common::seal(fragment);
+    let prepared_group =
+        PreparedExecutionRegions::prepare(&grouped, &grouped.fragments[0].fragment_id, limits)
+            .unwrap();
+    let (mut grouped_host, grouped_observations) = lane_host(&grouped, 4);
+    grouped_host.resources[0]
+        .compute
+        .as_mut()
+        .unwrap()
+        .topology_groups
+        .push(ComputeTopologyGroup {
+            group_id: ComputeTopologyGroupId::from("group"),
+            lane_capacity: 1,
+            numa_domain: None,
+            cache_domain: None,
+            performance_class: None,
+            nominal_clock_hz: None,
+        });
+    assert!(matches!(
+        prepared_group.check_lane_offers(&grouped_host, &grouped_observations),
+        Err(LaneOfferError::CapacityExceeded)
+    ));
+    grouped_host.resources[0]
+        .compute
+        .as_mut()
+        .unwrap()
+        .topology_groups[0]
+        .lane_capacity = 2;
+    assert!(prepared_group
+        .check_lane_offers(&grouped_host, &grouped_observations)
+        .is_ok());
+    host.resources.push(host.resources[0].clone());
+    assert!(matches!(
+        prepared.check_lane_offers(&host, &observations),
+        Err(LaneOfferError::AmbiguousPool)
+    ));
+}
