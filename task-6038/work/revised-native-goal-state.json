@@ -247,8 +247,8 @@
     "candidate": 39529095181,
     "candidate_result": "success",
     "dev": "c4c10b3e38bc0d217e001f980f65a642dfe82280",
-    "integration": 39532642516,
-    "integration_status": "pending observed2026-10-21T02:36Z;nexthealthyobservation>=02:51Z",
+    "integration": 39535021466,
+    "integration_status": "pending;previous395326cancelled/coalesced;395316in_progress;observed02:51UTC",
     "selected_source": "ba44c5cb3ddf9447b46349346d16ee490ec9a173",
     "selection_regressions": "2 passed",
     "private_qmp_adapter": "16 negative mutations rejected; synthetic only; no guest",
@@ -275,6 +275,10 @@
     "owner_artifact_pipeline_session": 5550,
     "normal_journey_session": 50352,
     "normal_journey": "passed26captures/22steps/4localLookswaps;allPNGfileAndDecodedRGBAhashesRootVerified",
-    "owner_backed_typography_proof": "not yet run"
+    "owner_backed_typography_proof": "not yet run",
+    "current_dev": "54e8fe00908e46a6c49fb47532a2ac1477b6c385",
+    "incoming_owner_selection": "ShiftF6density/ShiftF7palette;unmodifiedpresetsunchanged;readOnlyReconciliationAuditComplete;doNotMergeDuringFrozenProof",
+    "workspace": "correspondence/fmt/full strict workspace Clippy passed; full tests compiling",
+    "owner_artifacts": "x86 executable copied;completeLinuxreleaseandHandbookstillbuilding;notinstalled"
   }
 }

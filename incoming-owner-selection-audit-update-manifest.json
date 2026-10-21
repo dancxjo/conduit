@@ -1,0 +1,30 @@
+{
+  "parent": "f3f7108c280e4bfb092aca517f8191db8f4cdc06",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 13701,
+      "sha256": "4b7f013d8cad407634cb71ea43320359cb4f91b863f5b53e7cc5f30b769b94c7",
+      "mode": "100644",
+      "blob": "aa4884225c99b2b3bcb9363a28be135469a1121a"
+    },
+    {
+      "source": "work/5628-owner-independent-selection-reconciliation.md",
+      "tree_path": "task-6038/work/5628-owner-independent-selection-reconciliation.md",
+      "bytes": 4978,
+      "sha256": "1532cb92bb9c6bae84e285f9ad97bbbb3b4609905a81001a63714715afa2c9f5",
+      "mode": "100644",
+      "blob": "f7ab1c63eaf1923c9df0f560385cfb1f4a4f4969"
+    },
+    {
+      "source": "work/5628-normal-qemu-green-comment.md",
+      "tree_path": "task-6038/work/5628-normal-qemu-green-comment.md",
+      "bytes": 1374,
+      "sha256": "17d1c506b86de8b551fa3eb4199cc5777a92d29fda623bafbfe96edfb4660646",
+      "mode": "100644",
+      "blob": "c83b1cdecfa41d8b44a41c0e840019db231e11e7"
+    }
+  ]
+}
