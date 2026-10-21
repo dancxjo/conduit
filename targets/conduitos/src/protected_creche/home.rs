@@ -1,5 +1,6 @@
 //! Home transport owns an independent Home-profile service lease.
 use super::*;
+mod presentation;
 use alloc::string::String;
 use conduit_home_model::HomeAction;
 use conduit_human::KeyEvent;
@@ -61,13 +62,6 @@ impl Home {
     }
     pub(crate) fn model(&self) -> &Snapshot {
         &self.projection
-    }
-    pub(crate) fn refusal(&self) -> Option<&str> {
-        if self.is_live() {
-            self.projection.refusal.as_deref()
-        } else {
-            None
-        }
     }
     pub(crate) fn accept_checked(
         &mut self,

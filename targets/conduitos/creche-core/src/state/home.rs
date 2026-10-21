@@ -7,14 +7,14 @@ use crate::home::{
 use alloc::string::String;
 use conduit_home_model::HomeAction;
 impl State {
-    fn home_current(&self, revision: u32) -> Result<&Controller, Refusal> {
+    pub(super) fn home_current(&self, revision: u32) -> Result<&Controller, Refusal> {
         let home = self.home.as_ref().ok_or(Refusal::Order)?;
         if home.revision() != revision {
             return Err(Refusal::StaleFace);
         }
         Ok(home)
     }
-    fn home_publish<T: serde::Serialize>(
+    pub(super) fn home_publish<T: serde::Serialize>(
         &mut self,
         kind: OutputKind,
         value: &T,

@@ -74,6 +74,8 @@ fn kind(b: u8) -> Result<InputKind, Refusal> {
         5 => Ok(InputKind::NativeScene),
         6 => Ok(InputKind::HomeKey),
         7 => Ok(InputKind::HomeView),
+        8 => Ok(InputKind::HomeScene),
+        9 => Ok(InputKind::HomeContent),
         _ => Err(Refusal::Malformed),
     }
 }
@@ -87,6 +89,8 @@ fn output(b: u8) -> Result<OutputKind, Refusal> {
         6 => Ok(OutputKind::NativeScene),
         7 => Ok(OutputKind::Home),
         8 => Ok(OutputKind::HomeView),
+        9 => Ok(OutputKind::HomeScene),
+        10 => Ok(OutputKind::HomeContent),
         _ => Err(Refusal::Malformed),
     }
 }

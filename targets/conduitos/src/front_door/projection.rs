@@ -228,7 +228,7 @@ impl FrontDoor {
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
-        let (home_properties, home_texts) = self.home_face_content();
+        let (home_properties, home_texts) = self.home_face_content()?;
         properties.extend(home_properties);
         let basis = self.journey.as_ref().map_or_else(
             || FaceBasis {

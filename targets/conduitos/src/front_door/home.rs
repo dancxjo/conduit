@@ -3,15 +3,18 @@
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(super) use crate::protected_creche::Home;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use alloc::format;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use alloc::string::String;
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_home_model::{HomeEvent, HomeModel};
-#[cfg(all(target_arch = "x86_64", target_os = "none"))]
-type HomeReading = conduitos_creche_core::home::data::Snapshot;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type HomeReading = HomeModel;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod presentation;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod scene;
 use conduit_human::KeyEvent;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -116,10 +119,12 @@ impl FrontDoor {
             .collect()
     }
 
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     pub(super) fn home_refusal(&self) -> Option<&str> {
         self.home.as_ref().and_then(|home| home.refusal())
     }
 
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     pub(super) fn home_model(&self) -> Option<&HomeReading> {
         self.home
             .as_ref()

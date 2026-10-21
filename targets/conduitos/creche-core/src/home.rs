@@ -128,3 +128,7 @@ impl Controller {
         self.model.accept(abstract_event, plots)
     }
 }
+
+pub mod presentation;
+mod projection;
+mod scene;

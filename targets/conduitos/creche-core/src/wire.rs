@@ -5,7 +5,7 @@ pub const EXCHANGE_BYTES: usize = 4096;
 pub const TRANSFER_BYTES: u32 = 16 * 1024;
 pub const MAX_BLOB_BYTES: u32 = 128 * 1024;
 pub const HEADER_BYTES: usize = 32;
-pub const VERSION: u16 = 4;
+pub const VERSION: u16 = 5;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Envelope {
     pub instance: u64,
@@ -21,6 +21,8 @@ pub enum InputKind {
     NativeScene = 5,
     HomeKey = 6,
     HomeView = 7,
+    HomeScene = 8,
+    HomeContent = 9,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -33,6 +35,8 @@ pub enum OutputKind {
     NativeScene = 6,
     Home = 7,
     HomeView = 8,
+    HomeScene = 9,
+    HomeContent = 10,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]

@@ -9,6 +9,7 @@ use conduit_birth_plot::{
 };
 use conduit_face::ApplicationEventKind;
 mod home;
+mod home_presentation;
 mod presentation;
 pub struct State {
     draft: Option<super::native::Controller>,
@@ -85,7 +86,13 @@ impl State {
                 if total == 0 || total > MAX_BLOB_BYTES || self.incoming.is_some() {
                     return Err(Refusal::Order);
                 }
-                let home_kind = matches!(kind, InputKind::HomeKey | InputKind::HomeView);
+                let home_kind = matches!(
+                    kind,
+                    InputKind::HomeKey
+                        | InputKind::HomeView
+                        | InputKind::HomeScene
+                        | InputKind::HomeContent
+                );
                 if if home_kind {
                     self.home.is_none() || self.draft.is_some()
                 } else {
@@ -239,6 +246,8 @@ impl State {
             return Err(Refusal::Order);
         }
         match kind {
+            InputKind::HomeScene => self.home_scene(&bytes),
+            InputKind::HomeContent => self.home_content(&bytes),
             InputKind::HomeKey => self.home_key(&bytes),
             InputKind::HomeView => self.home_view(&bytes),
             InputKind::NativeScene => self.native_scene(&bytes),
