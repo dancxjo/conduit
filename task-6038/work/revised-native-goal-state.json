@@ -267,7 +267,7 @@
     "selected_cache_owner": "native_ci_validation",
     "product_cache_owner": "root/native-panels-host-target",
     "private_proof_setup": "new mode0700 directory, empty isolated checkpoint, private P256 TLS certificate verified for guestIP; no owner/invitation/guest yet",
-    "browser_session_helper": "browser_gate_repair implementing private helper; no actual browser started",
+    "browser_session_helper": "root-reviewed synthetic checks passed; current-report identity and unchanged-state cases corrected; no actual execution",
     "owner_report_review": "outer FacePlan can change across nativeLookswap; helper corrected before execution",
     "native_fallback": "actual generic fallback exists but inspected normal-product trigger absent; CPU21item specimen exceeds actualTodoMAX20 and is not guestproof"
   }

@@ -1,0 +1,38 @@
+{
+  "parent": "5e31e6abedab03a01ecff8058ab29b522ce9f95c",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 12886,
+      "sha256": "95c23c90b96a57419439a8f86ba6add9f1d26396e1da356cceac42799dc07280",
+      "mode": "100644",
+      "blob": "5203397ddbec5ea02ca1f9479f18691cb4e95ca7"
+    },
+    {
+      "source": "work/5628-owner-browser-session.mjs",
+      "tree_path": "task-6038/work/5628-owner-browser-session.mjs",
+      "bytes": 20632,
+      "sha256": "fbebd8384d18366f280ee75e701d3049fd958c0d790effc7bb25694b020cbc2b",
+      "mode": "100644",
+      "blob": "16fc0e6c75fef0f621510d41f70665ca667cdd16"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/browser-helper-selftest.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/browser-helper-selftest.json",
+      "bytes": 413,
+      "sha256": "a3e07931e523564246530156646475d98c7b376e640b7e223fa5f47b2e1dd89b",
+      "mode": "100644",
+      "blob": "56bac178ba503ee501661b7cad7a6577b2df7906"
+    },
+    {
+      "source": "work/5608-fallback-reachability-comment.md",
+      "tree_path": "task-6038/work/5608-fallback-reachability-comment.md",
+      "bytes": 1063,
+      "sha256": "0a03b8dcb5affe63a1d631def871198914d4daee40f0f9874eecbe40a87cc3a8",
+      "mode": "100644",
+      "blob": "890ff06a91cae6956ba1a19d054a077938cc6580"
+    }
+  ]
+}
