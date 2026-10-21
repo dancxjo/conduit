@@ -53,8 +53,44 @@ impl Initial {
         }
     }
 }
+/// Read-only custody of one biography projection request, never effect authority.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct TutorialScope {
+    pub body: conduit_core::BodyId,
+    pub outer_revision: u64,
+    pub evidence_revision: u32,
+    pub lulled: bool,
+}
+impl TutorialScope {
+    pub fn new(
+        evidence: &BodyBiographyEvidence,
+        outer_revision: u64,
+        lulled: bool,
+    ) -> Result<Self, Refusal> {
+        Ok(Self {
+            body: evidence.body_id.clone(),
+            outer_revision,
+            evidence_revision: u32::try_from(evidence.records.len())
+                .map_err(|_| Refusal::Bounds)?,
+            lulled,
+        })
+    }
+    pub fn validate(&self, evidence: &BodyBiographyEvidence) -> Result<(), Refusal> {
+        if self.body != evidence.body_id
+            || usize::try_from(self.evidence_revision).ok() != Some(evidence.records.len())
+        {
+            return Err(Refusal::Bounds);
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Command {
+    ProjectTutorial {
+        evidence: BodyBiographyEvidence,
+        scope: TutorialScope,
+    },
     Init {
         applications: [Option<Initial>; SLOTS],
     },
@@ -94,6 +130,10 @@ pub struct Snapshot {
 }
 #[derive(Serialize, Deserialize)]
 pub enum Reply {
+    Tutorial {
+        scope: TutorialScope,
+        view: Vec<u8>,
+    },
     Initialized,
     Applied {
         snapshot: Snapshot,

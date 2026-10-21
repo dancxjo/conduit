@@ -136,10 +136,51 @@ impl NativeWorksetPlay {
     ) -> Result<Self, WorksetRefusal> {
         preparation::prepare(prepared, Some(evidence))
     }
+    /// Read-only lifecycle Tutorial projection, never an application event.
+    pub fn project_tutorial(
+        &self,
+        evidence: &conduit_body::BodyBiographyEvidence,
+        scope: conduitos_application_core::data::TutorialScope,
+    ) -> Result<conduit_face::ApplicationView, PlayRefusal> {
+        if self.cancelled || !self.applications_live() {
+            return Err(PlayRefusal::Cancelled);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.applications
+                .project_tutorial(evidence, scope)
+                .map_err(|_| PlayRefusal::Kernel)
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            scope.validate(evidence).map_err(|_| PlayRefusal::Kernel)?;
+            conduitos_application_core::tutorial::project(evidence, scope.lulled)
+                .map_err(|_| PlayRefusal::Kernel)
+        }
+    }
+    fn applications_live(&self) -> bool {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.applications.is_live()
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            true
+        }
+    }
+    fn ensure_applications_live(&mut self) -> Result<(), PlayRefusal> {
+        if !self.applications_live() {
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            self.fence_runtime_failure();
+            return Err(PlayRefusal::Cancelled);
+        }
+        Ok(())
+    }
     pub fn refresh_tutorial(
         &mut self,
         evidence: &conduit_body::BodyBiographyEvidence,
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let result = self.applications.refresh(evidence);
         self.application_result(result)?;
         for plot in 0..self.plot_count {
@@ -159,6 +200,7 @@ impl NativeWorksetPlay {
         plan: &conduit_body::BodyPlan,
         play: &conduit_body::BodyPlayIdentity,
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let _native_timing =
             crate::native_observation::Interval::begin(crate::native_observation::Stage::PlayStart);
         if self.cancelled
@@ -194,13 +236,13 @@ impl NativeWorksetPlay {
         }
     }
     pub fn take_face(&mut self, plot: usize) -> Option<NativeFace> {
-        if self.cancelled {
+        if self.cancelled || !self.applications_live() {
             return None;
         }
         self.faces.get_mut(plot)?.take()
     }
     pub fn application_view(&self, plot: usize) -> Option<&conduit_face::ApplicationView> {
-        if self.cancelled {
+        if self.cancelled || !self.applications_live() {
             return None;
         }
         self.application_views.get(plot)?.as_ref()
@@ -214,6 +256,7 @@ impl NativeWorksetPlay {
         patchbay: usize,
         target: usize,
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let result = self.applications.select(patchbay, target);
         self.application_result(result)?;
         let _ = self.take_application_view(patchbay);
@@ -223,7 +266,7 @@ impl NativeWorksetPlay {
         self.drive()
     }
     pub fn take_application_view(&mut self, plot: usize) -> Option<conduit_face::ApplicationView> {
-        if self.cancelled {
+        if self.cancelled || !self.applications_live() {
             return None;
         }
         self.application_views.get_mut(plot)?.take()
@@ -232,7 +275,7 @@ impl NativeWorksetPlay {
         &mut self,
         plot: usize,
     ) -> Option<super::NativeApplicationRequest> {
-        if self.cancelled {
+        if self.cancelled || !self.applications_live() {
             return None;
         }
         self.application_requests.get_mut(plot)?.take()
@@ -241,6 +284,7 @@ impl NativeWorksetPlay {
         &mut self,
         topology: &patchbay_application::PatchbayMaskTopology,
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let result = self.applications.topology(topology);
         self.application_result(result)?;
         for plot in 0..self.plot_count {
@@ -260,6 +304,7 @@ impl NativeWorksetPlay {
         tour: usize,
         proof: conduit_tour_model::TourRunProof,
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let result = self.applications.complete(tour, proof);
         self.application_result(result)?;
         let _ = self.take_application_view(tour);
@@ -273,6 +318,7 @@ impl NativeWorksetPlay {
         foreground: usize,
         encoded: &[u8],
     ) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         if self.cancelled {
             return Err(PlayRefusal::Cancelled);
         }
@@ -293,15 +339,20 @@ impl NativeWorksetPlay {
     /// A captured release still belongs here when another surface has focus.
     pub fn owns_release(&self, event: KeyEvent) -> bool {
         !self.cancelled
+            && self.applications_live()
             && event.transition() == KeyTransition::Released
             && self.held[usize::from(event.usage())].is_some()
     }
     pub fn input_owner(&self, plot: usize) -> Option<&AdmittedPlotInput> {
+        if self.cancelled || !self.applications_live() {
+            return None;
+        }
         self.input_owners.get(plot)?.as_ref()
     }
     /// Foreground is supplied by the authoritative workspace selection. A held
     /// key keeps its original owner across subsequent selection changes.
     pub fn input(&mut self, foreground: usize, event: KeyEvent) -> Result<bool, PlayRefusal> {
+        self.ensure_applications_live()?;
         if self.cancelled {
             return Err(PlayRefusal::Cancelled);
         }
@@ -372,6 +423,7 @@ impl NativeWorksetPlay {
         }
     }
     fn drive(&mut self) -> Result<(), PlayRefusal> {
+        self.ensure_applications_live()?;
         let result = self.drive_inner();
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if result.is_err() {

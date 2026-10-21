@@ -17,3 +17,11 @@ pending effects and stale outputs without retry. This source migration does not
 move Body lifecycle authority, the Face/Mask pipeline, physical drivers, networking
 or other Root runtime paths out of privilege. No QEMU, physical, CI or release
 acceptance is claimed by these sources.
+
+Lifecycle Tutorial projection reuses a live Application owner through a read-only
+Root transport borrow. A cold/Lulled journey or text-only workset uses one explicit
+transient lease that is dropped after the query, leaving the slot available for
+Wake. Failure of a live owner never triggers a transient fallback. Root action
+admission and lifecycle effects remain privileged. A failed read fences all cached
+NativeWorkset views and action getters immediately; the next mutable boundary
+retires the sibling Runtime/text ownership.

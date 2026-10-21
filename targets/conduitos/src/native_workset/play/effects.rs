@@ -161,7 +161,7 @@ impl NativeWorksetPlay {
         request: HostCallRequest,
         bytes: Option<&[u8]>,
     ) -> Result<(), PlayRefusal> {
-        if self.cancelled {
+        if self.cancelled || !self.applications_live() {
             return Err(PlayRefusal::Cancelled);
         }
         let output = bytes

@@ -1,15 +1,19 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
 mod authority;
+mod projection;
 mod transport;
 use alloc::boxed::Box;
 use conduit_face::ApplicationView;
 use conduitos_application_core::{EVENT_BYTES, SLOTS, VIEW_BYTES, data::*};
+use core::cell::{Cell, RefCell};
 use patchbay_application::PatchbayMaskTopology;
 use patchbay_graph::PatchbayGraph;
+pub(crate) use projection::project_tutorial;
 use transport::Service;
 
 pub(crate) struct Owner {
-    service: Option<Service>,
+    service: RefCell<Option<Service>>,
+    failed: Cell<bool>,
     needed: bool,
     kinds: [Option<Kind>; SLOTS],
     snapshots: [Option<Snapshot>; SLOTS],
@@ -20,7 +24,8 @@ pub(crate) struct Owner {
 impl Owner {
     pub fn new(initial: [Option<Initial>; SLOTS]) -> Result<Self, Refusal> {
         let mut owner = Self {
-            service: None,
+            service: RefCell::new(None),
+            failed: Cell::new(false),
             needed: initial.iter().any(Option::is_some),
             kinds: core::array::from_fn(|i| initial[i].as_ref().map(Initial::kind)),
             snapshots: core::array::from_fn(|_| None),
@@ -41,7 +46,7 @@ impl Owner {
             }
         }
         if owner.needed {
-            owner.service = Some(Service::install()?);
+            *owner.service.get_mut() = Some(Service::install()?);
             if !matches!(
                 owner.command(&Command::Init {
                     applications: initial
@@ -60,13 +65,22 @@ impl Owner {
         Ok(owner)
     }
     pub fn kind(&self, slot: usize) -> Option<Kind> {
+        if !self.is_live() {
+            return None;
+        }
         self.kinds.get(slot).copied().flatten()
     }
     pub fn is_live(&self) -> bool {
-        !self.needed || self.service.is_some()
+        !self.failed.get()
+            && (!self.needed
+                || self
+                    .service
+                    .try_borrow()
+                    .is_ok_and(|service| service.is_some()))
     }
     pub fn abort(&mut self) {
-        if let Some(mut service) = self.service.take() {
+        self.failed.set(true);
+        if let Some(mut service) = self.service.get_mut().take() {
             service.quarantine();
         }
         self.needed = true;
@@ -77,8 +91,12 @@ impl Owner {
         self.topology = None;
     }
     fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
+        if self.failed.get() {
+            return Err(Refusal::Order);
+        }
         let result = self
             .service
+            .get_mut()
             .as_mut()
             .ok_or(Refusal::Order)?
             .command(command);

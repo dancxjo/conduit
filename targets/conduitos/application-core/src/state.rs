@@ -49,6 +49,14 @@ impl State {
                 }
                 let command: Command = data::decode(&incoming)?;
                 let reply = match command {
+                    Command::ProjectTutorial { evidence, scope } => {
+                        scope.validate(&evidence)?;
+                        let view = crate::tutorial::project(&evidence, scope.lulled)?;
+                        Reply::Tutorial {
+                            scope,
+                            view: view.encode().map_err(|_| Refusal::Application)?,
+                        }
+                    }
                     Command::Init { applications } => {
                         if self.models.is_some() {
                             return Err(Refusal::Order);
