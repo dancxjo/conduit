@@ -10,14 +10,28 @@ impl NativeFaceScene {
         if self.interaction_admitted != previous.interaction_admitted || previous.input.submitted {
             return Err(FaceSceneError::InputUnavailable);
         }
+        // A geometry refusal changes realization, not the requested reading
+        // view. Retry that request under the new Look, unless the user has
+        // explicitly left graph reading in the meantime.
+        let retry_diagram = previous.showing_diagram
+            || (previous.showing_details
+                && previous
+                    .graph_reading
+                    .as_ref()
+                    .is_some_and(|reading| reading.active && previous.diagram_refusal().is_some()));
         self.graph_reading = previous.graph_reading;
+        if previous.showing_diagram
+            && let Some(reading) = self.graph_reading.as_mut()
+        {
+            reading.diagram_page = previous.page;
+        }
         self.local_notice = previous.local_notice;
         self.showing_details = previous.showing_details;
         self.showing_diagram = false;
         self.page = previous.page.min(self.pages() - 1);
-        if previous.showing_diagram {
+        if retry_diagram {
             self.show_diagram(true);
-            if self.showing_diagram {
+            if self.showing_diagram && previous.showing_diagram {
                 self.page = previous.page.min(self.pages() - 1);
             }
         } else if self.showing_details {

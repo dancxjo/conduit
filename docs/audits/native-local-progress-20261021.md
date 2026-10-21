@@ -126,3 +126,14 @@ ellipsis; complete source labels remain in Details. Geometry and exact hit
 identities are unchanged. Native compositor compilation passed in 9 seconds;
 no runtime proof or image rebuild was run. This advances #5629's text readability
 boundary without claiming complete font coverage or shaping.
+
+## Look restoration after graph fallback
+
+Same-Face encounter retention now retries a still-active graph-view request after
+a Look change. Enlarged text can realize that request as measured Details; a
+later fitting Look restores the requested diagram and its originating diagram
+page instead of retaining a stale refusal notice. Explicitly leaving graph
+reading cancels the retry. Refusals still do not alter Face or create an action.
+The earlier ISO predates this correction. Runtime scale/restore proof remains
+deferred.
+Native compositor compilation passed for the final correction (4 seconds).
