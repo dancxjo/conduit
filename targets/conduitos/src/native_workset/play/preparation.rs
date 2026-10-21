@@ -227,7 +227,7 @@ pub(super) fn prepare(
     let signs =
         FixedSignLog::<SIGN_ITEMS>::new((SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32)
             .map_err(|_| WorksetRefusal::Kernel)?;
-    let scheduler = Scheduler::new_with_active_counts_and_host_calls(
+    let scheduler = Scheduler::new_boxed_with_active_counts_and_host_calls(
         usize::from(prepared.lowered.nodes),
         usize::from(prepared.lowered.cords),
         nodes,
@@ -286,7 +286,7 @@ pub(super) fn prepare(
         protection_admissions: core::array::from_fn(|index| {
             prepared.protected_text.get(index).cloned().flatten()
         }),
-        scheduler: Box::new(scheduler),
+        scheduler,
         bindings,
         keymaps,
         #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
