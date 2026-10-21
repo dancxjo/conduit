@@ -1,0 +1,46 @@
+{
+  "parent": "209730985975d1e3a7595509541019b46a603d42",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 11059,
+      "sha256": "c5d7524e354dd2c3dfcf9121002d061c3dd387ef4bf97082a01bf7ac9bb856e3",
+      "mode": "100644",
+      "blob": "eff3c66e8adfc7a6e45ae03ec6f6ac94d08378e0"
+    },
+    {
+      "source": "work/6165-merged-description-before-20261021.md",
+      "tree_path": "task-6038/work/6165-merged-description-before-20261021.md",
+      "bytes": 4019,
+      "sha256": "16de1bb31854a201597474a8660b54b874e10c82e07e14687aad22e73edcaaf0",
+      "mode": "100644",
+      "blob": "6d8e25fc4674730f7094d8729516911a29e6d0d6"
+    },
+    {
+      "source": "work/6165-merged-description-current.md",
+      "tree_path": "task-6038/work/6165-merged-description-current.md",
+      "bytes": 2521,
+      "sha256": "e3e546361fd8d8275fa326a5b8c404a5d634d572c1c2cfb97e42b90ec808a862",
+      "mode": "100644",
+      "blob": "60fc963e9c6bff1084f88678bcb4e7360f0ee1f3"
+    },
+    {
+      "source": "work/5992-6167-repaired-final-comment.md",
+      "tree_path": "task-6038/work/5992-6167-repaired-final-comment.md",
+      "bytes": 1311,
+      "sha256": "0f42b09999505cea9ec11180d23daf8d5fa93fec75552f6e1fb03d788f896fc5",
+      "mode": "100644",
+      "blob": "89754fdd2c4d969cc5d08b994f7645008b1b36b9"
+    },
+    {
+      "source": "work/5628-native-browser-progress-comment.md",
+      "tree_path": "task-6038/work/5628-native-browser-progress-comment.md",
+      "bytes": 1530,
+      "sha256": "4fd7cdcd38c599f14fe1d06af834a2cf55e32b6f0e5a5710a6db7f88da1ead58",
+      "mode": "100644",
+      "blob": "c455b784a67e3f4f620838678db8b7f967a38c14"
+    }
+  ]
+}

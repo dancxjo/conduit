@@ -216,10 +216,11 @@
     },
     "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json",
     "critical_review": "work/5628-provisional-refusal-caller-review.md",
-    "browser_receipt": "outputs/5628-browser-title-50748a233/receipt.json"
+    "browser_receipt": "outputs/5628-browser-title-50748a233/receipt.json",
+    "owner_driver_audit": "read-only existing supported-route seam audit active; no owner secrets/builds yet"
   },
   "latest_ci_observation": {
-    "time": "2026-10-21T01:51:00Z",
+    "time": "2026-10-21T02:06:00Z",
     "old_6a8_run": 39519886483,
     "old_6a8_state": "terminalFailure;knownPre6171ProductsOnly;browserFoundationPassed",
     "current_dev": "77919bfa492626e0cbc566b77f7cbc32f74088b7",
@@ -229,11 +230,11 @@
       "pr": 6187,
       "head": "6c6737c7c0d3c701ce9505c18e75d5877923fceb",
       "candidate": 39529095181,
-      "state": "running;autoMergeEnabled;existingOwner",
+      "state": "quickAndIA32Passed;admissionFourTargetsRunning;autoMergeEnabled;unmerged",
       "superseded_candidate": 39527481470,
       "superseded_state": "cancelled after admission items_after_test_module rounded.rs;ownedRepairAdvanced"
     },
-    "next_observation_not_before": "2026-10-21T02:06:00Z"
+    "next_observation_not_before": "2026-10-21T02:21:00Z"
   },
   "patchbay_preparation": {
     "issue": 5516,
