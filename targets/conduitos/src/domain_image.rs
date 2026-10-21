@@ -35,7 +35,28 @@ pub struct DomainImage<'a> {
 
 impl<'a> DomainImage<'a> {
     pub fn parse(bytes: &'a [u8], machine: u16) -> Result<Self, ImageRefusal> {
+        let start = if machine == 3 {
+            IA32_USER_TEXT_START
+        } else {
+            USER_TEXT_START
+        };
+        Self::parse_in_window(bytes, machine, start, MAXIMUM_IMAGE_BYTES)
+    }
+
+    pub(crate) fn parse_in_window(
+        bytes: &'a [u8],
+        machine: u16,
+        text_start: u64,
+        maximum_bytes: u64,
+    ) -> Result<Self, ImageRefusal> {
         use ImageRefusal as Refusal;
+        if maximum_bytes == 0
+            || maximum_bytes % PAGE_BYTES != 0
+            || text_start % PAGE_BYTES != 0
+            || text_start.checked_add(maximum_bytes).is_none()
+        {
+            return Err(Refusal::InvalidMapping);
+        }
         let class = if machine == 3 { 1 } else { 2 };
         if bytes.get(..4) != Some(b"\x7fELF")
             || bytes.get(4) != Some(&class)
@@ -66,13 +87,20 @@ impl<'a> DomainImage<'a> {
             .checked_add(2 * header_size)
             .ok_or(Refusal::Malformed)?;
         let headers = bytes.get(offset..end).ok_or(Refusal::Malformed)?;
-        let text_start = if machine == 3 {
-            IA32_USER_TEXT_START
-        } else {
-            USER_TEXT_START
-        };
-        let first = segment(bytes, &headers[..header_size], class, text_start)?;
-        let second = segment(bytes, &headers[header_size..], class, text_start)?;
+        let first = segment(
+            bytes,
+            &headers[..header_size],
+            class,
+            text_start,
+            maximum_bytes,
+        )?;
+        let second = segment(
+            bytes,
+            &headers[header_size..],
+            class,
+            text_start,
+            maximum_bytes,
+        )?;
         if !first.executable
             || second.executable
             || entry < first.address
@@ -93,6 +121,7 @@ fn segment<'a>(
     header: &[u8],
     class: u8,
     text_start: u64,
+    maximum_bytes: u64,
 ) -> Result<ImageSegment<'a>, ImageRefusal> {
     use ImageRefusal as Refusal;
     let (flags, offset, address, length, memory_length, alignment) = if class == 1 {
@@ -117,14 +146,14 @@ fn segment<'a>(
     if field32(header, 0)? != 1
         || !matches!(flags, 4 | 5)
         || length == 0
-        || length > MAXIMUM_IMAGE_BYTES
+        || length > maximum_bytes
         || memory_length != length
         || alignment != PAGE_BYTES
         || address % PAGE_BYTES != 0
         || address < text_start
         || address
             .checked_add(length.div_ceil(PAGE_BYTES) * PAGE_BYTES)
-            .is_none_or(|end| end > text_start + MAXIMUM_IMAGE_BYTES)
+            .is_none_or(|end| end > text_start + maximum_bytes)
     {
         return Err(Refusal::InvalidMapping);
     }

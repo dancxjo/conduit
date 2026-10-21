@@ -22,6 +22,7 @@ pub mod cryptographic_entropy;
 pub mod current_sample;
 pub mod display;
 pub mod domain_image;
+pub mod service_memory;
 #[cfg(any(target_os = "none", all(target_arch = "x86", target_os = "linux")))]
 #[path = "../domain/layout.rs"]
 pub(crate) mod domain_layout;
