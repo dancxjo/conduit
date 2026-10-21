@@ -1,0 +1,192 @@
+use super::*;
+use crate::Route;
+/// Numeric metadata for pixels in the separately admitted transfer window.
+/// Coverage describes composition, never an acknowledged semantic Show.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FrameSpan {
+    pub sequence: u64,
+    pub x: u32,
+    pub y: u32,
+    pub window_offset: u32,
+    pub pixels: u32,
+    pub complete: bool,
+    pub coverage: [u32; MAX_SURFACES],
+}
+impl FrameSpan {
+    fn validate(self) -> Result<(), CodecError> {
+        nonzero(self.sequence)?;
+        window_range(self.window_offset, self.pixels)?;
+        if self
+            .x
+            .checked_add(self.pixels)
+            .is_none_or(|end| end > u32::from(u16::MAX))
+            || self.y >= u32::from(u16::MAX)
+        {
+            return Err(CodecError::Value);
+        }
+        let mut sum = 0u32;
+        for count in self.coverage {
+            sum = sum.checked_add(count).ok_or(CodecError::Value)?;
+        }
+        if sum > MAX_PIXELS as u32 || (!self.complete && sum != 0) {
+            return Err(CodecError::Value);
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Response {
+    Unit,
+    Surface(Handle),
+    Prepared(bool),
+    FrameSequence(u64),
+    Frame(FrameSpan),
+    Pointer(Option<Route>),
+    Keyboard(Option<(Handle, u64)>),
+    Refused(Error),
+}
+pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError> {
+    let (e, op, mut r) = header(bytes)?;
+    let response = match op {
+        0x8000 => Response::Unit,
+        0x8001 => Response::Surface(r.handle()?),
+        0x8002 => Response::Prepared(r.bool()?),
+        0x8003 => {
+            let seq = r.u64()?;
+            nonzero(seq)?;
+            Response::FrameSequence(seq)
+        }
+        0x8004 => {
+            let sequence = r.u64()?;
+            let x = r.u32()?;
+            let y = r.u32()?;
+            let window_offset = r.u32()?;
+            let pixels = r.u32()?;
+            let complete = r.bool()?;
+            let mut coverage = [0; MAX_SURFACES];
+            for count in &mut coverage {
+                *count = r.u32()?;
+            }
+            let frame = FrameSpan {
+                sequence,
+                x,
+                y,
+                window_offset,
+                pixels,
+                complete,
+                coverage,
+            };
+            frame.validate()?;
+            Response::Frame(frame)
+        }
+        0x8005 => Response::Pointer(if r.bool()? {
+            let surface = r.handle()?;
+            let revision = r.u64()?;
+            nonzero(revision)?;
+            Some(Route {
+                surface,
+                revision,
+                x: r.u16()?,
+                y: r.u16()?,
+            })
+        } else {
+            None
+        }),
+        0x8006 => Response::Keyboard(if r.bool()? {
+            let handle = r.handle()?;
+            let revision = r.u64()?;
+            nonzero(revision)?;
+            Some((handle, revision))
+        } else {
+            None
+        }),
+        0x8007 => Response::Refused(error(r.u16()?)?),
+        _ => return Err(CodecError::Operation),
+    };
+    r.done()?;
+    Ok((e, response))
+}
+pub fn encode_response(
+    e: Envelope,
+    response: Response,
+    bytes: &mut [u8],
+) -> Result<usize, CodecError> {
+    let (tag, size) = match response {
+        Response::Unit => (0, 0),
+        Response::Surface(_) => (1, 9),
+        Response::Prepared(_) => (2, 1),
+        Response::FrameSequence(_) => (3, 8),
+        Response::Frame(_) => (4, 57),
+        Response::Pointer(value) => (5, if value.is_some() { 22 } else { 1 }),
+        Response::Keyboard(value) => (6, if value.is_some() { 18 } else { 1 }),
+        Response::Refused(_) => (7, 2),
+    };
+    let length = HEADER_BYTES + size;
+    let mut w = begin(bytes, e, 0x8000 | tag, length)?;
+    match response {
+        Response::Unit => {}
+        Response::Surface(h) => w.handle(h)?,
+        Response::Prepared(value) => w.bool(value)?,
+        Response::FrameSequence(seq) => {
+            nonzero(seq)?;
+            w.u64(seq)?;
+        }
+        Response::Frame(f) => {
+            f.validate()?;
+            w.u64(f.sequence)?;
+            w.u32(f.x)?;
+            w.u32(f.y)?;
+            w.u32(f.window_offset)?;
+            w.u32(f.pixels)?;
+            w.bool(f.complete)?;
+            for count in f.coverage {
+                w.u32(count)?;
+            }
+        }
+        Response::Pointer(value) => {
+            w.bool(value.is_some())?;
+            if let Some(route) = value {
+                w.handle(route.surface)?;
+                nonzero(route.revision)?;
+                w.u64(route.revision)?;
+                w.u16(route.x)?;
+                w.u16(route.y)?;
+            }
+        }
+        Response::Keyboard(value) => {
+            w.bool(value.is_some())?;
+            if let Some((h, revision)) = value {
+                w.handle(h)?;
+                nonzero(revision)?;
+                w.u64(revision)?;
+            }
+        }
+        Response::Refused(value) => w.u16(error_code(value))?,
+    }
+    Ok(length)
+}
+fn error(code: u16) -> Result<Error, CodecError> {
+    match code {
+        1 => Ok(Error::Bounds),
+        2 => Ok(Error::Capacity),
+        3 => Ok(Error::Stale),
+        4 => Ok(Error::Busy),
+        5 => Ok(Error::Incomplete),
+        6 => Ok(Error::Order),
+        7 => Ok(Error::NoDamage),
+        8 => Ok(Error::Exhausted),
+        _ => Err(CodecError::Value),
+    }
+}
+fn error_code(value: Error) -> u16 {
+    match value {
+        Error::Bounds => 1,
+        Error::Capacity => 2,
+        Error::Stale => 3,
+        Error::Busy => 4,
+        Error::Incomplete => 5,
+        Error::Order => 6,
+        Error::NoDamage => 7,
+        Error::Exhausted => 8,
+    }
+}

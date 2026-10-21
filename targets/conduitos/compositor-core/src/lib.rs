@@ -6,6 +6,7 @@ mod lifecycle;
 mod scanline;
 mod state;
 mod upload;
+pub mod wire;
 use damage::Damage;
 pub use frame::{CompletedFrame, Span};
 pub use lifecycle::Route;
