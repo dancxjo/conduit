@@ -1,0 +1,1091 @@
+{
+  "classification": "RETAINED_NUMERICAL_PLANS_NOT_NEW_EXECUTION",
+  "unique_plans": {
+    "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4": {
+      "checked_plot_id": "bfe8714a65f12d3e79fe89dd7314caaf4ba4f9c0344cd3ed46140e308f75c177",
+      "completion_policy": "Live",
+      "expanded_plot_id": "d820bbb9df8e46a99d55279ea63d4049b006c717f0dcb9e86628450092716e2a",
+      "fragments": [
+        {
+          "boot_id": "parser-model-test-boot",
+          "cancellation_policy": "CancelAllAndRejectLateCompletion",
+          "checked_plot_id": "bfe8714a65f12d3e79fe89dd7314caaf4ba4f9c0344cd3ed46140e308f75c177",
+          "completion_policy": "Live",
+          "connections": [
+            {
+              "admitted_lines": [],
+              "byte_capacity": 1010,
+              "connection_id": "3d468818b3d5b09f10a88d593d64f3683c4d598c664950c006f9194c420d3217",
+              "item_capacity": 1,
+              "pressure_policy": "preserve-order",
+              "selected_line": null,
+              "sink_placement_id": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef",
+              "sink_port_id": "value",
+              "source_placement_id": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4",
+              "source_port_id": "scores",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "track": "payload",
+              "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+            },
+            {
+              "admitted_lines": [],
+              "byte_capacity": 1010,
+              "connection_id": "36790e6d821b3931fe680a93856d5c8989e3a59a8a85c01769770832191320b9",
+              "item_capacity": 1,
+              "pressure_policy": "preserve-order",
+              "selected_line": null,
+              "sink_placement_id": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4",
+              "sink_port_id": "indices",
+              "source_placement_id": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c",
+              "source_port_id": "value",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "track": "payload",
+              "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+            }
+          ],
+          "execution_fusions": [],
+          "execution_regions": [],
+          "expanded_plot_id": "d820bbb9df8e46a99d55279ea63d4049b006c717f0dcb9e86628450092716e2a",
+          "expected_sign": [
+            "PlanFragmentReceived",
+            {
+              "PlacementPrepared": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4"
+            },
+            {
+              "PlacementPrepared": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef"
+            },
+            {
+              "PlacementPrepared": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c"
+            },
+            {
+              "PlacementTerminal": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4"
+            },
+            {
+              "PlacementTerminal": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef"
+            },
+            {
+              "PlacementTerminal": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c"
+            },
+            {
+              "ConnectionTerminal": "3d468818b3d5b09f10a88d593d64f3683c4d598c664950c006f9194c420d3217"
+            },
+            {
+              "ConnectionTerminal": "36790e6d821b3931fe680a93856d5c8989e3a59a8a85c01769770832191320b9"
+            },
+            "PlanTerminal"
+          ],
+          "expected_terminals": [
+            {
+              "PlacementCompleted": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4"
+            },
+            {
+              "PlacementCompleted": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef"
+            },
+            {
+              "PlacementCompleted": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c"
+            },
+            {
+              "ConnectionCompleted": "3d468818b3d5b09f10a88d593d64f3683c4d598c664950c006f9194c420d3217"
+            },
+            {
+              "ConnectionCompleted": "36790e6d821b3931fe680a93856d5c8989e3a59a8a85c01769770832191320b9"
+            },
+            "PlanCompleted"
+          ],
+          "fragment_id": "db71027f3f7fb8480e85cc89897051bb7f036178757d1c92dd4e5933600f997e",
+          "host_id": "parser-model-test",
+          "offer_generation": 1,
+          "placements": [
+            {
+              "artifact_id": "conduit.numeric/resource-categorical-i16-i64@1/817efc78fc59318ecbd87072a17b9d7cb4dcc4d5d9702f70e445bc3e1f8ead6c",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "conduit.numeric/resource-categorical-i16-i64@1/47b04d10b1b3708749427e4d7ed596fbfce6301303a306ec3e9784b129b87c02/true",
+              "configuration": [],
+              "execution_profile_id": "conduit.numeric/resource-categorical-i16-i64@1",
+              "gear_id": "categorical-proof/model",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "conduit.numeric/resource-categorical-i16-i64@1",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "indices",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                }
+              ],
+              "kind_contract_revision": "conduit.numeric/resource-categorical-i16-i64@1",
+              "kind_id": "numeric/flow-resource-categorical/817efc78fc59318ecbd87072a17b9d7cb4dcc4d5d9702f70e445bc3e1f8ead6c",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 1010,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "scores",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                }
+              ],
+              "placement_id": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [
+                {
+                  "class_id": "language/parser-causal-ablation/unaccepted-read@1",
+                  "compute": null,
+                  "content": {
+                    "base_id": "parser-model-test-base",
+                    "contract": {
+                      "access": "ReadPublished",
+                      "content_profile": "model/categorical-i16-sum@1",
+                      "generation_slots": 1,
+                      "identity": [
+                        38,
+                        20,
+                        111,
+                        197,
+                        237,
+                        154,
+                        134,
+                        214,
+                        201,
+                        96,
+                        211,
+                        203,
+                        55,
+                        238,
+                        66,
+                        251,
+                        244,
+                        201,
+                        201,
+                        9,
+                        44,
+                        30,
+                        34,
+                        111,
+                        152,
+                        74,
+                        119,
+                        185,
+                        7,
+                        217,
+                        25,
+                        80
+                      ],
+                      "maximum_bytes": 62796,
+                      "maximum_items": 1,
+                      "publication_slots": 0,
+                      "reader_leases": 16,
+                      "retention": "Play",
+                      "sensitive": false,
+                      "sharing": "ImmutableReadMany",
+                      "version": [
+                        38,
+                        20,
+                        111,
+                        197,
+                        237,
+                        154,
+                        134,
+                        214,
+                        201,
+                        96,
+                        211,
+                        203,
+                        55,
+                        238,
+                        66,
+                        251,
+                        244,
+                        201,
+                        201,
+                        9,
+                        44,
+                        30,
+                        34,
+                        111,
+                        152,
+                        74,
+                        119,
+                        185,
+                        7,
+                        217,
+                        25,
+                        80
+                      ]
+                    },
+                    "owner_boot": "parser-model-test-boot",
+                    "owner_host": "parser-model-test",
+                    "residence_profile": "test/owned-immutable-memory@1"
+                  },
+                  "pool_id": "test/parser-model-pool",
+                  "protected": null,
+                  "units": 1
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 347,
+                          "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                        },
+                        "location": {
+                          "Input": "indices"
+                        }
+                      },
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 1010,
+                          "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                        },
+                        "location": {
+                          "Output": "scores"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "artifact_id": "categorical-test/sink",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "categorical-test/sink",
+              "configuration": [],
+              "execution_profile_id": "test/fixture@1",
+              "gear_id": "categorical-proof/sink",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "categorical-test/sink",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "value",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                }
+              ],
+              "kind_contract_revision": "test/fixture@1",
+              "kind_id": "categorical-test/sink",
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_bytes": 16384,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [],
+              "placement_id": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 1010,
+                          "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                        },
+                        "location": {
+                          "Input": "value"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "artifact_id": "categorical-test/source",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "categorical-test/source",
+              "configuration": [],
+              "execution_profile_id": "test/fixture@1",
+              "gear_id": "categorical-proof/source",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "categorical-test/source",
+              "inputs": [],
+              "kind_contract_revision": "test/fixture@1",
+              "kind_id": "categorical-test/source",
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_bytes": 16384,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "value",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                }
+              ],
+              "placement_id": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 347,
+                          "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                        },
+                        "location": {
+                          "Output": "value"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "plan_fragments": [
+            {
+              "fragment_id": "db71027f3f7fb8480e85cc89897051bb7f036178757d1c92dd4e5933600f997e",
+              "host_id": "parser-model-test"
+            }
+          ],
+          "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+          "realization_backs": [],
+          "shared_pools": [],
+          "sign_storage_budget": {
+            "byte_capacity": 522,
+            "item_capacity": 10
+          },
+          "source_document_id": "14a80d8d626c7405557db0044ad195e679f40e1539aaf3119b85b98a9cb9e4c4",
+          "startup_dependencies": [
+            {
+              "dependent_placement_id": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4",
+              "prerequisite_placement_id": "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef"
+            },
+            {
+              "dependent_placement_id": "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c",
+              "prerequisite_placement_id": "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4"
+            }
+          ],
+          "startup_order": [
+            "a38137dc0c35728ca532eba087e64c8b806dac37259863dfda905d7083bfc5ef",
+            "aa454df3a773f9a3cbc19158e358bceee18516dec82f5c4ccffa67347bbbe1f4",
+            "771ae29d47a61ba29db46a36b40b3eed9efa43592a7bf93d08b6654939abcf3c"
+          ],
+          "terminal_policy": "RequireAllPlacementsAndConnections"
+        }
+      ],
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "realization_backs": [],
+      "source_document_id": "14a80d8d626c7405557db0044ad195e679f40e1539aaf3119b85b98a9cb9e4c4"
+    },
+    "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd": {
+      "checked_plot_id": "7915c7327e5360c56524fcdb4c288cae8bd27dd36296d1358c618191bc22acbc",
+      "completion_policy": "Live",
+      "expanded_plot_id": "bbd2dd3043f121efae3203ad873ee2cf5ab56f220e86e011a8444eb7da245c84",
+      "fragments": [
+        {
+          "boot_id": "parser-model-test-boot",
+          "cancellation_policy": "CancelAllAndRejectLateCompletion",
+          "checked_plot_id": "7915c7327e5360c56524fcdb4c288cae8bd27dd36296d1358c618191bc22acbc",
+          "completion_policy": "Live",
+          "connections": [
+            {
+              "admitted_lines": [],
+              "byte_capacity": 1010,
+              "connection_id": "c0679b33b081d0e0afb2793787f2c6a7e028c1f2354633de60196420d3b3731b",
+              "item_capacity": 1,
+              "pressure_policy": "preserve-order",
+              "selected_line": null,
+              "sink_placement_id": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144",
+              "sink_port_id": "value",
+              "source_placement_id": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9",
+              "source_port_id": "scores",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "track": "payload",
+              "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+            },
+            {
+              "admitted_lines": [],
+              "byte_capacity": 1010,
+              "connection_id": "f6b219b9ebc8af753a1a6eac62cf1f1c5a63be6d739ab901b47e4a4af09a8828",
+              "item_capacity": 1,
+              "pressure_policy": "preserve-order",
+              "selected_line": null,
+              "sink_placement_id": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9",
+              "sink_port_id": "indices",
+              "source_placement_id": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6",
+              "source_port_id": "value",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "track": "payload",
+              "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+            }
+          ],
+          "execution_fusions": [],
+          "execution_regions": [],
+          "expanded_plot_id": "bbd2dd3043f121efae3203ad873ee2cf5ab56f220e86e011a8444eb7da245c84",
+          "expected_sign": [
+            "PlanFragmentReceived",
+            {
+              "PlacementPrepared": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9"
+            },
+            {
+              "PlacementPrepared": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144"
+            },
+            {
+              "PlacementPrepared": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6"
+            },
+            {
+              "PlacementTerminal": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9"
+            },
+            {
+              "PlacementTerminal": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144"
+            },
+            {
+              "PlacementTerminal": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6"
+            },
+            {
+              "ConnectionTerminal": "c0679b33b081d0e0afb2793787f2c6a7e028c1f2354633de60196420d3b3731b"
+            },
+            {
+              "ConnectionTerminal": "f6b219b9ebc8af753a1a6eac62cf1f1c5a63be6d739ab901b47e4a4af09a8828"
+            },
+            "PlanTerminal"
+          ],
+          "expected_terminals": [
+            {
+              "PlacementCompleted": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9"
+            },
+            {
+              "PlacementCompleted": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144"
+            },
+            {
+              "PlacementCompleted": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6"
+            },
+            {
+              "ConnectionCompleted": "c0679b33b081d0e0afb2793787f2c6a7e028c1f2354633de60196420d3b3731b"
+            },
+            {
+              "ConnectionCompleted": "f6b219b9ebc8af753a1a6eac62cf1f1c5a63be6d739ab901b47e4a4af09a8828"
+            },
+            "PlanCompleted"
+          ],
+          "fragment_id": "f6b57af174daf3d3051848bcb2a407e52c6293657ac207003bbbf14ec603b3e5",
+          "host_id": "parser-model-test",
+          "offer_generation": 1,
+          "placements": [
+            {
+              "artifact_id": "conduit.numeric/resource-categorical-i16-i64@1/1b04295d2422f326ee4b472580edf45c8a73b98d43f0fa052bce237fdb258bba",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "conduit.numeric/resource-categorical-i16-i64@1/a57e7608e73b277045a4e839936b8281b059668c9557f68120e35670926181cc/true",
+              "configuration": [],
+              "execution_profile_id": "conduit.numeric/resource-categorical-i16-i64@1",
+              "gear_id": "categorical-proof/model",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "conduit.numeric/resource-categorical-i16-i64@1",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "indices",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                }
+              ],
+              "kind_contract_revision": "conduit.numeric/resource-categorical-i16-i64@1",
+              "kind_id": "numeric/flow-resource-categorical/1b04295d2422f326ee4b472580edf45c8a73b98d43f0fa052bce237fdb258bba",
+              "limits": {
+                "max_active_instances": 16,
+                "max_queue_bytes": 1010,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "scores",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                }
+              ],
+              "placement_id": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [
+                {
+                  "class_id": "language/parser-causal-ablation/unaccepted-read@1",
+                  "compute": null,
+                  "content": {
+                    "base_id": "parser-model-test-base",
+                    "contract": {
+                      "access": "ReadPublished",
+                      "content_profile": "model/categorical-i16-sum@1",
+                      "generation_slots": 1,
+                      "identity": [
+                        158,
+                        255,
+                        189,
+                        193,
+                        137,
+                        164,
+                        215,
+                        126,
+                        129,
+                        69,
+                        51,
+                        135,
+                        54,
+                        242,
+                        133,
+                        178,
+                        111,
+                        73,
+                        111,
+                        248,
+                        19,
+                        19,
+                        31,
+                        193,
+                        174,
+                        46,
+                        240,
+                        51,
+                        242,
+                        103,
+                        29,
+                        0
+                      ],
+                      "maximum_bytes": 62796,
+                      "maximum_items": 1,
+                      "publication_slots": 0,
+                      "reader_leases": 16,
+                      "retention": "Play",
+                      "sensitive": false,
+                      "sharing": "ImmutableReadMany",
+                      "version": [
+                        158,
+                        255,
+                        189,
+                        193,
+                        137,
+                        164,
+                        215,
+                        126,
+                        129,
+                        69,
+                        51,
+                        135,
+                        54,
+                        242,
+                        133,
+                        178,
+                        111,
+                        73,
+                        111,
+                        248,
+                        19,
+                        19,
+                        31,
+                        193,
+                        174,
+                        46,
+                        240,
+                        51,
+                        242,
+                        103,
+                        29,
+                        0
+                      ]
+                    },
+                    "owner_boot": "parser-model-test-boot",
+                    "owner_host": "parser-model-test",
+                    "residence_profile": "test/owned-immutable-memory@1"
+                  },
+                  "pool_id": "test/parser-model-pool",
+                  "protected": null,
+                  "units": 1
+                }
+              ],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 347,
+                          "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                        },
+                        "location": {
+                          "Input": "indices"
+                        }
+                      },
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 1010,
+                          "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                        },
+                        "location": {
+                          "Output": "scores"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "artifact_id": "categorical-test/sink",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "categorical-test/sink",
+              "configuration": [],
+              "execution_profile_id": "test/fixture@1",
+              "gear_id": "categorical-proof/sink",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "categorical-test/sink",
+              "inputs": [
+                {
+                  "direction": "Input",
+                  "port_id": "value",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                }
+              ],
+              "kind_contract_revision": "test/fixture@1",
+              "kind_id": "categorical-test/sink",
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_bytes": 16384,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [],
+              "placement_id": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 1010,
+                          "value_kind": "structured-info/profile-37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1@1"
+                        },
+                        "location": {
+                          "Input": "value"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            {
+              "artifact_id": "categorical-test/source",
+              "authority": [],
+              "boot_id": "parser-model-test-boot",
+              "capability_id": "categorical-test/source",
+              "configuration": [],
+              "execution_profile_id": "test/fixture@1",
+              "gear_id": "categorical-proof/source",
+              "host_calls": [],
+              "host_id": "parser-model-test",
+              "implementation_id": "categorical-test/source",
+              "inputs": [],
+              "kind_contract_revision": "test/fixture@1",
+              "kind_id": "categorical-test/source",
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_bytes": 16384,
+                "max_queue_items": 1
+              },
+              "offer_generation": 1,
+              "outputs": [
+                {
+                  "direction": "Output",
+                  "port_id": "value",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  },
+                  "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                }
+              ],
+              "placement_id": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6",
+              "pool_references": [],
+              "realization_characteristics": [],
+              "resources": [],
+              "semantic_contract": {
+                "configuration": [],
+                "laws": [
+                  {
+                    "ValueContracts": [
+                      {
+                        "contract": {
+                          "constraints": [],
+                          "maximum_bytes": 347,
+                          "value_kind": "structured-info/profile-46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03@1"
+                        },
+                        "location": {
+                          "Output": "value"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "plan_fragments": [
+            {
+              "fragment_id": "f6b57af174daf3d3051848bcb2a407e52c6293657ac207003bbbf14ec603b3e5",
+              "host_id": "parser-model-test"
+            }
+          ],
+          "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+          "realization_backs": [],
+          "shared_pools": [],
+          "sign_storage_budget": {
+            "byte_capacity": 522,
+            "item_capacity": 10
+          },
+          "source_document_id": "7a36c1116824c7419129d40665a50bdb14856068894200a790606107a0d7dbf4",
+          "startup_dependencies": [
+            {
+              "dependent_placement_id": "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6",
+              "prerequisite_placement_id": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9"
+            },
+            {
+              "dependent_placement_id": "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9",
+              "prerequisite_placement_id": "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144"
+            }
+          ],
+          "startup_order": [
+            "b3a697b68bda50fb7e1fa85d5e187df5d2def09c188b48a95bfc8de2e9811144",
+            "3277be9fc34d6488aafd4ed620aaada9d527553d3258d5dfec668e44d900ced9",
+            "e2602492d65ad22903082070215917608e741b225dbf343794b73089acbac3f6"
+          ],
+          "terminal_policy": "RequireAllPlacementsAndConnections"
+        }
+      ],
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "realization_backs": [],
+      "source_document_id": "7a36c1116824c7419129d40665a50bdb14856068894200a790606107a0d7dbf4"
+    }
+  },
+  "histories": [
+    {
+      "report": "causal-00-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "causal-01-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 20
+    },
+    {
+      "report": "causal-02-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "causal-03-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "causal-04-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 33
+    },
+    {
+      "report": "causal-05-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 42
+    },
+    {
+      "report": "causal-06-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 42
+    },
+    {
+      "report": "causal-07-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "causal-08-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 18
+    },
+    {
+      "report": "causal-09-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 42
+    },
+    {
+      "report": "causal-10-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "causal-11-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 56
+    },
+    {
+      "report": "causal-12-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "causal-13-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "causal-14-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "causal-15-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 50
+    },
+    {
+      "report": "causal-16-report.json",
+      "arm": "causal",
+      "plan_sha256": "0dbf34e755daa57dd482acbc4f26cbfe45116b3a9abf7a8c163d40547703ecf4",
+      "plan_id": "7d7d6d8f202be1e81a74c873a2eb6d5796655689fdceb571f2c38b2eecf854a4",
+      "numerical_ack_count": 84
+    },
+    {
+      "report": "full-00-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "full-01-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 20
+    },
+    {
+      "report": "full-02-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "full-03-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "full-04-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 32
+    },
+    {
+      "report": "full-05-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 41
+    },
+    {
+      "report": "full-06-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 42
+    },
+    {
+      "report": "full-07-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 14
+    },
+    {
+      "report": "full-08-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 18
+    },
+    {
+      "report": "full-09-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 42
+    },
+    {
+      "report": "full-10-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "full-11-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 54
+    },
+    {
+      "report": "full-12-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "full-13-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 46
+    },
+    {
+      "report": "full-14-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 45
+    },
+    {
+      "report": "full-15-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 50
+    },
+    {
+      "report": "full-16-report.json",
+      "arm": "full",
+      "plan_sha256": "e2331c024f31398ee84abf7cc3c8b0dd05114948c701d830184315671b19a0cd",
+      "plan_id": "87e31026fca13319602949ede39c54cd868f162ebe137b23f7ff06c40df1dcff",
+      "numerical_ack_count": 84
+    }
+  ]
+}

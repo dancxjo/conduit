@@ -26,19 +26,19 @@ from any aggregate. A fresh whole34 run uses the identical worker, manifest,
 models and schedule, with output on a separate tmpfs to isolate workspace disk
 pressure (`second-replacement-custody.json`). No reports are mixed across runs.
 
-The second run is in progress. No complete aggregate, accepted model, new default,
-installed Current controller, broad accuracy or real-time claim follows from
-this preparation. Numerical/canonical prerequisites #6062/#6063 and normal
+The second run completed all 34 histories with exit status 0.
+[COMPARISON.md](COMPARISON.md) and `comparison.json` retain the complete paired
+result. Neither arm is accepted as a new model/default or installed Current
+controller; no broad accuracy or real-time claim follows. Numerical/canonical prerequisites #6062/#6063 and normal
 reviewed acceptance gates remain separate.
 
 ## Local completion and next consumer
 
-The complete comparison remains pending the existing second worker; no third
-run is planned. Four histories remained at the last local observation (30/34).
-The final record will summarize both arms only after all histories finish,
-retaining attachment/vocative/control outcomes, commitment timing, revisions,
-contradictions and actual time/resource limits. Partial histories are not a
-comparative quality result. No fitted inputs or scheduling policy changed.
+The complete second worker finished 34/34; no third run was started. The
+comparison retains attachment/vocative/control outcomes, commitment timing,
+revisions, contradictions and actual time/resource limits. The raw traces and
+all reports have a durable local copy recorded in `retained-artifacts.json`.
+No fitted inputs or scheduling policy changed.
 
 The next consumer is [#5755](https://github.com/dancxjo/conduit/issues/5755),
 compact vocative realization from supplied committed structure. Its accepted
