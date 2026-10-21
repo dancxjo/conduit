@@ -59,6 +59,8 @@ pub const STEPS: &[Step] = &[
             "resource_publication",
             "--test",
             "resource_allocation",
+            "--test",
+            "execution_region_admission",
         ],
         None,
         None,
