@@ -66,10 +66,18 @@ pub fn prepare_component_stage_from_offer(
     look: ComponentMaskLook,
     recipe: TodoComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_selected_component_stage_from_offer(host, look.into(), recipe)
+}
+
+pub fn prepare_selected_component_stage_from_offer(
+    host: &HostAdvertisement,
+    selection: ComponentVisualSelection,
+    recipe: TodoComponentRecipe,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     prepare_component_document(
         host,
         TODO_COMPONENT_MASK_SOURCE,
-        todo_component_mask_root(look, recipe),
+        selection.todo_root(recipe),
     )
 }
 
@@ -77,7 +85,19 @@ pub fn prepare_creche_stage_from_offer(
     host: &HostAdvertisement,
     recipe: CrecheComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    prepare_component_document(host, CRECHE_COMPONENT_MASK_SOURCE, recipe.root())
+    prepare_selected_creche_stage_from_offer(host, recipe, ComponentVisualSelection::default())
+}
+
+pub fn prepare_selected_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_component_document(
+        host,
+        CRECHE_COMPONENT_MASK_SOURCE,
+        selection.creche_root(recipe),
+    )
 }
 
 fn prepare_component_document(
@@ -307,5 +327,66 @@ mod tests {
             prepare_creche_stage_from_offer(&foreign, CrecheComponentRecipe::ResponsiveColumns)
                 .is_err()
         );
+    }
+    #[test]
+    fn selection_axes_reproduce_one_checked_component_in_both_domains() {
+        let host = host();
+        for creche in [false, true] {
+            for grouped in [false, true] {
+                let mut baseline: Option<ConfiguredMaskConfiguration> = None;
+                let mut plan_ids = Vec::new();
+                for density in [VisualDensity::Compact, VisualDensity::Spacious] {
+                    for palette in [VisualPalette::Phosphor, VisualPalette::Editorial] {
+                        let selection = ComponentVisualSelection { density, palette };
+                        let (stage, configuration) = if creche {
+                            prepare_selected_creche_stage_from_offer(
+                                &host,
+                                if grouped {
+                                    CrecheComponentRecipe::ResponsiveColumns
+                                } else {
+                                    CrecheComponentRecipe::SingleColumn
+                                },
+                                selection,
+                            )
+                        } else {
+                            prepare_selected_component_stage_from_offer(
+                                &host,
+                                selection,
+                                if grouped {
+                                    TodoComponentRecipe::Grouped
+                                } else {
+                                    TodoComponentRecipe::Flat
+                                },
+                            )
+                        }
+                        .unwrap();
+                        let expression = visual_expression_from_info(
+                            StructuredInfoValue::from_canonical_bytes(
+                                configuration.expression.canonical_value(),
+                            )
+                            .unwrap(),
+                        )
+                        .unwrap();
+                        assert_eq!((expression.density, expression.palette), (density, palette));
+                        assert_eq!(
+                            expression.text_scale_percent,
+                            if density == VisualDensity::Compact {
+                                100
+                            } else {
+                                125
+                            }
+                        );
+                        if let Some(first) = &baseline {
+                            assert_eq!(first.component, configuration.component);
+                            assert_eq!(first.recipe, configuration.recipe);
+                        } else {
+                            baseline = Some(configuration);
+                        }
+                        assert!(!plan_ids.contains(&stage.planned_mask.plan.plan_id));
+                        plan_ids.push(stage.planned_mask.plan.plan_id);
+                    }
+                }
+            }
+        }
     }
 }

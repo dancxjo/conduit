@@ -1,5 +1,5 @@
 //! Fixed-radius rectangle rasterization, clipped without inventing new borders.
-use super::{put, DisplayError, DisplayReceipt, GraphicsShapeStyle, LayoutRect, PixelTarget};
+use super::{DisplayError, DisplayReceipt, GraphicsShapeStyle, LayoutRect, PixelTarget, put};
 
 fn contains(x: i32, y: i32, width: i32, height: i32, radius: i32) -> bool {
     if x < 0 || y < 0 || x >= width || y >= height {
@@ -45,6 +45,41 @@ pub(super) fn render(
         }
     }
     Ok(())
+}
+
+#[cfg(feature = "native-compositor")]
+pub(super) fn render_smooth(
+    target: &mut impl super::RetainedPixelTarget,
+    bounds: LayoutRect,
+    clip: LayoutRect,
+    shape: GraphicsShapeStyle,
+    color: u32,
+    receipt: &mut DisplayReceipt,
+) -> Result<(), DisplayError> {
+    let width = i32::from(bounds.width) * 8;
+    let height = i32::from(bounds.height) * 8;
+    let radius = i32::from(super::RADIUS) * 8;
+    let border = i32::from(super::BORDER) * 8;
+    let inside = |x: i32, y: i32, w: i32, h: i32, r: i32| {
+        if x < 0 || y < 0 || x >= w || y >= h {
+            return false;
+        }
+        let r = r.min(w / 2).min(h / 2);
+        let dx = (r - x).max(x - (w - r)).max(0);
+        let dy = (r - y).max(y - (h - r)).max(0);
+        dx * dx + dy * dy <= r * r
+    };
+    super::coverage::raster(target, bounds, clip, color, receipt, |x, y| {
+        inside(x, y, width, height, radius)
+            && (shape != GraphicsShapeStyle::RoundedStroke
+                || !inside(
+                    x - border,
+                    y - border,
+                    width - 2 * border,
+                    height - 2 * border,
+                    (radius - border).max(0),
+                ))
+    })
 }
 
 #[cfg(test)]
@@ -111,39 +146,4 @@ mod tests {
             }
         }
     }
-}
-
-#[cfg(feature = "native-compositor")]
-pub(super) fn render_smooth(
-    target: &mut impl super::RetainedPixelTarget,
-    bounds: LayoutRect,
-    clip: LayoutRect,
-    shape: GraphicsShapeStyle,
-    color: u32,
-    receipt: &mut DisplayReceipt,
-) -> Result<(), DisplayError> {
-    let width = i32::from(bounds.width) * 8;
-    let height = i32::from(bounds.height) * 8;
-    let radius = i32::from(super::RADIUS) * 8;
-    let border = i32::from(super::BORDER) * 8;
-    let inside = |x: i32, y: i32, w: i32, h: i32, r: i32| {
-        if x < 0 || y < 0 || x >= w || y >= h {
-            return false;
-        }
-        let r = r.min(w / 2).min(h / 2);
-        let dx = (r - x).max(x - (w - r)).max(0);
-        let dy = (r - y).max(y - (h - r)).max(0);
-        dx * dx + dy * dy <= r * r
-    };
-    super::coverage::raster(target, bounds, clip, color, receipt, |x, y| {
-        inside(x, y, width, height, radius)
-            && (shape != GraphicsShapeStyle::RoundedStroke
-                || !inside(
-                    x - border,
-                    y - border,
-                    width - 2 * border,
-                    height - 2 * border,
-                    (radius - border).max(0),
-                ))
-    })
 }

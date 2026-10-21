@@ -1,0 +1,20 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 9.33s
+     Running unittests src/lib.rs (target/debug/deps/conduitos-3a4f10f452ab3861)
+
+running 12 tests
+test native_face_mask::tests::compositor_refusal_keeps_its_specific_machine_reason ... ok
+test native_face_mask::encounter::tests::selection_state_refuses_a_different_producer_host_before_moving_any_scene ... ok
+test native_face_mask::tests::layout_receipt::cpu_native_mask_reflow_retains_face_and_retires_old_show ... ok
+test native_face_mask::tests::valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls ... ok
+test native_face_mask::tests::owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation ... ok
+test native_face_mask::tests::failed_scanout_does_not_publish_a_mask_show ... ok
+test native_face_mask::tests::pointer_motion::motion_draws_cursor_without_submitting_or_republishing_the_face ... ok
+test native_face_mask::tests::pointer_motion::cursor_requires_acknowledged_show_and_scanout_loss_retires_it ... ok
+test native_face_mask::tests::birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore ... ok
+test native_face_mask::tests::stale_scene_input_redraws_a_notice_and_preserves_the_refusal ... ok
+test native_face_mask::creche_tests::full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readable ... ok
+test native_face_mask::creche_tests::checked_creche_masks_admit_three_fields_and_present_both_column_counts ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 1224 filtered out; finished in 5.70s
+

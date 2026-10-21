@@ -16,7 +16,7 @@ pub fn render_text(
     render_text_scaled(target, value, role, bounds, clip, color, 100)
 }
 
-/// Fixed nearest-neighbor coverage resampling, bounded to twice each glyph extent.
+/// Fixed four-tap coverage filtering, bounded to twice each glyph extent.
 pub fn render_text_scaled(
     target: &mut impl RetainedPixelTarget,
     value: &str,

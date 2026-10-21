@@ -349,7 +349,7 @@ fn failed_scene_invalidates_old_pixels_and_cannot_advance_revision() {
 fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     use conduit_core::HostBaseId;
     use conduit_face::{
-        admit_visual_expression, VisualExpression, VisualPalette, VisualUserConstraints,
+        VisualExpression, VisualPalette, VisualUserConstraints, admit_visual_expression,
     };
     let (face, plan, main, _, mut compositor) = fixture::fixture(1);
     let scene = scene(3);

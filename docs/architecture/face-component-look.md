@@ -157,6 +157,18 @@ or complete issue acceptance.
 
 ## Native face entrance
 
+In the local Crèche, F6 toggles compact/spacious spacing and F7 toggles the
+engineering/editorial palette independently. Each request selects one of four
+finite checked Source expressions over the same Crèche component recipe and
+Face. The replacement is prepared before the previous Show retires; its new
+layout restores an unsubmitted draft and exact focus only for the identical
+Face and producer scope, before publishing the fresh Show. These preference
+keys do not submit a Face interaction or create/advance a Body. The same four
+expression combinations are available to the checked Todo component preparer.
+Selection diagnostics retain the expression, component provenance, canonical
+recipe hash, exact old/new Show identifiers and bounded render counts, joined
+to the complete Face/Show publication records.
+
 The native owner window exposes F6 (Compact/Flat), F7 (Spacious/Flat), F8
 (Spacious/Grouped), and F9 (100%/200% minimum text size). These are Mask-local
 requests through the current authenticated, acknowledged Show; they do not add
