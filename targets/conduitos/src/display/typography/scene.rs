@@ -1,6 +1,6 @@
 //! Graphical retained-scene rendering; rescue scanout rendering stays separate.
 
-use super::{TextRole, render_text_scaled};
+use super::{render_text_scaled, TextRole};
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
 use conduit_face::{GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene};
 
@@ -53,7 +53,7 @@ pub fn render_scene_configured(
                 .checked_add(text.pixels_written)
                 .ok_or(DisplayError::InvalidExtent)?;
         } else {
-            super::super::render_command_with_color(
+            super::super::coverage::render_command(
                 target,
                 format,
                 command,

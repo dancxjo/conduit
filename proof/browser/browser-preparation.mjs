@@ -2,7 +2,7 @@
 export const BROWSER_COLD_PREPARATION_MS = 60_000;
 
 export async function waitForWorkspacePreparation(page, { surfaceTitle, expectedState = 'Playing' } = {}) {
-  if (!['Playing', 'Idle'].includes(expectedState)) throw new Error('Unsupported preparation success state');
+  if (!['Playing', 'Idle', 'Lulled'].includes(expectedState)) throw new Error('Unsupported preparation success state');
   const ready = await page.waitForFunction(({ surfaceTitle, expectedState }) => {
     const state = document.querySelector('[data-play-state]')?.textContent?.trim();
     const title = document.querySelector('#surface-title')?.textContent?.trim();

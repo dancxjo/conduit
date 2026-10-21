@@ -6,6 +6,8 @@ reviewed native emulator realizations, owned by
 protected execution. The original x86_64 adversarial profile
 [#3078](https://github.com/dancxjo/conduit/issues/3078) remains a separate proof.
 Driver, DMA and physical-machine isolation are not established by these lanes.
+The [microkernel privilege boundary](conduitos-microkernel.md) tracks moving
+production services out of Root; existing region proofs do not establish it.
 
 The hostile-entry proofs are authorized defensive development of ConduitOS.
 They execute repository-owned test implementations in local QEMU guests to
@@ -531,6 +533,37 @@ timer paths do not implicitly protect other native workset implementations.
 DMA and driver isolation remain false.
 Issue #5113 stays open until its complete cross-architecture product and proof
 criteria are earned; the local emulator run is not accepted-release evidence.
+
+## Private compositor service memory prerequisite (#6181)
+
+The development x86_64 backend also admits one independent service slot, separate
+from the two ordinary-domain slots. Its immutable ELF window is 2 MiB; private
+RW/NX grants provide a 4 KiB exchange, 64 KiB transfer window, 64 KiB stack,
+256 KiB metadata, 8 MiB retained pixels and 8 MiB transaction scratch. Every gap
+and both outer guards remain unmapped. Page tables and the supervisor trap stack
+are charged in addition to user memory. Ordinary text/timer layouts are unchanged.
+
+`ServiceDomain` reuses the existing CPL3 transition and RTC preemption mechanism.
+Each call admits one hardware-budgeted entry; protocol operations must separately
+bound their own work. Root can stage the fixed transfer window only between
+entries. Faults quarantine the instance, clear the entire private slot and refuse
+further entry, exchange or transfer access. A replacement receives a new boot-local
+instance identity. This identity grants no Host/Boot capability or device effect.
+
+`cargo xtask make conduitos ordinary-domain-proof --locked` includes the actual
+service-memory backend fixture. It checks retained boundary reads/writes, Root
+staging visibility, 26 hostile entries, Root/sibling survival, guard and W/X
+refusal, port/MMIO refusal, loop preemption and restart. Zeroing observations are
+boundary samples plus whole-slot charged clearing, not an empirical readback of
+every private byte. The receipt binds the actual appliance ELF and serial hash,
+records the explicit 128 MiB QEMU fixture profile, and reports
+`production_compositor:false`, `driver_isolation:false`, `dma_isolation:false`.
+The earlier 64 MiB guest refused its runtime arena before any protected entry;
+this fixture profile does not define a graphical product minimum.
+
+This is infrastructure for [#6177](https://github.com/dancxjo/conduit/issues/6177).
+It does not move the production retained compositor, grant scanout authority,
+establish unchanged graphical behavior or complete the microkernel boundary.
 
 ## Deliberate limits
 

@@ -1,0 +1,8 @@
+{
+  "schema": "conduit.audit/native-look-capture-check/v1",
+  "source_commit": "7d5aacbab7b296c5e446788aa04082ee848a3925",
+  "checkpoints": 22,
+  "png_hashes_and_sizes_verified": 22,
+  "decoded_rgba_hashes_verified": 22,
+  "iso_sha256": "91936dfa9d901b43660310bd83036552f51eccacb248aa19cd41811606eecc48"
+}

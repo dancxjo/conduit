@@ -39,3 +39,16 @@ test('sound-only restoration waits for Idle and still rejects terminal failure',
   await expect(waitForWorkspacePreparation(page, { expectedState: 'Refused' }))
     .rejects.toThrow('Unsupported preparation success state');
 });
+
+// A retained sleeping Body must finish recovery without starting a Play.
+test('sleeping restoration waits for Lulled and rejects terminal failure', async ({ page }) => {
+  await page.setContent('<p data-play-state>Preparing</p>');
+  await page.evaluate(() => setTimeout(() => {
+    document.querySelector('[data-play-state]').textContent = 'Lulled';
+  }, 5_200));
+  await waitForWorkspacePreparation(page, { expectedState: 'Lulled' });
+  await expect(page.locator('[data-play-state]')).toHaveText('Lulled');
+  await page.setContent('<p data-play-state>Refused</p>');
+  await expect(waitForWorkspacePreparation(page, { expectedState: 'Lulled' }))
+    .rejects.toThrow('Workspace preparation ended in Refused');
+});

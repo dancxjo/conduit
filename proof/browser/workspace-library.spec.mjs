@@ -277,7 +277,7 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
 });
 
 test("a failed workset save stops before replacement effects and reload recovers the saved workload", async ({ page }) => {
-  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
+  test.setTimeout(20_000 + 3 * BROWSER_COLD_PREPARATION_MS);
   await page.addInitScript(() => {
     const put = IDBObjectStore.prototype.put;
     globalThis.__failedWorksetWrites = 0;
@@ -304,6 +304,7 @@ test("a failed workset save stops before replacement effects and reload recovers
   expect(failed.state.terminal.active_play_id).toBe(initial.active_play_id);
   await expect(page.locator("[data-plot-output] output")).toHaveCount(0);
   await page.reload();
+  await waitForWorkspacePreparation(page, { expectedState: "Lulled" });
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
   await waitForWorkspacePreparation(page);
