@@ -1,6 +1,7 @@
 //! Root transport for the isolated renderer. This owns no retained raster and
 //! grants no display or semantic authority. The admitted presenter must bind
 //! numeric surfaces to its checked Face/Mask/Show and validate advisory routes.
+pub(crate) mod display_owner;
 mod frame_grant;
 pub(crate) mod raster_staging;
 pub(crate) mod session_owner;
@@ -36,11 +37,18 @@ pub struct FrameChunk<'a> {
 }
 
 impl CompositorService {
-    #[cfg(conduitos_compositor_image)]
     pub fn install_embedded(width: u16, height: u16) -> Result<Self, TransportError> {
-        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/compositor.elf"));
-        let image = ServiceImage::compositor(bytes).map_err(|_| TransportError::Protocol)?;
-        Self::install(&image, width, height)
+        #[cfg(conduitos_compositor_image)]
+        {
+            let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/compositor.elf"));
+            let image = ServiceImage::compositor(bytes).map_err(|_| TransportError::Protocol)?;
+            Self::install(&image, width, height)
+        }
+        #[cfg(not(conduitos_compositor_image))]
+        {
+            let _ = (width, height);
+            Err(TransportError::Backend(DomainRefusal::Unsupported))
+        }
     }
 
     pub fn install(

@@ -50,10 +50,7 @@ impl DisplayOwner {
     /// The large arena reservation is fallible. Stable Rc::new follows the
     /// allocator's ordinary failure policy for its small metadata allocation.
     pub(crate) fn prepare(width: u16, height: u16) -> Result<SharedDisplayOwner, PreparationError> {
-        let area = usize::from(width)
-            .checked_mul(usize::from(height))
-            .ok_or(PreparationError::Transport(TransportError::Bounds))?;
-        if width == 0 || height == 0 || area > STAGING_PIXELS {
+        if width == 0 || height == 0 {
             return Err(PreparationError::Transport(TransportError::Bounds));
         }
         let mut staging = Vec::new();
