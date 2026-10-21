@@ -4,10 +4,13 @@ use crate::StdHost;
 use conduit_core::{
     BaseLifecycle, BaseProviderEntry, BaseRegistry, HostAdvertisement, OfferGeneration,
 };
+mod activation;
 mod offers;
 mod preparation;
+pub use activation::RegionWorkerCommand;
 pub use offers::RegionServiceConfig;
 pub use worker::WorkerError as RegionWorkerError;
+pub use worker::WorkerReply as RegionWorkerReply;
 
 pub struct RegionWorkerEvidence {
     pub lane: usize,
@@ -22,6 +25,7 @@ pub struct RegionWorkerEvidence {
 }
 #[derive(Default)]
 pub struct RegionServiceRetirement {
+    pub active_play: Option<conduit_core::ActivePlayIdentity>,
     pub plan: Option<conduit_core::Plan>,
     pub admission_observations: Vec<conduit_core::ResourceObservation>,
     pub workers: Vec<RegionWorkerEvidence>,
@@ -52,6 +56,7 @@ pub struct InitializedRegionService<'host> {
     workers: Vec<worker::InitializedRegionWorker>,
     control_backing_bytes: usize,
     plan: Option<conduit_core::Plan>,
+    active_play: Option<conduit_core::ActivePlayIdentity>,
     reservation: Option<super::region_resources::RegionResourceReservation>,
     admission_observations: Vec<conduit_core::ResourceObservation>,
     prepared_count: usize,
@@ -90,6 +95,7 @@ impl<'host> InitializedRegionService<'host> {
             workers,
             control_backing_bytes: ready.control_backing_bytes,
             plan: None,
+            active_play: None,
             reservation: None,
             admission_observations: Vec::new(),
             prepared_count: 0,
@@ -122,6 +128,7 @@ impl<'host> InitializedRegionService<'host> {
         };
         self.prepared_count = 0;
         result.plan = self.plan.take();
+        result.active_play = self.active_play.take();
         result.admission_observations = std::mem::take(&mut self.admission_observations);
         for (lane, worker) in self.workers.drain(..).enumerate() {
             let retired = worker.shutdown();

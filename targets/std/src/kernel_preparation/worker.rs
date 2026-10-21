@@ -1,4 +1,4 @@
-//! Finite private worker control. Service admission is not installed yet.
+//! Finite private worker control for the initialized region service.
 use conduit_composite::{
     ChildExecutionError, ChildTransportError, PreparedRegionKernel, RegionMemoryReceipt,
 };
@@ -14,6 +14,7 @@ mod run;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum WorkerError {
     Busy,
+    InvalidLane,
     Stopped,
     Poisoned,
     Panicked,
@@ -28,7 +29,7 @@ pub enum WorkerError {
     Scheduler(SchedulerError),
 }
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) enum WorkerReply {
+pub enum WorkerReply {
     Installed(RegionMemoryReceipt),
     Started,
     Step(SchedulerStatus),

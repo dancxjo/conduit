@@ -20,13 +20,9 @@ use pool_usage::PoolUsage;
 mod region_resources;
 mod service;
 pub use service::{
-    InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
-    RegionWorkerEvidence,
+    InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerCommand,
+    RegionWorkerError, RegionWorkerEvidence, RegionWorkerReply,
 };
-#[allow(
-    dead_code,
-    reason = "service activation and controller dispatch remain uninstalled"
-)]
 mod worker;
 
 mod ledger;

@@ -179,7 +179,7 @@ pub mod kernel_multivalue;
 mod kernel_preparation;
 pub use kernel_preparation::{
     InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
-    RegionWorkerEvidence,
+    RegionWorkerEvidence, RegionWorkerCommand, RegionWorkerReply,
 };
 mod kernel_signal;
 mod local_model_observation;
