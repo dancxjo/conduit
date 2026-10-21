@@ -1,0 +1,32 @@
+{
+  "earlier_source": "f4fdee9ff74b4b19361378466c7900f10a925234",
+  "earlier_checks": {
+    "typography": 21,
+    "native_face_scene": 99,
+    "raster_negative": "8 passed/1 failed/1 ignored; tiny fixture paints no Title ink"
+  },
+  "corrected_source": "f43bdf1e53bdfd27ad4f56afa701b1e7745dfd90",
+  "corrected_raster": {
+    "passed": 9,
+    "failed": 0,
+    "ignored": 1
+  },
+  "compiled_resources": {
+    "coverage": 1020311,
+    "glyph_records": 5940,
+    "glyph_record_bytes": 142560,
+    "profile_bytes": 24,
+    "sum_bytes": 1162895,
+    "excluded": "separate pinned rescue table; generator Rust text is not runtime storage"
+  },
+  "root_checks": "read actual result lines; independently hash current generated coverage/Rust files against captured ledger",
+  "proof_class": "local CPU native-library checks; no guest/browser/stable acceptance",
+  "files": {
+    "typography.log": "ecaeab9917f21923b381b6bd41aa913f75483627c0d60f242d83201eb2d867f5",
+    "face-scene.log": "61b87d2448ce73f9ce00585e9f6882f4f38c97913db30790994b7f794f4a6c6c",
+    "raster-reuse.log": "9527659338d8e339cfa24ce754e5a412d253cc043535b39b8065a87fdd50048e",
+    "raster-reuse-admitted-extent.log": "25fb558210243a5fc5a02d0b5244b38c7464ff1254b423cded63ded460785ca9",
+    "compiled-resource-bytes.log": "e80d00c6a830f7713632aeb07eba479cc1e72b61cff50120506441f95b072eed",
+    "generated-resource-ledger.json": "f5be8f73c3192aa10774ca6f627a96143d1455c3cf7e23964f87fd8ff0f7308c"
+  }
+}

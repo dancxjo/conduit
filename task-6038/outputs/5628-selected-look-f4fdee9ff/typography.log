@@ -1,0 +1,28 @@
+    Finished `test` profile [optimized] target(s) in 0.21s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 21 tests
+test display::typography::ensemble_tests::serif_ink_wrap_and_caret_use_actual_scaled_edges ... ok
+test display::typography::ensemble_tests::maximum_command_unicode_clusters_make_bounded_narrow_progress ... ok
+test display::typography::layout::tests::byte_admission_and_unicode_iteration_are_exact ... ok
+test display::typography::raster::tests::oversized_text_refuses_before_any_surface_write_even_when_clipped ... ok
+test display::typography::tests::prose_is_proportional_and_code_is_monospace ... ok
+test display::typography::ensemble_tests::serif_title_keeps_proportional_advance_and_zero_advance_marks ... ok
+test display::typography::tests::unknown_scalar_has_explicit_deterministic_replacement ... ok
+test display::typography::ensemble_tests::fixed_ensemble_resource_bytes_remain_under_existing_admission ... ok
+test display::typography::raster::tests::text_layout_raster_is_repeatable_and_confined_to_its_rectangle ... ok
+test display::typography::raster::tests::unrenderable_one_pixel_unicode_refuses_before_writing_ink ... ok
+test display::typography::tests::fixed_tables_are_ordered_bounded_and_have_smooth_coverage ... ok
+test display::typography::raster::tests::scaled_text_raster_uses_the_measured_cursor_and_preserves_default ... ok
+test display::typography::selection::tests::intent_selects_two_title_resources_without_changing_other_purposes ... ok
+test display::typography::tests::doubled_glyph_preserves_every_coverage_sample_in_four_pixels ... ok
+test display::typography::layout::tests::admitted_scale_changes_the_same_glyphs_and_line_metrics ... ok
+test display::typography::layout::tests::explicit_lines_and_height_use_same_metrics ... ok
+test display::typography::layout::tests::words_wrap_together_and_long_tokens_make_progress ... ok
+test display::typography::raster::tests::grayscale_blends_retained_background_and_preserves_clip ... ok
+test display::typography::ensemble_tests::serif_and_mono_paint_every_measured_ink_sample_with_the_same_cursor ... ok
+test display::typography::ensemble_tests::every_selected_fallback_and_rescue_ink_fits_scaled_line_metrics ... ok
+test display::typography::tests::naming_catalog_and_uppercase_have_admitted_coverage ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 1216 filtered out; finished in 0.27s
+

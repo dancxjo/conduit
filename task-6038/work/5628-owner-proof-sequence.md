@@ -6,7 +6,7 @@ Build Linux release, Handbook and normal graphical ConduitOS from that identical
 
 Keep TLS key, invitation and provisioned ISO in mode-0700 private storage; omit them from public evidence. Generate a fresh 600-second invitation only after builds complete. Guest-visible leaf must cover 10.0.2.42; use a real private IPv4 owner-forward endpoint, not loopback. QMP socket path must be private and within its finite limit.
 
-If a browser joins, admit it before sealing the guest Face to avoid manufacturing a stale membership snapshot. Capture its actual checked view separately from the existing renderer fixture proof.
+If a browser joins, admit it before sealing the guest Face to avoid manufacturing a stale membership snapshot. Reuse the existing three-host wardrobe sequence: once the native route is sealed, explicitly Wear native-graphical, Doff the browser Mask and Prefer native; refresh the native Show through F5 and confirm owner acknowledgement before taking the baseline Face. Preserve owner Plan identity through wardrobe choice. Capture the browser actual checked view separately from renderer fixtures. Do not copy the older action-performing Inspect retry loop: establish readiness through passive observations, perform each browser action once and passively await its result.
 
 Native sequence on the authenticated owner route:
 1. Establish exact current Todo Face, available actions, checked recipe/configuration, owner route and acknowledged Show. Focus an exact named action argument.

@@ -1,0 +1,18 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 1m 01s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 10 tests
+test native_compositor::raster_reuse::performance::retained_raster_performance ... ignored, manual optimized retained raster observation
+test native_compositor::raster_reuse::tests::edited_public_fields_that_break_canonical_scene_refuse_reuse ... ok
+test native_compositor::raster_reuse::tests::failed_render_does_not_produce_success_receipt ... ok
+test native_compositor::raster_reuse::tests::unchanged_scene_does_no_raster_work_and_local_edit_keeps_distant_pixels ... ok
+test native_compositor::raster_reuse::tests::raster_reuse_and_scene_eligibility_allocate_no_storage ... ok
+test native_compositor::raster_reuse::tests::typography_alone_invalidates_retained_raster_without_changing_paint_or_scale ... ok
+test native_compositor::raster_reuse::tests::failed_scene_invalidates_old_pixels_and_cannot_advance_revision ... ok
+test native_compositor::raster_reuse::tests::palette_and_scale_change_force_full_raster_under_new_exact_receipt ... ok
+test native_compositor::raster_reuse::tests::reuse_keeps_revision_identity_and_resize_fences ... ok
+test native_compositor::raster_reuse::tests::incremental_pixels_match_fresh_raster_across_edits_order_clips_and_blending ... ok
+
+test result: ok. 9 passed; 0 failed; 1 ignored; 0 measured; 1227 filtered out; finished in 0.31s
+

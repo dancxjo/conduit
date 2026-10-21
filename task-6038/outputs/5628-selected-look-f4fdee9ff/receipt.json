@@ -1,0 +1,20 @@
+{
+  "source": "f4fdee9ff74b4b19361378466c7900f10a925234",
+  "checks": [
+    {
+      "filter": "display::typography",
+      "exit": 0,
+      "log_sha256": "ecaeab9917f21923b381b6bd41aa913f75483627c0d60f242d83201eb2d867f5"
+    },
+    {
+      "filter": "native_face_scene",
+      "exit": 0,
+      "log_sha256": "61b87d2448ce73f9ce00585e9f6882f4f38c97913db30790994b7f794f4a6c6c"
+    },
+    {
+      "filter": "native_compositor::raster_reuse",
+      "exit": 101,
+      "log_sha256": "9527659338d8e339cfa24ce754e5a412d253cc043535b39b8065a87fdd50048e"
+    }
+  ]
+}

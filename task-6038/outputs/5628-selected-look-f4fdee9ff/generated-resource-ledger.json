@@ -1,0 +1,20 @@
+[
+  {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/build/conduitos-bc24c2de3798d404/out/native_typography_resources.tsv",
+    "bytes": 363,
+    "sha256": "97000966c4a757538e8b56244eebcb71e5ff42cecd40cb690aed4aada09086da",
+    "ledger": "profile\tfont\tsize\tglyphs\tfallbacks\tcoverage_bytes\tascent\tline_height\tleft_ink\tright_overhang\n0\tDejaVuSans.ttf\t14\t990\t0\t95775\t15\t20\t15\t2\n1\tDejaVuSans.ttf\t16\t990\t0\t122236\t17\t23\t17\t2\n2\tDejaVuSans.ttf\t20\t990\t0\t184808\t22\t29\t21\t2\n3\tDejaVuSerif.ttf\t24\t990\t66\t274804\t26\t34\t25\t4\n4\tDejaVuSansMono.ttf\t14\t990\t113\t84028\t15\t20\t15\t8\n5\tDejaVuSans.ttf\t24\t990\t0\t258660\t26\t34\t25\t2\n",
+    "resources": [
+      {
+        "name": "native_coverage.bin",
+        "bytes": 1020311,
+        "sha256": "bcbe07512828be3354177674dbaf9a22da3ed842cf7dbdf279b7c1e5cb5bdcbf"
+      },
+      {
+        "name": "native_typography.rs",
+        "bytes": 616622,
+        "sha256": "e46b5a984087d3bfa25ccfbc6e2a809c46c6897e8d731fed488a1b5daf0e5eb2"
+      }
+    ]
+  }
+]

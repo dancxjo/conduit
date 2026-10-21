@@ -168,9 +168,9 @@
     "branch": "codex/5628-selected-typography",
     "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
     "worktree": "work/selected-typography-look",
-    "state": "foundationPassed;nativeFirstCompileFailedSingleTestHelperArgument;RetryLiveWithExactTestOnlyPatch;NoProductProof",
+    "state": "nativeFocusedPassOnf4Andf43;firstFailuresRetained;StrictClippyAndFailureChecksNext;NoProductProof",
     "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
-    "head": "e78f4603794aef65c338aa51c1505ffebdc9dcfb",
+    "head": "f43bdf1e53bdfd27ad4f56afa701b1e7745dfd90",
     "origin_verified": true,
     "target_cache": "work/selected-typography-host-target",
     "root_review": "work/5628-root-source-review.md",
@@ -209,7 +209,8 @@
       "failure": "E0061 text_editor unit-test append helper missing Typography",
       "directory": "outputs/5628-selected-look-e78f46037",
       "retry": "live with native-test-argument.patch;source frozen;not clean e78 proof"
-    }
+    },
+    "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json"
   },
   "latest_ci_observation": {
     "time": "2026-10-21T01:36:00Z",
