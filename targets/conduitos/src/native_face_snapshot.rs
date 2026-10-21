@@ -19,6 +19,10 @@ pub use execution::PreparedFaceSnapshot;
 /// Explicit native forwarding profile: one value on each of two Fore cords.
 /// Larger semantic Faces need a separately admitted storage profile.
 pub const MAX_SNAPSHOT_BYTES: usize = 48 * 1024;
+/// Explicit collection profile, separate from the existing default and route limits.
+pub const COLLECTION_SNAPSHOT_BYTES: usize = 256 * 1024;
+pub type NativeFaceSnapshotProducer = BoundedFaceSnapshotProducer<MAX_SNAPSHOT_BYTES>;
+pub type CollectionFaceSnapshotProducer = BoundedFaceSnapshotProducer<COLLECTION_SNAPSHOT_BYTES>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FaceSnapshotRefusal {
@@ -37,7 +41,7 @@ pub enum FaceSnapshotRefusal {
     PlaySequence,
 }
 
-pub struct NativeFaceSnapshotProducer {
+pub struct BoundedFaceSnapshotProducer<const BYTES: usize> {
     plan: Plan,
     last_play_sequence: Option<u64>,
     lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
@@ -71,7 +75,7 @@ pub struct PublishedFaceSnapshot {
     pub receipt: FaceSnapshotReceipt,
 }
 
-impl NativeFaceSnapshotProducer {
+impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
     pub fn plan(&self) -> &Plan {
         &self.plan
     }
