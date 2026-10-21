@@ -55,6 +55,7 @@ pub struct RasterLease<'a> {
     format: DisplayFormat,
 }
 impl RasterLease<'_> {
+    #[cfg(test)]
     pub fn pixel_count(&self) -> usize {
         self.pixels.len()
     }
