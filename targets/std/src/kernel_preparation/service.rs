@@ -5,6 +5,10 @@ use conduit_core::{
     BaseLifecycle, BaseProviderEntry, BaseRegistry, HostAdvertisement, OfferGeneration,
 };
 mod activation;
+mod controller;
+mod execution;
+pub use controller::RegionAdvance;
+pub use execution::RegionExecution;
 mod offers;
 mod preparation;
 pub use activation::RegionWorkerCommand;
@@ -26,6 +30,7 @@ pub struct RegionWorkerEvidence {
 #[derive(Default)]
 pub struct RegionServiceRetirement {
     pub active_play: Option<conduit_core::ActivePlayIdentity>,
+    pub controller_error: Option<RegionWorkerError>,
     pub plan: Option<conduit_core::Plan>,
     pub admission_observations: Vec<conduit_core::ResourceObservation>,
     pub workers: Vec<RegionWorkerEvidence>,

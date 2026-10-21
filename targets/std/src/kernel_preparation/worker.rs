@@ -15,6 +15,7 @@ mod run;
 pub enum WorkerError {
     Busy,
     InvalidLane,
+    UnexpectedReply,
     Stopped,
     Poisoned,
     Panicked,

@@ -11,7 +11,13 @@ use std::time::{Duration, Instant};
 mod fixture;
 #[allow(dead_code)]
 #[path = "../src/kernel_preparation/worker.rs"]
-mod worker;
+pub(crate) mod worker;
+mod kernel_preparation {
+    pub(crate) use crate::worker;
+}
+#[allow(dead_code)]
+#[path = "../src/kernel_preparation/service/controller.rs"]
+mod controller;
 use worker::{InitializedRegionWorker, WorkerError, WorkerReply};
 const STACK: u32 = 2 * 1024 * 1024;
 fn reply(
@@ -244,4 +250,81 @@ fn panicking_worker_wakes_controller_and_retains_retirement_custody() {
     assert_eq!(retired.failure, Some(WorkerError::Panicked));
     assert_eq!(retired.cancellation, Some(Ok(())));
     assert_eq!(retired.kernel.unwrap().plan_id(), &plan.plan_id);
+}
+
+#[test]
+fn finite_controller_delivers_original_cord_and_keeps_backing_fixed() {
+    let plan = worker_plan();
+    let prepared = PreparedExecutionRegions::prepare(
+        &plan,
+        &plan.fragments[0].fragment_id,
+        ExecutionRegionLimits {
+            maximum_regions: 2,
+            maximum_lanes: 2,
+            maximum_nodes: 2,
+            maximum_cords: 1,
+        },
+    )
+    .unwrap();
+    let mut registry = KernelOperationRegistry::new();
+    registry
+        .install(fixture::Factory {
+            implementation: plan.fragments[0].placements[0].implementation_id.clone(),
+        })
+        .unwrap();
+    let mut workers: Vec<_> = (0..2)
+        .map(|_| InitializedRegionWorker::spawn(STACK, 2).unwrap())
+        .collect();
+    for (region, worker) in workers.iter_mut().enumerate() {
+        worker
+            .install(
+                PreparedRegionKernel::prepare(
+                    &prepared,
+                    region,
+                    &registry,
+                    KernelCompositeSignStorage::default(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        worker.start().unwrap();
+    }
+    let mut controller =
+        controller::RegionController::new(vec![controller::Route::new(CordId(0), 0, 1)], 2);
+    let backing = controller.backing_bytes();
+    let until = Instant::now() + Duration::from_secs(5);
+    let mut rounds = 0;
+    while rounds < 4 {
+        match controller.advance(&mut workers).unwrap() {
+            controller::RegionAdvance::RoundComplete => rounds += 1,
+            controller::RegionAdvance::Pending => std::thread::yield_now(),
+            controller::RegionAdvance::Progress => {}
+        }
+        assert!(Instant::now() < until, "finite controller stalled");
+    }
+    assert_eq!(controller.backing_bytes(), backing);
+    let mut retired = workers.into_iter().map(|w| w.shutdown().unwrap());
+    let source = retired.next().unwrap().kernel.unwrap();
+    let sink = retired.next().unwrap().kernel.unwrap();
+    assert_eq!(source.plan_id(), &plan.plan_id);
+    assert!(sink
+        .signs()
+        .iter()
+        .any(|e| e.kind == KernelEventKind::ValueConsumed));
+    assert_eq!(
+        source
+            .signs()
+            .iter()
+            .filter(|e| e.kind == KernelEventKind::RemoteValueDelivered)
+            .count(),
+        1
+    );
+    assert!(sink
+        .signs()
+        .iter()
+        .any(|e| e.kind == KernelEventKind::RemoteInputClosed));
+    assert!(source
+        .remote_signs()
+        .iter()
+        .all(|(_, identity)| identity.endpoint.0 == 0));
 }
