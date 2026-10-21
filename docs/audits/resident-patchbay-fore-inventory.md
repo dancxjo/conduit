@@ -349,3 +349,15 @@ from accumulating extra frames. This reduces payload backing from 6 MiB to
 1.5 MiB per prepared Mask without widening a profile. Mask/ingress report actual
 value-store backing for aggregate admission. Sign/kernel/other Host storage is
 separate; the parent still must charge and own the complete publication lifetime.
+
+## Shared parent value/scratch ledger
+
+Actual Body scheduler preparation now owns one ledger seeded from measured value
+backing and admitted Data scratch. Publication requires a lease scoped to that
+Plan and active Play, charging its actual Mask/ingress value backing to the same
+unchanged pool. Two fixed slots support current/replacement overlap. Leases are
+held until kernel buffer destruction; parent cancellation/destruction revokes
+interaction without claiming presentation erasure. The composed CPU path uses
+the real scheduler-owned actor and budget and checks parent cancellation.
+Automatic pre-start assembly and complete Sign/kernel/Face/JSON/Host memory
+admission are still required, alongside production presentation and native Edit.

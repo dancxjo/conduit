@@ -1048,3 +1048,37 @@ smaller backing and eight duplicate acknowledgements with unchanged live value
 count; the composed owner/Mask/typed-ingress selection/Edit/request-retention path
 completes with three slots. No broad suite, CI, DOM/QEMU or artifact rebuild ran.
 Automatic installation, complete resource admission and native Edit remain open.
+
+## Parent-scoped publication value/scratch leases (#6201)
+
+Extracted the existing parent storage witness in a separate refactor commit;
+its fixed kernel storage alias now lives beside that witness. The engine facade
+is 498 lines. The semantic change creates one non-clonable storage-budget owner
+from the actual prepared scheduler's measured value backing and admitted Data
+scratch, with the existing 8 MiB pool limit unchanged. Plan and active Play scope
+are retained together. This is allocation accounting, not route authority.
+
+Publication construction now requires that parent's budget and charges the actual
+prepared Mask plus ingress value-store backing. A fixed two-slot ledger permits
+current/replacement overlap, refuses foreign scopes, over-budget sums and a third
+live publication, and reserves no growing collection. Leases share that ledger
+without cloning a budget or allocating at admission. Retirement does not release
+accounting while kernel buffers remain; lease drop follows actual buffer drop.
+Parent cancellation revokes interaction before kernel cancellation receipts,
+and parent budget destruction also revokes outstanding leases. Readable receipts
+remain available; this does not claim erased platform pixels.
+
+The composed case now obtains the actor and budget from actual Body preparation
+and its scheduler, instead of separately preparing a raw application port. It
+exercises source selection/Edit/request retention, two publications, buffer
+release before replacement and real parent scheduler cancellation. A focused
+ledger case covers wrong Plan/Play, overlap bounds, failed admission without a
+leaked slot, release and revocation. Both CPU cases pass; no broad suite, CI,
+DOM/QEMU or artifact rebuild ran. Extraction workspace checks remain deferred.
+
+This accounts for prepared companion value buffers against the parent's existing
+value/scratch pool before publication assembly/acknowledgement. It does not yet
+stage automatic publication construction before Body start, count Sign/kernel/
+Face/JSON/other Host memory, publish actual DOM effects or retire the legacy
+adapter. Those complete-admission/installation requirements and native Edit
+fulfillment remain open under #6201.

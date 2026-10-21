@@ -1,6 +1,7 @@
 //! A prepared browser Mask and its exact canonical owner turn.
-use super::PatchbayIngressOwner;
+use super::value_budget::PublicationValueLease;
 use super::{PatchbayIngressDispatch, PatchbayOwnerTurn, PreparedPatchbayIngress};
+use super::{PatchbayIngressOwner, PatchbayValueStorageBudget};
 pub use crate::workspace_mask::{
     BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime,
 };
@@ -14,6 +15,8 @@ pub struct PatchbayPublication {
     basis: FaceContributionBasis,
     turn: Option<PatchbayOwnerTurn>,
     retired: bool,
+    // Declared last: release accounting only after the actual Mask/ingress buffers.
+    value_lease: PublicationValueLease,
 }
 
 impl PatchbayPublication {
@@ -21,6 +24,7 @@ impl PatchbayPublication {
         mask: BrowserMaskRuntime,
         ingress: PreparedPatchbayIngress,
         basis: FaceContributionBasis,
+        value_budget: &PatchbayValueStorageBudget,
     ) -> Result<Self, String> {
         let observed = mask.observation();
         if !ingress.is_ready()
@@ -38,12 +42,18 @@ impl PatchbayPublication {
                     .into(),
             );
         }
+        let backing = mask
+            .reserved_value_storage_bytes()
+            .checked_add(ingress.reserved_value_storage_bytes())
+            .ok_or("publication value backing overflow")?;
+        let value_lease = value_budget.admit(&basis.plan_id, &basis.active_play_id, backing)?;
         Ok(Self {
             mask,
             ingress: Some(ingress),
             basis,
             turn: None,
             retired: false,
+            value_lease,
         })
     }
 
@@ -54,7 +64,9 @@ impl PatchbayPublication {
         self.turn.as_ref().and_then(|turn| turn.receipt())
     }
     pub fn can_submit(&self) -> bool {
-        !self.retired && self.turn.as_ref().is_some_and(|turn| turn.can_submit())
+        !self.retired
+            && self.value_lease.is_live()
+            && self.turn.as_ref().is_some_and(|turn| turn.can_submit())
     }
 
     /// The actual Host reports the full exact effect identity; never synthesize
@@ -63,7 +75,7 @@ impl PatchbayPublication {
         &mut self,
         acknowledgement: &BrowserMaskAcknowledgement,
     ) -> Result<(), String> {
-        if self.retired || self.turn.is_some() {
+        if self.retired || !self.value_lease.is_live() || self.turn.is_some() {
             return Err("Patchbay publication is retired or already acknowledged".into());
         }
         self.mask.acknowledge(acknowledgement)?;

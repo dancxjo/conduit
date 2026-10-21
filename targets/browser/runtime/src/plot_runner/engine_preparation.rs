@@ -205,6 +205,17 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         reserved_storage_bytes: values.reserved_storage_bytes(),
         live_byte_quota: backing_bytes,
         data_memory_reservation: data_reserved_bytes,
+        publication_value_budget: application
+            .as_ref()
+            .map(|context| {
+                crate::patchbay_ingress::PatchbayValueStorageBudget::for_prepared_owner(
+                    context.plan.plan_id.clone(),
+                    context.active_play_id.clone(),
+                    values.reserved_storage_bytes(),
+                    data_reserved_bytes,
+                )
+            })
+            .transpose()?,
     };
     if !prepared_storage.matches(partitions) {
         return Err("browser storage witness does not bind selected Plans".into());

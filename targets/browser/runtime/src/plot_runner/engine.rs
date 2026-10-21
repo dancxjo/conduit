@@ -44,23 +44,9 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_plan_lowering::lowering::{lower_plan_fragment_for_profile, LoweredPlanFragment};
 
-type BrowserKernel = FixedScheduler<
-    BrowserBack,
-    HostedValueStore,
-    HostedSignLog,
-    MAXIMUM_BROWSER_GEARS,
-    MAXIMUM_BROWSER_CORDS,
-    BROWSER_PORTS_PER_GEAR,
-    BROWSER_QUEUE_SLOTS,
-    BROWSER_ROUTE_SLOTS,
-    BROWSER_ROUTE_TARGETS,
-    BROWSER_HOST_CALL_BINDINGS,
-    BROWSER_PENDING_REQUESTS,
->;
-
 #[path = "engine_storage.rs"]
 mod storage;
-use storage::PreparedStorageWitness;
+use storage::{BrowserKernel, PreparedStorageWitness};
 
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
@@ -506,3 +492,7 @@ mod resource_effect_tests;
 #[cfg(test)]
 #[path = "engine_editor_observation.rs"]
 mod editor_observation;
+
+#[cfg(all(test, feature = "creche-surface"))]
+#[path = "patchbay_publication_tests.rs"]
+mod publication_tests;

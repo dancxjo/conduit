@@ -1,6 +1,20 @@
 //! Exact prepared parent storage witness.
 use super::*;
 
+pub(super) type BrowserKernel = FixedScheduler<
+    BrowserBack,
+    HostedValueStore,
+    HostedSignLog,
+    MAXIMUM_BROWSER_GEARS,
+    MAXIMUM_BROWSER_CORDS,
+    BROWSER_PORTS_PER_GEAR,
+    BROWSER_QUEUE_SLOTS,
+    BROWSER_ROUTE_SLOTS,
+    BROWSER_ROUTE_TARGETS,
+    BROWSER_HOST_CALL_BINDINGS,
+    BROWSER_PENDING_REQUESTS,
+>;
+
 /// Exact Plan-bound storage receipt prepared before any kernel step.
 #[derive(Debug)]
 pub(in crate::plot_runner) struct PreparedStorageWitness {
@@ -9,10 +23,15 @@ pub(in crate::plot_runner) struct PreparedStorageWitness {
     pub(in crate::plot_runner) reserved_storage_bytes: usize,
     pub(in crate::plot_runner) live_byte_quota: u32,
     pub(in crate::plot_runner) data_memory_reservation: u64,
+    pub(in crate::plot_runner) publication_value_budget:
+        Option<crate::patchbay_ingress::PatchbayValueStorageBudget>,
 }
 
 impl PreparedStorageWitness {
-    pub(in crate::plot_runner) fn matches(&self, partitions: &[(&PlanFragment, &LoweredPlanFragment)]) -> bool {
+    pub(in crate::plot_runner) fn matches(
+        &self,
+        partitions: &[(&PlanFragment, &LoweredPlanFragment)],
+    ) -> bool {
         self.identities.len() == partitions.len()
             && self
                 .identities
@@ -33,3 +52,15 @@ impl PreparedStorageWitness {
     }
 }
 
+impl TourScheduler {
+    /// Revoke companion interactions when the parent Play is cancelled, before
+    /// waiting for any outstanding platform Host Call cancellation receipts.
+    pub(in crate::plot_runner) fn cancel(
+        &mut self,
+    ) -> Result<(), conduit_kernel::scheduler::SchedulerError> {
+        if let Some(budget) = &self._prepared_storage.publication_value_budget {
+            budget.retire();
+        }
+        self.kernel.cancel()
+    }
+}

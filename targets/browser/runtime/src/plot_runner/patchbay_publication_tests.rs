@@ -11,40 +11,30 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     request.source = source.into();
     seal_publication_masks(&mut request);
     let play = conduit_body::BodyPlayIdentity::bind(&request.plan, request.play_sequence);
-    request.wake = request
-        .wake
-        .body_plan_ready(&request.plan, "sign/publication-plan-ready".into())
-        .and_then(|wake| {
-            wake.body_play_started(&request.plan, &play, "sign/publication-play-started".into())
-        })
+    let prepared_request = serde_json::from_value(serde_json::to_value(&request).unwrap()).unwrap();
+    let (mut session, started) = body_start::prepare(prepared_request).unwrap();
+    request.wake = started.wake_at_start;
+    let node = session.patchbay_face.as_ref().unwrap().owner_node;
+    let budget = session
+        .scheduler
+        ._prepared_storage
+        .publication_value_budget
+        .as_ref()
         .unwrap();
-    let part = &request.plan.plots[0];
-    let placement = part.plan.fragments[0]
-        .placements
-        .iter()
-        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND)
-        .unwrap();
-    let Some(application_state::PreparedApplication::Patchbay(application)) =
-        application_state::PreparedApplication::prepare(
-            placement,
-            &request.plan,
-            &play.active_play_id,
-            request.body_evidence.as_ref(),
-            source,
-            &request.foreground_checked_plot_id,
-        )
-        .unwrap()
+    let Some(application_state::PreparedApplication::Patchbay(owner)) =
+        session.scheduler.applications[usize::from(node.0)].as_deref_mut()
     else {
-        panic!("exact Patchbay owner was not prepared");
+        panic!("exact scheduler Patchbay owner is not prepared");
     };
-    let mut owner = application;
+    let part = &request.plan.plots[0];
     let basis = FaceContributionBasis {
         checked_plot_id: part.plot.checked_plot_id.clone(),
         plan_id: request.plan.plan_id.clone(),
         active_play_id: play.active_play_id,
         required_interaction_context: None,
     };
-    let (mut publication, effect, face) = publication_for(&request, &basis, &owner.port, 19);
+    let (mut publication, effect, face) =
+        publication_for(&request, &basis, &owner.port, budget, 19);
     let action = face
         .actions
         .iter()
@@ -61,7 +51,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     };
     let initial_revision = owner.port.revision();
     assert!(!publication.can_submit());
-    assert!(publication.interact(&mut owner, &proposed).is_err());
+    assert!(publication.interact(owner, &proposed).is_err());
     let ack = BrowserMaskAcknowledgement {
         show_id: effect.show_id,
         manifestation_id: effect.manifestation_id,
@@ -79,9 +69,9 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     assert!(publication.can_submit());
     let mut forged = proposed.clone();
     forged.show_id = "show/foreign".into();
-    assert!(publication.interact(&mut owner, &forged).is_err());
+    assert!(publication.interact(owner, &forged).is_err());
     assert_eq!(owner.port.revision(), initial_revision);
-    let receipt = publication.interact(&mut owner, &proposed).unwrap();
+    let receipt = publication.interact(owner, &proposed).unwrap();
     assert_eq!(receipt.owner_result, Ok(None));
     assert!(receipt.transport_completion.is_ok());
     assert_eq!(owner.port.revision(), initial_revision + 1);
@@ -94,13 +84,15 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         .validate_against(&face, &observed.mask_show)
         .unwrap();
     assert!(!publication.can_submit());
-    assert!(publication.interact(&mut owner, &proposed).is_err());
+    assert!(publication.interact(owner, &proposed).is_err());
     publication.retire().unwrap();
     assert!(publication.take_receipt().unwrap().owner_result.is_ok());
     assert!(publication.take_receipt().is_none());
     assert!(publication.acknowledge(&ack).is_err());
     assert_eq!(owner.port.revision(), initial_revision + 1);
-    let (mut edited, edit_effect, edit_face) = publication_for(&request, &basis, &owner.port, 20);
+    drop(publication); // Release its actual buffers before admitting a replacement.
+    let (mut edited, edit_effect, edit_face) =
+        publication_for(&request, &basis, &owner.port, budget, 20);
     let action = edit_face
         .actions
         .iter()
@@ -138,7 +130,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         })
         .unwrap();
     assert_ne!(face.identity, edit_face.identity);
-    let receipt = edited.interact(&mut owner, &proposed_edit).unwrap();
+    let receipt = edited.interact(owner, &proposed_edit).unwrap();
     assert_eq!(receipt.owner_result, Ok(None));
     assert_eq!(
         receipt.request_delivery,
@@ -159,7 +151,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         owner.port.graph().expanded_plot_id.as_str()
     );
     let (mut blocked, blocked_effect, blocked_face) =
-        publication_for(&request, &basis, &owner.port, 21);
+        publication_for(&request, &basis, &owner.port, budget, 21);
     blocked
         .acknowledge(&BrowserMaskAcknowledgement {
             show_id: blocked_effect.show_id,
@@ -181,16 +173,20 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         arguments: proposed_edit.arguments.clone(),
         sequence: 1,
     };
-    assert!(blocked.interact(&mut owner, &blocked_input).is_err());
+    assert!(blocked.interact(owner, &blocked_input).is_err());
     assert!(
         blocked.can_submit(),
         "pressure must not consume the closing Mask input"
     );
     assert_eq!(owner.pending_observation().unwrap(), pending);
     assert_eq!(owner.port.revision(), initial_revision + 2);
+    session.scheduler.cancel().unwrap();
+    assert!(
+        !blocked.can_submit(),
+        "parent cancellation revokes the live publication"
+    );
     blocked.retire().unwrap();
 
-    assert!(publication.interact(&mut owner, &proposed).is_err());
     edited.retire().unwrap();
     assert!(edited.take_receipt().unwrap().owner_result.is_ok());
 }
@@ -199,6 +195,7 @@ fn publication_for(
     request: &body_start::BodyStartRequest,
     basis: &FaceContributionBasis,
     owner: &patchbay_application::PatchbayApplicationPort,
+    budget: &PatchbayValueStorageBudget,
     sequence: u64,
 ) -> (
     PatchbayPublication,
@@ -243,7 +240,7 @@ fn publication_for(
     let ingress =
         PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap();
     (
-        PatchbayPublication::prepare(mask, ingress, basis.clone()).unwrap(),
+        PatchbayPublication::prepare(mask, ingress, basis.clone(), budget).unwrap(),
         effect,
         face,
     )

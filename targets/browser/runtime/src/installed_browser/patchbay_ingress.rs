@@ -83,3 +83,7 @@ pub use publication::{
     BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime,
     PatchbayPublication,
 };
+
+#[path = "patchbay_value_budget.rs"]
+mod value_budget;
+pub use value_budget::PatchbayValueStorageBudget;
