@@ -1,0 +1,28 @@
+{
+  "source": "5b874c7807a69dd56fb225140de1609a62c52540",
+  "passed": 219,
+  "failed": 0,
+  "ignored": 0,
+  "groups": [
+    {
+      "group": "x86",
+      "passed": 78,
+      "raw_stdout_sha256": "a49e7526f8bde863f4b28f204c9b2ebece7fc51d462207099b4427b4e58c14aa",
+      "gzip_sha256": "cc8c82d8ac8f3c606abed983797ccdd9a2bcc81432c704013035d8ec0b2dbd26"
+    },
+    {
+      "group": "shared",
+      "passed": 33,
+      "raw_stdout_sha256": "575e2c847c69f8b15e67287c20fde54f4474688e844f4841f1341171cef0b39d",
+      "gzip_sha256": "dfa1889a416da7aff69639d9cf5d8e0a6aacea93c37a27c6210fe07c837c01e8"
+    },
+    {
+      "group": "usb",
+      "passed": 108,
+      "raw_stdout_sha256": "1020fe8760e0a352f76b8efb9d95c248e8f83b82f2019853351f22cc1ec5d3ae",
+      "gzip_sha256": "06e2487fd47216409198c13081881d58d86b01cbcb4942bb99361a712089fb03"
+    }
+  ],
+  "native": "not run",
+  "issue_6182": "incomplete"
+}
