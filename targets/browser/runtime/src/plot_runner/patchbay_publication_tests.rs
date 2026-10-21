@@ -2,7 +2,7 @@
 use super::super::*;
 use crate::patchbay_ingress::*;
 use conduit_face::*;
-use patchbay_application::{PatchbayApplicationRequest, EDIT_CURRENT_ACTION_ID};
+use patchbay_application::EDIT_CURRENT_ACTION_ID;
 
 #[test]
 fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
@@ -36,14 +36,14 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     else {
         panic!("exact Patchbay owner was not prepared");
     };
-    let mut owner = application.port;
+    let mut owner = application;
     let basis = FaceContributionBasis {
         checked_plot_id: part.plot.checked_plot_id.clone(),
         plan_id: request.plan.plan_id.clone(),
         active_play_id: play.active_play_id,
         required_interaction_context: None,
     };
-    let (mut publication, effect, face) = publication_for(&request, &basis, &owner, 19);
+    let (mut publication, effect, face) = publication_for(&request, &basis, &owner.port, 19);
     let action = face
         .actions
         .iter()
@@ -58,7 +58,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         arguments: vec![],
         sequence: 1,
     };
-    let initial_revision = owner.revision();
+    let initial_revision = owner.port.revision();
     assert!(!publication.can_submit());
     assert!(publication.interact(&mut owner, &proposed).is_err());
     let ack = BrowserMaskAcknowledgement {
@@ -73,17 +73,17 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     let mut stale = ack.clone();
     stale.face_revision += 1;
     assert!(publication.acknowledge(&stale).is_err());
-    assert_eq!(owner.revision(), initial_revision);
+    assert_eq!(owner.port.revision(), initial_revision);
     publication.acknowledge(&ack).unwrap();
     assert!(publication.can_submit());
     let mut forged = proposed.clone();
     forged.show_id = "show/foreign".into();
     assert!(publication.interact(&mut owner, &forged).is_err());
-    assert_eq!(owner.revision(), initial_revision);
+    assert_eq!(owner.port.revision(), initial_revision);
     let receipt = publication.interact(&mut owner, &proposed).unwrap();
     assert_eq!(receipt.owner_result, Ok(None));
     assert!(receipt.transport_completion.is_ok());
-    assert_eq!(owner.revision(), initial_revision + 1);
+    assert_eq!(owner.port.revision(), initial_revision + 1);
     let observed = publication.observation();
     observed
         .interaction
@@ -98,14 +98,15 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     assert!(publication.take_receipt().unwrap().owner_result.is_ok());
     assert!(publication.take_receipt().is_none());
     assert!(publication.acknowledge(&ack).is_err());
-    assert_eq!(owner.revision(), initial_revision + 1);
-    let (mut edited, edit_effect, edit_face) = publication_for(&request, &basis, &owner, 20);
+    assert_eq!(owner.port.revision(), initial_revision + 1);
+    let (mut edited, edit_effect, edit_face) = publication_for(&request, &basis, &owner.port, 20);
     let action = edit_face
         .actions
         .iter()
         .find(|a| a.identity == EDIT_CURRENT_ACTION_ID)
         .unwrap();
     let subject = owner
+        .port
         .graph()
         .subject_identities()
         .next()
@@ -137,15 +138,57 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         .unwrap();
     assert_ne!(face.identity, edit_face.identity);
     let receipt = edited.interact(&mut owner, &proposed_edit).unwrap();
+    assert_eq!(receipt.owner_result, Ok(None));
     assert_eq!(
-        receipt.owner_result,
-        Ok(Some(PatchbayApplicationRequest::EditCurrent {
-            expanded_plot_id: owner.graph().expanded_plot_id.clone(),
-            subject_identity: subject,
-        }))
+        receipt.request_delivery,
+        PatchbayRequestDelivery::Retained {
+            application_revision: initial_revision + 2,
+        }
     );
     assert!(receipt.transport_completion.is_ok());
-    assert_eq!(owner.revision(), initial_revision + 2);
+    assert_eq!(owner.port.revision(), initial_revision + 2);
+    let pending = owner
+        .pending_observation()
+        .expect("canonical Edit retained for Host disposition");
+    assert_eq!(pending["application_revision"], initial_revision + 2);
+    assert_eq!(pending["request"]["kind"], "EditCurrent");
+    assert_eq!(pending["request"]["subject_identity"], subject);
+    assert_eq!(
+        pending["request"]["expanded_plot_id"],
+        owner.port.graph().expanded_plot_id.as_str()
+    );
+    let (mut blocked, blocked_effect, blocked_face) =
+        publication_for(&request, &basis, &owner.port, 21);
+    blocked
+        .acknowledge(&BrowserMaskAcknowledgement {
+            show_id: blocked_effect.show_id,
+            manifestation_id: blocked_effect.manifestation_id,
+            mask_plan_id: blocked_effect.mask_plan_id,
+            active_play_id: blocked_effect.mask_play.active_play_id,
+            placement_id: blocked_effect.placement_id,
+            face_id: blocked_effect.face_id,
+            face_revision: blocked_effect.face_revision,
+        })
+        .unwrap();
+    let observed = blocked.observation();
+    let blocked_input = BrowserMaskInteraction {
+        show_id: observed.mask_show.show_id.as_str().into(),
+        face_id: blocked_face.identity.as_str().into(),
+        face_revision: blocked_face.revision,
+        action_id: proposed_edit.action_id.clone(),
+        target: proposed_edit.target.clone(),
+        arguments: proposed_edit.arguments.clone(),
+        sequence: 1,
+    };
+    assert!(blocked.interact(&mut owner, &blocked_input).is_err());
+    assert!(
+        blocked.can_submit(),
+        "pressure must not consume the closing Mask input"
+    );
+    assert_eq!(owner.pending_observation().unwrap(), pending);
+    assert_eq!(owner.port.revision(), initial_revision + 2);
+    blocked.retire().unwrap();
+
     assert!(publication.interact(&mut owner, &proposed).is_err());
     edited.retire().unwrap();
     assert!(edited.take_receipt().unwrap().owner_result.is_ok());

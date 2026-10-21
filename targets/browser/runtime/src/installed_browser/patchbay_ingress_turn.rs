@@ -1,8 +1,8 @@
 //! Retained owner window for one exact acknowledged Show and prepared transport.
+use super::PatchbayIngressOwner;
 use super::{dispatch_to_owner, PatchbayIngressDispatch, PreparedPatchbayIngress};
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis, ManifestationLifecycle, MaskShow};
-use patchbay_application::PatchbayApplicationPort;
 
 /// The installing owner moves its current Face/Show here after acknowledgement.
 /// This retains presentation/admission evidence, never a second domain model.
@@ -74,12 +74,13 @@ impl PatchbayOwnerTurn {
     /// not pretend that the owner callback ran.
     pub fn submit(
         &mut self,
-        owner: &mut PatchbayApplicationPort,
+        owner: &mut impl PatchbayIngressOwner,
         bytes: &[u8],
     ) -> Result<&PatchbayIngressDispatch, String> {
         if !self.can_submit() || self.receipt.is_some() {
             return Err("Patchbay owner turn is consumed or retired".into());
         }
+        owner.port()?;
         self.ingress.admit(bytes)?;
         let receipt = dispatch_to_owner(
             &mut self.ingress,

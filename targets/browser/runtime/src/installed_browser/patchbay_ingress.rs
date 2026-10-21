@@ -65,7 +65,9 @@ pub use kernel::PreparedPatchbayIngress;
 
 #[path = "patchbay_ingress_owner.rs"]
 mod owner;
-pub use owner::{dispatch_to_owner, PatchbayIngressDispatch};
+pub use owner::{
+    dispatch_to_owner, PatchbayIngressDispatch, PatchbayIngressOwner, PatchbayRequestDelivery,
+};
 
 #[cfg(test)]
 #[path = "patchbay_ingress_owner_tests.rs"]
@@ -77,4 +79,7 @@ pub use turn::PatchbayOwnerTurn;
 
 #[path = "patchbay_ingress_publication.rs"]
 mod publication;
-pub use publication::{PatchbayPublication, BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime};
+pub use publication::{
+    BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime,
+    PatchbayPublication,
+};

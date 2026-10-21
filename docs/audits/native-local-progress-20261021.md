@@ -963,3 +963,28 @@ compilation exposed a native synthetic graph fixture missed by the earlier Cord
 origin field change; fixed that fixture to mark its origin explicitly unproven.
 The failed compile log is retained locally alongside the two passing logs.
 No broad suite was run.
+
+## Canonical dispatch shares the resident owner's pending slot (#6201)
+
+Added a narrow installing-owner interface to the existing prepared ingress,
+owner turn and Mask publication. The raw domain port remains supported for
+callers that retain the returned receipt. The actual `PreparedPatchbay` wrapper
+now implements the interface using its existing actor and pending request slot.
+Canonical and legacy inputs therefore share delivery pressure and the existing
+Host observation/disposition metadata, rather than introducing another queue.
+
+Successful canonical Edit/Mask proposals transfer their owned request payload
+into that slot without cloning strings. The dispatch receipt explicitly records
+Returned, Retained-at-revision or NotRequested delivery, separately from transport
+completion; retained payloads are absent from the returned payload field. This
+keeps one request owner and preserves transport uncertainty as a separate fact.
+Occupied storage refuses before the Mask's closing input or ingress submission
+is consumed. Receipt retrieval does not release the resident pending request.
+
+One composed CPU test passes on the final source: actual retained owner wrapper,
+source-owned selection, fresh Face/Show, canonical Edit through the prepared
+Mask/ingress kernels, retained request identities/revision, and refusal of another
+publication without consuming its closing Mask input. Host acknowledgements are
+fixtures, not DOM enactment. No broad suite, CI, QEMU or artifact rebuild ran.
+Automatic installation/charging of both Plays, production presentation, legacy
+adapter retirement and native editor fulfillment remain unfinished #6201 work.

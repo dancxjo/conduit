@@ -1,10 +1,10 @@
 //! A prepared browser Mask and its exact canonical owner turn.
+use super::PatchbayIngressOwner;
 use super::{PatchbayIngressDispatch, PatchbayOwnerTurn, PreparedPatchbayIngress};
 pub use crate::workspace_mask::{
     BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime,
 };
 use conduit_face::{FaceContributionBasis, FaceInteraction};
-use patchbay_application::PatchbayApplicationPort;
 
 /// The caller prepares/charges both Plays and publishes the Mask's real effect.
 /// This owns the presentation evidence and transport, never the domain model.
@@ -81,7 +81,7 @@ impl PatchbayPublication {
 
     pub fn interact(
         &mut self,
-        owner: &mut PatchbayApplicationPort,
+        owner: &mut impl PatchbayIngressOwner,
         proposed: &BrowserMaskInteraction,
     ) -> Result<&PatchbayIngressDispatch, String> {
         if !self.can_submit() {
@@ -106,6 +106,7 @@ impl PatchbayPublication {
             .as_ref()
             .ok_or("Patchbay Face has no Body")?;
         owner
+            .port()?
             .admit_face_command(
                 body,
                 self.basis.clone(),

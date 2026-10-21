@@ -149,3 +149,32 @@ fn request_observation(request: &PatchbayApplicationRequest) -> serde_json::Valu
         }),
     }
 }
+
+// Canonical and legacy delivery share this actor and this one pending slot.
+impl crate::patchbay_ingress::PatchbayIngressOwner for PreparedPatchbay {
+    fn port(&mut self) -> Result<&mut PatchbayApplicationPort, String> {
+        if let Some(pending) = &self.pending {
+            self.last_input_refusal = Some(pending.revision);
+            return Err("Patchbay owner request is pending".into());
+        }
+        Ok(&mut self.port)
+    }
+
+    fn record_dispatch(&mut self, dispatch: &mut crate::patchbay_ingress::PatchbayIngressDispatch) {
+        if let Ok(request) = &mut dispatch.owner_result {
+            if let Some(request) = request.take() {
+                debug_assert!(
+                    self.pending.is_none(),
+                    "delivery storage admitted before dispatch"
+                );
+                let revision = self.port.revision();
+                self.pending = Some(PendingRequest { revision, request });
+                dispatch.request_delivery =
+                    crate::patchbay_ingress::PatchbayRequestDelivery::Retained {
+                        application_revision: revision,
+                    };
+            }
+        }
+        self.last_input_refusal = None;
+    }
+}

@@ -316,3 +316,15 @@ Native Edit-current still needs an admitted editor effect; its product branch
 currently emits only `patchbay-edit-requested`. Canonical resident installation
 and exact editor ownership remain required #6201 work. Pressure admission must
 not be mistaken for completing either path.
+
+## Canonical receipt handoff to the actual retained wrapper
+
+The prepared publication can now borrow `PreparedPatchbay` through its installing
+owner interface. Its canonical callback uses the same actor and pending slot as
+legacy delivery. Request payloads move into that slot; the receipt records the
+transfer and application revision, while preserving transport completion as a
+separate outcome. Existing observation and Host disposition paths see that same
+pending request. Pressure admission precedes closing Mask/ingress consumption.
+A composed CPU case exercises this handoff with acknowledgement fixtures.
+This does not automatically attach the publication to Body preparation, reserve
+both Plays, publish DOM effects or retire the old event/view Fore.
