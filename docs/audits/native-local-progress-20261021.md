@@ -26,8 +26,11 @@ invented semantic actions or topology.
 Tab/Shift+Tab cycles all exact Gear/Port/Cord subjects, including omitted and
 off-page subjects, through the existing checked FaceNavigation FocusAndDisclose
 operation. Details retains complete source facts and marks the selected subject.
-Escape returns to the originating diagram page; Enter on a reading target does
-not Invoke. Existing Show/Face checks and pending-draft refusal precede changes.
+Mandatory card/Port/overflow commands and shared chrome are reserved before
+admitting Cord paths. Drawing, pointer targets and omission counts share the
+resulting prefix, which may be less than twelve; keyboard navigation retains
+all omitted Cords. Escape returns to the originating diagram page; Enter on a
+reading target does not Invoke. Existing Show/Face checks and pending-draft refusal precede changes.
 Native now consumes `PatchbayNavigationProjection::for_graph`, a shared
 structure reader built with the existing Patchbay navigation/membership machinery.
 It exposes the complete serializable navigation/projection/cursor bundle accepted

@@ -62,7 +62,7 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         .iter()
         .filter(|cord| endpoints(face, &gears, cord, height).is_some())
         .count();
-    let shown = eligible.min(MAX_VISIBLE_LINKS);
+    let shown = eligible.min(link_capacity(face, &gears, height));
     if screen.width < 640 {
         alloc::format!(
             "{} · {shown}/{} cords shown · {} omitted · F2/F3",
@@ -78,6 +78,25 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
             cords.len() - shown
         )
     }
+}
+
+/// Cards, their Port rows and overflow notices are mandatory on this page.
+/// Admit Cord paths from the commands left after those rows and shared chrome;
+/// reporting and pointer selection use the exact same visible prefix.
+fn link_capacity(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
+    let cards: usize = gears
+        .iter()
+        .map(|gear| {
+            let count = ports(face, gear).count();
+            let shown = visible_ports(height, count).min(count);
+            2 + usize::from(!gear_labels(&gear.name).1.is_empty())
+                + shown
+                + usize::from(count > shown && height >= 90)
+        })
+        .sum();
+    conduit_face::MAX_GRAPHICS_COMMANDS
+        .saturating_sub(super::chrome::COMMANDS + cards)
+        .min(MAX_VISIBLE_LINKS)
 }
 
 fn endpoints(
@@ -121,6 +140,7 @@ pub(super) fn append<'a>(
     }));
     // Paths go underneath their endpoint cards and use only endpoints whose
     // exact Port subject and directional contract are visible on this page.
+    let maximum_links = link_capacity(face, &gears, height);
     let mut visible_links = 0;
     for cord in face
         .subjects
@@ -132,7 +152,7 @@ pub(super) fn append<'a>(
         else {
             continue;
         };
-        if visible_links == MAX_VISIBLE_LINKS {
+        if visible_links == maximum_links {
             break;
         }
         let from = card(source_index);
