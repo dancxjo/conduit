@@ -1,0 +1,74 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "status": "passed",
+  "steps": [
+    {
+      "name": "normal-product",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "live",
+        "x86_64"
+      ],
+      "exit_code": 0,
+      "seconds": 546.1633965969086,
+      "log_sha256": "b58c0cf8b180c5ff501c1cc4c60e783a31d7b88a69e54f8111e4490283308088"
+    },
+    {
+      "name": "canonical-journey",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/target/conduitos/live/x86_64-pc",
+        "--journey"
+      ],
+      "exit_code": 0,
+      "seconds": 122.88675332069397,
+      "log_sha256": "88ee4a81593055a2772973ebcec4bcac450182949b37ed3f0d46c9c71e61499d"
+    },
+    {
+      "name": "linux-release",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "release",
+        "--platform",
+        "linux",
+        "--output",
+        "target/5628-linux-release"
+      ],
+      "exit_code": 0,
+      "seconds": 1090.6420769691467,
+      "log_sha256": "2d2670c1d882e65fcfb33ec538e2d201fccc7aa094b4c881b473dc3a5e4ef340"
+    },
+    {
+      "name": "handbook",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "body",
+        "static",
+        "--application",
+        "targets/browser/handbook/handbook.application.template.json",
+        "--handbook",
+        "--output",
+        "target/5628-handbook"
+      ],
+      "exit_code": 0,
+      "seconds": 321.55025267601013,
+      "log_sha256": "07afefb70a77e58ef6df37b01e02cbf60c17bda0e73a5806970c6fa9d08908fe"
+    }
+  ]
+}
