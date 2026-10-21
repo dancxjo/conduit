@@ -35,7 +35,7 @@
     "branch": "codex/5628-current-owner-reconciliation",
     "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "status": "prepared; focused native compiling; formatting/wire8 pass; no feature PR admitted",
+    "status": "Prepared on origin; focused arrival/dispatch35 pass, wire8 pass and formatting complete; scene/typography/raster/Mask checks running. No feature PR admitted.",
     "proof_driver": "Prepared explicit source pin + two independent shifted-axis scenarios; syntax/synthetic checks pass; no current-source product execution"
   },
   "next": [

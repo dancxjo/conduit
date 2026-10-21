@@ -1,0 +1,9 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "passed": 35,
+  "failed": 0,
+  "ignored": 0,
+  "filtered": 1215,
+  "log_sha256": "81798d618cb45b96164fe90cbcb9321913f3048bcd10bc27e5e04770aca32b09",
+  "boundary": "Internal focused Rust check began before commit on identical Rust tree; later changes were audit documentation only. No current-source product execution claim."
+}

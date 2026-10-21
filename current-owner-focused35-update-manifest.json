@@ -1,0 +1,30 @@
+{
+  "parent": "cc3a5b213f0e4803841668b6b31c25821718bc5f",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2638,
+      "sha256": "d5e76737def2e726861642a786c98df17ea157b239f2fdb36d10545439928e2b",
+      "mode": "100644",
+      "blob": "b3160ea341c647f5b310cdc7c8416c219a463502"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/arrival-focused.json",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/arrival-focused.json",
+      "bytes": 387,
+      "sha256": "e413fedcdeca1e0132a97311f953c444b204ca977c64e5790a471a5c0f3ba42b",
+      "mode": "100644",
+      "blob": "cf7428d1fbe57daf3d0547ec753a9a5e6f8cf2cd"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/arrival-focused-precommit.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/arrival-focused-precommit.log",
+      "bytes": 15230,
+      "sha256": "81798d618cb45b96164fe90cbcb9321913f3048bcd10bc27e5e04770aca32b09",
+      "mode": "100644",
+      "blob": "1e7ac28c4d82769a806f5be6fa02ac9024bf2814"
+    }
+  ]
+}

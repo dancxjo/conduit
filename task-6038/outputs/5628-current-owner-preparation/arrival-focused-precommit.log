@@ -1,0 +1,117 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/assigned-plan)
+   Compiling ring v0.17.14
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/patchbay)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/protected-line)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/kernel)
+   Compiling rustls v0.23.45
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/conduitos)
+   Compiling rustls-webpki v0.103.15
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling ureq v3.4.2
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/thermostat/model)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/browser/runtime)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/composite)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/rp2040/network-realization)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/audio)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/web)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/planner)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/chat)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/wire)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/mechanisms/protocols/bluetooth)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/tutorial)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/body-invitation)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/finance)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/mechanisms/implementations/synth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/birth)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/catalog)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/little-seismograph/fixture)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/semantics/home)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/make/host)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/browser/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/patchbay/application)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/std/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/orange-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/raspberry-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/rp2040/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/make/body)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/avr/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/tour)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/proof/conformance/network-r1)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/plots/todo/face)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/architecture/observatory)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/conduitos/mask-offer)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-current-owner/targets/std)
+    Finished `test` profile [optimized] target(s) in 6m 40s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduitos-68c2eab79a77d079)
+
+running 35 tests
+test product_front_door::face_arrival::look_selection::tests::local_selection_keeps_face_and_draft_while_retiring_each_old_show ... ok
+test product_front_door::face_arrival::owner_selection::tests::independent_owner_axes_preserve_the_other_axis_and_checked_recipe ... ok
+test product_front_door::face_arrival::selection::tests::failed_pre_swap_preparation_preserves_show_preferences_and_publication ... ok
+test product_front_door::face_arrival::selection::tests::local_selection_disposition_preserves_pending_mask_and_opaque_route ... ok
+test product_front_door::face_arrival::tests::owner_face_retires_arrival_revision_domain_once ... ok
+test product_front_door::face_arrival::tests::read_only_owner_standby_requires_fresh_show_for_explicit_activation ... ok
+test product_front_door::face_arrival::tests::route_loss_retires_owner_show_before_read_only_republication ... ok
+test product_front_door::face_workspace::continuity_tests::home_keyboard_binding_crosses_acknowledged_show_and_reentry_keeps_the_body ... ok
+test product_front_door::face_workspace::editor_admission_tests::actual_editor_commit_retires_old_lifecycle_show_then_fresh_stop_preserves_body ... ok
+test product_front_door::face_workspace::editor_admission_tests::play_from_specialized_presenter_enters_the_actual_editor_mask_surface ... ok
+test product_front_door::face_workspace::tests::admitted_stop_is_once_only_and_keeps_body_identity ... ok
+test product_front_door::face_workspace::tests::context_revision_target_and_availability_use_shared_admission ... ok
+test product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show ... ok
+test product_front_door::face_workspace::tests::failed_replacement_retires_the_old_control_before_scanout ... ok
+test product_front_door::face_workspace::tests::live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_application ... ok
+test product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect ... ok
+test product_front_door::input_actions::tests::native_tour_function_keys_have_explicit_page_and_exercise_meaning ... ok
+test product_front_door::input_actions::tests::reserved_shell_keys_are_one_explicit_product_control_vocabulary ... ok
+test product_front_door::input_actions::tests::resident_patchbay_keys_select_semantic_actions_after_plot_actions ... ok
+test product_front_door::input_actions::tests::resident_tour_keys_select_semantic_actions_after_navigation_actions ... ok
+test product_front_door::input_routing_tests::native_pointer_and_keyboard_cross_surface_routing_before_typed_tour_interaction ... ok
+test product_front_door::native_action_evidence::tests::snapshot_carries_actual_planned_editor_state_and_label ... ok
+test product_front_door::owner_selection::tests::appearance_keys_admit_only_exact_unmodified_presets_and_shifted_axes_or_colors ... ok
+test product_front_door::pointer_input::tests::held_motion_never_reactivates_and_release_permits_a_fresh_press ... ok
+test product_front_door::pointer_input::tests::retired_pointer_cannot_be_reactivated_by_a_fresh_sample ... ok
+test product_front_door::pointer_input::tests::stale_or_gapped_physical_history_cannot_authorize_a_press ... ok
+test product_front_door::workspace_input::service_tests::a_batched_release_cannot_erase_the_pending_press_repaint ... ok
+test product_front_door::workspace_input::service_tests::held_release_after_selection_is_observed_without_repainting_the_new_plot ... ok
+test product_front_door::workspace_input::service_tests::hidden_workspace_service_consumes_pending_work_without_touching_scanout ... ok
+test product_front_door::workspace_input::service_tests::release_has_an_observation_receipt_without_another_frame ... ok
+test product_front_door::workspace_input::service_tests::unaccepted_input_does_not_make_an_observation ... ok
+test product_front_door::workspace_input::tests::accepted_release_preserves_face_without_requesting_a_repaint ... ok
+test product_front_door::workspace_input::tests::actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable ... ok
+test product_front_door::workspace_input::tests::physical_memory_lantern_commits_unicode_to_the_immutable_native_face_scene ... ok
+test product_front_door::workspace_input::tests::tab_and_captured_release_preserve_two_plot_state_and_the_same_play ... ok
+
+test result: ok. 35 passed; 0 failed; 0 ignored; 0 measured; 1215 filtered out; finished in 153.15s
+
