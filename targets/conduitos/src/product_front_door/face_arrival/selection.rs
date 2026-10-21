@@ -62,6 +62,7 @@ impl FaceArrival {
                 .map_err(|error| error.as_str())?;
         }
         self.acknowledge_owner_show(route, identities)?;
+        self.record_focus()?;
         self.preparation.selected = Some((look, recipe));
         Ok(fresh)
     }
