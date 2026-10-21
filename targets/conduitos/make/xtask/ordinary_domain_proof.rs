@@ -35,7 +35,11 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-cpu",
             "max",
             "-m",
-            "64M",
+            // This appliance also owns the 19 MiB private compositor-service
+            // slot. Limine retains the loaded image while reserving the 16 MiB
+            // runtime arena; the former 64 MiB guest refuses before entry.
+            // This is an explicit fixture profile, not a product minimum.
+            "128M",
             "-smp",
             "1",
             "-display",
@@ -231,6 +235,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
         "build": build, "observations": sign["service_memory_fixture"],
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
     });
