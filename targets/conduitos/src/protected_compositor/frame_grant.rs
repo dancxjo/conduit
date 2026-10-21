@@ -128,7 +128,7 @@ impl FrameGrant {
                 .x
                 .checked_add(span.pixels)
                 .is_none_or(|end| end > self.width)
-            || span.window_offset % 4 != 0
+            || !span.window_offset.is_multiple_of(4)
             || span
                 .pixels
                 .checked_mul(4)
