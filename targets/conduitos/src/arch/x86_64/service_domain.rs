@@ -34,12 +34,7 @@ impl ServiceDomain {
             cost: DomainCost {
                 reserved_bytes,
                 root_metadata_bytes: core::mem::size_of::<Self>() as u32,
-                setup_copied_bytes: image
-                    .image()
-                    .segments
-                    .iter()
-                    .map(|segment| segment.bytes.len() as u64)
-                    .sum(),
+                setup_copied_bytes: image.initialized_bytes(),
                 setup_ticks: super::domain_ticks().saturating_sub(started),
                 ..DomainCost::default()
             },

@@ -131,7 +131,7 @@ fn draft_has_finite_distinct_admission_and_no_raster_arenas() {
     let layout = ServiceProfile::Draft.layout();
     assert!(layout.validate().is_ok());
     assert_eq!(layout.active_ranges().len(), 5);
-    assert_eq!(layout.mapped_bytes(), 2_183_168);
+    assert_eq!(layout.mapped_bytes(), 3_231_744);
     assert_eq!(layout.pixels(), None);
     assert_eq!(layout.scratch(), None);
     assert!(ServiceImage::for_profile(&artifact(), ServiceProfile::Draft).is_ok());

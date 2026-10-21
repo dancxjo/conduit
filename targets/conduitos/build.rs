@@ -9,6 +9,10 @@ mod domain_image;
 #[allow(dead_code)]
 #[path = "src/domain_image.rs"]
 mod image_validation;
+use image_validation as domain_image;
+#[allow(dead_code)]
+#[path = "src/service_memory.rs"]
+mod service_image_validation;
 #[cfg(feature = "native-compositor")]
 #[path = "build/typography.rs"]
 mod typography;

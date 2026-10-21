@@ -2,7 +2,7 @@
 //!
 //! These ranges do not install mappings or establish isolation. A backend must
 //! map image segments RX/RO, private ranges RW+NX and leave every gap unmapped.
-use crate::domain_image::{DomainImage, ImageRefusal};
+use crate::domain_image::{DomainImage, ImageRefusal, PrivateDataSegment, PrivateDataWindow};
 
 pub const PAGE_BYTES: u64 = 4096;
 pub const COMPOSITOR_PIXEL_BYTES: u64 = 8 * 1024 * 1024;
@@ -64,7 +64,7 @@ impl ServiceMemoryLayout {
         Self::from_sizes(
             ServiceProfile::Draft,
             [
-                1024 * 1024,
+                2 * 1024 * 1024,
                 PAGE_BYTES,
                 16 * 1024,
                 64 * 1024,
@@ -181,13 +181,15 @@ impl ServiceMemoryLayout {
     }
 }
 
-/// An immutable ELF admitted against the fixed service profile. Writable ELF
-/// segments are forbidden; all mutable state comes from separate private grants.
+/// ELF admitted against a fixed service profile. Image storage remains RX/RO.
+/// Draft alone may initialize the first metadata page from one bounded RW/NX
+/// LOAD; its BSS and all other mutable state come from zeroed private grants.
 /// The x86_64 backend must charge its page tables and trap stack in addition to
 /// `mapped_bytes`; neither is a user-visible allocation from this descriptor.
 pub struct ServiceImage<'a> {
     image: DomainImage<'a>,
     layout: ServiceMemoryLayout,
+    private_data: Option<PrivateDataSegment<'a>>,
 }
 impl<'a> ServiceImage<'a> {
     pub fn compositor(bytes: &'a [u8]) -> Result<Self, ImageRefusal> {
@@ -196,9 +198,36 @@ impl<'a> ServiceImage<'a> {
     pub fn for_profile(bytes: &'a [u8], profile: ServiceProfile) -> Result<Self, ImageRefusal> {
         let layout = profile.layout();
         layout.validate()?;
-        let image =
-            DomainImage::parse_in_window(bytes, 62, layout.image().start, layout.image().bytes)?;
-        Ok(Self { image, layout })
+        let private = match profile {
+            ServiceProfile::Compositor => None,
+            ServiceProfile::Draft => Some(PrivateDataWindow {
+                start: layout.metadata().start(),
+                bytes: PAGE_BYTES,
+            }),
+        };
+        let (image, private_data) = DomainImage::parse_service(
+            bytes,
+            62,
+            layout.image().start,
+            layout.image().bytes,
+            private,
+        )?;
+        Ok(Self {
+            image,
+            layout,
+            private_data,
+        })
+    }
+    pub fn private_data(&self) -> Option<PrivateDataSegment<'a>> {
+        self.private_data
+    }
+    pub fn initialized_bytes(&self) -> u64 {
+        self.image
+            .segments
+            .iter()
+            .map(|segment| segment.bytes.len() as u64)
+            .sum::<u64>()
+            + self.private_data.map_or(0, |data| data.bytes.len() as u64)
     }
     pub const fn profile(&self) -> ServiceProfile {
         self.layout.profile()

@@ -18,7 +18,7 @@ fn independent_profile_ownership_and_quarantine() {
     assert!(Lease::claim(ServiceProfile::Compositor).is_err());
     assert!(Lease::claim(ServiceProfile::Draft).is_err());
     assert_eq!(compositor.reserved_bytes(), 19_349_504);
-    assert_eq!(draft.reserved_bytes(), 2_228_224);
+    assert_eq!(draft.reserved_bytes(), 3_276_800);
     assert_eq!(compositor.transfer_window().unwrap().len(), 65536);
     assert_eq!(draft.transfer_window().unwrap().len(), 16384);
     assert_ne!(

@@ -164,6 +164,23 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
             5 | if segment.executable { 0 } else { NX },
         )?;
     }
+    if let Some(data) = image.private_data() {
+        // The ELF template initializes private metadata, never executable image
+        // storage. The complete slot was zeroed above, including the BSS tail.
+        if image.profile() != crate::service_memory::ServiceProfile::Draft
+            || data.address != layout.metadata().start()
+            || data.memory_bytes > PAGE as u64
+            || data.bytes.len() as u64 > data.memory_bytes
+        {
+            return Err(DomainRefusal::InvalidMemory);
+        }
+        let target = slot
+            .metadata
+            .get_mut(..data.memory_bytes as usize)
+            .ok_or(DomainRefusal::InvalidMemory)?;
+        target[..data.bytes.len()].copy_from_slice(data.bytes);
+        target[data.bytes.len()..].fill(0);
+    }
     let private = [
         (Some(layout.exchange()), physical(&*slot.exchange)?),
         (Some(layout.output()), physical(&*slot.output)?),

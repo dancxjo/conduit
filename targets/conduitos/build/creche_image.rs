@@ -1,7 +1,7 @@
 //! Build the Crèche draft reducer as a separate immutable executable, never a Root library.
 use std::{env, fs, path::PathBuf, process::Command};
 
-use super::image_validation as image;
+use super::service_image_validation::{ServiceImage, ServiceProfile};
 
 pub fn generate() {
     println!("cargo:rustc-check-cfg=cfg(conduitos_creche_image)");
@@ -45,10 +45,10 @@ pub fn generate() {
         .join(&target)
         .join("release/conduitos-creche-service");
     let bytes = fs::read(&source).expect("read creche executable");
-    // Runtime installation rechecks the full ServiceImage memory profile. This
-    // build check also rejects writable/oversized executable segments.
-    image::DomainImage::parse_in_window(&bytes, 62, 0x0040_0000, 1024 * 1024)
-        .expect("validate immutable creche executable");
+    // Exactly the runtime profile: RX/RO image plus at most the first metadata
+    // page as an initialized private RW/NX template. No writable image mapping.
+    ServiceImage::for_profile(&bytes, ServiceProfile::Draft)
+        .expect("validate bounded creche executable and private-data template");
     fs::copy(source, output.join("creche.elf")).expect("stage creche executable");
     println!("cargo:rustc-cfg=conduitos_creche_image");
 }
