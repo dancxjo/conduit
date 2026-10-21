@@ -1,0 +1,14 @@
+{
+  "parent": "bf0cc716508b49e2b09b11f0d89779291cee78cd",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3409,
+      "sha256": "e135858636948771654ebd9df68855582f09ef539371c17604066a82c3634cca",
+      "mode": "100644",
+      "blob": "dc2a1b798347336e7f7543861219dbd616551159"
+    }
+  ]
+}

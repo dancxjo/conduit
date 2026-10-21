@@ -35,8 +35,16 @@
     "branch": "codex/5628-current-owner-reconciliation",
     "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "status": "Prepared on origin;179 native focused passes/1manualignore across5 filters,8browserwire andfmt pass; supported normal-product/journey/Linuxrelease/Handbook pipeline running. No feature PR admitted.",
-    "proof_driver": "Prepared explicit source pin + two independent shifted-axis scenarios; syntax/synthetic checks pass; no current-source product execution"
+    "status": "179nativefocused/1manualignore,wire8/fmt pass;normal product+canonical journey26captures pass;sealed Linuxrelease/Handbook pipeline running;new full workspace queued after253terminalPASS",
+    "proof_driver": "Prepared explicit source pin + two independent shifted-axis scenarios; syntax/synthetic checks pass; no current-source product execution",
+    "normal_product": {
+      "build_exit": 0,
+      "canonical_journey_exit": 0,
+      "captures": 26,
+      "image_sha256": "0ead10806a141a7d3f504679fd75b818bc440ad1cc623d865b4875954e2d5aac",
+      "archive": "bf0cc716508b49e2b09b11f0d89779291cee78cd",
+      "owner_typography_proof": false
+    }
   },
   "next": [
     "Finish and separately prove reopened #6158 five-choice page-flow repair; keep #6162 regression intact",
@@ -52,7 +60,18 @@
     "reopening_url": "https://github.com/dancxjo/conduit/issues/6158#issuecomment-6303396108",
     "scope": "remaining five-choice pagination/flow defect distinct from proven orphaned-field fix",
     "audit": "work/6158-reopened-flow-audit.md",
-    "current_fix_accepted": false
+    "current_fix_accepted": false,
+    "reproduction": {
+      "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+      "viewport": [
+        1280,
+        800
+      ],
+      "same_complete_face_and_show_across_pages": true,
+      "five_choices_four_selected": true,
+      "before_fix_archive": "bf0cc716508b49e2b09b11f0d89779291cee78cd",
+      "comment": "https://github.com/dancxjo/conduit/issues/6158#issuecomment-6307868122"
+    }
   },
   "fallback_prerequisite": {
     "issue": 6190,
