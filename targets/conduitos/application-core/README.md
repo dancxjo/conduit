@@ -1,4 +1,4 @@
-> Preparation: exact-sequence transport passes the local fixed-grant regression; source/image-bound native acceptance is still pending. Preserve the preceding [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
+> Preparation: exact-sequence transport passes the local fixed-grant regression and the preceding parent normal native journey. A later restacked journey exposed single-entry graph-projection work exhaustion; the prepare/finish follow-up needs fresh source/image-bound acceptance. Preserve the earlier [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
 
 # Canonical native application owner
 
@@ -17,7 +17,8 @@ moves existing controllers into Models only after complete coverage, valid
 selection and successful Initialized reply encoding.
 
 The remaining closed command vocabulary is Apply, Refresh, Select, Topology,
-CompleteTour, Graph and stateless ProjectGraph/ProjectTutorial. Only Apply may return an external-effect proposal. Views
+CompleteTour, Graph, PrepareGraphProjection, FinishGraphProjection and
+ProjectTutorial. Only Apply may return an external-effect proposal. Views
 remain the existing 3072-byte ApplicationView encoding and events remain limited
 to 128 bytes. Chunked serialized DTOs are limited to 128 KiB; no Rust layout or
 pointer crosses the explicit versioned exchange protocol. Small DTOs retain raw
@@ -57,3 +58,14 @@ the same canonical projection used by retained Tutorial initialization. It is
 available before and after Models initialization and changes no retained model.
 Its reply echoes the exact Body ID, outer Root revision, record revision and mode.
 It cannot return a proposal. Root checks that scope and the encoded view revision.
+
+A readonly graph query uses two explicit commands. PrepareGraphProjection moves
+the decoded graph and scope into one private pending query and returns only
+Prepared. FinishGraphProjection consumes it once, validates the unchanged
+canonical graph digest and produces GraphFacts. Initialization and all other
+semantic commands refuse while a query is pending; their payloads are not
+allocated as a second retained graph. Any refusal drops the pending query and
+terminalizes the instance. These steps separate decoding from canonical custody
+validation and projection without increasing the work grant for either entry.
+The cold and retained Root service paths use the same synchronous protocol and
+independently validate the returned contribution against their original graph.

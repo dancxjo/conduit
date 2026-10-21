@@ -1,0 +1,11 @@
+{
+  "code_source": "a27020b0208ce5f955767f7ede4cabaccbac4344",
+  "tests": 30,
+  "failures": 0,
+  "ignored": 0,
+  "fixed_heap": "passed",
+  "raw_package_stdout_sha256": "cd92573d5a21149906a4b5790920208c7b509dc8aebd0a6cec3680f281432d08",
+  "package_gzip_sha256": "6ac5c571b1311192f26d7f907755f1e335a2809b4ad6198668176496b355252d",
+  "native": "pending",
+  "ci": "pending"
+}

@@ -12,6 +12,7 @@ pub struct State {
     refused: bool,
     preparing: Option<Builder>,
     workspace: Option<data::Workspace>,
+    projection: Option<crate::graph_facts::PreparedProjection>,
     incoming: Option<(usize, Vec<u8>)>,
     outgoing: Vec<u8>,
     read: usize,
@@ -26,6 +27,7 @@ impl State {
             self.refused = true;
             self.models = None;
             self.preparing = None;
+            self.projection = None;
             self.workspace = None;
             self.incoming = None;
             self.outgoing = Vec::new();
@@ -39,7 +41,11 @@ impl State {
     ) -> Result<Response, Refusal> {
         match request {
             Request::Begin { bytes } => {
-                if self.incoming.is_some() || bytes == 0 || bytes as usize > MAX_BLOB {
+                if self.incoming.is_some()
+                    || bytes == 0
+                    || bytes as usize > MAX_BLOB
+                    || (self.projection.is_some() && self.read != self.outgoing.len())
+                {
                     return Err(Refusal::Order);
                 }
                 if self.workspace.is_none() {
@@ -77,7 +83,11 @@ impl State {
                     return Err(Refusal::Order);
                 }
                 let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
-                let command: Command = workspace.decode_command(&incoming)?;
+                let command: Command = if self.projection.is_some() {
+                    workspace.decode_projection_finish(&incoming)?
+                } else {
+                    workspace.decode_command(&incoming)?
+                };
                 drop(incoming);
                 let mut initialized = None;
                 if self.preparing.is_some()
@@ -91,14 +101,22 @@ impl State {
                 {
                     return Err(Refusal::Order);
                 }
+                if self.projection.is_some() && !matches!(&command, Command::FinishGraphProjection)
+                {
+                    return Err(Refusal::Order);
+                }
                 let reply = match command {
-                    Command::ProjectGraph { graph, scope } => Reply::GraphFacts {
-                        contribution: crate::graph_facts::project_with_workspace(
-                            &graph,
-                            scope,
-                            workspace,
-                            &mut self.outgoing,
-                        )?,
+                    Command::PrepareGraphProjection { graph, scope } => {
+                        self.projection =
+                            Some(crate::graph_facts::PreparedProjection::new(graph, scope)?);
+                        Reply::Prepared
+                    }
+                    Command::FinishGraphProjection => Reply::GraphFacts {
+                        contribution: self
+                            .projection
+                            .take()
+                            .ok_or(Refusal::Order)?
+                            .finish(workspace, &mut self.outgoing)?,
                     },
                     Command::ProjectTutorial { evidence, scope } => {
                         scope.validate(&evidence)?;

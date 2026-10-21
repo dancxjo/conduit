@@ -42,6 +42,12 @@ impl Scope {
         if self.owner_revision == 0 || self.graph_digest != digest {
             return Err(Refusal::Bounds);
         }
+        self.validate_basis()
+    }
+    fn validate_basis(&self) -> Result<(), Refusal> {
+        if self.owner_revision == 0 {
+            return Err(Refusal::Bounds);
+        }
         for identity in [self.host.as_str(), self.boot.as_str(), self.body.as_str()] {
             if identity.is_empty()
                 || identity.len() > 2048
@@ -51,6 +57,25 @@ impl Scope {
             }
         }
         Ok(())
+    }
+}
+/// One private readonly request. No contribution is available until Finish
+/// validates its exact canonical custody digest. Ownership moves, never clones.
+pub(crate) struct PreparedProjection {
+    graph: PatchbayGraph,
+    scope: Scope,
+}
+impl PreparedProjection {
+    pub(crate) fn new(graph: PatchbayGraph, scope: Scope) -> Result<Self, Refusal> {
+        scope.validate_basis()?;
+        Ok(Self { graph, scope })
+    }
+    pub(crate) fn finish(
+        self,
+        workspace: &mut data::Workspace,
+        output: &mut Vec<u8>,
+    ) -> Result<Contribution, Refusal> {
+        project_with_workspace(&self.graph, self.scope, workspace, output)
     }
 }
 /// Deliberately cannot contain actions, outer basis, interaction context or Sign claims.

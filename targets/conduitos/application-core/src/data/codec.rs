@@ -101,6 +101,17 @@ impl Workspace {
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
         transport_codec::decode(decoded_json(bytes, &mut self.json)?)
     }
+    /// While a full graph is retained, reject every other command tag before
+    /// decoding any second payload into the same fixed grant.
+    pub(crate) fn decode_projection_finish(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
+        #[derive(serde::Deserialize)]
+        enum FinishOnly {
+            FinishGraphProjection,
+        }
+        let _: FinishOnly = transport_codec::decode(decoded_json(bytes, &mut self.json)?)
+            .map_err(|_| Refusal::Order)?;
+        Ok(Command::FinishGraphProjection)
+    }
     pub(crate) fn encode_reply_into(
         &mut self,
         reply: &Reply,

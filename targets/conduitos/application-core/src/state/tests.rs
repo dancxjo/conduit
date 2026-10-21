@@ -47,6 +47,7 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
 fn terminal(state: &mut State) {
     assert!(state.models.is_none());
     assert!(state.preparing.is_none());
+    assert!(state.projection.is_none());
     assert!(state.refused);
     assert!(matches!(
         call(state, &Command::FinishInit),
@@ -272,7 +273,7 @@ fn projection_during_staging_and_repeat_finish_are_terminal() {
         &manifest([Some(InitSlot::Tour), None, None, None]),
     )
     .unwrap();
-    let projection = Command::ProjectGraph {
+    let projection = Command::PrepareGraphProjection {
         graph: small_target().graph,
         scope: crate::graph_facts::Scope {
             host: conduit_core::HostId::from("host/staged-test"),
@@ -305,3 +306,5 @@ fn projection_during_staging_and_repeat_finish_are_terminal() {
     ));
     terminal(&mut state);
 }
+
+mod projection;

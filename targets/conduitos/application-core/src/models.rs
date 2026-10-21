@@ -175,7 +175,8 @@ impl Models {
             | Command::PrepareTour { .. }
             | Command::FinishInit
             | Command::ProjectTutorial { .. }
-            | Command::ProjectGraph { .. } => Err(Refusal::Order),
+            | Command::PrepareGraphProjection { .. }
+            | Command::FinishGraphProjection => Err(Refusal::Order),
             Command::Apply { slot, input } => {
                 let (snapshot, proposal) = self.apply(usize::from(slot), &input)?;
                 Ok(Reply::Applied { snapshot, proposal })
