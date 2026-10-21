@@ -7,6 +7,7 @@ use embedded_tls::{
 };
 use rand_chacha::ChaCha20Rng;
 use rand_core::{CryptoRng, RngCore, SeedableRng};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use smoltcp::iface::SocketStorage;
 
 use crate::{
@@ -209,22 +210,30 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
             VirtioTlsError::InvalidDescriptor,
         ));
     }
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut tcp_receive = [0; TCP_BUFFER_BYTES];
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut tcp_transmit = [0; TCP_BUFFER_BYTES];
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut socket_storage = [SocketStorage::EMPTY];
+    let options = VirtioTcpConnectOptions {
+        random_seed: tcp_seed,
+        endpoint,
+        maximum_polls,
+        deadline,
+    };
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let stream = VirtioTcpStream::connect(device, options);
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let stream = VirtioTcpStream::connect(
         device,
-        VirtioTcpConnectOptions {
-            random_seed: tcp_seed,
-            endpoint,
-            maximum_polls,
-            deadline,
-        },
+        options,
         &mut tcp_receive,
         &mut tcp_transmit,
         &mut socket_storage,
-    )
-    .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Connect(error)))?;
+    );
+    let stream = stream
+        .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Connect(error)))?;
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     let mut tls = crate::protected_tls::Tls::open(
         stream,

@@ -229,6 +229,12 @@ pub mod virtio_tls;
     target_arch = "x86_64",
     target_os = "none"
 ))]
+pub(crate) mod protected_tcp;
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
 pub(crate) mod protected_tls;
 #[cfg(all(
     target_arch = "x86_64",
