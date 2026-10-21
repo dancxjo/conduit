@@ -97,7 +97,7 @@ pub(super) fn run() {
         .unwrap_or_else(|| refuse("compositor-recovery-session"));
     let instance = old.borrow().sessions.service_instance();
     let entries = old.borrow().service_cost().entries;
-    let allocated = crate::allocation::BOOT_ARENA.used();
+    let allocated = crate::allocation::BOOT_ARENA.live_bytes();
     let mut failed = Target {
         fail: true,
         writes: 0,
@@ -109,7 +109,7 @@ pub(super) fn run() {
     {
         refuse("compositor-recovery-copy-failure");
     }
-    if allocated.saturating_sub(crate::allocation::BOOT_ARENA.used())
+    if allocated.saturating_sub(crate::allocation::BOOT_ARENA.live_bytes())
         < crate::protected_compositor::display_owner::STAGING_BYTES
         || old.borrow_mut().with_raster(1, 1, |_, _| ()).is_ok()
     {
