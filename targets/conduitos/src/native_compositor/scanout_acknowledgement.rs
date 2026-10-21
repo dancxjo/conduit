@@ -1,6 +1,8 @@
 //! Borrowed evidence minted only after an entirely successful scanout frame.
 
-use super::{CompositionReceipt, NativeCompositor};
+use super::CompositionReceipt;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use super::NativeCompositor;
 
 /// Evidence of actual, unobscured surface pixels written in one completed frame.
 ///

@@ -1,7 +1,9 @@
 //! Persistent finite native compositor service above the scanout mechanism.
 
 mod contracts;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod damage;
+mod damage_rect;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod frame_composition;
 mod input_routing;
@@ -10,8 +12,6 @@ mod interaction_affordance;
 mod paint;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod protected;
-#[cfg(all(target_arch = "x86_64", target_os = "none"))]
-pub(super) use input_routing::ProtectedRouteScope;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub use protected::NativeCompositor;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -27,11 +27,18 @@ mod surface_lifecycle;
 mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use crate::display::DisplayError;
-#[cfg(not(feature = "native-compositor"))]
+#[cfg(all(
+    not(feature = "native-compositor"),
+    not(all(target_arch = "x86_64", target_os = "none"))
+))]
 use crate::display::render_scene;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use alloc::{string::String, vec::Vec};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_core::{HostBaseId, PlacementId, Plan, PlanId};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_face::{
     Face, GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
     ManifestationLifecycle,
@@ -46,7 +53,7 @@ pub use contracts::{
     MAX_COMPOSITOR_SURFACES, MAX_SURFACE_ID_BYTES, NATIVE_COMPOSITOR_FACILITY,
     NATIVE_PRESENTER_IMPLEMENTATION, NativeCompositorError, SurfacePlacementReceipt,
 };
-pub use damage::{DamageRect, MAX_DAMAGE_RECTS};
+pub use damage_rect::{DamageRect, MAX_DAMAGE_RECTS};
 pub use input_routing::{InputRoute, RoutedKeyboard, RoutedPointer};
 
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]

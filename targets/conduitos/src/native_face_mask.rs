@@ -408,6 +408,9 @@ impl NativeFaceMask {
         let session = pending
             .complete_render(&acknowledgement)
             .map_err(NativeFaceMaskError::Mask)?;
+        // Release the shared renderer guard only after semantic completion;
+        // subsequent focus/composition requires exclusive owner access.
+        drop(acknowledgement);
         self.compositor
             .focus_surface(&self.surface_id)
             .map_err(NativeFaceMaskError::Compositor)?;

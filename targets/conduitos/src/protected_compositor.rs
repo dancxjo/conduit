@@ -72,6 +72,10 @@ impl CompositorService {
         Ok(service)
     }
 
+    pub(crate) fn cost(&self) -> crate::protected_region::DomainCost {
+        self.domain.cost()
+    }
+
     pub fn instance(&self) -> u64 {
         self.domain.instance()
     }

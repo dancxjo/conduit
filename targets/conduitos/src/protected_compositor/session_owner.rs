@@ -327,6 +327,14 @@ impl Transport for super::CompositorService {
         super::CompositorService::quarantine(self)
     }
 }
+/// Read-only execution accounting; no raw transport or mutable escape.
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+impl SessionOwner<super::CompositorService> {
+    pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
+        self.transport.cost()
+    }
+}
+
 #[cfg(test)]
 #[path = "session_owner/tests.rs"]
 mod tests;

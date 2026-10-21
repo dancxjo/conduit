@@ -2,6 +2,7 @@ use alloc::string::String;
 
 use conduit_face::ManifestationId;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use super::{NativeCompositor, NativeCompositorError};
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]

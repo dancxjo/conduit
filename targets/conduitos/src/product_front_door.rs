@@ -80,6 +80,15 @@ pub fn run(
         let owner =
             crate::protected_compositor::display_owner::DisplayOwner::prepare(width, height)
                 .map_err(|_| "compositor-display-preparation-refused")?;
+        let report = owner.borrow().preparation_report();
+        arch::early_write(format!(
+            "CONDUIT_COMPOSITOR_SERVICE_PREPARED {{\"schema\":\"conduit.conduitos/compositor-service-preparation@1\",\"service_reserved_bytes\":{},\"staging_logical_bytes\":{},\"staging_reserved_bytes\":{},\"initialization_entries\":{},\"initialization_privilege_transitions\":{}}}\n",
+            report.service_reserved_bytes,
+            report.staging_logical_bytes,
+            report.staging_reserved_bytes,
+            report.service_cost_at_preparation.entries,
+            report.service_cost_at_preparation.privilege_transitions,
+        ).as_bytes());
         let mut provider = surface_provider;
         provider.display_owner = Some(owner.clone());
         (provider, owner)

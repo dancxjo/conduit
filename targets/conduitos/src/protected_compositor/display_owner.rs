@@ -82,6 +82,10 @@ impl DisplayOwner {
         })))
     }
 
+    pub(crate) fn service_cost(&self) -> DomainCost {
+        self.sessions.service_cost()
+    }
+
     pub(crate) fn preparation_report(&self) -> PreparationReport {
         self.report
     }
