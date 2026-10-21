@@ -58,6 +58,7 @@ fn height(
 }
 
 impl Chrome {
+    #[cfg(test)]
     pub fn prepare(screen: LayoutRect, scale: u16) -> Result<Self, FaceSceneError> {
         Self::prepare_selected(screen, scale, Typography::EDITORIAL)
     }

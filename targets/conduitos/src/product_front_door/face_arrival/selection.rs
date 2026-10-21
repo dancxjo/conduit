@@ -151,3 +151,7 @@ impl FaceArrival {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "selection_tests.rs"]
+mod tests;

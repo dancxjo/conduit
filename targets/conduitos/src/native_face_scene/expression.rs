@@ -44,11 +44,13 @@ impl NativeFaceScene {
         scene.primary = layout::admit_configured_selected(
             primary,
             scene.screen,
-            geometry.gutter,
-            geometry.columns,
+            layout::ConfiguredColumns {
+                gutter: geometry.gutter,
+                columns: geometry.columns,
+                padding,
+                groups: panel_groups,
+            },
             scale,
-            padding,
-            panel_groups,
             typography,
         )?;
         scene.details = layout::admit_with_expression_selected(

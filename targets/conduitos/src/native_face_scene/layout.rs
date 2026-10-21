@@ -379,25 +379,38 @@ pub(super) fn admit_configured(
     admit_configured_selected(
         items,
         screen,
-        gutter,
-        columns,
+        ConfiguredColumns {
+            gutter,
+            columns,
+            padding,
+            groups,
+        },
         text_scale_percent,
-        padding,
-        groups,
         Typography::EDITORIAL,
     )
+}
+
+/// Recipe geometry and density-derived spacing for configured collection flow.
+pub(super) struct ConfiguredColumns {
+    pub gutter: u16,
+    pub columns: u16,
+    pub padding: u16,
+    pub groups: Option<[u8; 2]>,
 }
 
 pub(super) fn admit_configured_selected(
     items: Vec<document::Item>,
     screen: LayoutRect,
-    gutter: u16,
-    columns: u16,
+    geometry: ConfiguredColumns,
     text_scale_percent: u16,
-    padding: u16,
-    groups: Option<[u8; 2]>,
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    let ConfiguredColumns {
+        gutter,
+        columns,
+        padding,
+        groups,
+    } = geometry;
     if columns == 2
         && screen.width >= 640
         && let Some(groups) = groups
