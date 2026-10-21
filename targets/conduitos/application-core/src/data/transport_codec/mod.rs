@@ -20,9 +20,17 @@ pub(crate) fn encode_to_slice<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
 ) -> Result<usize, Refusal> {
-    let length = backend::encode(&ser::Envelope(value), output)?;
+    let length = encode_unvalidated(value, output)?;
     preflight::validate(&output[..length])?;
     Ok(length)
+}
+
+/// State validates these immutable bytes in a separate protected entry.
+pub(super) fn encode_unvalidated<T: Serialize + ?Sized>(
+    value: &T,
+    output: &mut [u8],
+) -> Result<usize, Refusal> {
+    backend::encode(&ser::Envelope(value), output)
 }
 
 pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {

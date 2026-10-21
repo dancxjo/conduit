@@ -87,7 +87,9 @@ impl Service {
                 Request::Begin { .. } | Request::Write { .. } | Request::Preflight,
                 Response::Ready,
             )
-            | (Request::Commit, Response::Blob { .. })
+            | (Request::Commit, Response::Blob { .. } | Response::Ready)
+            | (Request::GraphSerialize | Request::GraphValidate, Response::Ready)
+            | (Request::GraphPack { .. }, Response::Ready | Response::Blob { .. })
             | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
             _ => Err(Refusal::Malformed),
         }
@@ -99,6 +101,40 @@ impl Service {
             self.quarantine();
         }
         result
+    }
+    fn prepare_graph_reply(&mut self) -> Result<Response, Refusal> {
+        for (request, begin, complete) in [
+            (
+                Request::GraphSerialize,
+                b"CONDUIT_APPLICATION_GRAPH_REPLY serialize begin\n".as_slice(),
+                b"CONDUIT_APPLICATION_GRAPH_REPLY serialize complete\n".as_slice(),
+            ),
+            (
+                Request::GraphValidate,
+                b"CONDUIT_APPLICATION_GRAPH_REPLY validate begin\n".as_slice(),
+                b"CONDUIT_APPLICATION_GRAPH_REPLY validate complete\n".as_slice(),
+            ),
+        ] {
+            write_observation(begin);
+            self.request(request)?;
+            write_observation(complete);
+        }
+        write_observation(b"CONDUIT_APPLICATION_GRAPH_REPLY pack begin\n");
+        // Every Ready consumes exactly GRAPH_PACK_BYTES input bytes. The last
+        // turn must return Blob, within the unchanged decoded storage ceiling.
+        for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
+            match self.request(Request::GraphPack {
+                offset: offset as u32,
+            })? {
+                response @ Response::Blob { .. } => {
+                    write_observation(b"CONDUIT_APPLICATION_GRAPH_REPLY pack complete\n");
+                    return Ok(response);
+                }
+                Response::Ready => {}
+                _ => return Err(Refusal::Malformed),
+            }
+        }
+        Err(Refusal::Bounds)
     }
     fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         let input = data::encode_command(command)?;
@@ -127,7 +163,16 @@ impl Service {
         if matches!(command, Command::PrepareTarget { .. }) {
             self.request(Request::Preflight)?;
         }
-        let Response::Blob { bytes: total } = self.request(Request::Commit)? else {
+        let committed = self.request(Request::Commit)?;
+        let response = if matches!(command, Command::Graph { .. }) {
+            if committed != Response::Ready {
+                return Err(Refusal::Malformed);
+            }
+            self.prepare_graph_reply()?
+        } else {
+            committed
+        };
+        let Response::Blob { bytes: total } = response else {
             return Err(Refusal::Malformed);
         };
         if total == 0 || total as usize > MAX_BLOB {
@@ -188,7 +233,7 @@ fn record_command_refusal(command: &Command, error: Refusal) {
     if writeln!(line,
         "CONDUIT_APPLICATION_COMMAND_REFUSAL operation={operation} slot={slot:?} target={target:?} refusal={error:?}"
     ).is_ok() {
-        crate::arch::early_write(line.as_bytes());
+        write_observation(line.as_bytes());
     }
 }
 
@@ -207,11 +252,19 @@ fn record_refusal(
     if writeln!(line,
         "CONDUIT_APPLICATION_REFUSAL stage={stage} sequence={sequence} request={request:?} detail={detail:?} entries_interrupts_preemptions={counters:?}"
     ).is_ok() {
-        crate::arch::early_write(line.as_bytes());
+        write_observation(line.as_bytes());
     }
 }
 impl Drop for Service {
     fn drop(&mut self) {
         self.quarantine();
     }
+}
+
+/// Guest serial evidence uses captured output when exercising CPU tests.
+fn write_observation(bytes: &[u8]) {
+    #[cfg(not(test))]
+    crate::arch::early_write(bytes);
+    #[cfg(test)]
+    std::print!("{}", alloc::string::String::from_utf8_lossy(bytes));
 }

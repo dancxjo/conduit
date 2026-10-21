@@ -1,9 +1,12 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+mod graph_reply;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
+pub use graph_reply::PACK_BYTES as GRAPH_PACK_BYTES;
+pub(crate) use graph_reply::Packing;
 use miniz_oxide::{
     deflate::core::{
         CompressorOxide, TDEFLFlush, TDEFLStatus, compress, create_comp_flags_from_zip_params,

@@ -18,6 +18,12 @@ pub enum Request {
     Commit,
     /// Validate a fully written target command before its typed Commit entry.
     Preflight,
+    /// Ordered phases of an immutable retained Graph reply.
+    GraphSerialize,
+    GraphValidate,
+    GraphPack {
+        offset: u32,
+    },
     Read {
         offset: u32,
         maximum: u32,
@@ -82,6 +88,9 @@ pub fn encode_request(e: Envelope, r: Request, out: &mut [u8]) -> Result<(), Ref
         Request::Write { offset, bytes } => (2, [offset, bytes, 0, 0]),
         Request::Commit => (3, [0; 4]),
         Request::Preflight => (5, [0; 4]),
+        Request::GraphSerialize => (6, [0; 4]),
+        Request::GraphValidate => (7, [0; 4]),
+        Request::GraphPack { offset } => (8, [offset, 0, 0, 0]),
         Request::Read { offset, maximum } => (4, [offset, maximum, 0, 0]),
     };
     encode(e, tag, args, out)
@@ -97,6 +106,9 @@ pub fn decode_request(input: &[u8]) -> Result<(Envelope, Request), Refusal> {
         }
         (3, [0, 0, 0, 0]) => Request::Commit,
         (5, [0, 0, 0, 0]) => Request::Preflight,
+        (6, [0, 0, 0, 0]) => Request::GraphSerialize,
+        (7, [0, 0, 0, 0]) => Request::GraphValidate,
+        (8, [offset, 0, 0, 0]) => Request::GraphPack { offset },
         (4, [offset, maximum, 0, 0]) if maximum > 0 && maximum as usize <= TRANSFER_BYTES => {
             Request::Read { offset, maximum }
         }
