@@ -12,3 +12,4 @@ serde = { version = "1", default-features = false, features = ["derive", "alloc"
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
 serde-json-core = {version="0.6",default-features=false}
 conduit-human = { path = "../../../semantics/human" }
+conduit-home-model = { path = "../../../semantics/home" }

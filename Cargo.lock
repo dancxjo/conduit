@@ -2882,6 +2882,7 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-face",
+ "conduit-home-model",
  "conduit-human",
  "serde",
  "serde-json-core",
