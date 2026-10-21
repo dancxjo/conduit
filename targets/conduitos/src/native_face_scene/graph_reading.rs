@@ -260,3 +260,7 @@ impl NativeFaceScene {
             })
     }
 }
+
+#[cfg(test)]
+#[path = "graph_reading/tests.rs"]
+mod tests;

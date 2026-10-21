@@ -220,3 +220,16 @@ logs `native-local-continuation-regressions.log` and
 `native-local-continuation-regressions-fixed.log` retain those distinct outcomes.
 This supersedes only the pending-execution status of these two specifications,
 not #6158's source/image-bound normal-product acceptance or other unrun tests.
+
+## Focused graph reading checks
+
+Two new deterministic native graph-reading checks pass against the retained
+Patchbay Face specimen: repeated exact Gear/Port/Cord selection beyond 64
+operations retains every selected subject property at Exact depth, resolves its
+Details page and assembles its frame; stale-revision and absent-subject requests
+leave the current cursor/page/Face unchanged. Exactly two tests passed, 1,257
+filtered out; compile took 14 seconds and execution 0.14 seconds. This is semantic
+reading/frame evidence, not physical keyboard/pointer enactment, browser/linear
+comparison, QEMU or CI. The browser workbench's richer Plan/Play augmentation
+remains intact; replacing it wholesale with the smaller projection would lose
+facts, so consumer migration remains open rather than being claimed here.
