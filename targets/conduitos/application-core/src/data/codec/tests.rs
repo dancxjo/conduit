@@ -1,0 +1,146 @@
+use super::*;
+use crate::{
+    data::Command,
+    state::State,
+    wire::{Request, Response},
+};
+use alloc::{string::String, vec};
+
+#[test]
+fn small_raw_bytes_and_exact_wire_boundary_remain_unchanged() {
+    assert_eq!(encode(&"hello").unwrap(), b"\"hello\"");
+    let value = "a".repeat(MAX_BLOB - 2);
+    let bytes = encode(&value).unwrap();
+    assert_eq!(bytes.len(), MAX_BLOB);
+    assert_eq!(decode::<String>(&bytes).unwrap(), value);
+    assert!(!bytes.starts_with(MAGIC));
+}
+
+#[test]
+fn compressed_values_keep_every_byte_through_the_decoded_ceiling() {
+    for length in [MAX_BLOB, MAX_DECODED_JSON_BYTES - 2] {
+        let value = "a".repeat(length);
+        let bytes = encode(&value).unwrap();
+        assert!(bytes.starts_with(MAGIC));
+        assert!(bytes.len() <= MAX_BLOB);
+        assert_eq!(decode::<String>(&bytes).unwrap(), value);
+    }
+    assert_eq!(
+        encode(&"a".repeat(MAX_DECODED_JSON_BYTES)),
+        Err(Refusal::Capacity)
+    );
+}
+
+#[test]
+fn framing_checksum_trailing_bytes_and_expansion_claims_refuse() {
+    let bytes = encode(&"a".repeat(2 * MAX_BLOB)).unwrap();
+    for index in 0..MAGIC.len() {
+        let mut altered = bytes.clone();
+        altered[index] ^= 1;
+        assert!(decode::<String>(&altered).is_err());
+    }
+    for length in [0, 1, HEADER - 1, HEADER, bytes.len() / 2, bytes.len() - 1] {
+        assert!(decode::<String>(&bytes[..length]).is_err());
+    }
+    let mut altered = bytes.clone();
+    *altered.last_mut().unwrap() ^= 1;
+    assert_eq!(decode::<String>(&altered), Err(Refusal::Malformed));
+    let mut altered = bytes.clone();
+    altered.push(0);
+    assert_eq!(decode::<String>(&altered), Err(Refusal::Malformed));
+    for length in [
+        0,
+        1,
+        2 * MAX_BLOB,
+        2 * MAX_BLOB + 3,
+        MAX_DECODED_JSON_BYTES + 1,
+    ] {
+        let mut altered = bytes.clone();
+        altered[MAGIC.len()..HEADER].copy_from_slice(&(length as u32).to_le_bytes());
+        assert!(decode::<String>(&altered).is_err());
+    }
+    assert_eq!(
+        decode::<String>(&vec![0; MAX_BLOB + 1]),
+        Err(Refusal::Bounds)
+    );
+}
+
+#[test]
+fn incompressible_data_cannot_expand_the_wire_limit() {
+    let mut random = 1u32;
+    let value: String = (0..4 * MAX_BLOB)
+        .map(|_| {
+            random ^= random << 13;
+            random ^= random >> 17;
+            random ^= random << 5;
+            char::from(32 + (random % 95) as u8)
+        })
+        .collect();
+    assert_eq!(encode(&value), Err(Refusal::Capacity));
+}
+
+fn commit(state: &mut State, bytes: &[u8]) -> Result<Response, Refusal> {
+    let mut transfer = vec![0; crate::memory::TRANSFER_BYTES];
+    assert_eq!(
+        state.execute(
+            Request::Begin {
+                bytes: bytes.len() as u32
+            },
+            &mut transfer
+        ),
+        Ok(Response::Ready)
+    );
+    for (index, chunk) in bytes.chunks(transfer.len()).enumerate() {
+        transfer[..chunk.len()].copy_from_slice(chunk);
+        assert_eq!(
+            state.execute(
+                Request::Write {
+                    offset: (index * transfer.len()) as u32,
+                    bytes: chunk.len() as u32
+                },
+                &mut transfer
+            ),
+            Ok(Response::Ready)
+        );
+    }
+    state.execute(Request::Commit, &mut transfer)
+}
+
+#[test]
+fn malformed_compressed_commit_cannot_partially_initialize_models() {
+    let mut state = State::default();
+    let mut invalid = encode(&"a".repeat(2 * MAX_BLOB)).unwrap();
+    *invalid.last_mut().unwrap() ^= 1;
+    assert_eq!(commit(&mut state, &invalid), Err(Refusal::Malformed));
+    let init = encode(&Command::Init {
+        applications: core::array::from_fn(|_| None),
+    })
+    .unwrap();
+    assert!(matches!(
+        commit(&mut state, &init),
+        Ok(Response::Blob { .. })
+    ));
+    assert_eq!(commit(&mut state, &init), Err(Refusal::Order));
+}
+
+#[test]
+fn nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values() {
+    #[derive(serde::Deserialize, Debug, PartialEq)]
+    #[serde(transparent)]
+    struct Bytes(Vec<u8>);
+    impl serde::Serialize for Bytes {
+        fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+            serializer.serialize_bytes(&self.0)
+        }
+    }
+    #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq)]
+    struct Nested {
+        rows: Vec<Option<Bytes>>,
+    }
+    let value = Nested {
+        rows: vec![Some(Bytes(vec![0, 34, 77, 255])), None],
+    };
+    let bytes = encode(&value).unwrap();
+    assert_eq!(bytes, serde_json::to_vec(&value).unwrap());
+    assert_eq!(decode::<Nested>(&bytes).unwrap(), value);
+}
