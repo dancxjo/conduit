@@ -1,4 +1,4 @@
-> Recovery checkpoint only: staged initialization/shared-workspace admission currently fails the exact fixed-heap regression. See the [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md).
+> Preparation: exact-sequence transport passes the local fixed-grant regression; source/image-bound native acceptance is still pending. Preserve the preceding [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
 
 # Canonical native application owner
 
