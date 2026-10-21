@@ -65,6 +65,7 @@ mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod native_latency;
+mod native_progress;
 mod native_timing;
 mod opl2_proof;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_image.rs"]

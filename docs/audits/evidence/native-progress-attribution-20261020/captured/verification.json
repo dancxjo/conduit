@@ -1,0 +1,593 @@
+{
+  "source_commit": "83c25d3159ffb1a02f07f230a879da194e21b109",
+  "image_sha256": "72a06912c093769e017833e406e324aec7cf2d5c0de4184edb26e998a0420b78",
+  "status": "passed",
+  "trials": [
+    {
+      "index": 0,
+      "host_id": "7178238e4b2fef42f214b32d1dee269facbf1acdee10812e07bf192451f3d404",
+      "boot_id": "164b753de2730669f4ff170fe720353c02cf809a421b8cb30c9a66f53c83e559",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:c8c7ddf26f0d7e59ac50eb6ca4acb2a2bc7a917e957008967424183a114d46b5",
+      "journey_ns": 87227176703,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10182299639,
+      "boot_to_first_usable_input_ack_ticks": 11031309679,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 16683204393,
+          "maximum_ticks": 16683204393,
+          "aggregate_nested_ticks": 16683204393
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 33029284,
+          "maximum_ticks": 33029284,
+          "aggregate_nested_ticks": 33029284
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 190614,
+          "maximum_ticks": 5518788,
+          "aggregate_nested_ticks": 19103204
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 110388747,
+          "maximum_ticks": 110388747,
+          "aggregate_nested_ticks": 110388747
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 454540766,
+          "maximum_ticks": 1952564299,
+          "aggregate_nested_ticks": 146112654477
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 863225,
+          "maximum_ticks": 945069170,
+          "aggregate_nested_ticks": 1900307990
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 35815242944,
+          "maximum_ticks": 35815242944,
+          "aggregate_nested_ticks": 35815242944
+        }
+      },
+      "progress": {
+        "events_verified": 1360,
+        "spans_verified": 680,
+        "phases": {
+          "xhci-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 3000201,
+            "maximum_ticks": 3000201
+          },
+          "usb-enumeration": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4537538,
+            "maximum_ticks": 4537538
+          },
+          "machine-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4357509,
+            "maximum_ticks": 4357509
+          },
+          "identity-generation": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 6547724,
+            "maximum_ticks": 6547724
+          },
+          "display-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 945725,
+            "maximum_ticks": 945725
+          },
+          "input-setup": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 4482506,
+            "maximum_ticks": 3147908
+          },
+          "identity-resolve": {
+            "count": 22,
+            "refused": 0,
+            "aggregate_nested_ticks": 77673137076,
+            "maximum_ticks": 4930205082
+          },
+          "catalog-install": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 48774165392,
+            "maximum_ticks": 499548626
+          },
+          "source-parse": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 85120292,
+            "maximum_ticks": 4538561
+          },
+          "source-check": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 30170714750,
+            "maximum_ticks": 425621509
+          },
+          "source-expand": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 64644362436,
+            "maximum_ticks": 1009687747
+          },
+          "plot-build": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 146076529021,
+            "maximum_ticks": 1952038040
+          },
+          "mask-preparation": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 629547929,
+            "maximum_ticks": 474986047
+          },
+          "face-construction": {
+            "count": 5,
+            "refused": 0,
+            "aggregate_nested_ticks": 41909309,
+            "maximum_ticks": 33055409
+          },
+          "scanout": {
+            "count": 108,
+            "refused": 0,
+            "aggregate_nested_ticks": 824272699,
+            "maximum_ticks": 10107829
+          },
+          "first-show": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 1521841668,
+            "maximum_ticks": 1521841668
+          },
+          "input-wait": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 330991906,
+            "maximum_ticks": 330991906
+          },
+          "host-preparation": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 630164015,
+            "maximum_ticks": 236281096
+          },
+          "workset-planning": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 39997603739,
+            "maximum_ticks": 20081870007
+          },
+          "workset-lowering": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 51097396,
+            "maximum_ticks": 20815210
+          },
+          "kernel-prepare": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 16682713461,
+            "maximum_ticks": 16682713461
+          }
+        },
+        "optional_network_exercised": false,
+        "plot_context_counts": {
+          "conduitos-keyboard-upper": 38,
+          "memory_lantern": 29,
+          "tour": 23,
+          "patchbay": 14,
+          "hello": 1
+        }
+      }
+    },
+    {
+      "index": 1,
+      "host_id": "cc4dfa5ec630cddf80a2e050fb9767f71932af84f4d68e7713462d2ca36158ae",
+      "boot_id": "35e3b0c9cbc37df404aee9100b70e681f3db0ad31e2ef39013f2856e84903b7f",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:c8c7ddf26f0d7e59ac50eb6ca4acb2a2bc7a917e957008967424183a114d46b5",
+      "journey_ns": 87072837347,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10106732947,
+      "boot_to_first_usable_input_ack_ticks": 10961099939,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 16667738108,
+          "maximum_ticks": 16667738108,
+          "aggregate_nested_ticks": 16667738108
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 31021102,
+          "maximum_ticks": 31021102,
+          "aggregate_nested_ticks": 31021102
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 189375,
+          "maximum_ticks": 5158087,
+          "aggregate_nested_ticks": 18618262
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 109201788,
+          "maximum_ticks": 109201788,
+          "aggregate_nested_ticks": 109201788
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 454314763,
+          "maximum_ticks": 1937410310,
+          "aggregate_nested_ticks": 145961708614
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 884878,
+          "maximum_ticks": 933343214,
+          "aggregate_nested_ticks": 1874402231
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 35654188069,
+          "maximum_ticks": 35654188069,
+          "aggregate_nested_ticks": 35654188069
+        }
+      },
+      "progress": {
+        "events_verified": 1360,
+        "spans_verified": 680,
+        "phases": {
+          "xhci-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 2905835,
+            "maximum_ticks": 2905835
+          },
+          "usb-enumeration": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4438993,
+            "maximum_ticks": 4438993
+          },
+          "machine-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4189816,
+            "maximum_ticks": 4189816
+          },
+          "identity-generation": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 6373996,
+            "maximum_ticks": 6373996
+          },
+          "display-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 918516,
+            "maximum_ticks": 918516
+          },
+          "input-setup": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 4305910,
+            "maximum_ticks": 3019718
+          },
+          "identity-resolve": {
+            "count": 22,
+            "refused": 0,
+            "aggregate_nested_ticks": 77625495914,
+            "maximum_ticks": 4903724157
+          },
+          "catalog-install": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 48742008709,
+            "maximum_ticks": 498051480
+          },
+          "source-parse": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 81004281,
+            "maximum_ticks": 3164652
+          },
+          "source-check": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 30129225699,
+            "maximum_ticks": 432030997
+          },
+          "source-expand": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 64606974384,
+            "maximum_ticks": 1009431644
+          },
+          "plot-build": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 145925215790,
+            "maximum_ticks": 1936918535
+          },
+          "mask-preparation": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 613965998,
+            "maximum_ticks": 461086493
+          },
+          "face-construction": {
+            "count": 5,
+            "refused": 0,
+            "aggregate_nested_ticks": 42039597,
+            "maximum_ticks": 33254762
+          },
+          "scanout": {
+            "count": 108,
+            "refused": 0,
+            "aggregate_nested_ticks": 819768441,
+            "maximum_ticks": 9675531
+          },
+          "first-show": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 1517402879,
+            "maximum_ticks": 1517402879
+          },
+          "input-wait": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 326037478,
+            "maximum_ticks": 326037478
+          },
+          "host-preparation": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 637101164,
+            "maximum_ticks": 239184593
+          },
+          "workset-planning": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 39904753304,
+            "maximum_ticks": 19966984003
+          },
+          "workset-lowering": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 51550720,
+            "maximum_ticks": 20925874
+          },
+          "kernel-prepare": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 16667234650,
+            "maximum_ticks": 16667234650
+          }
+        },
+        "optional_network_exercised": false,
+        "plot_context_counts": {
+          "conduitos-keyboard-upper": 38,
+          "memory_lantern": 29,
+          "tour": 23,
+          "patchbay": 14,
+          "hello": 1
+        }
+      }
+    },
+    {
+      "index": 2,
+      "host_id": "daa7f877ce441dc4f84f839cefe877fa5abec4f24755a953e7431e8a0e9b04d7",
+      "boot_id": "38a274fc3e846a018b7fdf6fa2bb77f612c84abc545052a0d2d0c8519625c511",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:c8c7ddf26f0d7e59ac50eb6ca4acb2a2bc7a917e957008967424183a114d46b5",
+      "journey_ns": 88674289081,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10220407966,
+      "boot_to_first_usable_input_ack_ticks": 11051637490,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 17066323379,
+          "maximum_ticks": 17066323379,
+          "aggregate_nested_ticks": 17066323379
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 52853116,
+          "maximum_ticks": 52853116,
+          "aggregate_nested_ticks": 52853116
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 203213,
+          "maximum_ticks": 5602490,
+          "aggregate_nested_ticks": 19366910
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 112795776,
+          "maximum_ticks": 112795776,
+          "aggregate_nested_ticks": 112795776
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 463530735,
+          "maximum_ticks": 1964493795,
+          "aggregate_nested_ticks": 148648623898
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 883508,
+          "maximum_ticks": 938662861,
+          "aggregate_nested_ticks": 1888372607
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 36516125700,
+          "maximum_ticks": 36516125700,
+          "aggregate_nested_ticks": 36516125700
+        }
+      },
+      "progress": {
+        "events_verified": 1362,
+        "spans_verified": 681,
+        "phases": {
+          "xhci-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 2919744,
+            "maximum_ticks": 2919744
+          },
+          "usb-enumeration": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4423171,
+            "maximum_ticks": 4423171
+          },
+          "machine-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 4205019,
+            "maximum_ticks": 4205019
+          },
+          "identity-generation": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 6613776,
+            "maximum_ticks": 6613776
+          },
+          "display-setup": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 933081,
+            "maximum_ticks": 933081
+          },
+          "input-setup": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 4369302,
+            "maximum_ticks": 3070298
+          },
+          "identity-resolve": {
+            "count": 22,
+            "refused": 0,
+            "aggregate_nested_ticks": 79003740771,
+            "maximum_ticks": 4998857761
+          },
+          "catalog-install": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 49641143280,
+            "maximum_ticks": 505462512
+          },
+          "source-parse": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 81447458,
+            "maximum_ticks": 3204168
+          },
+          "source-check": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 30779609821,
+            "maximum_ticks": 442350042
+          },
+          "source-expand": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 65676317490,
+            "maximum_ticks": 1018365034
+          },
+          "plot-build": {
+            "count": 105,
+            "refused": 0,
+            "aggregate_nested_ticks": 148612783226,
+            "maximum_ticks": 1964142701
+          },
+          "mask-preparation": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 622786265,
+            "maximum_ticks": 463595019
+          },
+          "face-construction": {
+            "count": 5,
+            "refused": 0,
+            "aggregate_nested_ticks": 42194332,
+            "maximum_ticks": 33269574
+          },
+          "scanout": {
+            "count": 109,
+            "refused": 0,
+            "aggregate_nested_ticks": 832743573,
+            "maximum_ticks": 9465991
+          },
+          "first-show": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 1533590093,
+            "maximum_ticks": 1533590093
+          },
+          "input-wait": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 326446372,
+            "maximum_ticks": 326446372
+          },
+          "host-preparation": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 719934419,
+            "maximum_ticks": 318774452
+          },
+          "workset-planning": {
+            "count": 2,
+            "refused": 0,
+            "aggregate_nested_ticks": 40734824247,
+            "maximum_ticks": 20425993537
+          },
+          "workset-lowering": {
+            "count": 3,
+            "refused": 0,
+            "aggregate_nested_ticks": 51714005,
+            "maximum_ticks": 20928889
+          },
+          "kernel-prepare": {
+            "count": 1,
+            "refused": 0,
+            "aggregate_nested_ticks": 17065814196,
+            "maximum_ticks": 17065814196
+          }
+        },
+        "optional_network_exercised": false,
+        "plot_context_counts": {
+          "conduitos-keyboard-upper": 38,
+          "memory_lantern": 29,
+          "tour": 23,
+          "patchbay": 14,
+          "hello": 1
+        }
+      }
+    }
+  ],
+  "interpretation": "Fresh process, instrumented Root, same image/profile/workload; host caches uncontrolled. Journey wall includes QEMU, scripted input, polling, capture and teardown. Raw TSC frequency unknown; intervals may nest/overlap and are not additive. Actual first input ACK includes harness work, not time-to-input-readiness. No uninstrumented, physical, SMP or speedup claim."
+}
