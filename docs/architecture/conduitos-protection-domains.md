@@ -561,10 +561,13 @@ staging visibility, 26 hostile entries, Root/sibling survival, guard and W/X
 refusal, port/MMIO refusal, loop preemption and restart. Zeroing observations are
 boundary samples plus whole-slot charged clearing, not an empirical readback of
 every private byte. The receipt binds the actual appliance ELF and serial hash,
-records the explicit 128 MiB QEMU fixture profile, and reports
+records the explicit 256 MiB QEMU fixture profile, and reports
 `production_compositor:false`, `driver_isolation:false`, `dma_isolation:false`.
-The earlier 64 MiB guest refused its runtime arena before any protected entry;
-this fixture profile does not define a graphical product minimum.
+The earlier 64 MiB guest and the current nine-service appliance at 128 MiB
+refused their runtime arena before any protected entry. The same current image
+at 256 MiB passes boot; subsequent kernel/service acceptance remains a separate
+requirement. This fixture profile does not define a graphical product minimum
+or enlarge a service memory grant.
 
 This is infrastructure for [#6177](https://github.com/dancxjo/conduit/issues/6177).
 It does not move the production retained compositor, grant scanout authority,
