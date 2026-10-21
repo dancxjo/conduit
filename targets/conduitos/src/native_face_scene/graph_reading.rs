@@ -12,6 +12,7 @@ pub(super) struct GraphReading {
     navigation: FaceNavigation,
     cursor: FaceCursor,
     pub active: bool,
+    pub diagram_page: usize,
 }
 
 impl GraphReading {
@@ -57,6 +58,7 @@ impl GraphReading {
             navigation,
             cursor,
             active: false,
+            diagram_page: 0,
         }))
     }
 
@@ -132,6 +134,9 @@ impl NativeFaceScene {
             .as_mut()
             .ok_or(FaceSceneError::UnknownControl)?;
         reading.focus(&self.face, identity)?;
+        if self.showing_diagram {
+            reading.diagram_page = self.page;
+        }
         self.show_details(true);
         self.graph_reading.as_mut().unwrap().active = true;
         self.focus = None;
@@ -154,6 +159,13 @@ impl NativeFaceScene {
                     .is_some_and(|reading| reading.active));
         if !active {
             return Ok(None);
+        }
+        let modifiers = event.modifiers_after().bits();
+        let shift = KeyModifiers::LEFT_SHIFT.bits() | KeyModifiers::RIGHT_SHIFT.bits();
+        if (event.usage() == 43 && modifiers & !shift != 0)
+            || ((30..=35).contains(&event.usage()) && modifiers != 0)
+        {
+            return Ok(Some(FaceSceneInput::Unchanged));
         }
         let identity = if self.showing_diagram && (30..=35).contains(&event.usage()) {
             let mut drawing = GraphicsScene::empty();

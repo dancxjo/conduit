@@ -268,7 +268,14 @@ impl NativeFaceScene {
         if let Some(reading) = self.graph_reading.as_mut() {
             reading.active = self.showing_diagram;
         }
-        self.page = 0;
+        self.page = if self.showing_diagram {
+            self.graph_reading
+                .as_ref()
+                .map_or(0, |reading| reading.diagram_page)
+                .min(self.pages() - 1)
+        } else {
+            0
+        };
         self.focus = None;
     }
 
