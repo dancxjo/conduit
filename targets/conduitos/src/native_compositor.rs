@@ -27,6 +27,14 @@ mod surface_lifecycle;
 mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
+#[cfg(all(test, not(all(target_arch = "x86_64", target_os = "none"))))]
+pub(crate) fn reference_surface_buffer(
+    width: u16,
+    height: u16,
+) -> Result<impl crate::display::RetainedPixelTarget, NativeCompositorError> {
+    surface_buffer::SurfaceBuffer::new(width, height)
+}
+
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use crate::display::DisplayError;
 #[cfg(all(

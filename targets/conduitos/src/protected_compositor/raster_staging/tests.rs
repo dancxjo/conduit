@@ -1,11 +1,6 @@
 use super::*;
 use alloc::vec;
-// Compile the existing retained reference unchanged in this private test module.
-use crate::native_compositor::{
-    MAX_COMPOSITOR_PIXELS, MAX_COMPOSITOR_SURFACES, NativeCompositorError,
-};
-#[path = "../../native_compositor/surface_buffer.rs"]
-mod reference_buffer;
+// Reuse the existing retained implementation through its test-only opaque seam.
 
 #[test]
 fn exact_admission_and_invalid_extents_refuse_before_effects() {
@@ -123,7 +118,7 @@ fn actual_typography_blending_matches_existing_surface_buffer_without_allocation
     let mut pixels = vec![0; STAGING_PIXELS];
     let mut staging = RasterStaging::admit(&mut pixels).unwrap();
     let mut lease = staging.lease(32, 32).unwrap();
-    let mut reference = reference_buffer::SurfaceBuffer::new(32, 32).unwrap();
+    let mut reference = crate::native_compositor::reference_surface_buffer(32, 32).unwrap();
     for y in 0..32 {
         for x in 0..32 {
             lease.write_pixel(x, y, 0xa0204060).unwrap();
