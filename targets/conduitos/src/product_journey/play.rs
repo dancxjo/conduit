@@ -74,6 +74,11 @@ impl ProductJourney {
         if self.status != JourneyStatus::QuiescentAwaitingInput {
             return Ok(false);
         }
+        if self.application_request.is_some() {
+            return Err(JourneyError::Play(
+                native_workset::PlayRefusal::InputPressure,
+            ));
+        }
         let next_count = self
             .input_count
             .checked_add(1)

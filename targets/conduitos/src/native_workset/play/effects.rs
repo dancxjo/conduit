@@ -122,6 +122,11 @@ impl NativeWorksetPlay {
                 Ok(())
             }
             Effect::Application => {
+                // Owner-request storage is admitted before executing the actor.
+                // Never mutate domain state and only then discover pressure.
+                if self.application_requests[plot].is_some() {
+                    return Err(PlayRefusal::InputPressure);
+                }
                 let application = self.applications[plot]
                     .as_mut()
                     .ok_or(PlayRefusal::Kernel)?;
@@ -154,9 +159,6 @@ impl NativeWorksetPlay {
                         )
                     }
                 };
-                if authority_request.is_some() && self.application_requests[plot].is_some() {
-                    return Err(PlayRefusal::InputPressure);
-                }
                 self.application_requests[plot] = authority_request;
                 self.output(request, Some(&view))
             }

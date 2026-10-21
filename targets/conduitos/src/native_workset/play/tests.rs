@@ -102,6 +102,25 @@ fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
     };
     play.application_event(patchbay, &edit.encode(&inspected).unwrap())
         .unwrap();
+    let pending = play.application_requests[patchbay].clone();
+    let observed = play.application_view(patchbay).unwrap().clone();
+    let blocked = conduit_face::ApplicationEvent {
+        revision: observed.revision,
+        action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
+        kind: conduit_face::ApplicationEventKind::Activate,
+        value: alloc::vec::Vec::new(),
+    };
+    assert_eq!(
+        play.application_event(patchbay, &blocked.encode(&observed).unwrap()),
+        Err(PlayRefusal::InputPressure)
+    );
+    assert_eq!(play.application_requests[patchbay], pending);
+    assert_eq!(play.application_view(patchbay).unwrap(), &observed);
+    assert_eq!(
+        play.select_patchbay_target(patchbay, tour),
+        Err(PlayRefusal::InputPressure)
+    );
+    assert_eq!(play.application_view(patchbay).unwrap(), &observed);
     assert!(matches!(
         play.take_application_request(patchbay),
         Some(native_workset::NativeApplicationRequest::EditCurrent(

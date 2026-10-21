@@ -301,3 +301,18 @@ This does not install the canonical resident Fore or provide native Source editi
 The native product still logs Edit-current requests without an editor effect;
 that remains an explicit production gap alongside #6201. #6202 remains open for
 its remaining correspondence, bounds and acceptance work.
+
+## Native owner-request pressure admission
+
+Native kernel and Journey ingress now check their existing pending request slots
+before forwarding another application event. Target-selection and Mask-topology
+refresh paths also refuse pending pressure before changing retained state. The
+application Host effect checks its result slot before executing the actor, rather
+than detecting pressure after an owner mutation or replacing a pending request
+with an empty observation's result. This uses the existing single-slot handoff;
+it adds no owner model, retry or storage growth.
+
+Native Edit-current still needs an admitted editor effect; its product branch
+currently emits only `patchbay-edit-requested`. Canonical resident installation
+and exact editor ownership remain required #6201 work. Pressure admission must
+not be mistaken for completing either path.

@@ -937,3 +937,29 @@ corrupt-span refusal. Removed an unused import reported by compilation. No broad
 suite, CI, platform journey or artifact rebuild ran. Face admission coverage,
 remaining #6202 acceptance and production canonical resident migration under
 #6201 remain unfinished. This is local implementation, not stable acceptance.
+
+## Admit native owner-request pressure before effects (#6201)
+
+The native application Host effect previously executed the actor before checking
+whether its owner-request slot was occupied. If a second result had no request,
+it could also replace the pending request with None. The existing kernel event
+entrance now refuses occupied request storage before consuming its input Host
+Call; the effect itself checks before invoking the actor. Patchbay target changes
+and Mask-topology refreshes preflight pending storage before retained mutations.
+The Journey's single-slot handoff likewise refuses a subsequent event before
+encoding, removing the current view, advancing the kernel or changing revision.
+
+The change uses existing request slots and InputPressure, with no new actor truth,
+queue, automatic retry or allocation. Taking the existing request releases its
+slot normally; cancellation retains its existing explicit terminal behavior.
+Two focused regressions cover kernel Patchbay view/request preservation under
+pressure and Journey projection/request preservation. Native editor fulfillment
+and canonical resident installation remain unfinished #6201 work. No QEMU, CI,
+image/ZIP rebuild or stable acceptance is claimed.
+
+Both focused native CPU regressions pass (one kernel Patchbay case and one
+Journey handoff case; 1262 other tests filtered out in each invocation). Initial
+compilation exposed a native synthetic graph fixture missed by the earlier Cord
+origin field change; fixed that fixture to mark its origin explicitly unproven.
+The failed compile log is retained locally alongside the two passing logs.
+No broad suite was run.

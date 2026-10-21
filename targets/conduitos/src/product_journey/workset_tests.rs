@@ -349,6 +349,19 @@ fn current_tutorial_request_comes_from_shared_biography_guidance() {
             value: Vec::new(),
         })
         .unwrap();
+    let before = journey.projection();
+    assert_eq!(
+        journey.accept_application_event(&conduit_face::ApplicationEvent {
+            revision: view.revision,
+            action: action.id.clone(),
+            kind: action.event,
+            value: Vec::new(),
+        }),
+        Err(JourneyError::Play(
+            native_workset::PlayRefusal::InputPressure
+        ))
+    );
+    assert_eq!(journey.projection(), before);
     assert_eq!(
         journey.take_application_request(),
         Some(native_workset::NativeApplicationRequest::Tutorial(

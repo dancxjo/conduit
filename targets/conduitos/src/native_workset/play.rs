@@ -219,6 +219,13 @@ impl NativeWorksetPlay {
         patchbay: usize,
         target: usize,
     ) -> Result<(), PlayRefusal> {
+        if self
+            .application_requests
+            .get(patchbay)
+            .is_some_and(Option::is_some)
+        {
+            return Err(PlayRefusal::InputPressure);
+        }
         match self.applications.get_mut(patchbay).and_then(Option::as_mut) {
             Some(NativeApplication::Patchbay(application)) => application.select(target)?,
             _ => return Err(PlayRefusal::Foreground),
@@ -242,6 +249,9 @@ impl NativeWorksetPlay {
         &mut self,
         topology: &patchbay_application::PatchbayMaskTopology,
     ) -> Result<(), PlayRefusal> {
+        if self.application_requests.iter().any(Option::is_some) {
+            return Err(PlayRefusal::InputPressure);
+        }
         for plot in 0..self.plot_count {
             let is_patchbay = match self.applications[plot].as_mut() {
                 Some(NativeApplication::Patchbay(application)) => {
@@ -288,6 +298,9 @@ impl NativeWorksetPlay {
         }
         if foreground >= self.plot_count {
             return Err(PlayRefusal::Foreground);
+        }
+        if self.application_requests[foreground].is_some() {
+            return Err(PlayRefusal::InputPressure);
         }
         let owner = self.input_owners[foreground]
             .as_ref()
