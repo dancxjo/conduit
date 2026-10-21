@@ -562,6 +562,15 @@ try {
   if (page) {
     diagnostics.push(page.screenshot({ path: path.join(output, 'browser-failed.png') }));
     diagnostics.push(page.content().then(html => writeFile(path.join(output, 'browser-failed.html'), html)));
+    // Preserve the existing outcome text as well as the Face: a refreshed,
+    // disabled Face alone cannot distinguish owner refusal from a lost reply.
+    // This only observes the failed encounter; it never submits or refreshes.
+    diagnostics.push(page.evaluate(() => ({
+      action_result: document.querySelector('[data-owner-action-result]')?.textContent ?? null,
+      action_refused: document.querySelector('[data-owner-action-result]')?.dataset.refused ?? null,
+      face_status: document.querySelector('[data-owner-face-status]')?.textContent ?? null,
+      participation_status: document.querySelector('[data-owner-status]')?.textContent ?? null,
+    })).then(status => writeFile(path.join(output, 'browser-failed-status.json'), `${JSON.stringify(status, null, 2)}\n`)));
     diagnostics.push(page.evaluate(() => globalThis.__conduitOwnerParticipation?.face())
       .then(view => writeFile(path.join(output, 'browser-failed-face.json'), `${JSON.stringify(view, null, 2)}\n`)));
   }
