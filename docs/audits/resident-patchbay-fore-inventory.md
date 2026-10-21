@@ -186,3 +186,21 @@ action. Retirement revokes ingress while preserving any prior receipt. Receipt
 ownership transfers once; transfer does not reopen the consumed turn. An owner
 must retire its old turn before installing a successor. These primitives do not
 create a genuine Host acknowledgement or install/charge a current Body route.
+
+## Compose the ordinary Mask and owner turn
+
+`PatchbayPublication` owns a prepared ordinary browser Mask and prepared ingress.
+It binds an owner turn only after the Mask accepts a complete exact Host
+acknowledgement. Interaction preflights the current retained owner contract,
+then uses the Mask's actual emitted typed FaceInteraction bytes through the
+planned ingress kernel and stores the owner receipt. Retirement revokes the
+return route and preserves its result; it does not claim pixels were erased or
+an already returned domain request was cancelled.
+
+The local composition check now traverses two source-owned turns: select a Plot,
+then project a fresh Face/Show and request Edit of an exact subject. It uses the
+actual checked resident Source/prepared application, ordinary Body lifecycle,
+Mask kernel and ingress kernel. Host acknowledgements remain CPU fixture input;
+there is no browser painting or normal Body route installation claim. The
+installing product still must charge/select both Plays, bind the actual current
+resident, publish real effects and handle owner requests before legacy retirement.

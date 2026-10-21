@@ -136,3 +136,7 @@ impl TourSession {
 #[cfg(test)]
 #[path = "patchbay_face_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "patchbay_publication_tests.rs"]
+mod publication_tests;

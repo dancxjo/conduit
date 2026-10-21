@@ -675,3 +675,27 @@ transfer; wrong contribution scope/unavailable Show refuses; retirement before
 submission leaves model unchanged. No platform acknowledgement was established,
 production route installed, broad suite/CI run, or image rebuilt. Current Body
 storage/Play admission and actual Show publication remain unfinished #6201.
+
+## Compose Source, ordinary Mask, acknowledged Show and owner ingress
+
+Added `PatchbayPublication`: owns a prepared Mask/ingress, accepts exact complete
+Host acknowledgement, binds the retained owner turn, preflights current source
+action admission, consumes actual Mask-emitted typed bytes through the ingress
+kernel and retains the owner outcome. Retirement only revokes return authority;
+it does not invent physical display closure or cancellation of returned effects.
+
+Browser compilation and one focused composed CPU check pass (459 filtered out).
+The fixture prepares the real resident Source/application, records the normal
+Body Plan-ready/Play-started lifecycle, selects a Plot through an acknowledged
+Mask/ingress turn, then publishes fresh source meaning and returns exact Edit
+through a second turn. Revisions advance once per action. Before-ack, stale ack,
+forged Show identity and old-turn reuse refuse. Host acknowledgement is synthetic
+fixture input, not DOM/browser enactment or a currently installed product route.
+
+Earlier fixture attempts were correctly refused: first no current Play had been
+recorded (`PlayNotCurrent`), then Edit was sought before source-owned Plot
+selection. The final fixture follows both real prerequisites; no production
+lifecycle/action check was weakened. Negative logs remain beside the passing
+log. No broad tests, CI, platform proof or image rebuild ran. Production Body
+storage/Play selection, effect publication, exact resident installation and
+owner-request handling remain unfinished #6201 work.

@@ -74,3 +74,7 @@ mod owner_tests;
 #[path = "patchbay_ingress_turn.rs"]
 mod turn;
 pub use turn::PatchbayOwnerTurn;
+
+#[path = "patchbay_ingress_publication.rs"]
+mod publication;
+pub use publication::{PatchbayPublication, BrowserMaskAcknowledgement, BrowserMaskInteraction, BrowserMaskObservation, BrowserMaskRuntime};
