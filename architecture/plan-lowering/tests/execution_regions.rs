@@ -406,3 +406,77 @@ fn typed_transfer_requires_explicit_profile_and_exact_destination_storage() {
     assert!(prepared_reference.transfers().is_empty());
     assert_eq!(prepared_reference.regions()[0].cords().len(), 1);
 }
+
+#[cfg(feature = "hosted-region-storage")]
+#[path = "../../plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[cfg(feature = "hosted-region-storage")]
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
+#[cfg(feature = "hosted-region-storage")]
+#[test]
+fn destination_value_storage_has_exact_quotas_and_no_use_time_growth() {
+    use conduit_kernel::{StorageError, ValueStorage};
+    let plan = transfer_plan();
+    let prepared = PreparedExecutionRegions::prepare(
+        &plan,
+        &plan.fragments[0].fragment_id,
+        ExecutionRegionLimits {
+            maximum_regions: 2,
+            maximum_lanes: 2,
+            maximum_nodes: 2,
+            maximum_cords: 1,
+        },
+    )
+    .unwrap();
+    let limits = RegionValueStorageLimits {
+        maximum_retained_bytes: 4096,
+        maximum_preparation_bytes: 4096,
+    };
+    let mut storage = prepared.prepare_value_storage(limits).unwrap();
+    assert!(std::ptr::eq(storage.prepared(), &prepared));
+    assert!(storage.region_mut(0).unwrap().is_none());
+    assert!(matches!(
+        storage.region_mut(2),
+        Err(RegionValueStorageError::UnknownRegion)
+    ));
+    let retained = storage.retained_bytes();
+    let preparation = storage.preparation_bytes_upper_bound();
+    let (_, observed) = allocation_probe::observe(|| {
+        assert!(matches!(
+            prepared.prepare_value_storage(RegionValueStorageLimits {
+                maximum_retained_bytes: retained - 1,
+                ..limits
+            }),
+            Err(RegionValueStorageError::CapacityExceeded)
+        ));
+        assert!(matches!(
+            prepared.prepare_value_storage(RegionValueStorageLimits {
+                maximum_preparation_bytes: preparation - 1,
+                ..limits
+            }),
+            Err(RegionValueStorageError::CapacityExceeded)
+        ));
+    });
+    assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+    let store = storage.region_mut(1).unwrap().unwrap();
+    assert_eq!((store.item_capacity(), store.byte_capacity()), (2, 2));
+    let capacity = store.allocation_capacities();
+    let (_, observed) = allocation_probe::observe(|| {
+        for _ in 0..100 {
+            let first = store.store(&[1]).unwrap();
+            let second = store.store(&[2]).unwrap();
+            assert!(store.store(&[3]).is_err());
+            assert_eq!(store.get(first).unwrap(), &[1]);
+            assert_eq!(store.get(second).unwrap(), &[2]);
+            store.release(first).unwrap();
+            store.release(second).unwrap();
+        }
+        let full = store.store(&[1, 2]).unwrap();
+        assert_eq!(store.store(&[3]), Err(StorageError::ByteCapacityExceeded));
+        store.release(full).unwrap();
+    });
+    assert_eq!((observed.allocations, observed.reallocations), (0, 0));
+    assert_eq!(store.allocation_capacities(), capacity);
+}

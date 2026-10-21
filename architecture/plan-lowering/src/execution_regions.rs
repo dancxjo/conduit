@@ -5,6 +5,12 @@
 //! and install execution before starting Play. Cross-region
 //! execution requires an installed backend; this API never invents a Cord or moves an effect.
 
+#[cfg(feature = "hosted-region-storage")]
+mod value_storage;
+#[cfg(feature = "hosted-region-storage")]
+pub use value_storage::{
+    PreparedRegionValueStorage, RegionValueStorageError, RegionValueStorageLimits,
+};
 mod transfers;
 pub use transfers::PreparedRegionTransfer;
 mod lane_offers;

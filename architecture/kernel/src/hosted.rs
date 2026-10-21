@@ -34,6 +34,32 @@ pub struct HostedValueStore {
 }
 
 impl HostedValueStore {
+    /// Canonical-only backing required before allocation, including slot
+    /// metadata. Optional native representations are separate preparation.
+    pub fn canonical_storage_bytes(
+        capacities: impl IntoIterator<Item = u32>,
+    ) -> Result<usize, StorageError> {
+        let mut count = 0usize;
+        let mut payload = 0u32;
+        for capacity in capacities {
+            if capacity == 0 {
+                return Err(StorageError::InvalidBudget);
+            }
+            count = count.checked_add(1).ok_or(StorageError::InvalidBudget)?;
+            payload = payload
+                .checked_add(capacity)
+                .ok_or(StorageError::InvalidBudget)?;
+        }
+        if count == 0 || count > usize::from(u16::MAX) {
+            return Err(StorageError::InvalidBudget);
+        }
+        let payload = usize::try_from(payload).map_err(|_| StorageError::InvalidBudget)?;
+        count
+            .checked_mul(core::mem::size_of::<HostedValueSlot>())
+            .and_then(|metadata| metadata.checked_add(payload))
+            .ok_or(StorageError::InvalidBudget)
+    }
+
     pub fn new(
         item_capacity: u16,
         maximum_value_bytes: u32,
