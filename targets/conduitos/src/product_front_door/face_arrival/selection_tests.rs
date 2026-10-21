@@ -101,8 +101,18 @@ fn failed_pre_swap_preparation_preserves_show_preferences_and_publication() {
     .unwrap();
     let fresh = snapshot();
     let mut display = Display(0);
+    // Install the ordinary read-only CPU fixture without guest UART evidence.
+    // replace_owner_mask below still executes its actual production boundary.
+    arrival.retire_arrival_surface().unwrap();
+    arrival.owner_face = Some(fresh.face().clone());
     arrival
-        .present_owner_face(fresh.face().clone(), false, &mut display)
+        .mask
+        .present_read_only(
+            fresh.face().clone(),
+            arrival.next_observation,
+            arrival.next_play,
+            &mut display,
+        )
         .unwrap();
     let show = arrival.mask.show().unwrap().clone();
     let expression = arrival.mask.visual_expression().cloned();

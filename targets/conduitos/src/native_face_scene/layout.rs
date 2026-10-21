@@ -3,6 +3,12 @@ use super::*;
 use crate::display::typography::Typography;
 use alloc::string::String;
 
+#[path = "layout/configured.rs"]
+mod configured;
+#[cfg(test)]
+pub(super) use configured::admit_configured;
+pub(super) use configured::{ConfiguredColumns, admit_configured_selected, authored_panel_groups};
+
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
 #[path = "layout/panels.rs"]
@@ -349,95 +355,6 @@ pub(super) fn admit_with_expression_selected(
         }
     }
     Ok(rows)
-}
-
-/// Recipe group identity is not a domain catalogue or a reading-order hint.
-/// The renderer's first pair follows authored region order, even when the
-/// complete primary reader encounters review/unmatched material first.
-pub(super) fn authored_panel_groups(groups: impl Iterator<Item = u8>) -> Option<[u8; 2]> {
-    let mut first = None;
-    for group in groups {
-        match first {
-            None => first = Some(group),
-            Some(prior) if prior != group => return Some([prior, group]),
-            _ => {}
-        }
-    }
-    None
-}
-
-#[cfg(test)]
-pub(super) fn admit_configured(
-    items: Vec<document::Item>,
-    screen: LayoutRect,
-    gutter: u16,
-    columns: u16,
-    text_scale_percent: u16,
-    padding: u16,
-    groups: Option<[u8; 2]>,
-) -> Result<Vec<Row>, FaceSceneError> {
-    admit_configured_selected(
-        items,
-        screen,
-        ConfiguredColumns {
-            gutter,
-            columns,
-            padding,
-            groups,
-        },
-        text_scale_percent,
-        Typography::EDITORIAL,
-    )
-}
-
-/// Recipe geometry and density-derived spacing for configured collection flow.
-pub(super) struct ConfiguredColumns {
-    pub gutter: u16,
-    pub columns: u16,
-    pub padding: u16,
-    pub groups: Option<[u8; 2]>,
-}
-
-pub(super) fn admit_configured_selected(
-    items: Vec<document::Item>,
-    screen: LayoutRect,
-    geometry: ConfiguredColumns,
-    text_scale_percent: u16,
-    typography: Typography,
-) -> Result<Vec<Row>, FaceSceneError> {
-    let ConfiguredColumns {
-        gutter,
-        columns,
-        padding,
-        groups,
-    } = geometry;
-    if columns == 2
-        && screen.width >= 640
-        && let Some(groups) = groups
-    {
-        if groups[0] == groups[1] || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
-            return Err(FaceSceneError::InvalidExtent);
-        }
-        panels::admit(
-            items,
-            screen,
-            gutter,
-            text_scale_percent,
-            padding,
-            groups,
-            typography,
-        )
-    } else {
-        admit_with_expression_selected(
-            items,
-            screen,
-            gutter,
-            columns,
-            text_scale_percent,
-            padding,
-            typography,
-        )
-    }
 }
 
 /// Density-derived spacing is preferred geometry, not an authored hard minimum.
