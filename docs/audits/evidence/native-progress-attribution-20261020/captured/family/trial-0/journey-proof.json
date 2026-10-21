@@ -1,0 +1,376 @@
+{
+  "body_id": "2ea27c5f7faf4a3b47742d78e7fba28dcb9806b138a90febd4dd5c0e7ea51c30",
+  "boot_id": "164b753de2730669f4ff170fe720353c02cf809a421b8cb30c9a66f53c83e559",
+  "browser_comparison": "unsupported",
+  "build_id": "build:sha256:c8c7ddf26f0d7e59ac50eb6ca4acb2a2bc7a917e957008967424183a114d46b5",
+  "committed_edit_receipt": "memory-lantern-native-edit.json",
+  "host_id": "7178238e4b2fef42f214b32d1dee269facbf1acdee10812e07bf192451f3d404",
+  "human_enactment": false,
+  "image_id": "image:sha256:ebfeb54bdbd2103988b965c98a8f0d96a5a9eb157b8f417aa6fea3fa0935e058",
+  "image_sha256": "72a06912c093769e017833e406e324aec7cf2d5c0de4184edb26e998a0420b78",
+  "input": "real-qmp-keyboard-and-pointer",
+  "look_selection": {
+    "reason": "keep the latency workload fixed",
+    "status": "not-exercised"
+  },
+  "paired_reconstruction": "native-shell-paired-linear.json",
+  "parent_5356_acceptance": "open",
+  "physical_evidence": false,
+  "pointer_actions": {
+    "entrance": "normal-product-creche",
+    "held_motion_after_fresh_show": {
+      "coalesced": 0,
+      "delta_x": 4000,
+      "delta_y": 0,
+      "display_x": 977,
+      "display_y": 124,
+      "dropped": 0,
+      "face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+      "face_revision": 4,
+      "manifestation_id": "345d03257dc0687f46da72e77d3950812478ddc438685052f063597f961955a3",
+      "native_observer": {
+        "clock": "x86-tsc-lfence",
+        "ticks": 17113967640
+      },
+      "position_x": 764000,
+      "position_y": 156000,
+      "press_edge": false,
+      "primary_pressed": true,
+      "schema": "conduit.native-pointer/v1",
+      "sequence": 5,
+      "show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf"
+    },
+    "held_motion_duplicate_effects": 0,
+    "held_motion_on_refreshed_control": true,
+    "human_enactment": false,
+    "keyboard_action_count": 2,
+    "physical_evidence": false,
+    "pointer_action_count": 2,
+    "presses": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 972,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "45f112dc94427e26b179d08efc2da87763e067af68333b23f069360a518ca2fa",
+        "face_revision": 3,
+        "manifestation_id": "9c3a90497c02524435f37ca918b8abf1ff659438020c36428023a7f6ee3aceff",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 16159330108
+        },
+        "position_x": 760000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 4,
+        "show_id": "show/f39f9e35d24941a47f7c21bae1fc237635845ee866c3c50699ffaec02f579c27"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+        "face_revision": 4,
+        "manifestation_id": "345d03257dc0687f46da72e77d3950812478ddc438685052f063597f961955a3",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 17469245823
+        },
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 7,
+        "show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf"
+      }
+    ],
+    "proof_class": "freestanding-emulator",
+    "releases": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+        "face_revision": 4,
+        "manifestation_id": "345d03257dc0687f46da72e77d3950812478ddc438685052f063597f961955a3",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 17458190063
+        },
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 6,
+        "show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "3290baef2751fed7d69cd26f029f9e981d45d66e5fb99551523ebcfb86d7c952",
+        "face_revision": 5,
+        "manifestation_id": "467e5b372b26449ed680ede658e14e223142a2201780d5d91c8cbaa66e8bb205",
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 18754068206
+        },
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 8,
+        "show_id": "show/bfef10d3fbf2a399d3e272014504ee9c2506a623b51055bfa31316021aa0a54f"
+      }
+    ],
+    "schema": "conduit.creche/native-pointer-proof@1",
+    "source_changes": [
+      {
+        "after_face_id": "cb7e8129e012033d43d4e6757819348e3da72f878b797ff8ca6472ec528f08bd",
+        "after_revision": 2,
+        "after_show_id": "show/fb0509e2690790da79a6b2334669e3452c57d2b2ff170b0fae76cba29fb749e9",
+        "before_face_id": "660bb32f6b97cc52e7c3ceffa226c87942dd1f2b4f47482c309aebf8f264e442",
+        "before_revision": 1,
+        "before_show_id": "show/03c865a2d0f1f1429a83bf33e3ed65724b791bb234e80cec3118b3df3c43b7f4",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "660bb32f6b97cc52e7c3ceffa226c87942dd1f2b4f47482c309aebf8f264e442",
+          "face_revision": 1,
+          "identity": "48d0ae5b58371117d89ae20a40ab8f55087611ab5378a6c11802e21e6a230a50",
+          "sequence": 3,
+          "show_id": "show/03c865a2d0f1f1429a83bf33e3ed65724b791bb234e80cec3118b3df3c43b7f4",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 13594634205
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "45f112dc94427e26b179d08efc2da87763e067af68333b23f069360a518ca2fa",
+        "after_revision": 3,
+        "after_show_id": "show/f39f9e35d24941a47f7c21bae1fc237635845ee866c3c50699ffaec02f579c27",
+        "before_face_id": "cb7e8129e012033d43d4e6757819348e3da72f878b797ff8ca6472ec528f08bd",
+        "before_revision": 2,
+        "before_show_id": "show/fb0509e2690790da79a6b2334669e3452c57d2b2ff170b0fae76cba29fb749e9",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "cb7e8129e012033d43d4e6757819348e3da72f878b797ff8ca6472ec528f08bd",
+          "face_revision": 2,
+          "identity": "f1b04e66e34570921f035e7b6fb9d02d50a3f6e8f9b6a6397137270ae6642508",
+          "sequence": 5,
+          "show_id": "show/fb0509e2690790da79a6b2334669e3452c57d2b2ff170b0fae76cba29fb749e9",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 14860600954
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+        "after_revision": 4,
+        "after_show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf",
+        "before_face_id": "45f112dc94427e26b179d08efc2da87763e067af68333b23f069360a518ca2fa",
+        "before_revision": 3,
+        "before_show_id": "show/f39f9e35d24941a47f7c21bae1fc237635845ee866c3c50699ffaec02f579c27",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "45f112dc94427e26b179d08efc2da87763e067af68333b23f069360a518ca2fa",
+          "face_revision": 3,
+          "identity": "ee2af4d32c2d46395977a2aa18d9f0522d4e978510cfdad9077b57996284aadf",
+          "sequence": 13,
+          "show_id": "show/f39f9e35d24941a47f7c21bae1fc237635845ee866c3c50699ffaec02f579c27",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 17102634057
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "3290baef2751fed7d69cd26f029f9e981d45d66e5fb99551523ebcfb86d7c952",
+        "after_revision": 5,
+        "after_show_id": "show/bfef10d3fbf2a399d3e272014504ee9c2506a623b51055bfa31316021aa0a54f",
+        "before_face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+        "before_revision": 4,
+        "before_show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "cee7d1ba860622e68a0855a983f5f0f5a19360290bf91ef3a85b1dbe46378c47",
+          "face_revision": 4,
+          "identity": "6423e2f7ce8604c9c383e40e6dc34cfcbe540d91fc1220bc7c73f3a61130ce00",
+          "sequence": 14,
+          "show_id": "show/59877c667007e2ee3440e767ffed3a9bd2c0d341b9034f34878e5c0d323bdbcf",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "native_observer": {
+          "clock": "x86-tsc-lfence",
+          "ticks": 18411790373
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    ],
+    "status": "passed",
+    "target_action": "creche.plot.3",
+    "target_geometry": "observed-current-frame-hit-bounds"
+  },
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "proof_class": "freestanding-emulator",
+  "protected_keyboard_domain": {
+    "address_space_switches": 10,
+    "architecture": "x86_64",
+    "base_gate_transitions": 1,
+    "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "copied_bytes": 10,
+    "dma_isolation": false,
+    "domain_id": 2,
+    "driver_isolation": false,
+    "entries": 5,
+    "fixture": false,
+    "gate_transitions": 5,
+    "interrupt_entries": 0,
+    "partition_plan_id": "55a9d12f62b008f8cdea96841d2edbd647db1431063020dfd273e62b1514d63e",
+    "plan_id": "body-plan/sha256:6834bf638479010b87d1505e7e19365293d01b05f127dceb3d5472ee0e0ea862",
+    "play_id": "body-play/sha256:2bfce09d793721c1c2891cdc21085eede01ea435b2947aed6e29a234ce54d8b8",
+    "preemptions": 0,
+    "privilege_transitions": 10,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 5,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 28849549,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 5,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1505647,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 10
+  },
+  "protected_retained_text_domain": {
+    "address_space_switches": 58,
+    "architecture": "x86_64",
+    "base_gate_transitions": 7,
+    "checked_plot_id": "deccebf0d1becbc0c1053f78360901f458f9cb67a5643b5bd82780129d8196e7",
+    "copied_bytes": 93,
+    "dma_isolation": false,
+    "domain_id": 1,
+    "driver_isolation": false,
+    "entries": 29,
+    "fixture": false,
+    "gate_transitions": 29,
+    "interrupt_entries": 0,
+    "partition_plan_id": "213069388722e5ed042e1571633d3e30c65d66c383d28fd3ff83809096d19664",
+    "plan_id": "body-plan/sha256:6834bf638479010b87d1505e7e19365293d01b05f127dceb3d5472ee0e0ea862",
+    "play_id": "body-play/sha256:2bfce09d793721c1c2891cdc21085eede01ea435b2947aed6e29a234ce54d8b8",
+    "preemptions": 0,
+    "privilege_transitions": 58,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 29,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 35282616,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 10,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1834378,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 58
+  },
+  "schema": "conduit.conduitos/face-journey-proof@1",
+  "screenshots": "journey-frames/manifest.json",
+  "source_commit": "83c25d3159ffb1a02f07f230a879da194e21b109",
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "unavailable-wake-refused",
+    "plan",
+    "play",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ]
+}

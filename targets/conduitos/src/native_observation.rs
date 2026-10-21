@@ -4,6 +4,11 @@
 //! interval, but enclosing intervals include nested observation publication.
 //! These records describe instrumented execution, not an uninstrumented baseline.
 
+mod progress;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod raw_counter;
+pub use progress::{Phase, Progress};
+
 #[derive(Clone, Copy)]
 pub enum Stage {
     BootEntry,

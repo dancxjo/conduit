@@ -1,5 +1,6 @@
 //! Checked meaning of the exact plots offered at native birth.
 use super::WorksetRefusal;
+use crate::native_observation::{Phase, Progress};
 use conduit_body::ResidentPlot;
 use conduit_plot::{ExpandedCanonicalPlot, ProfileCatalog, StartupCatalog};
 
@@ -105,23 +106,34 @@ pub const fn candidate_inventory() -> [NativePlot; NATIVE_CANDIDATE_CAPACITY] {
 pub fn checked(plot: NativePlot) -> Result<ExpandedCanonicalPlot, WorksetRefusal> {
     let _native_timing =
         crate::native_observation::Interval::begin(crate::native_observation::Stage::PlotBuild);
-    let mut startup = StartupCatalog::new();
-    let mut profile = ProfileCatalog::new();
-    conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    let syntax = conduit_plot::parse_syntax_document(plot.source());
-    let checked = conduit_plot::check_syntax_document(&syntax, &startup)
-        .map_err(|_| WorksetRefusal::Catalog)?;
-    conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile)
-        .map_err(|_| WorksetRefusal::Catalog)
+    Progress::result(Phase::PlotBuild, plot.name(), || {
+        let (startup, profile) = Progress::result(Phase::CatalogInstall, plot.name(), || {
+            let mut startup = StartupCatalog::new();
+            let mut profile = ProfileCatalog::new();
+            conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)
+                .map_err(|_| WorksetRefusal::Catalog)?;
+            conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
+                .map_err(|_| WorksetRefusal::Catalog)?;
+            conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
+                .map_err(|_| WorksetRefusal::Catalog)?;
+            conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)
+                .map_err(|_| WorksetRefusal::Catalog)?;
+            conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)
+                .map_err(|_| WorksetRefusal::Catalog)?;
+            Ok::<_, WorksetRefusal>((startup, profile))
+        })?;
+        let syntax = Progress::measure(Phase::SourceParse, plot.name(), || {
+            conduit_plot::parse_syntax_document(plot.source())
+        });
+        let checked = Progress::result(Phase::SourceCheck, plot.name(), || {
+            conduit_plot::check_syntax_document(&syntax, &startup)
+                .map_err(|_| WorksetRefusal::Catalog)
+        })?;
+        Progress::result(Phase::SourceExpand, plot.name(), || {
+            conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile)
+                .map_err(|_| WorksetRefusal::Catalog)
+        })
+    })
 }
 
 pub fn resident(plot: NativePlot) -> Result<ResidentPlot, WorksetRefusal> {
@@ -133,10 +145,12 @@ pub fn resident(plot: NativePlot) -> Result<ResidentPlot, WorksetRefusal> {
 }
 
 pub fn resolve(identity: &ResidentPlot) -> Result<NativePlot, WorksetRefusal> {
-    for plot in profile().installed {
-        if &resident(plot)? == identity {
-            return Ok(plot);
+    Progress::result(Phase::IdentityResolve, "installed-inventory", || {
+        for plot in profile().installed {
+            if &resident(plot)? == identity {
+                return Ok(plot);
+            }
         }
-    }
-    Err(WorksetRefusal::UnknownPlot)
+        Err(WorksetRefusal::UnknownPlot)
+    })
 }
