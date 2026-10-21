@@ -36,15 +36,34 @@ unsafe extern "C" {
     fn conduitos_ordinary_budget();
 }
 
+/// Root-created context from an installed, exclusively owned address space.
+pub(super) struct EntryContext {
+    pub entry: u64,
+    pub stack: u64,
+    pub frame: u64,
+    pub cr3: u64,
+    pub trap_stack: u64,
+}
+
 pub(super) fn enter(
     space: &domain_memory::AddressSpace,
 ) -> Result<TransitionReturn, DomainRefusal> {
+    enter_context(EntryContext {
+        entry: space.entry,
+        stack: domain_memory::USER_STACK_TOP - 8,
+        frame: domain_memory::USER_FRAME,
+        cr3: space.cr3,
+        trap_stack: space.trap_stack_top(),
+    })
+}
+
+pub(super) fn enter_context(context: EntryContext) -> Result<TransitionReturn, DomainRefusal> {
     let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
     }
     unsafe {
-        gdt::set_ring0_stack(space.trap_stack_top());
+        gdt::set_ring0_stack(context.trap_stack);
         idt::install_handler(
             0x80,
             conduitos_ordinary_gate as *const () as u64,
@@ -121,12 +140,7 @@ pub(super) fn enter(
         }
     };
     let result = unsafe {
-        conduitos_ordinary_enter(
-            space.entry,
-            domain_memory::USER_STACK_TOP - 8,
-            domain_memory::USER_FRAME,
-            space.cr3,
-        )
+        conduitos_ordinary_enter(context.entry, context.stack, context.frame, context.cr3)
     };
     drop(budget);
     ACTIVE.store(false, Ordering::Release);

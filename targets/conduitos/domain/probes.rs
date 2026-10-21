@@ -3,9 +3,10 @@ use crate::{frame::TextFrame, gate};
 
 pub use crate::probe_gate::mutate_gate;
 
-pub unsafe fn run(frame: &TextFrame) -> ! {
+pub unsafe fn run(frame: &mut TextFrame) -> ! {
     unsafe {
         match frame.probe {
+            18..=20 => crate::service_probe::run(frame),
             1 => {
                 core::arch::asm!("mov rax, [{0}]", in(reg) frame.target, out("rax") _, options(nostack))
             }
