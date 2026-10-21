@@ -15,7 +15,7 @@ impl FaceArrival {
 
     /// Mask-local appearance replacement through the current authenticated owner.
     /// The owner returns the identical Face and a newly sealed planned Mask.
-    pub(super) fn select_owner_component(
+    pub(in crate::product_front_door) fn select_owner_component(
         &mut self,
         identities: BootIdentities,
         prior: &crate::native_guest_face::NativeGuestFace,
@@ -101,7 +101,7 @@ impl FaceArrival {
         Ok(())
     }
 
-    pub(super) fn toggle_owner_text_scale(
+    pub(in crate::product_front_door) fn toggle_owner_text_scale(
         &mut self,
         prior: &crate::native_guest_face::NativeGuestFace,
         route: &mut NativeOwnerReturnRoute,
@@ -128,7 +128,7 @@ impl FaceArrival {
         )
     }
 
-    pub(super) fn toggle_owner_forced_colors(
+    pub(in crate::product_front_door) fn toggle_owner_forced_colors(
         &mut self,
         prior: &crate::native_guest_face::NativeGuestFace,
         route: &mut NativeOwnerReturnRoute,

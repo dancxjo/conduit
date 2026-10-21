@@ -366,6 +366,7 @@ pub(super) fn authored_panel_groups(groups: impl Iterator<Item = u8>) -> Option<
     None
 }
 
+#[cfg(test)]
 pub(super) fn admit_configured(
     items: Vec<document::Item>,
     screen: LayoutRect,
