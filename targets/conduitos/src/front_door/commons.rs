@@ -5,13 +5,12 @@ use alloc::{boxed::Box, vec::Vec};
 use conduit_commons_plot::{Source, field, text};
 use conduit_core::{StructuredInfoValue, StructuredInfoValueShape, kind_id};
 use core::cell::RefCell;
-mod scene;
+mod heading;
 
 pub(super) struct Commons {
     source: RefCell<Box<Source>>,
     selected: String,
     generation: u64,
-    focus: usize,
 }
 
 impl Commons {
@@ -22,7 +21,6 @@ impl Commons {
             source: RefCell::new(source),
             selected,
             generation: 0,
-            focus: 0,
         })
     }
 
@@ -32,11 +30,6 @@ impl Commons {
 
     pub(super) fn creche(&self) -> bool {
         place_text(&self.source.borrow().places, "creche", "identity")
-            .is_ok_and(|id| id == self.selected)
-    }
-
-    pub(super) fn workshop(&self) -> bool {
-        place_text(&self.source.borrow().places, "workshop", "identity")
             .is_ok_and(|id| id == self.selected)
     }
 
@@ -62,49 +55,18 @@ impl Commons {
             .map_err(|_| Error::Face)
     }
 
-    pub(super) fn accept(
+    /// The zero-Body Hub has one meaningful destination: the Birth encounter.
+    pub(super) fn accept_birth(
         &mut self,
         event: KeyEvent,
-        view: HomeView,
         journey: &JourneyProjection,
-    ) -> Result<Option<HomeInput>, Error> {
-        use conduit_human::KeyTransition;
+    ) -> Result<HomeInput, Error> {
+        if event.usage() != ENTER || event.transition() != conduit_human::KeyTransition::Pressed {
+            return Ok(HomeInput::Unchanged);
+        }
         let graph = self.source.borrow().places.clone();
-        let hub = place_text(&graph, "hub", "identity")?;
-        let in_hub = self.selected == hub;
-        if self.workshop() && !(view == HomeView::Launcher && event.usage() == ESCAPE) {
-            return Ok(None);
-        }
-        if event.transition() != KeyTransition::Pressed {
-            return Ok(Some(HomeInput::Unchanged));
-        }
-        let target = match event.usage() {
-            RIGHT | DOWN | LEFT | UP | TAB if in_hub => {
-                self.focus = match event.usage() {
-                    RIGHT | DOWN => 1,
-                    LEFT | UP => 0,
-                    _ => 1 - self.focus,
-                };
-                return Ok(Some(HomeInput::Changed));
-            }
-            ENTER if in_hub => place_text(
-                &graph,
-                if self.focus == 0 {
-                    "workshop"
-                } else {
-                    "creche"
-                },
-                "identity",
-            )?,
-            ESCAPE if !in_hub => hub,
-            _ => return Ok(Some(HomeInput::Unchanged)),
-        };
-        self.navigate(journey, target, !in_hub)?;
-        Ok(Some(if self.creche() && journey.body_id.is_none() {
-            HomeInput::OpenCreche
-        } else {
-            HomeInput::Changed
-        }))
+        self.navigate(journey, place_text(&graph, "creche", "identity")?, false)?;
+        Ok(HomeInput::OpenCreche)
     }
 
     pub(super) fn back_to_hub(&mut self, journey: &JourneyProjection) -> Result<(), Error> {
@@ -135,40 +97,22 @@ impl Commons {
     ) -> Result<Face, Error> {
         let observation = self.observe(journey, &self.selected, false)?;
         let graph = field(&observation, "places").map_err(|_| Error::Face)?;
-        for slot in ["hub", "workshop", "creche"] {
-            let identity = place_text(graph, slot, "identity")?;
-            face.subjects.push(FaceSubject {
-                identity: identity.into(),
-                name: place_text(graph, slot, "name")?.into(),
-                role: FaceRole::Semantic(kind_id(place_text(graph, slot, "role")?)),
-            });
-            face.disclosures.push(FaceDisclosure {
-                subject: identity.into(),
-                level: FaceDisclosureLevel::Primary,
-            });
-            face.properties.push(FaceProperty {
-                subject: identity.into(),
-                name: "selected".into(),
-                value: FacePropertyValue::Flag(self.selected == identity),
-            });
-        }
-        for slot in ["containment", "reachability"] {
-            let StructuredInfoValueShape::Collection(relations) =
-                field(graph, slot).map_err(|_| Error::Face)?.shape()
-            else {
-                return Err(Error::Face);
-            };
-            for relation in relations {
-                let get = |name| {
-                    text(field(relation, name).map_err(|_| Error::Face)?).map_err(|_| Error::Face)
-                };
-                face.relationships.push(FaceRelationship {
-                    source: get("source")?.into(),
-                    target: get("target")?.into(),
-                    kind: FaceRelationshipKind::Semantic(kind_id(get("meaning")?)),
-                });
-            }
-        }
+        let slot = if self.creche() { "creche" } else { "hub" };
+        let identity = place_text(graph, slot, "identity")?;
+        face.subjects.push(FaceSubject {
+            identity: identity.into(),
+            name: place_text(graph, slot, "name")?.into(),
+            role: FaceRole::Semantic(kind_id(place_text(graph, slot, "role")?)),
+        });
+        face.disclosures.push(FaceDisclosure {
+            subject: identity.into(),
+            level: FaceDisclosureLevel::Primary,
+        });
+        face.properties.push(FaceProperty {
+            subject: identity.into(),
+            name: "selected".into(),
+            value: FacePropertyValue::Flag(true),
+        });
         let body_actions = matches!(field(&observation, "body_actions").map_err(|_| Error::Face)?.shape(), StructuredInfoValueShape::Leaf(bytes) if bytes == [1]);
         if !body_actions {
             for action in &mut face.actions {

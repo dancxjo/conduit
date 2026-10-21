@@ -53,7 +53,7 @@ impl NativePlot {
     pub const fn title(self) -> &'static str {
         match self {
             Self::KeyboardCanvas => "Keyboard canvas",
-            Self::MemoryLantern => "Memory Lantern",
+            Self::MemoryLantern => "Text editor",
             Self::Tour => "Tutorial",
             Self::Patchbay => "Patchbay",
             Self::Hello => "Hello, world.",

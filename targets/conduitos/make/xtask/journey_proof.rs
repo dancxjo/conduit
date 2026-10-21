@@ -182,14 +182,13 @@ pub(super) fn execute_supplied_observed(
             "commons-arrival-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "body-playing", true)?;
-        journey_input::enter_workshop(&mut qmp, &mut reader, &serial_path, &mut child)?;
         artifacts.capture(&mut qmp, &mut reader, "commons-workshop", true)?;
-        journey_input::key_pair(&mut qmp, &mut reader, "ret", "commons-open-tour")?;
-        hid_qmp::wait_for_stage(
+        journey_input::open_hub_plot(
+            &mut qmp,
+            &mut reader,
             &serial_path,
             &mut child,
-            "CONDUIT_HOME_CHECKPOINT tour-opened",
-            "commons-tour-timeout",
+            conduitos::native_workset::NativePlot::Tour,
         )?;
         face_input::unavailable_wake(
             &serial_path,
@@ -223,20 +222,12 @@ pub(super) fn execute_supplied_observed(
             "journey-home-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "home", true)?;
-        journey_input::enter_workshop(&mut qmp, &mut reader, &serial_path, &mut child)?;
-        journey_input::key_pair(&mut qmp, &mut reader, "tab", "journey-select-patchbay")?;
-        hid_qmp::wait_for_stage(
+        journey_input::open_hub_plot(
+            &mut qmp,
+            &mut reader,
             &serial_path,
             &mut child,
-            "CONDUIT_HOME_STATE launcher 1",
-            "journey-patchbay-selection-timeout",
-        )?;
-        journey_input::key_pair(&mut qmp, &mut reader, "ret", "journey-open-patchbay")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_HOME_CHECKPOINT patchbay-opened",
-            "journey-patchbay-timeout",
+            conduitos::native_workset::NativePlot::Patchbay,
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
 
@@ -469,7 +460,7 @@ fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, Conduito
         previous = Some(index);
     }
     for marker in [
-        "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+        "CONDUIT_HOME_CHECKPOINT plot-opened patchbay",
         "CONDUIT_WORKSPACE_FACE shown",
         "CONDUIT_WORKSPACE_VIEW ",
     ] {

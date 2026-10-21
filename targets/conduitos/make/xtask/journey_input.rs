@@ -369,61 +369,102 @@ mod tests {
     }
 }
 
-/// Enter Workshop through the current Commons Hub and await its rendered context.
-pub(super) fn enter_workshop(
+/// Open an exact current Play member directly from Commons' resident picker.
+pub(super) fn open_hub_plot(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
     serial: &Path,
     child: &mut Child,
+    plot: conduitos::native_workset::NativePlot,
 ) -> Result<(), ConduitosError> {
-    focus_commons(qmp, reader, serial, child, "left")?;
-    let marker = "CONDUIT_COMMONS_CONTEXT commons/workshop";
+    let bytes = fs::read_to_string(serial)
+        .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?;
+    let encoded = bytes
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix("CONDUIT_WORKSPACE_VIEW "))
+        .ok_or_else(|| {
+            ConduitosError::refusal(
+                "commons-membership-absent",
+                "the guest has not observed its resident workset",
+            )
+        })?;
+    let observed: Value = serde_json::from_str(encoded).map_err(|error| {
+        ConduitosError::refusal("commons-membership-invalid", error.to_string())
+    })?;
+    let resident = conduitos::native_workset::resident(plot)
+        .map_err(|error| ConduitosError::refusal("commons-plot-unavailable", error.as_str()))?;
+    let index = observed["plots"]
+        .as_array()
+        .and_then(|plots| {
+            plots.iter().position(|member| {
+                member["checked_plot_id"] == resident.checked_plot_id.as_str()
+                    && member["source_document_id"] == resident.source_document_id.as_str()
+            })
+        })
+        .ok_or_else(|| {
+            ConduitosError::refusal(
+                "commons-plot-not-active",
+                "the exact requested Source is absent from the guest workset",
+            )
+        })?;
+    // Opening Commons starts the existing bounded picker at index zero.
+    for selected in 1..=index {
+        let marker = format!("CONDUIT_HOME_STATE plots {selected}");
+        let before = fs::read_to_string(serial)
+            .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
+            .lines()
+            .filter(|line| *line == marker)
+            .count();
+        held_key(
+            |down| hid_qmp::send_named_keys(qmp, reader, &["down"], down, "commons-select-plot"),
+            || {
+                hid_qmp::wait_for_stage_count(
+                    serial,
+                    child,
+                    &marker,
+                    before + 1,
+                    "commons-selection-timeout",
+                )
+            },
+        )?;
+    }
+    let marker = format!("CONDUIT_HOME_CHECKPOINT plot-opened {}", plot.name());
     let before = fs::read_to_string(serial)
         .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
         .lines()
         .filter(|line| *line == marker)
         .count();
-    key_pair(qmp, reader, "ret", "commons-enter-workshop")?;
-    hid_qmp::wait_for_stage_count(
-        serial,
-        child,
-        marker,
-        before + 1,
-        "commons-workshop-timeout",
+    held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &["ret"], down, "commons-open-plot"),
+        || {
+            hid_qmp::wait_for_stage_count(
+                serial,
+                child,
+                &marker,
+                before + 1,
+                "commons-open-timeout",
+            )
+        },
     )
 }
 
-/// Select a Hub destination once and await its acknowledged Face update.
-fn focus_commons(
-    qmp: &mut UnixStream,
-    reader: &mut qmp::Reader,
-    serial: &Path,
-    child: &mut Child,
-    direction: &str,
-) -> Result<(), ConduitosError> {
-    let marker = "CONDUIT_COMMONS_CONTEXT commons/hub";
-    let before = fs::read_to_string(serial)
-        .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
-        .lines()
-        .filter(|line| *line == marker)
-        .count();
-    key_pair(qmp, reader, direction, "commons-focus-destination")?;
-    hid_qmp::wait_for_stage_count(serial, child, marker, before + 1, "commons-focus-timeout")
-}
-
-/// Enter the Source-authored Crèche encounter from zero-Body Commons.
+/// The zero-Body Hub opens Birth directly, without a place-map detour.
 pub(super) fn enter_creche(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
     serial: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
-    focus_commons(qmp, reader, serial, child, "right")?;
-    key_pair(qmp, reader, "ret", "commons-enter-creche")?;
-    hid_qmp::wait_for_stage(
-        serial,
-        child,
-        "CONDUIT_CRECHE_CHECKPOINT ready",
-        "commons-creche-timeout",
+    held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &["ret"], down, "commons-enter-creche"),
+        || {
+            hid_qmp::wait_for_stage(
+                serial,
+                child,
+                "CONDUIT_CRECHE_CHECKPOINT ready",
+                "commons-creche-timeout",
+            )
+        },
     )
 }

@@ -226,7 +226,7 @@ impl FrontDoor {
             ));
             properties.push(property(
                 home_identity,
-                "selected-launcher-index",
+                "selected-plot-index",
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
@@ -339,7 +339,7 @@ impl FrontDoor {
         if self.home_view().is_some() {
             texts.push(FaceText {
                 subject: home_identity.into(),
-                text: "Persistent launcher and finite Conduit command bar".into(),
+                text: "Active plots in the current Body Play".into(),
             });
             disclosures.push(FaceDisclosure {
                 subject: home_identity.into(),

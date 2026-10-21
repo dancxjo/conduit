@@ -1,27 +1,26 @@
 //! Finite ConduitOS Home and command-bar face state.
 
-use alloc::{format, string::String, vec::Vec};
+use alloc::vec::Vec;
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
 use conduit_home_model::{HomeEvent, HomeModel};
 use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 
 use super::{Error, FrontDoor};
+use crate::product_journey::JourneyStatus;
 mod scene;
 
 pub(super) struct Home {
     model: HomeModel,
     pub(super) commons: super::commons::Commons,
     keymap: PreparedKeymap,
-    refusal: Option<String>,
 }
 
 impl Home {
     fn new() -> Result<Self, Error> {
         Ok(Self {
             commons: super::commons::Commons::prepare()?,
-            model: HomeModel::new(),
+            model: HomeModel::plots(),
             keymap: PreparedKeymap::default_layout(),
-            refusal: None,
         })
     }
 
@@ -34,7 +33,7 @@ impl Home {
             79 | 81 | 43 => HomeEvent::Next,
             80 | 82 => HomeEvent::Previous,
             40 => HomeEvent::Activate,
-            41 => HomeEvent::Escape,
+            41 => return HomeInput::Unchanged,
             42 => HomeEvent::Backspace,
             _ => match self.keymap.apply(event) {
                 Ok(Some(fragment)) => {
@@ -59,15 +58,22 @@ impl FrontDoor {
             .map_or(&[], |workspace| workspace.plots.as_slice())
     }
 
+    pub(super) fn home_active_plots(&self) -> &[crate::product_journey::WorkspacePlot] {
+        if self.journey.as_ref().is_some_and(|journey| {
+            journey.active_play_id.is_some()
+                && journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput
+        }) {
+            self.home_installed_plots()
+        } else {
+            &[]
+        }
+    }
+
     fn home_installed_titles(&self) -> Vec<&'static str> {
-        self.home_installed_plots()
+        self.home_active_plots()
             .iter()
             .map(|plot| plot.title)
             .collect()
-    }
-
-    pub(super) fn home_refusal(&self) -> Option<&str> {
-        self.home.as_ref().and_then(|home| home.refusal.as_deref())
     }
 
     pub(super) fn home_model(&self) -> Option<&HomeModel> {
@@ -85,8 +91,7 @@ impl FrontDoor {
             retained
                 .commons
                 .back_to_hub(self.journey.as_ref().ok_or(Error::Face)?)?;
-            retained.model = HomeModel::new();
-            retained.refusal = None;
+            retained.model = HomeModel::plots();
             retained
         } else {
             Home::new()?
@@ -137,7 +142,9 @@ impl FrontDoor {
     }
 
     pub fn home_selection(&self) -> Option<usize> {
-        self.home.as_ref().map(|home| home.model.selected_index())
+        self.home
+            .as_ref()
+            .map(|home| home.model.selected_plot_index())
     }
 
     pub fn home_application_view(&self) -> Result<Option<conduit_face::ApplicationView>, Error> {
@@ -163,37 +170,15 @@ impl FrontDoor {
         let Some(home) = self.home.as_mut() else {
             return Ok(HomeInput::Unchanged);
         };
-        let result = match home.commons.accept(
-            event,
-            home.model.view(),
-            self.journey.as_ref().ok_or(Error::Face)?,
-        )? {
-            Some(result) => result,
-            None => home.accept(event, &titles),
-        };
-        let absent = match result {
-            HomeInput::OpenTour
-                if !titles.contains(&crate::native_workset::NativePlot::Tour.title()) =>
-            {
-                Some("Tour")
-            }
-            HomeInput::OpenPatchbay
-                if !titles.contains(&crate::native_workset::NativePlot::Patchbay.title()) =>
-            {
-                Some("Patchbay")
-            }
-            _ => None,
-        };
-        let result = if let Some(title) = absent {
-            home.refusal = Some(format!(
-                "{title} is unavailable: this Body has no installed {title} Plot."
-            ));
-            HomeInput::Changed
+        let journey = self.journey.as_ref().ok_or(Error::Face)?;
+        let result = if journey.body_id.is_none() {
+            home.commons.accept_birth(event, journey)?
+        } else if journey.active_play_id.is_some()
+            && journey.status == JourneyStatus::QuiescentAwaitingInput
+        {
+            home.accept(event, &titles)
         } else {
-            if result != HomeInput::Unchanged {
-                home.refusal = None;
-            }
-            result
+            HomeInput::Unchanged
         };
         if result != HomeInput::Unchanged {
             self.advance()?;
@@ -212,13 +197,22 @@ mod tests {
     }
 
     #[test]
-    fn launcher_is_finite_and_opens_prompt() {
+    fn picker_cycles_only_the_provided_residents_and_has_no_second_launcher() {
         let mut home = Home::new().unwrap();
-        for _ in 0..5 {
-            assert_eq!(home.accept(key(43), &[]), HomeInput::Changed);
+        assert_eq!(home.model.view(), HomeView::Plots);
+        for index in 0..5 {
+            assert_eq!(
+                home.accept(key(40), &["Text editor", "Canvas"]),
+                HomeInput::OpenPlot(index % 2)
+            );
+            assert_eq!(
+                home.accept(key(43), &["Text editor", "Canvas"]),
+                HomeInput::Changed
+            );
         }
-        assert_eq!(home.accept(key(40), &[]), HomeInput::Changed);
-        assert_eq!(home.model.view(), HomeView::Prompt);
+        assert_eq!(home.accept(key(41), &[]), HomeInput::Unchanged);
+        assert_eq!(home.model.view(), HomeView::Plots);
+        assert_eq!(home.accept(key(40), &[]), HomeInput::Unchanged);
     }
 
     #[test]

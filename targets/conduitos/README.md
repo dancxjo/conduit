@@ -37,7 +37,7 @@ cargo xtask make conduitos workshop-boot --locked
 
 These use the same x86_64 product kernel, with a separate artifact at
 `target/conduitos/workshop/x86_64-pc/conduitos-x86_64.iso`. Boot opens Commons;
-visit Crèche to birth a Body, then enter Workshop after automatic Wake/Plan/Play.
+Birth a Body, then select directly from the active plots after automatic Wake/Plan/Play.
 Rebuild with `workshop` after source changes; `workshop-boot` verifies and boots
 the retained image without rebuilding it.
 

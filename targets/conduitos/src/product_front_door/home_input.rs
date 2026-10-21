@@ -21,6 +21,19 @@ pub(super) fn accept(
     if !front_door.observes_current_product(journey) {
         return Err("home-owner-changed");
     }
+    // Returning to the already observed Plot is local view navigation, including
+    // its read-only stopped Face. It does not select or restart an inactive Play.
+    if event.usage() == 41
+        && event.transition() == conduit_human::KeyTransition::Pressed
+        && journey.projection().body_id.is_some()
+    {
+        front_door.close_home().map_err(|error| error.as_str())?;
+        let receipt = refresh(front_door, journey, presenter, face_workspace, display)?;
+        emit_journey_sign(&journey.projection(), make, &receipt);
+        super::workspace_view_sign::emit(front_door, journey, &receipt)?;
+        super::journey_sign::write_observation(b"CONDUIT_HOME_CHECKPOINT returned-to-plot\n");
+        return Ok(());
+    }
     match front_door
         .accept_home(event, front_door.revision())
         .map_err(|error| error.as_str())?
@@ -100,6 +113,7 @@ pub(super) fn accept(
             front_door.close_home().map_err(|error| error.as_str())?;
             let receipt = refresh(front_door, journey, presenter, face_workspace, display)?;
             emit_journey_sign(&journey.projection(), make, &receipt);
+            super::workspace_view_sign::emit(front_door, journey, &receipt)?;
             arch::early_write(
                 format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested_name).as_bytes(),
             );
