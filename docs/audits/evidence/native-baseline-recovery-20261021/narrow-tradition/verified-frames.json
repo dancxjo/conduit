@@ -1,0 +1,37 @@
+{
+  "frames": [
+    {
+      "png": "naming-action.png",
+      "png_bytes": 28269,
+      "png_sha256": "4ae3c287e3979269391fffd2cd030687b56a08847b03ea4ef611854fad6faef0",
+      "rgba_sha256": "fe02415eed3e8587cdb6bee68b65e7a057746ca11ee57c2505f019719f38e407",
+      "width": 640,
+      "height": 480
+    },
+    {
+      "png": "front-door.png",
+      "png_bytes": 10224,
+      "png_sha256": "1e845bed08ec1691c017eca1a9cdbdac35be63611eaab4d7726a9b9543666247",
+      "rgba_sha256": "7410a42af83ea0a1321e57216b8739f6c6011e97e6130ebbd152b4ee11a54ce3",
+      "width": 640,
+      "height": 480
+    },
+    {
+      "png": "creche-ready.png",
+      "png_bytes": 23020,
+      "png_sha256": "34c5292c9baa0da633d4cc3449b5b5e43692d8f65b40c9b1c534327de60c7a59",
+      "rgba_sha256": "7bb89d1c50306eead54b3d7dd81c27004723ed8683d60d03404c1e89c79f837c",
+      "width": 640,
+      "height": 480
+    },
+    {
+      "png": "naming-value.png",
+      "png_bytes": 28268,
+      "png_sha256": "f96db7664a44577ac830c971384b23312cffa7e94fbe3ec87a01860bababb3d4",
+      "rgba_sha256": "da95645ed7cce327c7646f5994e9d6b5d3247c1e473e7694bbae7dda3bc10b68",
+      "width": 640,
+      "height": 480
+    }
+  ],
+  "raw_ppm_retained_locally": true
+}

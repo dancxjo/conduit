@@ -1,0 +1,5324 @@
+{
+  "kind": "supplemental-diagnostic-not-canonical-acceptance",
+  "status": "captured-for-review",
+  "source_commit": "66af5bb2867dab8d97b940e7aeaa5aa540bb15a6",
+  "iso": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-fixed-product/conduitos-x86_64.iso",
+  "expected_iso_sha256": "95b04f1e43ab627fe856e77eb4eff432925d222a053c097bf0221e13607f0ab6",
+  "target_action": "creche.naming",
+  "target_argument": "value",
+  "requested_extent": [
+    640,
+    480
+  ],
+  "observations": [
+    {
+      "label": "front-door",
+      "extent": [
+        640,
+        480
+      ],
+      "png": "front-door.png",
+      "face_record": null,
+      "focus_record": null
+    },
+    {
+      "label": "creche-ready",
+      "extent": [
+        640,
+        480
+      ],
+      "png": "creche-ready.png",
+      "face_record": {
+        "face": {
+          "actions": [
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Friendly Body name"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.name",
+              "intent": "conduit.intent/creche.name@1",
+              "name": "Edit Body name",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Naming tradition"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.naming",
+              "intent": "conduit.intent/creche.naming@1",
+              "name": "Use naming tradition",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.suggest",
+              "intent": "conduit.intent/creche.suggest@1",
+              "name": "Suggest another name",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Search Plots"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.search",
+              "intent": "conduit.intent/creche.search@1",
+              "name": "Search Plots",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.0",
+              "intent": "conduit.intent/creche.plot.0@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.1",
+              "intent": "conduit.intent/creche.plot.1@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.2",
+              "intent": "conduit.intent/creche.plot.2@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.3",
+              "intent": "conduit.intent/creche.plot.3@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": {
+                "Unavailable": {
+                  "explanation": "native-body-plot-unavailable",
+                  "reason_code": "birth/unavailable"
+                }
+              },
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.4",
+              "intent": "conduit.intent/creche.plot.4@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "Primary",
+              "identity": "creche.birth",
+              "intent": "conduit.intent/creche.birth@1",
+              "name": "Birth Body",
+              "target": "birth/conduitos/creche/current/navigation"
+            }
+          ],
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "9bf6b12e4a71d11a276aa931b2be3dd8ecc52a7d76bc5f7a88003710ce3cf778",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "composition": [],
+          "disclosures": [
+            {
+              "level": "Primary",
+              "subject": "birth/conduitos/creche/current"
+            },
+            {
+              "level": "Context",
+              "subject": "birth/conduitos/creche/current/main"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "identity": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "interaction_context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "properties": [
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83,
+                    32,
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "Identity": "creche.name"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "Identity": "creche.naming"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "TypedValue": {
+                  "bytes": [],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "Identity": "creche.search"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Identity": "creche.plot.0"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Identity": "creche.plot.1"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Identity": "creche.plot.2"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Identity": "creche.plot.3"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Flag": false
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Identity": "creche.plot.4"
+              }
+            },
+            {
+              "name": "host-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486"
+              }
+            },
+            {
+              "name": "boot-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current",
+              "target": "birth/conduitos/creche/current/main"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "kind": {
+                "Semantic": "document/precedes"
+              },
+              "source": "birth/conduitos/creche/current/navigation",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/body-name",
+              "target": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/name-system",
+              "target": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/plot-search",
+              "target": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/initial-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/0",
+              "target": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/1",
+              "target": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/2",
+              "target": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/3",
+              "target": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/4",
+              "target": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/selected-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "revision": 1,
+          "subjects": [
+            {
+              "identity": "birth/conduitos/creche/current",
+              "name": "A body of your own",
+              "role": "Host"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/main",
+              "name": "A body of your own",
+              "role": {
+                "Semantic": "document/main"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/article",
+              "name": "Body name and starting Plots",
+              "role": {
+                "Semantic": "document/article"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/navigation",
+              "name": "Birth actions",
+              "role": {
+                "Semantic": "document/navigation"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name",
+              "name": "Friendly Body name",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name/input-details",
+              "name": "Friendly Body name input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system",
+              "name": "Naming tradition",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system/input-details",
+              "name": "Naming tradition input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search",
+              "name": "Search Plots",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search/input-details",
+              "name": "Search Plots input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots",
+              "name": "Plots to include",
+              "role": "Collection"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0",
+              "name": "Keyboard canvas",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "name": "Keyboard canvas selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1",
+              "name": "Text editor",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "name": "Text editor selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2",
+              "name": "Tutorial",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "name": "Tutorial selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3",
+              "name": "Patchbay",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "name": "Patchbay selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4",
+              "name": "Hello, world.",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "name": "Hello, world. selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/selected-plots",
+              "name": "Selected: 4",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review",
+              "name": "Review Birth choices",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-0",
+              "name": "Starting Plot 1",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-1",
+              "name": "Starting Plot 2",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-2",
+              "name": "Starting Plot 3",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-3",
+              "name": "Starting Plot 4",
+              "role": "Status"
+            }
+          ],
+          "temporal_facts": [],
+          "temporal_references": [],
+          "text": [
+            {
+              "subject": "birth/conduitos/creche/current/main",
+              "text": "A body of your own"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name",
+              "text": "Give it a name, or use a suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name/input-details",
+              "text": "Current value: TARGUS TARGUS."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system",
+              "text": "Choose a tradition for the next name suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Current value: surprise."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Surprise me. Value: surprise. Selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Roman tria nomina. Value: roman. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Chinese (romanized, family name first). Value: chinese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary American. Value: american. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Mexican (two surnames). Value: mexican. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Icelandic patronymic or matronymic. Value: icelandic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Japanese (romanized, family name first). Value: japanese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Arabic lineage plot. Value: arabic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary French. Value: french. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary British. Value: british. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Classic Anglophone. Value: classic-anglophone. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Korean (romanized, family name first). Value: korean. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Vietnamese (family\u2013middle\u2013given). Value: vietnamese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Yor\u00f9b\u00e1 personal and family names. Value: yoruba. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Ukrainian (official romanization). Value: ukrainian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Biblical Hebrew-inspired patronymic (romanized). Value: ancient-hebrew. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Amharic-style patronymic (romanized). Value: amharic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Portuguese multi-surname. Value: portuguese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Tamil patronymic plots (romanized). Value: tamil. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Indonesian complete personal-name plots (romanized). Value: indonesian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Welsh modern and patronymic plots. Value: welsh. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Kurdish Kurmanji (Latin script). Value: kurmanji. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: The TARGUS family. Value: targus. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Original Elvish-inspired. Value: elvish. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "text": "Find a plot by name or what it uses."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search/input-details",
+              "text": "Current value: (empty)."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "text": "Not included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review",
+              "text": "Name: TARGUS TARGUS. Starting Plots selected: 4 of 5. Birth: available."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0",
+              "text": "Keyboard canvas"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1",
+              "text": "Text editor"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2",
+              "text": "Tutorial"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3",
+              "text": "Patchbay"
+            }
+          ]
+        },
+        "observation_sequence": 1,
+        "play_sequence": 1,
+        "schema": "conduit.native-face/v1",
+        "show": {
+          "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+          "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "face_revision": 1,
+          "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+          "lifecycle": "Available",
+          "manifestation": {
+            "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+            "body_id": null,
+            "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+            "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+            "face_revision": 1,
+            "failure": null,
+            "front_subject": "birth/conduitos/creche/current",
+            "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+            "lifecycle": "Available",
+            "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+            "offer_generation": 1,
+            "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+            "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+            "play_sequence": 1,
+            "presenter_artifact_id": "conduitos/native-compositor@1",
+            "presenter_capability_id": "renderer-conduitos-component",
+            "presenter_implementation_id": "face/renderer-conduitos-component@1",
+            "signs": [
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Prepared",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-prepared"
+              },
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Available",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-available"
+              }
+            ],
+            "target_subject": "conduitos/creche/face",
+            "wake_id": null
+          },
+          "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+          "mask_active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+          "mask_plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+          "mask_plot": {
+            "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+            "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "offer_generation": 1,
+          "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+        }
+      },
+      "focus_record": {
+        "action_id": "creche.name",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 2,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+      }
+    },
+    {
+      "label": "naming-action",
+      "extent": [
+        640,
+        480
+      ],
+      "png": "naming-action.png",
+      "face_record": {
+        "face": {
+          "actions": [
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Friendly Body name"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.name",
+              "intent": "conduit.intent/creche.name@1",
+              "name": "Edit Body name",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Naming tradition"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.naming",
+              "intent": "conduit.intent/creche.naming@1",
+              "name": "Use naming tradition",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.suggest",
+              "intent": "conduit.intent/creche.suggest@1",
+              "name": "Suggest another name",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Search Plots"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.search",
+              "intent": "conduit.intent/creche.search@1",
+              "name": "Search Plots",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.0",
+              "intent": "conduit.intent/creche.plot.0@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.1",
+              "intent": "conduit.intent/creche.plot.1@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.2",
+              "intent": "conduit.intent/creche.plot.2@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.3",
+              "intent": "conduit.intent/creche.plot.3@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": {
+                "Unavailable": {
+                  "explanation": "native-body-plot-unavailable",
+                  "reason_code": "birth/unavailable"
+                }
+              },
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.4",
+              "intent": "conduit.intent/creche.plot.4@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "Primary",
+              "identity": "creche.birth",
+              "intent": "conduit.intent/creche.birth@1",
+              "name": "Birth Body",
+              "target": "birth/conduitos/creche/current/navigation"
+            }
+          ],
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "9bf6b12e4a71d11a276aa931b2be3dd8ecc52a7d76bc5f7a88003710ce3cf778",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "composition": [],
+          "disclosures": [
+            {
+              "level": "Primary",
+              "subject": "birth/conduitos/creche/current"
+            },
+            {
+              "level": "Context",
+              "subject": "birth/conduitos/creche/current/main"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "identity": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "interaction_context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "properties": [
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83,
+                    32,
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "Identity": "creche.name"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "Identity": "creche.naming"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "TypedValue": {
+                  "bytes": [],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "Identity": "creche.search"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Identity": "creche.plot.0"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Identity": "creche.plot.1"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Identity": "creche.plot.2"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Identity": "creche.plot.3"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Flag": false
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Identity": "creche.plot.4"
+              }
+            },
+            {
+              "name": "host-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486"
+              }
+            },
+            {
+              "name": "boot-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current",
+              "target": "birth/conduitos/creche/current/main"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "kind": {
+                "Semantic": "document/precedes"
+              },
+              "source": "birth/conduitos/creche/current/navigation",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/body-name",
+              "target": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/name-system",
+              "target": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/plot-search",
+              "target": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/initial-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/0",
+              "target": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/1",
+              "target": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/2",
+              "target": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/3",
+              "target": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/4",
+              "target": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/selected-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "revision": 1,
+          "subjects": [
+            {
+              "identity": "birth/conduitos/creche/current",
+              "name": "A body of your own",
+              "role": "Host"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/main",
+              "name": "A body of your own",
+              "role": {
+                "Semantic": "document/main"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/article",
+              "name": "Body name and starting Plots",
+              "role": {
+                "Semantic": "document/article"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/navigation",
+              "name": "Birth actions",
+              "role": {
+                "Semantic": "document/navigation"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name",
+              "name": "Friendly Body name",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name/input-details",
+              "name": "Friendly Body name input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system",
+              "name": "Naming tradition",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system/input-details",
+              "name": "Naming tradition input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search",
+              "name": "Search Plots",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search/input-details",
+              "name": "Search Plots input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots",
+              "name": "Plots to include",
+              "role": "Collection"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0",
+              "name": "Keyboard canvas",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "name": "Keyboard canvas selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1",
+              "name": "Text editor",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "name": "Text editor selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2",
+              "name": "Tutorial",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "name": "Tutorial selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3",
+              "name": "Patchbay",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "name": "Patchbay selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4",
+              "name": "Hello, world.",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "name": "Hello, world. selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/selected-plots",
+              "name": "Selected: 4",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review",
+              "name": "Review Birth choices",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-0",
+              "name": "Starting Plot 1",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-1",
+              "name": "Starting Plot 2",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-2",
+              "name": "Starting Plot 3",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-3",
+              "name": "Starting Plot 4",
+              "role": "Status"
+            }
+          ],
+          "temporal_facts": [],
+          "temporal_references": [],
+          "text": [
+            {
+              "subject": "birth/conduitos/creche/current/main",
+              "text": "A body of your own"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name",
+              "text": "Give it a name, or use a suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name/input-details",
+              "text": "Current value: TARGUS TARGUS."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system",
+              "text": "Choose a tradition for the next name suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Current value: surprise."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Surprise me. Value: surprise. Selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Roman tria nomina. Value: roman. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Chinese (romanized, family name first). Value: chinese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary American. Value: american. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Mexican (two surnames). Value: mexican. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Icelandic patronymic or matronymic. Value: icelandic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Japanese (romanized, family name first). Value: japanese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Arabic lineage plot. Value: arabic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary French. Value: french. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary British. Value: british. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Classic Anglophone. Value: classic-anglophone. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Korean (romanized, family name first). Value: korean. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Vietnamese (family\u2013middle\u2013given). Value: vietnamese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Yor\u00f9b\u00e1 personal and family names. Value: yoruba. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Ukrainian (official romanization). Value: ukrainian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Biblical Hebrew-inspired patronymic (romanized). Value: ancient-hebrew. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Amharic-style patronymic (romanized). Value: amharic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Portuguese multi-surname. Value: portuguese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Tamil patronymic plots (romanized). Value: tamil. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Indonesian complete personal-name plots (romanized). Value: indonesian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Welsh modern and patronymic plots. Value: welsh. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Kurdish Kurmanji (Latin script). Value: kurmanji. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: The TARGUS family. Value: targus. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Original Elvish-inspired. Value: elvish. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "text": "Find a plot by name or what it uses."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search/input-details",
+              "text": "Current value: (empty)."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "text": "Not included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review",
+              "text": "Name: TARGUS TARGUS. Starting Plots selected: 4 of 5. Birth: available."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0",
+              "text": "Keyboard canvas"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1",
+              "text": "Text editor"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2",
+              "text": "Tutorial"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3",
+              "text": "Patchbay"
+            }
+          ]
+        },
+        "observation_sequence": 1,
+        "play_sequence": 1,
+        "schema": "conduit.native-face/v1",
+        "show": {
+          "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+          "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "face_revision": 1,
+          "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+          "lifecycle": "Available",
+          "manifestation": {
+            "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+            "body_id": null,
+            "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+            "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+            "face_revision": 1,
+            "failure": null,
+            "front_subject": "birth/conduitos/creche/current",
+            "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+            "lifecycle": "Available",
+            "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+            "offer_generation": 1,
+            "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+            "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+            "play_sequence": 1,
+            "presenter_artifact_id": "conduitos/native-compositor@1",
+            "presenter_capability_id": "renderer-conduitos-component",
+            "presenter_implementation_id": "face/renderer-conduitos-component@1",
+            "signs": [
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Prepared",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-prepared"
+              },
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Available",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-available"
+              }
+            ],
+            "target_subject": "conduitos/creche/face",
+            "wake_id": null
+          },
+          "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+          "mask_active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+          "mask_plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+          "mask_plot": {
+            "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+            "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "offer_generation": 1,
+          "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+        }
+      },
+      "focus_record": {
+        "action_id": "creche.naming",
+        "argument_name": null,
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 147
+        },
+        "page": 3,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+      }
+    },
+    {
+      "label": "naming-value",
+      "extent": [
+        640,
+        480
+      ],
+      "png": "naming-value.png",
+      "face_record": {
+        "face": {
+          "actions": [
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Friendly Body name"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.name",
+              "intent": "conduit.intent/creche.name@1",
+              "name": "Edit Body name",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Naming tradition"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.naming",
+              "intent": "conduit.intent/creche.naming@1",
+              "name": "Use naming tradition",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.suggest",
+              "intent": "conduit.intent/creche.suggest@1",
+              "name": "Suggest another name",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  },
+                  "name": "value",
+                  "value_name": "Search Plots"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.search",
+              "intent": "conduit.intent/creche.search@1",
+              "name": "Search Plots",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.0",
+              "intent": "conduit.intent/creche.plot.0@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.1",
+              "intent": "conduit.intent/creche.plot.1@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.2",
+              "intent": "conduit.intent/creche.plot.2@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": "Available",
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.3",
+              "intent": "conduit.intent/creche.plot.3@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "arguments": [
+                {
+                  "contract": {
+                    "constraints": [],
+                    "maximum_bytes": 1,
+                    "value_kind": "value/bool"
+                  },
+                  "name": "value",
+                  "value_name": "Include Plot"
+                }
+              ],
+              "availability": {
+                "Unavailable": {
+                  "explanation": "native-body-plot-unavailable",
+                  "reason_code": "birth/unavailable"
+                }
+              },
+              "disclosure": "CurrentAction",
+              "identity": "creche.plot.4",
+              "intent": "conduit.intent/creche.plot.4@1",
+              "name": "Include Plot",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "arguments": [],
+              "availability": "Available",
+              "disclosure": "Primary",
+              "identity": "creche.birth",
+              "intent": "conduit.intent/creche.birth@1",
+              "name": "Birth Body",
+              "target": "birth/conduitos/creche/current/navigation"
+            }
+          ],
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "9bf6b12e4a71d11a276aa931b2be3dd8ecc52a7d76bc5f7a88003710ce3cf778",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "composition": [],
+          "disclosures": [
+            {
+              "level": "Primary",
+              "subject": "birth/conduitos/creche/current"
+            },
+            {
+              "level": "Context",
+              "subject": "birth/conduitos/creche/current/main"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "level": "SelectedDetail",
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "identity": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "interaction_context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "properties": [
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83,
+                    32,
+                    84,
+                    65,
+                    82,
+                    71,
+                    85,
+                    83
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/body-name",
+              "value": {
+                "Identity": "creche.name"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "TypedValue": {
+                  "bytes": [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 64,
+                          "minimum": 0
+                        }
+                      },
+                      {
+                        "CanonicalMembership": {
+                          "members": [
+                            [
+                              97,
+                              109,
+                              101,
+                              114,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              97,
+                              109,
+                              104,
+                              97,
+                              114,
+                              105,
+                              99
+                            ],
+                            [
+                              97,
+                              110,
+                              99,
+                              105,
+                              101,
+                              110,
+                              116,
+                              45,
+                              104,
+                              101,
+                              98,
+                              114,
+                              101,
+                              119
+                            ],
+                            [
+                              97,
+                              114,
+                              97,
+                              98,
+                              105,
+                              99
+                            ],
+                            [
+                              98,
+                              114,
+                              105,
+                              116,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              99,
+                              104,
+                              105,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              99,
+                              108,
+                              97,
+                              115,
+                              115,
+                              105,
+                              99,
+                              45,
+                              97,
+                              110,
+                              103,
+                              108,
+                              111,
+                              112,
+                              104,
+                              111,
+                              110,
+                              101
+                            ],
+                            [
+                              101,
+                              108,
+                              118,
+                              105,
+                              115,
+                              104
+                            ],
+                            [
+                              102,
+                              114,
+                              101,
+                              110,
+                              99,
+                              104
+                            ],
+                            [
+                              105,
+                              99,
+                              101,
+                              108,
+                              97,
+                              110,
+                              100,
+                              105,
+                              99
+                            ],
+                            [
+                              105,
+                              110,
+                              100,
+                              111,
+                              110,
+                              101,
+                              115,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              106,
+                              97,
+                              112,
+                              97,
+                              110,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              107,
+                              111,
+                              114,
+                              101,
+                              97,
+                              110
+                            ],
+                            [
+                              107,
+                              117,
+                              114,
+                              109,
+                              97,
+                              110,
+                              106,
+                              105
+                            ],
+                            [
+                              109,
+                              101,
+                              120,
+                              105,
+                              99,
+                              97,
+                              110
+                            ],
+                            [
+                              112,
+                              111,
+                              114,
+                              116,
+                              117,
+                              103,
+                              117,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              114,
+                              111,
+                              109,
+                              97,
+                              110
+                            ],
+                            [
+                              115,
+                              117,
+                              114,
+                              112,
+                              114,
+                              105,
+                              115,
+                              101
+                            ],
+                            [
+                              116,
+                              97,
+                              109,
+                              105,
+                              108
+                            ],
+                            [
+                              116,
+                              97,
+                              114,
+                              103,
+                              117,
+                              115
+                            ],
+                            [
+                              117,
+                              107,
+                              114,
+                              97,
+                              105,
+                              110,
+                              105,
+                              97,
+                              110
+                            ],
+                            [
+                              118,
+                              105,
+                              101,
+                              116,
+                              110,
+                              97,
+                              109,
+                              101,
+                              115,
+                              101
+                            ],
+                            [
+                              119,
+                              101,
+                              108,
+                              115,
+                              104
+                            ],
+                            [
+                              121,
+                              111,
+                              114,
+                              117,
+                              98,
+                              97
+                            ]
+                          ],
+                          "negated": false
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 64,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/name-system",
+              "value": {
+                "Identity": "creche.naming"
+              }
+            },
+            {
+              "name": "current-value",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "TypedValue": {
+                  "bytes": [],
+                  "contract": {
+                    "constraints": [
+                      {
+                        "ByteLength": {
+                          "maximum": 128,
+                          "minimum": 0
+                        }
+                      }
+                    ],
+                    "maximum_bytes": 128,
+                    "value_kind": "value/text"
+                  }
+                }
+              }
+            },
+            {
+              "name": "value-change-action",
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "value": {
+                "Identity": "creche.search"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/0",
+              "value": {
+                "Identity": "creche.plot.0"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/1",
+              "value": {
+                "Identity": "creche.plot.1"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/2",
+              "value": {
+                "Identity": "creche.plot.2"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Flag": true
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/3",
+              "value": {
+                "Identity": "creche.plot.3"
+              }
+            },
+            {
+              "name": "selected",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Flag": false
+              }
+            },
+            {
+              "name": "boolean-change-action",
+              "subject": "birth/conduitos/creche/current/initial-plots/4",
+              "value": {
+                "Identity": "creche.plot.4"
+              }
+            },
+            {
+              "name": "host-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486"
+              }
+            },
+            {
+              "name": "boot-id",
+              "subject": "birth/conduitos/creche/current",
+              "value": {
+                "Identity": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current",
+              "target": "birth/conduitos/creche/current/main"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/main",
+              "target": "birth/conduitos/creche/current/navigation"
+            },
+            {
+              "kind": {
+                "Semantic": "document/precedes"
+              },
+              "source": "birth/conduitos/creche/current/navigation",
+              "target": "birth/conduitos/creche/current/article"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/body-name"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/body-name",
+              "target": "birth/conduitos/creche/current/body-name/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/name-system"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/name-system",
+              "target": "birth/conduitos/creche/current/name-system/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/plot-search"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/plot-search",
+              "target": "birth/conduitos/creche/current/plot-search/input-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/initial-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/0",
+              "target": "birth/conduitos/creche/current/initial-plots/0/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/1",
+              "target": "birth/conduitos/creche/current/initial-plots/1/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/2",
+              "target": "birth/conduitos/creche/current/initial-plots/2/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/3"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/3",
+              "target": "birth/conduitos/creche/current/initial-plots/3/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots",
+              "target": "birth/conduitos/creche/current/initial-plots/4"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/initial-plots/4",
+              "target": "birth/conduitos/creche/current/initial-plots/4/selection-details"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/selected-plots"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-0"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-1"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-2"
+            },
+            {
+              "kind": "Contains",
+              "source": "birth/conduitos/creche/current/article",
+              "target": "birth/conduitos/creche/current/birth-review-plot-3"
+            }
+          ],
+          "revision": 1,
+          "subjects": [
+            {
+              "identity": "birth/conduitos/creche/current",
+              "name": "A body of your own",
+              "role": "Host"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/main",
+              "name": "A body of your own",
+              "role": {
+                "Semantic": "document/main"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/article",
+              "name": "Body name and starting Plots",
+              "role": {
+                "Semantic": "document/article"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/navigation",
+              "name": "Birth actions",
+              "role": {
+                "Semantic": "document/navigation"
+              }
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name",
+              "name": "Friendly Body name",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/body-name/input-details",
+              "name": "Friendly Body name input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system",
+              "name": "Naming tradition",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/name-system/input-details",
+              "name": "Naming tradition input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search",
+              "name": "Search Plots",
+              "role": "TextEntry"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/plot-search/input-details",
+              "name": "Search Plots input details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots",
+              "name": "Plots to include",
+              "role": "Collection"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0",
+              "name": "Keyboard canvas",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "name": "Keyboard canvas selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1",
+              "name": "Text editor",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "name": "Text editor selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2",
+              "name": "Tutorial",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "name": "Tutorial selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3",
+              "name": "Patchbay",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "name": "Patchbay selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4",
+              "name": "Hello, world.",
+              "role": "Plot"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "name": "Hello, world. selection details",
+              "role": "Info"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/selected-plots",
+              "name": "Selected: 4",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review",
+              "name": "Review Birth choices",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-0",
+              "name": "Starting Plot 1",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-1",
+              "name": "Starting Plot 2",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-2",
+              "name": "Starting Plot 3",
+              "role": "Status"
+            },
+            {
+              "identity": "birth/conduitos/creche/current/birth-review-plot-3",
+              "name": "Starting Plot 4",
+              "role": "Status"
+            }
+          ],
+          "temporal_facts": [],
+          "temporal_references": [],
+          "text": [
+            {
+              "subject": "birth/conduitos/creche/current/main",
+              "text": "A body of your own"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name",
+              "text": "Give it a name, or use a suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/body-name/input-details",
+              "text": "Current value: TARGUS TARGUS."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system",
+              "text": "Choose a tradition for the next name suggestion."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Current value: surprise."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Surprise me. Value: surprise. Selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Roman tria nomina. Value: roman. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Chinese (romanized, family name first). Value: chinese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary American. Value: american. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Mexican (two surnames). Value: mexican. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Icelandic patronymic or matronymic. Value: icelandic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Japanese (romanized, family name first). Value: japanese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Arabic lineage plot. Value: arabic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary French. Value: french. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Contemporary British. Value: british. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Classic Anglophone. Value: classic-anglophone. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Korean (romanized, family name first). Value: korean. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Vietnamese (family\u2013middle\u2013given). Value: vietnamese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Yor\u00f9b\u00e1 personal and family names. Value: yoruba. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Ukrainian (official romanization). Value: ukrainian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Biblical Hebrew-inspired patronymic (romanized). Value: ancient-hebrew. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Amharic-style patronymic (romanized). Value: amharic. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Portuguese multi-surname. Value: portuguese. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Tamil patronymic plots (romanized). Value: tamil. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Indonesian complete personal-name plots (romanized). Value: indonesian. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Welsh modern and patronymic plots. Value: welsh. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Kurdish Kurmanji (Latin script). Value: kurmanji. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: The TARGUS family. Value: targus. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/name-system/input-details",
+              "text": "Choice: Original Elvish-inspired. Value: elvish. Not selected."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search",
+              "text": "Find a plot by name or what it uses."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/plot-search/input-details",
+              "text": "Current value: (empty)."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/0/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/1/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/2/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/3/selection-details",
+              "text": "Included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/initial-plots/4/selection-details",
+              "text": "Not included."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review",
+              "text": "Name: TARGUS TARGUS. Starting Plots selected: 4 of 5. Birth: available."
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-0",
+              "text": "Keyboard canvas"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-1",
+              "text": "Text editor"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-2",
+              "text": "Tutorial"
+            },
+            {
+              "subject": "birth/conduitos/creche/current/birth-review-plot-3",
+              "text": "Patchbay"
+            }
+          ]
+        },
+        "observation_sequence": 1,
+        "play_sequence": 1,
+        "schema": "conduit.native-face/v1",
+        "show": {
+          "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+          "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+          "face_revision": 1,
+          "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+          "lifecycle": "Available",
+          "manifestation": {
+            "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+            "body_id": null,
+            "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+            "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+            "face_revision": 1,
+            "failure": null,
+            "front_subject": "birth/conduitos/creche/current",
+            "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+            "lifecycle": "Available",
+            "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+            "offer_generation": 1,
+            "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+            "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+            "play_sequence": 1,
+            "presenter_artifact_id": "conduitos/native-compositor@1",
+            "presenter_capability_id": "renderer-conduitos-component",
+            "presenter_implementation_id": "face/renderer-conduitos-component@1",
+            "signs": [
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Prepared",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-prepared"
+              },
+              {
+                "active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+                "boot_id": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670",
+                "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+                "failure": null,
+                "host_id": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486",
+                "lifecycle": "Available",
+                "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+                "offer_generation": 1,
+                "placement_id": "1d3892fd27152b5f050242cabf04a2e00fd102675e3d703e41b42f26db3a4011",
+                "plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+                "play_sequence": 1,
+                "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                "sign_id": "conduitos/mask/render-available"
+              }
+            ],
+            "target_subject": "conduitos/creche/face",
+            "wake_id": null
+          },
+          "manifestation_id": "2d8727c5d0e07e562e150f71474abd68d1a50a7f4ddc6f03098e6c65c5522bff",
+          "mask_active_play_id": "f943cb3786b4a2c23d6b1b842fe66a5037d059d5b0a6dd758faf3d2e6bd5fdd2",
+          "mask_plan_id": "5d3e786aeea19d25c5fbb64591ce817cd3182d3126671415049520b1181caccd",
+          "mask_plot": {
+            "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+            "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "offer_generation": 1,
+          "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+        }
+      },
+      "focus_record": {
+        "action_id": "creche.naming",
+        "argument_name": "value",
+        "display_bounds": {
+          "height": 480,
+          "width": 640,
+          "x": 0,
+          "y": 0
+        },
+        "face_id": "265ce7c5133353f744fd649a73aedae7f4dbdef494cd3bafae9197f409899f90",
+        "face_revision": 1,
+        "hit_bounds": {
+          "height": 36,
+          "width": 588,
+          "x": 40,
+          "y": 191
+        },
+        "page": 3,
+        "pages": 3,
+        "schema": "conduit.creche-focus/v1",
+        "show_id": "show/335eeb730176ea1302fe13de922ec24923c863f998a2708ef223e331088989cb"
+      }
+    }
+  ],
+  "failure": null,
+  "build_id": "build:sha256:74edbc3670947fbd2f491954543952d98cbd423b1337333e39fbdffd1539641b",
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "actual_iso_sha256": "95b04f1e43ab627fe856e77eb4eff432925d222a053c097bf0221e13607f0ab6",
+  "checkout_head": "66af5bb2867dab8d97b940e7aeaa5aa540bb15a6",
+  "checkout_status": "",
+  "qemu_argv": [
+    "qemu-system-x86_64",
+    "-M",
+    "q35",
+    "-cpu",
+    "max",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-vga",
+    "none",
+    "-device",
+    "VGA,xres=640,yres=480",
+    "-monitor",
+    "none",
+    "-qmp",
+    "unix:/tmp/ncp-wkmt0rhz/qmp.sock,server=on,wait=off",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-narrow-tradition/serial.log",
+    "-no-reboot",
+    "-net",
+    "none",
+    "-device",
+    "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+    "-device",
+    "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+    "-device",
+    "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6158-fixed-product/conduitos-x86_64.iso",
+    "-boot",
+    "d"
+  ],
+  "naming_action": {
+    "arguments": [
+      {
+        "contract": {
+          "constraints": [
+            {
+              "ByteLength": {
+                "maximum": 64,
+                "minimum": 0
+              }
+            },
+            {
+              "CanonicalMembership": {
+                "members": [
+                  [
+                    97,
+                    109,
+                    101,
+                    114,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  [
+                    97,
+                    109,
+                    104,
+                    97,
+                    114,
+                    105,
+                    99
+                  ],
+                  [
+                    97,
+                    110,
+                    99,
+                    105,
+                    101,
+                    110,
+                    116,
+                    45,
+                    104,
+                    101,
+                    98,
+                    114,
+                    101,
+                    119
+                  ],
+                  [
+                    97,
+                    114,
+                    97,
+                    98,
+                    105,
+                    99
+                  ],
+                  [
+                    98,
+                    114,
+                    105,
+                    116,
+                    105,
+                    115,
+                    104
+                  ],
+                  [
+                    99,
+                    104,
+                    105,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    99,
+                    108,
+                    97,
+                    115,
+                    115,
+                    105,
+                    99,
+                    45,
+                    97,
+                    110,
+                    103,
+                    108,
+                    111,
+                    112,
+                    104,
+                    111,
+                    110,
+                    101
+                  ],
+                  [
+                    101,
+                    108,
+                    118,
+                    105,
+                    115,
+                    104
+                  ],
+                  [
+                    102,
+                    114,
+                    101,
+                    110,
+                    99,
+                    104
+                  ],
+                  [
+                    105,
+                    99,
+                    101,
+                    108,
+                    97,
+                    110,
+                    100,
+                    105,
+                    99
+                  ],
+                  [
+                    105,
+                    110,
+                    100,
+                    111,
+                    110,
+                    101,
+                    115,
+                    105,
+                    97,
+                    110
+                  ],
+                  [
+                    106,
+                    97,
+                    112,
+                    97,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    107,
+                    111,
+                    114,
+                    101,
+                    97,
+                    110
+                  ],
+                  [
+                    107,
+                    117,
+                    114,
+                    109,
+                    97,
+                    110,
+                    106,
+                    105
+                  ],
+                  [
+                    109,
+                    101,
+                    120,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  [
+                    112,
+                    111,
+                    114,
+                    116,
+                    117,
+                    103,
+                    117,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    114,
+                    111,
+                    109,
+                    97,
+                    110
+                  ],
+                  [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  [
+                    116,
+                    97,
+                    109,
+                    105,
+                    108
+                  ],
+                  [
+                    116,
+                    97,
+                    114,
+                    103,
+                    117,
+                    115
+                  ],
+                  [
+                    117,
+                    107,
+                    114,
+                    97,
+                    105,
+                    110,
+                    105,
+                    97,
+                    110
+                  ],
+                  [
+                    118,
+                    105,
+                    101,
+                    116,
+                    110,
+                    97,
+                    109,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    119,
+                    101,
+                    108,
+                    115,
+                    104
+                  ],
+                  [
+                    121,
+                    111,
+                    114,
+                    117,
+                    98,
+                    97
+                  ]
+                ],
+                "negated": false
+              }
+            }
+          ],
+          "maximum_bytes": 64,
+          "value_kind": "value/text"
+        },
+        "name": "value",
+        "value_name": "Naming tradition"
+      }
+    ],
+    "availability": "Available",
+    "disclosure": "CurrentAction",
+    "identity": "creche.naming",
+    "intent": "conduit.intent/creche.naming@1",
+    "name": "Use naming tradition",
+    "target": "birth/conduitos/creche/current/name-system"
+  },
+  "naming_help_and_values": [
+    {
+      "name": "current-value",
+      "subject": "birth/conduitos/creche/current/body-name",
+      "value": {
+        "TypedValue": {
+          "bytes": [
+            84,
+            65,
+            82,
+            71,
+            85,
+            83,
+            32,
+            84,
+            65,
+            82,
+            71,
+            85,
+            83
+          ],
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 64,
+                  "minimum": 0
+                }
+              }
+            ],
+            "maximum_bytes": 64,
+            "value_kind": "value/text"
+          }
+        }
+      }
+    },
+    {
+      "name": "value-change-action",
+      "subject": "birth/conduitos/creche/current/body-name",
+      "value": {
+        "Identity": "creche.name"
+      }
+    },
+    {
+      "name": "current-value",
+      "subject": "birth/conduitos/creche/current/name-system",
+      "value": {
+        "TypedValue": {
+          "bytes": [
+            115,
+            117,
+            114,
+            112,
+            114,
+            105,
+            115,
+            101
+          ],
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 64,
+                  "minimum": 0
+                }
+              },
+              {
+                "CanonicalMembership": {
+                  "members": [
+                    [
+                      97,
+                      109,
+                      101,
+                      114,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      97,
+                      109,
+                      104,
+                      97,
+                      114,
+                      105,
+                      99
+                    ],
+                    [
+                      97,
+                      110,
+                      99,
+                      105,
+                      101,
+                      110,
+                      116,
+                      45,
+                      104,
+                      101,
+                      98,
+                      114,
+                      101,
+                      119
+                    ],
+                    [
+                      97,
+                      114,
+                      97,
+                      98,
+                      105,
+                      99
+                    ],
+                    [
+                      98,
+                      114,
+                      105,
+                      116,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      99,
+                      104,
+                      105,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      99,
+                      108,
+                      97,
+                      115,
+                      115,
+                      105,
+                      99,
+                      45,
+                      97,
+                      110,
+                      103,
+                      108,
+                      111,
+                      112,
+                      104,
+                      111,
+                      110,
+                      101
+                    ],
+                    [
+                      101,
+                      108,
+                      118,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      102,
+                      114,
+                      101,
+                      110,
+                      99,
+                      104
+                    ],
+                    [
+                      105,
+                      99,
+                      101,
+                      108,
+                      97,
+                      110,
+                      100,
+                      105,
+                      99
+                    ],
+                    [
+                      105,
+                      110,
+                      100,
+                      111,
+                      110,
+                      101,
+                      115,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      106,
+                      97,
+                      112,
+                      97,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      107,
+                      111,
+                      114,
+                      101,
+                      97,
+                      110
+                    ],
+                    [
+                      107,
+                      117,
+                      114,
+                      109,
+                      97,
+                      110,
+                      106,
+                      105
+                    ],
+                    [
+                      109,
+                      101,
+                      120,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      112,
+                      111,
+                      114,
+                      116,
+                      117,
+                      103,
+                      117,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      114,
+                      111,
+                      109,
+                      97,
+                      110
+                    ],
+                    [
+                      115,
+                      117,
+                      114,
+                      112,
+                      114,
+                      105,
+                      115,
+                      101
+                    ],
+                    [
+                      116,
+                      97,
+                      109,
+                      105,
+                      108
+                    ],
+                    [
+                      116,
+                      97,
+                      114,
+                      103,
+                      117,
+                      115
+                    ],
+                    [
+                      117,
+                      107,
+                      114,
+                      97,
+                      105,
+                      110,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      118,
+                      105,
+                      101,
+                      116,
+                      110,
+                      97,
+                      109,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      119,
+                      101,
+                      108,
+                      115,
+                      104
+                    ],
+                    [
+                      121,
+                      111,
+                      114,
+                      117,
+                      98,
+                      97
+                    ]
+                  ],
+                  "negated": false
+                }
+              }
+            ],
+            "maximum_bytes": 64,
+            "value_kind": "value/text"
+          }
+        }
+      }
+    },
+    {
+      "name": "value-change-action",
+      "subject": "birth/conduitos/creche/current/name-system",
+      "value": {
+        "Identity": "creche.naming"
+      }
+    },
+    {
+      "name": "current-value",
+      "subject": "birth/conduitos/creche/current/plot-search",
+      "value": {
+        "TypedValue": {
+          "bytes": [],
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 128,
+                  "minimum": 0
+                }
+              }
+            ],
+            "maximum_bytes": 128,
+            "value_kind": "value/text"
+          }
+        }
+      }
+    },
+    {
+      "name": "value-change-action",
+      "subject": "birth/conduitos/creche/current/plot-search",
+      "value": {
+        "Identity": "creche.search"
+      }
+    },
+    {
+      "name": "selected",
+      "subject": "birth/conduitos/creche/current/initial-plots/0",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "name": "boolean-change-action",
+      "subject": "birth/conduitos/creche/current/initial-plots/0",
+      "value": {
+        "Identity": "creche.plot.0"
+      }
+    },
+    {
+      "name": "selected",
+      "subject": "birth/conduitos/creche/current/initial-plots/1",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "name": "boolean-change-action",
+      "subject": "birth/conduitos/creche/current/initial-plots/1",
+      "value": {
+        "Identity": "creche.plot.1"
+      }
+    },
+    {
+      "name": "selected",
+      "subject": "birth/conduitos/creche/current/initial-plots/2",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "name": "boolean-change-action",
+      "subject": "birth/conduitos/creche/current/initial-plots/2",
+      "value": {
+        "Identity": "creche.plot.2"
+      }
+    },
+    {
+      "name": "selected",
+      "subject": "birth/conduitos/creche/current/initial-plots/3",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "name": "boolean-change-action",
+      "subject": "birth/conduitos/creche/current/initial-plots/3",
+      "value": {
+        "Identity": "creche.plot.3"
+      }
+    },
+    {
+      "name": "selected",
+      "subject": "birth/conduitos/creche/current/initial-plots/4",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "name": "boolean-change-action",
+      "subject": "birth/conduitos/creche/current/initial-plots/4",
+      "value": {
+        "Identity": "creche.plot.4"
+      }
+    },
+    {
+      "name": "host-id",
+      "subject": "birth/conduitos/creche/current",
+      "value": {
+        "Identity": "fa6de4bd1cf7c1b02ae70fae6373f756ac94b36509bb2996a1245103438e2486"
+      }
+    },
+    {
+      "name": "boot-id",
+      "subject": "birth/conduitos/creche/current",
+      "value": {
+        "Identity": "d023829f7eaf8ad10d31bdce6a4d8dcc2878933000b7c12416731fca850e6670"
+      }
+    }
+  ],
+  "note": "Inspect actual PNGs for visible naming help/action/value; semantic reachability alone is not visibility proof."
+}
