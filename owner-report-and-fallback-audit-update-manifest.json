@@ -1,0 +1,30 @@
+{
+  "parent": "e3ebd5150ae87cafaa86289c8d2e6ace3b3968a1",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 12841,
+      "sha256": "49e74cf3fe12680dc214c79c24fd297823c1fde60a8e788de73898af214d8aa7",
+      "mode": "100644",
+      "blob": "b952cc1a1fb9534867abed1ea4e954d4c9026e27"
+    },
+    {
+      "source": "work/5628-owner-report-identity-review.md",
+      "tree_path": "task-6038/work/5628-owner-report-identity-review.md",
+      "bytes": 1480,
+      "sha256": "60a1e6b8e86239590492db7a91e2a5ce79be640fb43cd742f18c78c4462bf960",
+      "mode": "100644",
+      "blob": "fece001cbc68d5562a498bf93e8b078afb9900cb"
+    },
+    {
+      "source": "work/5628-native-fallback-proof-seam.md",
+      "tree_path": "task-6038/work/5628-native-fallback-proof-seam.md",
+      "bytes": 5881,
+      "sha256": "82c707cdbf83e08656a4223ba22aab4d9acf2a3256553112bc82dc5d46ade912",
+      "mode": "100644",
+      "blob": "54ad20ac164db4cff66439a48902b02e92f47b7c"
+    }
+  ]
+}
