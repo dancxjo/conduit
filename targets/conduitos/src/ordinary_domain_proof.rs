@@ -2,6 +2,8 @@
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
 mod compositor;
+#[cfg(conduitos_compositor_hostile_images)]
+mod compositor_hostile;
 #[cfg(feature = "native-compositor")]
 mod compositor_recovery;
 mod gates;
@@ -56,6 +58,8 @@ pub fn run(record: &boot::BootRecord) -> ! {
     hostile_entries();
     service_memory::run();
     compositor::run();
+    #[cfg(conduitos_compositor_hostile_images)]
+    compositor_hostile::run();
     #[cfg(feature = "native-compositor")]
     compositor_recovery::run();
     timer::run();

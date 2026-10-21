@@ -1,3 +1,5 @@
+#[path = "build/compositor_hostile_images.rs"]
+mod compositor_hostile_images;
 #[path = "build/compositor_image.rs"]
 mod compositor_image;
 #[path = "build/domain_image.rs"]
@@ -10,6 +12,7 @@ fn main() {
     use std::{env, fs, path::PathBuf};
     domain_image::generate();
     compositor_image::generate();
+    compositor_hostile_images::generate();
 
     println!("cargo:rerun-if-changed=firmware/linker/x86_64.ld");
     println!("cargo:rerun-if-changed=proof/appliances/aarch64/linker/a0.ld");

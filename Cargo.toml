@@ -112,6 +112,7 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"targets/conduitos/compositor-hostile-proof",
 	"targets/conduitos/compositor-service",
 	"targets/avr/firmware/promicro-host",
 	"targets/esp32/firmware/c3-signal",
