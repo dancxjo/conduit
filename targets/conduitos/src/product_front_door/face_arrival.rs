@@ -215,7 +215,11 @@ impl FaceArrival {
             .key(event, sequence, display)
             .map_err(|error| error.as_str())?
         {
-            NativeFaceMaskInput::Unchanged | NativeFaceMaskInput::Redrawn(_) => Ok(None),
+            NativeFaceMaskInput::Unchanged => Ok(None),
+            NativeFaceMaskInput::Redrawn(_) => {
+                self.record_focus()?;
+                Ok(None)
+            }
             NativeFaceMaskInput::Submitted { correlation, .. } => {
                 Ok(Some((show, correlation.interaction)))
             }

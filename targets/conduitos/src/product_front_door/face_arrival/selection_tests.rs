@@ -178,7 +178,12 @@ fn local_selection_disposition_preserves_pending_mask_and_opaque_route() {
     };
     arrival.mask.focus_named(&focus, &mut display).unwrap();
     let key = |usage| KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
-    arrival.mask.key(key(4), 1, &mut display).unwrap();
+    assert!(
+        arrival
+            .accept_guest_key(key(4), &mut display)
+            .unwrap()
+            .is_none()
+    );
     let show = arrival.mask.show().unwrap().clone();
     let mut route = Some(7u8); // Opaque custody sentinel, not an authenticated owner.
     let mut current = None;
@@ -201,14 +206,15 @@ fn local_selection_disposition_preserves_pending_mask_and_opaque_route() {
     assert_eq!(arrival.mask.scene().unwrap().focused_request(), Some(focus));
     assert_eq!(arrival.mask.scene().unwrap().face(), &face);
     assert!(arrival.mask.scene().unwrap().has_pending_input());
-    let NativeFaceMaskInput::Submitted { correlation, .. } =
-        arrival.mask.key(key(40), 2, &mut display).unwrap()
+    let Some((submitted_show, interaction)) =
+        arrival.accept_guest_key(key(40), &mut display).unwrap()
     else {
         panic!("retained draft must submit");
     };
-    assert_eq!(correlation.interaction.action_id, "edit");
-    assert_eq!(correlation.interaction.arguments[0].name, "value");
-    assert_eq!(correlation.interaction.arguments[0].value, b"a");
+    assert_eq!(submitted_show, show);
+    assert_eq!(interaction.action_id, "edit");
+    assert_eq!(interaction.arguments[0].name, "value");
+    assert_eq!(interaction.arguments[0].value, b"a");
     assert_eq!(
         apply_result(
             &mut arrival,
