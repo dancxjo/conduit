@@ -35,7 +35,8 @@ fn main() {
     let _metadata = Grant::new(0x625000, 256 * 1024);
     let _pixels = Grant::new(0x666000, 8 * 1024 * 1024);
     let _scratch = Grant::new(0xe67000, 8 * 1024 * 1024);
-    unsafe { memory::initialize(7, 1, 4, 4) }.unwrap();
+    // Viewport area is independent of the retained surface storage ceiling.
+    unsafe { memory::initialize(7, 1, 3840, 2160) }.unwrap();
     assert!(unsafe { memory::initialize(8, 2, 4, 4) }.is_err());
     let mut invoked = false;
     assert!(unsafe { memory::with_core(8, 2, |_| invoked = true) }.is_err());

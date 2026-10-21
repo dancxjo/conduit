@@ -1,7 +1,8 @@
 # Retained compositor core preparation
 
 This dependency-free `no_std` crate is local preparation for ConduitOS #6177.
-It is not integrated into the product or a protected image yet.
+It is used by an independently linked service image and its fixture. Production
+graphical integration and protected guest execution are still being verified.
 
 The caller provides two disjoint 2,097,152-element `u32` arenas. One is the
 current retained raster store; the other holds a complete upload transaction.
@@ -10,6 +11,9 @@ an upload copies unchanged rasters in steps of at most 16,384 pixels. The new
 raster arrives in ordered chunks within the same limit. Only a complete upload
 can swap arena roles and publish its revision. Aborting preserves the current
 raster. No equal surface partition, allocator or hidden pixel store is used.
+
+The retained pixel ceiling bounds stored surfaces, not viewport area. Composition
+streams larger admitted viewports through a fixed output window.
 
 Composition emits horizontal spans of at most 16,384 canonical RGB pixels.
 Focus and cursor pixels follow the native compositor's frozen reference.

@@ -50,12 +50,7 @@ pub unsafe fn initialize(
     if unsafe { ptr::addr_of!((*state).initialized).read() } != 0 {
         return Err(MemoryError::AlreadyInitialized);
     }
-    if instance == 0
-        || request == 0
-        || width == 0
-        || height == 0
-        || usize::from(width) * usize::from(height) > MAX_PIXELS
-    {
+    if instance == 0 || request == 0 || width == 0 || height == 0 {
         return Err(MemoryError::Dimensions);
     }
     // Exclusively borrow each entire arena ONCE. Compositor swaps these borrows

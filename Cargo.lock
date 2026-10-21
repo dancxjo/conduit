@@ -2850,6 +2850,7 @@ dependencies = [
  "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
+ "conduitos-compositor-core",
  "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-tls",
@@ -2867,6 +2868,10 @@ dependencies = [
  "sha2 0.10.9",
  "smoltcp",
 ]
+
+[[package]]
+name = "conduitos-compositor-core"
+version = "0.1.0"
 
 [[package]]
 name = "console"

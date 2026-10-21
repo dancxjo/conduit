@@ -17,6 +17,9 @@ pub mod bounded_host_calls;
 #[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
 pub mod composition;
+#[cfg(test)]
+#[path = "protected_compositor/frame_grant.rs"]
+mod compositor_frame_grant_tests;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;
@@ -153,6 +156,8 @@ pub mod pc_speaker_play;
 pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub mod protected_compositor;
 pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]

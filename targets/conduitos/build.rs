@@ -1,3 +1,5 @@
+#[path = "build/compositor_image.rs"]
+mod compositor_image;
 #[path = "build/domain_image.rs"]
 mod domain_image;
 #[cfg(feature = "native-compositor")]
@@ -7,6 +9,7 @@ mod typography;
 fn main() {
     use std::{env, fs, path::PathBuf};
     domain_image::generate();
+    compositor_image::generate();
 
     println!("cargo:rerun-if-changed=firmware/linker/x86_64.ld");
     println!("cargo:rerun-if-changed=proof/appliances/aarch64/linker/a0.ld");
