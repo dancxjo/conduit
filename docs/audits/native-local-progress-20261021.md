@@ -7,8 +7,10 @@ created by this checkpoint; no stable acceptance or issue closure is claimed.
 
 ## #6158 continuation
 
-After the first authored region is exhausted, continuation of the remaining
-region occupies the available panel width. Page arrangement precedes field and
+An empty authored region never reserves a lane. A sole populated panel uses
+full width from its first page through continuation. After the first region of
+a populated pair is exhausted, continuation of the remaining region also
+occupies the available panel width. Page arrangement precedes field and
 chunk measurement. A page advance remeasures wrapping, command cost and control
 bounds; panel fill/outline reservations, source reading order and the existing
 20-row/48-command limits remain in force. Narrow layouts retain their existing

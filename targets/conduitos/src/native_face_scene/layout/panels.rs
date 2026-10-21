@@ -19,6 +19,7 @@ struct Flow {
     width: u16,
     column: u16,
     single_lane: bool,
+    paired_regions: bool,
     top: u16,
     bottom: u16,
     y: u16,
@@ -35,6 +36,7 @@ impl Flow {
         scale: u16,
         groups: [u8; 2],
         typography: Typography,
+        paired_regions: bool,
     ) -> Result<Self, FaceSceneError> {
         let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
         let width = screen
@@ -51,7 +53,8 @@ impl Flow {
             gutter,
             width,
             column,
-            single_lane: false,
+            single_lane: !paired_regions,
+            paired_regions,
             top: chrome.top,
             bottom: chrome.bottom,
             y: chrome.top,
@@ -152,7 +155,7 @@ impl Flow {
         // exhausts the first region before the second: only the latter remains
         // when its continuation starts, so it no longer reserves an empty lane.
         self.page += usize::from(self.count != 0);
-        self.single_lane = region == Some(self.groups[1]);
+        self.single_lane = !self.paired_regions || region == Some(self.groups[1]);
         self.count = 0;
         self.commands = chrome::COMMANDS + 1;
         self.y = self.top;
@@ -196,7 +199,14 @@ pub(super) fn admit(
     typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
     let items = ordering::prepare(items, groups)?;
-    let mut flow = Flow::new(screen, gutter, scale, groups, typography)?;
+    // Empty authored regions do not reserve space. This decision is derived
+    // from admitted rows, without changing source subjects or reading order.
+    let paired_regions = groups.iter().all(|group| {
+        items
+            .iter()
+            .any(|(_, item)| item.region == Some(*group) && !item.text.is_empty())
+    });
+    let mut flow = Flow::new(screen, gutter, scale, groups, typography, paired_regions)?;
     let padding = fit_padding(
         items.iter().map(|(_, item)| item),
         (flow.bottom - flow.top).saturating_sub(EDGE * 2),
