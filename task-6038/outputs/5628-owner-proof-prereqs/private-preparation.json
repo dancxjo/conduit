@@ -1,0 +1,12 @@
+{
+  "scope": "Private certificate/checkpoint preparation only; no installation, invitation, owner or guest yet",
+  "private_storage": true,
+  "key_private_mode_verified": true,
+  "directory_private_mode_verified": true,
+  "guest_ip_verification": "passed",
+  "algorithm": "P-256",
+  "valid_days": 2,
+  "certificate_sha256": "e4672db49fc4079a0d2a37091ca7fa6eb9a1f995283576b9838f32d9169dc966",
+  "empty_checkpoint_created": true,
+  "secrets_published": false
+}

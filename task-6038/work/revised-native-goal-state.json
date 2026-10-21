@@ -265,6 +265,8 @@
     "product_build_session": 53194,
     "wire": "8passed/0failed",
     "selected_cache_owner": "native_ci_validation",
-    "product_cache_owner": "root/native-panels-host-target"
+    "product_cache_owner": "root/native-panels-host-target",
+    "private_proof_setup": "new mode0700 directory, empty isolated checkpoint, private P256 TLS certificate verified for guestIP; no owner/invitation/guest yet",
+    "browser_session_helper": "browser_gate_repair implementing private helper; no actual browser started"
   }
 }

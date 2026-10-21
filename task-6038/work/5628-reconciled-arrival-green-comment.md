@@ -1,0 +1,3 @@
+Reconciled native arrival checks passed: **6 passed, 0 failed**, covering both local density/palette swaps with bounded draft transfer and authenticated owner refusal/pre-swap regressions. Formatting and all eight browser wire tests also pass. [Source-bound raw focused log and receipt](https://github.com/dancxjo/conduit/tree/d456dbda16b67fec1611945529cc4fd5382e2f66/task-6038/outputs/5628-reconciled-253dcb985).
+
+The supported full workspace check and normal graphical product build are now running on frozen source `253dcb985`. These CPU checks do not establish guest/owner-route or stable acceptance.

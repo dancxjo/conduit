@@ -1,0 +1,30 @@
+{
+  "parent": "d456dbda16b67fec1611945529cc4fd5382e2f66",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 12504,
+      "sha256": "0388eb61cfdf9f45f8cd08f1947496343c65bd58d86759046375ebb306d38ffc",
+      "mode": "100644",
+      "blob": "4bb55ea24e816e78f51bb5c972dbd55291355465"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/private-preparation.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/private-preparation.json",
+      "bytes": 459,
+      "sha256": "716cd6fb32a7d29eb9e388c48227793c8039e295fc3f42339c9707a33d307a77",
+      "mode": "100644",
+      "blob": "fababaaddd4420e805dfaad95daf76bf3ab3223a"
+    },
+    {
+      "source": "work/5628-reconciled-arrival-green-comment.md",
+      "tree_path": "task-6038/work/5628-reconciled-arrival-green-comment.md",
+      "bytes": 605,
+      "sha256": "ba86bf83d5e8199c124c9b24ff3530264e236cb40335923c183d20f3948948f4",
+      "mode": "100644",
+      "blob": "82172a1f32171f6a64617d6d3bf312ce4a4c08eb"
+    }
+  ]
+}
