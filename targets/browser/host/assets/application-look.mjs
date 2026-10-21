@@ -99,10 +99,11 @@ export function decodeLook(input, refuse = code => { throw new Error(code); }) {
   const reader = new Reader(bytes, reject); reader.offset = PROFILE.length;
   const look = valueNode(reader, schema);
   if (reader.offset !== bytes.length) reject("look-trailing-encoding");
-  if (look.version !== 1 || !look.identity || RETIRED_IDS.has(look.identity)) reject("look-version-or-identity");
+  if (look.version !== 2 || !look.identity || RETIRED_IDS.has(look.identity)) reject("look-version-or-identity");
   if (look.visual.tag === "some") {
     const { expression, tokens } = look.visual.payload;
-    if (expression.identity !== look.identity || expression.version !== 1
+    if (expression.identity !== look.identity || expression.version !== 2
+        || !["editorial", "engineering"].includes(expression.typography.tag)
         || expression.text_scale_percent < 100 || expression.text_scale_percent > 200) reject("look-visual-contract");
     for (const [name, [minimum, maximum]] of Object.entries(METRIC_BOUNDS)) {
       if (tokens[name] < minimum || tokens[name] > maximum) reject("look-token-bound");
@@ -120,7 +121,7 @@ export function decodeVisualLook(input, refuse = code => { throw new Error(code)
     tokens[role] = typeof value === "number" ? `${value}${name.endsWith("_percent") ? "%" : "px"}`
       : `#${[value.red, value.green, value.blue].map(channel => channel.toString(16).padStart(2, "0")).join("")}`;
   }
-  return Object.freeze({ identity: look.identity, tokens: Object.freeze(tokens) });
+  return Object.freeze({ identity: look.identity, typography: look.visual.payload.expression.typography.tag, tokens: Object.freeze(tokens) });
 }
 
-export const applicationLookLimits = Object.freeze({ version: 1, bytes: MAX_LOOK_BYTES });
+export const applicationLookLimits = Object.freeze({ version: 2, bytes: MAX_LOOK_BYTES });

@@ -1,6 +1,9 @@
 //! Measured Mask chrome, shared by document admission and frame assembly.
 use super::FaceSceneError;
-use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
+use crate::display::{
+    SPACE_SM, SPACE_XL,
+    typography::{TextLayout, Typography},
+};
 use conduit_face::{GraphicsTextRole, LayoutRect};
 
 /// Background, heading, page marker, two separators and footer text.
@@ -31,6 +34,7 @@ const FOOTERS: [&str; 6] = [
 ];
 
 pub(super) struct Chrome {
+    typography: Typography,
     pub heading: LayoutRect,
     pub marker: LayoutRect,
     pub footer: LayoutRect,
@@ -45,8 +49,9 @@ fn height(
     role: GraphicsTextRole,
     width: u16,
     scale: u16,
+    typography: Typography,
 ) -> Result<u16, FaceSceneError> {
-    let height = TextLayout::new_scaled(text, role.into(), width, scale)
+    let height = TextLayout::new_selected(text, typography.style(role.into()), width, scale)
         .map_err(|_| FaceSceneError::InputBound)?
         .finish_height();
     u16::try_from(height).map_err(|_| FaceSceneError::InvalidExtent)
@@ -54,6 +59,13 @@ fn height(
 
 impl Chrome {
     pub fn prepare(screen: LayoutRect, scale: u16) -> Result<Self, FaceSceneError> {
+        Self::prepare_selected(screen, scale, Typography::EDITORIAL)
+    }
+    pub fn prepare_selected(
+        screen: LayoutRect,
+        scale: u16,
+        typography: Typography,
+    ) -> Result<Self, FaceSceneError> {
         let width = screen
             .width
             .checked_sub(SPACE_XL * 2)
@@ -74,8 +86,13 @@ impl Chrome {
         };
         let mut heading_height = 32;
         for heading in headings {
-            heading_height =
-                heading_height.max(height(heading, heading_role, heading_width, scale)?);
+            heading_height = heading_height.max(height(
+                heading,
+                heading_role,
+                heading_width,
+                scale,
+                typography,
+            )?);
         }
         // A document has at most 32,768 rows, hence no more than 32,768 pages.
         // Reserve the complete largest marker before pagination, avoiding a
@@ -89,6 +106,7 @@ impl Chrome {
             GraphicsTextRole::Label,
             marker_width,
             scale,
+            typography,
         )?;
         let top = HEADER.max(
             heading_height
@@ -103,8 +121,13 @@ impl Chrome {
             &FOOTERS[..]
         };
         for footer in footers {
-            footer_height =
-                footer_height.max(height(footer, GraphicsTextRole::Label, width, scale)?);
+            footer_height = footer_height.max(height(
+                footer,
+                GraphicsTextRole::Label,
+                width,
+                scale,
+                typography,
+            )?);
         }
         let footer_extent = FOOTER.max(
             footer_height
@@ -117,6 +140,7 @@ impl Chrome {
             .filter(|bottom| *bottom > top)
             .ok_or(FaceSceneError::InvalidExtent)?;
         Ok(Self {
+            typography,
             heading: LayoutRect {
                 x: SPACE_XL as i16,
                 y: EDGE as i16,
@@ -183,7 +207,14 @@ impl Chrome {
     }
 
     pub fn admit_footer(&self, text: &str, scale: u16) -> Result<(), FaceSceneError> {
-        if height(text, GraphicsTextRole::Label, self.footer.width, scale)? > self.footer.height {
+        if height(
+            text,
+            GraphicsTextRole::Label,
+            self.footer.width,
+            scale,
+            self.typography,
+        )? > self.footer.height
+        {
             return Err(FaceSceneError::InputBound);
         }
         Ok(())

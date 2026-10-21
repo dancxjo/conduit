@@ -1,6 +1,6 @@
 //! Graphical retained-scene rendering; rescue scanout rendering stays separate.
 
-use super::{render_text_scaled, TextRole};
+use super::{TextRole, Typography, render_text_selected};
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
 use conduit_face::{GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene};
 
@@ -34,15 +34,33 @@ pub fn render_scene_configured(
     text_scale_percent: u16,
     resolve_paint: impl Fn(GraphicsPaintRole) -> u32,
 ) -> Result<DisplayReceipt, DisplayError> {
+    render_scene_selected(
+        target,
+        scene,
+        role,
+        text_scale_percent,
+        Typography::EDITORIAL,
+        resolve_paint,
+    )
+}
+
+pub fn render_scene_selected(
+    target: &mut impl RetainedPixelTarget,
+    scene: &GraphicsScene,
+    role: impl Fn(usize, &GraphicsCommand) -> TextRole,
+    text_scale_percent: u16,
+    typography: Typography,
+    resolve_paint: impl Fn(GraphicsPaintRole) -> u32,
+) -> Result<DisplayReceipt, DisplayError> {
     super::TextScale::new(text_scale_percent)?;
     let format = target.format().validate()?;
     let mut receipt = DisplayReceipt::default();
     for (index, command) in scene.commands().iter().enumerate() {
         if command.kind == GraphicsCommandKind::Text {
-            let text = render_text_scaled(
+            let text = render_text_selected(
                 target,
                 command.payload(),
-                role(index, command),
+                typography.style(role(index, command)),
                 command.bounds,
                 command.clip,
                 resolve_paint(command.paint),
