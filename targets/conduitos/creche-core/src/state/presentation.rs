@@ -2,6 +2,9 @@
 use super::*;
 use crate::data::{NativeFaceOutput, NativeSceneRequest, NativeScope};
 impl State {
+    // The Draft scene has the same fixed scene/encoding buffers as Home.
+    // Keep them out of the shared dispatch frame and its 64 KiB entry stack.
+    #[inline(never)]
     pub(super) fn native_scene(&mut self, bytes: &[u8]) -> Result<Response, Refusal> {
         let input: NativeSceneRequest = data::decode(bytes)?;
         input.scope.validate()?;

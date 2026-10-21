@@ -4,6 +4,9 @@ use crate::{
     wire::{Request, Response, Stats},
 };
 use conduit_kernel::{SignQuery, SignRetentionGap, SignSink, scheduler::SchedulerError};
+// The guest owns one fixed-capacity scheduler in its admitted state region.
+// Keep every specialization inline: this no-allocator runtime cannot box it.
+#[allow(clippy::large_enum_variant)]
 enum Owner {
     Empty,
     Native(Scheduler),

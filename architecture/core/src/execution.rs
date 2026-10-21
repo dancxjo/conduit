@@ -6,6 +6,10 @@ use crate::{
     RUNTIME_MEMORY_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
+// Keep exact worker reservation metadata inline, as with HostCommand::Prepare.
+// Boxing would add an allocation to PlanFragment admission; these metadata bytes
+// remain separate from the worker runtime backing checked by the target.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionScheduling {
     CooperativeBoundedStep,

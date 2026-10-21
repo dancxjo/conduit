@@ -326,20 +326,6 @@ fn exchange_show_ack(
     serde_json::from_slice(&response[..length]).map_err(|_| "native-owner-show-ack-decode-refused")
 }
 
-#[cfg(test)]
-fn exchange(
-    line: &mut dyn BinaryWebSocketIo,
-    encoded: &[u8],
-    frame: &mut [u8],
-) -> Result<Response, &'static str> {
-    exchange_for_profile(
-        line,
-        encoded,
-        frame,
-        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
-    )
-}
-
 fn exchange_for_profile(
     line: &mut dyn BinaryWebSocketIo,
     encoded: &[u8],

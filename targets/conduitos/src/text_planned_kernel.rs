@@ -140,7 +140,7 @@ impl TextPlannedKernel {
             let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
             let signs =
                 FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
-            let scheduler = FixedScheduler::new_with_host_calls(
+            FixedScheduler::new_with_host_calls(
                 nodes,
                 cords,
                 routes,
@@ -148,8 +148,7 @@ impl TextPlannedKernel {
                 [first, second, third],
                 values,
                 signs,
-            )?;
-            scheduler
+            )?
         };
         Ok(Self {
             scheduler,

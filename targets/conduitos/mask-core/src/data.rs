@@ -142,6 +142,8 @@ pub struct Snapshot {
     pub selected_node: Option<u16>,
 }
 #[derive(Serialize, Deserialize)]
+// Preserve inline bounded command payloads across the existing guest wire.
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     Control {
         expected: u64,

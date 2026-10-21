@@ -111,8 +111,8 @@ impl<'a> DomainImage<'a> {
         {
             return Err(Refusal::Malformed);
         }
-        if let Some(window) = private {
-            if class != 2
+        if let Some(window) = private
+            && (class != 2
                 || machine != 62
                 || window.bytes != PAGE_BYTES
                 || !window.start.is_multiple_of(PAGE_BYTES)
@@ -120,10 +120,9 @@ impl<'a> DomainImage<'a> {
                 || window
                     .start
                     .checked_add(window.bytes)
-                    .is_none_or(|end| end > 0x0000_8000_0000_0000)
-            {
-                return Err(Refusal::InvalidMapping);
-            }
+                    .is_none_or(|end| end > 0x0000_8000_0000_0000))
+        {
+            return Err(Refusal::InvalidMapping);
         }
         let offset = usize::try_from(offset).map_err(|_| Refusal::Malformed)?;
         let end = offset

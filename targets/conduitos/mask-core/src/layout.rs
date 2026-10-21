@@ -6,7 +6,7 @@ use conduit_face::{
 };
 
 pub const PAGE_ROWS: usize = 5;
-const LINE_CHARACTERS: usize = 40;
+pub const LINE_CHARACTERS: usize = 40;
 
 #[derive(Clone, Copy, Default)]
 pub struct ApplicationViewport {
