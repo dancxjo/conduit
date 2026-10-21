@@ -1,0 +1,38 @@
+{
+  "parent": "add963359b2d02bb54459f024d32470704520e66",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/5628-owner-browser-session.mjs",
+      "tree_path": "task-6038/work/5628-owner-browser-session.mjs",
+      "bytes": 31004,
+      "sha256": "926497dae5bf1bf9ff774222b9356cd8b5299f120b50e1992ed25e2eda4257ed",
+      "mode": "100644",
+      "blob": "77fdfbb7ea4991f695e869c9b7e024e3b21241bb"
+    },
+    {
+      "source": "work/5628-owner-look-journey.py",
+      "tree_path": "task-6038/work/5628-owner-look-journey.py",
+      "bytes": 13856,
+      "sha256": "20fc94e38da24106de2742c67e2d9a735479bf3dbd2082ee85635b6f7ce98500",
+      "mode": "100644",
+      "blob": "a9a1ab9c637986d5bb4d6514d40cbcbc8953fc57"
+    },
+    {
+      "source": "work/5628-provision-owner-spore.py",
+      "tree_path": "task-6038/work/5628-provision-owner-spore.py",
+      "bytes": 3792,
+      "sha256": "86efcbdee8a1232b2fcf137d5c458843060e6959a9b694709998e2a6e95bcd88",
+      "mode": "100644",
+      "blob": "172c751121dd558de30073a7b8e4a5aabc59cee1"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-orchestration-corrections.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-orchestration-corrections.json",
+      "bytes": 1324,
+      "sha256": "165eef9b9704c92d48fe9e468d75b78529954e4f7d53462925347b31c6953f13",
+      "mode": "100644",
+      "blob": "c2dac3e51740daabcfecbc246499b67293dd2642"
+    }
+  ]
+}

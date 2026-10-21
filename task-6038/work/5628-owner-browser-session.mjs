@@ -2,26 +2,30 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { writeFileSync } from 'node:fs';
 import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-
 const SOURCE = '253dcb985eb8890ddf873d672d3a282f2366e6db';
 const LIMIT = Object.freeze({ line: 4096, commands: 48, pending: 8,
   json: 1024 * 1024, report: 256 * 1024, actionMs: 12000,
   readinessMs: 120000, sessionMs: 1800000 });
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+let privateErrorDir, failureNumber = 0;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-
 export function parseCommand(line) {
   assert.ok(Buffer.byteLength(line) <= LIMIT.line, 'command bound');
   const c = JSON.parse(line);
   assert.ok(c && !Array.isArray(c) && typeof c === 'object');
-  assert.ok(['handoff', 'snapshot', 'stop'].includes(c.op), 'unknown operation');
-  const keys = c.op === 'handoff' ? ['op', 'id', 'standby']
+  assert.ok(['start-todo', 'seed', 'handoff', 'snapshot', 'stop'].includes(c.op), 'unknown operation');
+  const keys = c.op === 'seed' ? ['op', 'id', 'text'] : c.op === 'handoff' ? ['op', 'id', 'standby']
     : c.op === 'snapshot' ? ['op', 'id', 'expected_show_id', 'expected_route_plan_id', 'expected_face_id', 'expected_face_revision', 'after_revision'] : ['op', 'id'];
   assert.ok(Object.keys(c).every(k => keys.includes(k)), 'unexpected field');
   assert.match(c.id, /^[a-z][a-z0-9-]{0,47}$/);
+  if (c.op === 'seed') {
+    assert.equal(typeof c.text, 'string');
+    assert.ok(c.text.isWellFormed() && Buffer.byteLength(c.text) > 0 && Buffer.byteLength(c.text) <= 64);
+  }
   if (c.op === 'handoff') assert.ok(path.isAbsolute(c.standby));
   if (c.op === 'snapshot') {
     assert.equal(typeof c.expected_show_id, 'string');
@@ -34,7 +38,15 @@ export function parseCommand(line) {
   }
   return c;
 }
-
+export function seedContract(view) {
+  const action = view.actions.find(a => a.identity === 'todo.add');
+  assert.ok(action && action.availability === 'available', 'actual offered TodoAdd required');
+  assert.equal(action.arguments.length, 1);
+  assert.equal(typeof action.arguments[0].value_name, 'string');
+  assert.ok(action.name && action.arguments[0].value_name);
+  return { action_id: action.identity, target: action.target, action_name: action.name,
+    argument_name: action.arguments[0].value_name };
+}
 export function routesForHandoff(report) {
   assert.equal(report.schema, 'conduit.body/owner-mask-wardrobe@1');
   assert.match(report.wardrobe_revision_decimal, /^\d{1,20}$/);
@@ -48,7 +60,6 @@ export function routesForHandoff(report) {
   assert.ok(current && current.route_id !== native.route_id, 'browser must initially be selected');
   return { native, current };
 }
-
 export function parseLosslessJSON(text) {
   return JSON.parse(text, (_key, value, context) => {
     if (typeof value === 'number') {
@@ -61,7 +72,6 @@ export function parseLosslessJSON(text) {
     return value;
   });
 }
-
 export function validateSnapshot(report, command, bodyId, previous, independent) {
   assert.equal(command.after_revision, previous.revision, 'snapshot baseline differs');
   assert.equal(report.schema, 'conduit.body/owner-mask-wardrobe@1');
@@ -78,21 +88,16 @@ export function validateSnapshot(report, command, bodyId, previous, independent)
   assert.ok(Number.isFinite(report.face_revision) && Number.isInteger(report.face_revision));
   const browserRevisionExact = Number.isSafeInteger(report.face_revision);
   if (browserRevisionExact) assert.equal(String(report.face_revision), independent.face_revision_decimal);
-  // Unsafe DOM numbers are diagnostic only. The independently exported decimal
-  // and losslessly parsed CLI Face supply the exact revision binding.
   assert.equal(report.show_id, command.expected_show_id);
   assert.equal(report.selected?.route_id, `route/${command.expected_route_plan_id}`);
   assert.ok(report.owner_plan_id);
   assert.match(report.wardrobe_revision_decimal, /^\d{1,20}$/);
-  // A completed explicit Inspect can truthfully reread unchanged state after
-  // a provisional-input refusal. Native QMP proof establishes actual changes.
   return { owner_plan_id: report.owner_plan_id, revision: report.wardrobe_revision_decimal,
     show_id: report.show_id, revision_binding: {
       source: 'installed-owner-cli-local-face-snapshot', face_id: independent.face.identity,
       face_revision_decimal: independent.face_revision_decimal,
       browser_numeric_revision_exact: browserRevisionExact } };
 }
-
 async function privateDirectory(dir) {
   const s = await lstat(dir);
   assert.ok(s.isDirectory() && !s.isSymbolicLink());
@@ -108,13 +113,15 @@ function runJSON(executable, args) {
   const result = spawnSync(executable, args, {
     encoding: 'utf8', timeout: 10000, maxBuffer: LIMIT.json,
   });
-  assert.equal(result.status, 0, 'installed owner observation failed');
+  if (result.status !== 0 && privateErrorDir) {
+    writeFileSync(path.join(privateErrorDir, `owner-failure-${++failureNumber}.stderr.txt`),
+      Buffer.from(result.stderr ?? '').subarray(0, 65536), {mode:0o600, flag:'wx'});
+  }
+  assert.equal(result.status, 0, 'installed owner command failed; bounded private stderr retained');
   return parseLosslessJSON(result.stdout);
 }
-
 export async function coordinate(page, before, awaitRevision) {
   const { native, current } = routesForHandoff(before);
-  // Each occurrence is sent once. A timeout is terminal; never replay it.
   await page.getByRole('button', { name: 'Wear native-graphical', exact: true }).click();
   const worn = await awaitRevision(before.wardrobe_revision_decimal);
   assert.equal(worn.owner_plan_id, before.owner_plan_id);
@@ -129,15 +136,22 @@ export async function coordinate(page, before, awaitRevision) {
   assert.equal(preferred.selected?.route_id, native.route_id);
   return { before, worn, doffed, preferred };
 }
-
 async function selfTest() {
   assert.equal(parseCommand('{"op":"stop","id":"done"}').op, 'stop');
+  assert.equal(parseCommand('{"op":"start-todo","id":"start-todo"}').op, 'start-todo');
   for (const invalid of [
     '{"op":"wear","id":"a"}', '{"op":"stop","id":"../secret"}',
     '{"op":"handoff","id":"a","standby":"relative"}',
     '{"op":"snapshot","id":"a","after_revision":"-1","expected_show_id":"x"}',
     '{"op":"stop","id":"a","token":"secret"}', ' '.repeat(LIMIT.line + 1),
   ]) assert.throws(() => parseCommand(invalid));
+  assert.equal(parseCommand(JSON.stringify({op:'seed', id:'seed-unicode',
+    text:'Crème brûlée · Ŵ — portable typography'})).op, 'seed');
+  for (const text of ['', 'é'.repeat(33), '\ud800']) assert.throws(() =>
+    parseCommand(JSON.stringify({op:'seed', id:'seed-unicode', text})));
+  assert.equal(seedContract({actions:[{identity:'todo.add', availability:'available',
+    name:'Offered Add', target:'todo/list', arguments:[{value_name:'Offered text'}]}]}).argument_name, 'Offered text');
+  assert.throws(() => seedContract({actions:[]}));
   const report = { schema: 'conduit.body/owner-mask-wardrobe@1', owner_plan_id: 'body-plan',
     wardrobe_revision_decimal: '1', selected: { route_id: 'browser' },
     route_descriptions: [{ route_id: 'browser', mask_name: 'browser-dom' },
@@ -192,7 +206,6 @@ async function selfTest() {
   }
   process.stdout.write('synthetic command/sequence/bounds checks passed; no browser or owner launched\n');
 }
-
 async function main(args) {
   assert.equal(args.length, 6,
     'usage: node HELPER REPO INSTALLED-OWNER PRIVATE-STATE HANDBOOK PINNED-PLAYWRIGHT NEW-PRIVATE-OUTPUT');
@@ -210,6 +223,7 @@ async function main(args) {
     .devDependencies['@playwright/test'];
   assert.equal((await boundedJSON(path.join(path.dirname(playwright), 'package.json'))).version, expected);
   await mkdir(output, { mode: 0o700 }); // exclusive: do not overwrite a previous proof
+  privateErrorDir = output;
   const { startStaticProduct } = await import(pathToFileURL(path.join(repo, 'proof/browser/static-product-server.mjs')));
   const { chromium } = await import(pathToFileURL(playwright));
   const ownerRead = command => runJSON(owner, ['body', command, '--state-dir', state, '--json']);
@@ -222,7 +236,6 @@ async function main(args) {
     timer = setTimeout(() => abort.abort(new Error('session deadline')), LIMIT.sessionMs);
     server = await startStaticProduct(handbook);
     // Same pinned Chromium launch as the existing journey, one context/page,
-    // no runner concurrency or retries. No force or action-performing polling.
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
     const page = await context.newPage();
@@ -231,8 +244,7 @@ async function main(args) {
     page.on('pageerror', () => { if (errors.length < 16) errors.push('pageerror'); });
     const initial = ownerRead('status');
     const bodyId = initial.biography.body_id;
-    // Actual installed status shape: controller::truth -> realization -> BodyPlan.
-    const workloadPlan = initial.realization?.plan?.plan_id ?? null;
+    let workloadPlan = initial.realization?.plan?.plan_id ?? null;
     const checkWorkload = () => {
       const current = ownerRead('status');
       assert.equal(current.biography.body_id, bodyId);
@@ -253,7 +265,47 @@ async function main(args) {
     await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
     await page.waitForFunction(() => globalThis.__conduitOwnerParticipation?.presence() === 'available',
       null, { timeout: LIMIT.actionMs });
-    await page.locator('[data-owner-face-document] [data-owner-action]').first().waitFor();
+    const readWardrobe = async () => JSON.parse(await page.locator('[data-owner-wardrobe-evidence]').textContent());
+    const awaitRevision = async prior => {
+      await page.waitForFunction(revision => {
+        try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
+          .wardrobe_revision_decimal !== revision; } catch { return false; }
+      }, prior, { timeout: LIMIT.actionMs });
+      return readWardrobe();
+    };
+    const inspectOnce = async () => {
+      await page.getByRole('button', { name: 'Inspect current wardrobe', exact: true }).click();
+      await page.getByRole('button', { name: 'Inspect current wardrobe', exact: true }).isEnabled()
+        .then(async enabled => { if (!enabled) await page.waitForFunction(() =>
+          !document.querySelector('[data-owner-wardrobe-refresh]').disabled,
+        null, { timeout: LIMIT.actionMs }); });
+      const report = await readWardrobe();
+      assert.equal(report.schema, 'conduit.body/owner-mask-wardrobe@1');
+      assert.notEqual(await page.locator('[data-owner-wardrobe-status]').getAttribute('data-refused'), 'true',
+        'inspection refused; previous DOM report is not current proof');
+      return report;
+    };
+    let browserWardrobe = await inspectOnce();
+    const browserRoute = browserWardrobe.route_descriptions.find(r => r.host_id === identity.hostId);
+    assert.ok(browserRoute, 'actual browser route required before starting Todo');
+    for (const verb of ['Wear', 'Prefer only']) {
+      const button = page.getByRole('button', {name:`${verb} ${browserRoute.mask_name}`, exact:true});
+      if (await button.isEnabled()) {
+        await button.click();
+        browserWardrobe = await awaitRevision(browserWardrobe.wardrobe_revision_decimal);
+      }
+    }
+    assert.equal(browserWardrobe.selected?.route_id, browserRoute.route_id);
+    const refreshAndAck = async expectedAction => {
+      await page.getByRole('button', {name:'Refresh this Face', exact:true}).click();
+      await page.waitForFunction(action => {
+        const current = globalThis.__conduitOwnerParticipation.face();
+        return current?.show_state === 'available' && (!action || current.actions.some(a => a.identity === action))
+          && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+      }, expectedAction, {timeout:LIMIT.actionMs});
+      return page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+    };
+    await refreshAndAck(null);
     const joined = await page.evaluate(() => ({
       partId: globalThis.__conduitOwnerParticipation.credential().part_id,
       face: globalThis.__conduitOwnerParticipation.face(),
@@ -275,28 +327,7 @@ async function main(args) {
       browser_host_id: identity.hostId, browser_part_id: joined.partId, face: joined.face,
       proof: 'private-browser-session', physical: false, human: false });
     respond({ event: 'browser-joined', artifact: joinedArtifact });
-    const readWardrobe = async () => JSON.parse(await page.locator('[data-owner-wardrobe-evidence]').textContent());
-    const awaitRevision = async prior => {
-      await page.waitForFunction(revision => {
-        try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
-          .wardrobe_revision_decimal !== revision; } catch { return false; }
-      }, prior, { timeout: LIMIT.actionMs });
-      return readWardrobe();
-    };
-    const inspectOnce = async () => {
-      await page.getByRole('button', { name: 'Inspect current wardrobe', exact: true }).click();
-      // Click listener synchronously disables the button until the request ends.
-      await page.getByRole('button', { name: 'Inspect current wardrobe', exact: true }).isEnabled()
-        .then(async enabled => { if (!enabled) await page.waitForFunction(() =>
-          !document.querySelector('[data-owner-wardrobe-refresh]').disabled,
-        null, { timeout: LIMIT.actionMs }); });
-      const report = await readWardrobe();
-      assert.equal(report.schema, 'conduit.body/owner-mask-wardrobe@1');
-      assert.notEqual(await page.locator('[data-owner-wardrobe-status]').getAttribute('data-refused'), 'true',
-        'inspection refused; previous DOM report is not current proof');
-      return report;
-    };
-    let handedOff = false, previous;
+    let handedOff = false, seedAttempted = false, started = false, previous;
     const used = new Set(['browser-joined']);
     let buffer = '', pending = [], commandCount = 0, wake;
     let ended = false, inputError;
@@ -329,8 +360,67 @@ async function main(args) {
       const c = pending.shift();
       assert.ok(!used.has(c.id), 'duplicate command id'); used.add(c.id);
       if (c.op === 'stop') { stopId = c.id; break; }
-      if (c.op === 'handoff') {
-        assert.equal(handedOff, false, 'handoff occurs once');
+      if (c.op === 'start-todo') {
+        assert.ok(!started && !handedOff && !seedAttempted, 'start Todo once before seed/native');
+        started = true; // terminal on uncertainty, never resubmit
+        const priorStart = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+        assert.equal(ownerRead('status').biography.membership.parts.filter(p => p.current).length, 2);
+        runJSON(owner, ['body','start','--state-dir',state,'--maximum-millis','60000',
+          '--todo-new-list','Typography proof']);
+        const deadline = Date.now() + LIMIT.actionMs;
+        let admitted;
+        do {
+          admitted = ownerRead('face');
+          if (admitted.face.actions.some(a => a.identity === 'todo.add' && a.availability === 'Available')) break;
+          await sleep(100);
+        } while (Date.now() < deadline && !abort.signal.aborted);
+        assert.ok(admitted.face.actions.some(a => a.identity === 'todo.add' && a.availability === 'Available'));
+        const shown = await refreshAndAck('todo.add');
+        assert.notEqual(shown.show_id, priorStart.show_id);
+        assert.notEqual(shown.face_id, priorStart.face_id);
+        assert.equal(shown.face_id, admitted.face.identity);
+        workloadPlan = ownerRead('status').realization?.plan?.plan_id ?? null;
+        respond({id:c.id, event:'todo-started', face_id:admitted.face.identity,
+          face_revision_decimal:admitted.face_revision_decimal, show_id:shown.show_id});
+      } else if (c.op === 'seed') {
+        assert.ok(started && !handedOff && !seedAttempted, 'seed only once after Todo start, before native handoff');
+        seedAttempted = true; // a failed/uncertain occurrence is never replayed
+        assert.equal(ownerRead('status').biography.membership.parts.filter(p => p.current).length, 2,
+          'seed must precede guest participation');
+        const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+        assert.equal(prior.body_id, bodyId); assert.equal(prior.show_state, 'available');
+        const offered = seedContract(prior);
+        const before = ownerRead('face');
+        const workloadBeforeSeed = workloadPlan;
+        assert.equal(before.face.basis.body_id, bodyId);
+        assert.equal(before.face.identity, prior.face_id);
+        assert.ok(!before.face.subjects.some(subject => subject.name === c.text), 'seed item must be new');
+        const { activateTodoAdd } = await import(pathToFileURL(path.join(repo, 'proof/browser/todo-owner-realization.mjs')));
+        const activation = await activateTodoAdd({ page, form: page.locator('[data-owner-action="todo.add"]'),
+          text: c.text, realization: offered, scenario: 'private-look-unicode-seed' });
+        await page.waitForFunction(({ faceId, showId, text }) => {
+          const current = globalThis.__conduitOwnerParticipation.face();
+          return current?.face_id !== faceId && current?.show_id !== showId
+            && current?.subjects.some(subject => subject.name === text)
+            && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === current.show_id;
+        }, {faceId:prior.face_id, showId:prior.show_id, text:c.text}, {timeout:LIMIT.actionMs});
+        const shown = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
+        const after = ownerRead('face');
+        assert.equal(after.face.basis.body_id, bodyId);
+        assert.equal(after.face.identity, shown.face_id);
+        assert.notEqual(after.face_revision_decimal, before.face_revision_decimal);
+        assert.ok(after.face.subjects.some(subject => subject.name === c.text));
+        // Domain seed may change workload; Look-only invariance starts afterwards.
+        workloadPlan = ownerRead('status').realization?.plan?.plan_id ?? null;
+        const compact = snapshot => ({ face_revision_decimal:snapshot.face_revision_decimal, face:snapshot.face });
+        respond({id:c.id, event:'seeded', face_id:after.face.identity,
+          face_revision_decimal:after.face_revision_decimal, show_id:shown.show_id,
+          artifact:await save(c.id, {source:SOURCE, body_id:bodyId, text:c.text, offered, activation,
+            before:compact(before), after:compact(after), current_show:shown.show_id,
+            workload_before_seed:workloadBeforeSeed, workload_after_seed:workloadPlan,
+            evidence:'observed-offered-action-effect-and-owner-current-face; no fabricated commit receipt'})});
+      } else if (c.op === 'handoff') {
+        assert.ok(started && !handedOff, 'handoff once after Todo start');
         await privateDirectory(path.dirname(c.standby));
         const privateFile = await lstat(c.standby);
         assert.equal(privateFile.uid, process.getuid());
@@ -387,12 +477,19 @@ async function main(args) {
     if (stopId) respond({ id: stopId, event: 'stopped' });
   }
 }
-
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   try {
     if (process.argv.slice(2).join(' ') === '--self-test') await selfTest();
     else await main(process.argv.slice(2));
-  } catch {
+  } catch (error) {
+    // Raw diagnostic stays exclusively in the caller-owned private directory.
+    try {
+      const parent = path.dirname(path.resolve(process.argv[7]));
+      await privateDirectory(parent);
+      await writeFile(path.join(parent, 'browser-helper-failure.json'),
+        JSON.stringify({name:error.name,message:String(error.message).slice(0,8192),
+          stack:String(error.stack).slice(0,16384)},null,2), {mode:0o600,flag:'wx'});
+    } catch {}
     // Deliberately omit raw browser/owner errors: they can include private URLs.
     process.stderr.write('owner-browser-session failed; private run stopped; no occurrence replayed\n');
     process.exitCode = 1;

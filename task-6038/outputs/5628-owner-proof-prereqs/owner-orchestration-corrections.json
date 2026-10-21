@@ -1,0 +1,31 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "proof_class": "private installed-owner and pinned-browser orchestration observations; no native guest proof",
+  "attempt2": {
+    "status": "failed",
+    "browser_admission": false,
+    "cause": "browser admission requires a lulled Body without pending realization; Todo had already started",
+    "service_log_confirms_checkpoint_deadline_failure": true,
+    "seed_actions": 0,
+    "guest_boots": 0
+  },
+  "attempt3": {
+    "status": "failed",
+    "browser_joined_selected_acknowledged": true,
+    "start_refusal": "installed Host has no selected Todo checkpoint residence",
+    "seed_actions": 0,
+    "guest_boots": 0,
+    "exact_owned_idle_service_stopped": true
+  },
+  "attempt4": {
+    "status": "prepared-not-started",
+    "installed_checkpoint_root_explicit": true,
+    "service_started": false,
+    "browser_started": false,
+    "invitations_created": 0
+  },
+  "correction": "Join and select browser while Body is lulled, then one explicit Todo start and one offered Add seed; install selects finite checkpoint residence before fresh Boot. No retry of an uncertain domain action.",
+  "handbook_build_with_binaryen_exit": 0,
+  "workspace_check": "live independently verified by worker PIDs; no acceptance claim yet",
+  "timestamp": "2026-10-21T03:29:58Z"
+}
