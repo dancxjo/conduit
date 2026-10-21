@@ -33,6 +33,8 @@ mod input;
 mod layout;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
+#[path = "native_face_scene/semantic_icons.rs"]
+mod semantic_icons;
 #[path = "native_face_scene/text_editor.rs"]
 mod text_editor;
 #[path = "native_face_scene/text_field.rs"]

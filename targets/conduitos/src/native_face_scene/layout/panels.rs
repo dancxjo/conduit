@@ -264,6 +264,7 @@ pub(super) fn admit(
                 region_start,
                 padding,
                 checkbox: item.checkbox,
+                icon: item.icon,
                 panel_bounds: None,
                 bounds,
             });

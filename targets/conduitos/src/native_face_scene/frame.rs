@@ -131,6 +131,7 @@ impl NativeFaceScene {
             )?;
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
+            super::semantic_icons::append(&mut scene, row, self.screen)?;
             push(
                 &mut scene,
                 GraphicsCommand::text(row.text_bounds(), self.screen, row.text_paint(), &row.text)

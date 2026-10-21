@@ -194,3 +194,13 @@ capacity refusal records a reason and selects the original generic one-column
 semantic projection at that user-respecting scale. This entrance and fallback
 remain subject to actual native execution and maximum-bound journey proof; their
 source implementation is not that proof.
+
+
+Native primary subject labels decorate explicit Body, Host, Gear, Port,
+Cord/Line, Plan, Play, Status and Diagnostic roles with the existing finite
+icon resource. Unknown roles retain text without an inferred icon. Names, action
+identifiers and arbitrary properties do not select icons. The label stays
+complete; icon width is reserved before text wrapping and each icon's command
+is charged during ordinary and panel admission within the existing 48-command
+bound. These decorations add no control, state or authority. The existing
+antialiased icon coverage path draws them against the retained background.

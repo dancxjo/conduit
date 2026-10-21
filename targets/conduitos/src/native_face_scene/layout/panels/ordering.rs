@@ -62,6 +62,7 @@ mod tests {
             region: None,
             region_order: None,
             checkbox: None,
+            icon: None,
         }
     }
     #[test]
