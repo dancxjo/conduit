@@ -1,4 +1,7 @@
 //! Prepared pure region instances reuse the existing composite child kernel.
+mod memory;
+pub use memory::RegionMemoryReceipt;
+
 use crate::{
     child::ChildKernel, prelude::*, ChildExecutionError, ChildTransportError,
     KernelCompositeSignStorage, KernelOperationRegistry,
@@ -22,6 +25,8 @@ pub struct PreparedRegionKernel {
     fragment_id: FragmentId,
     region_id: ExecutionRegionId,
     worker_storage: conduit_core::ExecutionWorkerStorage,
+    scratch: Box<[u8]>,
+    memory: RegionMemoryReceipt,
     original_nodes: Vec<NodeId>,
     original_cords: Vec<CordId>,
 }
@@ -94,15 +99,19 @@ impl PreparedRegionKernel {
             placements.push(placement);
         }
         let kernel = ChildKernel::prepare_region(&tables, &placements, registry, signs)?;
-        Ok(Self {
+        let mut instance = Self {
             kernel,
             plan_id: prepared.plan().plan_id.clone(),
             fragment_id: prepared.fragment().fragment_id.clone(),
             region_id: region.region_id.clone(),
             worker_storage: storage.clone(),
+            scratch: vec![0u8; scratch].into_boxed_slice(),
+            memory: RegionMemoryReceipt::default(),
             original_nodes: tables.original_nodes().to_vec(),
             original_cords: tables.original_cords().to_vec(),
-        })
+        };
+        instance.memory = memory::admit(&instance)?;
+        Ok(instance)
     }
     pub fn plan_id(&self) -> &PlanId {
         &self.plan_id
@@ -115,6 +124,12 @@ impl PreparedRegionKernel {
     }
     pub fn worker_storage(&self) -> &conduit_core::ExecutionWorkerStorage {
         &self.worker_storage
+    }
+    pub fn memory_receipt(&self) -> RegionMemoryReceipt {
+        self.memory
+    }
+    pub fn scratch_mut(&mut self) -> &mut [u8] {
+        &mut self.scratch
     }
     pub fn original_nodes(&self) -> &[NodeId] {
         &self.original_nodes

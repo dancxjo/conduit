@@ -4,6 +4,7 @@ use super::{StorageError, ValueRef, ValueStorage};
 mod compact_f32;
 mod native_values;
 mod owned_compact_f32;
+mod sign_storage;
 mod value_admission;
 
 struct HostedValueSlot {

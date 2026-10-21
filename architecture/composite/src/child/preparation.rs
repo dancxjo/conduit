@@ -32,6 +32,7 @@ impl ChildKernel {
             registry,
             sign_storage,
             reusable,
+            false,
         )
     }
 
@@ -48,6 +49,7 @@ impl ChildKernel {
             registry,
             sign_storage,
             false,
+            true,
         )
     }
 
@@ -58,6 +60,7 @@ impl ChildKernel {
         registry: &KernelOperationRegistry,
         sign_storage: crate::KernelCompositeSignStorage,
         reusable: bool,
+        worker: bool,
     ) -> Result<Self, String> {
         if reusable
             && (!lowered.host_calls.is_empty()
@@ -173,11 +176,18 @@ impl ChildKernel {
         )
         .map_err(debug)?;
         let mut backs = Vec::with_capacity(MAX_NODES);
+        let mut worker_back_bytes = 0usize;
         for placement in placements {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            backs.push(if reusable {
+            backs.push(if worker {
+                let (back, bytes) = factory.prepare_worker(placement, &mut values)?.into_parts();
+                worker_back_bytes = worker_back_bytes
+                    .checked_add(bytes)
+                    .ok_or("worker Back memory overflow")?;
+                BoxedKernelBack::new(back)
+            } else if reusable {
                 BoxedKernelBack::reusable(factory.prepare_reusable_value(placement, &mut values)?)
             } else {
                 BoxedKernelBack::new(factory.prepare(placement, &mut values)?)
@@ -272,6 +282,7 @@ impl ChildKernel {
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))
                 .collect(),
             status: SchedulerStatus::Idle,
+            worker_back_bytes: worker.then_some(worker_back_bytes),
         })
     }
 }

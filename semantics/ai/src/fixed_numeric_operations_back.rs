@@ -180,6 +180,12 @@ pub struct FixedTanhBack<const WIDTH: usize> {
     state: Invocation,
 }
 impl<const WIDTH: usize> FixedTanhBack<WIDTH> {
+    /// Additional owned codec allocations; the concrete Back itself is
+    /// counted by the worker preparation receipt.
+    pub fn worker_owned_heap_bytes(&self) -> usize {
+        self.input.allocation_capacity() + self.output.allocation_capacity()
+    }
+
     pub fn prepare_planned<const PORTS: usize>(
         placement: &PlannedGear,
         fuel: u16,

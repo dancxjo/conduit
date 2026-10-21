@@ -20,7 +20,7 @@ mod bounded_scan_activation;
 mod child;
 mod region_kernel;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
-pub use region_kernel::PreparedRegionKernel;
+pub use region_kernel::{PreparedRegionKernel, RegionMemoryReceipt};
 mod current_sample;
 mod definition;
 mod flow_singleton;
