@@ -6,6 +6,23 @@ use core::{
 };
 
 impl XhciReady {
+    /// Readiness only: no payload read, dequeue advance, or completion authority.
+    /// Root uses this while interrupts are masked to close the idle race.
+    #[cfg(any(test, all(target_arch = "x86_64", target_os = "none")))]
+    pub(crate) fn has_observed_event(&self) -> bool {
+        !self.retained_events.is_empty()
+            || unsafe {
+                core::ptr::read_volatile(core::ptr::addr_of!(DMA.event_ring[self.event_dequeue][3]))
+                    & 1
+                    == self.event_cycle
+            }
+    }
+
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) const fn interrupt_registers(&self) -> (usize, usize) {
+        (self.operational, self.runtime_interrupter)
+    }
+
     /// Exclusive consumers drain retained events before new hardware observations.
     pub(crate) fn poll_event(&mut self) -> Option<Event> {
         self.retained_events.pop().or_else(|| {

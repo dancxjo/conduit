@@ -60,6 +60,7 @@ pub enum HidError {
     WrongEndpoint,
     WrongCompletion,
     DeviceRemoved,
+    StaleAttachment,
     ShortReport,
     ReservedByte,
     Rollover,
@@ -92,6 +93,7 @@ impl HidError {
             Self::WrongEndpoint => "hid-completion-wrong-endpoint",
             Self::WrongCompletion => "hid-completion-wrong-trb",
             Self::DeviceRemoved => "hid-device-removed",
+            Self::StaleAttachment => "hid-stale-attachment",
             Self::ShortReport => "hid-report-short",
             Self::ReservedByte => "hid-report-reserved-byte",
             Self::Rollover => "hid-report-rollover",
@@ -194,6 +196,7 @@ pub struct HidKeyboardReady {
     pub transition_slots: u16,
     pub operation_slots: u16,
     dma_physical: u64,
+    attachment: session::KeyboardAttachment,
 }
 
 #[repr(C, align(4096))]
@@ -255,6 +258,7 @@ pub fn prepare_boot_keyboard(
         transition_slots: HID_SIGN_SLOTS as u16,
         operation_slots: MAX_OUTSTANDING_INTERRUPT_TRANSFERS as u16,
         dma_physical,
+        attachment: session::KeyboardAttachment::new(device),
     })
 }
 

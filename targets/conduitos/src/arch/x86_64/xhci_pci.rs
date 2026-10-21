@@ -86,7 +86,7 @@ fn write(bus: u8, device: u8, function: u8, offset: u8, value: u32) {
 
 /// Read-only capability observation. Presence is not IRQ route qualification.
 /// The conventional PCI list has at most48 aligned entries in0x40..0xfc.
-#[cfg(feature = "native-latency-observation")]
+#[cfg(any(feature = "native-latency-observation", target_os = "none"))]
 pub(super) fn observe_msix(controller: &PciController) -> Option<(u8, u16, u8, u32)> {
     msix_capability(|offset| {
         read(
@@ -98,7 +98,7 @@ pub(super) fn observe_msix(controller: &PciController) -> Option<(u8, u16, u8, u
     })
 }
 
-#[cfg(any(test, feature = "native-latency-observation"))]
+#[cfg(any(test, feature = "native-latency-observation", target_os = "none"))]
 fn msix_capability(mut read: impl FnMut(u8) -> u32) -> Option<(u8, u16, u8, u32)> {
     if read(4) & (1 << 20) == 0 {
         return None;
@@ -190,4 +190,31 @@ mod capability_tests {
             Some((0xf4, 1, 0, 0))
         );
     }
+}
+
+#[cfg(target_os = "none")]
+pub(super) fn set_msix_control(controller: &PciController, offset: u8, control: u16) {
+    let header = read(
+        controller.bus,
+        controller.device,
+        controller.function,
+        offset,
+    );
+    write(
+        controller.bus,
+        controller.device,
+        controller.function,
+        offset,
+        (header & 0xffff) | (u32::from(control) << 16),
+    );
+}
+
+#[cfg(target_os = "none")]
+pub(super) fn msix_control(controller: &PciController, offset: u8) -> u16 {
+    (read(
+        controller.bus,
+        controller.device,
+        controller.function,
+        offset,
+    ) >> 16) as u16
 }

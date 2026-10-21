@@ -21,6 +21,7 @@ const MASKED: u32 = 1 << 16;
 const TIMER_VECTOR: u32 = 0x20;
 const DIVIDE_BY_SIXTEEN: u32 = 0b0011;
 const ONE_SHOT_COUNT: u32 = 100_000;
+static INITIALIZED: AtomicBool = AtomicBool::new(false);
 static LEGACY: AtomicBool = AtomicBool::new(false);
 
 const IA32_APIC_BASE: u32 = 0x1b;
@@ -49,6 +50,7 @@ pub(super) fn initialize(
 ) -> Result<(), ControllerRefusal> {
     if __cpuid(1).ecx & (1 << 21) == 0 {
         LEGACY.store(true, Ordering::Release);
+        INITIALIZED.store(true, Ordering::Release);
         return Ok(());
     }
     let apic_base = read_msr(IA32_APIC_BASE);
@@ -67,6 +69,7 @@ pub(super) fn initialize(
     local_write(LOCAL_TIMER_INITIAL_COUNT, 0);
     local_write(LOCAL_TIMER, MASKED | TIMER_VECTOR);
     local_write(LOCAL_TIMER_DIVIDE, DIVIDE_BY_SIXTEEN);
+    INITIALIZED.store(true, Ordering::Release);
     Ok(())
 }
 
@@ -137,5 +140,20 @@ pub(super) fn route_budget() -> Option<u32> {
 pub(super) fn restore_budget_route(previous: Option<u32>) {
     if let Some(previous) = previous {
         local_write(LOCAL_LINT_ZERO, previous);
+    }
+}
+
+/// Only the already-initialized exact x2APIC destination is eligible for MSI-X.
+#[cfg(target_os = "none")]
+pub(super) fn msi_destination() -> Option<u8> {
+    if !INITIALIZED.load(Ordering::Acquire) || LEGACY.load(Ordering::Acquire) {
+        return None;
+    }
+    u8::try_from(local_read(LOCAL_ID)).ok()
+}
+#[cfg(target_os = "none")]
+pub(super) fn end_device_interrupt() {
+    if INITIALIZED.load(Ordering::Acquire) && !LEGACY.load(Ordering::Acquire) {
+        local_write(LOCAL_EOI, 0);
     }
 }

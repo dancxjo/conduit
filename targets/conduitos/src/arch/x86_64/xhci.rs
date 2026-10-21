@@ -1,7 +1,13 @@
 //! x86 native discovery and mapping for the shared bounded xHCI mechanism.
 
+#[path = "xhci_irq.rs"]
+mod irq;
 #[path = "xhci_pci.rs"]
 mod pci;
+pub(super) use irq::ReceiveBudget;
+pub(crate) use irq::idle_after_poll;
+#[cfg(feature = "native-latency-observation")]
+pub(super) use irq::observation;
 
 use super::super::xhci_mechanism::{ControllerLocation, initialize_mapped};
 pub(crate) use super::super::xhci_mechanism::{Event, POLL_STEPS};
@@ -28,7 +34,10 @@ pub fn initialize_xhci(
     // SAFETY: this is the existing sole boot-local x86 controller reservation.
     // Native device mappings and coherent x86 DMA retain the prior mechanism's
     // ordering contract; neither discovery nor mapping grants class authority.
-    unsafe { initialize_mapped(location, mmio, image_virtual_to_physical) }
+    let ready = unsafe { initialize_mapped(location, mmio, image_virtual_to_physical)? };
+    #[cfg(target_os = "none")]
+    irq::configure(&controller, mmio, &ready);
+    Ok(ready)
 }
 
 #[cfg(test)]

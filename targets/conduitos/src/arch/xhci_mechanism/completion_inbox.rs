@@ -20,6 +20,11 @@ impl RetainedEvents {
         }
     }
 
+    #[cfg(any(test, all(target_arch = "x86_64", target_os = "none")))]
+    pub(super) const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     fn take_matching(&mut self, matches: &impl Fn(Event) -> bool) -> Option<Event> {
         let index = self.entries[..self.len]
             .iter()

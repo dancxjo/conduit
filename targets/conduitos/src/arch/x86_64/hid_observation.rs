@@ -76,10 +76,13 @@ pub(super) fn accepted(sequence: usize, device: &UsbDevice) {
     let exact_sequence = SEQUENCES[slot].load(Ordering::Relaxed) == sequence as u64;
     let submitted_ticks = SUBMITTED_AT[slot].load(Ordering::Relaxed);
     let completed_ticks = COMPLETED_AT[slot].load(Ordering::Relaxed);
+    let (route, irq_count, irq_ticks, wake_ticks, idle_entries, rtc_polls) =
+        super::xhci::observation();
     let mut record = crate::sign_format::FixedText::new();
     let formatted = writeln!(
         record,
-        "CONDUIT_HID_WAIT_OBSERVATION {{\"schema\":\"conduit.conduitos/hid-wait-observation@1\",\"route\":\"bounded-poll\",\"clock\":\"x86-tsc-lfence\",\"frequency_hz\":null,\"stage\":\"validated-boot-report\",\"sequence\":{},\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"exact_observed_sequence\":{},\"counter_reversed\":{},\"submitted_ticks\":{},\"completed_ticks\":{},\"validated_ticks\":{},\"poll_calls\":{},\"empty_poll_calls\":{},\"submitted_reports\":{},\"completed_reports\":{},\"validated_reports\":{},\"counter_overflow\":{},\"irq_ticks\":null,\"wake_ticks\":null,\"cpu_time\":null,\"sample_limit\":{}}}",
+        "CONDUIT_HID_WAIT_OBSERVATION {{\"schema\":\"conduit.conduitos/hid-wait-observation@1\",\"route\":\"{}\",\"clock\":\"x86-tsc-lfence\",\"frequency_hz\":null,\"stage\":\"validated-boot-report\",\"sequence\":{},\"root_port\":{},\"slot\":{},\"attachment_epoch\":{},\"exact_observed_sequence\":{},\"counter_reversed\":{},\"submitted_ticks\":{},\"completed_ticks\":{},\"validated_ticks\":{},\"poll_calls\":{},\"empty_poll_calls\":{},\"submitted_reports\":{},\"completed_reports\":{},\"validated_reports\":{},\"counter_overflow\":{},\"irq_ticks\":{},\"wake_ticks\":{},\"irq_count\":{},\"idle_entries\":{},\"rtc_qualification_polls\":{},\"cpu_time\":null,\"sample_limit\":{}}}",
+        route,
         sequence,
         device.root_port,
         device.slot,
@@ -95,6 +98,11 @@ pub(super) fn accepted(sequence: usize, device: &UsbDevice) {
         COMPLETIONS.load(Ordering::Relaxed),
         sample + 1,
         OVERFLOWED.load(Ordering::Relaxed),
+        ObservedTicks(irq_ticks),
+        ObservedTicks(wake_ticks),
+        irq_count,
+        idle_entries,
+        rtc_polls,
         SAMPLE_LIMIT
     );
     if formatted.is_ok() {
@@ -111,5 +119,16 @@ mod tests {
         assert_eq!(increment(&counter), u64::MAX);
         assert_eq!(counter.load(Ordering::Relaxed), 0);
         assert!(OVERFLOWED.load(Ordering::Relaxed));
+    }
+}
+
+struct ObservedTicks(u64);
+impl core::fmt::Display for ObservedTicks {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        if self.0 == 0 {
+            f.write_str("null")
+        } else {
+            write!(f, "{}", self.0)
+        }
     }
 }

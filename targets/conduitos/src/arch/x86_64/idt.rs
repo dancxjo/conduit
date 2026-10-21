@@ -76,6 +76,9 @@ unsafe extern "C" {
     fn conduitos_general_protection_stub();
     fn conduitos_page_fault_stub();
     fn conduitos_timer_irq_stub();
+    fn conduitos_xhci_irq_stub();
+    #[cfg(target_os = "none")]
+    fn conduitos_root_rtc_stub();
 }
 
 pub(super) fn initialize() {
@@ -98,6 +101,12 @@ pub(super) fn initialize() {
         (*table).0[14] = Entry::handler(conduitos_page_fault_stub as *const () as usize as u64, 0);
         (*table).0[usize::from(TIMER_IRQ_VECTOR)] =
             Entry::handler(conduitos_timer_irq_stub as *const () as usize as u64, 0);
+        (*table).0[0x21] = Entry::handler(conduitos_xhci_irq_stub as *const () as usize as u64, 0);
+        #[cfg(target_os = "none")]
+        {
+            (*table).0[usize::from(super::domain_budget::VECTOR)] =
+                Entry::handler(conduitos_root_rtc_stub as *const () as usize as u64, 0);
+        }
         let descriptor = Descriptor {
             limit: (size_of::<Table>() - 1) as u16,
             base: core::ptr::addr_of!(*table) as u64,
@@ -159,6 +168,88 @@ conduitos_timer_irq_stub:
     mov r15, rsp
     and rsp, -16
     call conduitos_timer_irq_handler
+    mov rsp, r15
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rbx
+    pop rdx
+    pop rcx
+    pop rax
+    iretq
+    .global conduitos_xhci_irq_stub
+conduitos_xhci_irq_stub:
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+    mov r15, rsp
+    and rsp, -16
+    cld
+    call conduitos_xhci_irq_handler
+    mov rsp, r15
+    pop r15
+    pop r14
+    pop r13
+    pop r12
+    pop r11
+    pop r10
+    pop r9
+    pop r8
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rbx
+    pop rdx
+    pop rcx
+    pop rax
+    iretq
+"#
+);
+
+#[cfg(target_os = "none")]
+global_asm!(
+    r#"
+    .global conduitos_root_rtc_stub
+conduitos_root_rtc_stub:
+    push rax
+    push rcx
+    push rdx
+    push rbx
+    push rbp
+    push rsi
+    push rdi
+    push r8
+    push r9
+    push r10
+    push r11
+    push r12
+    push r13
+    push r14
+    push r15
+    mov r15, rsp
+    and rsp, -16
+    cld
+    call conduitos_root_rtc_handler
     mov rsp, r15
     pop r15
     pop r14

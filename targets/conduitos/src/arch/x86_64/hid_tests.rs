@@ -1,7 +1,7 @@
 use super::*;
 use crate::arch::x86_64::usb::descriptor::{UsbEndpoint, UsbInterface};
 
-fn keyboard_device() -> UsbDevice {
+pub(super) fn keyboard_device() -> UsbDevice {
     let mut device = super::super::usb::descriptor::device_from_descriptor(
         1,
         1,

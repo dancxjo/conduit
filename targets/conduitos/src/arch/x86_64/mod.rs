@@ -27,6 +27,8 @@ fn domain_ticks() -> u64 {
 #[cfg(target_os = "none")]
 pub use ordinary_domain::TextDomain;
 mod hid;
+#[cfg(any(test, target_os = "none"))]
+mod hid_idle_fence;
 #[cfg(feature = "native-latency-observation")]
 mod hid_observation;
 mod hid_pointer;
@@ -108,6 +110,7 @@ pub use usb::{
     run_usb_configuration_probe_proof, run_usb_control_kernel_proof, run_usb_device_probe_proof,
 };
 pub use virtio_net::{VirtioNetError, VirtioNetIdentity, VirtioNetReady, initialize_virtio_net};
+pub(crate) use xhci::idle_after_poll;
 pub use xhci::{XhciReady, initialize_xhci};
 
 pub const TIMER_IRQ_VECTOR: u8 = 0x20;

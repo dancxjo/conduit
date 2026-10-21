@@ -7,6 +7,32 @@ use super::{
 };
 use crate::arch::x86_64::{usb::UsbDevice, xhci::XhciReady};
 
+/// Exact attachment custody; readiness IRQs do not establish this identity.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct KeyboardAttachment {
+    slot: u8,
+    port: u8,
+    dma_slot: u8,
+    epoch: u32,
+}
+impl KeyboardAttachment {
+    pub(super) const fn new(device: &UsbDevice) -> Self {
+        Self {
+            slot: device.slot,
+            port: device.root_port,
+            dma_slot: device.dma_slot,
+            epoch: device.attachment_epoch,
+        }
+    }
+    pub(super) fn validate(self, device: &UsbDevice) -> Result<(), HidError> {
+        if self.epoch == 0 || self != Self::new(device) {
+            Err(HidError::StaleAttachment)
+        } else {
+            Ok(())
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HidKeyboardSession {
     ready: HidKeyboardReady,
@@ -50,6 +76,7 @@ pub fn receive_first_boot_keyboard_report(
     device: &UsbDevice,
     ready: HidKeyboardReady,
 ) -> Result<HidKeyboardSession, HidError> {
+    ready.attachment.validate(device)?;
     receive_report(
         controller,
         device,
@@ -81,6 +108,7 @@ impl HidKeyboardSession {
         controller: &mut XhciReady,
         device: &UsbDevice,
     ) -> Result<(), HidError> {
+        self.ready.attachment.validate(device)?;
         if self.pending_report_index.is_some() {
             return Err(HidError::TransferOverflow);
         }
@@ -105,6 +133,7 @@ impl HidKeyboardSession {
         controller: &mut XhciReady,
         device: &UsbDevice,
     ) -> Result<Option<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize)>, HidError> {
+        self.ready.attachment.validate(device)?;
         let index = self
             .pending_report_index
             .ok_or(HidError::TransferOverflow)?;
@@ -139,6 +168,7 @@ impl HidKeyboardSession {
         device: &UsbDevice,
     ) -> Result<([HidKeyTransition; MAX_TRANSITIONS_PER_REPORT], usize), HidError> {
         self.begin_followup(controller, device)?;
+        let budget = super::super::xhci::ReceiveBudget::new();
         for _ in
             0..u64::from(super::INTERRUPT_POLL_WINDOWS) * u64::from(super::super::xhci::POLL_STEPS)
         {
@@ -146,6 +176,10 @@ impl HidKeyboardSession {
                 super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-release-report\n");
                 return Ok(report);
             }
+            if budget.expired() {
+                return Err(HidError::TransferTimeout);
+            }
+            budget.idle(controller);
         }
         Err(HidError::TransferTimeout)
     }
@@ -244,6 +278,7 @@ mod tests {
             transition_slots: super::super::MAX_TRANSITIONS_PER_REPORT as u16,
             operation_slots: 1,
             dma_physical: 0x1000,
+            attachment: KeyboardAttachment::new(&super::super::tests::keyboard_device()),
         }
     }
 
@@ -255,5 +290,46 @@ mod tests {
         let mut armed = session;
         armed.pending_report_index = Some(0);
         assert!(armed.followup_pending());
+    }
+    #[test]
+    fn replacement_attachment_cannot_reuse_pending_keyboard_interest() {
+        let mut device = super::super::tests::keyboard_device();
+        let attachment = KeyboardAttachment::new(&device);
+        assert_eq!(attachment.validate(&device), Ok(()));
+        for field in 0..4 {
+            match field {
+                0 => device.slot += 1,
+                1 => device.root_port += 1,
+                2 => device.dma_slot += 1,
+                _ => device.attachment_epoch += 1,
+            }
+            assert_eq!(attachment.validate(&device), Err(HidError::StaleAttachment));
+            device = super::super::tests::keyboard_device();
+        }
+        device.attachment_epoch = 0;
+        assert_eq!(
+            KeyboardAttachment::new(&device).validate(&device),
+            Err(HidError::StaleAttachment)
+        );
+    }
+    #[test]
+    fn stale_pending_attachment_refuses_before_controller_or_session_mutation() {
+        crate::arch::xhci_mechanism::with_synthetic_stop_controller(1, 1, 0, |mut controller| {
+            let mut session = start_boot_keyboard_session(ready());
+            session.pending_report_index = Some(0);
+            let original = session;
+            let mut device = super::super::tests::keyboard_device();
+            device.attachment_epoch += 1;
+            assert_eq!(
+                session.begin_followup(&mut controller, &device),
+                Err(HidError::StaleAttachment)
+            );
+            assert_eq!(
+                session.poll_followup(&mut controller, &device),
+                Err(HidError::StaleAttachment)
+            );
+            assert_eq!(session, original);
+            assert_eq!(controller.poll_event().unwrap().event_type, 33);
+        });
     }
 }

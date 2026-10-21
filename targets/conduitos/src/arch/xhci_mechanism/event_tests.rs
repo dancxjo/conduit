@@ -146,3 +146,36 @@ fn unexpected_command_ack_during_transfer_cannot_preack_a_later_stop() {
         }
     });
 }
+
+#[test]
+fn readiness_never_consumes_or_acknowledges_the_event_owner() {
+    use crate::arch::xhci_mechanism::with_synthetic_stop_controller;
+    with_synthetic_stop_controller(1, 1, 0, |mut controller| {
+        assert!(controller.has_observed_event());
+        assert!(controller.has_observed_event());
+        assert_eq!(controller.poll_event().unwrap().event_type, 33);
+        assert!(!controller.has_observed_event());
+    });
+}
+
+#[test]
+fn readiness_includes_foreign_retention_without_stealing_its_completion() {
+    use crate::arch::xhci_mechanism::{synthetic_transfer_event, with_synthetic_stop_controller};
+    with_synthetic_stop_controller(1, 1, 0, |mut controller| {
+        let event = Event {
+            event_type: 32,
+            completion_code: 1,
+            slot: 1,
+            endpoint: 3,
+            residual: 0,
+            pointer: 0x1230,
+        };
+        unsafe {
+            synthetic_transfer_event(&controller, event, None);
+        }
+        assert_eq!(controller.poll_transfer_event(2, 3), Ok(None));
+        assert!(controller.has_observed_event());
+        assert_eq!(controller.poll_transfer_event(1, 3), Ok(Some(event)));
+        assert!(!controller.has_observed_event());
+    });
+}

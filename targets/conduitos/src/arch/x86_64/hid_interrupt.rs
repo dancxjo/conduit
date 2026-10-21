@@ -127,10 +127,15 @@ pub(super) fn receive_report(
     dma_physical: u64,
 ) -> Result<(), HidError> {
     submit_report(controller, device, dci, index, dma_physical)?;
+    let budget = super::super::xhci::ReceiveBudget::new();
     for _ in 0..u64::from(INTERRUPT_POLL_WINDOWS) * u64::from(super::super::xhci::POLL_STEPS) {
         if poll_report(controller, device, dci, index, dma_physical)?.is_some() {
             return Ok(());
         }
+        if budget.expired() {
+            return Err(HidError::TransferTimeout);
+        }
+        budget.idle(controller);
     }
     Err(HidError::TransferTimeout)
 }

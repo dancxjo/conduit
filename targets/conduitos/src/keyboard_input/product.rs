@@ -105,6 +105,10 @@ pub fn run_product_with_pointer(
                 }
             }
         }
+        #[cfg(target_arch = "x86_64")]
+        if ingress.pending() == 0 && pending_pointer.is_none() {
+            crate::arch::idle_after_poll(controller);
+        }
         core::hint::spin_loop();
     }
 }
