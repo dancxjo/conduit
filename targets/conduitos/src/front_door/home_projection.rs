@@ -5,9 +5,9 @@ use super::*;
 use alloc::vec::Vec;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl FrontDoor {
-    pub(super) fn home_face_content(&self) -> (Vec<FaceProperty>, Vec<FaceText>) {
+    pub(super) fn home_face_content(&self) -> Result<(Vec<FaceProperty>, Vec<FaceText>), Error> {
         let Some(home) = self.home_model() else {
-            return (vec![], vec![]);
+            return Ok((vec![], vec![]));
         };
         let subject = "conduitos/shell/home";
         let plots = self.home_active_plots();
@@ -48,6 +48,6 @@ impl FrontDoor {
                 });
             }
         }
-        (properties, texts)
+        Ok((properties, texts))
     }
 }

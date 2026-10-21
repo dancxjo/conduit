@@ -11,7 +11,6 @@ const TICK_PRESENT_REQUEST: RequestId = RequestId(4);
 
 pub(crate) use conduitos_runtime_core::text::backs::{
     FaceBack, LiteralBack, LiteralState, StepDetails, UpperBack, failure, invalid, step_sink,
-    step_transform,
 };
 const _: () = assert!(PORTS == conduitos_runtime_core::PORTS);
 const _: () =

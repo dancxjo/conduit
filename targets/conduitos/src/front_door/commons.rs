@@ -61,7 +61,7 @@ impl Commons {
         event: KeyEvent,
         journey: &JourneyProjection,
     ) -> Result<HomeInput, Error> {
-        if event.usage() != ENTER || event.transition() != conduit_human::KeyTransition::Pressed {
+        if event.usage() != 40 || event.transition() != conduit_human::KeyTransition::Pressed {
             return Ok(HomeInput::Unchanged);
         }
         let graph = self.source.borrow().places.clone();
