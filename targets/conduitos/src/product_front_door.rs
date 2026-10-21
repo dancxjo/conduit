@@ -1,6 +1,7 @@
 //! Long-lived ordinary product service for the Patchbay lifecycle journey.
 
 mod arrival;
+mod controller_io;
 mod face_arrival;
 mod face_workspace;
 mod guest_join;
@@ -8,6 +9,7 @@ mod home_input;
 mod input_actions;
 mod platform;
 mod pointer_input;
+mod runtime;
 pub use platform::run;
 mod tutorial;
 mod workspace_view_sign;
@@ -33,9 +35,7 @@ use crate::{
     arch,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
-    keyboard_input::{ProductInputControl, ProductInputEvent},
     keyboard_text_plan,
-    local_rescue::LocalRescueMatcher,
     make::MakeRecord,
     native_compositor::InputRoute,
     native_observation::{Phase, Progress},
@@ -43,8 +43,8 @@ use crate::{
     offer_make::ImageBoundHostOffer,
     product_bases::{EffectFamily, FRAMEBUFFER_RESOURCE_CLASS, NativeProductBases},
     product_journey::{JourneyStatus, ProductJourney},
-    rescue_guest,
 };
+use controller_io::{ControllerControl, ControllerInput};
 use journey_sign::emit_journey_sign;
 
 const ENTER: u8 = 40;
@@ -61,7 +61,7 @@ fn run_controller(
     framebuffer_basis: &conduit_observatory::FramebufferBasis,
     display: &mut platform::DisplaySink<'_, impl crate::display::PixelTarget>,
     platform: &mut platform::RootPlatform<'_>,
-    rescue_matcher: &mut LocalRescueMatcher,
+    runtime: &mut runtime::RootRuntime,
     effect_bases: NativeProductBases,
     surface_provider: crate::product_bases::NativeSurfaceProvider,
     pending_join: Option<crate::native_boot_join::BootJoinOutcome>,
@@ -256,24 +256,17 @@ fn run_controller(
         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
     }
     let mut consumed_birth_key = None;
-    let mut clock = arch::Clock::new();
-    let mut serial = arch::Serial::new();
-    let mut interrupts = arch::Interrupts::new();
-    let mut idle = arch::Idle::new();
     let mut first_input_wait = Some(Progress::begin(Phase::InputWait, "first-decoded-input"));
     loop {
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
-            if matches!(
-                input,
-                ProductInputEvent::Key(_) | ProductInputEvent::Pointer(_)
-            ) {
+            if matches!(input, ControllerInput::Key(_) | ControllerInput::Pointer(_)) {
                 if let Some(span) = first_input_wait.take() {
                     span.finish();
                 }
             }
-            if matches!(input, ProductInputEvent::Service) && pointer_admitted {
+            if matches!(input, ControllerInput::Service) && pointer_admitted {
                 pointer_input::render(
                     &pointer_state,
                     provisioned_guest,
@@ -284,12 +277,12 @@ fn run_controller(
                     display,
                 )?;
             }
-            if let ProductInputEvent::PointerLost(reason) = input {
+            if let ControllerInput::PointerLost(reason) = input {
                 pointer_state.retire();
                 arch::early_write(format!("CONDUIT_POINTER_LOST {reason}\n").as_bytes());
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
-            if let ProductInputEvent::Pointer(sample) = input {
+            if let ControllerInput::Pointer(sample) = input {
                 pointer_input::dispatch(
                     &mut pointer_state,
                     sample,
@@ -302,11 +295,11 @@ fn run_controller(
                     display,
                     make,
                 )?;
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if provisioned_guest {
                 match input {
-                    ProductInputEvent::Service
+                    ControllerInput::Service
                         if owner_route.as_ref().is_some_and(|route| !route.available()) =>
                     {
                         owner_route = None;
@@ -315,10 +308,7 @@ fn run_controller(
                         face_arrival.show_owner_result(false, false, "return-expired", display)?;
                         arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"expired\"}\n");
                     }
-                    ProductInputEvent::LocalRescue(local) => {
-                        rescue_guest::observe(identities, rescue_matcher, local, true);
-                    }
-                    ProductInputEvent::Key(event) if owner_face_presented => {
+                    ControllerInput::Key(event) if owner_face_presented => {
                         let modifier_bits = event.modifiers_after().bits();
                         let shift_only = modifier_bits != 0
                             && modifier_bits
@@ -398,7 +388,7 @@ fn run_controller(
                                         .show_owner_result(false, false, reason, display)?;
                                 }
                             }
-                            return Ok(ProductInputControl::Continue);
+                            return Ok(ControllerControl::Continue);
                         }
                         if owner_route_standby
                             && event.transition() == KeyTransition::Pressed
@@ -422,7 +412,7 @@ fn run_controller(
                                     face_arrival.retire_owner_route(display)?;
                                     face_arrival
                                         .show_owner_result(false, false, reason, display)?;
-                                    return Ok(ProductInputControl::Continue);
+                                    return Ok(ControllerControl::Continue);
                                 }
                             };
                             face_arrival
@@ -447,7 +437,7 @@ fn run_controller(
                                         .show_owner_result(false, false, reason, display)?;
                                 }
                             }
-                            return Ok(ProductInputControl::Continue);
+                            return Ok(ControllerControl::Continue);
                         }
                         let input = match face_arrival.accept_guest_key(event, display) {
                             Ok(input) => input,
@@ -456,7 +446,7 @@ fn run_controller(
                                 arch::early_write(reason.as_bytes());
                                 arch::early_write(b"\"}\n");
                                 face_arrival.show_local_refusal(reason, display)?;
-                                return Ok(ProductInputControl::Continue);
+                                return Ok(ControllerControl::Continue);
                             }
                         };
                         if let Some((show, interaction)) = input {
@@ -485,7 +475,7 @@ fn run_controller(
                                             face_arrival.retire_owner_route(display)?;
                                             face_arrival
                                                 .show_owner_result(false, false, reason, display)?;
-                                            return Ok(ProductInputControl::Continue);
+                                            return Ok(ControllerControl::Continue);
                                         }
                                     } else {
                                         face_arrival.retire_owner_route(display)?;
@@ -517,10 +507,10 @@ fn run_controller(
                     }
                     _ => {}
                 }
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             let event = match input {
-                ProductInputEvent::Service => {
+                ControllerInput::Service => {
                     if let Some(receipt) = workspace_updates.service_with_face(
                         &mut front_door,
                         &journey,
@@ -531,17 +521,13 @@ fn run_controller(
                     )? {
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
-                ProductInputEvent::LocalRescue(local) => {
-                    rescue_guest::observe(identities, rescue_matcher, local, true);
-                    return Ok(ProductInputControl::Continue);
-                }
-                ProductInputEvent::Pointer(_) | ProductInputEvent::PointerLost(_) => {
+                ControllerInput::Pointer(_) | ControllerInput::PointerLost(_) => {
                     unreachable!("physical pointer handled before keyboard dispatch")
                 }
-                ProductInputEvent::Key(event) => event,
-                ProductInputEvent::Lost(_) => {
+                ControllerInput::Key(event) => event,
+                ControllerInput::Lost(_) => {
                     if matches!(
                         journey.status(),
                         JourneyStatus::Planned | JourneyStatus::QuiescentAwaitingInput
@@ -558,20 +544,20 @@ fn run_controller(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
             };
             if consumed_birth_key == Some(event.usage()) {
                 if event.transition() == KeyTransition::Released {
                     consumed_birth_key = None;
                 }
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             // A held key keeps its original Plot owner across surface changes,
             // including when the compositor currently has no keyboard target.
             if journey.owns_key_release(event) {
                 workspace_updates.accept(event, &mut journey, &mut front_door)?;
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             let keyboard_target = if front_door.creche_open() {
                 face_arrival.route_keyboard()?
@@ -584,7 +570,7 @@ fn run_controller(
                 )
             };
             if !keyboard_target {
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if product_control(event.usage()) == Some(ProductControl::UsbLine)
                 && usb_line_device.is_some()
@@ -594,16 +580,16 @@ fn run_controller(
                         .require(EffectFamily::Line)
                         .map_err(|_| "product-line-base-unavailable")?;
                     line_requested = true;
-                    return Ok(ProductInputControl::Yield);
+                    return Ok(ControllerControl::Yield);
                 }
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Tour)
             {
                 face_workspace.relinquish()?;
                 tutorial::select(&mut journey, &mut front_door, &mut presenter, display, make)?;
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if face_workspace.active() {
                 if face_workspace.editor_surface() && event.usage() == 43 {
@@ -621,7 +607,7 @@ fn run_controller(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
                 if !face_workspace.editor_surface()
                     && event.transition() == KeyTransition::Pressed
@@ -630,7 +616,7 @@ fn run_controller(
                     let receipt = face_workspace.leave(&front_door, &mut presenter, display)?;
                     emit_journey_sign(&journey.projection(), make, &receipt);
                     arch::early_write(b"CONDUIT_WORKSPACE_FACE returned-to-application\n");
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
                 // Existing application shortcuts remain available after an
                 // explicit return to its surface. F3 belongs to the Face
@@ -655,7 +641,7 @@ fn run_controller(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 } else {
                     if let Some(receipt) = face_workspace.accept_key(
                         event,
@@ -669,7 +655,7 @@ fn run_controller(
                         emit_journey_sign(&journey.projection(), make, &receipt);
                         workspace_view_sign::emit(&front_door, &journey, &receipt)?;
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
             }
             if event.transition() == KeyTransition::Pressed
@@ -680,7 +666,7 @@ fn run_controller(
                 let receipt = face_workspace.enter(&front_door, &mut presenter, display)?;
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 arch::early_write(b"CONDUIT_WORKSPACE_FACE shown\n");
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if front_door.home_open()
                 && product_control(event.usage()) != Some(ProductControl::Lifecycle)
@@ -694,7 +680,7 @@ fn run_controller(
                     display,
                     make,
                 )?;
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if front_door.creche_open() {
                 match face_arrival.accept_key(
@@ -715,7 +701,7 @@ fn run_controller(
                         }
                     }
                 }
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Escape)
@@ -732,11 +718,11 @@ fn run_controller(
                 )?;
                 emit_journey_sign(&journey.projection(), make, &receipt);
                 arch::early_write(b"CONDUIT_HOME_CHECKPOINT returned\n");
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             if !front_door.exact_details_open() {
                 if tutorial::navigate(event, &journey, &mut front_door, &mut presenter, display)? {
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
 
                 if event.transition() == KeyTransition::Pressed
@@ -745,7 +731,7 @@ fn run_controller(
                 {
                     let Some(action) = tutorial::selected_action(event.usage(), &front_door, &view)
                     else {
-                        return Ok(ProductInputControl::Continue);
+                        return Ok(ControllerControl::Continue);
                     };
                     if journey.foreground_is_tutorial() {
                         tutorial::activate(
@@ -759,7 +745,7 @@ fn run_controller(
                             offer,
                             make,
                         )?;
-                        return Ok(ProductInputControl::Continue);
+                        return Ok(ControllerControl::Continue);
                     }
                     journey
                         .accept_application_event(&tutorial::event(&view, &action))
@@ -772,20 +758,10 @@ fn run_controller(
                             chapter: 0,
                             stage: 2,
                         }) => {
-                            let mut prepared = crate::tour_play::prepare_morse_stage(
-                                identities,
-                                offer,
-                                make.build_id,
-                            )
-                            .map_err(|error| error.as_str())?;
-                            let evidence = crate::tour_play::run_morse_stage(
-                                &mut prepared,
-                                &mut clock,
-                                &mut serial,
-                                &mut interrupts,
-                                &mut idle,
-                            )
-                            .map_err(|_| "resident-tour-morse-play-refused")?;
+                            let evidence = runtime.run_tour(
+                                identities, offer, make.build_id,
+                                controller_io::RunTourStage { chapter: 0, stage: 2 },
+                            )?;
                             journey
                                 .complete_tour_run(&evidence)
                                 .map_err(|error| error.as_str())?;
@@ -797,25 +773,10 @@ fn run_controller(
                             chapter,
                             stage,
                         }) => {
-                            let (mut prepared, specimen_id, expected) =
-                                crate::tour_play::prepare_stage(
-                                    identities,
-                                    offer,
-                                    make.build_id,
-                                    chapter,
-                                    stage,
-                                )
-                                .map_err(|error| error.as_str())?;
-                            let evidence = crate::tour_play::run_stage(
-                                &mut prepared,
-                                specimen_id,
-                                expected,
-                                &mut clock,
-                                &mut serial,
-                                &mut interrupts,
-                                &mut idle,
-                            )
-                            .map_err(|_| "resident-tour-play-refused")?;
+                            let evidence = runtime.run_tour(
+                                identities, offer, make.build_id,
+                                controller_io::RunTourStage { chapter, stage },
+                            )?;
                             journey
                                 .complete_tour_run(&evidence)
                                 .map_err(|error| error.as_str())?;
@@ -854,7 +815,7 @@ fn run_controller(
                         display,
                     )?;
                     emit_journey_sign(&journey.projection(), make, &receipt);
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
                 if let Some(changed) = workspace_input::select(event, &mut journey)? {
                     if changed {
@@ -867,17 +828,17 @@ fn run_controller(
                         )?;
                         emit_journey_sign(&journey.projection(), make, &receipt);
                     }
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
                 if journey.status() == JourneyStatus::QuiescentAwaitingInput
                     && journey.foreground_input_owner().is_some()
                     && product_control(event.usage()).is_none()
                 {
                     workspace_updates.accept(event, &mut journey, &mut front_door)?;
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
                 if product_control(event.usage()) == Some(ProductControl::SelectNextPlot) {
-                    return Ok(ProductInputControl::Continue);
+                    return Ok(ControllerControl::Continue);
                 }
             }
             if event.transition() == KeyTransition::Pressed
@@ -897,7 +858,7 @@ fn run_controller(
                     format!("CONDUIT_PRODUCT_ACTION handled {}\n", action.as_str()).as_bytes(),
                 );
                 emit_journey_sign(&journey.projection(), make, &receipt);
-                return Ok(ProductInputControl::Continue);
+                return Ok(ControllerControl::Continue);
             }
             let revision = front_door.revision();
             if front_door
@@ -917,7 +878,7 @@ fn run_controller(
                 );
                 }
             }
-            Ok(ProductInputControl::Continue)
+            Ok(ControllerControl::Continue)
         };
         platform.run_input(&mut interact)?;
         if !line_requested {
@@ -933,7 +894,7 @@ fn run_controller(
             conduit_body::MembershipProofId::bind("conduitos/product/reviewed-qemu-line-peer")
                 .map_err(|_| "product-usb-line-membership-proof-invalid")?;
         let mut peer_part = None;
-        platform.run_line(identities, body_id.as_str(), |observation| {
+        platform.run_line(body_id.as_str(), |observation| {
             let platform::ConnectivityObservation {
                 status,
                 line_id,

@@ -4,6 +4,8 @@
 //! a checked write-only display sink. Hardware handles stay in this module.
 //! This is preparation for a service message boundary, not CPU isolation.
 
+use super::controller_io::{ControllerControl, ControllerInput};
+
 use crate::{
     arch::{HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
     display::{DisplayError, DisplayFormat, PixelTarget},
@@ -45,7 +47,10 @@ pub fn run(
         pointer: pointer_session.zip(pointer_usb),
         line_device: usb_line_device,
         ps2: ps2_input,
+        identities,
+        rescue_matcher,
     };
+    let mut runtime = super::runtime::RootRuntime::new();
     super::run_controller(
         identities,
         offer,
@@ -53,7 +58,7 @@ pub fn run(
         framebuffer_basis,
         &mut display,
         &mut platform,
-        rescue_matcher,
+        &mut runtime,
         effect_bases,
         surface_provider,
         pending_join,
@@ -69,6 +74,8 @@ pub(super) struct RootPlatform<'a> {
     pointer_admitted: bool,
     line_device: Option<&'a UsbDevice>,
     ps2: Option<&'a mut crate::arch::Ps2Input>,
+    identities: &'a BootIdentities,
+    rescue_matcher: &'a mut LocalRescueMatcher,
 }
 
 /// Borrowed finite Line observations; no device handle crosses the callback.
@@ -93,10 +100,26 @@ impl RootPlatform<'_> {
     /// Yield returns controller ownership before a Line command is accepted.
     pub fn run_input(
         &mut self,
-        interact: impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,
+        mut interact: impl FnMut(ControllerInput) -> Result<ControllerControl, &'static str>,
     ) -> Result<(), &'static str> {
+        let identities = self.identities;
+        let rescue_matcher = &mut *self.rescue_matcher;
+        let mut deliver = |input| {
+            let input = match input {
+                ProductInputEvent::LocalRescue(local) => {
+                    crate::rescue_guest::observe(identities, rescue_matcher, local, true);
+                    return Ok(ProductInputControl::Continue);
+                }
+                ProductInputEvent::Service => ControllerInput::Service,
+                ProductInputEvent::Key(event) => ControllerInput::Key(event),
+                ProductInputEvent::Lost(reason) => ControllerInput::Lost(reason),
+                ProductInputEvent::Pointer(sample) => ControllerInput::Pointer(sample),
+                ProductInputEvent::PointerLost(reason) => ControllerInput::PointerLost(reason),
+            };
+            interact(input)
+        };
         if let Some(ps2) = self.ps2.as_deref_mut() {
-            keyboard_input::run_ps2_product(ps2, interact)
+            keyboard_input::run_ps2_product(ps2, &mut deliver)
         } else {
             keyboard_input::run_product_with_pointer(
                 self.keyboard
@@ -105,14 +128,13 @@ impl RootPlatform<'_> {
                 self.controller,
                 self.keyboard_device,
                 &mut self.pointer,
-                interact,
+                &mut deliver,
             )
         }
     }
 
     pub fn run_line(
         &mut self,
-        identities: &BootIdentities,
         body_id: &str,
         mut observe: impl FnMut(ConnectivityObservation<'_>) -> Result<(), &'static str>,
     ) -> Result<(), &'static str> {
@@ -126,7 +148,7 @@ impl RootPlatform<'_> {
         )
         .map_err(|error| error.as_str())?;
         let mut line =
-            crate::product_usb_line::prepare(identities, self.controller_id, device, ready)?;
+            crate::product_usb_line::prepare(self.identities, self.controller_id, device, ready)?;
         line.run(
             self.controller,
             device,
