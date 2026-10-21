@@ -11,6 +11,8 @@ mod value_storage;
 pub use value_storage::{
     PreparedRegionValueStorage, RegionValueStorageError, RegionValueStorageLimits,
 };
+mod kernel_tables;
+pub use kernel_tables::{PreparedRegionKernelTables, RegionTableError};
 mod transfers;
 pub use transfers::PreparedRegionTransfer;
 mod lane_offers;
@@ -170,9 +172,12 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                 .filter(|cord| {
                     fragment.connections.iter().any(|connection| {
                         connection.connection_id == cord.connection_id
-                            && admitted
+                            && (admitted
                                 .admitted_placements
                                 .contains(&connection.sink_placement_id)
+                                || admitted
+                                    .admitted_placements
+                                    .contains(&connection.source_placement_id))
                     })
                 })
                 .map(|cord| cord.spec.cord)

@@ -9,8 +9,9 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionScheduling {
     CooperativeBoundedStep,
-    /// Independent bounded partitions. Every Cord queue belongs to its sink
-    /// region, including typed local transfers crossing a region boundary.
+    /// Independent bounded partitions. Cross-region Cords reserve outgoing
+    /// staging at their source and ingress storage at their sink. An internal
+    /// Cord is charged once; a cross-region Cord is charged at both endpoints.
     /// Targets must explicitly install this scheduling profile before Play.
     PartitionedBoundedStep,
 }
@@ -99,13 +100,17 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
                 .try_fold(0u32, |total, r| total.checked_add(r.units))
         };
         let mut region_connections = fragment.connections.iter().filter(|connection| {
-            region
+            let source = region
                 .admitted_placements
-                .contains(&connection.sink_placement_id)
-                && (partitioned
-                    || region
-                        .admitted_placements
-                        .contains(&connection.source_placement_id))
+                .contains(&connection.source_placement_id);
+            let sink = region
+                .admitted_placements
+                .contains(&connection.sink_placement_id);
+            if partitioned {
+                source || sink
+            } else {
+                source && sink
+            }
         });
         let cord_items = region_connections.clone().try_fold(0u32, |total, c| {
             total.checked_add(u32::from(c.item_capacity))
