@@ -65,6 +65,7 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                 )
             });
             let bytes = HostedValueStore::canonical_storage_bytes(capacities).map_err(Storage)?;
+            check_worker_value_budget(region.admitted(), bytes)?;
             projected = projected.checked_add(bytes).ok_or(CapacityExceeded)?;
             scratch_bytes = scratch_bytes.max(
                 slots
@@ -135,6 +136,7 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                 region.admitted().requirements.cord_byte_capacity,
             )
             .map_err(Storage)?;
+            check_worker_value_budget(region.admitted(), store.reserved_storage_bytes())?;
             let expected = HostedValueStore::canonical_storage_bytes(capacities.iter().copied())
                 .map_err(Storage)?;
             projected = projected
@@ -187,4 +189,25 @@ impl<'prepared, 'plan> PreparedRegionValueStorage<'prepared, 'plan> {
     pub fn preparation_bytes_upper_bound(&self) -> usize {
         self.preparation_bytes_upper_bound
     }
+}
+
+fn check_worker_value_budget(
+    region: &conduit_core::ExecutionRegion,
+    bytes: usize,
+) -> Result<(), RegionValueStorageError> {
+    use RegionValueStorageError::CapacityExceeded;
+    if let Some(storage) = region.scheduling.worker_storage() {
+        let stack = usize::try_from(storage.stack_bytes).map_err(|_| CapacityExceeded)?;
+        let scratch = usize::try_from(storage.scratch_bytes).map_err(|_| CapacityExceeded)?;
+        let budget = usize::try_from(storage.binding.units).map_err(|_| CapacityExceeded)?;
+        let required = stack
+            .checked_add(scratch)
+            .and_then(|base| base.checked_add(core::mem::size_of::<HostedValueStore>()))
+            .and_then(|base| base.checked_add(bytes))
+            .ok_or(CapacityExceeded)?;
+        if required > budget {
+            return Err(CapacityExceeded);
+        }
+    }
+    Ok(())
 }

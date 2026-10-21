@@ -6,14 +6,34 @@ use crate::{
     RUNTIME_MEMORY_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionScheduling {
     CooperativeBoundedStep,
     /// Independent bounded partitions. Cross-region Cords reserve outgoing
     /// staging at their source and ingress storage at their sink. An internal
     /// Cord is charged once; a cross-region Cord is charged at both endpoints.
     /// Targets must explicitly install this scheduling profile before Play.
-    PartitionedBoundedStep,
+    PartitionedBoundedStep {
+        storage: ExecutionWorkerStorage,
+    },
+}
+
+/// Separate worker realization memory, additional to selected Back resources
+/// and lane reservations. Its units cover stack, scratch and all remaining
+/// worker backing; target installation must check the actual complete footprint.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionWorkerStorage {
+    pub binding: ResourceBinding,
+    pub stack_bytes: u32,
+    pub scratch_bytes: u32,
+}
+impl ExecutionScheduling {
+    pub fn worker_storage(&self) -> Option<&ExecutionWorkerStorage> {
+        match self {
+            Self::CooperativeBoundedStep => None,
+            Self::PartitionedBoundedStep { storage } => Some(storage),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -47,11 +67,12 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     let partitioned = fragment
         .execution_regions
         .iter()
-        .any(|r| r.scheduling == ExecutionScheduling::PartitionedBoundedStep);
+        .any(|r| r.scheduling.worker_storage().is_some());
     if partitioned
-        && fragment.execution_regions.iter().any(|r| {
-            r.scheduling != ExecutionScheduling::PartitionedBoundedStep || r.lane_count != 1
-        })
+        && fragment
+            .execution_regions
+            .iter()
+            .any(|r| r.scheduling.worker_storage().is_none() || r.lane_count != 1)
     {
         return false;
     }
@@ -72,6 +93,22 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     placement_ids.sort();
     let mut admitted = Vec::new();
     for region in &fragment.execution_regions {
+        if let Some(storage) = region.scheduling.worker_storage() {
+            let binding = &storage.binding;
+            if storage.stack_bytes == 0
+                || binding.pool_id.as_str().is_empty()
+                || binding.class_id.as_str() != RUNTIME_MEMORY_RESOURCE_CLASS
+                || binding.compute.is_some()
+                || binding.protected.is_some()
+                || binding.content.is_some()
+                || storage
+                    .stack_bytes
+                    .checked_add(storage.scratch_bytes)
+                    .is_none_or(|minimum| minimum > binding.units)
+            {
+                return false;
+            }
+        }
         if region.region_id.as_str().is_empty()
             || region.execution_profile_id.as_str().is_empty()
             || region.admitted_placements.is_empty()

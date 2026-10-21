@@ -69,7 +69,20 @@ pub(crate) fn transfer_plan() -> Plan {
     fragment.placements.push(sink);
     fragment.execution_regions.push(region);
     for region in &mut fragment.execution_regions {
-        region.scheduling = ExecutionScheduling::PartitionedBoundedStep;
+        region.scheduling = ExecutionScheduling::PartitionedBoundedStep {
+            storage: ExecutionWorkerStorage {
+                binding: ResourceBinding {
+                    pool_id: "worker-memory".into(),
+                    class_id: RUNTIME_MEMORY_RESOURCE_CLASS.into(),
+                    units: 128 * 1024,
+                    compute: None,
+                    protected: None,
+                    content: None,
+                },
+                stack_bytes: 64 * 1024,
+                scratch_bytes: 4096,
+            },
+        };
         region.requirements.cord_item_capacity = 2;
         region.requirements.cord_byte_capacity = 2;
     }
@@ -91,4 +104,69 @@ pub(crate) fn transfer_plan() -> Plan {
         byte_capacity: 2,
     });
     common::seal(fragment)
+}
+
+#[allow(dead_code)]
+pub(crate) fn lane_host(
+    plan: &Plan,
+    capacity: u32,
+) -> (HostAdvertisement, Vec<ResourceObservation>) {
+    let fragment = &plan.fragments[0];
+    let mut host = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: fragment.host_id.clone(),
+        boot_id: fragment.boot_id.clone(),
+        offer_generation: fragment.offer_generation,
+        profile: HostProfileId::from("fixture"),
+        bases: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+        resources: vec![ResourceOffer {
+            pool_id: ResourcePoolId::from("lanes"),
+            class_id: ResourceClassId::from("conduit.resource/execution-lane@1"),
+            capacity_units: capacity,
+            content: None,
+            compute: Some(ComputePoolContract {
+                service_guarantee: ComputeServiceGuarantee::Shared,
+                architecture_base_id: ArchitectureBaseId::from("base"),
+                architecture_base_kind: ArchitectureBaseKind::HostedOs,
+                topology_groups: vec![],
+            }),
+        }],
+    };
+    for region in &fragment.execution_regions {
+        if let Some(storage) = region.scheduling.worker_storage() {
+            if let Some(offer) = host
+                .resources
+                .iter_mut()
+                .find(|o| o.pool_id == storage.binding.pool_id)
+            {
+                offer.capacity_units += storage.binding.units;
+            } else {
+                host.resources.push(ResourceOffer {
+                    pool_id: storage.binding.pool_id.clone(),
+                    class_id: storage.binding.class_id.clone(),
+                    capacity_units: storage.binding.units,
+                    compute: None,
+                    content: None,
+                });
+            }
+        }
+    }
+    let observations = host
+        .resources
+        .iter()
+        .map(|offer| ResourceObservation {
+            host_id: host.host_id.clone(),
+            boot_id: host.boot_id.clone(),
+            offer_generation: host.offer_generation,
+            pool_id: offer.pool_id.clone(),
+            class_id: offer.class_id.clone(),
+            health: ResourceHealth::Ready,
+            unreserved_units: offer.capacity_units,
+            utilized_units: 0,
+            sign_id: SignId::from("current"),
+        })
+        .collect();
+    (host, observations)
 }

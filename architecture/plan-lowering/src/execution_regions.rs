@@ -15,8 +15,8 @@ mod kernel_tables;
 pub use kernel_tables::{PreparedRegionKernelTables, RegionTableError};
 mod transfers;
 pub use transfers::PreparedRegionTransfer;
-mod lane_offers;
-pub use lane_offers::{CheckedRegionLaneOffers, LaneOfferError};
+mod resource_offers;
+pub use resource_offers::{CheckedRegionResources, RegionResourceOfferError};
 
 use alloc::vec::Vec;
 use conduit_core::{ExecutionRegion, FragmentId, Plan, PlanFragment};

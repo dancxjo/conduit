@@ -17,7 +17,7 @@ use conduit_plan_lowering::lowering::{
 
 mod pool_usage;
 use pool_usage::PoolUsage;
-mod region_lanes;
+mod region_resources;
 
 #[derive(Debug, Clone)]
 pub(super) struct KernelResourceLedger {

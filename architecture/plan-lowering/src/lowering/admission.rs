@@ -22,7 +22,7 @@ pub(super) fn validate_verified_fragment(
         if let Some(region) = fragment
             .execution_regions
             .iter()
-            .find(|r| r.scheduling == conduit_core::ExecutionScheduling::PartitionedBoundedStep)
+            .find(|r| r.scheduling.worker_storage().is_some())
         {
             return Err(LoweringError::UnsupportedExecutionRegion(
                 region.region_id.clone(),
