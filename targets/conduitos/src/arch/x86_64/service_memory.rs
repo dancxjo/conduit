@@ -226,7 +226,10 @@ fn map(
     base: u64,
     flags: u64,
 ) -> Result<(), DomainRefusal> {
-    if start % PAGE as u64 != 0 || base % PAGE as u64 != 0 || bytes % PAGE as u64 != 0 {
+    if !start.is_multiple_of(PAGE as u64)
+        || !base.is_multiple_of(PAGE as u64)
+        || !bytes.is_multiple_of(PAGE as u64)
+    {
         return Err(DomainRefusal::InvalidMemory);
     }
     for offset in (0..bytes).step_by(PAGE) {

@@ -102,8 +102,8 @@ impl ServiceMemoryLayout {
                 .checked_add(range.bytes)
                 .ok_or(ImageRefusal::InvalidMapping)?;
             if range.bytes == 0
-                || range.bytes % PAGE_BYTES != 0
-                || range.start % PAGE_BYTES != 0
+                || !range.bytes.is_multiple_of(PAGE_BYTES)
+                || !range.start.is_multiple_of(PAGE_BYTES)
                 || previous_end
                     .checked_add(PAGE_BYTES)
                     .is_none_or(|minimum| range.start < minimum)
