@@ -1,0 +1,22 @@
+{
+  "parent": "0b4c81b600b289491f08802ca6c2392f402a86f8",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/verify-5628-local-look-records.py",
+      "tree_path": "task-6038/work/verify-5628-local-look-records.py",
+      "bytes": 2366,
+      "sha256": "7cef7ff183a0287742e43a30aed26bf9b7ea1537ff4c00b76ea43217980c55d0",
+      "mode": "100644",
+      "blob": "8e553995b9bf6abdebf91baba0c91ec8278b8e5f"
+    },
+    {
+      "source": "outputs/5628-normal-journey-253dcb985/x86_64/root-local-look-verification.json",
+      "tree_path": "task-6038/outputs/5628-normal-journey-253dcb985/x86_64/root-local-look-verification.json",
+      "bytes": 488,
+      "sha256": "39e135d25c4503264beda29d83491e5f9990aab647d7707860096fe28ed563ce",
+      "mode": "100644",
+      "blob": "1edfa4af2412d66f213851b156f976044da575b0"
+    }
+  ]
+}
