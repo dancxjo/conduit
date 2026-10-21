@@ -3,6 +3,7 @@
 //! second mutable BirthDraft or authority to create a Body/start a Play.
 mod draft;
 mod errors;
+mod home;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainCost, DomainRefusal, DomainReturn},
@@ -13,6 +14,7 @@ use conduitos_creche_core::wire::{
     self, Envelope, InputKind, OutputKind, Refusal, Request, Response,
 };
 pub use draft::CrecheDraft;
+pub(crate) use home::Home;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TransportError {
@@ -52,12 +54,15 @@ impl CrecheService {
             return Err(TransportError::Bounds);
         }
         let domain = ServiceDomain::install(image).map_err(TransportError::Backend)?;
-        Ok(Self {
+        Ok(Self::from_domain(domain))
+    }
+    fn from_domain(domain: ServiceDomain) -> Self {
+        Self {
             instance: domain.instance(),
             final_cost: domain.cost(),
             domain: Some(domain),
             next_request: 1,
-        })
+        }
     }
 
     pub fn instance(&self) -> u64 {
@@ -278,6 +283,13 @@ fn response_matches(request: Request<'_>, response: Response) -> bool {
             },
         ) => true,
         (Request::Read { .. }, Response::Chunk { .. }) => true,
+        (
+            Request::HomeInit | Request::HomeRefusal { .. } | Request::HomeReset { .. },
+            Response::Blob {
+                kind: OutputKind::Home,
+                ..
+            },
+        ) => true,
         (
             Request::NativeKey { .. },
             Response::Blob {

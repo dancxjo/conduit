@@ -8,9 +8,11 @@ use conduit_birth_plot::{
     BirthActionOutcome, BirthActions, BirthDraft, BirthFaceRefusal, BirthWidgetFace,
 };
 use conduit_face::ApplicationEventKind;
+mod home;
 mod presentation;
 pub struct State {
     draft: Option<super::native::Controller>,
+    home: Option<super::home::Controller>,
     incoming: Option<(InputKind, u32, Vec<u8>)>,
     outgoing: Vec<u8>,
     read_offset: u32,
@@ -19,6 +21,7 @@ impl Default for State {
     fn default() -> Self {
         Self {
             draft: None,
+            home: None,
             incoming: None,
             outgoing: Vec::new(),
             read_offset: 0,
@@ -82,7 +85,12 @@ impl State {
                 if total == 0 || total > MAX_BLOB_BYTES || self.incoming.is_some() {
                     return Err(Refusal::Order);
                 }
-                if (kind == InputKind::Initialize) != self.draft.is_none() {
+                let home_kind = matches!(kind, InputKind::HomeKey | InputKind::HomeView);
+                if if home_kind {
+                    self.home.is_none() || self.draft.is_some()
+                } else {
+                    self.home.is_some() || ((kind == InputKind::Initialize) != self.draft.is_none())
+                } {
                     return Err(Refusal::Order);
                 }
                 let mut bytes = Vec::new();
@@ -122,6 +130,9 @@ impl State {
                 })
             }
             Request::Commit => self.commit(),
+            Request::HomeInit => self.home_init(),
+            Request::HomeReset { revision } => self.home_reset(revision),
+            Request::HomeRefusal { revision, code } => self.home_refuse(revision, code),
             Request::NativeKey { revision, event } => {
                 if self.incoming.is_some() {
                     return Err(Refusal::Order);
@@ -228,6 +239,8 @@ impl State {
             return Err(Refusal::Order);
         }
         match kind {
+            InputKind::HomeKey => self.home_key(&bytes),
+            InputKind::HomeView => self.home_view(&bytes),
             InputKind::NativeScene => self.native_scene(&bytes),
             InputKind::NativeFace => self.native_face(&bytes),
             InputKind::Initialize => {

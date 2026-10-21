@@ -24,7 +24,7 @@ struct Retained {
 const _: () = assert!(size_of::<Retained>() <= 4096);
 const _: () = assert!(memory::STATE.is_multiple_of(align_of::<Retained>()));
 /// # Safety
-/// Root installs the exact finite Draft profile and passes its fixed exchange
+/// Root installs the exact finite Draft or Home profile and passes its fixed exchange
 /// grant. Every entry has a fresh stack and exclusive access to retained metadata.
 #[unsafe(no_mangle)]
 #[unsafe(link_section = ".text.entry")]

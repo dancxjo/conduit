@@ -5,7 +5,7 @@ pub const EXCHANGE_BYTES: usize = 4096;
 pub const TRANSFER_BYTES: u32 = 16 * 1024;
 pub const MAX_BLOB_BYTES: u32 = 128 * 1024;
 pub const HEADER_BYTES: usize = 32;
-pub const VERSION: u16 = 3;
+pub const VERSION: u16 = 4;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Envelope {
     pub instance: u64,
@@ -19,6 +19,8 @@ pub enum InputKind {
     FaceInteraction = 3,
     NativeFace = 4,
     NativeScene = 5,
+    HomeKey = 6,
+    HomeView = 7,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -29,6 +31,8 @@ pub enum OutputKind {
     Native = 4,
     NativeFace = 5,
     NativeScene = 6,
+    Home = 7,
+    HomeView = 8,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -50,6 +54,14 @@ pub enum Request<'a> {
     },
     Commit,
     AllowIdle,
+    HomeInit,
+    HomeReset {
+        revision: u32,
+    },
+    HomeRefusal {
+        revision: u32,
+        code: u8,
+    },
     NativeKey {
         revision: u32,
         event: [u8; 3],

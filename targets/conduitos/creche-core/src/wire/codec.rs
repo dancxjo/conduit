@@ -72,6 +72,8 @@ fn kind(b: u8) -> Result<InputKind, Refusal> {
         3 => Ok(InputKind::FaceInteraction),
         4 => Ok(InputKind::NativeFace),
         5 => Ok(InputKind::NativeScene),
+        6 => Ok(InputKind::HomeKey),
+        7 => Ok(InputKind::HomeView),
         _ => Err(Refusal::Malformed),
     }
 }
@@ -83,6 +85,8 @@ fn output(b: u8) -> Result<OutputKind, Refusal> {
         4 => Ok(OutputKind::Native),
         5 => Ok(OutputKind::NativeFace),
         6 => Ok(OutputKind::NativeScene),
+        7 => Ok(OutputKind::Home),
+        8 => Ok(OutputKind::HomeView),
         _ => Err(Refusal::Malformed),
     }
 }
@@ -215,6 +219,26 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request<'_>), Refusal> 
                 event,
             }
         }
+        10 => {
+            exact(b, 0)?;
+            Request::HomeInit
+        }
+        11 => {
+            exact(b, 5)?;
+            if !(1..=2).contains(&b[4]) {
+                return Err(Refusal::Malformed);
+            }
+            Request::HomeRefusal {
+                revision: u32_at(b, 0)?,
+                code: b[4],
+            }
+        }
+        12 => {
+            exact(b, 4)?;
+            Request::HomeReset {
+                revision: u32_at(b, 0)?,
+            }
+        }
         _ => return Err(Refusal::Malformed),
     };
     Ok((env, request))
@@ -225,6 +249,9 @@ pub fn encode_request(env: Envelope, r: Request<'_>, out: &mut [u8]) -> Result<u
         Request::Write { .. } => (2, 12),
         Request::Commit => (3, 0),
         Request::AllowIdle => (8, 0),
+        Request::HomeInit => (10, 0),
+        Request::HomeReset { .. } => (12, 4),
+        Request::HomeRefusal { .. } => (11, 5),
         Request::NativeKey { .. } => (9, 7),
         Request::Apply { action, value, .. } => {
             if action.len() > 64 || value.len() > 128 {
@@ -252,7 +279,14 @@ pub fn encode_request(env: Envelope, r: Request<'_>, out: &mut [u8]) -> Result<u
             b[4..8].copy_from_slice(&window_offset.to_le_bytes());
             b[8..12].copy_from_slice(&bytes.to_le_bytes());
         }
-        Request::Commit | Request::AllowIdle => {}
+        Request::Commit | Request::AllowIdle | Request::HomeInit => {}
+        Request::HomeReset { revision } => {
+            b[..4].copy_from_slice(&revision.to_le_bytes());
+        }
+        Request::HomeRefusal { revision, code } => {
+            b[..4].copy_from_slice(&revision.to_le_bytes());
+            b[4] = code;
+        }
         Request::NativeKey { revision, event } => {
             b[..4].copy_from_slice(&revision.to_le_bytes());
             b[4..].copy_from_slice(&event);

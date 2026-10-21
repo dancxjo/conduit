@@ -1,4 +1,4 @@
-//! Explicit Draft service admission ceiling, shared with the independent guest.
+//! Explicit Draft/Home service admission ceiling, shared with the independent guest.
 //! These limits are not a measured minimum, peak usage or elapsed-time proof.
 pub const IMAGE_START: usize = 0x0040_0000;
 pub const IMAGE_BYTES: usize = 2 * 1024 * 1024;
