@@ -75,15 +75,45 @@ impl FrontDoor {
     }
 
     pub fn open_home(&mut self) -> Result<(), Error> {
-        if self
-            .journey
-            .as_ref()
-            .is_none_or(|journey| journey.body_id.is_none())
+        if self.journey.is_none() {
+            return Err(Error::Face);
+        }
+        if self.home.is_some() {
+            return self.advance();
+        }
+        let home = if let Some(mut retained) = self.retained_home.take() {
+            retained
+                .commons
+                .back_to_hub(self.journey.as_ref().ok_or(Error::Face)?)?;
+            retained.model = HomeModel::new();
+            retained.refusal = None;
+            retained
+        } else {
+            Home::new()?
+        };
+        self.home = Some(home);
+        self.advance()
+    }
+
+    /// Move, rather than copy, the Commons context while its Birth encounter is visible.
+    #[cfg_attr(not(feature = "native-compositor"), allow(dead_code))]
+    pub(crate) fn enter_prebirth_creche(&mut self) -> Result<(), Error> {
+        if !self.commons_creche_selected()
+            || self.arrival.is_none()
+            || self.retained_home.is_some()
+            || self
+                .journey
+                .as_ref()
+                .is_none_or(|journey| journey.body_id.is_some())
         {
             return Err(Error::Face);
         }
-        self.home = Some(Home::new()?);
+        self.retained_home = self.home.take();
         self.advance()
+    }
+
+    pub fn commons_creche_selected(&self) -> bool {
+        self.home.as_ref().is_some_and(|home| home.commons.creche())
     }
 
     pub fn commons_place(&self) -> Option<&str> {
@@ -95,9 +125,10 @@ impl FrontDoor {
     }
 
     pub fn close_home(&mut self) -> Result<(), Error> {
-        if self.home.take().is_none() {
+        if self.retained_home.is_some() || self.home.is_none() {
             return Err(Error::Face);
         }
+        self.retained_home = self.home.take();
         self.advance()
     }
 

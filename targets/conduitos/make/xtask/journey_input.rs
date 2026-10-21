@@ -376,6 +376,7 @@ pub(super) fn enter_workshop(
     serial: &Path,
     child: &mut Child,
 ) -> Result<(), ConduitosError> {
+    focus_commons(qmp, reader, serial, child, "left")?;
     let marker = "CONDUIT_COMMONS_CONTEXT commons/workshop";
     let before = fs::read_to_string(serial)
         .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
@@ -389,5 +390,40 @@ pub(super) fn enter_workshop(
         marker,
         before + 1,
         "commons-workshop-timeout",
+    )
+}
+
+/// Select a Hub destination once and await its acknowledged Face update.
+fn focus_commons(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+    direction: &str,
+) -> Result<(), ConduitosError> {
+    let marker = "CONDUIT_COMMONS_CONTEXT commons/hub";
+    let before = fs::read_to_string(serial)
+        .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
+        .lines()
+        .filter(|line| *line == marker)
+        .count();
+    key_pair(qmp, reader, direction, "commons-focus-destination")?;
+    hid_qmp::wait_for_stage_count(serial, child, marker, before + 1, "commons-focus-timeout")
+}
+
+/// Enter the Source-authored Crèche encounter from zero-Body Commons.
+pub(super) fn enter_creche(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    focus_commons(qmp, reader, serial, child, "right")?;
+    key_pair(qmp, reader, "ret", "commons-enter-creche")?;
+    hid_qmp::wait_for_stage(
+        serial,
+        child,
+        "CONDUIT_CRECHE_CHECKPOINT ready",
+        "commons-creche-timeout",
     )
 }

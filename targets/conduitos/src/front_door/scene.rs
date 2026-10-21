@@ -13,11 +13,11 @@ use super::{Error, FrontDoor};
 
 impl FrontDoor {
     pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
-        if let Some(arrival) = &self.arrival {
-            return arrival.scene(display);
-        }
         if self.home.is_some() {
             return self.home_scene(display);
+        }
+        if let Some(arrival) = &self.arrival {
+            return arrival.scene(display);
         }
         self.face()?.validate().map_err(|_| Error::Face)?;
         let format = display.format().validate().map_err(Error::Display)?;

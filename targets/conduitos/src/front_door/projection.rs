@@ -6,7 +6,9 @@ impl FrontDoor {
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }
-        if let Some(arrival) = &self.arrival {
+        if self.home.is_none()
+            && let Some(arrival) = &self.arrival
+        {
             return arrival.face(self);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());

@@ -14,6 +14,7 @@ pub(super) fn accept(
     journey: &mut ProductJourney,
     presenter: &mut FrontDoorPresenter,
     face_workspace: &mut FaceWorkspace,
+    face_arrival: &mut super::FaceArrival,
     display: &mut impl PixelTarget,
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
@@ -70,10 +71,18 @@ pub(super) fn accept(
             arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
         }
         crate::front_door::HomeInput::OpenCreche => {
-            arch::early_write(b"CONDUIT_HOME_CHECKPOINT creche-unavailable-after-birth\n");
-            presenter
-                .present(front_door, display)
-                .map_err(|error| error.as_str())?;
+            if journey.projection().body_id.is_none() && front_door.commons_creche_selected() {
+                let receipt =
+                    super::prebirth::enter_creche(front_door, face_arrival, presenter, display)?;
+                emit_journey_sign(&journey.projection(), make, &receipt);
+            } else {
+                front_door
+                    .action_refused("Visit Crèche from Commons Hub.")
+                    .map_err(|error| error.as_str())?;
+                presenter
+                    .present(front_door, display)
+                    .map_err(|error| error.as_str())?;
+            }
         }
         crate::front_door::HomeInput::OpenPlot(index) => {
             let requested = front_door

@@ -148,6 +148,8 @@ pub(super) fn execute_supplied_observed(
             "journey-arrival-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
+        journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
+        artifacts.capture(&mut qmp, &mut reader, "creche-ready", false)?;
         let look_selection = if observe {
             json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
         } else {

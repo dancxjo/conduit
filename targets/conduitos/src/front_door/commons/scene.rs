@@ -154,7 +154,11 @@ impl Commons {
                 screen,
                 24,
                 (y + height + 40) as i16,
-                "Workshop holds your resident Plots.",
+                if journey.body_id.is_some() {
+                    "Workshop holds your resident Plots."
+                } else {
+                    "Visit Crèche to birth your Body."
+                },
                 GraphicsTextRole::Body,
                 GraphicsPaintRole::Foreground,
             )?;

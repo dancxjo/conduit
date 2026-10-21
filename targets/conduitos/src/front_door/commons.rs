@@ -30,6 +30,11 @@ impl Commons {
         &self.selected
     }
 
+    pub(super) fn creche(&self) -> bool {
+        place_text(&self.source.borrow().places, "creche", "identity")
+            .is_ok_and(|id| id == self.selected)
+    }
+
     pub(super) fn workshop(&self) -> bool {
         place_text(&self.source.borrow().places, "workshop", "identity")
             .is_ok_and(|id| id == self.selected)
@@ -75,7 +80,11 @@ impl Commons {
         }
         let target = match event.usage() {
             RIGHT | DOWN | LEFT | UP | TAB if in_hub => {
-                self.focus = 1 - self.focus;
+                self.focus = match event.usage() {
+                    RIGHT | DOWN => 1,
+                    LEFT | UP => 0,
+                    _ => 1 - self.focus,
+                };
                 return Ok(Some(HomeInput::Changed));
             }
             ENTER if in_hub => place_text(
@@ -90,14 +99,33 @@ impl Commons {
             ESCAPE if !in_hub => hub,
             _ => return Ok(Some(HomeInput::Unchanged)),
         };
+        self.navigate(journey, target, !in_hub)?;
+        Ok(Some(if self.creche() && journey.body_id.is_none() {
+            HomeInput::OpenCreche
+        } else {
+            HomeInput::Changed
+        }))
+    }
+
+    pub(super) fn back_to_hub(&mut self, journey: &JourneyProjection) -> Result<(), Error> {
+        let graph = self.source.borrow().places.clone();
+        let hub = place_text(&graph, "hub", "identity")?;
+        self.navigate(journey, hub, self.selected != hub)
+    }
+
+    fn navigate(
+        &mut self,
+        journey: &JourneyProjection,
+        target: &str,
+        back: bool,
+    ) -> Result<(), Error> {
         let generation = self.generation.checked_add(1).ok_or(Error::Face)?;
-        let value = self.observe(journey, target, !in_hub)?;
-        let selected = text(field(&value, "selected").map_err(|_| Error::Face)?)
+        let value = self.observe(journey, target, back)?;
+        self.selected = text(field(&value, "selected").map_err(|_| Error::Face)?)
             .map_err(|_| Error::Face)?
             .into();
-        self.selected = selected;
         self.generation = generation;
-        Ok(Some(HomeInput::Changed))
+        Ok(())
     }
 
     pub(super) fn project(

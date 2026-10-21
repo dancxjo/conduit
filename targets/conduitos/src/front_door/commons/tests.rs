@@ -120,4 +120,85 @@ fn commons_navigation_retains_the_actual_body_and_uses_its_existing_launcher() {
     door.accept_home(key(ESCAPE, KeyTransition::Pressed), door.revision())
         .unwrap();
     assert!(selected(&door.face().unwrap(), "commons/hub"));
+    door.accept_home(key(LEFT, KeyTransition::Pressed), door.revision())
+        .unwrap();
+    door.accept_home(key(ENTER, KeyTransition::Pressed), door.revision())
+        .unwrap();
+    let prepared = door.home.as_ref().unwrap().commons.source.borrow().as_ref() as *const Source;
+    for _ in 0..4 {
+        door.close_home().unwrap();
+        door.open_home().unwrap();
+        assert!(selected(&door.face().unwrap(), "commons/hub"));
+        assert_eq!(
+            door.home.as_ref().unwrap().commons.source.borrow().as_ref() as *const Source,
+            prepared
+        );
+        door.accept_home(key(LEFT, KeyTransition::Pressed), door.revision())
+            .unwrap();
+        door.accept_home(key(ENTER, KeyTransition::Pressed), door.revision())
+            .unwrap();
+    }
+    assert_eq!(journey.projection(), original);
+}
+
+#[test]
+fn zero_body_commons_returns_to_the_same_creche_draft_without_lifecycle_effects() {
+    let (_, _, journey) = fixture();
+    let original = journey.projection();
+    let plot = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
+    let mut door = FrontDoor::new(
+        original.host_id.clone(),
+        original.boot_id.clone(),
+        original.offer_generation,
+        "profile",
+        "build",
+        "image",
+        plot.source_document_id,
+        plot.checked_plot_id,
+        7,
+        true,
+    );
+    door.observe_product(&journey).unwrap();
+    door.open_creche("00000000-0000-0000-0000-000000000001".into(), None)
+        .unwrap();
+    door.open_home().unwrap();
+    assert!(!door.creche_open());
+    assert_eq!(door.commons_place(), Some("commons/hub"));
+    assert!(
+        door.face()
+            .unwrap()
+            .actions
+            .iter()
+            .all(|action| !action.availability.is_available())
+    );
+    door.accept_home(key(RIGHT, KeyTransition::Pressed), door.revision())
+        .unwrap();
+    assert_eq!(
+        door.accept_home(key(ENTER, KeyTransition::Pressed), door.revision())
+            .unwrap(),
+        HomeInput::OpenCreche
+    );
+    door.enter_prebirth_creche().unwrap();
+    assert!(door.creche_open());
+    door.accept_creche(key(4, KeyTransition::Pressed), door.revision())
+        .unwrap();
+    let draft = door.face().unwrap();
+    let stale = door.revision();
+    door.open_home().unwrap();
+    assert_eq!(door.commons_place(), Some("commons/hub"));
+    assert!(!door.creche_open());
+    assert_eq!(
+        door.accept_home(key(ENTER, KeyTransition::Pressed), stale),
+        Err(Error::StaleInput)
+    );
+    assert_eq!(
+        door.accept_home(key(ENTER, KeyTransition::Pressed), door.revision())
+            .unwrap(),
+        HomeInput::OpenCreche
+    );
+    door.enter_prebirth_creche().unwrap();
+    let returned = door.face().unwrap();
+    assert_eq!(returned.properties, draft.properties);
+    assert_eq!(returned.actions, draft.actions);
+    assert_eq!(journey.projection(), original);
 }

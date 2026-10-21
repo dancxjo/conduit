@@ -1,10 +1,5 @@
-//! Transitional hosted QEMU acceptance for the normal long-lived zero-body Crèche arrival.
-//!
-//! Keep the externally selected `front-door` proof slot stable while the native product
-//! entrance is being made genuinely Crèche-first. This proof deliberately does not encode
-//! incidental USB/HID initialization ordering. Its contract is product-facing: the normal
-//! IMAGE reaches a usable zero-body Crèche, accepts an explicit Crèche interaction without
-//! inventing lifecycle, and remains alive.
+//! Product QEMU acceptance for Commons → Crèche before any Body exists.
+//! An explicit Crèche interaction must not invent lifecycle; the guest remains alive.
 
 use std::{
     fs,
@@ -17,7 +12,9 @@ use serde::Serialize;
 
 use crate::cli::GlobalOpts;
 
-use super::{hid_qmp, image, profile::Paths, report::git_head, ConduitosArch, ConduitosError};
+use super::{
+    hid_qmp, image, journey_input, profile::Paths, report::git_head, ConduitosArch, ConduitosError,
+};
 
 #[derive(Serialize)]
 struct CrecheArrivalProof {
@@ -102,6 +99,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "CONDUIT_BOOT_STAGE front-door-ready",
             "front-door-ready-timeout",
         )?;
+        journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
         hid_qmp::send_named_keys(&mut qmp, &mut reader, &["f2"], true, "creche-suggest-name")?;
         hid_qmp::wait_for_stage(
             &serial_path,

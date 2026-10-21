@@ -51,7 +51,7 @@ impl FrontDoor {
             screen,
             34,
             60,
-            journey.friendly_name.as_deref().unwrap_or("Current body"),
+            journey.friendly_name.as_deref().unwrap_or("No Body yet"),
             GraphicsTextRole::Status,
             GraphicsPaintRole::Muted,
         )?;

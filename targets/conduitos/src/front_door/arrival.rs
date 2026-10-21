@@ -81,7 +81,7 @@ impl FrontDoor {
     }
 
     pub fn creche_open(&self) -> bool {
-        self.arrival.is_some()
+        self.arrival.is_some() && self.home.is_none()
     }
 
     pub fn close_creche(&mut self) -> Result<(), Error> {
