@@ -1,0 +1,19 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "passed_gates": [
+    "correspondence",
+    "workspace formatting",
+    "strict workspace Clippy",
+    "full workspace tests including doc-tests"
+  ],
+  "counts": {
+    "passed": 10092,
+    "failed": 0,
+    "ignored": 48,
+    "filtered": 0
+  },
+  "result_sections": 1358,
+  "raw_log": "workspace-core.log",
+  "sha256": "77f3d881a9842dedffbc0320760ace8662e395198f779dc2c3d20ee92a192c87",
+  "boundary": "Exact253 required core complete; remaining feature/cross-target gates ongoing. Not newerdb1/currentdev proof."
+}

@@ -1,0 +1,33 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "raw_bytes": 1463846,
+  "raw_sha256": "77f3d881a9842dedffbc0320760ace8662e395198f779dc2c3d20ee92a192c87",
+  "concatenation": "ordered parts concatenate byte-exactly to workspace-core.log",
+  "full_workspace_zero_filtered_sections": 1358,
+  "full_workspace_counts": [
+    10092,
+    0,
+    48,
+    0
+  ],
+  "ancillary_correspondence_selected_sections": 6,
+  "ancillary_correspondence_selected_passed": 2,
+  "ancillary_correspondence_filtered": 1466,
+  "parts": [
+    {
+      "file": "part-1.log",
+      "bytes": 524232,
+      "sha256": "5a1f8a2c848eae38c70cdc2a28e817c7343766302b07487a7a03c804b81d29bb"
+    },
+    {
+      "file": "part-2.log",
+      "bytes": 524259,
+      "sha256": "04ae8142c2559900b59425b5a465b34dd9dabdf7d385a2eb678b377fd8578758"
+    },
+    {
+      "file": "part-3.log",
+      "bytes": 415355,
+      "sha256": "4d0723c9ddf2b241bd95319452369d6d41c7120e8c8f102b170e28d7697321d5"
+    }
+  ]
+}

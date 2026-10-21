@@ -1,0 +1,102 @@
+{
+  "parent": "a85261f925e53078efddf5686b2f7f8d4f0aaf1b",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2716,
+      "sha256": "28fe101ac1d4da138d1cc70b8b1d206a4ed50c16c3380db60f3e37384a7b72af",
+      "mode": "100644",
+      "blob": "de750f07902b2cc49ac2b80692a7f2ad8da74807"
+    },
+    {
+      "source": "work/5628-build-current-owner-products.py",
+      "tree_path": "task-6038/work/5628-build-current-owner-products.py",
+      "bytes": 2137,
+      "sha256": "5b1f7eb599fd1a5b0a4e32ec453772cae416241755cce1bcf6b2dce81be9a364",
+      "mode": "100644",
+      "blob": "f7d4a37c096c37bca3895e10fac6bd65342611e4"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-core-pass.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-core-pass.json",
+      "bytes": 575,
+      "sha256": "daf791087a9acb6c1222414e416d43cecf3d78d4435da4f37ae9c3b47a5a6380",
+      "mode": "100644",
+      "blob": "659b2da20ac215e244e52b1809197d963637c6ec"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-core-parts/manifest.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-core-parts/manifest.json",
+      "bytes": 968,
+      "sha256": "c0fc0226cc171a51666949301ba02f3d0287e562e713a2cac4077f9937f8905f",
+      "mode": "100644",
+      "blob": "319d1ee9a23348879f3523728c176861d7715066"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-core-parts/part-1.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-core-parts/part-1.log",
+      "bytes": 524232,
+      "sha256": "5a1f8a2c848eae38c70cdc2a28e817c7343766302b07487a7a03c804b81d29bb",
+      "mode": "100644",
+      "blob": "c6613cc66988bfa586c25e8b9aa1846010c08e26"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-core-parts/part-2.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-core-parts/part-2.log",
+      "bytes": 524259,
+      "sha256": "04ae8142c2559900b59425b5a465b34dd9dabdf7d385a2eb678b377fd8578758",
+      "mode": "100644",
+      "blob": "305587e5fd4cfc1422112707e97001903d138351"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-core-parts/part-3.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-core-parts/part-3.log",
+      "bytes": 415355,
+      "sha256": "4d0723c9ddf2b241bd95319452369d6d41c7120e8c8f102b170e28d7697321d5",
+      "mode": "100644",
+      "blob": "ec3e9a8e43d79091bf798d2333d8f8f0fba420bc"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/scene-focused-status.json",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/scene-focused-status.json",
+      "bytes": 907,
+      "sha256": "c627b5d8fde8fa2f6c0dd7bff632039bc27c6056fde96c4c204349116f322844",
+      "mode": "100644",
+      "blob": "f6f712a300914f9d380215f6749043fb18f37a2b"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/native_face_scene.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/native_face_scene.log",
+      "bytes": 12193,
+      "sha256": "352b06b5780f61f8a0d67bd465676b015ed6a89710e5c2486b0e880869aabe6a",
+      "mode": "100644",
+      "blob": "654f63fd7cec5be80f95445c5d6eecc29fe8009a"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/display-typography.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/display-typography.log",
+      "bytes": 2622,
+      "sha256": "9bd117bfb28b6913b0ca755a859c8be6e1bf4b811e0cc2865b8ae812ffd20912",
+      "mode": "100644",
+      "blob": "6f56625d5e37977bcb42ee5780f8b2ec9dfbe583"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/native_compositor-raster_reuse.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/native_compositor-raster_reuse.log",
+      "bytes": 1504,
+      "sha256": "d7219d8d118c3d64634a63159fc7f012bbdfe723b04d45425d9dc6aa7b517265",
+      "mode": "100644",
+      "blob": "5ec03d6c40c33b70aa61f3ba3e550a27ca6848f6"
+    },
+    {
+      "source": "outputs/5628-current-owner-preparation/native_face_mask.log",
+      "tree_path": "task-6038/outputs/5628-current-owner-preparation/native_face_mask.log",
+      "bytes": 1631,
+      "sha256": "f704db4b1ac4f8603834250a868b35166d51bdb390a16c5dbbd299fbfcc6c647",
+      "mode": "100644",
+      "blob": "8ca315d67467a4a124f31d558753cd39a794c79d"
+    }
+  ]
+}

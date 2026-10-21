@@ -28,14 +28,14 @@
       "full fallback/resource/accessibility matrix still incomplete"
     ]
   },
-  "workspace_253": "Full gate still live through integration targets; native library completed 1240 passed/0 failed/3 manual ignored, source253 only",
+  "workspace_253": "Required core passed: full workspace10092/0/48ignored, correspondence, format and strict workspace Clippy. Remaining feature/cross-target gates live; no full52 claim.",
   "current_source": {
     "commit": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
     "tree": "9e1f38adb6f9425e0b772c9488bb5b55ab7a8060",
     "branch": "codex/5628-current-owner-reconciliation",
     "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "status": "Prepared on origin; focused arrival/dispatch35 pass, wire8 pass and formatting complete; scene/typography/raster/Mask checks running. No feature PR admitted.",
+    "status": "Prepared on origin;179 native focused passes/1manualignore across5 filters,8browserwire andfmt pass; supported normal-product/journey/Linuxrelease/Handbook pipeline running. No feature PR admitted.",
     "proof_driver": "Prepared explicit source pin + two independent shifted-axis scenarios; syntax/synthetic checks pass; no current-source product execution"
   },
   "next": [

@@ -1,0 +1,30 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "status": "passed",
+  "checks": [
+    {
+      "filter": "native_face_scene::",
+      "exit_code": 0,
+      "seconds": 33.485349893569946,
+      "log_sha256": "352b06b5780f61f8a0d67bd465676b015ed6a89710e5c2486b0e880869aabe6a"
+    },
+    {
+      "filter": "display::typography::",
+      "exit_code": 0,
+      "seconds": 0.48215484619140625,
+      "log_sha256": "9bd117bfb28b6913b0ca755a859c8be6e1bf4b811e0cc2865b8ae812ffd20912"
+    },
+    {
+      "filter": "native_compositor::raster_reuse::",
+      "exit_code": 0,
+      "seconds": 0.5876221656799316,
+      "log_sha256": "d7219d8d118c3d64634a63159fc7f012bbdfe723b04d45425d9dc6aa7b517265"
+    },
+    {
+      "filter": "native_face_mask::",
+      "exit_code": 0,
+      "seconds": 3.6105353832244873,
+      "log_sha256": "f704db4b1ac4f8603834250a868b35166d51bdb390a16c5dbbd299fbfcc6c647"
+    }
+  ]
+}
