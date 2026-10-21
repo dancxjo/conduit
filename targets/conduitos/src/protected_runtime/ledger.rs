@@ -156,6 +156,25 @@ impl Ledger {
         }
         Ok(result)
     }
+    pub fn new_text(
+        admission: &conduitos_runtime_core::text::Admission,
+    ) -> Result<Self, SchedulerError> {
+        let mut numeric = Admission::new(3, 2);
+        numeric.nodes[..3].copy_from_slice(&admission.nodes);
+        numeric.cords[..2].copy_from_slice(&admission.cords);
+        numeric.ranges[..conduitos_runtime_core::text::ROUTES].copy_from_slice(&admission.ranges);
+        numeric.targets[..2].copy_from_slice(&admission.targets);
+        numeric.bindings[..3].copy_from_slice(&admission.bindings);
+        let mut ledger = Self::new(&numeric)?;
+        let literal = admission
+            .literal
+            .get(..admission.literal_bytes as usize)
+            .ok_or(SchedulerError::InvalidPlan)?;
+        // One startup loan, exact Root-checked literal bytes, on reviewed routes.
+        // No guest-issued value reference can manufacture a second startup loan.
+        ledger.publish(admission.literal_node.0 as usize, None, literal)?;
+        Ok(ledger)
+    }
     pub fn accept(&mut self, request: HostCallRequest, bytes: &[u8]) -> Result<(), SchedulerError> {
         let node = usize::from(request.node.0);
         if self.kinds[node] == BackKind::Keyboard {

@@ -2,6 +2,7 @@
 //! Root keeps only reviewed effect grants, pending calls and transient boundary
 //! bytes. Scheduler, ready/cord/value/sign state belong to the Runtime guest.
 mod ledger;
+mod text;
 use crate::{
     arch::ServiceDomain,
     protected_region::{DomainBackend, DomainReturn},
@@ -24,6 +25,11 @@ pub(crate) struct Scheduler {
     sequence: u64,
     error: Option<SchedulerError>,
     active: usize,
+    value_bytes: usize,
+    value_slots: u16,
+    text_mode: bool,
+    expected_requests: [Option<RequestId>; NODES],
+    stats: wire::Stats,
     bindings: [Option<HostCallBinding>; NODES],
     pending: [Option<HostCallRequest>; NODES],
     last_request: [Option<RequestId>; NODES],
@@ -57,6 +63,15 @@ impl Scheduler {
             sequence: 1,
             error: None,
             active: usize::from(admission.active_nodes),
+            value_bytes: VALUE_BYTES,
+            value_slots: 10,
+            text_mode: false,
+            expected_requests: [None; NODES],
+            stats: wire::Stats {
+                decisions: 0,
+                signs: 0,
+                pending: 0,
+            },
             bindings: admission.bindings,
             pending: [None; NODES],
             last_request: [None; NODES],
@@ -100,7 +115,14 @@ impl Scheduler {
         let result = self.exchange(request);
         match result {
             Ok(Response::Failed(error)) | Err(error) => self.fail(error),
-            Ok(response) => Ok(response),
+            Ok(response) => {
+                if self.text_mode && !matches!(request, Request::Stats) {
+                    if let Err(error) = self.refresh_stats(request, response) {
+                        return self.fail(error);
+                    }
+                }
+                Ok(response)
+            }
         }
     }
     fn exchange(&mut self, request: Request) -> Result<Response, SchedulerError> {
@@ -179,8 +201,9 @@ impl Scheduler {
         if request.call != binding.call
             || request.input.admitted_bytes > binding.maximum_input_bytes
             || request.input.value.byte_len > request.input.admitted_bytes
-            || length > VALUE_BYTES
-            || request.input.value.slot >= 10
+            || length > self.value_bytes
+            || request.input.value.slot >= self.value_slots
+            || self.expected_requests[node].is_some_and(|expected| request.request != expected)
         {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
@@ -217,7 +240,7 @@ impl Scheduler {
         if let Some(error) = self.error {
             return Err(error);
         }
-        if self.staged.is_some() || bytes.len() > VALUE_BYTES {
+        if self.staged.is_some() || bytes.len() > self.value_bytes {
             return self.fail(SchedulerError::HostCallOutputExceeded);
         }
         let result = self.stage(bytes);
@@ -244,7 +267,7 @@ impl Scheduler {
         let Response::Stored(value) = response else {
             return Err(SchedulerError::HostCallOutputExceeded);
         };
-        if value.byte_len as usize != bytes.len() || value.slot >= 10 {
+        if value.byte_len as usize != bytes.len() || value.slot >= self.value_slots {
             return Err(SchedulerError::HostCallOutputExceeded);
         }
         self.staged = Some(value);
