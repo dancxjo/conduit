@@ -266,3 +266,14 @@ visible Plot changes. Multiple ambiguous owners still refuse; exact Plan,
 fragment and node binding remain required. This current legacy-route handler is
 not canonical consumer migration or platform proof. Browser enactment, canonical
 installation and remaining native acceptance are still pending.
+
+## Resolve proven nested declarations
+
+The editor resolver now follows the nearest containing `checked-back-id` to one
+exact checked inventory entry for internal subjects. Composition invocations
+remain edits to the outer declaration; crossing the composition boundary follows
+the checked Back's declaration. It checks source-plot correspondence and every
+recursive-parent fact against unique containment. It never routes by the Back's
+caption. Missing/ambiguous Backs or inconsistent provenance refuse. Nested Cords
+without their own declaration provenance remain explicitly unsupported: endpoint
+containment alone is insufficient evidence of where a Cord was authored.

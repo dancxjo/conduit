@@ -24,17 +24,30 @@ export function resolvePatchbayEditorTarget(observation, plots) {
   if (!subject) return fail('The requested subject has no checked Face declaration.');
   let current = subject.identity;
   const visited = new Set();
+  let declaration = plot, sourceName = null, foundBack = false;
   while (current !== root) {
     if (visited.has(current) || visited.size >= face.subjects.length) return fail('The requested subject has cyclic or missing containment.');
     visited.add(current);
     const facts = face.properties.filter(property => property.subject === current);
-    if (facts.some(property => property.name === 'recursive-parent')
-        || facts.some(property => property.name === 'source-plot' && identity(property) !== plot.name)) {
-      return fail('This editor cannot resolve the requested nested Source declaration.');
+    const names = facts.filter(property => property.name === 'source-plot');
+    if (names.length > 1 || (names.length && typeof identity(names[0]) !== 'string')) return fail('The Source declaration name is ambiguous.');
+    if (sourceName === null && names.length) sourceName = identity(names[0]);
+    const backs = facts.filter(property => property.name === 'checked-back-id');
+    // A composition edits its invocation; contents follow the checked Back.
+    if (current !== subject.identity && backs.length && !foundBack) {
+      if (backs.length !== 1) return fail('The containing checked Back is ambiguous.');
+      const matches = plots.filter(candidate => candidate.checkedPlotId === identity(backs[0]));
+      if (matches.length !== 1) return fail('The containing checked Back is absent from the Source inventory.');
+      declaration = matches[0]; foundBack = true;
     }
     const parents = face.relationships.filter(relation => relation.kind === 'Contains' && relation.target === current);
     if (parents.length !== 1) return fail('The requested subject has no unique Source containment.');
+    const recursive = facts.filter(property => property.name === 'recursive-parent');
+    if (recursive.length > 1 || (recursive.length && identity(recursive[0]) !== parents[0].source)) return fail('Recursive provenance differs from checked containment.');
     current = parents[0].source;
   }
-  return Object.freeze({ plot, subject });
+  if (foundBack && subject.role === 'Cord' && !face.properties.some(property =>
+      property.subject === subject.identity && property.name === 'source-plot')) return fail('The nested Cord has no declaration provenance.');
+  if (sourceName !== null && sourceName !== declaration.name) return fail('The Source declaration differs from the checked owner.');
+  return Object.freeze({ plot: declaration, subject });
 }

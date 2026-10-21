@@ -188,7 +188,7 @@
       "role": "patchbay-editor",
       "kind": "module",
       "path": "patchbay-editor.mjs",
-      "maximum_bytes": 4096
+      "maximum_bytes": 8192
     }
   ]
 }

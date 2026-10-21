@@ -25,7 +25,7 @@ test('Patchbay Edit resolves exact checked Source and subject independently of c
   assert(Object.isFrozen(target));
 });
 
-test('Patchbay Edit refuses foreign, ambiguous, nested and cyclic Source ownership', () => {
+test('Patchbay Edit refuses foreign, ambiguous, unproven and cyclic Source ownership', () => {
   for (const alter of [
     value => { value.pending_owner_request.request.expanded_plot_id = 'expanded/foreign'; },
     value => { value.pending_owner_request.request.subject_identity = 'raw/foreign'; },
@@ -39,4 +39,39 @@ test('Patchbay Edit refuses foreign, ambiguous, nested and cyclic Source ownersh
     const { plot, observation } = fixture(); alter(observation);
     assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]), error => error.code === 'PatchbayEditRefused');
   }
+});
+
+function nestedFixture() {
+  const value = fixture();
+  const back = Object.freeze({ name: 'back', checkedPlotId: 'checked/back', sourceDocumentId: 'source/back', source: 'plot back {}' });
+  value.observation.face.subjects.push({ identity: 'gear/composition', role: 'Gear', name: 'A caption is not a source address' });
+  value.observation.face.properties[3].value.Identity = 'back';
+  value.observation.face.properties.push(
+    { subject: 'gear/composition', name: 'checked-back-id', value: { Identity: back.checkedPlotId } },
+    { subject: 'gear/lesson', name: 'recursive-parent', value: { Identity: 'gear/composition' } });
+  value.observation.face.relationships[0].source = 'gear/composition';
+  value.observation.face.relationships.push({ source: 'plot/checked/lesson', target: 'gear/composition', kind: 'Contains' });
+  return { ...value, back };
+}
+
+test('nested Patchbay Edit follows the exact containing checked Back declaration', () => {
+  const { plot, observation, back } = nestedFixture();
+  const target = resolvePatchbayEditorTarget(observation, [plot, back]);
+  assert.equal(target.plot, back);
+  assert.equal(target.subject.identity, 'port/lesson');
+  // The composition invocation itself is authored in the outer document.
+  observation.pending_owner_request.request.subject_identity = 'raw/composition';
+  observation.face.properties.push({ subject: 'gear/composition', name: 'semantic-id', value: { Identity: 'raw/composition' } });
+  assert.equal(resolvePatchbayEditorTarget(observation, [plot, back]).plot, plot);
+});
+
+test('nested Edit refuses unavailable or ambiguous Backs and inconsistent provenance', () => {
+  const missing = nestedFixture();
+  assert.throws(() => resolvePatchbayEditorTarget(missing.observation, [missing.plot]), /absent/);
+  assert.throws(() => resolvePatchbayEditorTarget(missing.observation, [missing.plot, missing.back, missing.back]), /absent/);
+  const wrong = nestedFixture(); wrong.observation.face.properties[3].value.Identity = 'different-source';
+  assert.throws(() => resolvePatchbayEditorTarget(wrong.observation, [wrong.plot, wrong.back]), /differs/);
+  const cord = nestedFixture();
+  cord.observation.face.subjects[2].role = 'Cord';
+  assert.throws(() => resolvePatchbayEditorTarget(cord.observation, [cord.plot, cord.back]), /Cord.*provenance/);
 });

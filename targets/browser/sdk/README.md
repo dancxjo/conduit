@@ -158,7 +158,10 @@ terminal reports release it and request a fresh legacy view through its existing
 admitted path. `last_owner_disposition` retains the exact request and latest
 report, not a durable history or proof that its effect happened. The actual
 Handbook can handle Edit by opening an admitted lesson's exact checked Source
-in its existing editor, preserving local drafts; Try remains the explicit
+in its existing editor, preserving local drafts. Internal subjects may follow a
+containing checked Back when its exact declaration is in the editor inventory;
+composition invocations stay in the outer document. Unknown Cord declaration
+provenance remains unsupported. Try remains the explicit
 checked commit. `body.wake({ onPatchbayOwnerRequest })` installs an optional
 owner handler, invoked once per request after its view is presented. It receives
 the effect's cancellation signal; asynchronous owners must honor that signal

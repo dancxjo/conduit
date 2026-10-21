@@ -788,3 +788,19 @@ Two changed JavaScript modules pass syntax checks. No tests/builds/platform
 journey/CI/image rebuild ran for this focused lifecycle correction. Actual
 browser callback enactment, canonical production installation, Mask changes and
 remaining native acceptance are still unfinished.
+
+## Follow exact checked Back provenance for nested Source editing
+
+Extended the existing editor target resolver to follow an internal subject to
+its nearest exact containing checked Back declaration in the checked inventory.
+Composition invocation edits still select the outer Source. Source-plot identity
+must agree, and recursive-parent facts must match unique containment. Captions
+are ignored. Missing/ambiguous Back declarations, mismatched facts and nested
+Cords without direct declaration provenance refuse rather than guessing a file.
+
+Four focused resolver CPU checks pass, including exact nested declaration and
+outer invocation routing plus unknown/ambiguous/inconsistent refusal. Syntax
+check passes. The helper is 4,258 bytes; its source package resource admission
+was explicitly raised from 4 KiB to 8 KiB. No package/ZIP, build, broad suite,
+CI or platform journey ran. Actual browser enactment and the full canonical
+production/native acceptance remain unfinished.
