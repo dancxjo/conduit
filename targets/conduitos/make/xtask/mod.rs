@@ -19,6 +19,7 @@ mod armv6_rpi_physical;
 mod build;
 mod command;
 mod compositor_performance;
+mod compositor_semantic_recovery_proof;
 mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
@@ -607,6 +608,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
         ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
+        ConduitosCommand::CompositorSemanticRecoveryProof => {
+            compositor_semantic_recovery_proof::execute(opts)
+        }
         ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
         ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
         ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),

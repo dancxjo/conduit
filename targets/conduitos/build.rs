@@ -4,6 +4,9 @@ mod compositor_hostile_images;
 mod compositor_image;
 #[path = "build/domain_image.rs"]
 mod domain_image;
+#[allow(dead_code)]
+#[path = "src/domain_image.rs"]
+mod image_validation;
 #[cfg(feature = "native-compositor")]
 #[path = "build/typography.rs"]
 mod typography;

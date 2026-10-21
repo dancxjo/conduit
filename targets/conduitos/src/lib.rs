@@ -385,3 +385,17 @@ pub mod riscv64_domain_proof;
     feature = "ordinary-domain-proof"
 ))]
 pub mod loongarch64_domain_proof;
+
+#[cfg(all(
+    feature = "ordinary-domain-proof",
+    feature = "compositor-semantic-recovery-proof"
+))]
+compile_error!(
+    "ordinary-domain-proof and compositor-semantic-recovery-proof require separate admitted profiles"
+);
+#[cfg(all(
+    target_os = "none",
+    target_arch = "x86_64",
+    feature = "compositor-semantic-recovery-proof"
+))]
+pub mod compositor_semantic_recovery_proof;

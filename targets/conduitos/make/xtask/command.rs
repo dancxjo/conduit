@@ -172,6 +172,8 @@ pub(super) enum ConduitosCommand {
     IsolationProof,
     /// Run checked ordinary text Source with its production kernel and CPL3 implementation.
     OrdinaryDomainProof,
+    /// Prove semantic compositor recovery under the normal native Make profile.
+    CompositorSemanticRecoveryProof,
     /// Prove ordinary IA-32 ring-3 execution and independent hostile entries.
     Ia32OrdinaryDomainProof,
     /// Prove ordinary AArch64 EL0 execution and independent boundary checks.

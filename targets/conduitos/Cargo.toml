@@ -185,6 +185,8 @@ native-owner-network = ["dep:embedded-io", "dep:embedded-tls", "dep:embedded-web
 native-http-client = []
 conduitos-isolation-proof = []
 ordinary-domain-proof = []
+# Explicit native Make-profile semantic recovery appliance; not the product entry.
+compositor-semantic-recovery-proof = ["native-compositor"]
 emergency-halt-proof = []
 virtio-net-proof = ["native-owner-network"]
 ps2-input = []

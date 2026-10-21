@@ -1,9 +1,7 @@
 //! Build distinct hostile fixtures only for the architecture proof appliance.
 use std::{env, fs, path::PathBuf, process::Command};
 
-#[allow(dead_code)]
-#[path = "../src/domain_image.rs"]
-mod image;
+use super::image_validation as image;
 
 pub fn generate() {
     println!("cargo:rustc-check-cfg=cfg(conduitos_compositor_hostile_images)");

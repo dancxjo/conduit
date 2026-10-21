@@ -69,6 +69,8 @@ extern "C" fn conduitos_start() -> ! {
                         emit_machine_refusal(error.as_str());
                     }
                     initialize_runtime_arena(&record);
+                    #[cfg(feature = "compositor-semantic-recovery-proof")]
+                    conduitos::compositor_semantic_recovery_proof::run(&record);
                     #[cfg(feature = "ordinary-domain-proof")]
                     run_ordinary_domain_proof(&record);
                     // SAFETY: ordinary native startup is the sole privileged Root.
