@@ -15,6 +15,7 @@ use embedded_tls::{
     TlsConnection, TlsContext, TlsError, TlsVerifier, pki::CertVerifier,
 };
 type Connection = TlsConnection<'static, Mailbox, Aes128GcmSha256>;
+type OperationResult = Result<(Operation, usize, Vec<u8>), Failure>;
 struct Provider {
     rng: ErasedChaCha,
     verifier: CertVerifier<'static, Aes128GcmSha256, NoClock, CERTIFICATE_BYTES>,
@@ -188,10 +189,7 @@ impl Session {
         self.active = Some((operation, kind));
         Ok(())
     }
-    pub fn poll(
-        &mut self,
-        operation: u64,
-    ) -> Result<Option<Result<(Operation, usize, Vec<u8>), Failure>>, Refusal> {
+    pub fn poll(&mut self, operation: u64) -> Result<Option<OperationResult>, Refusal> {
         let (current, kind) = self.active.ok_or(Refusal::Order)?;
         if current != operation {
             return Err(Refusal::Order);

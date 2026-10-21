@@ -99,10 +99,8 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                 .position(|n| n.node == *original)
                 .ok_or(InvalidIdentity)?;
             let mut spec = *lowered.node_specs.get(index).ok_or(InvalidIdentity)?;
-            for input in &mut spec.input_cords {
-                if let Some(cord) = input {
-                    *cord = local_cord(*cord)?;
-                }
+            for cord in spec.input_cords.iter_mut().flatten() {
+                *cord = local_cord(*cord)?;
             }
             nodes.push(spec);
         }

@@ -1,0 +1,15 @@
+{
+  "source": "2ade995b4d84cfe2ac5b9210a1c8344272ebf94b",
+  "iso_sha256": "b9ae3998c560dc7eae857cf6b6ca35d9b0945e9b6ca9b270c3290a8994eb3e41",
+  "result": "failed",
+  "observer_refusal": "journey-keyboard-selection-timeout",
+  "guest_refusal": "Application Commit WorkExhausted sequence83 project-graph",
+  "frames_note": "Archive contains mutable observer directory; only manifest-bound frames identify current attempt.",
+  "diagnosis": "Application code identical to passing parent. The protected single Commit combined decoding with canonical custody re-encoding/compression, projection and reply encoding. Root pagination delta does not execute inside Application. Passing parent establishes no timing margin.",
+  "raw_serial_sha256": "b074a7c3435d766371bf4895c183d7d2de96c563ffd63163ba42bb28e463c320",
+  "raw_qmp_sha256": "fc4c66e30aa106eec91ac8a870d3457d244d8b8aa134c1c3dff79c6c9a83cd87",
+  "guest_records": [
+    "CONDUIT_APPLICATION_REFUSAL stage=entry sequence=83 request=Some(Commit) detail=Ok(Fault(WorkExhausted)) entries_interrupts_preemptions=Some((83, 257, 1))",
+    "CONDUIT_APPLICATION_COMMAND_REFUSAL operation=project-graph slot=None target=None refusal=Application"
+  ]
+}

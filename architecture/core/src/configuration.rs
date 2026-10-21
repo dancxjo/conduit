@@ -1,7 +1,7 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use serde::{de::Error as _, Deserialize, Deserializer, Serialize};
 
-use crate::{KindId, PortId, StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
+use crate::{KindId, PortId, MAXIMUM_STRUCTURED_CANONICAL_BYTES};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct StructuredConfigurationValue {
@@ -17,8 +17,8 @@ impl StructuredConfigurationValue {
         {
             return None;
         }
-        let value = StructuredInfoValue::from_canonical_bytes(&canonical_value).ok()?;
-        let actual_profile = value.value_type().profile().ok()?;
+        let actual_profile =
+            crate::structured_info::validation::configuration_profile(&canonical_value).ok()?;
         (actual_profile.value_kind() == &profile).then_some(Self {
             profile,
             canonical_value,

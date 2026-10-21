@@ -42,7 +42,7 @@ impl PreparedStructuredValueValidator {
             .ok_or(Refusal::WrongType)?;
         let mut cursor = Cursor::new(node);
         let mut remaining = MAXIMUM_STRUCTURED_INFO_NODES;
-        validate_node(&self.value_type, &mut cursor, &mut remaining)?;
+        validate_node(&self.value_type, &mut cursor, &mut remaining, true)?;
         if !cursor.remaining.is_empty() {
             return Err(Refusal::MalformedCanonicalEncoding);
         }
@@ -60,11 +60,17 @@ fn validate_node(
     ty: &StructuredInfoType,
     cursor: &mut Cursor<'_>,
     remaining: &mut usize,
+    count_nominal: bool,
 ) -> Result<(), Refusal> {
+    if !count_nominal {
+        if let Shape::Nominal { representation, .. } = ty.shape() {
+            return validate_node(representation, cursor, remaining, false);
+        }
+    }
     *remaining = remaining.checked_sub(1).ok_or(Refusal::TooManyNodes)?;
     match ty.shape() {
         Shape::Nominal { representation, .. } => {
-            validate_node(representation, cursor, remaining)?;
+            validate_node(representation, cursor, remaining, count_nominal)?;
         }
         Shape::Leaf(kind) => {
             expect(cursor.byte()? == 0)?;
@@ -79,7 +85,7 @@ fn validate_node(
             expect(cursor.byte()? == 1)?;
             expect(cursor.length()? == usize::from(length))?;
             for _ in 0..length {
-                validate_node(element, cursor, remaining)?;
+                validate_node(element, cursor, remaining, count_nominal)?;
             }
         }
         Shape::Sequence {
@@ -91,7 +97,7 @@ fn validate_node(
             let length = cursor.length()?;
             expect(length >= usize::from(minimum_items) && length <= usize::from(maximum_items))?;
             for _ in 0..length {
-                validate_node(element, cursor, remaining)?;
+                validate_node(element, cursor, remaining, count_nominal)?;
             }
         }
         Shape::Record { fields, .. } => {
@@ -99,7 +105,7 @@ fn validate_node(
             expect(cursor.length()? == fields.len())?;
             for field in fields {
                 expect(cursor.bytes()? == field.name().as_bytes())?;
-                validate_node(field.value_type(), cursor, remaining)?;
+                validate_node(field.value_type(), cursor, remaining, count_nominal)?;
             }
         }
         Shape::Variant { cases, .. } => {
@@ -109,8 +115,26 @@ fn validate_node(
                 .iter()
                 .find(|case| case.tag().as_bytes() == tag)
                 .ok_or(Refusal::UnknownVariantTag)?;
-            validate_node(case.payload_type(), cursor, remaining)?;
+            validate_node(case.payload_type(), cursor, remaining, count_nominal)?;
         }
     }
     Ok(())
+}
+
+/// Validate configuration custody without constructing a tree of value/type clones.
+/// Decode the schema with the established normalizing decoder; configuration
+/// acceptance and profile identity therefore retain their existing semantics.
+pub(crate) fn configuration_profile(input: &[u8]) -> Result<super::StructuredInfoProfile, Refusal> {
+    if input.len() > MAXIMUM_STRUCTURED_CANONICAL_BYTES {
+        return Err(Refusal::CanonicalEncodingTooLarge);
+    }
+    let (value_type, encoded) = super::decode_type(input)?;
+    let mut cursor = Cursor::new(encoded);
+    let mut remaining = MAXIMUM_STRUCTURED_INFO_NODES;
+    // Owned nominal values retag their representation and add no value node.
+    validate_node(&value_type, &mut cursor, &mut remaining, false)?;
+    if !cursor.remaining.is_empty() {
+        return Err(Refusal::MalformedCanonicalEncoding);
+    }
+    value_type.profile()
 }

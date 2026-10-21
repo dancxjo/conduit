@@ -22,7 +22,7 @@ impl RegionServiceConfig {
     pub(super) fn validate(self) -> Result<(), String> {
         if !matches!(self.lanes, 1 | 2 | 4)
             || !(2 * 1024 * 1024..=16 * 1024 * 1024).contains(&self.stack_bytes)
-            || self.stack_bytes % 4096 != 0
+            || !self.stack_bytes.is_multiple_of(4096)
             || !(1..=512 * 1024).contains(&self.transfer_bytes)
             || self.worker_memory_bytes > 64 * 1024 * 1024
             || self

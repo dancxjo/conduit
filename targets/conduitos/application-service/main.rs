@@ -15,6 +15,7 @@ use core::{
     ptr, slice,
 };
 const MAGIC: u64 = 0x4150_504c_4943_3031;
+const TERMINAL_MAGIC: u64 = !MAGIC;
 #[repr(C)]
 struct Retained {
     magic: u64,
@@ -69,6 +70,10 @@ unsafe fn dispatch() -> Result<(), ()> {
     let transfer =
         unsafe { slice::from_raw_parts_mut(memory::TRANSFER as *mut u8, memory::TRANSFER_BYTES) };
     let response = unsafe { retained.state.assume_init_mut() }.execute(request, transfer);
+    if allocator::exhausted() {
+        retained.magic = TERMINAL_MAGIC;
+        return reply(exchange, envelope, Err(Refusal::Capacity));
+    }
     reply(exchange, envelope, response)
 }
 fn reply(
@@ -91,5 +96,28 @@ fn finish(status: u32) -> ! {
 }
 #[panic_handler]
 fn panic(_: &core::panic::PanicInfo<'_>) -> ! {
+    if allocator::exhausted() && refuse_exhausted_request().is_ok() {
+        finish(0);
+    }
     finish(3)
+}
+
+/// An infallible dependency allocation may panic rather than return Capacity.
+/// Publish only that terminal refusal, never a partial success or reusable State.
+/// Root's command transport quarantines the instance on every refusal.
+fn refuse_exhausted_request() -> Result<(), ()> {
+    // SAFETY: entry runs exclusively in the fixed admitted Application grant.
+    let exchange = unsafe { slice::from_raw_parts_mut(memory::EXCHANGE as *mut u8, 4096) };
+    let (envelope, _) = wire::decode_request(&exchange[..wire::BYTES]).map_err(|_| ())?;
+    // The abandoned call may still hold a mutable State borrow. Touch only the
+    // disjoint identity header through raw fields; never inspect or drop State.
+    let retained = memory::STATE as *mut Retained;
+    if unsafe { ptr::addr_of!((*retained).magic).read() } != MAGIC
+        || unsafe { ptr::addr_of!((*retained).instance).read() } != envelope.instance
+        || unsafe { ptr::addr_of!((*retained).request).read() } != envelope.sequence
+    {
+        return Err(());
+    }
+    unsafe { ptr::addr_of_mut!((*retained).magic).write(TERMINAL_MAGIC) };
+    reply(exchange, envelope, Err(Refusal::Capacity))
 }

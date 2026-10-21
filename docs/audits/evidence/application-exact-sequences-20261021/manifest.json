@@ -1,0 +1,39 @@
+{
+  "testedSource": "4d2f1f1bdcef727070753a58c3dfe6e882d73919",
+  "packageCommand": "cargo +stable test -p conduitos-application-core -- --test-threads=1",
+  "lintCommand": "cargo +stable clippy --no-deps -p conduitos-application-core --all-targets -- -D warnings",
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0"
+  },
+  "unitTests": {
+    "passed": 26,
+    "failed": 0,
+    "ignored": 0
+  },
+  "fixedGrant": {
+    "heapBytes": 2072576,
+    "initPeak": 1862752,
+    "overallPeak": 2040832,
+    "roundedLiveHeadroom": 31744,
+    "allocator": "production bitmap,32-byte units",
+    "passed": true
+  },
+  "nativeEntryBudget": "unproved",
+  "wireLimit": 131072,
+  "decodedCeiling": 1048576,
+  "publicGraphCustodyEncoding": "unchanged; real fixture roundtrip checked",
+  "files": {
+    "clippy.txt": "cd0f0f15e63db2fa613153805f6fb8690282aa7964503791a2065a7a5ae31ecd",
+    "negative-core-json-backend.txt": "2fd5276d4c7d7a0e902e0ab54d46c15a0c906806a9c02ce06c85748a8ec2368d",
+    "package.txt.gz": "264e2f5ea275f722e523eb4e125f32b6369450a5f314ccbab662a73d84d173ae"
+  },
+  "encodedLogs": {
+    "package.txt.gz": {
+      "encoding": "gzip",
+      "uncompressedSha256": "cf968670925d59ff9e6e1d0af97ce362873855f883974a3b695812865c20c599",
+      "uncompressedBytes": 4988,
+      "reason": "Lossless raw Cargo stdout retains its final blank line without a text-patch whitespace violation."
+    }
+  }
+}

@@ -4,10 +4,8 @@ use alloc::vec::Vec;
 use alloc::{format, vec};
 use conduit_face::{FaceProperty, FacePropertyValue, FaceText};
 impl Controller {
-    pub(super) fn home_face_content(&self) -> (Vec<FaceProperty>, Vec<FaceText>) {
-        let Some(home) = self.home_model() else {
-            return (vec![], vec![]);
-        };
+    pub(crate) fn face_content(&self, input: &Request) -> (Vec<FaceProperty>, Vec<FaceText>) {
+        let home = &self.model;
         let subject = "conduitos/shell/home";
         let plots = &input.plots;
         let mut properties = vec![FaceProperty {
@@ -21,7 +19,7 @@ impl Controller {
                 FaceProperty {
                     subject: subject.into(),
                     name: format!("active-plot/{index}/title"),
-                    value: FacePropertyValue::Text(plot.title.into()),
+                    value: FacePropertyValue::Text(plot.title.clone()),
                 },
                 FaceProperty {
                     subject: subject.into(),

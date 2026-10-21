@@ -2,31 +2,66 @@
 use crate::{
     MAX_BLOB,
     data::{self, Command, Refusal, Reply},
-    models::Models,
+    models::{Builder, Models},
     wire::{Request, Response},
 };
 use alloc::vec::Vec;
 #[derive(Default)]
 pub struct State {
     models: Option<Models>,
+    refused: bool,
+    preparing: Option<Builder>,
+    workspace: Option<data::Workspace>,
+    projection: Option<crate::graph_facts::PreparedProjection>,
     incoming: Option<(usize, Vec<u8>)>,
     outgoing: Vec<u8>,
     read: usize,
 }
 impl State {
     pub fn execute(&mut self, request: Request, transfer: &mut [u8]) -> Result<Response, Refusal> {
+        if self.refused {
+            return Err(Refusal::Order);
+        }
+        let result = self.execute_admitted(request, transfer);
+        if result.is_err() {
+            self.refused = true;
+            self.models = None;
+            self.preparing = None;
+            self.projection = None;
+            self.workspace = None;
+            self.incoming = None;
+            self.outgoing = Vec::new();
+        }
+        result
+    }
+    fn execute_admitted(
+        &mut self,
+        request: Request,
+        transfer: &mut [u8],
+    ) -> Result<Response, Refusal> {
         match request {
             Request::Begin { bytes } => {
-                if self.incoming.is_some() || bytes == 0 || bytes as usize > MAX_BLOB {
+                if self.incoming.is_some()
+                    || bytes == 0
+                    || bytes as usize > MAX_BLOB
+                    || (self.projection.is_some() && self.read != self.outgoing.len())
+                {
                     return Err(Refusal::Order);
                 }
+                if self.workspace.is_none() {
+                    let workspace = data::Workspace::new()?;
+                    self.outgoing
+                        .try_reserve_exact(MAX_BLOB)
+                        .map_err(|_| Refusal::Capacity)?;
+                    self.workspace = Some(workspace);
+                }
+                self.outgoing.clear();
+                self.read = 0;
                 let mut incoming = Vec::new();
                 incoming
                     .try_reserve_exact(bytes as usize)
                     .map_err(|_| Refusal::Capacity)?;
                 self.incoming = Some((bytes as usize, incoming));
-                self.outgoing = Vec::new();
-                self.read = 0;
                 Ok(Response::Ready)
             }
             Request::Write { offset, bytes } => {
@@ -47,10 +82,41 @@ impl State {
                 if incoming.len() != total {
                     return Err(Refusal::Order);
                 }
-                let command: Command = data::decode(&incoming)?;
+                let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
+                let command: Command = if self.projection.is_some() {
+                    workspace.decode_projection_finish(&incoming)?
+                } else {
+                    workspace.decode_command(&incoming)?
+                };
+                drop(incoming);
+                let mut initialized = None;
+                if self.preparing.is_some()
+                    && !matches!(
+                        &command,
+                        Command::PrepareTarget { .. }
+                            | Command::PrepareTutorial { .. }
+                            | Command::PrepareTour { .. }
+                            | Command::FinishInit
+                    )
+                {
+                    return Err(Refusal::Order);
+                }
+                if self.projection.is_some() && !matches!(&command, Command::FinishGraphProjection)
+                {
+                    return Err(Refusal::Order);
+                }
                 let reply = match command {
-                    Command::ProjectGraph { graph, scope } => Reply::GraphFacts {
-                        contribution: crate::graph_facts::project(&graph, scope)?,
+                    Command::PrepareGraphProjection { graph, scope } => {
+                        self.projection =
+                            Some(crate::graph_facts::PreparedProjection::new(graph, scope)?);
+                        Reply::Prepared
+                    }
+                    Command::FinishGraphProjection => Reply::GraphFacts {
+                        contribution: self
+                            .projection
+                            .take()
+                            .ok_or(Refusal::Order)?
+                            .finish(workspace, &mut self.outgoing)?,
                     },
                     Command::ProjectTutorial { evidence, scope } => {
                         scope.validate(&evidence)?;
@@ -60,11 +126,37 @@ impl State {
                             view: view.encode().map_err(|_| Refusal::Application)?,
                         }
                     }
-                    Command::Init { applications } => {
-                        if self.models.is_some() {
+                    Command::PrepareInit { manifest } => {
+                        if self.models.is_some() || self.preparing.is_some() {
                             return Err(Refusal::Order);
                         }
-                        self.models = Some(Models::new(applications)?);
+                        self.preparing = Some(Builder::new(manifest)?);
+                        Reply::Prepared
+                    }
+                    Command::PrepareTarget {
+                        slot,
+                        target,
+                        value,
+                    } => {
+                        self.preparing
+                            .as_mut()
+                            .ok_or(Refusal::Order)?
+                            .target(slot, target, value)?;
+                        Reply::Prepared
+                    }
+                    Command::PrepareTutorial { slot, evidence } => {
+                        self.preparing
+                            .as_mut()
+                            .ok_or(Refusal::Order)?
+                            .tutorial(slot, evidence)?;
+                        Reply::Prepared
+                    }
+                    Command::PrepareTour { slot } => {
+                        self.preparing.as_mut().ok_or(Refusal::Order)?.tour(slot)?;
+                        Reply::Prepared
+                    }
+                    Command::FinishInit => {
+                        initialized = Some(self.preparing.take().ok_or(Refusal::Order)?.finish()?);
                         Reply::Initialized
                     }
                     command => self
@@ -73,8 +165,10 @@ impl State {
                         .ok_or(Refusal::Order)?
                         .execute(command)?,
                 };
-                drop(incoming);
-                self.outgoing = data::encode(&reply)?;
+                workspace.encode_reply_into(&reply, &mut self.outgoing)?;
+                if let Some(models) = initialized {
+                    self.models = Some(models);
+                }
                 self.read = 0;
                 Ok(Response::Blob {
                     bytes: self.outgoing.len() as u32,
@@ -100,3 +194,5 @@ impl State {
         }
     }
 }
+#[cfg(test)]
+mod tests;

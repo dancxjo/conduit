@@ -8,6 +8,15 @@ use super::{
 };
 
 impl NativeCompositor {
+    /// The reference backend has no shared namespace, but enforces the same
+    /// fully withdrawn handoff precondition without discarding pending damage.
+    pub(crate) fn reacquire_namespace(&mut self) -> Result<(), NativeCompositorError> {
+        if !self.surfaces.is_empty() || self.admitted_pixels != 0 {
+            return Err(NativeCompositorError::ServiceBusy);
+        }
+        Ok(())
+    }
+
     pub fn place_surface(
         &mut self,
         surface_id: &str,

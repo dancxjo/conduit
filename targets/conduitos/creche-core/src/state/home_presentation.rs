@@ -2,6 +2,9 @@
 use super::*;
 use crate::home::presentation::{Content, Request as Presentation, digest};
 impl State {
+    // Keep the fixed GraphicsScene and encoding buffers out of the shared
+    // dispatch frame: Draft/Home entries have a finite 64 KiB stack.
+    #[inline(never)]
     pub(super) fn home_scene(&mut self, bytes: &[u8]) -> Result<Response, Refusal> {
         let input: Presentation = data::decode(bytes)?;
         input.validate()?;
@@ -22,6 +25,9 @@ impl State {
             bytes: self.outgoing.len() as u32,
         })
     }
+    // Decode this independent projection without retaining the scene handler's
+    // transient storage in the shared dispatch frame.
+    #[inline(never)]
     pub(super) fn home_content(&mut self, bytes: &[u8]) -> Result<Response, Refusal> {
         let input: Presentation = data::decode(bytes)?;
         input.validate()?;
