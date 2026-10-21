@@ -1,8 +1,11 @@
-# Retained compositor core preparation
+# Retained compositor service core
 
-This dependency-free `no_std` crate is local preparation for ConduitOS #6177.
-It is used by an independently linked service image and its fixture. Production
-graphical integration and protected guest execution are still being verified.
+This dependency-free `no_std` crate supplies the independently linked x86_64
+compositor image selected by the native graphical product path. Root uses its
+wire codec and bounded work descriptors; retained pixels, damage, selection and
+composition execute in the service. Other architectures retain their existing
+renderer until separately integrated and proved. The full microkernel objective
+and production fault/restart acceptance remain open in ConduitOS #6177/#6175.
 
 The caller provides two disjoint 2,097,152-element `u32` arenas. One is the
 current retained raster store; the other holds a complete upload transaction.

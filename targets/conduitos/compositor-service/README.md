@@ -1,12 +1,15 @@
 # Independent compositor guest
 
-Prerequisite image, not production compositor integration or isolation proof.
+The native x86_64 graphical product selects this independent service image.
+This is one service boundary, not completion of the microkernel architecture.
 The guest depends only on the finite `compositor-core`. Root must admit the exact
 `ServiceMemoryLayout::compositor()` mappings, fresh boot-local instance, request
 sequence, operation/work limits, and output grant before entry. Instance numbers
 are correlation, never semantic authority or possession.
 
-Build independently (the root build does not yet stage this image):
+The Root build independently builds, validates and embeds this image for
+x86_64 freestanding builds with `native-compositor` or `ordinary-domain-proof`.
+To build it independently:
 
 ```sh
 RUSTFLAGS='-C relocation-model=static -C code-model=kernel -C panic=abort' cargo +stable build --locked --release --manifest-path targets/conduitos/compositor-service/Cargo.toml --target x86_64-unknown-none
@@ -42,3 +45,21 @@ compositor-core rlib; it reserves the same grant addresses with
 `MAP_FIXED_NOREPLACE`, checks immutable instance and replay rejection, and checks
 pixels after two committed arena swaps across fresh entry calls. These are host
 checks, not evidence that graphical product execution entered CPL3.
+
+The production Root facade owns semantic Face/Mask/Show bindings and temporary
+readable raster staging, not retained compositor pixels or a second scene
+selection/damage authority. One explicitly prepared display owner is shared by
+presenters; each activation gets a fresh fenced namespace. Current Host, Boot,
+offer generation, framebuffer Base and scanout format must match before use.
+Only bounded spans copied successfully by Root can be acknowledged. Borrowed
+acknowledgements prevent another presenter entering or replacing the owner while
+semantic completion consumes the evidence. No-op commands preserve evidence only
+while the guest's authoritative pending-work query remains false.
+
+`cargo +stable xtask make conduitos journey-proof --locked` exercises the ordinary
+graphical path under QEMU. Successful nonempty frame receipts report actual
+service-entry cost counters. A passed journey is separate from hostile backend
+fixtures, adversarial production-proxy/restart tests, physical execution and
+release acceptance. It proves no driver or DMA confinement. Product controller,
+Face/Mask producers, portable execution runtime and device services still need
+their own privilege-boundary migration.

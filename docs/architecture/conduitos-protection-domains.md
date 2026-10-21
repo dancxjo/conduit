@@ -565,6 +565,48 @@ This is infrastructure for [#6177](https://github.com/dancxjo/conduit/issues/617
 It does not move the production retained compositor, grant scanout authority,
 establish unchanged graphical behavior or complete the microkernel boundary.
 
+## Native graphical compositor service (#6177)
+
+The x86_64 freestanding native graphical path now selects an independently
+linked compositor service. The other native architectures keep their existing
+renderer until each has its own service backend and evidence. Root retains
+validated scanout and semantic Face/Mask/Show bindings. A temporary readable
+raster lease supports the existing typography/paint realization; the service
+alone owns committed pixel arenas, surface lifecycle, damage, z-order, visual
+focus/cursor, composition and advisory route selection. No Root pixel-buffer
+fallback is selected on service failure.
+
+A display-local owner is prepared only after provider/resource checks and is
+bound to the current Host, Boot, offer generation, framebuffer Base and admitted
+scanout format. Presenter-local namespaces fence old handles/routes across
+handoff. Root checks the versioned request/instance/sequence envelope and admits
+the complete finite damage plan before accepting ordered output spans. It copies
+every declared span before sending scanout acknowledgement; guest completion
+alone cannot acknowledge a semantic Show. Borrowed acknowledgement evidence also
+holds the shared owner against entry or handoff during semantic completion.
+Actual faults or partial output invalidate evidence and terminate/quarantine the
+current owner; there is no automatic retry, image replacement or semantic Show
+reuse. Backend reinstall machinery does not yet establish independent production
+restart acceptance.
+
+`cargo +stable xtask make conduitos journey-proof --locked` exercises the normal
+graphical path, including Crèche, Body lifecycle, protected applications,
+Patchbay and Mask interactions under the normal 512 MiB QEMU profile. Nonempty
+`CONDUIT_COMPOSITOR_SERVICE_FRAME` records expose cumulative entry, privilege
+transition, address-space-switch and scheduler-return counters after successful
+copies and acknowledgement. These are source/artifact-bound emulator evidence,
+not hardware attestation or physical scanout receipts. Generated names and Host
+identities can differ across captures; identical appearance must be assessed
+against semantic inputs, not asserted from different PNG hashes alone.
+
+The private-memory fixture above remains a separate mechanism proof. A passed
+ordinary journey does not itself prove hostile production-proxy replies,
+Root/sibling survival through that proxy, independent restart, other architecture
+confinement, accepted release, driver/DMA isolation or the complete microkernel.
+Crèche/product control, Face/Mask producers, the portable execution runtime and
+network/device services still execute in Root and remain migration work under
+[#6175](https://github.com/dancxjo/conduit/issues/6175).
+
 ## Deliberate limits
 
 Each reviewed emulator profile proves its own CPU page, privilege, handle and

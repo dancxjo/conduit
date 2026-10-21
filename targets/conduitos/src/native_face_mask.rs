@@ -401,16 +401,15 @@ impl NativeFaceMask {
         self.compositor
             .compose_frame(display)
             .map_err(NativeFaceMaskError::Compositor)?;
-        let acknowledgement = self
-            .compositor
-            .scanout_acknowledgement(&composition, published.face.revision)
-            .ok_or(NativeFaceMaskError::Face)?;
-        let session = pending
-            .complete_render(&acknowledgement)
-            .map_err(NativeFaceMaskError::Mask)?;
-        // Release the shared renderer guard only after semantic completion;
-        // subsequent focus/composition requires exclusive owner access.
-        drop(acknowledgement);
+        let session = {
+            let acknowledgement = self
+                .compositor
+                .scanout_acknowledgement(&composition, published.face.revision)
+                .ok_or(NativeFaceMaskError::Face)?;
+            pending
+                .complete_render(&acknowledgement)
+                .map_err(NativeFaceMaskError::Mask)?
+        }; // Release the shared renderer guard before exclusive focus/scanout.
         self.compositor
             .focus_surface(&self.surface_id)
             .map_err(NativeFaceMaskError::Compositor)?;
