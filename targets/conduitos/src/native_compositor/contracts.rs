@@ -75,6 +75,10 @@ pub struct FrameReceipt {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeCompositorError {
+    ServiceUnavailable,
+    ServiceBusy,
+    ServiceLost,
+    ServiceProtocol,
     EmptyAdmission,
     TooManySurfaces,
     SurfaceCapacityExceeded,
@@ -97,6 +101,10 @@ pub enum NativeCompositorError {
 impl NativeCompositorError {
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::ServiceUnavailable => "compositor-service-unavailable",
+            Self::ServiceBusy => "compositor-service-busy",
+            Self::ServiceLost => "compositor-service-lost",
+            Self::ServiceProtocol => "compositor-service-protocol-invalid",
             Self::EmptyAdmission => "compositor-admission-empty",
             Self::TooManySurfaces | Self::SurfaceCapacityExceeded => {
                 "compositor-surface-capacity-exceeded"
