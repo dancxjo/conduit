@@ -56,7 +56,7 @@ impl NativeCompositor {
                 cursor_visible,
                 focus_visible,
             } => {
-                record_frame(&owner, ordinal, 0, 0, 0);
+                // Empty polls perform no scanout and do not need a console receipt.
                 return Ok((
                     FrameReceipt {
                         frame_sequence: ordinal,

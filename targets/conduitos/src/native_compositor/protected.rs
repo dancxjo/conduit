@@ -36,7 +36,6 @@ struct Surface {
     z: u8,
     binding: Option<Binding>,
     receipt: Option<CompositionReceipt>,
-    recipe: Option<GraphicsScene>,
     expression: Option<conduit_face::AdmittedVisualExpression>,
     upload_sequence: u64,
 }

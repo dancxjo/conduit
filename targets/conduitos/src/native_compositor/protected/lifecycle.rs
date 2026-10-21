@@ -46,7 +46,6 @@ impl NativeCompositor {
             z,
             binding: None,
             receipt: None,
-            recipe: None,
             expression: None,
             upload_sequence: 0,
         });
@@ -95,7 +94,6 @@ impl NativeCompositor {
         self.admitted_pixels = reserved;
         if changed {
             self.surfaces[i].receipt = None;
-            self.surfaces[i].recipe = None;
             Ok(SurfacePlacementReceipt::RasterInvalidated {
                 previous: old,
                 current: bounds,

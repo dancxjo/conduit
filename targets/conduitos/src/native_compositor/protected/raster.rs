@@ -164,7 +164,6 @@ impl NativeCompositor {
         let expression = self.surfaces[i].expression.clone();
         self.invalidate();
         self.surfaces[i].receipt = None;
-        self.surfaces[i].recipe = None;
         if let Err(error) = self.unit(Request::BeginUpload {
             surface: handle,
             revision: sequence,
@@ -268,7 +267,6 @@ impl NativeCompositor {
         };
         let surface = &mut self.surfaces[i];
         surface.upload_sequence = sequence;
-        surface.recipe = Some(*scene);
         surface.binding = Some(Binding {
             manifestation: m.manifestation_id.clone(),
             plan: m.plan_id.clone(),
