@@ -28,7 +28,11 @@ impl NativeCompositor {
             let mut owner = owner
                 .try_borrow_mut()
                 .map_err(|_| NativeCompositorError::ServiceBusy)?;
-            self.session = Some(owner.sessions.activate().map_err(owner_error)?.session);
+            let activation = owner.sessions.activate();
+            if owner.sessions.is_terminated() {
+                owner.quarantine();
+            }
+            self.session = Some(activation.map_err(owner_error)?.session);
             self.pointer_sample.set(None);
             self.hover_sample.set(false);
         }
@@ -135,18 +139,23 @@ impl NativeCompositor {
             .try_borrow_mut()
             .map_err(|_| NativeCompositorError::ServiceBusy)?;
         if owner.sessions.is_active(session) {
-            response(
-                owner
-                    .sessions
-                    .request(session, Request::Remove(self.surfaces[i].handle))
-                    .map_err(owner_error)?,
-            )?;
+            let result = owner
+                .sessions
+                .request(session, Request::Remove(self.surfaces[i].handle));
+            if owner.sessions.is_terminated() {
+                owner.quarantine();
+            }
+            response(result.map_err(owner_error)?)?;
+        } else if owner.sessions.is_terminated() {
+            // An already terminal transport cannot keep Root staging alive.
+            // A live foreign namespace is deliberately excluded from cleanup.
+            owner.quarantine();
         }
         self.admitted_pixels -= pixels(self.surfaces[i].bounds)?;
         self.surfaces.remove(i);
-        if self.surfaces.is_empty() {
-            self.session = None;
-        }
+        // Keep this namespace, including after the last removal: the guest
+        // still owns old-rectangle damage that must compose to an empty scene.
+        // A retired namespace remains stale; removal never silently reactivates it.
         Ok(())
     }
     pub fn set_cursor_hover(&mut self, hovered: bool) -> Result<(), NativeCompositorError> {

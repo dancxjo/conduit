@@ -4,10 +4,12 @@ use serde_json::Value;
 const PREFIX: &str = "CONDUIT_COMPOSITOR_RECOVERY_PROOF ";
 fn expected() -> Value {
     serde_json::json!({
-        "schema":"conduit.conduitos/compositor-copy-recovery-fixture@3",
+        "schema":"conduit.conduitos/compositor-copy-recovery-fixture@4",
         "status":"completed", "proof_class":"freestanding-emulator", "fixture":true,
         "root_copy_failure":true, "guest_cpu_fault":false, "malformed_guest_reply":false,
-        "explicit_fresh_owner":true, "old_staging_released":true, "shared_current_display_grant":true, "already_terminal_staging_released":true,
+        "explicit_fresh_owner":true, "old_staging_released":true, "shared_current_display_grant":true,
+        "last_remove_empty_scene_pixels":192, "terminal_activation_storage_released":true,
+        "terminal_remove_storage_released":true, "retired_remove_preserves_current_owner":true, "already_terminal_staging_released":true,
         "callback_terminal_staging_released":true, "old_clients_alive_at_replacement":true,
         "stale_clients_refused":true, "stale_drop_preserves_replacement":true,
         "semantic_show_acknowledged":false, "physical_scanout":false,

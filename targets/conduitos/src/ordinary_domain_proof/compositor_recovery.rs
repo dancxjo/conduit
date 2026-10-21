@@ -54,7 +54,7 @@ fn owner(grant: &SharedDisplayGrant) -> SharedDisplayOwner {
         refuse("compositor-recovery-owner")
     })
 }
-fn presenter(owner: SharedDisplayOwner) -> NativeCompositor {
+fn pending_presenter(owner: SharedDisplayOwner) -> NativeCompositor {
     let admission = CompositorAdmission::new(
         HostId::from("recovery-host"),
         BootId::from("recovery-boot"),
@@ -69,6 +69,10 @@ fn presenter(owner: SharedDisplayOwner) -> NativeCompositor {
     proxy
         .attach_display_owner(owner)
         .unwrap_or_else(|_| refuse("compositor-recovery-attach"));
+    proxy
+}
+fn presenter(owner: SharedDisplayOwner) -> NativeCompositor {
+    let mut proxy = pending_presenter(owner);
     proxy
         .admit_surface(
             "recovery-surface",
@@ -136,9 +140,72 @@ fn already_terminal_cleanup(grant: &SharedDisplayGrant) {
         }
     }
 }
+fn lifecycle_terminal_cleanup(grant: &SharedDisplayGrant) {
+    for activation in [true, false] {
+        let display = owner(grant);
+        let mut proxy = if activation {
+            pending_presenter(display.clone())
+        } else {
+            presenter(display.clone())
+        };
+        let allocated = crate::allocation::BOOT_ARENA.live_bytes();
+        display.borrow_mut().sessions.quarantine();
+        if activation {
+            if proxy.admit_surface(
+                "recovery-surface",
+                LayoutRect {
+                    x: 0,
+                    y: 0,
+                    width: 16,
+                    height: 12,
+                },
+                0,
+            ) != Err(NativeCompositorError::ServiceLost)
+            {
+                refuse("compositor-recovery-terminal-activation");
+            }
+        } else {
+            proxy
+                .remove_surface("recovery-surface")
+                .unwrap_or_else(|_| refuse("compositor-recovery-terminal-remove"));
+        }
+        if allocated.saturating_sub(crate::allocation::BOOT_ARENA.live_bytes())
+            < crate::protected_compositor::display_owner::STAGING_BYTES
+            || display.borrow_mut().with_raster(1, 1, |_, _| ()).is_ok()
+        {
+            refuse("compositor-recovery-lifecycle-storage");
+        }
+    }
+    let display = owner(grant);
+    let mut retired = presenter(display.clone());
+    let mut current = presenter(display.clone()); // explicit new presenter handoff
+    let session = display
+        .borrow()
+        .sessions
+        .active_session()
+        .unwrap_or_else(|| refuse("compositor-recovery-handoff-session"));
+    let cost = display.borrow().service_cost();
+    retired
+        .remove_surface("recovery-surface")
+        .unwrap_or_else(|_| refuse("compositor-recovery-retired-remove"));
+    if !display.borrow().sessions.is_active(session)
+        || display.borrow().service_cost() != cost
+        || display.borrow_mut().with_raster(1, 1, |_, _| ()).is_err()
+    {
+        refuse("compositor-recovery-retired-owner");
+    }
+    let mut target = Target {
+        fail: false,
+        writes: 0,
+    };
+    current
+        .compose_frame(&mut target)
+        .unwrap_or_else(|_| refuse("compositor-recovery-current-after-remove"));
+}
 pub(super) fn run() {
     let grant = grant();
     already_terminal_cleanup(&grant);
+    lifecycle_terminal_cleanup(&grant);
     let old = owner(&grant);
     let mut proxy = presenter(old.clone());
     let session = old
@@ -228,7 +295,26 @@ pub(super) fn run() {
     {
         refuse("compositor-recovery-fresh-state");
     }
+    replacement
+        .remove_surface("recovery-surface")
+        .unwrap_or_else(|_| refuse("compositor-recovery-last-remove"));
+    target.writes = 0;
+    let empty = replacement
+        .compose_frame(&mut target)
+        .unwrap_or_else(|_| refuse("compositor-recovery-empty-frame"));
+    if empty.pixels_written != 16 * 12
+        || target.writes != 16 * 12
+        || empty.surfaces_composed != 0
+        || replacement.focused_surface().is_some()
+        || !fresh.borrow().sessions.is_active(fresh_session)
+        || !matches!(
+            replacement.route_keyboard(&"retired".into()),
+            Ok(crate::native_compositor::InputRoute::NoTarget)
+        )
+    {
+        refuse("compositor-recovery-empty-scene");
+    }
     drop(replacement);
     drop(fresh);
-    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@3\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"shared_current_display_grant\":true,\"already_terminal_staging_released\":true,\"callback_terminal_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
+    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@4\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"shared_current_display_grant\":true,\"last_remove_empty_scene_pixels\":192,\"terminal_activation_storage_released\":true,\"terminal_remove_storage_released\":true,\"retired_remove_preserves_current_owner\":true,\"already_terminal_staging_released\":true,\"callback_terminal_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
 }

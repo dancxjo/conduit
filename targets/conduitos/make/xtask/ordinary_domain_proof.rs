@@ -274,7 +274,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ConduitosError::refusal("compositor-guest-receipt-write-failed", error.to_string())
     })?;
     let recovery_receipt = serde_json::json!({
-        "schema": "conduit.conduitos/compositor-copy-recovery-evidence@3",
+        "schema": "conduit.conduitos/compositor-copy-recovery-evidence@4",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
             "cpu": "max", "memory_mib": 128, "vcpus": 1},
