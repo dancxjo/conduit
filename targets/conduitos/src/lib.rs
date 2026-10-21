@@ -167,6 +167,8 @@ pub mod planned_kernel;
 pub mod pointer_offer;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub mod protected_compositor;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub mod protected_creche;
 pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]

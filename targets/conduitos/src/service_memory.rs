@@ -64,11 +64,11 @@ impl ServiceMemoryLayout {
         Self::from_sizes(
             ServiceProfile::Draft,
             [
-                256 * 1024,
+                1024 * 1024,
                 PAGE_BYTES,
                 16 * 1024,
                 64 * 1024,
-                256 * 1024,
+                1024 * 1024,
                 0,
                 0,
             ],

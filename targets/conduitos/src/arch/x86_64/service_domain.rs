@@ -72,7 +72,11 @@ impl DomainBackend for ServiceDomain {
         if self.quarantined || maximum_work != 1 {
             return Err(DomainRefusal::InvalidLifecycle);
         }
-        let result = domain_transition::enter_context(self.space.context()?)?;
+        let budget = match self.profile() {
+            ServiceProfile::Compositor => super::domain_budget::EntryBudget::Ordinary,
+            ServiceProfile::Draft => super::domain_budget::EntryBudget::Draft,
+        };
+        let result = domain_transition::enter_context_with_budget(self.space.context()?, budget)?;
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;
