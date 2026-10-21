@@ -143,17 +143,45 @@ pub struct Snapshot {
 }
 #[derive(Serialize, Deserialize)]
 pub enum Command {
-    Update { expected: u64, update: Update },
-    Navigate { expected: u64, key: [u8; 3] },
-    Reset { expected: u64 },
-    Frame { expected: u64 },
-    Selection { expected: u64 },
+    Control {
+        expected: u64,
+        scope: crate::control::Scope,
+        operation: crate::control::Operation,
+    },
+    Update {
+        expected: u64,
+        update: Update,
+    },
+    Navigate {
+        expected: u64,
+        key: [u8; 3],
+    },
+    Reset {
+        expected: u64,
+    },
+    Frame {
+        expected: u64,
+    },
+    Selection {
+        expected: u64,
+    },
 }
 #[derive(Serialize, Deserialize)]
 pub enum Reply {
-    Updated { snapshot: Snapshot },
-    Navigated { changed: bool, snapshot: Snapshot },
-    Selected { snapshot: Snapshot },
+    Control {
+        changed: bool,
+        snapshot: crate::control::Snapshot,
+    },
+    Updated {
+        snapshot: Snapshot,
+    },
+    Navigated {
+        changed: bool,
+        snapshot: Snapshot,
+    },
+    Selected {
+        snapshot: Snapshot,
+    },
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

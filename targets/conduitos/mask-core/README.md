@@ -46,3 +46,20 @@ transfer 0x603000..0x607000; stack 0x608000..0x708000; metadata
 initialization template. Retained state starts at 0x70a000. The allocator header
 ends at 0x70e000; the remainder is a private finite heap. These are admission
 ceilings, not measured peak usage or timing guarantees.
+
+## General entrance controller
+
+`control::Controller` retains the selected Host/Plot side, open-Plot flag,
+exact-details mode and sixteen-page detail position before any Body, workspace
+view or display extent exists. `Command::Control` has a separate expected control
+revision and an exact Host/Boot/service-instance scope. Read and canonical key
+commands return a finite `control::View`; lifecycle observation and explicit
+inspect commands do not carry effect proposals. Root keeps its monotonic input
+revision and all identities, lifecycle actions, Mask/Show and effect admission.
+
+Native FrontDoor does not retain a writable copy of these controller fields.
+The host reference invokes the same `control::apply` reducer. Workspace Update
+requires the initialized same-scope controller and uses its details-mode flag,
+rather than admitting a replacement mode from Root's fact DTO. General Face and
+scene paths query the controller before rendering Arrival/Home/workspace branches;
+terminal transport failure remains closed with no local controller fallback.

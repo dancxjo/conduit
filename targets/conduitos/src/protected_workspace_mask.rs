@@ -1,5 +1,6 @@
 //! Root transport custody and admission of advisory Mask results.
 //! This owner holds no selected-node/page model and grants no Show or input effect.
+mod control;
 mod transport;
 use conduit_face::{ApplicationView, GraphicsScene, LayoutRect};
 use conduitos_mask_core::data::{self, Command, Refusal, Reply, Scope, Snapshot, Update};
@@ -9,6 +10,7 @@ pub(crate) struct Owner {
     service: Option<Service>,
     failed: bool,
     revision: u64,
+    control_revision: u64,
     extent: Option<(u16, u16)>,
     scope: Option<Scope>,
 }
@@ -41,6 +43,7 @@ impl Owner {
         snapshot: &Snapshot,
         scope: &Scope,
         revision: u64,
+        control_revision: u64,
         view: Option<&ApplicationView>,
     ) -> Result<(), Refusal> {
         if &snapshot.scope != scope

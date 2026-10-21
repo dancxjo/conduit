@@ -1,6 +1,7 @@
 //! Workspace Mask reading/layout policy, with no semantic/effect/scanout authority.
 #![no_std]
 extern crate alloc;
+pub mod control;
 pub mod data;
 pub mod layout;
 pub mod reader;

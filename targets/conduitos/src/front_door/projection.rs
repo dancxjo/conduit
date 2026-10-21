@@ -3,6 +3,7 @@ use super::*;
 
 impl FrontDoor {
     pub fn face(&self) -> Result<Face, Error> {
+        let reading = self.reading()?;
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }
@@ -71,9 +72,9 @@ impl FrontDoor {
                 "checked-plot-id",
                 identity(self.checked_plot_id.as_str()),
             ),
-            property(&plot, "opened", FacePropertyValue::Flag(self.plot_open)),
+            property(&plot, "opened", FacePropertyValue::Flag(reading.plot_open)),
         ];
-        if self.exact_details_open {
+        if reading.exact_details_open {
             properties.extend([
                 property(&host, "profile-id", identity(&self.profile_id)),
                 property(&host, "build-id", identity(&self.build_id)),

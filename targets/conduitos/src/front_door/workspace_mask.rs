@@ -84,7 +84,7 @@ impl FrontDoor {
                 foreground.title,
                 self.patchbay_graph.is_some(),
                 self.refusal.as_ref().map(|r| (r.heading(), r.reason())),
-                self.exact_details_open,
+                self.reading()?.exact_details_open,
             ),
             view,
         })

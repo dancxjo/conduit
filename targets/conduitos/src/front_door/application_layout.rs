@@ -37,7 +37,7 @@ impl FrontDoor {
         if revision != self.revision {
             return Err(Error::StaleInput);
         }
-        if self.exact_details_open {
+        if self.exact_details_open() {
             return Ok(false);
         }
         let Some(view) = self.application_view.as_ref() else {

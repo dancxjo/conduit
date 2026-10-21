@@ -33,7 +33,8 @@ impl WorkspaceRefusal {
 
 impl FrontDoor {
     pub fn inspect_lifecycle(&mut self) -> Result<(), Error> {
-        self.exact_details_open = true;
+        self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.reading_command(conduitos_mask_core::control::Operation::Inspect)?;
         self.advance()
     }
 
@@ -240,6 +241,7 @@ impl FrontDoor {
             }
         }
         self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.reading_command(conduitos_mask_core::control::Operation::BodyAdmitted)?;
         if self
             .journey
             .as_ref()
@@ -251,10 +253,6 @@ impl FrontDoor {
         self.source_document_id = journey.source_document_id.clone().ok_or(Error::Face)?;
         self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Face)?;
         self.plot_subject = format!("plot/{}", self.checked_plot_id.as_str());
-        if self.selected_subject.starts_with("plot/") {
-            self.selected_subject = self.plot_subject.clone();
-        }
-        self.plot_open = false;
         // A newly admitted play supersedes an earlier startup/input refusal.
         if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput
             && !matches!(self.refusal, Some(WorkspaceRefusal::Action(_)))

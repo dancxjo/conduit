@@ -9,6 +9,7 @@ use alloc::vec::Vec;
 #[derive(Default)]
 pub struct State {
     reader: Reader,
+    control: crate::control::Controller,
     incoming: Option<(usize, Vec<u8>)>,
     outgoing: Vec<u8>,
     read: usize,
@@ -54,9 +55,31 @@ impl State {
                 }
                 let command: Command = data::decode(&incoming)?;
                 let output = match command {
-                    Command::Update { expected, update } => data::encode(&Reply::Updated {
-                        snapshot: self.reader.update(expected, update)?,
-                    })?,
+                    Command::Control {
+                        expected,
+                        scope,
+                        operation,
+                    } => {
+                        let (changed, snapshot) =
+                            self.control.execute(scope, expected, operation)?;
+                        data::encode(&Reply::Control { changed, snapshot })?
+                    }
+                    Command::Update {
+                        expected,
+                        mut update,
+                    } => {
+                        let scope = crate::control::Scope {
+                            session: update.scope.session,
+                            host: update.scope.host.clone(),
+                            boot: update.scope.boot.clone(),
+                        };
+                        // The retained controller is authoritative for this mode;
+                        // Root's observational copy cannot replace guest policy.
+                        update.facts.details_open = self.control.view(&scope)?.exact_details_open;
+                        data::encode(&Reply::Updated {
+                            snapshot: self.reader.update(expected, update)?,
+                        })?
+                    }
                     Command::Navigate { expected, key } => {
                         let (changed, snapshot) = self.reader.navigate(expected, key)?;
                         data::encode(&Reply::Navigated { changed, snapshot })?
