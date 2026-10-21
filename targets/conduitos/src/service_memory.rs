@@ -17,6 +17,7 @@ pub enum ServiceProfile {
     Network,
     OrdinaryRuntime,
     Mask,
+    Tls,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
@@ -29,6 +30,7 @@ impl ServiceProfile {
             Self::Network => ServiceMemoryLayout::network(),
             Self::OrdinaryRuntime => ServiceMemoryLayout::ordinary_runtime(),
             Self::Mask => ServiceMemoryLayout::mask(),
+            Self::Tls => ServiceMemoryLayout::tls(),
         }
     }
 }
@@ -101,6 +103,21 @@ impl ServiceMemoryLayout {
     pub const fn application() -> Self {
         Self::from_sizes(
             ServiceProfile::Application,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                1024 * 1024,
+                2 * 1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
+    /// TLS state and resumable IO, with no socket or device grants.
+    pub const fn tls() -> Self {
+        Self::from_sizes(
+            ServiceProfile::Tls,
             [
                 2 * 1024 * 1024,
                 PAGE_BYTES,
@@ -213,7 +230,8 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Application
             | ServiceProfile::Network
             | ServiceProfile::OrdinaryRuntime
-            | ServiceProfile::Mask => None,
+            | ServiceProfile::Mask
+            | ServiceProfile::Tls => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
@@ -226,7 +244,8 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Application
             | ServiceProfile::Network
             | ServiceProfile::OrdinaryRuntime
-            | ServiceProfile::Mask => None,
+            | ServiceProfile::Mask
+            | ServiceProfile::Tls => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -241,7 +260,8 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Application
             | ServiceProfile::Network
             | ServiceProfile::OrdinaryRuntime
-            | ServiceProfile::Mask => 5,
+            | ServiceProfile::Mask
+            | ServiceProfile::Tls => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -322,7 +342,8 @@ impl<'a> ServiceImage<'a> {
             | ServiceProfile::Application
             | ServiceProfile::Network
             | ServiceProfile::OrdinaryRuntime
-            | ServiceProfile::Mask => Some(PrivateDataWindow {
+            | ServiceProfile::Mask
+            | ServiceProfile::Tls => Some(PrivateDataWindow {
                 start: layout.metadata().start(),
                 bytes: PAGE_BYTES,
             }),

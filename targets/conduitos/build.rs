@@ -17,6 +17,8 @@ mod mask_image;
 mod network_image;
 #[path = "build/runtime_image.rs"]
 mod runtime_image;
+#[path = "build/tls_image.rs"]
+mod tls_image;
 use image_validation as domain_image;
 #[allow(dead_code)]
 #[path = "src/service_memory.rs"]
@@ -33,6 +35,7 @@ fn main() {
     runtime_image::generate();
     application_image::generate();
     network_image::generate();
+    tls_image::generate();
     mask_image::generate();
     compositor_hostile_images::generate();
 

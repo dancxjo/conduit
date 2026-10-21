@@ -1,4 +1,4 @@
-//! Eight independently claimed physical stores. No compositor arena duplication.
+//! Nine independently claimed physical stores. No compositor arena duplication.
 use crate::{
     protected_region::DomainRefusal,
     service_memory::{ServiceMemoryLayout, ServiceProfile},
@@ -20,6 +20,7 @@ const A: ServiceMemoryLayout = ServiceMemoryLayout::application();
 const N: ServiceMemoryLayout = ServiceMemoryLayout::network();
 const O: ServiceMemoryLayout = ServiceMemoryLayout::ordinary_runtime();
 const W: ServiceMemoryLayout = ServiceMemoryLayout::mask();
+const L: ServiceMemoryLayout = ServiceMemoryLayout::tls();
 const fn optional_bytes(range: Option<crate::service_memory::MemoryRange>) -> usize {
     match range {
         Some(range) => range.bytes() as usize,
@@ -93,6 +94,15 @@ type Application = Slot<
     0,
     0,
     { (A.end() as usize).div_ceil(2 * 1024 * 1024) },
+>;
+type Tls = Slot<
+    { L.image().bytes() as usize },
+    { L.output().bytes() as usize },
+    { L.stack().bytes() as usize },
+    { L.metadata().bytes() as usize },
+    0,
+    0,
+    { (L.end() as usize).div_ceil(2 * 1024 * 1024) },
 >;
 type Network = Slot<
     { N.image().bytes() as usize },
@@ -211,6 +221,7 @@ static APPLICATION: Pool<Application> = Pool(UnsafeCell::new(Application::empty(
 static NETWORK: Pool<Network> = Pool(UnsafeCell::new(Network::empty()));
 static ORDINARY_RUNTIME: Pool<OrdinaryRuntime> = Pool(UnsafeCell::new(OrdinaryRuntime::empty()));
 static MASK: Pool<Mask> = Pool(UnsafeCell::new(Mask::empty()));
+static TLS: Pool<Tls> = Pool(UnsafeCell::new(Tls::empty()));
 static COMPOSITOR_OWNED: AtomicBool = AtomicBool::new(false);
 static DRAFT_OWNED: AtomicBool = AtomicBool::new(false);
 static HOME_OWNED: AtomicBool = AtomicBool::new(false);
@@ -219,6 +230,7 @@ static APPLICATION_OWNED: AtomicBool = AtomicBool::new(false);
 static NETWORK_OWNED: AtomicBool = AtomicBool::new(false);
 static ORDINARY_RUNTIME_OWNED: AtomicBool = AtomicBool::new(false);
 static MASK_OWNED: AtomicBool = AtomicBool::new(false);
+static TLS_OWNED: AtomicBool = AtomicBool::new(false);
 fn owned(profile: ServiceProfile) -> &'static AtomicBool {
     match profile {
         ServiceProfile::Compositor => &COMPOSITOR_OWNED,
@@ -229,6 +241,7 @@ fn owned(profile: ServiceProfile) -> &'static AtomicBool {
         ServiceProfile::Network => &NETWORK_OWNED,
         ServiceProfile::OrdinaryRuntime => &ORDINARY_RUNTIME_OWNED,
         ServiceProfile::Mask => &MASK_OWNED,
+        ServiceProfile::Tls => &TLS_OWNED,
     }
 }
 pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
@@ -241,6 +254,7 @@ pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
         ServiceProfile::Network => core::mem::size_of::<Network>() as u32,
         ServiceProfile::OrdinaryRuntime => core::mem::size_of::<OrdinaryRuntime>() as u32,
         ServiceProfile::Mask => core::mem::size_of::<Mask>() as u32,
+        ServiceProfile::Tls => core::mem::size_of::<Tls>() as u32,
     }
 }
 pub(super) struct Lease {
@@ -278,6 +292,7 @@ impl Lease {
                 ServiceProfile::Network => (&mut *NETWORK.0.get()).view(),
                 ServiceProfile::OrdinaryRuntime => (&mut *ORDINARY_RUNTIME.0.get()).view(),
                 ServiceProfile::Mask => (&mut *MASK.0.get()).view(),
+                ServiceProfile::Tls => (&mut *TLS.0.get()).view(),
             }
         }
     }
@@ -294,6 +309,7 @@ impl Lease {
                 ServiceProfile::Network => &(*NETWORK.0.get()).output.0,
                 ServiceProfile::OrdinaryRuntime => &(*ORDINARY_RUNTIME.0.get()).output.0,
                 ServiceProfile::Mask => &(*MASK.0.get()).output.0,
+                ServiceProfile::Tls => &(*TLS.0.get()).output.0,
             }
         }
     }
@@ -315,6 +331,7 @@ impl Lease {
                     core::ptr::addr_of!((*ORDINARY_RUNTIME.0.get()).trap.0) as u64
                 }
                 ServiceProfile::Mask => core::ptr::addr_of!((*MASK.0.get()).trap.0) as u64,
+                ServiceProfile::Tls => core::ptr::addr_of!((*TLS.0.get()).trap.0) as u64,
             }
         };
         base + 16384

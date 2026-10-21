@@ -75,7 +75,8 @@ impl DomainBackend for ServiceDomain {
             | ServiceProfile::Application
             | ServiceProfile::Network
             | ServiceProfile::OrdinaryRuntime
-            | ServiceProfile::Mask => super::domain_budget::EntryBudget::Draft,
+            | ServiceProfile::Mask
+            | ServiceProfile::Tls => super::domain_budget::EntryBudget::Draft,
         };
         let result = domain_transition::enter_context_with_budget(self.space.context()?, budget)?;
         self.cost.entries += 1;

@@ -176,6 +176,7 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
                 | crate::service_memory::ServiceProfile::Network
                 | crate::service_memory::ServiceProfile::OrdinaryRuntime
                 | crate::service_memory::ServiceProfile::Mask
+                | crate::service_memory::ServiceProfile::Tls
         ) || data.address != layout.metadata().start()
             || data.memory_bytes > PAGE as u64
             || data.bytes.len() as u64 > data.memory_bytes
