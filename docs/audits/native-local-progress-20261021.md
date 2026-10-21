@@ -747,3 +747,29 @@ growth and input retirement on refusal. Three JS syntax checks pass. The Host
 refresh branch and SDK operation were not enacted in a browser. No broad tests,
 CI, platform proof or image rebuild ran. Actual effect handling, canonical
 production installation and remaining native acceptance stay open.
+
+## Connect Handbook Edit to the existing checked Source editor
+
+Added an optional owner request handler on Body wake and Host presentation. It
+runs only for a planned retained-Patchbay owner with matching current identities,
+remembers one request key to avoid automatic retries, and reports its outcome
+through the existing scoped disposition path. Source editing remains an owner
+application operation, not authority granted by renderer labels or graph geometry.
+
+Handbook now resolves exact Source/Plot/subject/containment facts and opens an
+admitted lesson in its existing editor, preserving drafts; the existing checked
+Try operation remains the commit. It rejects ambiguous/foreign/unresolved nested
+or unadmitted targets and unsupported request families explicitly. No span is
+guessed. The new helper's import and 4 KiB package resource are declared in the
+source template; no packaged artifact or ZIP was rebuilt.
+
+Also fixed observation lifetime for the normal Handbook's one Play: if another
+resident starts foreground, its sole Patchbay still binds the exact owner node.
+A focused Rust check passes (461 filtered out). Its initial fixture used an
+array position despite Body Plan identity ordering; corrected to use planned
+kinds, negative log retained. Two Source-resolution CPU checks pass (including
+foreign/ambiguous/nested/cyclic refusal), and one existing Host application-event
+retirement baseline passes. Five JS syntax checks pass. Full callback/DOM editor
+opening, browser packaging and real user interaction remain unenacted; no broad
+suite, CI, platform proof or image rebuild ran. Canonical product installation,
+Mask-change handling and remaining native proof remain unfinished.

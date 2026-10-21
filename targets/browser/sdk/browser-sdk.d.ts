@@ -272,7 +272,11 @@ export class BrowserBody {
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
   wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
-  }>) => Element | ShadowRoot }): Promise<BrowserPlay>;
+  }>) => Element | ShadowRoot;
+    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation }>) =>
+      Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
+      | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
+  }): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
   lull(): Promise<Readonly<Record<string, unknown>>>;
   close(): Promise<void>;

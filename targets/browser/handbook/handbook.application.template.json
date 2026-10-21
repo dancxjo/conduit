@@ -27,6 +27,10 @@
         {
           "role": "owner-participation",
           "specifier": "./owner-participation.mjs"
+        },
+        {
+          "role": "patchbay-editor",
+          "specifier": "./patchbay-editor.mjs"
         }
       ]
     },
@@ -179,6 +183,12 @@
       "path": "plots/thermostat.conduit",
       "maximum_bytes": 8192,
       "source": "../../../plots/thermostat/main.conduit"
+    },
+    {
+      "role": "patchbay-editor",
+      "kind": "module",
+      "path": "patchbay-editor.mjs",
+      "maximum_bytes": 4096
     }
   ]
 }

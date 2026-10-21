@@ -88,7 +88,7 @@ export function manifestBrowserText(output, effect) {
 }
 
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  faceRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -227,6 +227,30 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (signal.aborted) abort();
     });
   };
+  const reportPatchbayDisposition = message => {
+    assertCurrent();
+    const channel = applicationChannels.get(message.owner_checked_plot_id);
+    const refresh = message.outcome !== 'Uncertain' && channel?.manifestation;
+    if (refresh && !channel.waiter && (channel.queue.length >= 8 || channel.bytes + 1 > 131072)) {
+      throw new Error('browser application observation queue pressure');
+    }
+    const observation = bridge.patchbayRequestDisposition(message);
+    if (refresh && observation.pending_owner_request === null) {
+      // Existing legacy empty observation requests a new view through the
+      // admitted event/state/view path. It never retries the owner request.
+      const bytes = new Uint8Array([0]);
+      if (channel.waiter) {
+        const waiter = channel.waiter; channel.waiter = null; waiter.resolve(bytes);
+      } else { channel.queue.push(bytes); channel.bytes += bytes.length; }
+    }
+    return observation;
+  };
+  let lastPatchbayRequest = null;
+  const patchbayOwners = new Set((typeof onPatchbayOwnerRequest === 'function' ? proposal.plan.plots : []).filter(part =>
+    part.plan.fragments.some(fragment => fragment.placements.some(placement =>
+      placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
+        entry.key === 'application' && entry.value?.Text === 'patchbay'))))
+    .map(part => part.plot.checked_plot_id));
   // The single WASM owner leases this local preparation slot. Its bounded
   // template storage is initialized by ordinary kernel preparation before Play.
   const templateSlots = new Set();
@@ -463,6 +487,34 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           choiceScope: effect.active_play_id,
           onEvent: event => publishApplicationEvent(effect.checked_plot_id, event),
         });
+        if (typeof onPatchbayOwnerRequest === 'function' && patchbayOwners.has(effect.checked_plot_id)) {
+          const observation = bridge.patchbayObservation();
+          if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
+              || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay owner request differs from this Body Play');
+          const pending = observation.pending_owner_request;
+          if (pending && observation.owner_checked_plot_id === effect.checked_plot_id) {
+            const revision = pending.application_revision;
+            const key = `${observation.owner_checked_plot_id}/${revision}`;
+            if (lastPatchbayRequest !== key) {
+              lastPatchbayRequest = key; // No automatic retry after handler uncertainty.
+              let report;
+              try {
+                report = await onPatchbayOwnerRequest(Object.freeze({ observation }));
+                if (!['Completed', 'Rejected', 'Cancelled', 'Uncertain'].includes(report?.outcome)
+                    || typeof report.evidenceId !== 'string' || !report.evidenceId.trim()
+                    || new TextEncoder().encode(report.evidenceId).length > 256) throw new Error('Invalid Patchbay owner handler report');
+              } catch (error) {
+                output.dataset.ownerRequestRefusal = String(error?.message ?? error).slice(0, 256);
+                report = { outcome: 'Uncertain', evidenceId: `browser/patchbay-handler-uncertain/${revision}` };
+              }
+              if (!closed) reportPatchbayDisposition({
+                body_id: started.play.body_id, body_plan_id: started.play.plan_id,
+                active_play_id: started.play.active_play_id, owner_checked_plot_id: effect.checked_plot_id,
+                application_revision: revision, outcome: report.outcome, evidence_id: report.evidenceId,
+              });
+            }
+          }
+        }
       } else if (typeof effect.text === "string") {
         manifestBrowserText(output, effect);
       }
@@ -547,24 +599,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       return completion;
     },
     patchbayObservation() { assertCurrent(); return bridge.patchbayObservation(); },
-    patchbayRequestDisposition(message) {
-      assertCurrent();
-      const channel = applicationChannels.get(message.owner_checked_plot_id);
-      const refresh = message.outcome !== 'Uncertain' && channel?.manifestation;
-      if (refresh && !channel.waiter && (channel.queue.length >= 8 || channel.bytes + 1 > 131072)) {
-        throw new Error('browser application observation queue pressure');
-      }
-      const observation = bridge.patchbayRequestDisposition(message);
-      if (refresh && observation.pending_owner_request === null) {
-        // Existing legacy empty observation requests a new view through the
-        // admitted event/state/view path. It never retries the owner request.
-        const bytes = new Uint8Array([0]);
-        if (channel.waiter) {
-          const waiter = channel.waiter; channel.waiter = null; waiter.resolve(bytes);
-        } else { channel.queue.push(bytes); channel.bytes += bytes.length; }
-      }
-      return observation;
-    },
+    patchbayRequestDisposition(message) { return reportPatchbayDisposition(message); },
     thermostatFace() { assertCurrent(); return bridge.thermostatFace(); },
     acknowledgeThermostatFace(acknowledgement) { assertCurrent(); return bridge.thermostatAcknowledge(acknowledgement); },
     submitThermostatInteraction(interaction) {

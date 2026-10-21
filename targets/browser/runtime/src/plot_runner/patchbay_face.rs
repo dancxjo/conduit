@@ -23,11 +23,34 @@ impl PatchbayObservation {
         foreground: &str,
         local: &[conduit_plan_lowering::lowering::LoweredPlanFragment],
     ) -> Result<Option<Self>, String> {
-        let Some(part) = plan
-            .plots
+        let mut candidates = Vec::new();
+        for part in &plan.plots {
+            let mut has_patchbay = false;
+            for placement in part
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+            {
+                if placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
+                    && crate::installed_browser::application::application_id(placement)?
+                        == "patchbay"
+                {
+                    has_patchbay = true;
+                }
+            }
+            if has_patchbay {
+                candidates.push(part);
+            }
+        }
+        let part = if let Some(part) = candidates
             .iter()
             .find(|part| part.plot.checked_plot_id.as_str() == foreground)
-        else {
+        {
+            *part
+        } else if let [part] = candidates.as_slice() {
+            *part
+        } else {
             return Ok(None);
         };
         let mut owners = Vec::new();

@@ -85,3 +85,54 @@ fn wrong_bound_node_refuses_instead_of_searching_for_another_patchbay() {
         .contains("exact resident Patchbay owner is not prepared"));
     session.cancel().unwrap();
 }
+
+#[test]
+fn sole_patchbay_owner_remains_observable_when_another_resident_starts_foreground() {
+    let lesson = "plot lesson {\n value: text/literal(\"lesson\")\n show: face/text(\"Message\")\n value >> show\n}\n";
+    let patchbay = include_str!("../../../../../plots/patchbay/main.conduit");
+    let mut request = body_start::tests::request_from_sources(&[lesson, patchbay]);
+    request.source =
+        serde_json::json!({ "schema": "conduit.creche/reviewed-plot-bundle@2", "plots": [
+        { "slug": "lesson", "entry": "lesson", "source": lesson },
+        { "slug": "patchbay", "entry": "patchbay", "source": patchbay }
+    ] })
+        .to_string();
+    let is_patchbay = |part: &&conduit_body::BodyPlotPlan| {
+        part.plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|placement| {
+                placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
+            })
+    };
+    let owner = request
+        .plan
+        .plots
+        .iter()
+        .find(is_patchbay)
+        .unwrap()
+        .plot
+        .checked_plot_id
+        .clone();
+    request.foreground_checked_plot_id = request
+        .plan
+        .plots
+        .iter()
+        .find(|part| !is_patchbay(part))
+        .unwrap()
+        .plot
+        .checked_plot_id
+        .as_str()
+        .into();
+    assert_ne!(request.foreground_checked_plot_id, owner.as_str());
+    let (session, _) = body_start::prepare(request).unwrap();
+    let observation = session.patchbay_observation().unwrap();
+    assert_eq!(observation["owner_checked_plot_id"], owner.as_str());
+    assert!(!observation["face"]["actions"]
+        .as_array()
+        .unwrap()
+        .is_empty());
+    assert_eq!(observation["interaction_admitted"], false);
+    session.cancel().unwrap();
+}

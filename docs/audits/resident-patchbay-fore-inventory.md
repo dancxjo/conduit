@@ -242,3 +242,27 @@ application queue and schedules one legacy empty observation after a terminal
 report, allowing the normal event/state/view path to refresh. This neither sends
 a canonical interaction through the old Fore nor retries the owner effect.
 The page refresh branch is syntax-checked, not browser-enacted.
+
+## First current-product Edit handler
+
+The browser Host accepts an opt-in `onPatchbayOwnerRequest` owner callback from
+Body wake. Only an exact retained-Patchbay placement in the immutable proposal
+can trigger delivery. Current Body/Plan/Play/owner scope is rechecked, one latest
+request key prevents automatic handler replay, and the existing scoped
+report/refresh path records its outcome. Handler uncertainty remains pending.
+
+Handbook resolves Edit targets by exact expanded Plot, checked Plot, Source
+document, raw semantic subject and checked containment facts from the Face.
+It opens an admitted lesson document in the existing native textarea editor,
+keeps local drafts, and leaves commit to the existing checked Try operation.
+It does not guess a Source span or treat captions as identity. Unresolved nested
+Sources, unknown/ambiguous targets and unadmitted documents are explicitly
+rejected rather than opening a different document. Mask changes remain unsupported.
+The helper is declared as a bounded module in the application package template.
+
+Observation may now bind the sole exact Patchbay resident even when another
+resident starts foreground, preserving Handbook's single live Play when its
+visible Plot changes. Multiple ambiguous owners still refuse; exact Plan,
+fragment and node binding remain required. This current legacy-route handler is
+not canonical consumer migration or platform proof. Browser enactment, canonical
+installation and remaining native acceptance are still pending.

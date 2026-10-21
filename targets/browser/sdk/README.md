@@ -157,7 +157,12 @@ are nonblank and at most 256 UTF-8 bytes. `Uncertain` keeps the request pending;
 terminal reports release it and request a fresh legacy view through its existing
 admitted path. `last_owner_disposition` retains the exact request and latest
 report, not a durable history or proof that its effect happened. The actual
-Edit/Mask effect handler and canonical production consumer remain unfinished. The bridge has local CPU checks;
+Handbook can handle Edit by opening an admitted lesson's exact checked Source
+in its existing editor, preserving local drafts; Try remains the explicit
+checked commit. `body.wake({ onPatchbayOwnerRequest })` installs an optional
+owner handler, invoked once per request after its view is presented. Unsupported
+or unresolved targets are rejected; uncertainty is retained without retry.
+Mask-change handling and the canonical production consumer remain unfinished. The bridge has local CPU checks;
 WASM/browser enactment of this accessor remains unverified.
 
 The initial SDK profile has a finite, reviewed local adapter set. A capability

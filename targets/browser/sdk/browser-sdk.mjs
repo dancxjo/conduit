@@ -408,7 +408,7 @@ export class BrowserBodyParticipation {
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
   prepare({ proposal, inputTarget, outputRoot, foregroundPlot, faceRootFor,
-    onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
+    onApplicationEvent, onPatchbayOwnerRequest, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential
         || proposal?.plan?.body_id !== credential.body_id) {
@@ -425,6 +425,7 @@ export class BrowserBodyParticipation {
       foregroundPlot,
       faceRootFor,
       onApplicationEvent,
+      onPatchbayOwnerRequest,
       onTutorialPresenterRequest,
       externallyManagedPlanIds,
     });

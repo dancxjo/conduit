@@ -1,4 +1,5 @@
 // Browser controls orchestrate public SDK operations; Rust owns every Body transition.
+import { resolvePatchbayEditorTarget } from "./patchbay-editor.mjs";
 import { startOwnerParticipation } from "./owner-participation.mjs";
 
 export async function startApplication(application) {
@@ -213,7 +214,35 @@ export async function startApplication(application) {
     playFailure = null;
     thermostatFace = null; thermostatSequence = 0;
     surface.replaceChildren(); surfaces.clear();
-    play = await body.wake({ root: surface, faceRootFor({ checkedPlotId }) {
+    play = await body.wake({ root: surface, onPatchbayOwnerRequest: async ({ observation }) => {
+      const revision = observation.pending_owner_request.application_revision;
+      const evidenceId = `handbook/editor/${revision}`;
+      let target;
+      try {
+        target = resolvePatchbayEditorTarget(observation, checked.plots);
+        if (!specification.plots.some(plot => plot.lesson && plot.name === target.plot.name)) {
+          throw new Error('This Handbook editor does not admit the requested Plot.');
+        }
+      } catch (error) {
+        checkStatus.textContent = error.message;
+        return { outcome: 'Rejected', evidenceId };
+      }
+      if (busy) {
+        checkStatus.textContent = 'The editor is busy. Try Edit again when the current operation finishes.';
+        return { outcome: 'Rejected', evidenceId };
+      }
+      try {
+        openingDrafts.set(selector.value, source.value);
+        selector.value = target.plot.name;
+        await selectExample();
+        source.focus();
+        checkStatus.textContent = `Edit ${target.subject.name} in ${target.plot.name}. Changes remain drafts until you press Try.`;
+        return { outcome: 'Completed', evidenceId };
+      } catch (error) {
+        checkStatus.textContent = `Editor opening is uncertain: ${error.message}`;
+        return { outcome: 'Uncertain', evidenceId };
+      }
+    }, faceRootFor({ checkedPlotId }) {
       if (!surfaces.has(checkedPlotId)) {
         const output = document.createElement('div');
         output.dataset.residentPlot = checkedPlotId;
