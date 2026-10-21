@@ -9,24 +9,42 @@ use alloc::vec::Vec;
 #[derive(Default)]
 pub struct State {
     models: Option<Models>,
+    refused: bool,
     incoming: Option<(usize, Vec<u8>)>,
     outgoing: Vec<u8>,
     read: usize,
 }
 impl State {
     pub fn execute(&mut self, request: Request, transfer: &mut [u8]) -> Result<Response, Refusal> {
+        if self.refused {
+            return Err(Refusal::Order);
+        }
+        let result = self.execute_admitted(request, transfer);
+        if result.is_err() {
+            self.refused = true;
+            self.models = None;
+            self.incoming = None;
+            self.outgoing = Vec::new();
+        }
+        result
+    }
+    fn execute_admitted(
+        &mut self,
+        request: Request,
+        transfer: &mut [u8],
+    ) -> Result<Response, Refusal> {
         match request {
             Request::Begin { bytes } => {
                 if self.incoming.is_some() || bytes == 0 || bytes as usize > MAX_BLOB {
                     return Err(Refusal::Order);
                 }
+                self.outgoing = Vec::new();
+                self.read = 0;
                 let mut incoming = Vec::new();
                 incoming
                     .try_reserve_exact(bytes as usize)
                     .map_err(|_| Refusal::Capacity)?;
                 self.incoming = Some((bytes as usize, incoming));
-                self.outgoing = Vec::new();
-                self.read = 0;
                 Ok(Response::Ready)
             }
             Request::Write { offset, bytes } => {
@@ -48,6 +66,8 @@ impl State {
                     return Err(Refusal::Order);
                 }
                 let command: Command = data::decode(&incoming)?;
+                drop(incoming);
+                let mut initialized = None;
                 let reply = match command {
                     Command::ProjectGraph { graph, scope } => Reply::GraphFacts {
                         contribution: crate::graph_facts::project(&graph, scope)?,
@@ -64,7 +84,7 @@ impl State {
                         if self.models.is_some() {
                             return Err(Refusal::Order);
                         }
-                        self.models = Some(Models::new(applications)?);
+                        initialized = Some(Models::new(applications)?);
                         Reply::Initialized
                     }
                     command => self
@@ -73,8 +93,10 @@ impl State {
                         .ok_or(Refusal::Order)?
                         .execute(command)?,
                 };
-                drop(incoming);
                 self.outgoing = data::encode(&reply)?;
+                if let Some(models) = initialized {
+                    self.models = Some(models);
+                }
                 self.read = 0;
                 Ok(Response::Blob {
                     bytes: self.outgoing.len() as u32,
