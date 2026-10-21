@@ -32,7 +32,7 @@ That graphical startup reaches these responsibilities:
 | `native_face_mask`, front-door presenter | Root; Face projection, rasterization, compositor and display acknowledgement | Protected presentation services |
 | `native_compositor`, compositor service | x86_64 native guest owns retained pixels, damage, visual focus/cursor and composition; Root validates scanout | Extend evidence and independent recovery; other architectures still need service backends |
 | Crèche draft service | x86_64 native guest owns canonical BirthDraft, naming and Birth Face projection; Root checks immutable snapshots/selections | Move remaining controller and presentation policy out of Root |
-| Home launcher/command bar | x86_64 Home guest owns canonical HomeModel, keyboard composition and refusals; Root retains read-only layout and checked lifecycle effects | Relocate remaining presentation and product control |
+| Home launcher/command bar | x86_64 Home guest owns canonical HomeModel, keyboard composition and refusals; guest also constructs scene/local Face content; Root validates replies and retains checked lifecycle effects | Relocate remaining general presentation and product control |
 | Ordinary runtime, planner and Body controllers | Root except explicitly protected regions | Protected runtime/service execution with existing semantic ownership |
 | USB, PCI, network, audio and display providers | Root; ports, MMIO, device buffers and physical addresses | Exact mediated grants; driver isolation needs DMA containment |
 | `domain/main.rs` | Separate immutable image; explicit command dispatch over a bounded frame, private stack/retained pages | Reuse hardware confinement, extend independently admitted services |

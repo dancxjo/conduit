@@ -632,7 +632,11 @@ the canonical HomeModel, keyboard composition and refusal state are guest-owned.
 Root consumes validated read-only snapshots and application views, checks current
 installed Plot indices, and retains lifecycle effects. Explicit reopen resets a
 live guest; terminal recovery releases the old owner before fresh installation.
-Home layout and Host Face content still run in Root from read-only projections.
+Home layout and local Face content also execute in that guest. Root sends only
+bounded viewport, identity, installed-Plot and lifecycle display facts; it checks
+request correlation, canonical scene decoding, exact viewport clips and finite
+Home-subject Face content before assembling the checked outer Face. Outer
+Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
 The closed service pool has independent compositor, Draft and Home slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
