@@ -25,6 +25,8 @@ mod probes;
 #[cfg(all(feature = "proof", target_arch = "loongarch64"))]
 #[path = "probes_loongarch64.rs"]
 mod probes;
+#[cfg(all(feature = "proof", target_arch = "x86_64"))]
+mod service_probe;
 mod timer;
 #[path = "../src/tour_timer_runtime.rs"]
 mod timer_runtime;

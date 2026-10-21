@@ -167,6 +167,7 @@ pub mod protocol_operations;
 mod pure_protocol_owner;
 pub mod pure_protocol_play;
 pub mod serial_base;
+pub mod service_memory;
 #[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
