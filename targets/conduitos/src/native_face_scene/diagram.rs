@@ -409,7 +409,7 @@ mod tests {
         let retained = face.clone();
         assert!(
             link_notice(&face, screen, 0)
-                .ends_with("12/15 cords shown · 3 omitted · F2 all facts · F3 return")
+                .ends_with("12/15 cords · 3 omitted · Alt+arrows inspect · F2/F3")
         );
         assert_eq!(face, retained);
         let checked = Face::new_with_semantics(
@@ -438,7 +438,7 @@ mod tests {
         assert!(frame.scene.commands().iter().any(|command| {
             command
                 .payload()
-                .ends_with("12/15 cords shown · 3 omitted · F2 all facts · F3 return")
+                .ends_with("12/15 cords · 3 omitted · Alt+arrows inspect · F2/F3")
         }));
         assert!(
             frame.hits.is_empty(),
@@ -471,7 +471,7 @@ mod tests {
         face.properties.retain(|p| p.name != "sink-port");
         assert!(
             link_notice(&face, screen, 0)
-                .ends_with("0/15 cords shown · 15 omitted · F2 all facts · F3 return")
+                .ends_with("0/15 cords · 15 omitted · Alt+arrows inspect · F2/F3")
         );
     }
 }
