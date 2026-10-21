@@ -35,10 +35,6 @@ fn installation_matches(value: &Value, source: &str, bin: &Path) -> bool {
         && value["product_executable"] == bin.to_string_lossy().as_ref()
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "one live owner/guest proof carries exact observations"
-)]
 pub(super) fn exercise(
     args: &LiveOwnerTodoFaceProofArgs,
     directory: &Path,
