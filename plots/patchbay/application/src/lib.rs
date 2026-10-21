@@ -31,6 +31,7 @@ mod debugger_watch_tests;
 mod entrance;
 mod entrance_equivalence;
 mod face_layout;
+pub mod graph_face;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;

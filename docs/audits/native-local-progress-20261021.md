@@ -180,3 +180,17 @@ actual actions, revision checks and admitted view bounds; deleting the vocabular
 or increasing the native view budget is not a substitute. This remains an
 implementation obligation to inspect before claiming the entire Patchbay path
 complete, independently of tonight's deferred proof.
+
+## Shared graph-to-Face migration seam
+
+Extracted the existing native graph projection unchanged into the no_std
+Patchbay application crate's `graph_face` module. Native retains a narrow
+re-export at its old path. This removes Host ownership of the renderer-neutral
+subject/property/relationship projection and gives remaining application/canvas
+consumers a concrete shared path. It adds no dependency, graph store, rendering
+policy, action, new limit or implicit Face admission; callers still validate and
+admit their completed Face. Implementation text matches the prior native source
+after documentation/visibility normalization. Native-compositor compilation
+passed (5 seconds). Full extraction validation (workspace tests/Clippy) remains
+deferred under tonight's instruction; no PR or CI run was created. The canvas
+consumers themselves are not yet migrated by this extraction.
