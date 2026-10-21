@@ -242,7 +242,10 @@ fn validate(
             "journey",
             journey,
             "presenter_implementation_id",
-            serde_json::json!("face/renderer-conduitos-component@1"),
+            // Ordinary boot first presents the zero-Body Commons through
+            // FrontDoorPresenter. The configured Crèche renderer is selected
+            // only after entering Crèche from that Commons.
+            serde_json::json!("presenter/native-graphical@1"),
         ),
         ("journey", journey, "body_id", serde_json::Value::Null),
         ("journey", journey, "plan_id", serde_json::Value::Null),
