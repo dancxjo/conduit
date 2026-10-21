@@ -6,7 +6,7 @@ mod request;
 mod response;
 pub use request::{Request, decode_request, encode_request};
 mod pixels;
-use crate::{Error, Handle, MAX_CHUNK, MAX_PIXELS, MAX_SURFACES, Rect};
+use crate::{Error, FramePlan, FrameRect, Handle, MAX_CHUNK, MAX_PIXELS, MAX_SURFACES, Rect};
 use common::*;
 pub use pixels::{PixelBytes, decode_pixels, encode_pixels};
 pub use response::{FrameSpan, Response, decode_response, encode_response};

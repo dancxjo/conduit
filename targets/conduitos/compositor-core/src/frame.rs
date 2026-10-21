@@ -1,12 +1,33 @@
 use crate::{damage::BoxRect, *};
+/// Bounded pixel work declared before scanout, not a semantic execution plan.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FrameRect {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FramePlan {
+    pub sequence: u64,
+    pub count: u8,
+    pub rects: [FrameRect; 16],
+    pub conservative_fallback: bool,
+    pub cursor_visible: bool,
+    pub focus_visible: bool,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct CompletedFrame {
     sequence: u64,
     coverage: [u32; MAX_SURFACES],
+    selected_mask: u8,
 }
 impl CompletedFrame {
     pub fn sequence(self) -> u64 {
         self.sequence
+    }
+    pub fn selected_mask(self) -> u8 {
+        self.selected_mask
     }
     pub fn coverage(self) -> [u32; MAX_SURFACES] {
         self.coverage
@@ -19,6 +40,8 @@ pub struct Span {
     pub y: u32,
     pub pixels: usize,
     pub complete: bool,
+    /// Accumulated selected surfaces only on the complete span.
+    pub selected_mask: u8,
 }
 #[derive(Clone, Copy)]
 pub(crate) struct Progress {
@@ -28,6 +51,10 @@ pub(crate) struct Progress {
     x: i32,
     y: i32,
     coverage: [u32; MAX_SURFACES],
+    selected_mask: u8,
+    conservative_fallback: bool,
+    cursor_visible: bool,
+    focus_visible: bool,
 }
 impl Compositor<'_> {
     pub fn begin_frame(&mut self) -> Result<u64, Error> {
@@ -41,6 +68,12 @@ impl Compositor<'_> {
             x: 0,
             y: 0,
             coverage: [0; MAX_SURFACES],
+            selected_mask: 0,
+            conservative_fallback: self.damage.fallback,
+            // Logical affordance presence, matching the native FrameReceipt.
+            // These flags do not claim rendered ink, scanout, or human visibility.
+            cursor_visible: self.cursor.is_some(),
+            focus_visible: self.focus.is_some(),
         };
         for r in &self.damage.rects[..self.damage.count] {
             let clipped = BoxRect {
@@ -62,6 +95,28 @@ impl Compositor<'_> {
         self.sequence = sequence;
         self.frame = Some(p);
         Ok(sequence)
+    }
+    /// Immutable descriptor of the active frame's full ordered scanout work.
+    /// Rectangles remain unchanged as the per-span cursor advances.
+    pub fn frame_plan(&self) -> Option<FramePlan> {
+        let p = self.frame?;
+        let mut rects = [FrameRect::default(); 16];
+        for (target, r) in rects.iter_mut().zip(&p.rects[..p.count]) {
+            *target = FrameRect {
+                x: r.left as u32,
+                y: r.top as u32,
+                width: (r.right - r.left) as u32,
+                height: (r.bottom - r.top) as u32,
+            };
+        }
+        Some(FramePlan {
+            sequence: self.sequence,
+            count: p.count as u8,
+            rects,
+            conservative_fallback: p.conservative_fallback,
+            cursor_visible: p.cursor_visible,
+            focus_visible: p.focus_visible,
+        })
     }
     /// One contiguous horizontal output span, never more than 64KiB. A failed
     /// or cancelled frame keeps all pending damage and invalidates prior input.
@@ -87,6 +142,7 @@ impl Compositor<'_> {
             let len = (right - left) as usize;
             let target = &mut output[start..start + len];
             if let Some(i) = selected {
+                p.selected_mask |= 1 << i;
                 let s = self.surfaces[i];
                 let offset = s.offset
                     + (i64::from(y) - i64::from(s.rect.y)) as usize * usize::from(s.rect.width)
@@ -144,6 +200,7 @@ impl Compositor<'_> {
             self.completed = Some(CompletedFrame {
                 sequence,
                 coverage: p.coverage,
+                selected_mask: p.selected_mask,
             });
             self.damage = Damage::new();
         } else {
@@ -155,6 +212,7 @@ impl Compositor<'_> {
             y,
             pixels: n,
             complete,
+            selected_mask: if complete { p.selected_mask } else { 0 },
         })
     }
     pub fn completed(&self) -> Option<CompletedFrame> {

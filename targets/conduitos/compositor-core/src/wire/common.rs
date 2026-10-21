@@ -122,7 +122,7 @@ pub(super) fn header(bytes: &[u8]) -> Result<(Envelope, u16, Reader<'_>), CodecE
     if r.take(4)? != b"CCMP" {
         return Err(CodecError::Version);
     }
-    if r.u16()? != 1 {
+    if r.u16()? != 2 {
         return Err(CodecError::Version);
     }
     let operation = r.u16()?;
@@ -153,7 +153,7 @@ pub(super) fn begin(
     nonzero(e.request)?;
     let mut w = Writer::new(bytes.get_mut(..length).ok_or(CodecError::Truncated)?);
     w.put(b"CCMP")?;
-    w.u16(1)?;
+    w.u16(2)?;
     w.u16(op)?;
     w.u32(length as u32)?;
     w.u32(0)?;

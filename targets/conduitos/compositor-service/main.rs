@@ -104,7 +104,12 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
         }
         Request::CommitUpload => core.commit_upload().map(|()| Response::Unit),
         Request::AbortUpload => core.abort_upload().map(|()| Response::Unit),
-        Request::BeginFrame => core.begin_frame().map(Response::FrameSequence),
+        Request::BeginFrame => {
+            core.begin_frame()?;
+            core.frame_plan()
+                .map(Response::FrameStarted)
+                .ok_or(Error::Order)
+        }
         Request::FrameStep { sequence, pixels } => {
             let (start, count) = window(0, pixels)?;
             let output = unsafe { slice::from_raw_parts_mut(start as *mut u32, count) };
@@ -121,6 +126,7 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
                 window_offset: 0,
                 pixels: span.pixels as u32,
                 complete: span.complete,
+                selected_mask: span.selected_mask,
                 coverage,
             }))
         }

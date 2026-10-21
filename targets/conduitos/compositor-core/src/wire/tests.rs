@@ -108,7 +108,7 @@ fn request_header_and_payload_refuse_unknown_noncanonical_or_overflow_values() {
         &mut bytes,
     )
     .unwrap();
-    for (offset, value) in [(0, 0), (4, 2), (6, 255), (12, 1), (32, 8), (41, 2)] {
+    for (offset, value) in [(0, 0), (4, 1), (6, 255), (12, 1), (32, 8), (41, 2)] {
         let mut malformed = bytes;
         malformed[offset] = value;
         assert!(
@@ -202,13 +202,14 @@ fn response_variants_roundtrip_and_frame_ranges_are_checked() {
         window_offset: 0,
         pixels: MAX_CHUNK as u32,
         complete: true,
+        selected_mask: 1,
         coverage: [MAX_PIXELS as u32, 0, 0, 0, 0, 0, 0, 0],
     };
     let responses = [
         Response::Unit,
         Response::Surface(HANDLE),
         Response::Prepared(true),
-        Response::FrameSequence(u64::MAX),
+        Response::FrameStarted(plan()),
         Response::Frame(frame),
         Response::Pointer(None),
         Response::Pointer(Some(crate::Route {
@@ -289,4 +290,97 @@ fn pixel_window_is_little_endian_and_admits_exact_64kib_without_allocation() {
     assert!(decode_pixels(&window, 0, u32::MAX).is_err());
     assert!(decode_pixels(&window[..3], 0, 1).is_err());
     assert!(encode_pixels(&mut window[..3], 0, &[1]).is_err());
+}
+
+fn plan() -> FramePlan {
+    let mut rects = [FrameRect::default(); 16];
+    rects[0] = FrameRect {
+        x: 2,
+        y: 3,
+        width: 12,
+        height: 10,
+    };
+    FramePlan {
+        sequence: 7,
+        count: 1,
+        rects,
+        conservative_fallback: false,
+        cursor_visible: true,
+        focus_visible: false,
+    }
+}
+#[test]
+fn frame_plan_and_selected_mask_refuse_noncanonical_or_inconsistent_work() {
+    let good = plan();
+    let mut bytes = [0; EXCHANGE_BYTES];
+    let length = encode_response(ENV, Response::FrameStarted(good), &mut bytes).unwrap();
+    assert_eq!(length, 300);
+    // sequence, count, active rectangle, unused rectangle, boolean flags, wire v1.
+    for (offset, value) in [
+        (32, 0u8),
+        (40, 0),
+        (40, 17),
+        (49, 0),
+        (57, 1),
+        (297, 2),
+        (298, 2),
+        (299, 2),
+        (4, 1),
+    ] {
+        let mut malformed = bytes;
+        if offset == 32 {
+            malformed[32..40].fill(0);
+        } else if offset == 49 {
+            malformed[49..53].fill(0);
+        } else {
+            malformed[offset] = value;
+        }
+        assert!(
+            decode_response(&malformed[..length]).is_err(),
+            "offset {offset}"
+        );
+    }
+    let mut malformed = bytes;
+    malformed[41..45].copy_from_slice(&u32::MAX.to_le_bytes());
+    assert!(decode_response(&malformed[..length]).is_err());
+    let mut invalid = good;
+    invalid.rects[0].height = 0;
+    assert!(encode_response(ENV, Response::FrameStarted(invalid), &mut bytes).is_err());
+    let mut invalid = good;
+    invalid.rects[15].width = 1;
+    assert!(encode_response(ENV, Response::FrameStarted(invalid), &mut bytes).is_err());
+    let span = FrameSpan {
+        sequence: 7,
+        x: 0,
+        y: 0,
+        window_offset: 0,
+        pixels: 1,
+        complete: true,
+        selected_mask: 1,
+        coverage: [0; MAX_SURFACES],
+    };
+    let n = encode_response(ENV, Response::Frame(span), &mut bytes).unwrap();
+    assert_eq!(
+        decode_response(&bytes[..n]),
+        Ok((ENV, Response::Frame(span)))
+    );
+    let incomplete = FrameSpan {
+        complete: false,
+        ..span
+    };
+    assert!(encode_response(ENV, Response::Frame(incomplete), &mut bytes).is_err());
+    let inconsistent = FrameSpan {
+        selected_mask: 0,
+        coverage: [1, 0, 0, 0, 0, 0, 0, 0],
+        ..span
+    };
+    assert!(encode_response(ENV, Response::Frame(inconsistent), &mut bytes).is_err());
+    let incomplete = FrameSpan {
+        complete: false,
+        selected_mask: 0,
+        ..span
+    };
+    let n = encode_response(ENV, Response::Frame(incomplete), &mut bytes).unwrap();
+    bytes[57] = 1;
+    assert!(decode_response(&bytes[..n]).is_err());
 }

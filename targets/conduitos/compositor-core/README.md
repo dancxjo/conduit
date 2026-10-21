@@ -29,7 +29,7 @@ invalidates all input readiness. The Root client must validate all spans, copy
 them successfully and correlate Host/Boot/service/display generations before acknowledging. It must still enforce
 the authoritative checked Show and typed semantic interaction.
 
-`wire` encodes version-1 little-endian requests and responses in at most 4 KiB.
+`wire` encodes version-2 little-endian requests and responses in at most 4 KiB.
 Its 32-byte envelope contains `CCMP`, version, operation, exact encoded length,
 zero reserved bits, a nonzero service instance and a nonzero request sequence.
 Every field is an explicit integer; in-memory Rust structures and pointers never
@@ -68,3 +68,15 @@ placement operation and preserves the raster. Visual focus is allowed on a
 visible raster before its first scanout; pointer and keyboard routing remain
 acknowledgement-gated. Semantic focus/Show admission remains the Root owner's
 responsibility.
+
+A successful `BeginFrame` response is `FrameStarted(FramePlan)`: the exact ordered,
+clipped damage rectangles (1 through 16, zero unused entries), renderer sequence,
+and conservative fallback flag. This descriptor admits low-level bounded raster
+work, not semantic scheduling. Root must validate every returned span against the
+full descriptor and complete all declared work before acknowledging scanout.
+`cursor_visible` and `focus_visible` are logical affordance-presence snapshots,
+matching the existing native FrameReceipt. They are not observed ink, vblank, or
+human visibility. The final span's `selected_mask` records underlying surface
+selection before cursor/focus overlays, independently of unobscured coverage;
+a completely covered selected surface can have zero coverage. Intermediate spans
+carry zero selection mask and zero coverage. All metadata remains untrusted.
