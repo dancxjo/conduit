@@ -2,15 +2,28 @@
 
 mod contracts;
 mod damage;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod frame_composition;
 mod input_routing;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod interaction_affordance;
 mod paint;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(super) use input_routing::ProtectedRouteScope;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub use protected::NativeCompositor;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod raster_reuse;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod scanline;
 mod scanout_acknowledgement;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod surface_buffer;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod surface_lifecycle;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod surface_update;
 pub use scanout_acknowledgement::ScanoutAcknowledgement;
 
@@ -23,7 +36,9 @@ use conduit_face::{
     Face, GraphicsScene, LayoutRect, Manifestation, ManifestationError, ManifestationId,
     ManifestationLifecycle,
 };
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use damage::DamageState;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use surface_buffer::{SurfaceBuffer, SurfaceBufferPool, surface_pixels};
 
 pub use contracts::{
@@ -34,6 +49,7 @@ pub use contracts::{
 pub use damage::{DamageRect, MAX_DAMAGE_RECTS};
 pub use input_routing::{InputRoute, RoutedKeyboard, RoutedPointer};
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 #[derive(Clone)]
 struct SurfaceBinding {
     manifestation_id: ManifestationId,
@@ -42,6 +58,7 @@ struct SurfaceBinding {
     front_subject: String,
     last_revision: u64,
 }
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 pub(super) struct CompositorSurface {
     surface_id: String,
     bounds: LayoutRect,
@@ -55,6 +72,7 @@ pub(super) struct CompositorSurface {
     input_ready: bool,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl CompositorSurface {
     pub(super) const fn is_raster_ready(&self) -> bool {
         self.binding.is_some() && self.receipt.is_some()
@@ -68,6 +86,7 @@ impl CompositorSurface {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 pub struct NativeCompositor {
     admission: CompositorAdmission,
     surfaces: Vec<CompositorSurface>,
@@ -81,6 +100,7 @@ pub struct NativeCompositor {
     damage: DamageState,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl NativeCompositor {
     pub fn admitted(admission: CompositorAdmission) -> Self {
         Self {
@@ -175,6 +195,7 @@ impl NativeCompositor {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 fn map_manifestation_error(error: ManifestationError) -> NativeCompositorError {
     match error {
         ManifestationError::StaleIdentity => NativeCompositorError::StaleIdentity,

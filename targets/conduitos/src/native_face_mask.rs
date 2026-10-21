@@ -427,6 +427,10 @@ impl NativeFaceMask {
         &mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.compositor
+            .validate_active_session()
+            .map_err(NativeFaceMaskError::Compositor)?;
         if !self.interaction_admitted {
             return Err(NativeFaceMaskError::InputUnavailable);
         }
