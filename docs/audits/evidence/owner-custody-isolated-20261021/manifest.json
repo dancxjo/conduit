@@ -1,0 +1,14 @@
+{
+  "tested_source": "fedb4884127d88ff8ce6493c75af11062253bd8d",
+  "base": "e54605b7696ab993e7875a04b0d821304d4d4afb",
+  "original_fix": "f2c9c4f023e558569daa35b2b33d7e13e59e92f4",
+  "source_note": "Both changed source files match original fix blobs exactly; committed unchanged after tests.",
+  "command": "cargo +stable test --locked -p conduit --bin conduit execution_custody_tests -- --nocapture",
+  "passed": 8,
+  "failed": 0,
+  "ignored": 0,
+  "exit_code": 0,
+  "raw_log_sha256": "042e1bf965b6efd030470818f0257144a8817ef0aada1683740c95615b5df6aa",
+  "invocation_note": "Initial --lib selection ran zero tests and is not counted. Actual owner binary tests above establish the8 passes.",
+  "boundary": "No fresh browser capture, Candidate, Integration, merge or full6209 completion at this isolated source."
+}
