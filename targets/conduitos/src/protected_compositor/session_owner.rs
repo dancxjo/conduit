@@ -146,6 +146,9 @@ impl<T: Transport> SessionOwner<T> {
         self.active = None;
         self.handles.fill(None);
     }
+    pub fn is_terminated(&self) -> bool {
+        self.terminated
+    }
     pub fn is_active(&self, session: SessionId) -> bool {
         !self.terminated && session.instance == self.instance && self.active == Some(session)
     }

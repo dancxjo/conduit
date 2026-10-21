@@ -87,7 +87,41 @@ impl PixelTarget for Target {
         Ok(())
     }
 }
+fn already_terminal_cleanup() {
+    for callback in [false, true] {
+        let old = owner();
+        let mut proxy = presenter(old.clone());
+        let allocated = crate::allocation::BOOT_ARENA.live_bytes();
+        if callback {
+            let result = old.borrow_mut().with_raster(1, 1, |sessions, lease| {
+                lease.write_pixel(0, 0, 0x00ab_cdef)?;
+                sessions.quarantine();
+                Err::<(), DisplayError>(DisplayError::Lost)
+            });
+            if result != Ok(Err(DisplayError::Lost)) {
+                refuse("compositor-recovery-callback-result");
+            }
+        } else {
+            old.borrow_mut().sessions.quarantine();
+            let mut target = Target {
+                fail: false,
+                writes: 0,
+            };
+            if proxy.compose_frame(&mut target).is_ok() || target.writes != 0 {
+                refuse("compositor-recovery-terminal-compose");
+            }
+        }
+        if allocated.saturating_sub(crate::allocation::BOOT_ARENA.live_bytes())
+            < crate::protected_compositor::display_owner::STAGING_BYTES
+            || old.borrow_mut().with_raster(1, 1, |_, _| ()).is_ok()
+            || proxy.validate_active_session().is_ok()
+        {
+            refuse("compositor-recovery-terminal-storage");
+        }
+    }
+}
 pub(super) fn run() {
+    already_terminal_cleanup();
     let old = owner();
     let mut proxy = presenter(old.clone());
     let session = old
@@ -172,5 +206,5 @@ pub(super) fn run() {
     }
     drop(replacement);
     drop(fresh);
-    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
+    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@2\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"already_terminal_staging_released\":true,\"callback_terminal_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
 }

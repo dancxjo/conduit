@@ -122,8 +122,17 @@ impl DisplayOwner {
         height: u16,
         render_and_upload: impl FnOnce(&mut SessionOwner<CompositorService>, &mut RasterLease<'_>) -> R,
     ) -> Result<R, DisplayError> {
-        let mut staging = RasterStaging::admit(self.staging.as_mut_slice())?;
-        let mut lease = staging.lease(width, height)?;
-        Ok(render_and_upload(&mut self.sessions, &mut lease))
+        let result = {
+            let mut staging = RasterStaging::admit(self.staging.as_mut_slice())?;
+            let mut lease = staging.lease(width, height)?;
+            render_and_upload(&mut self.sessions, &mut lease)
+        };
+        // A transport failure may have already cleared the active namespace.
+        // End the lease before releasing its arena; cleanup cannot be deferred
+        // until the next compositor entry or until stale Rc clients disappear.
+        if self.sessions.is_terminated() {
+            self.quarantine();
+        }
+        Ok(result)
     }
 }

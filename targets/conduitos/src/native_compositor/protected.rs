@@ -158,13 +158,21 @@ impl NativeCompositor {
     }
     fn request(&self, request: Request) -> Result<Response, NativeCompositorError> {
         let session = self.scope()?;
-        self.owner()?
+        let mut owner = self
+            .owner()?
             .try_borrow_mut()
-            .map_err(|_| NativeCompositorError::ServiceBusy)?
+            .map_err(|_| NativeCompositorError::ServiceBusy)?;
+        let result = owner
             .sessions
             .request(session, request)
             .map_err(owner_error)
-            .and_then(response)
+            .and_then(response);
+        // The transport can terminally fence the session before returning its
+        // error. Release Root staging now, including read-only routing calls.
+        if owner.sessions.is_terminated() {
+            owner.quarantine();
+        }
+        result
     }
     fn unit(&self, request: Request) -> Result<(), NativeCompositorError> {
         match self.request(request)? {
@@ -180,7 +188,7 @@ impl NativeCompositor {
         self.failed = true;
         if let (Some(owner), Some(session)) = (&self.owner, self.session) {
             if let Ok(mut owner) = owner.try_borrow_mut() {
-                if owner.sessions.is_active(session) {
+                if owner.sessions.is_active(session) || owner.sessions.is_terminated() {
                     owner.quarantine();
                 }
             }

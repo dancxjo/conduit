@@ -161,6 +161,7 @@ fn admit(owner: &mut SessionOwner<Fake>, session: SessionId) -> Handle {
 fn one_service_slot_is_reused_with_fresh_namespace_and_stale_fences() {
     let mut owner = owner();
     assert_eq!(owner.active_session(), None);
+    assert!(!owner.is_terminated());
     assert_eq!(owner.service_instance(), 7);
     let a = owner.activate().unwrap();
     assert_eq!(a.retired, None);
@@ -201,6 +202,7 @@ fn one_service_slot_is_reused_with_fresh_namespace_and_stale_fences() {
     assert_ne!(c.session, b.session);
     assert!(!owner.is_active(a.session));
     assert!(!owner.is_active(b.session));
+    assert!(!owner.is_terminated()); // Retired namespaces must not kill the active owner.
 }
 #[test]
 fn foreign_instance_and_inactive_upload_or_frame_refuse_before_effects() {
@@ -244,6 +246,7 @@ fn retirement_failure_quarantines_and_never_retries_or_reinstalls() {
     assert_eq!(owner.transport.commands.len(), 7);
     assert_eq!(owner.transport.quarantines, 1);
     assert_eq!(owner.active_session(), None);
+    assert!(owner.is_terminated());
     assert!(owner.handles.iter().all(Option::is_none));
     assert_eq!(owner.activate(), Err(OwnerError::Terminated));
     assert_eq!(
