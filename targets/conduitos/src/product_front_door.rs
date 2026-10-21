@@ -6,7 +6,9 @@ mod face_workspace;
 mod guest_join;
 mod home_input;
 mod input_actions;
+mod platform;
 mod pointer_input;
+pub use platform::run;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};
@@ -24,11 +26,14 @@ use alloc::format;
 use conduit_face::ApplicationEvent;
 use conduit_human::{KeyModifiers, KeyTransition};
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+use crate::display::PixelTarget as _;
+
 use crate::{
-    arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
+    arch,
     front_door::{FrontDoor, FrontDoorPresenter},
     identity::{self, BootIdentities},
-    keyboard_input::{self, ProductInputControl, ProductInputEvent},
+    keyboard_input::{ProductInputControl, ProductInputEvent},
     keyboard_text_plan,
     local_rescue::LocalRescueMatcher,
     make::MakeRecord,
@@ -49,20 +54,13 @@ const F10: u8 = 67;
 const F11: u8 = 68;
 
 #[allow(clippy::too_many_arguments)]
-pub fn run(
+fn run_controller(
     identities: &BootIdentities,
     offer: &ImageBoundHostOffer<'_>,
     make: &MakeRecord,
     framebuffer_basis: &conduit_observatory::FramebufferBasis,
-    display: &mut impl crate::display::PixelTarget,
-    mut hid_session: Option<&mut HidKeyboardSession>,
-    controller: &mut XhciReady,
-    controller_id: [u8; 32],
-    usb: &UsbDevice,
-    pointer_session: Option<&mut HidPointerSession>,
-    pointer_usb: Option<&UsbDevice>,
-    usb_line_device: Option<&UsbDevice>,
-    mut ps2_input: Option<&mut crate::arch::Ps2Input>,
+    display: &mut platform::DisplaySink<'_, impl crate::display::PixelTarget>,
+    platform: &mut platform::RootPlatform<'_>,
     rescue_matcher: &mut LocalRescueMatcher,
     effect_bases: NativeProductBases,
     surface_provider: crate::product_bases::NativeSurfaceProvider,
@@ -85,12 +83,12 @@ pub fn run(
     effect_bases
         .require_resource(EffectFamily::Framebuffer, FRAMEBUFFER_RESOURCE_CLASS)
         .map_err(|_| "product-framebuffer-resource-unavailable")?;
-    if hid_session.is_some() || ps2_input.is_some() {
+    if platform.keyboard_available() {
         effect_bases
             .require(EffectFamily::Keyboard)
             .map_err(|_| "product-keyboard-base-unavailable")?;
     }
-    if pointer_session.is_some() || ps2_input.is_some() {
+    if platform.pointer_available() {
         effect_bases
             .require(EffectFamily::Pointer)
             .map_err(|_| "product-pointer-base-unavailable")?;
@@ -242,7 +240,7 @@ pub fn run(
         face_arrival.show_owner_result(false, false, reason, display)?;
     }
     let mut pointer_state = pointer_input::PointerState::new();
-    let pointer_admitted = pointer_session.is_some() || ps2_input.is_some();
+    let pointer_admitted = platform.pointer_available();
     if pointer_admitted {
         let (x, y) = pointer_state.position(display)?;
         face_arrival.pointer_motion(x, y, display)?;
@@ -257,7 +255,6 @@ pub fn run(
     } else {
         arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
     }
-    let mut pointer_device = pointer_session.zip(pointer_usb);
     let mut consumed_birth_key = None;
     let mut clock = arch::Clock::new();
     let mut serial = arch::Serial::new();
@@ -922,20 +919,7 @@ pub fn run(
             }
             Ok(ProductInputControl::Continue)
         };
-        if let Some(ps2) = ps2_input.as_deref_mut() {
-            keyboard_input::run_ps2_product(ps2, &mut interact)?;
-        } else {
-            let session = hid_session
-                .as_deref_mut()
-                .ok_or("front-door-keyboard-realization-missing")?;
-            keyboard_input::run_product_with_pointer(
-                session,
-                controller,
-                usb,
-                &mut pointer_device,
-                &mut interact,
-            )?;
-        }
+        platform.run_input(&mut interact)?;
         if !line_requested {
             return Err("product-input-ended-without-control-request");
         }
@@ -943,69 +927,60 @@ pub fn run(
             .projection()
             .body_id
             .ok_or("product-usb-line-body-absent")?;
-        let line_device = usb_line_device.ok_or("product-usb-line-realization-absent")?;
-        let ready = crate::arch::prepare_ftdi_line(
-            controller,
-            line_device,
-            crate::boot::executable_physical_address,
-        )
-        .map_err(|error| error.as_str())?;
-        let mut line =
-            crate::product_usb_line::prepare(identities, controller_id, line_device, ready)?;
         let peer_host_id = conduit_core::HostId::from(crate::product_usb_line::HARNESS_HOST_ID);
         let peer_boot_id = conduit_core::BootId::from(crate::product_usb_line::HARNESS_BOOT_ID);
         let peer_proof =
             conduit_body::MembershipProofId::bind("conduitos/product/reviewed-qemu-line-peer")
                 .map_err(|_| "product-usb-line-membership-proof-invalid")?;
         let mut peer_part = None;
-        line.run(
-            controller,
-            line_device,
-            body_id.as_str(),
-            |status, line_id, value| {
-                match status {
-                    crate::front_door::ConnectivityStatus::PeerAttached => {
-                        peer_part = Some(
-                            journey
-                                .admit_line_peer(
-                                    peer_host_id.clone(),
-                                    peer_boot_id.clone(),
-                                    peer_proof.clone(),
-                                )
-                                .map_err(|error| error.as_str())?,
-                        );
-                    }
-                    crate::front_door::ConnectivityStatus::Lost => {
+        platform.run_line(identities, body_id.as_str(), |observation| {
+            let platform::ConnectivityObservation {
+                status,
+                line_id,
+                value,
+            } = observation;
+            match status {
+                crate::front_door::ConnectivityStatus::PeerAttached => {
+                    peer_part = Some(
                         journey
-                            .observe_line_peer_offline(
-                                peer_part
-                                    .as_ref()
-                                    .ok_or("product-usb-line-peer-not-admitted")?,
-                                &peer_boot_id,
+                            .admit_line_peer(
+                                peer_host_id.clone(),
+                                peer_boot_id.clone(),
+                                peer_proof.clone(),
                             )
-                            .map_err(|error| error.as_str())?;
-                    }
-                    _ => {}
+                            .map_err(|error| error.as_str())?,
+                    );
                 }
-                front_door
-                    .observe_connectivity(crate::front_door::ConnectivityProjection {
-                        line_id: line_id.into(),
-                        status,
-                        value: value.map(Into::into),
-                        body_id: body_id.clone(),
-                    })
-                    .map_err(|error| error.as_str())?;
-                let receipt = refresh(
-                    &mut front_door,
-                    &journey,
-                    &mut presenter,
-                    &mut face_workspace,
-                    display,
-                )?;
-                emit_journey_sign(&journey.projection(), make, &receipt);
-                Ok(())
-            },
-        )?;
+                crate::front_door::ConnectivityStatus::Lost => {
+                    journey
+                        .observe_line_peer_offline(
+                            peer_part
+                                .as_ref()
+                                .ok_or("product-usb-line-peer-not-admitted")?,
+                            &peer_boot_id,
+                        )
+                        .map_err(|error| error.as_str())?;
+                }
+                _ => {}
+            }
+            front_door
+                .observe_connectivity(crate::front_door::ConnectivityProjection {
+                    line_id: line_id.into(),
+                    status,
+                    value: value.map(Into::into),
+                    body_id: body_id.clone(),
+                })
+                .map_err(|error| error.as_str())?;
+            let receipt = refresh(
+                &mut front_door,
+                &journey,
+                &mut presenter,
+                &mut face_workspace,
+                display,
+            )?;
+            emit_journey_sign(&journey.projection(), make, &receipt);
+            Ok(())
+        })?;
         // The keyboard receive was published before the F12 release yielded
         // ownership to the Line. Its exact pending transfer remains the
         // hand-back boundary when the finite Line session ends.
