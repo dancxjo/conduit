@@ -241,6 +241,7 @@ fn run_controller(
     }
     let mut pointer_state = pointer_input::PointerState::new();
     let pointer_admitted = platform.pointer_available();
+    let line_available = platform.line_available();
     if pointer_admitted {
         let (x, y) = pointer_state.position(display)?;
         face_arrival.pointer_motion(x, y, display)?;
@@ -572,9 +573,7 @@ fn run_controller(
             if !keyboard_target {
                 return Ok(ControllerControl::Continue);
             }
-            if product_control(event.usage()) == Some(ProductControl::UsbLine)
-                && usb_line_device.is_some()
-            {
+            if product_control(event.usage()) == Some(ProductControl::UsbLine) && line_available {
                 if event.transition() == KeyTransition::Released {
                     effect_bases
                         .require(EffectFamily::Line)

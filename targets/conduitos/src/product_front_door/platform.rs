@@ -92,6 +92,10 @@ impl RootPlatform<'_> {
         self.keyboard.is_some() || self.ps2.is_some()
     }
 
+    pub fn line_available(&self) -> bool {
+        self.line_device.is_some()
+    }
+
     pub fn pointer_available(&self) -> bool {
         self.pointer_admitted
     }

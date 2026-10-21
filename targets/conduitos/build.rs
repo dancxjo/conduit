@@ -5,7 +5,7 @@ mod compositor_image;
 #[path = "build/creche_image.rs"]
 mod creche_image;
 #[path = "build/domain_image.rs"]
-mod domain_image;
+mod domain_image_build;
 #[allow(dead_code)]
 #[path = "src/domain_image.rs"]
 mod image_validation;
@@ -19,7 +19,7 @@ mod typography;
 
 fn main() {
     use std::{env, fs, path::PathBuf};
-    domain_image::generate();
+    domain_image_build::generate();
     compositor_image::generate();
     creche_image::generate();
     compositor_hostile_images::generate();

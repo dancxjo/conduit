@@ -194,6 +194,14 @@ impl BirthActions for CrecheDraft {
         event: ApplicationEventKind,
         value: &str,
     ) -> Result<BirthActionOutcome, BirthDraftRefusal> {
+        // Preserve canonical refusal order before the finite wire encoder. A
+        // locally oversized action is recoverable input, not a guest fault.
+        if revision != self.revision() {
+            return Err(BirthDraftRefusal::StaleFace);
+        }
+        if action.len() > 64 || value.len() > 128 {
+            return Err(BirthDraftRefusal::InvalidActionValue);
+        }
         let event = match event {
             ApplicationEventKind::Input => Event::Input,
             ApplicationEventKind::Change => Event::Change,

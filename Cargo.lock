@@ -2851,6 +2851,7 @@ dependencies = [
  "conduit-web",
  "conduit-wire",
  "conduitos-compositor-core",
+ "conduitos-creche-core",
  "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-tls",
@@ -2872,6 +2873,19 @@ dependencies = [
 [[package]]
 name = "conduitos-compositor-core"
 version = "0.1.0"
+
+[[package]]
+name = "conduitos-creche-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-birth-plot",
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+]
 
 [[package]]
 name = "console"
