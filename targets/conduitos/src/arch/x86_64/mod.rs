@@ -8,9 +8,9 @@ mod domain_memory;
 #[cfg(target_os = "none")]
 mod domain_transition;
 #[cfg(target_os = "none")]
-mod service_memory;
-#[cfg(target_os = "none")]
 mod service_domain;
+#[cfg(target_os = "none")]
+mod service_memory;
 #[cfg(target_os = "none")]
 pub use service_domain::ServiceDomain;
 mod entropy;
