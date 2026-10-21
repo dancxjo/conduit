@@ -49,13 +49,37 @@ export function routesForHandoff(report) {
   return { native, current };
 }
 
-export function validateSnapshot(report, command, bodyId, previous) {
+export function parseLosslessJSON(text) {
+  return JSON.parse(text, (_key, value, context) => {
+    if (typeof value === 'number') {
+      assert.ok(Number.isFinite(value), 'nonfinite JSON numeric carrier');
+      if (Number.isInteger(value) && !Number.isSafeInteger(value)) {
+        assert.equal(typeof context?.source, 'string', 'lossless JSON reviver required');
+        return context.source;
+      }
+    }
+    return value;
+  });
+}
+
+export function validateSnapshot(report, command, bodyId, previous, independent) {
   assert.equal(command.after_revision, previous.revision, 'snapshot baseline differs');
   assert.equal(report.schema, 'conduit.body/owner-mask-wardrobe@1');
   assert.equal(report.body_id, bodyId);
   assert.equal(report.face_id, command.expected_face_id);
-  if (typeof report.face_revision === 'number') assert.ok(Number.isSafeInteger(report.face_revision));
-  assert.equal(String(report.face_revision), command.expected_face_revision);
+  assert.equal(independent.schema, 'conduit.body/local-face-snapshot@1');
+  assert.equal(independent.face.basis.body_id, bodyId);
+  assert.equal(independent.face.identity, command.expected_face_id);
+  assert.equal(independent.face_revision_decimal, command.expected_face_revision);
+  assert.match(independent.face_revision_decimal, /^(0|[1-9]\d{0,19})$/);
+  assert.equal(String(independent.face.revision), independent.face_revision_decimal,
+    'independent lossless numeric carrier differs from decimal');
+  assert.equal(typeof report.face_revision, 'number', 'DOM report numeric carrier required');
+  assert.ok(Number.isFinite(report.face_revision) && Number.isInteger(report.face_revision));
+  const browserRevisionExact = Number.isSafeInteger(report.face_revision);
+  if (browserRevisionExact) assert.equal(String(report.face_revision), independent.face_revision_decimal);
+  // Unsafe DOM numbers are diagnostic only. The independently exported decimal
+  // and losslessly parsed CLI Face supply the exact revision binding.
   assert.equal(report.show_id, command.expected_show_id);
   assert.equal(report.selected?.route_id, `route/${command.expected_route_plan_id}`);
   assert.ok(report.owner_plan_id);
@@ -63,7 +87,10 @@ export function validateSnapshot(report, command, bodyId, previous) {
   // A completed explicit Inspect can truthfully reread unchanged state after
   // a provisional-input refusal. Native QMP proof establishes actual changes.
   return { owner_plan_id: report.owner_plan_id, revision: report.wardrobe_revision_decimal,
-    show_id: report.show_id };
+    show_id: report.show_id, revision_binding: {
+      source: 'installed-owner-cli-local-face-snapshot', face_id: independent.face.identity,
+      face_revision_decimal: independent.face_revision_decimal,
+      browser_numeric_revision_exact: browserRevisionExact } };
 }
 
 async function privateDirectory(dir) {
@@ -75,14 +102,14 @@ async function privateDirectory(dir) {
 async function boundedJSON(file, max = LIMIT.json) {
   const s = await lstat(file);
   assert.ok(s.isFile() && !s.isSymbolicLink() && s.size <= max);
-  return JSON.parse(await readFile(file, 'utf8'));
+  return parseLosslessJSON(await readFile(file, 'utf8'));
 }
 function runJSON(executable, args) {
   const result = spawnSync(executable, args, {
     encoding: 'utf8', timeout: 10000, maxBuffer: LIMIT.json,
   });
   assert.equal(result.status, 0, 'installed owner observation failed');
-  return JSON.parse(result.stdout);
+  return parseLosslessJSON(result.stdout);
 }
 
 export async function coordinate(page, before, awaitRevision) {
@@ -135,16 +162,34 @@ async function selfTest() {
   const snapshot = { ...report, owner_plan_id: 'new-outer-plan', wardrobe_revision_decimal: '0',
     body_id: 'body', face_id: 'face', face_revision: 7, show_id: 'show', selected: { route_id: 'route/child' } };
   const previous = { owner_plan_id: 'old-outer-plan', revision: '9', show_id: 'old-show' };
-  assert.equal(validateSnapshot(snapshot, command, 'body', previous).revision, '0');
+  const independent = { schema: 'conduit.body/local-face-snapshot@1', face_revision_decimal: '7',
+    face: { identity: 'face', revision: 7, basis: { body_id: 'body' } } };
+  assert.equal(validateSnapshot(snapshot, command, 'body', previous, independent).revision, '0');
   for (const change of [{ body_id: 'other' }, { face_id: 'other' }, { face_revision: 8 },
     { show_id: 'old-show' }, { selected: { route_id: 'route/other' } }]) {
-    assert.throws(() => validateSnapshot({ ...snapshot, ...change }, command, 'body', previous));
+    assert.throws(() => validateSnapshot({ ...snapshot, ...change }, command, 'body', previous, independent));
   }
   assert.equal(validateSnapshot({ ...snapshot, owner_plan_id: 'old-outer-plan',
-    wardrobe_revision_decimal: '9' }, command, 'body', { ...previous, show_id: 'show' }).revision, '9',
+    wardrobe_revision_decimal: '9' }, command, 'body', { ...previous, show_id: 'show' }, independent).revision, '9',
     'fresh explicit inspection of unchanged state is valid');
-  assert.throws(() => validateSnapshot({ ...snapshot, show_id: 'old-show' }, command, 'body', previous),
+  assert.throws(() => validateSnapshot({ ...snapshot, show_id: 'old-show' }, command, 'body', previous, independent),
     'old cached Show cannot satisfy a requested new acknowledged Show');
+  const decimal = '6577474094915678572';
+  assert.equal(parseLosslessJSON(`{\"x\":${decimal}}`).x, decimal);
+  assert.equal(parseLosslessJSON('{\"maximum_u64\":18446744073709551615}').maximum_u64, '18446744073709551615');
+  assert.equal(parseLosslessJSON('{\"safe\":7}').safe, 7);
+  const large = parseLosslessJSON(JSON.stringify(independent).replace('\"revision\":7', `\"revision\":${decimal}`));
+  large.face_revision_decimal = decimal;
+  const bigCommand = { ...command, expected_face_revision: decimal };
+  const rounded = { ...snapshot, face_revision: Number(decimal) };
+  const big = validateSnapshot(rounded, bigCommand, 'body', previous, large);
+  assert.equal(big.revision_binding.face_revision_decimal, decimal);
+  assert.equal(big.revision_binding.browser_numeric_revision_exact, false);
+  for (const wrong of [{ ...large, face_revision_decimal: '6577474094915678573' },
+    { ...large, face: { ...large.face, identity: 'wrong-face' } },
+    { ...large, face: { ...large.face, revision: '6577474094915678573' } }]) {
+    assert.throws(() => validateSnapshot(rounded, bigCommand, 'body', previous, wrong));
+  }
   process.stdout.write('synthetic command/sequence/bounds checks passed; no browser or owner launched\n');
 }
 
@@ -160,8 +205,7 @@ async function main(args) {
   assert.equal(dirty.status, 0); assert.equal(dirty.stdout, '', 'Source must be clean');
   const installed = await boundedJSON(path.join(state, 'installation.json'));
   assert.equal(installed.product_executable, owner);
-  assert.match(installed.release_source_identity,
-    new RegExp(`^git:${SOURCE}\\+sha256:[a-f0-9]{64}$`), 'installed sealed Source differs');
+  assert.equal(installed.release_source_identity, SOURCE, 'installed sealed Source differs');
   const expected = (await boundedJSON(path.join(repo, 'proof/browser/package.json')))
     .devDependencies['@playwright/test'];
   assert.equal((await boundedJSON(path.join(path.dirname(playwright), 'package.json'))).version, expected);
@@ -320,10 +364,13 @@ async function main(args) {
         assert.ok(handedOff, 'snapshot requires completed handoff');
         assert.equal(c.after_revision, previous.revision, 'snapshot must name last observed revision');
         const report = await inspectOnce(); // one deliberate observation, not a wait action
-        previous = validateSnapshot(report, c, bodyId, previous);
+        // Exactly one independent read per requested snapshot, never in a poll.
+        const independent = ownerRead('face');
+        previous = validateSnapshot(report, c, bodyId, previous, independent);
         const workload = checkWorkload();
         respond({ id: c.id, event: 'snapshot', wardrobe_revision: previous.revision, owner_plan_id: previous.owner_plan_id,
-          artifact: await save(c.id, { source: SOURCE, body_id: bodyId, workload, report }) });
+          artifact: await save(c.id, { source: SOURCE, body_id: bodyId, workload, report,
+            revision_binding: previous.revision_binding }) });
       }
     }
   } finally {

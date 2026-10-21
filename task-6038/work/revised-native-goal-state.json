@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "LinuxReleasePassedPrivateOwnerInstalledAndTodoStarted;HandbookRetryWithInstalledBinaryen;FullTestsRunning",
+  "current_stage": "PrivateOwnerFirstAttemptTerminalAtWaitingDeadline;HandbookAndWorkspaceRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -282,6 +282,8 @@
     "owner_artifacts": "Linuxreleasepassed0;firstHandbookfailedmissingwasm-opt;Binaryen133installed;supportedHandbookretry43004running",
     "owner_service_session": 52651,
     "owner_setup": "freshprivateinstalled253TodoBody initialized using body start;noinvitation/browser/guest",
-    "large_revision": "ownerrevision>2^53;privatebrowserhelper exactindependentownerdecimalbinding underreview"
+    "large_revision": "ownerrevision>2^53;privatebrowserhelper exactindependentownerdecimalbinding underreview",
+    "owner_service": "52651terminal1;waitingPlay60000mswithoutnextcheckpoint;negativepreserved;noinvitation/browser/guest",
+    "browser_helper": "exactlargeRevisionindependentownerreadcorrectedandselftestpassed"
   }
 }

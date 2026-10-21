@@ -1,0 +1,46 @@
+{
+  "parent": "6f40fcba58981dc94a68c3fc3d8e125758feca8f",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 14213,
+      "sha256": "7c90778b8a8c3e4d1710a518af8367b78dbf96a14fea135191eef2e23123caaf",
+      "mode": "100644",
+      "blob": "f0076891af924bb5d5be9cf0880e52534aa73fae"
+    },
+    {
+      "source": "work/5628-owner-browser-session.mjs",
+      "tree_path": "task-6038/work/5628-owner-browser-session.mjs",
+      "bytes": 23679,
+      "sha256": "4ef142dc565b36f51f4788d393cc46b74221535c0d9a2dee07a1e9b7d031d548",
+      "mode": "100644",
+      "blob": "4cb61ae45d055788ca2563c2481d4362bcd3631c"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-attempt-terminal.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-attempt-terminal.json",
+      "bytes": 590,
+      "sha256": "962cd186ac60bbdcf7c61091908557755e243250f21ea82414cfa9b88401848d",
+      "mode": "100644",
+      "blob": "57be11ac10742a77cb499450664debc0abde13e4"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-attempt-service.log",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-attempt-service.log",
+      "bytes": 244,
+      "sha256": "cd1de44270116af944f2e02eb99ca1b38ea0246f2e0f15009283ea1171d6e3de",
+      "mode": "100644",
+      "blob": "991612a4679072bc9d239aeda8322ea00440a7c3"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/browser-helper-selftest-current.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/browser-helper-selftest-current.json",
+      "bytes": 258,
+      "sha256": "6861629456fb3b6c24f62426edc9691f2967727f7ba288636de3621886a23721",
+      "mode": "100644",
+      "blob": "55f454b92ae85b8d7fe609d230cb227b028bfb84"
+    }
+  ]
+}

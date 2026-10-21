@@ -1,0 +1,12 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "owner_session": 52651,
+  "exit_code": 1,
+  "initial_waiting_play_maximum_millis": 60000,
+  "terminal_error": "Todo waiting Play did not commit one checkpoint",
+  "service_log_sha256": "cd1de44270116af944f2e02eb99ca1b38ea0246f2e0f15009283ea1171d6e3de",
+  "invitation_created": false,
+  "browser_started": false,
+  "guest_started": false,
+  "next": "Complete Handbook first; then re-enter through supported installed-owner recovery and admit the whole bounded proof before the waiting Play deadline. No automatic action replay."
+}

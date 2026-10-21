@@ -1,0 +1,7 @@
+{
+  "script_sha256": "4ef142dc565b36f51f4788d393cc46b74221535c0d9a2dee07a1e9b7d031d548",
+  "syntax": "passed",
+  "synthetic_checks": "passed including unsafeu64 exact independent owner decimal binding",
+  "actual_browser_runs": 0,
+  "actual_guest_runs": 0
+}
