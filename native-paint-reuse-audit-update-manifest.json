@@ -1,0 +1,14 @@
+{
+  "parent": "cc2407f2e067ea7d1ca47070f943b1fd435e1e05",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "work/6174-native-paint-reuse-audit.md",
+      "tree_path": "task-6038/work/6174-native-paint-reuse-audit.md",
+      "bytes": 2507,
+      "sha256": "4030fbd840fbd731cbc05f7c54a4c053956f57a76de22026863bb3ae5e17a250",
+      "mode": "100644",
+      "blob": "e9a07904ca393a4485c3a20720781b54feaaee27"
+    }
+  ]
+}
