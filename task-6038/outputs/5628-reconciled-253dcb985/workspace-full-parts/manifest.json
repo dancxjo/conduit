@@ -1,0 +1,30 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "raw_sha256": "20607b47fe160fbbddd0092f0b8d3872978c23f9fdb890076cb1e867d899b78f",
+  "raw_bytes": 1602796,
+  "gate_count": 52,
+  "warning_header_occurrences": 86,
+  "interpretation": "Header occurrences include repeated summaries, not unique warnings; strict workspace Clippy passed. Full-workspace and prelude counts remain separate in receipt.",
+  "parts": [
+    {
+      "file": "part-1.log",
+      "bytes": 524232,
+      "sha256": "5a1f8a2c848eae38c70cdc2a28e817c7343766302b07487a7a03c804b81d29bb"
+    },
+    {
+      "file": "part-2.log",
+      "bytes": 524259,
+      "sha256": "04ae8142c2559900b59425b5a465b34dd9dabdf7d385a2eb678b377fd8578758"
+    },
+    {
+      "file": "part-3.log",
+      "bytes": 524183,
+      "sha256": "4486eeb0d365c3c489c5039aa1c4e8df96a9a07cf64b2f0a5a2a930ea77e6848"
+    },
+    {
+      "file": "part-4.log",
+      "bytes": 30122,
+      "sha256": "cad6d7cc26e3bbc6eed9d8a94051e75fcbb86959eaa78c88ff52060cb2ee954c"
+    }
+  ]
+}

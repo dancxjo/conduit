@@ -28,7 +28,7 @@
       "full fallback/resource/accessibility matrix still incomplete"
     ]
   },
-  "workspace_253": "Required core passed: full workspace10092/0/48ignored, correspondence, format and strict workspace Clippy. Remaining feature/cross-target gates live; no full52 claim.",
+  "workspace_253": "Complete supported52gate commandPASS0,6167.66s; required core10092passed/0failed/48ignored; native1240/0/3;86warning-header occurrences preserved; exact253 only",
   "current_source": {
     "commit": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
     "tree": "9e1f38adb6f9425e0b772c9488bb5b55ab7a8060",
@@ -44,7 +44,8 @@
       "image_sha256": "0ead10806a141a7d3f504679fd75b818bc440ad1cc623d865b4875954e2d5aac",
       "archive": "bf0cc716508b49e2b09b11f0d89779291cee78cd",
       "owner_typography_proof": false
-    }
+    },
+    "full_workspace": "Started at clean exactdb1 with exclusive selected-typography-host-target after253 sealed; worker session16185; no current full-gate claim"
   },
   "next": [
     "Finish and separately prove reopened #6158 five-choice page-flow repair; keep #6162 regression intact",

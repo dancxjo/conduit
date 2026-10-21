@@ -1,0 +1,78 @@
+{
+  "parent": "af746e21a6f5b707744010c905a9d92ea31551b0",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3566,
+      "sha256": "00a4c1ca37461932c3755e11ad5501646cc894564df2c6aa2d8ef5f1db7d45a3",
+      "mode": "100644",
+      "blob": "8eceb3113fdca2adac360ab9b93433a11424d0ee"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/receipt.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/receipt.json",
+      "bytes": 150172,
+      "sha256": "8ca55f5628640fd7e2273fbdc4aa25d5560fb8ba5a0a2c206008e9e69734cf03",
+      "mode": "100644",
+      "blob": "1a527e08a374d8af06bb43d98216b0969849739b"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-status.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-status.json",
+      "bytes": 766,
+      "sha256": "342e0e06e13c3b960ec85fce1f2c8134fa2dba085a34ed49c6b3a465e30ef969",
+      "mode": "100644",
+      "blob": "819620cda106f7508d4e4b3d898ddb37744281d6"
+    },
+    {
+      "source": "outputs/5628-current-owner-workspace/workspace-status.json",
+      "tree_path": "task-6038/outputs/5628-current-owner-workspace/workspace-status.json",
+      "bytes": 712,
+      "sha256": "9cac9b8ef0fbdb133ec5918e6489aedd29f636bf74b3ee5012f6f32592c6704a",
+      "mode": "100644",
+      "blob": "9fe85332c434b9bfc990d32610576b7350ffad3d"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-full-parts/manifest.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-full-parts/manifest.json",
+      "bytes": 1012,
+      "sha256": "3f0e7406b24166d129a1b609be3fd25dc50e00b62bb7752892a103691d55e6c4",
+      "mode": "100644",
+      "blob": "fc17516ff563488d5cec095b0fd95abec2f0754c"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-full-parts/part-1.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-full-parts/part-1.log",
+      "bytes": 524232,
+      "sha256": "5a1f8a2c848eae38c70cdc2a28e817c7343766302b07487a7a03c804b81d29bb",
+      "mode": "100644",
+      "blob": "c6613cc66988bfa586c25e8b9aa1846010c08e26"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-full-parts/part-2.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-full-parts/part-2.log",
+      "bytes": 524259,
+      "sha256": "04ae8142c2559900b59425b5a465b34dd9dabdf7d385a2eb678b377fd8578758",
+      "mode": "100644",
+      "blob": "305587e5fd4cfc1422112707e97001903d138351"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-full-parts/part-3.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-full-parts/part-3.log",
+      "bytes": 524183,
+      "sha256": "4486eeb0d365c3c489c5039aa1c4e8df96a9a07cf64b2f0a5a2a930ea77e6848",
+      "mode": "100644",
+      "blob": "9e42a028b5de2ae86ee7e0203fb197f64d34684a"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/workspace-full-parts/part-4.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/workspace-full-parts/part-4.log",
+      "bytes": 30122,
+      "sha256": "cad6d7cc26e3bbc6eed9d8a94051e75fcbb86959eaa78c88ff52060cb2ee954c",
+      "mode": "100644",
+      "blob": "db627a142af9df54ad2771af507ebc82e29e3c6f"
+    }
+  ]
+}

@@ -1,0 +1,645 @@
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/signal)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/plots/todo/model)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/protocols/bluetooth)
+   Compiling darling v0.20.11
+   Compiling usbd-hid-macros v0.10.2
+    Checking embassy-embedded-hal v0.6.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking smart-leds v0.4.0
+    Checking usb-device v0.3.2
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/network-realization)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/protocols/midi)
+    Checking embedded-hal-nb v1.0.0
+    Checking hash32 v0.2.1
+   Compiling embassy-usb v0.6.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking encode_unicode v0.3.6
+    Checking sha2-const-stable v0.1.0
+    Checking rand_core v0.10.1
+   Compiling embassy-executor v0.10.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking rand_core v0.9.5
+   Compiling rp-pac v7.0.0
+    Checking ssmarshal v1.0.0
+    Checking usbd-hid v0.10.2
+   Compiling embassy-executor-macros v0.8.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking ed25519-dalek v2.2.0
+    Checking cyw43 v0.7.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking sha1 v0.10.7
+    Checking base64 v0.13.1
+    Checking cordyceps v0.3.5
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/education)
+    Checking bitflags v2.13.2
+    Checking embedded-websocket v0.9.5
+    Checking cyw43-pio v0.10.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking static_cell v2.1.1
+    Checking conduit-create-oi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/devices/create-oi)
+    Checking conduit-ssd1306 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/devices/ssd1306)
+    Checking conduit-mpu6050 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/devices/mpu6050)
+    Checking panic-halt v1.0.0
+    Checking embassy-futures v0.1.2
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/face)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/proof/conformance/alife-distributed)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/proof/conformance/signal)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/proof/conformance/network-r1)
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: variable does not need to be mutable
+   --> src/main.rs:297:9
+    |
+297 |     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
+    |         ----^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cdc`
+   --> src/main.rs:297:9
+    |
+297 |     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cdc`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 8 warnings (run `cargo fix --bin "conduit-pico-w-signal" -p conduit-pico-w-signal` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 3m 01s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-usb-midi-fixture thumbv6m-none-eabi/contract-compile] Pico W bounded breadboard USB-MIDI fixture Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --bin conduit-pico-w-midi-fixture --no-default-features --features usb-midi-fixture --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+    Finished `dev` profile [unoptimized] target(s) in 1.13s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware thumbv6m-none-eabi/contract-compile] Pico W default local composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 1 warning
+    Finished `dev` profile [unoptimized] target(s) in 1.29s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-minimal thumbv6m-none-eabi/contract-compile] Pico W minimal local composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features pico-local-minimal --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.05s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-usb-remote thumbv6m-none-eabi/contract-compile] Pico W USB remote sink composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features usb-remote --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.22s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-triple-remote thumbv6m-none-eabi/contract-compile] Pico W triple remote sink composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features triple-remote --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.44s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-wifi-bootstrap thumbv6m-none-eabi/contract-compile] Pico W USB-authorized Wi-Fi bootstrap composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features wifi-bootstrap --target thumbv6m-none-eabi
+   Compiling smoltcp v0.13.1
+    Checking embedded-nal v0.9.0
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/net)
+    Checking managed v0.8.0
+    Checking bitflags v1.3.2
+    Checking embedded-nal-async v0.9.0
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/proof/conformance/network-r1)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/network-realization)
+    Checking embassy-net v0.9.1 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+warning: field `embedded_spore` is never read
+  --> src/body_admission.rs:30:5
+   |
+26 | pub(crate) struct PicoBodyAdmission {
+   |                   ----------------- field in this struct
+...
+30 |     embedded_spore: Option<conduit_body::PicoSpawnProvision<'static>>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `serve_spawn_request` is never used
+   --> src/body_admission.rs:126:25
+    |
+ 33 | impl PicoBodyAdmission {
+    | ---------------------- method in this implementation
+...
+126 |     pub(crate) async fn serve_spawn_request(
+    |                         ^^^^^^^^^^^^^^^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+    Finished `dev` profile [unoptimized] target(s) in 3.71s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-r1-control thumbv6m-none-eabi/contract-compile] Pico W R1 three-peer control composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features r1-control --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: field `embedded_spore` is never read
+  --> src/body_admission.rs:30:5
+   |
+26 | pub(crate) struct PicoBodyAdmission {
+   |                   ----------------- field in this struct
+...
+30 |     embedded_spore: Option<conduit_body::PicoSpawnProvision<'static>>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `serve_spawn_request` is never used
+   --> src/body_admission.rs:126:25
+    |
+ 33 | impl PicoBodyAdmission {
+    | ---------------------- method in this implementation
+...
+126 |     pub(crate) async fn serve_spawn_request(
+    |                         ^^^^^^^^^^^^^^^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+    Finished `dev` profile [unoptimized] target(s) in 2.41s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-appliance-hello thumbv6m-none-eabi/contract-compile] Pico W finite AP/DHCP/DNS/HTTP Hello composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features appliance-hello --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `code` is never used
+   --> src/radio.rs:110:18
+    |
+109 | impl NetworkRadioInitError {
+    | -------------------------- method in this implementation
+110 |     pub const fn code(&self) -> &'static str {
+    |                  ^^^^
+
+warning: associated function `new` is never used
+  --> src/receipts.rs:99:12
+   |
+98 | impl RuntimeTranscriptIdentity {
+   | ------------------------------ associated function in this implementation
+99 |     pub fn new(plan_id: &str, host_id: &str) -> Self {
+   |            ^^^
+
+warning: struct `BootIdentity` is never constructed
+   --> src/receipts.rs:160:12
+    |
+160 | pub struct BootIdentity {
+    |            ^^^^^^^^^^^^
+
+warning: struct `FaceReceiptIdentity` is never constructed
+   --> src/receipts.rs:173:12
+    |
+173 | pub struct FaceReceiptIdentity {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+   --> src/receipts.rs:210:18
+    |
+208 | impl UsbCdc {
+    | ----------- methods in this implementation
+209 |     /// Write the boot-scoped identity record for this generated firmware image.
+210 |     pub async fn write_boot_identity(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+253 |     pub async fn write_receipt(
+    |                  ^^^^^^^^^^^^^
+...
+306 |     pub async fn write_terminal(
+    |                  ^^^^^^^^^^^^^^
+
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.85s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-appliance-hil-client thumbv6m-none-eabi/contract-compile] Pico W fixture-only AP/DHCP/DNS/HTTP client probe Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features appliance-hil-client --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `code` is never used
+   --> src/radio.rs:110:18
+    |
+109 | impl NetworkRadioInitError {
+    | -------------------------- method in this implementation
+110 |     pub const fn code(&self) -> &'static str {
+    |                  ^^^^
+
+warning: associated function `new` is never used
+  --> src/receipts.rs:99:12
+   |
+98 | impl RuntimeTranscriptIdentity {
+   | ------------------------------ associated function in this implementation
+99 |     pub fn new(plan_id: &str, host_id: &str) -> Self {
+   |            ^^^
+
+warning: struct `BootIdentity` is never constructed
+   --> src/receipts.rs:160:12
+    |
+160 | pub struct BootIdentity {
+    |            ^^^^^^^^^^^^
+
+warning: struct `FaceReceiptIdentity` is never constructed
+   --> src/receipts.rs:173:12
+    |
+173 | pub struct FaceReceiptIdentity {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+   --> src/receipts.rs:210:18
+    |
+208 | impl UsbCdc {
+    | ----------- methods in this implementation
+209 |     /// Write the boot-scoped identity record for this generated firmware image.
+210 |     pub async fn write_boot_identity(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+253 |     pub async fn write_receipt(
+    |                  ^^^^^^^^^^^^^
+...
+306 |     pub async fn write_terminal(
+    |                  ^^^^^^^^^^^^^^
+
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.84s
+    Blocking waiting for file lock on package cache
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-bluetooth-line thumbv6m-none-eabi/contract-compile] Pico W finite BLE GATT Line composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features bluetooth-line --target thumbv6m-none-eabi
+   Compiling generic-array v0.14.7
+    Checking subtle v2.6.1
+    Checking scopeguard v1.2.0
+    Checking const-oid v0.9.6
+    Checking lock_api v0.4.14
+    Checking ff v0.13.1
+    Checking der v0.7.10
+    Checking uuid v1.26.1
+    Checking base16ct v0.2.0
+    Checking futures-intrusive v0.5.0
+    Checking btuuid v0.1.1
+    Checking group v0.13.0
+    Checking bt-hci v0.9.0
+   Compiling embedded-io-async v0.6.1
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+    Checking digest v0.10.7
+    Checking crypto-bigint v0.5.5
+    Checking sec1 v0.7.3
+    Checking sha2 v0.10.9
+    Checking hmac v0.12.1
+    Checking hkdf v0.12.4
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/architecture/core)
+    Checking cipher v0.4.4
+    Checking curve25519-dalek v4.1.3
+    Checking elliptic-curve v0.13.8
+    Checking dbl v0.3.2
+   Compiling convert_case v0.8.0
+    Checking ppv-lite86 v0.2.21
+    Checking primeorder v0.13.6
+   Compiling trouble-host v0.7.0
+   Compiling embassy-sync v0.7.2
+    Checking embedded-io v0.6.1
+    Checking p256 v0.13.2
+   Compiling trouble-host-macros v0.5.0
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/targets/rp2040/firmware/pico-w-signal)
+    Checking rand_chacha v0.3.1
+    Checking ed25519-dalek v2.2.0
+    Checking cmac v0.7.2
+    Checking aes v0.8.4
+    Checking sha1 v0.10.7
+    Checking rand v0.8.8
+    Checking embedded-websocket v0.9.5
+    Checking cyw43 v0.7.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking cyw43-pio v0.10.0 (https://github.com/embassy-rs/embassy.git?rev=1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12#1d3c3dec)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/architecture/body)
+    Checking conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/architecture/wire)
+    Checking conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/semantics/signal)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/mechanisms/protocols/bluetooth)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+    Finished `dev` profile [unoptimized] target(s) in 11.23s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
