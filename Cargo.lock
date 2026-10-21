@@ -2895,6 +2895,7 @@ dependencies = [
  "conduit-face",
  "conduit-tour-model",
  "conduit-tutorial-plot",
+ "miniz_oxide 0.8.9",
  "patchbay-application",
  "patchbay-graph",
  "serde",

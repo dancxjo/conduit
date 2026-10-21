@@ -1,4 +1,4 @@
-use crate::{MAX_BLOB, SLOTS};
+use crate::SLOTS;
 use alloc::vec::Vec;
 use conduit_body::BodyBiographyEvidence;
 use conduit_core::PlanId;
@@ -165,19 +165,5 @@ pub enum Refusal {
     Capacity,
     Application,
 }
-pub fn decode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
-    if bytes.is_empty() || bytes.len() > MAX_BLOB {
-        return Err(Refusal::Bounds);
-    }
-    serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)
-}
-pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
-    let mut bytes = Vec::new();
-    bytes
-        .try_reserve_exact(MAX_BLOB)
-        .map_err(|_| Refusal::Capacity)?;
-    bytes.resize(MAX_BLOB, 0);
-    let length = serde_json_core::to_slice(value, &mut bytes).map_err(|_| Refusal::Capacity)?;
-    bytes.truncate(length);
-    Ok(bytes)
-}
+mod codec;
+pub use codec::{MAX_DECODED_JSON_BYTES, decode, encode};
