@@ -2,6 +2,8 @@
 //! The service holds `body-owner.lock` for its lifetime, so these operations
 //! are the only live writer of its biography and invitation authority.
 
+#[path = "body/face_snapshot.rs"]
+mod face_snapshot;
 #[path = "body/native_mask_route.rs"]
 mod native_mask_route;
 #[cfg(unix)]
@@ -17,8 +19,7 @@ use conduit_body::{
 use conduit_core::LinkBindingId;
 use conduit_face::{
     Face, FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
-    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal, MAX_OWNER_FACE_RESPONSE_BYTES,
-    OWNER_FACE_RESPONSE_SCHEMA,
+    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use conduit_std_host::StdHost;
@@ -408,55 +409,6 @@ impl DurableHostRuntime {
                 Err("installed Host does not own a live Body session".into())
             }
         }
-    }
-
-    pub(super) fn owned_body_face(
-        &self,
-        request: &OwnerFaceSnapshotRequest,
-    ) -> Result<OwnerFaceSnapshotResponse, String> {
-        let HostSource::Body { owner, .. } = &self.host else {
-            return Err("installed Host does not own a live Body session".into());
-        };
-        let face = owner.face_snapshot(request)?;
-        let response = if request.last_seen_revision == Some(face.revision)
-            && request.last_seen_identity.as_ref() == Some(&face.identity)
-        {
-            OwnerFaceSnapshotResponse::Unchanged {
-                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                revision: face.revision,
-                identity: face.identity,
-            }
-        } else {
-            OwnerFaceSnapshotResponse::Snapshot {
-                schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                face: Box::new(face),
-                interactions_admitted: false,
-                route: None,
-            }
-        };
-        let encoded = serde_json::to_vec(&response)
-            .map_err(|error| format!("encode owner Face snapshot: {error}"))?;
-        if encoded.len() > MAX_OWNER_FACE_RESPONSE_BYTES {
-            return Err("face-frame-pressure".into());
-        }
-        Ok(response)
-    }
-
-    pub(super) fn owned_body_local_face(
-        &self,
-    ) -> Result<(Face, conduit_core::HostAdvertisement), String> {
-        let HostSource::Body { owner, .. } = &self.host else {
-            return Err("installed Host does not own a live Body session".into());
-        };
-        let face = owner.local_face_snapshot()?;
-        if serde_json::to_vec(&face)
-            .map_err(|error| format!("encode local owner Face: {error}"))?
-            .len()
-            > MAX_OWNER_FACE_RESPONSE_BYTES
-        {
-            return Err("face-frame-pressure".into());
-        }
-        Ok((face, owner.host.advertisement().clone()))
     }
 
     pub(super) fn owned_body_native_component_mask(

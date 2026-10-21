@@ -83,6 +83,10 @@ impl Owner {
         let offer_digest = super::super::super::digest(
             &serde_json::to_vec(&request.host_advertisement).map_err(|error| error.to_string())?,
         );
+        let observed_offer = super::native_mask_route::InvitedMaskOffer::observed(
+            &request.host_advertisement,
+            offer_digest,
+        );
         let proof = request
             .admission_proof()
             .map_err(|error| error.to_string())?;
@@ -133,7 +137,7 @@ impl Owner {
         self.session = session;
         self.admissions = Some(manager);
         self.invited_mask_offers
-            .insert(request.host_advertisement.host_id, offer_digest);
+            .insert(request.host_advertisement.host_id, observed_offer);
         Ok(receipt)
     }
 }

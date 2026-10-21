@@ -137,6 +137,9 @@ impl NativeOwnerReturnRoute {
                     line,
                     &self.action_storage[..length],
                     &mut self.frame_storage,
+                    conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+                        &self.receipt.host_advertisement,
+                    ),
                 )
             },
         )
@@ -164,9 +167,10 @@ fn exchange_refresh(
     line: &mut dyn BinaryWebSocketIo,
     encoded: &[u8],
     frame: &mut [u8],
+    profile: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
 ) -> Result<RefreshResponse, &'static str> {
     send_chunks(line, encoded, frame)?;
-    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES)
+    native_owner_document::receive_for_profile(line, profile)
         .map_err(|_| "native-owner-refresh-response-invalid")
 }
 

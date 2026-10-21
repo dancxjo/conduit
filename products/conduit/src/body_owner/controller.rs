@@ -193,7 +193,7 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
-    invited_mask_offers: BTreeMap<conduit_core::HostId, String>,
+    invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:

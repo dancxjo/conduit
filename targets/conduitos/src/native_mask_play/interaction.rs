@@ -33,7 +33,7 @@ impl NativeMaskInteractionSession {
             .map_err(NativeMaskPlayError::Interaction)?;
         let bytes = interaction.encode();
         if bytes.len() > self.play.interaction_fore.byte_capacity as usize
-            || bytes.len() > STORAGE_VALUE_BYTES
+            || bytes.len() > INTERACTION_VALUE_BYTES
         {
             return Err(NativeMaskPlayError::Pressure);
         }
