@@ -413,11 +413,12 @@ try {
     return adds.at(-1);
   };
   for (const text of texts) await performAdd(text, Boolean(accessibleBefore));
-  if (accessibleBefore) {
+  if (accessibleBefore || scenario === 'look-replacement') {
     const accessibleAfter = await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'after-add' });
-    assert.equal(accessibleAfter.body_id, accessibleBefore.body_id);
-    assert.notEqual(accessibleAfter.face_revision, accessibleBefore.face_revision);
-    assert.notEqual(accessibleAfter.show_id, accessibleBefore.show_id);
+    const priorAccessible = accessibleBefore ?? before;
+    assert.equal(accessibleAfter.body_id, priorAccessible.body_id);
+    assert.notEqual(accessibleAfter.face_revision, priorAccessible.face_revision);
+    assert.notEqual(accessibleAfter.show_id, priorAccessible.show_id);
   }
   let crossMask = null;
   const speechBeforeCompletion = captureSpeech
@@ -526,7 +527,7 @@ try {
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
-  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+  if (scenario === 'first-add' || scenario === 'look-replacement') await captureArbitraryTodoRefusals({
     page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
     acceptCurrent: () => performAdd('Verify recovered current Show'),
   });
