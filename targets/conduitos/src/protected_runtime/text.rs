@@ -13,7 +13,7 @@ impl Scheduler {
             || roles[0] == roles[2]
             || roles[1] == roles[2]
         {
-            return diagnose("text-roles-or-bindings", Err(SchedulerError::InvalidPlan));
+            return diagnose("text-roles", Err(SchedulerError::InvalidPlan));
         }
         let upper = admission.bindings[roles[1]].ok_or(SchedulerError::InvalidPlan)?;
         let face = admission.bindings[roles[2]].ok_or(SchedulerError::InvalidPlan)?;
@@ -25,7 +25,14 @@ impl Scheduler {
             || face.maximum_input_bytes != 256
             || face.maximum_output_bytes != 0
         {
-            return diagnose("text-roles-or-bindings", Err(SchedulerError::InvalidPlan));
+            #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+            crate::arch::early_write(
+                alloc::format!(
+                    "CONDUIT_RUNTIME_DIAGNOSTIC text-bindings roles={roles:?} literal={:?} upper={upper:?} face={face:?}\n",
+                    admission.bindings[roles[0]],
+                ).as_bytes(),
+            );
+            return diagnose("text-bindings", Err(SchedulerError::InvalidPlan));
         }
         let ledger = diagnose("text-ledger", Ledger::new_text(&admission))?;
         #[cfg(conduitos_runtime_image)]
