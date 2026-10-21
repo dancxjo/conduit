@@ -12,6 +12,7 @@ pub enum ServiceProfile {
     Compositor,
     Draft,
     Home,
+    Runtime,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
@@ -19,6 +20,7 @@ impl ServiceProfile {
             Self::Compositor => ServiceMemoryLayout::compositor(),
             Self::Draft => ServiceMemoryLayout::draft(),
             Self::Home => ServiceMemoryLayout::home(),
+            Self::Runtime => ServiceMemoryLayout::runtime(),
         }
     }
 }
@@ -69,6 +71,22 @@ impl ServiceMemoryLayout {
     pub const fn home() -> Self {
         Self::controller(ServiceProfile::Home)
     }
+    /// Allocation-free canonical runtime state and a larger transient stack.
+    /// Compile-time guest size admission does not establish runtime timing/fit.
+    pub const fn runtime() -> Self {
+        Self::from_sizes(
+            ServiceProfile::Runtime,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                256 * 1024,
+                1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
     const fn controller(profile: ServiceProfile) -> Self {
         Self::from_sizes(
             profile,
@@ -118,14 +136,14 @@ impl ServiceMemoryLayout {
     pub const fn pixels(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[5]),
-            ServiceProfile::Draft | ServiceProfile::Home => None,
+            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
     pub const fn scratch(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[6]),
-            ServiceProfile::Draft | ServiceProfile::Home => None,
+            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -134,7 +152,7 @@ impl ServiceMemoryLayout {
     pub const fn range_count(self) -> usize {
         match self.profile {
             ServiceProfile::Compositor => 7,
-            ServiceProfile::Draft | ServiceProfile::Home => 5,
+            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -191,8 +209,8 @@ impl ServiceMemoryLayout {
 }
 
 /// ELF admitted against a fixed service profile. Image storage remains RX/RO.
-/// Draft and Home may initialize the first metadata page from one bounded RW/NX
-/// LOAD; its BSS and all other mutable state come from zeroed private grants.
+/// Controller/runtime profiles may initialize the first metadata page from
+/// one bounded RW/NX LOAD; its BSS and all other mutable state come from zeroed private grants.
 /// The x86_64 backend must charge its page tables and trap stack in addition to
 /// `mapped_bytes`; neither is a user-visible allocation from this descriptor.
 pub struct ServiceImage<'a> {
@@ -209,10 +227,12 @@ impl<'a> ServiceImage<'a> {
         layout.validate()?;
         let private = match profile {
             ServiceProfile::Compositor => None,
-            ServiceProfile::Draft | ServiceProfile::Home => Some(PrivateDataWindow {
-                start: layout.metadata().start(),
-                bytes: PAGE_BYTES,
-            }),
+            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => {
+                Some(PrivateDataWindow {
+                    start: layout.metadata().start(),
+                    bytes: PAGE_BYTES,
+                })
+            }
         };
         let (image, private_data) = DomainImage::parse_service(
             bytes,

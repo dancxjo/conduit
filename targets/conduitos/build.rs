@@ -4,6 +4,8 @@ mod compositor_hostile_images;
 mod compositor_image;
 #[path = "build/creche_image.rs"]
 mod creche_image;
+#[path = "build/runtime_image.rs"]
+mod runtime_image;
 #[path = "build/domain_image.rs"]
 mod domain_image_build;
 #[allow(dead_code)]
@@ -22,6 +24,7 @@ fn main() {
     domain_image_build::generate();
     compositor_image::generate();
     creche_image::generate();
+    runtime_image::generate();
     compositor_hostile_images::generate();
 
     println!("cargo:rerun-if-changed=firmware/linker/x86_64.ld");

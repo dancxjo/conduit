@@ -1,4 +1,4 @@
-//! Three profile-bound independently owned service address spaces, separate from the
+//! Four profile-bound independently owned service address spaces, separate from the
 //! ordinary text/timer pool. Every private byte and page-table page is charged.
 use super::domain_transition::EntryContext;
 use crate::{
@@ -171,6 +171,7 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
             image.profile(),
             crate::service_memory::ServiceProfile::Draft
                 | crate::service_memory::ServiceProfile::Home
+                | crate::service_memory::ServiceProfile::Runtime
         ) || data.address != layout.metadata().start()
             || data.memory_bytes > PAGE as u64
             || data.bytes.len() as u64 > data.memory_bytes

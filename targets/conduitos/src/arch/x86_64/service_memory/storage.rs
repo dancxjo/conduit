@@ -1,4 +1,4 @@
-//! Three independently claimed physical stores. No compositor arena duplication.
+//! Four independently claimed physical stores. No compositor arena duplication.
 use crate::{
     protected_region::DomainRefusal,
     service_memory::{ServiceMemoryLayout, ServiceProfile},
@@ -15,6 +15,7 @@ struct Bytes<const N: usize>([u8; N]);
 const C: ServiceMemoryLayout = ServiceMemoryLayout::compositor();
 const D: ServiceMemoryLayout = ServiceMemoryLayout::draft();
 const H: ServiceMemoryLayout = ServiceMemoryLayout::home();
+const R: ServiceMemoryLayout = ServiceMemoryLayout::runtime();
 const fn optional_bytes(range: Option<crate::service_memory::MemoryRange>) -> usize {
     match range {
         Some(range) => range.bytes() as usize,
@@ -70,6 +71,15 @@ type Home = Slot<
     0,
     0,
     { (H.end() as usize).div_ceil(2 * 1024 * 1024) },
+>;
+type Runtime = Slot<
+    { R.image().bytes() as usize },
+    { R.output().bytes() as usize },
+    { R.stack().bytes() as usize },
+    { R.metadata().bytes() as usize },
+    0,
+    0,
+    { (R.end() as usize).div_ceil(2 * 1024 * 1024) },
 >;
 impl<
     const I: usize,
@@ -156,14 +166,17 @@ unsafe impl<T> Sync for Pool<T> {}
 static COMPOSITOR: Pool<Compositor> = Pool(UnsafeCell::new(Compositor::empty()));
 static DRAFT: Pool<Draft> = Pool(UnsafeCell::new(Draft::empty()));
 static HOME: Pool<Home> = Pool(UnsafeCell::new(Home::empty()));
+static RUNTIME: Pool<Runtime> = Pool(UnsafeCell::new(Runtime::empty()));
 static COMPOSITOR_OWNED: AtomicBool = AtomicBool::new(false);
 static DRAFT_OWNED: AtomicBool = AtomicBool::new(false);
 static HOME_OWNED: AtomicBool = AtomicBool::new(false);
+static RUNTIME_OWNED: AtomicBool = AtomicBool::new(false);
 fn owned(profile: ServiceProfile) -> &'static AtomicBool {
     match profile {
         ServiceProfile::Compositor => &COMPOSITOR_OWNED,
         ServiceProfile::Draft => &DRAFT_OWNED,
         ServiceProfile::Home => &HOME_OWNED,
+        ServiceProfile::Runtime => &RUNTIME_OWNED,
     }
 }
 pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
@@ -171,6 +184,7 @@ pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
         ServiceProfile::Compositor => core::mem::size_of::<Compositor>() as u32,
         ServiceProfile::Draft => core::mem::size_of::<Draft>() as u32,
         ServiceProfile::Home => core::mem::size_of::<Home>() as u32,
+        ServiceProfile::Runtime => core::mem::size_of::<Runtime>() as u32,
     }
 }
 pub(super) struct Lease {
@@ -203,6 +217,7 @@ impl Lease {
                 ServiceProfile::Compositor => (&mut *COMPOSITOR.0.get()).view(),
                 ServiceProfile::Draft => (&mut *DRAFT.0.get()).view(),
                 ServiceProfile::Home => (&mut *HOME.0.get()).view(),
+                ServiceProfile::Runtime => (&mut *RUNTIME.0.get()).view(),
             }
         }
     }
@@ -214,6 +229,7 @@ impl Lease {
                 ServiceProfile::Compositor => &(*COMPOSITOR.0.get()).output.0,
                 ServiceProfile::Draft => &(*DRAFT.0.get()).output.0,
                 ServiceProfile::Home => &(*HOME.0.get()).output.0,
+                ServiceProfile::Runtime => &(*RUNTIME.0.get()).output.0,
             }
         }
     }
@@ -226,6 +242,7 @@ impl Lease {
                 }
                 ServiceProfile::Draft => core::ptr::addr_of!((*DRAFT.0.get()).trap.0) as u64,
                 ServiceProfile::Home => core::ptr::addr_of!((*HOME.0.get()).trap.0) as u64,
+                ServiceProfile::Runtime => core::ptr::addr_of!((*RUNTIME.0.get()).trap.0) as u64,
             }
         };
         base + 16384

@@ -69,7 +69,7 @@ impl DomainBackend for ServiceDomain {
         }
         let budget = match self.profile() {
             ServiceProfile::Compositor => super::domain_budget::EntryBudget::Ordinary,
-            ServiceProfile::Draft | ServiceProfile::Home => {
+            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => {
                 super::domain_budget::EntryBudget::Draft
             }
         };
