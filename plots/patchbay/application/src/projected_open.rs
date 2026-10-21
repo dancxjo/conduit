@@ -42,6 +42,17 @@ impl PatchbayApplicationPort {
         if let Some(error) = error {
             return Err(PatchbayApplicationRefusal::Graph(error));
         }
+        Self::from_projected_graph(graph, plan_id, body_plan_id)
+    }
+
+    // Both entrances share this exact controller initialization. The original
+    // Expanded Plot entrance already checked its projection; do not add stricter
+    // projected-DTO bounds to that existing public behavior.
+    pub(super) fn from_projected_graph(
+        graph: PatchbayGraph,
+        plan_id: PlanId,
+        body_plan_id: PlanId,
+    ) -> Result<Self, PatchbayApplicationRefusal> {
         let checked_plot_id = String::from(graph.checked_plot_id.as_str());
         let title = graph.plot_name.clone();
         let entry = PatchbayActivePlot {

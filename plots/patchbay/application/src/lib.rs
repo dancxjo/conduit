@@ -211,7 +211,7 @@ impl PatchbayApplicationPort {
     ) -> Result<Self, PatchbayApplicationRefusal> {
         let graph =
             PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
-        Self::open_graph(graph, plan_id, body_plan_id)
+        Self::from_projected_graph(graph, plan_id, body_plan_id)
     }
 
     pub fn open_active(
