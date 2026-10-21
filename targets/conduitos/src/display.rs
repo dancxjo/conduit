@@ -1,5 +1,7 @@
 //! Finite framebuffer mechanism below portable graphics meaning.
 
+#[cfg(feature = "native-compositor")]
+mod coverage;
 mod font;
 #[cfg(feature = "native-compositor")]
 mod icons;
@@ -302,6 +304,8 @@ fn paint(format: DisplayFormat, role: GraphicsPaintRole) -> u32 {
         GraphicsPaintRole::Focus => (0xff, 0xcc, 0x33),
         GraphicsPaintRole::Hovered => (0xff, 0xcc, 0x33),
         GraphicsPaintRole::Selected => ACCENT,
+        GraphicsPaintRole::Surface => SURFACE,
+        GraphicsPaintRole::Border => BORDER_PAINT,
     };
     format.pixel(red, green, blue)
 }

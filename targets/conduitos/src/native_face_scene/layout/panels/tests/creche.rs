@@ -267,3 +267,48 @@ fn full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission() 
 
 #[path = "creche/font_details.rs"]
 mod font_details;
+
+#[test]
+fn panel_surfaces_are_admitted_and_painted_before_reading_rows() {
+    let (face, recipe, expression) = actual_creche();
+    let mut scene =
+        NativeFaceScene::prepare_configured(face, 1280, 800, true, &recipe, &expression).unwrap();
+    let mut panels = 0;
+    for page in 0..scene.pages() {
+        scene.page = page;
+        let frame = scene.frame().unwrap();
+        let first_row = scene.rows().iter().find(|row| row.page == page).unwrap();
+        let first_text = frame
+            .scene
+            .commands()
+            .iter()
+            .position(|command| {
+                command.kind == conduit_face::GraphicsCommandKind::Text
+                    && command.bounds == first_row.text_bounds()
+            })
+            .unwrap();
+        for row in scene.rows().iter().filter(|row| row.page == page) {
+            if let Some(bounds) = row.panel_bounds {
+                panels += 1;
+                for (paint, style) in [
+                    (GraphicsPaintRole::Surface, GraphicsShapeStyle::RoundedFill),
+                    (GraphicsPaintRole::Border, GraphicsShapeStyle::RoundedStroke),
+                ] {
+                    let index = frame
+                        .scene
+                        .commands()
+                        .iter()
+                        .position(|command| {
+                            command.bounds == bounds
+                                && command.paint == paint
+                                && command.style == style
+                        })
+                        .unwrap();
+                    assert!(index < first_text);
+                }
+            }
+        }
+        assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+    }
+    assert!(panels >= 2);
+}

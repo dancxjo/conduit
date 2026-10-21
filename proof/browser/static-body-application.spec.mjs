@@ -54,7 +54,8 @@ function renewed(first, next) {
 }
 
 test("static Handbook applications retain independent local Bodies through use, navigation, exclusion, reset and browser restart", async ({}, testInfo) => {
-  testInfo.setTimeout(180_000);
+  // Nine fresh realizations across first use, replacement, reload, reset and restart.
+  testInfo.setTimeout(20_000 + 9 * BROWSER_COLD_PREPARATION_MS);
   const journey = await beginHandbookJourney();
   const site = await stageStaticApplications();
   const origin = new URL(site.url).origin;

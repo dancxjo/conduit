@@ -33,6 +33,20 @@ fn scene(variant: usize) -> GraphicsScene {
             .unwrap();
     }
     let commands = [
+        GraphicsCommand::rect(
+            rect(18, 17, 30, 26),
+            extent,
+            Paint::Surface,
+            GraphicsShapeStyle::RoundedFill,
+        )
+        .unwrap(),
+        GraphicsCommand::rect(
+            rect(18, 17, 30, 26),
+            extent,
+            Paint::Border,
+            GraphicsShapeStyle::RoundedStroke,
+        )
+        .unwrap(),
         GraphicsCommand::text(
             rect(2, 3, 28, 25),
             extent,
@@ -335,7 +349,7 @@ fn failed_scene_invalidates_old_pixels_and_cannot_advance_revision() {
 fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     use conduit_core::HostBaseId;
     use conduit_face::{
-        VisualExpression, VisualPalette, VisualUserConstraints, admit_visual_expression,
+        admit_visual_expression, VisualExpression, VisualPalette, VisualUserConstraints,
     };
     let (face, plan, main, _, mut compositor) = fixture::fixture(1);
     let scene = scene(3);
