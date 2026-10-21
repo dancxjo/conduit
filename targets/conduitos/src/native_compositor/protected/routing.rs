@@ -46,7 +46,6 @@ impl NativeCompositor {
         y: u32,
         activate: bool,
     ) -> Result<InputRoute<RoutedPointer>, NativeCompositorError> {
-        self.invalidate();
         self.unit(Request::Cursor {
             position: Some((x, y)),
             hover: self.hover_sample.get(),
