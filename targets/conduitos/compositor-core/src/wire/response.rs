@@ -10,6 +10,7 @@ pub struct FrameSpan {
     pub window_offset: u32,
     pub pixels: u32,
     pub complete: bool,
+    pub selected_mask: u8,
     pub coverage: [u32; MAX_SURFACES],
 }
 impl FrameSpan {
@@ -25,10 +26,13 @@ impl FrameSpan {
             return Err(CodecError::Value);
         }
         let mut sum = 0u32;
-        for count in self.coverage {
+        for (i, count) in self.coverage.into_iter().enumerate() {
+            if count > 0 && self.selected_mask & (1 << i) == 0 {
+                return Err(CodecError::Value);
+            }
             sum = sum.checked_add(count).ok_or(CodecError::Value)?;
         }
-        if sum > MAX_PIXELS as u32 || (!self.complete && sum != 0) {
+        if sum > MAX_PIXELS as u32 || (!self.complete && (sum != 0 || self.selected_mask != 0)) {
             return Err(CodecError::Value);
         }
         Ok(())
@@ -39,7 +43,7 @@ pub enum Response {
     Unit,
     Surface(Handle),
     Prepared(bool),
-    FrameSequence(u64),
+    FrameStarted(FramePlan),
     Frame(FrameSpan),
     Pointer(Option<Route>),
     Keyboard(Option<(Handle, u64)>),
@@ -52,9 +56,27 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError>
         0x8001 => Response::Surface(r.handle()?),
         0x8002 => Response::Prepared(r.bool()?),
         0x8003 => {
-            let seq = r.u64()?;
-            nonzero(seq)?;
-            Response::FrameSequence(seq)
+            let sequence = r.u64()?;
+            let count = r.u8()?;
+            let mut rects = [FrameRect::default(); 16];
+            for rect in &mut rects {
+                *rect = FrameRect {
+                    x: r.u32()?,
+                    y: r.u32()?,
+                    width: r.u32()?,
+                    height: r.u32()?,
+                };
+            }
+            let plan = FramePlan {
+                sequence,
+                count,
+                rects,
+                conservative_fallback: r.bool()?,
+                cursor_visible: r.bool()?,
+                focus_visible: r.bool()?,
+            };
+            validate_plan(plan)?;
+            Response::FrameStarted(plan)
         }
         0x8004 => {
             let sequence = r.u64()?;
@@ -63,6 +85,7 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError>
             let window_offset = r.u32()?;
             let pixels = r.u32()?;
             let complete = r.bool()?;
+            let selected_mask = r.u8()?;
             let mut coverage = [0; MAX_SURFACES];
             for count in &mut coverage {
                 *count = r.u32()?;
@@ -74,6 +97,7 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), CodecError>
                 window_offset,
                 pixels,
                 complete,
+                selected_mask,
                 coverage,
             };
             frame.validate()?;
@@ -115,8 +139,8 @@ pub fn encode_response(
         Response::Unit => (0, 0),
         Response::Surface(_) => (1, 9),
         Response::Prepared(_) => (2, 1),
-        Response::FrameSequence(_) => (3, 8),
-        Response::Frame(_) => (4, 57),
+        Response::FrameStarted(_) => (3, 268),
+        Response::Frame(_) => (4, 58),
         Response::Pointer(value) => (5, if value.is_some() { 22 } else { 1 }),
         Response::Keyboard(value) => (6, if value.is_some() { 18 } else { 1 }),
         Response::Refused(_) => (7, 2),
@@ -127,9 +151,19 @@ pub fn encode_response(
         Response::Unit => {}
         Response::Surface(h) => w.handle(h)?,
         Response::Prepared(value) => w.bool(value)?,
-        Response::FrameSequence(seq) => {
-            nonzero(seq)?;
-            w.u64(seq)?;
+        Response::FrameStarted(plan) => {
+            validate_plan(plan)?;
+            w.u64(plan.sequence)?;
+            w.u8(plan.count)?;
+            for rect in plan.rects {
+                w.u32(rect.x)?;
+                w.u32(rect.y)?;
+                w.u32(rect.width)?;
+                w.u32(rect.height)?;
+            }
+            w.bool(plan.conservative_fallback)?;
+            w.bool(plan.cursor_visible)?;
+            w.bool(plan.focus_visible)?;
         }
         Response::Frame(f) => {
             f.validate()?;
@@ -139,6 +173,7 @@ pub fn encode_response(
             w.u32(f.window_offset)?;
             w.u32(f.pixels)?;
             w.bool(f.complete)?;
+            w.u8(f.selected_mask)?;
             for count in f.coverage {
                 w.u32(count)?;
             }
@@ -189,4 +224,32 @@ fn error_code(value: Error) -> u16 {
         Error::NoDamage => 7,
         Error::Exhausted => 8,
     }
+}
+
+fn validate_plan(plan: FramePlan) -> Result<(), CodecError> {
+    nonzero(plan.sequence)?;
+    let count = usize::from(plan.count);
+    if count == 0 || count > plan.rects.len() {
+        return Err(CodecError::Value);
+    }
+    for (i, rect) in plan.rects.into_iter().enumerate() {
+        if i >= count {
+            if rect != FrameRect::default() {
+                return Err(CodecError::Value);
+            }
+        } else if rect.width == 0
+            || rect.height == 0
+            || rect
+                .x
+                .checked_add(rect.width)
+                .is_none_or(|end| end > u32::from(u16::MAX))
+            || rect
+                .y
+                .checked_add(rect.height)
+                .is_none_or(|end| end > u32::from(u16::MAX))
+        {
+            return Err(CodecError::Value);
+        }
+    }
+    Ok(())
 }
