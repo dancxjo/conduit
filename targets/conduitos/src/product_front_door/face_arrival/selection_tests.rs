@@ -148,7 +148,23 @@ fn local_selection_disposition_preserves_pending_mask_and_opaque_route() {
         None,
     )
     .unwrap();
-    let face = crate::native_face_scene::tests::face(1);
+    let mut parts = crate::native_face_scene::tests::face(1);
+    parts.subjects.push(conduit_face::FaceSubject {
+        identity: alloc::format!("body/{}", parts.basis.body_id.as_ref().unwrap().as_str()),
+        role: conduit_face::FaceRole::Body,
+        name: "Fixture Body".into(),
+    });
+    let face = Face::new_with_semantics(
+        parts.revision,
+        parts.basis,
+        parts.subjects,
+        parts.relationships,
+        parts.properties,
+        parts.text,
+        parts.actions,
+        parts.disclosures,
+    )
+    .unwrap();
     let mut display = Display(0);
     arrival.retire_arrival_surface().unwrap();
     arrival.owner_face = Some(face.clone());

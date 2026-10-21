@@ -324,7 +324,11 @@ impl FaceArrival {
         code: &str,
         display: &mut impl PixelTarget,
     ) -> Result<(), &'static str> {
-        let message = alloc::format!("Input refused: {code}");
+        let message = if code == "owner-look-provisional-input" {
+            "Finish or cancel your edit before changing appearance".into()
+        } else {
+            alloc::format!("Input refused: {code}")
+        };
         self.mask
             .show_local_notice(&message, display)
             .map_err(|error| error.as_str())?;
