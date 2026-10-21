@@ -638,7 +638,7 @@ request correlation, canonical scene decoding, exact viewport clips and finite
 Home-subject Face content before assembling the checked outer Face. Outer
 Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
-The closed service pool has independent compositor, Draft, Home and Runtime slots. Each image
+The closed service pool has independent compositor, Draft, Home, Runtime and Application slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
@@ -681,6 +681,31 @@ retained storage. These observations do not establish full peak stack depth,
 execution timing, adversarial containment, physical execution or acceptance.
 Expanded proof and CI validation remain deferred for the local implementation
 workflow in draft #6196.
+
+## Native retained application models in progress
+
+The native workset's Tutorial, Tour and Patchbay retained models now execute in
+an independent Application guest. Tutorial uses its existing biography-derived
+projection; Tour uses the canonical application port; Patchbay uses the same
+canonical port over Root-reviewed graph facts. Expanded planners are not sent
+across this boundary. Host/other-architecture worksets use the same application
+core locally. The existing expanded-Plot constructor retains its previous
+validation behavior; the new projected-graph entry adds finite transport bounds.
+
+Root holds immutable admission graphs, prior views, selection context and live
+Mask topology. A returned effect proposal must match genuine admitted input and
+that prior view: Tutorial's finite actions, Tour's current specimen/run context,
+or Patchbay's reviewed subject and exact Body Plan/Mask mode. Empty inputs and
+control/refresh/completion replies cannot mint actions. This gate does not run a
+second mutable application controller. Termination fences pending actions and
+unpublished views and releases the Application lease.
+
+The Application image fits its closed RX/RO window and uses a separate 16-byte
+initialized RW/NX metadata template. Native compilation passes; entry-frame and
+segment inspection do not establish full stack/heap fit or execution acceptance.
+The separate ProductJourney lifecycle Tutorial projection/action adapter remains
+in Root, as do actual lifecycle/effect admission, general Face/Mask and the
+remaining execution/network/device paths. Expanded runtime proof is deferred.
 
 ## Deliberate limits
 

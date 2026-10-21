@@ -10,7 +10,7 @@ use conduit_face::{
     ApplicationView, ApplicationViewNode,
 };
 use conduitos_application_core::data::{Context, Kind, Proposal, TutorialAction};
-use patchbay_application::{PatchbayApplicationRequest, PatchbayMaskMode, PatchbayMaskTopology};
+use patchbay_application::{PatchbayApplicationRequest, PatchbayMaskTopology};
 use patchbay_graph::PatchbayGraph;
 
 pub(super) fn admit(
@@ -132,7 +132,7 @@ pub(super) fn admit(
                 if topology.face_id.is_empty()
                     || topology.active_play_id.is_empty()
                     || &topology.body_plan_id != body_plan_id
-                    || next_mode(topology.mode) != *mode
+                    || topology.next_mode() != *mode
                 {
                     return Err(());
                 }
@@ -227,14 +227,4 @@ fn ready_activation(event: &ApplicationEvent, view: &ApplicationView) -> Result<
         }
     }
     if referenced { Ok(()) } else { Err(()) }
-}
-
-// Exact canonical PatchbayMaskTopology::next_mode law; it is private to the
-// canonical crate, so this Root admission comparison cannot call it directly.
-fn next_mode(mode: PatchbayMaskMode) -> PatchbayMaskMode {
-    match mode {
-        PatchbayMaskMode::Graphical => PatchbayMaskMode::GraphicalAndSpeech,
-        PatchbayMaskMode::GraphicalAndSpeech => PatchbayMaskMode::Speech,
-        PatchbayMaskMode::Speech => PatchbayMaskMode::GraphicalAndSpeech,
-    }
 }

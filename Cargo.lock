@@ -2754,6 +2754,7 @@ dependencies = [
  "conduit-face",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "serde",
 ]
 
 [[package]]
@@ -2850,6 +2851,7 @@ dependencies = [
  "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
+ "conduitos-application-core",
  "conduitos-compositor-core",
  "conduitos-creche-core",
  "conduitos-runtime-core",
@@ -2869,6 +2871,22 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "smoltcp",
+]
+
+[[package]]
+name = "conduitos-application-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-tour-model",
+ "conduit-tutorial-plot",
+ "patchbay-application",
+ "patchbay-graph",
+ "serde",
+ "serde-json-core",
+ "serde_json",
 ]
 
 [[package]]
@@ -6853,6 +6871,7 @@ dependencies = [
  "conduit-human",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "serde",
 ]
 
 [[package]]

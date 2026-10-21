@@ -166,6 +166,8 @@ pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) mod protected_application;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub mod protected_compositor;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub mod protected_creche;
