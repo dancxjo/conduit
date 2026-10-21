@@ -159,6 +159,11 @@ pub(super) enum ConduitosCommand {
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
     RescueProof(PreparedProofArgs),
+    /// Verify one exact headless product IMAGE and bounded unsupported startup.
+    HeadlessProof {
+        /// Directory containing the final target build manifest and IMAGE.
+        output: std::path::PathBuf,
+    },
     /// Prove the x86_64 emergency callback enters a terminal CPU halt.
     EmergencyHaltProof,
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
@@ -337,5 +342,19 @@ mod endpoint_command_tests {
             "--prepared-image"
         ])
         .is_err());
+    }
+}
+
+#[cfg(test)]
+mod headless_command_tests {
+    use crate::cli::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn headless_proof_requires_exact_output_directory() {
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "headless-proof", "image"]).is_ok()
+        );
+        assert!(Cli::try_parse_from(["xtask", "make", "conduitos", "headless-proof"]).is_err());
     }
 }

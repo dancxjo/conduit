@@ -264,3 +264,6 @@ fn full_unicode_name_draft_fits_narrow_and_wide_without_shortening_submission() 
         assert_eq!(scene.face(), &face);
     }
 }
+
+#[path = "creche/font_details.rs"]
+mod font_details;

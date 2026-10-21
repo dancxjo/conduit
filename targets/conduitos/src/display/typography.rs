@@ -8,6 +8,7 @@ mod raster;
 pub use raster::{render_glyph, render_text, render_text_scaled};
 mod preview;
 pub use preview::single_line_preview;
+mod ink;
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
@@ -96,7 +97,7 @@ pub(super) fn scaled_glyph(role: TextRole, character: char, scale: TextScale) ->
     raster
 }
 
-pub fn metrics(role: TextRole) -> &'static ProfileMetrics {
+pub const fn metrics(role: TextRole) -> &'static ProfileMetrics {
     &PROFILES[role as usize]
 }
 
@@ -276,3 +277,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "typography/ensemble_tests.rs"]
+mod ensemble_tests;

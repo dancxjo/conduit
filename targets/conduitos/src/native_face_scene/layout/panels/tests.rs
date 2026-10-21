@@ -360,3 +360,19 @@ fn nonmonotonic_pages_include_later_visual_pages_and_preserve_turning() {
     scene.turn_page(true);
     assert_eq!(scene.page(), maximum);
 }
+
+#[test]
+fn chrome_valid_tiny_panel_extent_refuses_without_arithmetic_panic() {
+    assert!(matches!(
+        admit_configured(
+            vec![item("Visible", Some(0))],
+            screen(640, 127),
+            12,
+            2,
+            100,
+            SPACE_SM,
+            Some([0, 1])
+        ),
+        Err(FaceSceneError::InvalidExtent)
+    ));
+}

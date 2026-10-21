@@ -25,6 +25,8 @@ mod emitted_line;
 mod front_door_proof;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
+mod headless_profile;
+mod headless_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -596,6 +598,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
+        ConduitosCommand::HeadlessProof { output } => headless_proof::execute(output, opts),
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),

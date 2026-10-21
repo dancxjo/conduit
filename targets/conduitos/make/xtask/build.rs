@@ -109,6 +109,7 @@ fn execute_profile_for_role(
             generated: &generated,
             build_id: &manifest.build_id,
             image_binding: &manifest.image_id,
+            manifest: Some(manifest),
         }),
         artifact_role,
         product_artifact,
@@ -352,6 +353,9 @@ fn execute_with_features(
         .current_dir(&paths.root)
         .env("CONDUITOS_BUILD_ID", build_id)
         .env("CONDUITOS_IMAGE_ID", image_binding);
+    if let Some(manifest) = make.and_then(|item| item.manifest) {
+        super::headless_profile::configure_symbols(&mut command, manifest, artifact_role);
+    }
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
         command.env(
@@ -461,6 +465,7 @@ struct ProfileMake<'a> {
     generated: &'a Path,
     build_id: &'a str,
     image_binding: &'a str,
+    manifest: Option<&'a BuildManifest>,
 }
 
 fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> {

@@ -313,12 +313,42 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
             assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
-            visible.extend(
-                frame
-                    .scene
-                    .commands()
+            let expected = scene
+                .rows()
+                .iter()
+                .filter(|row| row.page == scene.page)
+                .collect::<alloc::vec::Vec<_>>();
+            let commands = frame.scene.commands();
+            let mut next = 0;
+            for row in &expected {
+                let (index, command) = commands
                     .iter()
-                    .map(|c| c.payload().to_owned()),
+                    .enumerate()
+                    .skip(next)
+                    .find(|(_, command)| {
+                        command.kind == conduit_face::GraphicsCommandKind::Text
+                            && command.payload() == row.text
+                            && command.text_role() == row.role
+                            && command.bounds == row.text_bounds()
+                    })
+                    .expect(
+                        "every exact Details row must be painted on its own page in reading order",
+                    );
+                next = index + 1;
+                visible.push(command.payload().to_owned());
+            }
+            assert_eq!(
+                commands
+                    .iter()
+                    .filter(|command| expected.iter().any(|row| {
+                        command.kind == conduit_face::GraphicsCommandKind::Text
+                            && command.payload() == row.text
+                            && command.text_role() == row.role
+                            && command.bounds == row.text_bounds()
+                    }))
+                    .count(),
+                expected.len(),
+                "no duplicated or silently skipped Details row"
             );
             scene.turn_page(true);
         }
@@ -329,7 +359,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
         {
             let fact = format!("{:?} identity: {}", subject.role, subject.identity);
             assert!(
-                visible.iter().any(|text| text == &fact),
+                visible.concat().contains(&fact),
                 "missing {} at {width}x{height}",
                 subject.identity
             );
