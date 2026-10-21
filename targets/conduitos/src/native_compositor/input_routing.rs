@@ -4,10 +4,20 @@ use conduit_face::ManifestationId;
 
 use super::{NativeCompositor, NativeCompositorError};
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct ProtectedRouteScope {
+    pub session: crate::protected_compositor::session_owner::SessionId,
+    pub handle: conduitos_compositor_core::Handle,
+    pub upload_sequence: u64,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RoutedPointer {
     pub surface_id: String,
     pub manifestation_id: ManifestationId,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(super) scope: ProtectedRouteScope,
     pub local_x: u16,
     pub local_y: u16,
 }
@@ -16,6 +26,8 @@ pub struct RoutedPointer {
 pub struct RoutedKeyboard {
     pub surface_id: String,
     pub manifestation_id: ManifestationId,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(super) scope: ProtectedRouteScope,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -24,6 +36,7 @@ pub enum InputRoute<T> {
     NoTarget,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl NativeCompositor {
     pub fn route_pointer(
         &mut self,
@@ -117,6 +130,7 @@ impl NativeCompositor {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 fn contains(bounds: conduit_face::LayoutRect, x: u32, y: u32) -> bool {
     let left = i64::from(bounds.x);
     let top = i64::from(bounds.y);
@@ -127,6 +141,7 @@ fn contains(bounds: conduit_face::LayoutRect, x: u32, y: u32) -> bool {
     x >= left && x < right && y >= top && y < bottom
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 fn local_coordinate(value: u32, origin: i16) -> Result<u16, NativeCompositorError> {
     let local = i64::from(value)
         .checked_sub(i64::from(origin))
