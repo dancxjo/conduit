@@ -270,7 +270,8 @@ pub fn run(
                         if !owner_route_standby
                             && owner_route.is_some()
                             && event.transition() == KeyTransition::Pressed
-                            && (modifier_bits == 0 || (event.usage() == 66 && shift_only))
+                            && (modifier_bits == 0
+                                || (shift_only && matches!(event.usage(), 63 | 64 | 66)))
                             && matches!(event.usage(), 63..=66)
                         {
                             let prior = current_owner_face
@@ -279,7 +280,15 @@ pub fn run(
                             let route = owner_route
                                 .as_mut()
                                 .ok_or("native-owner-return-unavailable")?;
-                            let result = if event.usage() == 66 && shift_only {
+                            let result = if shift_only && matches!(event.usage(), 63 | 64) {
+                                face_arrival.toggle_owner_axis(
+                                    *identities,
+                                    prior,
+                                    route,
+                                    event.usage(),
+                                    display,
+                                )
+                            } else if event.usage() == 66 && shift_only {
                                 face_arrival.toggle_owner_forced_colors(
                                     prior,
                                     route,

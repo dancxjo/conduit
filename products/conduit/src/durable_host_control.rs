@@ -1142,7 +1142,7 @@ enum Request {
         receipt: Box<PortableAdmissionReceipt>,
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
-        look: conduit_std_host::browser_admission::BrowserComponentLook,
+        look: conduit_face::ComponentMaskLook,
         recipe: conduit_std_host::browser_admission::BrowserComponentRecipe,
     },
     BodyNativeMaskShow {
@@ -2257,14 +2257,6 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             recipe,
             ..
         } if protocol == PROTOCOL => {
-            let look = match look {
-                conduit_std_host::browser_admission::BrowserComponentLook::Compact => {
-                    conduit_face::ComponentMaskLook::Compact
-                }
-                conduit_std_host::browser_admission::BrowserComponentLook::Spacious => {
-                    conduit_face::ComponentMaskLook::Spacious
-                }
-            };
             let recipe = match recipe {
                 conduit_std_host::browser_admission::BrowserComponentRecipe::Flat => {
                     conduit_face::TodoComponentRecipe::Flat

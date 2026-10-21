@@ -296,10 +296,14 @@ impl CrecheComponentRecipe {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/// Closed names for checked Source presets, not a second visual declaration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub enum ComponentMaskLook {
     Compact,
     Spacious,
+    CompactEditorial,
+    SpaciousPhosphor,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TodoComponentRecipe {

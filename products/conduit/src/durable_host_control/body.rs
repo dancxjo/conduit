@@ -1046,14 +1046,6 @@ pub(crate) fn select_native_component_mask(
     look: conduit_face::ComponentMaskLook,
     recipe: conduit_face::TodoComponentRecipe,
 ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-    let look = match look {
-        conduit_face::ComponentMaskLook::Compact => {
-            conduit_std_host::browser_admission::BrowserComponentLook::Compact
-        }
-        conduit_face::ComponentMaskLook::Spacious => {
-            conduit_std_host::browser_admission::BrowserComponentLook::Spacious
-        }
-    };
     let recipe = match recipe {
         conduit_face::TodoComponentRecipe::Flat => {
             conduit_std_host::browser_admission::BrowserComponentRecipe::Flat

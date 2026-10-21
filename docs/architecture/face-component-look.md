@@ -170,7 +170,12 @@ recipe hash, exact old/new Show identifiers and bounded render counts, joined
 to the complete Face/Show publication records.
 
 The native owner window exposes F6 (Compact/Flat), F7 (Spacious/Flat), F8
-(Spacious/Grouped), and F9 (100%/200% minimum text size). These are Mask-local
+(Spacious/Grouped), and F9 (100%/200% minimum text size). Shift+F6 toggles
+density and Shift+F7 toggles palette independently, preserving the current
+recipe. Native owner selection uses four closed checked-Source preset names:
+`compact`, `spacious`, `compact-editorial`, and `spacious-phosphor`; the first
+two keep their existing meanings. This selector does not extend the visual
+declaration language or the browser selector. These are Mask-local
 requests through the current authenticated, acknowledged Show; they do not add
 Face actions or alter Todo commands. The owner returns the same exact Face and
 an independently sealed configured Mask route. The guest retires its previous
@@ -178,7 +183,10 @@ surface, prepares the exact returned Plan against its current observed Host
 offer, renders, and acknowledges the new Show before enabling input. A failed
 or uncertain exchange retires the return route. The transport retains its
 explicit lifetime and finite replacement bound independently of the action
-budget.
+budget. An available but unacknowledged Show cannot authorize a replacement,
+and the previous Show becomes stale after selection. The replacement restores
+unsubmitted draft and focus only through the identical-Face and producer-scope
+encounter checks used by local selection.
 
 The native palette and font rasterizer consume the retained admitted expression.
 Text measurement and glyph coverage use the same bounded scale; structural

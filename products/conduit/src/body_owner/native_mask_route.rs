@@ -326,7 +326,7 @@ impl Owner {
         look: conduit_face::ComponentMaskLook,
         recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        self.validate_native_mask_route_show(request, show)?;
+        self.validate_native_mask_show(request, show)?;
         let previous_route = self
             .pending_native_mask
             .clone()

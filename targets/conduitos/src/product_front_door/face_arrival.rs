@@ -132,39 +132,6 @@ impl FaceArrival {
         Ok(fresh)
     }
 
-    fn replace_owner_mask(
-        &mut self,
-        fresh: &crate::native_guest_face::NativeGuestFace,
-        display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
-        let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
-            context.host_id.clone(),
-            context.boot_id.clone(),
-            context.generation,
-            &context.build_id,
-            context.display_base_id.clone(),
-            "conduitos/creche/face",
-            &context.provider,
-            fresh.route(),
-        )
-        .map_err(|error| error.as_str())?;
-        replacement
-            .set_visual_user_constraints(
-                context.forced_colors,
-                true,
-                context.minimum_text_scale_percent,
-            )
-            .map_err(|error| error.as_str())?;
-        self.mask.suspend().map_err(|error| error.as_str())?;
-        self.mask = replacement;
-        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
-        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
-        // Keep owner Face identity/revision and independent Mask publication counters.
-        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
-        Ok(())
-    }
-
     pub(super) fn toggle_owner_text_scale(
         &mut self,
         prior: &crate::native_guest_face::NativeGuestFace,
@@ -496,3 +463,5 @@ mod input;
 mod tests;
 
 mod look_selection;
+
+mod owner_selection;
