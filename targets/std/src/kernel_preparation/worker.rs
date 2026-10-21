@@ -3,8 +3,8 @@ use conduit_composite::{
     ChildExecutionError, ChildTransportError, PreparedRegionKernel, RegionMemoryReceipt,
 };
 use conduit_kernel::{
-    CanonicalValue, CordId, RemoteTerminalDisposition,
     scheduler::{RemoteIngressOutcome, SchedulerError, SchedulerStatus},
+    CanonicalValue, CordId, RemoteTerminalDisposition,
 };
 use std::sync::{Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
