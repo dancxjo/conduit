@@ -1,0 +1,228 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "image_sha256": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb",
+  "viewport": {
+    "width": 1280,
+    "height": 800,
+    "basis": "canonical product journey capture manifest; PNG dimensions independently verified"
+  },
+  "paired_document_sha256": "b315fdfd674968e2b39f01993e5dbc0c9fb270c619732e97b9dfe3efc3f07d85",
+  "paired_face_index": 0,
+  "native_show": {
+    "boot_id": "19f22a151004195c6862d4c3ce087f68c6df48a5b374344b2451ceb03909adc0",
+    "face_id": "821877ead7a14d84c8a42079535282d95835952434f416f529617fd53db1b123",
+    "face_revision": 1,
+    "host_id": "ae2854707d92e3e8fa23bccaa311dc0747fc6ba2e9dd36641c82e357055ccbb8",
+    "lifecycle": "Available",
+    "manifestation": {
+      "active_play_id": "cea6852d93848a4f390975e570b1541c1d4236a7b974d8fa48a667b360e2ad90",
+      "body_id": null,
+      "boot_id": "19f22a151004195c6862d4c3ce087f68c6df48a5b374344b2451ceb03909adc0",
+      "face_id": "821877ead7a14d84c8a42079535282d95835952434f416f529617fd53db1b123",
+      "face_revision": 1,
+      "failure": null,
+      "front_subject": "birth/conduitos/creche/current",
+      "host_id": "ae2854707d92e3e8fa23bccaa311dc0747fc6ba2e9dd36641c82e357055ccbb8",
+      "lifecycle": "Available",
+      "manifestation_id": "8138064ba1f4c52ff25a21cb37866ef819ae83b5c0152413668009ec28382e49",
+      "offer_generation": 1,
+      "placement_id": "98de6c304f2730f9507d105f52564b5d0f65903f1579a158a0c1570558225ce4",
+      "plan_id": "b5b9ad3079afc295f1961c4b0af1dbd72c56427d385bf38a5f079dc862368158",
+      "play_sequence": 1,
+      "presenter_artifact_id": "conduitos/native-compositor@1",
+      "presenter_capability_id": "renderer-conduitos-component",
+      "presenter_implementation_id": "face/renderer-conduitos-component@1",
+      "signs": [
+        {
+          "active_play_id": "cea6852d93848a4f390975e570b1541c1d4236a7b974d8fa48a667b360e2ad90",
+          "boot_id": "19f22a151004195c6862d4c3ce087f68c6df48a5b374344b2451ceb03909adc0",
+          "face_id": "821877ead7a14d84c8a42079535282d95835952434f416f529617fd53db1b123",
+          "failure": null,
+          "host_id": "ae2854707d92e3e8fa23bccaa311dc0747fc6ba2e9dd36641c82e357055ccbb8",
+          "lifecycle": "Prepared",
+          "manifestation_id": "8138064ba1f4c52ff25a21cb37866ef819ae83b5c0152413668009ec28382e49",
+          "offer_generation": 1,
+          "placement_id": "98de6c304f2730f9507d105f52564b5d0f65903f1579a158a0c1570558225ce4",
+          "plan_id": "b5b9ad3079afc295f1961c4b0af1dbd72c56427d385bf38a5f079dc862368158",
+          "play_sequence": 1,
+          "presenter_implementation_id": "face/renderer-conduitos-component@1",
+          "sign_id": "conduitos/mask/render-prepared"
+        },
+        {
+          "active_play_id": "cea6852d93848a4f390975e570b1541c1d4236a7b974d8fa48a667b360e2ad90",
+          "boot_id": "19f22a151004195c6862d4c3ce087f68c6df48a5b374344b2451ceb03909adc0",
+          "face_id": "821877ead7a14d84c8a42079535282d95835952434f416f529617fd53db1b123",
+          "failure": null,
+          "host_id": "ae2854707d92e3e8fa23bccaa311dc0747fc6ba2e9dd36641c82e357055ccbb8",
+          "lifecycle": "Available",
+          "manifestation_id": "8138064ba1f4c52ff25a21cb37866ef819ae83b5c0152413668009ec28382e49",
+          "offer_generation": 1,
+          "placement_id": "98de6c304f2730f9507d105f52564b5d0f65903f1579a158a0c1570558225ce4",
+          "plan_id": "b5b9ad3079afc295f1961c4b0af1dbd72c56427d385bf38a5f079dc862368158",
+          "play_sequence": 1,
+          "presenter_implementation_id": "face/renderer-conduitos-component@1",
+          "sign_id": "conduitos/mask/render-available"
+        }
+      ],
+      "target_subject": "conduitos/creche/face",
+      "wake_id": null
+    },
+    "manifestation_id": "8138064ba1f4c52ff25a21cb37866ef819ae83b5c0152413668009ec28382e49",
+    "mask_active_play_id": "cea6852d93848a4f390975e570b1541c1d4236a7b974d8fa48a667b360e2ad90",
+    "mask_plan_id": "b5b9ad3079afc295f1961c4b0af1dbd72c56427d385bf38a5f079dc862368158",
+    "mask_plot": {
+      "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+      "expanded_plot_id": "4cf678e9ebfcfbd6ff7bb63aa0438af18f7c945a60b4a628173e89cc15eba5d6",
+      "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+    },
+    "offer_generation": 1,
+    "show_id": "show/c30e27897d16e30508b0c524b9d3169d0d945adbfc3716b0fa75ad4a6f31ea03"
+  },
+  "native_face_identity": "821877ead7a14d84c8a42079535282d95835952434f416f529617fd53db1b123",
+  "native_face_revision": 1,
+  "plots": [
+    {
+      "subject": {
+        "identity": "birth/conduitos/creche/current/initial-plots/0",
+        "name": "Keyboard canvas",
+        "role": "Plot"
+      },
+      "selected": true,
+      "action": {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [],
+              "maximum_bytes": 1,
+              "value_kind": "value/bool"
+            },
+            "name": "value",
+            "value_name": "Include Plot"
+          }
+        ],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "creche.plot.0",
+        "intent": "conduit.intent/creche.plot.0@1",
+        "name": "Include Plot",
+        "target": "birth/conduitos/creche/current/initial-plots/0"
+      }
+    },
+    {
+      "subject": {
+        "identity": "birth/conduitos/creche/current/initial-plots/1",
+        "name": "Memory Lantern",
+        "role": "Plot"
+      },
+      "selected": true,
+      "action": {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [],
+              "maximum_bytes": 1,
+              "value_kind": "value/bool"
+            },
+            "name": "value",
+            "value_name": "Include Plot"
+          }
+        ],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "creche.plot.1",
+        "intent": "conduit.intent/creche.plot.1@1",
+        "name": "Include Plot",
+        "target": "birth/conduitos/creche/current/initial-plots/1"
+      }
+    },
+    {
+      "subject": {
+        "identity": "birth/conduitos/creche/current/initial-plots/2",
+        "name": "Tutorial",
+        "role": "Plot"
+      },
+      "selected": true,
+      "action": {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [],
+              "maximum_bytes": 1,
+              "value_kind": "value/bool"
+            },
+            "name": "value",
+            "value_name": "Include Plot"
+          }
+        ],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "creche.plot.2",
+        "intent": "conduit.intent/creche.plot.2@1",
+        "name": "Include Plot",
+        "target": "birth/conduitos/creche/current/initial-plots/2"
+      }
+    },
+    {
+      "subject": {
+        "identity": "birth/conduitos/creche/current/initial-plots/3",
+        "name": "Patchbay",
+        "role": "Plot"
+      },
+      "selected": true,
+      "action": {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [],
+              "maximum_bytes": 1,
+              "value_kind": "value/bool"
+            },
+            "name": "value",
+            "value_name": "Include Plot"
+          }
+        ],
+        "availability": "Available",
+        "disclosure": "CurrentAction",
+        "identity": "creche.plot.3",
+        "intent": "conduit.intent/creche.plot.3@1",
+        "name": "Include Plot",
+        "target": "birth/conduitos/creche/current/initial-plots/3"
+      }
+    },
+    {
+      "subject": {
+        "identity": "birth/conduitos/creche/current/initial-plots/4",
+        "name": "Hello, world.",
+        "role": "Plot"
+      },
+      "selected": false,
+      "action": {
+        "arguments": [
+          {
+            "contract": {
+              "constraints": [],
+              "maximum_bytes": 1,
+              "value_kind": "value/bool"
+            },
+            "name": "value",
+            "value_name": "Include Plot"
+          }
+        ],
+        "availability": {
+          "Unavailable": {
+            "explanation": "native-body-plot-unavailable",
+            "reason_code": "birth/unavailable"
+          }
+        },
+        "disclosure": "CurrentAction",
+        "identity": "creche.plot.4",
+        "intent": "conduit.intent/creche.plot.4@1",
+        "name": "Include Plot",
+        "target": "birth/conduitos/creche/current/initial-plots/4"
+      }
+    }
+  ],
+  "evidence_class": "actual canonical normal-product QEMU Face + paired linear proof; retained previous source",
+  "scope": "Exact five-choice/four-selected/unavailable semantic shape is reachable. Does not identify the original user screenshot source/viewport or prove its exact two-page geometry. Currentdb1 product rebuild is still running.",
+  "proof_archive": "f3f7108c280e4bfb092aca517f8191db8f4cdc06"
+}

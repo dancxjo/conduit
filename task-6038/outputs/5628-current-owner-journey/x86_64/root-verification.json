@@ -1,0 +1,17 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "iso": "0ead10806a141a7d3f504679fd75b818bc440ad1cc623d865b4875954e2d5aac",
+  "canonical_command_exit": 0,
+  "checkpoints": 26,
+  "independent_png_file_and_decoded_RGBA_hash_checks": 26,
+  "local_look_transitions": 4,
+  "body_actions_during_look_swaps": 0,
+  "owner_backed_typography_proof": false,
+  "physical": false,
+  "human": false,
+  "reviewed_frames": [
+    "front-door-ready.png",
+    "creche-fourth-checked.png"
+  ],
+  "remaining": "Owner-backed independent Title profile swaps, full workspace, combined/stable and native fallback/Patchbay remain separate"
+}

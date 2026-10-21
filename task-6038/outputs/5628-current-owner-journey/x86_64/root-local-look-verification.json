@@ -1,0 +1,12 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "raw_serial_sha256": "762e7577fd78cf320b923daadea277606476e419092f8ab44ec3d7ad26f8cd03",
+  "independently_joined_local_transitions": 4,
+  "complete_faces_equal": true,
+  "same_component_and_recipe": true,
+  "fresh_linked_shows": true,
+  "commands_within_48": true,
+  "source_change_records_in_swap_interval": 0,
+  "typography": "Editorial on all four local roots; not independent Title-profile proof",
+  "owner_backed": false
+}

@@ -1,0 +1,33 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "reconstruction": "Concatenate each ordered parts list byte-exactly; original large files retained locally",
+  "files": [
+    {
+      "original": "native-shell-paired-linear.json",
+      "sha256": "c4600c62f0a5b579684ddbfafe699460b39a723698a452e2a1ce4689671daf92",
+      "bytes": 1828014,
+      "parts": [
+        {
+          "file": "archive-parts/native-shell-paired-linear.json/part-1.txt",
+          "sha256": "bc9bfe1f831cdcad202a0427f94aad090216271f5ed5a93ae0399070f4c59628",
+          "bytes": 524277
+        },
+        {
+          "file": "archive-parts/native-shell-paired-linear.json/part-2.txt",
+          "sha256": "895e64b04a8970cff17d27fa2413b1a74e037f78d59e685fb10dd5a7add19f92",
+          "bytes": 524277
+        },
+        {
+          "file": "archive-parts/native-shell-paired-linear.json/part-3.txt",
+          "sha256": "9fd31809f27cc7284b79168741a49f42222285b9d75f48f79d125eb7659e2c9e",
+          "bytes": 524196
+        },
+        {
+          "file": "archive-parts/native-shell-paired-linear.json/part-4.txt",
+          "sha256": "9e2270f2ce2c13fe5eb86e226a4b463e4617cd1d9ab12b717bfee380977243d3",
+          "bytes": 255264
+        }
+      ]
+    }
+  ]
+}

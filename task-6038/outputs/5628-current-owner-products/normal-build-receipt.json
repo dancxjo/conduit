@@ -1,0 +1,12 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "normal_build_exit": 0,
+  "artifact_role": "product-host",
+  "build_id": "build:sha256:d01a6e1d909d3f4d849753861a8c006e936468461bf53bafe67bad1e4125754d",
+  "final_image_sha256": "0ead10806a141a7d3f504679fd75b818bc440ad1cc623d865b4875954e2d5aac",
+  "kernel_sha256": "2fdcc520ba70bd3376546d0548739222804b7816c52a4a27aa2fad82a42be7a7",
+  "resolved_description_binding": "image:sha256:08f9caf8efc60caf463c1c99d31778f0314c47cc55f46bc86c64c9b9c672fb67",
+  "hashes_independently_verified": true,
+  "unprovisioned_artifact_copy_retained": true,
+  "boundary": "Build only; canonical journey currently running, not accepted-tree/native owner proof."
+}
