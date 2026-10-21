@@ -1,0 +1,10 @@
+
+running 5 tests
+test native_observation::progress::state::tests::an_abandoned_scope_is_not_reported_as_a_success_or_operation_refusal ... ok
+test native_observation::progress::state::tests::scope_or_clock_corruption_freezes_diagnostics_after_one_explicit_refusal ... ok
+test native_observation::progress::state::tests::bounded_context_cannot_inject_json_and_maximum_record_fits_fixed_storage ... ok
+test native_observation::progress::state::tests::nested_scope_records_have_exact_order_parent_clock_and_outcome ... ok
+test native_observation::progress::state::tests::exact_finite_span_budget_refuses_without_flooding_or_wrapping ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 1243 filtered out; finished in 0.00s
+

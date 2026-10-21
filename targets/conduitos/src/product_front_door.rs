@@ -33,6 +33,7 @@ use crate::{
     local_rescue::LocalRescueMatcher,
     make::MakeRecord,
     native_compositor::InputRoute,
+    native_observation::{Phase, Progress},
     offer::CAPABILITY_COUNT,
     offer_make::ImageBoundHostOffer,
     product_bases::{EffectFamily, FRAMEBUFFER_RESOURCE_CLASS, NativeProductBases},
@@ -97,8 +98,10 @@ pub fn run(
     let host_id = conduit_core::HostId::from(identity::hex(&identities.host));
     let boot_id = conduit_core::BootId::from(identity::hex(&identities.boot));
     let generation = conduit_core::OfferGeneration(offer.generation);
-    let mut journey = ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
-        .map_err(|error| error.as_str())?;
+    let mut journey = Progress::result(Phase::IdentityResolve, "product-journey", || {
+        ProductJourney::new(host_id.clone(), boot_id.clone(), generation)
+    })
+    .map_err(|error| error.as_str())?;
     if effect_bases
         .require(EffectFamily::Framebuffer)
         .map_err(|_| "product-framebuffer-base-unavailable")?
@@ -145,23 +148,27 @@ pub fn run(
         .filter(|face| face.interactions_admitted())
         .and(owner_route);
     let mut current_owner_face = owner_face.clone();
-    let mut face_arrival = FaceArrival::prepare(
-        host_id.clone(),
-        boot_id.clone(),
-        generation,
-        make.build_id,
-        framebuffer_basis.base_id.clone(),
-        &surface_provider,
-        owner_face.as_ref().and_then(|face| face.route()),
-    )?;
-    let mut face_workspace = FaceWorkspace::prepare(
-        host_id.clone(),
-        boot_id.clone(),
-        generation,
-        make.build_id,
-        framebuffer_basis.base_id.clone(),
-        &surface_provider,
-    )?;
+    let mut face_arrival = Progress::result(Phase::MaskPreparation, "arrival", || {
+        FaceArrival::prepare(
+            host_id.clone(),
+            boot_id.clone(),
+            generation,
+            make.build_id,
+            framebuffer_basis.base_id.clone(),
+            &surface_provider,
+            owner_face.as_ref().and_then(|face| face.route()),
+        )
+    })?;
+    let mut face_workspace = Progress::result(Phase::MaskPreparation, "workspace", || {
+        FaceWorkspace::prepare(
+            host_id.clone(),
+            boot_id.clone(),
+            generation,
+            make.build_id,
+            framebuffer_basis.base_id.clone(),
+            &surface_provider,
+        )
+    })?;
     let mut presenter = FrontDoorPresenter::prepare(
         host_id,
         boot_id,
@@ -174,13 +181,15 @@ pub fn run(
     .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
     let mut owner_route_standby = owner_route.as_ref().is_some_and(|route| route.available());
-    let receipt = if let Some(owner_face) = owner_face {
-        face_arrival.present_owner_face(owner_face.into_face(), false, display)?
-    } else if provisioned_guest {
-        face_arrival.present_pending_join(&front_door, display)?
-    } else {
-        face_arrival.present_first(&front_door, display)?
-    };
+    let receipt = Progress::result(Phase::FirstShow, "arrival", || {
+        if let Some(owner_face) = owner_face {
+            face_arrival.present_owner_face(owner_face.into_face(), false, display)
+        } else if provisioned_guest {
+            face_arrival.present_pending_join(&front_door, display)
+        } else {
+            face_arrival.present_first(&front_door, display)
+        }
+    })?;
     crate::native_observation::point(crate::native_observation::Stage::FirstFramebufferCommit);
     if owner_route_standby {
         face_arrival.show_owner_standby(display)?;
@@ -211,10 +220,19 @@ pub fn run(
     let mut serial = arch::Serial::new();
     let mut interrupts = arch::Interrupts::new();
     let mut idle = arch::Idle::new();
+    let mut first_input_wait = Some(Progress::begin(Phase::InputWait, "first-decoded-input"));
     loop {
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
+            if matches!(
+                input,
+                ProductInputEvent::Key(_) | ProductInputEvent::Pointer(_)
+            ) {
+                if let Some(span) = first_input_wait.take() {
+                    span.finish();
+                }
+            }
             if matches!(input, ProductInputEvent::Service) && pointer_admitted {
                 pointer_input::render(
                     &pointer_state,

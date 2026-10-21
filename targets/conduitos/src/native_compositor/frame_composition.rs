@@ -10,6 +10,22 @@ impl NativeCompositor {
         &mut self,
         target: &mut impl PixelTarget,
     ) -> Result<FrameReceipt, NativeCompositorError> {
+        // Idle service calls still execute their ordinary acknowledgement path;
+        // only requested damage consumes the finite progress observation budget.
+        if self.damage.pending().is_empty() {
+            return self.compose_frame_inner(target);
+        }
+        crate::native_observation::Progress::result(
+            crate::native_observation::Phase::Scanout,
+            "compositor",
+            || self.compose_frame_inner(target),
+        )
+    }
+
+    fn compose_frame_inner(
+        &mut self,
+        target: &mut impl PixelTarget,
+    ) -> Result<FrameReceipt, NativeCompositorError> {
         // Invalidate before the first fallible operation: partial writes cannot
         // preserve acknowledgement of a prior successful frame.
         self.scanout_pixels = [0; super::MAX_COMPOSITOR_SURFACES];

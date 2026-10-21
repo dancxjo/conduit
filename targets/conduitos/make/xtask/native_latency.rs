@@ -77,6 +77,9 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
             let guest = super::native_timing::parse(&serial)?;
             let breakdown =
                 breakdown::derive(&serial, &guest, &identity.host_id, &identity.boot_id)?;
+            let progress =
+                super::native_progress::parse(&serial, &identity.host_id, &identity.boot_id)?;
+            super::native_progress::require_product_phases(&progress)?;
             if trials
                 .iter()
                 .any(|prior: &serde_json::Value| prior["boot_id"] == identity.boot_id)
@@ -94,7 +97,7 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
                 "phase":if trial == 0 { "first-process" } else { "repeated-fresh-process" },
                 "profile_id":identity.profile_id,"build_id":identity.build_id,
                 "host_id":identity.host_id,"boot_id":identity.boot_id,"journey_ns":journey_ns,
-                "guest":guest,"breakdown":breakdown,
+                "guest":guest,"breakdown":breakdown,"progress":progress,
                 "frame_manifest":"journey-frames/manifest.json",
                 "typing_observations":"journey-typing-timing.json","reading_observations":"journey-reading-timing.json"});
             write(&output.join("timing.json"), &record)?;

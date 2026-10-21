@@ -420,9 +420,12 @@ impl FaceArrival {
         door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = door
-            .creche_face(&self.basis)
-            .map_err(|error| error.as_str())?;
+        let face = crate::native_observation::Progress::result(
+            crate::native_observation::Phase::FaceConstruction,
+            "creche",
+            || door.creche_face(&self.basis),
+        )
+        .map_err(|error| error.as_str())?;
         self.present(face, display)
     }
 

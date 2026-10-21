@@ -10,17 +10,7 @@ use core::{
 const LIMIT: u32 = 2048;
 static NEXT: AtomicU32 = AtomicU32::new(0);
 
-pub(super) fn read() -> u64 {
-    let low: u32;
-    let high: u32;
-    // x86_64 guarantees SSE2. Fences order execution; the memory clobber also
-    // prevents compiler motion across the observation. No clamping or guessed Hz.
-    unsafe {
-        core::arch::asm!("lfence", "rdtsc", "lfence", out("eax") low,
-            out("edx") high, options(nostack));
-    }
-    (u64::from(high) << 32) | u64::from(low)
-}
+pub(super) use super::raw_counter::read;
 
 pub(super) fn publish(stage: Stage, start: u64, end: u64) {
     let sequence = match NEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
