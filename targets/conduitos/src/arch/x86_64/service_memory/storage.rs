@@ -1,4 +1,4 @@
-//! Five independently claimed physical stores. No compositor arena duplication.
+//! Six independently claimed physical stores. No compositor arena duplication.
 use crate::{
     protected_region::DomainRefusal,
     service_memory::{ServiceMemoryLayout, ServiceProfile},
@@ -17,6 +17,7 @@ const D: ServiceMemoryLayout = ServiceMemoryLayout::draft();
 const H: ServiceMemoryLayout = ServiceMemoryLayout::home();
 const R: ServiceMemoryLayout = ServiceMemoryLayout::runtime();
 const A: ServiceMemoryLayout = ServiceMemoryLayout::application();
+const N: ServiceMemoryLayout = ServiceMemoryLayout::network();
 const fn optional_bytes(range: Option<crate::service_memory::MemoryRange>) -> usize {
     match range {
         Some(range) => range.bytes() as usize,
@@ -90,6 +91,15 @@ type Application = Slot<
     0,
     0,
     { (A.end() as usize).div_ceil(2 * 1024 * 1024) },
+>;
+type Network = Slot<
+    { N.image().bytes() as usize },
+    { N.output().bytes() as usize },
+    { N.stack().bytes() as usize },
+    { N.metadata().bytes() as usize },
+    0,
+    0,
+    { (N.end() as usize).div_ceil(2 * 1024 * 1024) },
 >;
 impl<
     const I: usize,
@@ -178,11 +188,13 @@ static DRAFT: Pool<Draft> = Pool(UnsafeCell::new(Draft::empty()));
 static HOME: Pool<Home> = Pool(UnsafeCell::new(Home::empty()));
 static RUNTIME: Pool<Runtime> = Pool(UnsafeCell::new(Runtime::empty()));
 static APPLICATION: Pool<Application> = Pool(UnsafeCell::new(Application::empty()));
+static NETWORK: Pool<Network> = Pool(UnsafeCell::new(Network::empty()));
 static COMPOSITOR_OWNED: AtomicBool = AtomicBool::new(false);
 static DRAFT_OWNED: AtomicBool = AtomicBool::new(false);
 static HOME_OWNED: AtomicBool = AtomicBool::new(false);
 static RUNTIME_OWNED: AtomicBool = AtomicBool::new(false);
 static APPLICATION_OWNED: AtomicBool = AtomicBool::new(false);
+static NETWORK_OWNED: AtomicBool = AtomicBool::new(false);
 fn owned(profile: ServiceProfile) -> &'static AtomicBool {
     match profile {
         ServiceProfile::Compositor => &COMPOSITOR_OWNED,
@@ -190,6 +202,7 @@ fn owned(profile: ServiceProfile) -> &'static AtomicBool {
         ServiceProfile::Home => &HOME_OWNED,
         ServiceProfile::Runtime => &RUNTIME_OWNED,
         ServiceProfile::Application => &APPLICATION_OWNED,
+        ServiceProfile::Network => &NETWORK_OWNED,
     }
 }
 pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
@@ -199,6 +212,7 @@ pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
         ServiceProfile::Home => core::mem::size_of::<Home>() as u32,
         ServiceProfile::Runtime => core::mem::size_of::<Runtime>() as u32,
         ServiceProfile::Application => core::mem::size_of::<Application>() as u32,
+        ServiceProfile::Network => core::mem::size_of::<Network>() as u32,
     }
 }
 pub(super) struct Lease {
@@ -233,6 +247,7 @@ impl Lease {
                 ServiceProfile::Home => (&mut *HOME.0.get()).view(),
                 ServiceProfile::Runtime => (&mut *RUNTIME.0.get()).view(),
                 ServiceProfile::Application => (&mut *APPLICATION.0.get()).view(),
+                ServiceProfile::Network => (&mut *NETWORK.0.get()).view(),
             }
         }
     }
@@ -246,6 +261,7 @@ impl Lease {
                 ServiceProfile::Home => &(*HOME.0.get()).output.0,
                 ServiceProfile::Runtime => &(*RUNTIME.0.get()).output.0,
                 ServiceProfile::Application => &(*APPLICATION.0.get()).output.0,
+                ServiceProfile::Network => &(*NETWORK.0.get()).output.0,
             }
         }
     }
@@ -262,6 +278,7 @@ impl Lease {
                 ServiceProfile::Application => {
                     core::ptr::addr_of!((*APPLICATION.0.get()).trap.0) as u64
                 }
+                ServiceProfile::Network => core::ptr::addr_of!((*NETWORK.0.get()).trap.0) as u64,
             }
         };
         base + 16384

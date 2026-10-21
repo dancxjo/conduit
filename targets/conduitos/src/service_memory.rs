@@ -14,6 +14,7 @@ pub enum ServiceProfile {
     Home,
     Runtime,
     Application,
+    Network,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
@@ -23,6 +24,7 @@ impl ServiceProfile {
             Self::Home => ServiceMemoryLayout::home(),
             Self::Runtime => ServiceMemoryLayout::runtime(),
             Self::Application => ServiceMemoryLayout::application(),
+            Self::Network => ServiceMemoryLayout::network(),
         }
     }
 }
@@ -106,6 +108,22 @@ impl ServiceMemoryLayout {
             ],
         )
     }
+    /// Independently owned bounded network protocol state, without device grants.
+    /// These fixed engineering ceilings do not establish runtime timing or fit.
+    pub const fn network() -> Self {
+        Self::from_sizes(
+            ServiceProfile::Network,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                1024 * 1024,
+                1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
     const fn controller(profile: ServiceProfile) -> Self {
         Self::from_sizes(
             profile,
@@ -158,7 +176,8 @@ impl ServiceMemoryLayout {
             ServiceProfile::Draft
             | ServiceProfile::Home
             | ServiceProfile::Runtime
-            | ServiceProfile::Application => None,
+            | ServiceProfile::Application
+            | ServiceProfile::Network => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
@@ -168,7 +187,8 @@ impl ServiceMemoryLayout {
             ServiceProfile::Draft
             | ServiceProfile::Home
             | ServiceProfile::Runtime
-            | ServiceProfile::Application => None,
+            | ServiceProfile::Application
+            | ServiceProfile::Network => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -180,7 +200,8 @@ impl ServiceMemoryLayout {
             ServiceProfile::Draft
             | ServiceProfile::Home
             | ServiceProfile::Runtime
-            | ServiceProfile::Application => 5,
+            | ServiceProfile::Application
+            | ServiceProfile::Network => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -258,7 +279,8 @@ impl<'a> ServiceImage<'a> {
             ServiceProfile::Draft
             | ServiceProfile::Home
             | ServiceProfile::Runtime
-            | ServiceProfile::Application => Some(PrivateDataWindow {
+            | ServiceProfile::Application
+            | ServiceProfile::Network => Some(PrivateDataWindow {
                 start: layout.metadata().start(),
                 bytes: PAGE_BYTES,
             }),

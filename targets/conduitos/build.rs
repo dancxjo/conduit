@@ -1,18 +1,20 @@
+#[path = "build/application_image.rs"]
+mod application_image;
 #[path = "build/compositor_hostile_images.rs"]
 mod compositor_hostile_images;
 #[path = "build/compositor_image.rs"]
 mod compositor_image;
 #[path = "build/creche_image.rs"]
 mod creche_image;
-#[path = "build/application_image.rs"]
-mod application_image;
-#[path = "build/runtime_image.rs"]
-mod runtime_image;
 #[path = "build/domain_image.rs"]
 mod domain_image_build;
 #[allow(dead_code)]
 #[path = "src/domain_image.rs"]
 mod image_validation;
+#[path = "build/network_image.rs"]
+mod network_image;
+#[path = "build/runtime_image.rs"]
+mod runtime_image;
 use image_validation as domain_image;
 #[allow(dead_code)]
 #[path = "src/service_memory.rs"]
@@ -28,6 +30,7 @@ fn main() {
     creche_image::generate();
     runtime_image::generate();
     application_image::generate();
+    network_image::generate();
     compositor_hostile_images::generate();
 
     println!("cargo:rerun-if-changed=firmware/linker/x86_64.ld");
