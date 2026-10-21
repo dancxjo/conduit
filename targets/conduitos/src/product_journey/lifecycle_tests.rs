@@ -155,3 +155,35 @@ fn changed_offer_cannot_replace_the_sealed_proposal_during_preparation() {
     assert_eq!(journey.biography(), Some(&before));
     assert!(journey.kernel.is_none());
 }
+
+#[test]
+fn cancelled_prepared_execution_refuses_play_without_losing_birth_or_claiming_started() {
+    let (ids, offer, mut journey) = born();
+    let born = journey.projection();
+    invoke(&mut journey, JourneyAction::Wake, &ids, &offer).unwrap();
+    invoke(&mut journey, JourneyAction::Plan, &ids, &offer).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::Planned);
+    // Cancel the actual prepared kernel, rather than fabricating a Play
+    // response. Its production start boundary must refuse this realization.
+    journey.kernel.as_mut().unwrap().cancel().unwrap();
+    assert!(invoke(&mut journey, JourneyAction::Play, &ids, &offer).is_err());
+    let refused = journey.projection();
+    assert_eq!(refused.status, JourneyStatus::Lulled);
+    assert_eq!(refused.body_id, born.body_id);
+    assert_eq!(refused.born_sign_id, born.born_sign_id);
+    assert!(refused.active_play_id.is_none());
+    assert!(refused.play_sign_id.is_none());
+    assert!(journey.kernel.is_none());
+    // Recovery is a new explicitly requested realization of the same Body.
+    for action in [
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        invoke(&mut journey, action, &ids, &offer).unwrap();
+    }
+    let recovered = journey.projection();
+    assert_eq!(recovered.body_id, born.body_id);
+    assert_eq!(recovered.born_sign_id, born.born_sign_id);
+    assert!(recovered.active_play_id.is_some());
+}
