@@ -1,0 +1,15 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "exit_code": 0,
+  "artifacts": {
+    "image": {
+      "file": "conduitos-x86_64.iso",
+      "sha256": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb"
+    },
+    "kernel": {
+      "file": "conduitos-kernel.elf",
+      "sha256": "56737ae059c51033a6eb0a60a8eb8bbda40aaa978fff6f8ac6e63b8033064ed0"
+    }
+  },
+  "boundary": "Normal graphical product build only. Canonical QEMU journey queued/running separately; no owner route/stable claim."
+}

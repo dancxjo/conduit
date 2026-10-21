@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "reconciled253WorkspaceAndNormalProductBuildRunning",
+  "current_stage": "normal253BuildPassed;OwnerReleaseAndHandbookPipelineAndCanonicalJourneyRunning;WorkspaceRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -269,6 +269,10 @@
     "private_proof_setup": "new mode0700 directory, empty isolated checkpoint, private P256 TLS certificate verified for guestIP; no owner/invitation/guest yet",
     "browser_session_helper": "root-reviewed synthetic checks passed; current-report identity and unchanged-state cases corrected; no actual execution",
     "owner_report_review": "outer FacePlan can change across nativeLookswap; helper corrected before execution",
-    "native_fallback": "actual generic fallback exists but inspected normal-product trigger absent; CPU21item specimen exceeds actualTodoMAX20 and is not guestproof"
+    "native_fallback": "actual generic fallback exists but inspected normal-product trigger absent; CPU21item specimen exceeds actualTodoMAX20 and is not guestproof",
+    "product_build": "passed",
+    "product_iso": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb",
+    "owner_artifact_pipeline_session": 5550,
+    "normal_journey_session": 50352
   }
 }

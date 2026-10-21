@@ -1,0 +1,62 @@
+{
+  "parent": "c2f17d21dbe13982478a4dbe5de58594930d3fcb",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 13131,
+      "sha256": "c1716427543c0be57a0146567b3f222bd42339dcc2610dd5e530a5e3793501dc",
+      "mode": "100644",
+      "blob": "f70d9a981dfe96536874d6c58a01f53d456d47d5"
+    },
+    {
+      "source": "work/5628-build-owner-artifacts.py",
+      "tree_path": "task-6038/work/5628-build-owner-artifacts.py",
+      "bytes": 1440,
+      "sha256": "1c4f196b79180dd435f2cab21f0d9f194c657e9094b73405c2ff13f61cde3258",
+      "mode": "100644",
+      "blob": "6d7d67d5921fca474f32c6f8c67ae38043cf0677"
+    },
+    {
+      "source": "work/run-5628-normal-253dcb985.py",
+      "tree_path": "task-6038/work/run-5628-normal-253dcb985.py",
+      "bytes": 1753,
+      "sha256": "7c8d722aedc4d20d0231b4c7d49a4044c54b8433ae8bd72bbb6d57383942f3ed",
+      "mode": "100644",
+      "blob": "339b5143d7653d873076ad97e1957c5b0b8bff32"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/normal-build-manifest.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/normal-build-manifest.json",
+      "bytes": 4269,
+      "sha256": "f2b071c39983af0f983892292999bba67dcae5afdc4b1e2f86b74e6e3ef5d1f6",
+      "mode": "100644",
+      "blob": "e57757f372d7a87b8ce4c6ec7afb0f70eb3ade36"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/normal-resolved-image.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/normal-resolved-image.json",
+      "bytes": 4453,
+      "sha256": "69556f697cc019a742ad87895b75ae898c7bb73839ac29935b9f8884763daae2",
+      "mode": "100644",
+      "blob": "c1e4c1d81362fe97265e51049f2563589ea9b060"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/normal-product-build.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/normal-product-build.log",
+      "bytes": 23489,
+      "sha256": "3bd7938ec7f1b4be913456905ecac1b717320e8fa867096214ec2931b653859e",
+      "mode": "100644",
+      "blob": "65295789af903268894452d633c9319a9d88a8ce"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/normal-product-build-receipt.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/normal-product-build-receipt.json",
+      "bytes": 518,
+      "sha256": "adbe3c5b26472f345caff00352ec2dc99fd58231e38870f8a3d8be521d2ba2c1",
+      "mode": "100644",
+      "blob": "6da64b314a604d4346572ceeed55bf7d08a3bcf7"
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "schema": "conduit.host/target-build-manifest@3",
+  "artifact_role": "product-host",
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "build_id": "build:sha256:795860a45b44c7285abd6ca11e31ba7c104c739b5dfcafb215b2416c5dcab2ad",
+  "image_id": "image:sha256:02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb",
+  "resolved_description_binding": "image:sha256:32288ebe93067fcbe1306198cea5f07a84f75a1873618b85d20672582846b6ce",
+  "source_identity": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools",
+  "target": "conduitos/x86_64/pc",
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "56737ae059c51033a6eb0a60a8eb8bbda40aaa978fff6f8ac6e63b8033064ed0"
+  },
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-x86_64.iso",
+    "sha256": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb"
+  },
+  "boot_assets": {
+    "packager": "pinned-limine-hybrid-iso",
+    "limine_version": "12.5.2",
+    "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+    "architecture": "x86_64",
+    "machine": "q35",
+    "firmware": "OVMF_CODE.fd",
+    "boot_entry": "BOOTX64.EFI"
+  },
+  "resolved_build": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+    "build_id": "build:sha256:795860a45b44c7285abd6ca11e31ba7c104c739b5dfcafb215b2416c5dcab2ad",
+    "image_id": "image:sha256:32288ebe93067fcbe1306198cea5f07a84f75a1873618b85d20672582846b6ce",
+    "source_identity": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/x86_64/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    }
+  }
+}
