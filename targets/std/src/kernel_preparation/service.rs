@@ -11,6 +11,7 @@ pub use controller::RegionAdvance;
 pub use execution::RegionExecution;
 mod offers;
 mod preparation;
+mod planning;
 pub use activation::RegionWorkerCommand;
 pub use offers::RegionServiceConfig;
 pub use worker::WorkerError as RegionWorkerError;
