@@ -12,6 +12,7 @@ fn item(text: &str, subject: Option<usize>, control: Option<FaceControl>) -> doc
         region: None,
         region_order: None,
         checkbox: None,
+        icon: None,
     }
 }
 

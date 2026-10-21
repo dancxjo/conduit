@@ -20,10 +20,29 @@ impl From<ComponentMaskLook> for ComponentVisualSelection {
     fn from(look: ComponentMaskLook) -> Self {
         match look {
             ComponentMaskLook::Compact => Self::default(),
+            ComponentMaskLook::CompactEditorial => Self {
+                density: VisualDensity::Compact,
+                palette: VisualPalette::Editorial,
+            },
+            ComponentMaskLook::SpaciousPhosphor => Self {
+                density: VisualDensity::Spacious,
+                palette: VisualPalette::Phosphor,
+            },
             ComponentMaskLook::Spacious => Self {
                 density: VisualDensity::Spacious,
                 palette: VisualPalette::Editorial,
             },
+        }
+    }
+}
+impl From<ComponentVisualSelection> for ComponentMaskLook {
+    fn from(selection: ComponentVisualSelection) -> Self {
+        use {VisualDensity::*, VisualPalette::*};
+        match (selection.density, selection.palette) {
+            (Compact, Phosphor) => Self::Compact,
+            (Compact, Editorial) => Self::CompactEditorial,
+            (Spacious, Phosphor) => Self::SpaciousPhosphor,
+            (Spacious, Editorial) => Self::Spacious,
         }
     }
 }
@@ -52,6 +71,38 @@ impl ComponentVisualSelection {
             (ResponsiveColumns, Compact, Editorial) => "creche-mask-columns-compact-editorial",
             (ResponsiveColumns, Spacious, Phosphor) => "creche-mask-columns-spacious-phosphor",
             (ResponsiveColumns, Spacious, Editorial) => "creche-mask-columns-spacious",
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn closed_native_preset_names_keep_existing_values_and_cover_independent_axes() {
+        for (wire, look) in [
+            ("compact", ComponentMaskLook::Compact),
+            ("spacious", ComponentMaskLook::Spacious),
+            ("compact-editorial", ComponentMaskLook::CompactEditorial),
+            ("spacious-phosphor", ComponentMaskLook::SpaciousPhosphor),
+        ] {
+            let encoded = serde_json::to_value(look).unwrap();
+            assert_eq!(encoded, wire);
+            assert_eq!(
+                serde_json::from_value::<ComponentMaskLook>(encoded).unwrap(),
+                look
+            );
+            assert_eq!(
+                ComponentMaskLook::from(ComponentVisualSelection::from(look)),
+                look
+            );
+        }
+        for wire in [
+            serde_json::json!("editorial"),
+            serde_json::json!("compact_phosphor"),
+            serde_json::json!({"palette":"editorial","density":"compact"}),
+        ] {
+            assert!(serde_json::from_value::<ComponentMaskLook>(wire).is_err());
         }
     }
 }

@@ -243,6 +243,9 @@ struct LiveOwnerActionProofArgs {
 struct LiveOwnerTodoFaceProofArgs {
     #[command(flatten)]
     route: LiveOwnerActionProofArgs,
+    /// Exercise four independently selected native Looks through the owner route.
+    #[arg(long)]
+    look_selection: bool,
     /// Body expected in the exact installed Owner admission receipt.
     #[arg(long)]
     expected_body_id: String,

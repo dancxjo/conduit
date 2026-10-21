@@ -1,0 +1,17 @@
+{
+  "native_coverage.bin": {
+    "bytes": 761651,
+    "sha256": "40e2501492b27bdeff988866ced595e310b8753935af43bb773ea8121dfb0370",
+    "matches_accepted_resource": true
+  },
+  "native_typography.rs": {
+    "bytes": 512970,
+    "sha256": "8386f66424c5a48e63077fb63c396901603ac3cd6da1c39b3c251dffcd7e8eef",
+    "matches_accepted_resource": true
+  },
+  "native_typography_resources.tsv": {
+    "bytes": 319,
+    "sha256": "b1cbb5dd8ca08682e9f5d2ef25e1169f9a1a1a69eb85971747c473b859e2dca5",
+    "matches_accepted_resource": true
+  }
+}

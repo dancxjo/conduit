@@ -22,6 +22,7 @@ fn item(text: &str, region: Option<u8>) -> document::Item {
         region,
         region_order: region.map(usize::from),
         checkbox: None,
+        icon: None,
     }
 }
 fn end(row: &Row) -> i32 {
