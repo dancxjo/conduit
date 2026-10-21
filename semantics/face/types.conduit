@@ -255,6 +255,8 @@ type GraphicsPaintRole =
     | focus
     | hovered
     | selected
+    | surface
+    | border
 
 form face/graphics-paint-role = GraphicsPaintRole as u8 from 1
 

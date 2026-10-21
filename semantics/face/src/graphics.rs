@@ -18,6 +18,8 @@ pub const MAX_GRAPHICS_SCENE_BYTES: usize =
     2 + MAX_GRAPHICS_COMMANDS * (21 + MAX_GRAPHICS_TEXT_BYTES);
 // Version 2 carries one explicit graphical text-role byte per command. Old
 // scene encodings refuse rather than silently changing text layout on replay.
+// Surface and Border append paint tags without changing existing tags or
+// command layout. Readers without those paints refuse the unknown tag.
 const VERSION: u8 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

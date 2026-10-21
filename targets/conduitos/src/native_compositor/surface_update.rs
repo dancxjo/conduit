@@ -274,7 +274,7 @@ fn visual_paint(
     use conduit_face::{GraphicsPaintRole as Role, VisualPalette};
     let color = if expression.is_some_and(|value| value.platform_forced_colors) {
         match role {
-            Role::Background => (0, 0, 0),
+            Role::Background | Role::Surface => (0, 0, 0),
             Role::Focus | Role::Hovered | Role::Selected => (255, 255, 0),
             _ => (255, 255, 255),
         }
@@ -288,6 +288,8 @@ fn visual_paint(
             Role::Success => (0, 85, 45),
             Role::Danger => (140, 20, 35),
             Role::Focus | Role::Hovered => (0, 67, 140),
+            Role::Surface => (248, 240, 225),
+            Role::Border => (91, 85, 104),
         }
     } else {
         match role {
@@ -299,7 +301,13 @@ fn visual_paint(
             Role::Success => SUCCESS,
             Role::Danger => DANGER,
             Role::Focus | Role::Hovered => (255, 204, 51),
+            Role::Surface => crate::display::SURFACE,
+            Role::Border => crate::display::BORDER_PAINT,
         }
     };
     format.pixel(color.0, color.1, color.2)
 }
+
+#[cfg(all(test, feature = "native-compositor"))]
+#[path = "surface_update/paint_tests.rs"]
+mod paint_tests;
