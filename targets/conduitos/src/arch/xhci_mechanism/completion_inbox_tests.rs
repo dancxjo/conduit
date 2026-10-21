@@ -3,6 +3,7 @@ use crate::arch::xhci_mechanism::XhciReady;
 
 fn transfer(slot: u8, endpoint: u8, pointer: u64) -> Event {
     Event {
+        event_data: false,
         event_type: 32,
         completion_code: 1,
         slot,

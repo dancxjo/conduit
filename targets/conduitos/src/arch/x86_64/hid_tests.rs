@@ -179,11 +179,12 @@ fn malformed_rollover_and_duplicates_never_make_transitions() {
 #[test]
 fn completion_correlation_and_transfer_outcomes_are_distinct() {
     let event = Event {
+        event_data: true,
         event_type: 32,
         completion_code: 1,
         slot: 1,
         endpoint: 3,
-        residual: 0,
+        residual: 8,
         pointer: 0x1000,
     };
     assert_eq!(validate_interrupt_event(event, 1, 3, 0x1000), Ok(()));
@@ -246,7 +247,7 @@ fn all_storage_and_work_limits_are_finite() {
     assert_eq!(BOOT_REPORT_BYTES, 8);
     assert_eq!(MAX_TRANSITIONS_PER_REPORT, 20);
     assert_eq!(MAX_SESSION_TRANSITIONS, 64);
-    assert_eq!(TRANSFER_RING_REPORT_SLOTS, 63);
+    assert_eq!(TRANSFER_RING_REPORT_SLOTS, 31);
     assert_eq!(REPORT_BUFFERS, 8);
     assert_eq!(MAX_OUTSTANDING_INTERRUPT_TRANSFERS, 8);
     assert_eq!(INTERRUPT_TRANSFER_TRBS, 64);
@@ -291,4 +292,46 @@ fn every_failure_has_a_distinct_machine_reason() {
                 .any(|prior| prior.as_str() == failure.as_str())
         );
     }
+}
+
+#[test]
+fn cookie_completion_requires_event_data_and_exact_transferred_extent() {
+    let event = Event {
+        event_data: true,
+        event_type: 32,
+        completion_code: 1,
+        slot: 1,
+        endpoint: 3,
+        residual: 8,
+        pointer: 0x100000001,
+    };
+    assert_eq!(validate_interrupt_event(event, 1, 3, event.pointer), Ok(()));
+    assert_eq!(
+        validate_interrupt_event(
+            Event {
+                event_data: false,
+                ..event
+            },
+            1,
+            3,
+            event.pointer
+        ),
+        Err(HidError::WrongCompletion)
+    );
+    assert_eq!(
+        validate_interrupt_event(
+            Event {
+                residual: 0,
+                ..event
+            },
+            1,
+            3,
+            event.pointer
+        ),
+        Err(HidError::ShortReport)
+    );
+    assert_eq!(
+        validate_interrupt_event(event, 1, 3, event.pointer + 1),
+        Err(HidError::WrongCompletion)
+    );
 }

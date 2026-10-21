@@ -2,6 +2,7 @@ use super::*;
 
 fn event(pointer: u64, code: u8, residual: u32) -> Event {
     Event {
+        event_data: false,
         event_type: 32,
         completion_code: code,
         slot: 1,

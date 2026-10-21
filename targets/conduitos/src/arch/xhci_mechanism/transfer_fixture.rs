@@ -15,6 +15,7 @@ pub(crate) unsafe fn synthetic_transfer_event(
             (u32::from(event.event_type) << 10)
                 | (u32::from(event.slot) << 24)
                 | (u32::from(event.endpoint) << 16)
+                | (u32::from(event.event_data) << 2)
                 | cycle,
         ]
     };
@@ -30,6 +31,7 @@ pub(crate) unsafe fn synthetic_transfer_event(
                 + controller.command_enqueue as u64 * 16;
             DMA.event_ring[next] = encode(
                 Event {
+                    event_data: false,
                     event_type: 33,
                     completion_code: code,
                     slot: 1,
@@ -54,6 +56,7 @@ pub(crate) unsafe fn synthetic_next_stop_ack(controller: &XhciReady) {
         synthetic_transfer_event(
             controller,
             Event {
+                event_data: false,
                 event_type: 33,
                 completion_code: 1,
                 slot: 1,

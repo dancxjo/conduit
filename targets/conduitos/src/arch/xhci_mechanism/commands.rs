@@ -27,7 +27,7 @@ impl XhciReady {
             if event.event_type == 34 {
                 continue;
             }
-            if event.event_type != 33 || event.pointer != pointer {
+            if event.event_data || event.event_type != 33 || event.pointer != pointer {
                 return Err(XhciError::UnexpectedCompletion);
             }
             return Ok(event);
@@ -60,12 +60,13 @@ impl XhciReady {
             let event = self.next_event()?;
             match event.event_type {
                 34 => continue,
-                32 if event.slot == slot => {
+                32 if !event.event_data && event.slot == slot => {
                     stale_transfers = stale_transfers
                         .checked_add(1)
                         .ok_or(XhciError::UnexpectedCompletion)?;
                 }
-                33 if event.pointer == pointer
+                33 if !event.event_data
+                    && event.pointer == pointer
                     && event.completion_code == 1
                     && event.slot == slot =>
                 {
@@ -125,14 +126,16 @@ impl XhciReady {
             let event = self.next_event()?;
             match event.event_type {
                 34 => continue,
-                32 if event.slot == slot
+                32 if !event.event_data
+                    && event.slot == slot
                     && event.endpoint == endpoint
                     && Some(event.pointer) == original_td
                     && drained == 0 =>
                 {
                     drained = 1;
                 }
-                33 if event.pointer == pointer
+                33 if !event.event_data
+                    && event.pointer == pointer
                     && event.slot == slot
                     && event.completion_code == 1 =>
                 {

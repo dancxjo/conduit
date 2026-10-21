@@ -105,10 +105,13 @@ pub struct XhciReady {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Event {
+    /// ED distinguishes opaque Event Data from a controller TRB address.
+    pub event_data: bool,
     pub event_type: u8,
     pub completion_code: u8,
     pub slot: u8,
     pub endpoint: u8,
+    /// Residual bytes for pointer events; transferred-byte EDTLA for ED events.
     pub residual: u32,
     pub pointer: u64,
 }

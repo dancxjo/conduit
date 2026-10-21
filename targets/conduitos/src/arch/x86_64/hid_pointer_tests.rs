@@ -50,6 +50,7 @@ fn malformed_loss_and_completion_fail_distinctly() {
     );
     assert_eq!(ensure_present(0), Err(HidPointerError::DeviceRemoved));
     let event = Event {
+        event_data: false,
         event_type: 32,
         completion_code: 1,
         slot: 2,

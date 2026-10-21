@@ -77,6 +77,7 @@ fn actual_dma_publication_reuses_a_fixed_ring_across_ten_thousand_transfers() {
             cycle
         );
         let event = crate::arch::xhci_mechanism::Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 1,

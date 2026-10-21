@@ -31,7 +31,7 @@ pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 /// page-aligned HID DMA allocation while giving the controller enough runway
 /// to keep sampling during bounded semantic and face work.
 pub const REPORT_BUFFERS: usize = 8;
-pub const TRANSFER_RING_REPORT_SLOTS: usize = INTERRUPT_TRANSFER_TRBS - 1;
+pub const TRANSFER_RING_REPORT_SLOTS: usize = (INTERRUPT_TRANSFER_TRBS - 1) / 2;
 pub const MAX_SESSION_TRANSITIONS: usize = 64;
 pub const MAX_OUTSTANDING_INTERRUPT_TRANSFERS: u8 = REPORT_BUFFERS as u8;
 pub const INTERRUPT_TRANSFER_TRBS: usize = 64;
@@ -226,6 +226,7 @@ pub fn prepare_boot_keyboard(
     device: &UsbDevice,
     image_virtual_to_physical: fn(u64) -> Option<u64>,
 ) -> Result<HidKeyboardReady, HidError> {
+    interrupt::ensure_idle()?;
     let (interface, endpoint) = match_keyboard(device)?;
     select_boot_protocol(
         controller,
@@ -447,9 +448,10 @@ fn validate_interrupt_event(
     event: Event,
     slot: u8,
     endpoint: u8,
-    pointer: u64,
+    cookie: u64,
 ) -> Result<(), HidError> {
-    if event.event_type != 32 || event.pointer != pointer {
+    // For ED=1 the address field is an opaque cookie and length is EDTLA.
+    if !event.event_data || event.event_type != 32 || event.pointer != cookie {
         return Err(HidError::WrongCompletion);
     }
     if event.slot != slot {
@@ -459,7 +461,7 @@ fn validate_interrupt_event(
         return Err(HidError::WrongEndpoint);
     }
     match event.completion_code {
-        1 if event.residual == 0 => Ok(()),
+        1 if event.residual == BOOT_REPORT_BYTES as u32 => Ok(()),
         1 | 13 => Err(HidError::ShortReport),
         6 => Err(HidError::TransferStall),
         _ => Err(HidError::TransferError),

@@ -146,6 +146,7 @@ fn submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success()
             synthetic_transfer_event(
                 &host.controller,
                 Event {
+                    event_data: false,
                     event_type: 32,
                     completion_code: 1,
                     slot: 1,

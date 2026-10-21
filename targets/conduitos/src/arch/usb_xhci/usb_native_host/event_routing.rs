@@ -23,7 +23,7 @@ pub(super) fn route_event(
     event: Event,
     pending: [Option<PendingEventKey>; 2],
 ) -> Result<UsbNativeCallIndex, RoutingRefusal> {
-    if event.event_type != 32 {
+    if event.event_data || event.event_type != 32 {
         return Err(RoutingRefusal::Foreign);
     }
     let mut selected = None;
@@ -60,6 +60,7 @@ mod tests {
     }
     fn event() -> Event {
         Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 2,
@@ -103,6 +104,7 @@ mod tests {
                 ..event()
             },
             Event {
+                event_data: false,
                 event_type: 33,
                 ..event()
             },
@@ -133,4 +135,38 @@ mod tests {
             Ok(UsbNativeCallIndex(2))
         );
     }
+}
+
+#[cfg(test)]
+#[test]
+fn event_data_cookie_cannot_route_as_a_pointer_lease() {
+    let key = PendingEventKey {
+        index: UsbNativeCallIndex(1),
+        slot: 2,
+        endpoint: 3,
+        pointer: 0x1010,
+    };
+    let event = Event {
+        event_data: true,
+        event_type: 32,
+        completion_code: 1,
+        slot: 2,
+        endpoint: 3,
+        residual: 0,
+        pointer: 0x1010,
+    };
+    assert_eq!(
+        route_event(event, [Some(key), None]),
+        Err(RoutingRefusal::Foreign)
+    );
+    assert_eq!(
+        route_event(
+            Event {
+                event_data: false,
+                ..event
+            },
+            [Some(key), None]
+        ),
+        Ok(key.index)
+    );
 }

@@ -205,7 +205,11 @@ impl<'a> IsochronousOutTransfer<'a> {
         &mut self,
         event: Event,
     ) -> Result<IsochronousOutObservation, IsochronousOutRefusal> {
-        if event.event_type != 32 || event.slot != self.slot || event.endpoint != self.dci {
+        if event.event_data
+            || event.event_type != 32
+            || event.slot != self.slot
+            || event.endpoint != self.dci
+        {
             return Err(IsochronousOutRefusal::ForeignCompletion);
         }
         if event.completion_code == 14 {
@@ -284,6 +288,7 @@ impl IsochronousOutTransfer<'_> {
             .as_ref()
             .expect("original pending TD");
         Event {
+            event_data: false,
             event_type: 32,
             completion_code: code,
             slot: self.slot,

@@ -64,6 +64,7 @@ fn issued(
 }
 fn event(key: PendingEventKey, code: u8) -> crate::arch::xhci_mechanism::Event {
     crate::arch::xhci_mechanism::Event {
+        event_data: false,
         event_type: 32,
         completion_code: code,
         slot: key.slot,

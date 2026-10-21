@@ -25,7 +25,7 @@ pub(crate) fn observation(
     length: u16,
     frame: u16,
 ) -> Result<IsochronousOutObservation, IsochronousEventRefusal> {
-    if event.event_type != 32 || event.slot != slot || event.endpoint != dci {
+    if event.event_data || event.event_type != 32 || event.slot != slot || event.endpoint != dci {
         return Err(IsochronousEventRefusal::Foreign);
     }
     // Ring Underrun is endpoint scoped, not a completion of the pending TD.
@@ -74,6 +74,7 @@ mod tests {
     #[test]
     fn underrun_never_becomes_a_transfer_completion() {
         let event = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 14,
             slot: 1,
@@ -93,6 +94,7 @@ mod tests {
     #[test]
     fn exact_completion_short_and_missed_service_are_distinct() {
         let mut event = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 1,

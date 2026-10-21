@@ -115,6 +115,7 @@ fn descriptor_devices_begin_in_the_primary_dma_slot() {
 #[test]
 fn completion_identities_fail_separately() {
     let base = Event {
+        event_data: false,
         event_type: 32,
         completion_code: 1,
         slot: 1,
@@ -153,6 +154,7 @@ fn completion_identities_fail_separately() {
 #[test]
 fn short_packet_and_stall_are_explicit_control_outcomes() {
     let base = Event {
+        event_data: false,
         event_type: 32,
         completion_code: 13,
         slot: 1,

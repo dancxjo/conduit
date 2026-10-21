@@ -79,6 +79,7 @@ fn controller_preserves_keyboard_completion_while_consuming_a_command_ack() {
     };
     with_synthetic_stop_controller(1, 1, 0, |mut controller| {
         let keyboard = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 1,
@@ -163,6 +164,7 @@ fn readiness_includes_foreign_retention_without_stealing_its_completion() {
     use crate::arch::xhci_mechanism::{synthetic_transfer_event, with_synthetic_stop_controller};
     with_synthetic_stop_controller(1, 1, 0, |mut controller| {
         let event = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 1,
@@ -178,4 +180,26 @@ fn readiness_includes_foreign_retention_without_stealing_its_completion() {
         assert_eq!(controller.poll_transfer_event(1, 3), Ok(Some(event)));
         assert!(!controller.has_observed_event());
     });
+}
+
+#[test]
+fn event_data_identity_and_transferred_extent_survive_owned_event_decode() {
+    for cycle in [0, 1] {
+        let mut words = published(cycle);
+        words[3] |= 1 << 2;
+        words[2] = (1 << 24) | 8;
+        let event = read_owned_event(cycle, |word| words[word]).unwrap();
+        assert!(event.event_data);
+        assert_eq!(event.pointer, 0x1234_5678_9000);
+        assert_eq!(
+            event.residual, 8,
+            "ED length is transferred extent, not residual"
+        );
+        words[3] &= !(1 << 2);
+        assert!(
+            !read_owned_event(cycle, |word| words[word])
+                .unwrap()
+                .event_data
+        );
+    }
 }

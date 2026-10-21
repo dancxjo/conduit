@@ -370,7 +370,8 @@ pub(super) fn validated_residual(
     endpoint: u8,
     pointer: u64,
 ) -> Result<u32, EndpointWriteNativeRefusal> {
-    if event.event_type != 32
+    if event.event_data
+        || event.event_type != 32
         || event.slot != slot
         || event.endpoint != endpoint
         || event.pointer != pointer
@@ -391,6 +392,7 @@ mod tests {
     #[test]
     fn foreign_stall_events_cannot_authorize_fault_retirement() {
         let exact = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 6,
             slot: 2,
@@ -404,6 +406,7 @@ mod tests {
         ));
         for event in [
             Event {
+                event_data: false,
                 event_type: 34,
                 ..exact
             },
@@ -427,6 +430,7 @@ mod tests {
     #[test]
     fn outbound_completion_requires_exact_identity_and_success() {
         let event = Event {
+            event_data: false,
             event_type: 32,
             completion_code: 1,
             slot: 2,
@@ -446,6 +450,7 @@ mod tests {
                 ..event
             },
             Event {
+                event_data: false,
                 event_type: 33,
                 ..event
             },

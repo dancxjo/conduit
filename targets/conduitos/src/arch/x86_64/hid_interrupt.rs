@@ -12,6 +12,14 @@ use crate::arch::x86_64::{
     xhci::{XhciError, XhciReady},
 };
 
+#[path = "hid_transfer_identity.rs"]
+mod identity;
+
+/// Root is the sole keyboard runway owner; pending DMA cannot be reset.
+pub(super) fn ensure_idle() -> Result<(), HidError> {
+    unsafe { (&*core::ptr::addr_of!(identity::INTERESTS)).ensure_idle() }
+}
+
 struct Position;
 impl Position {
     fn at(sequence: usize) -> TransferPosition {
@@ -19,23 +27,32 @@ impl Position {
     }
 }
 
-fn enqueue(sequence: usize, ring: u64, reports: u64) {
+fn enqueue(sequence: usize, cookie: u64, ring: u64, reports: u64) {
     let position = Position::at(sequence);
     // The Link is installed before publishing the last ordinary TRB of each
     // cycle. The controller cannot reach it until that new tail is owned.
     if sequence == 0 || position.slot == TRANSFER_RING_REPORT_SLOTS - 1 {
         publish(position.link(ring), |word, value| unsafe {
             write_volatile(
-                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[TRANSFER_RING_REPORT_SLOTS][word]),
+                core::ptr::addr_of_mut!(
+                    HID_DMA.transfer_ring[TRANSFER_RING_REPORT_SLOTS * 2][word]
+                ),
                 value,
             );
         });
     }
+    // Publish the terminal Event Data first; Normal ownership exposes the TD.
+    publish(position.event_data(cookie), |word, value| unsafe {
+        write_volatile(
+            core::ptr::addr_of_mut!(HID_DMA.transfer_ring[position.slot * 2 + 1][word]),
+            value,
+        );
+    });
     publish(
-        position.normal(reports, BOOT_REPORT_BYTES),
+        position.chained_normal(reports, BOOT_REPORT_BYTES),
         |word, value| unsafe {
             write_volatile(
-                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[position.slot][word]),
+                core::ptr::addr_of_mut!(HID_DMA.transfer_ring[position.slot * 2][word]),
                 value,
             );
         },
@@ -59,8 +76,12 @@ pub(super) fn submit_report(
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     let reports = dma_physical + core::mem::offset_of!(HidDma, reports) as u64;
     let (start, end) = report_window(index)?;
+    // Exclusive Root metadata follows the same sole owner as HID_DMA.
+    let interests = unsafe { &mut *core::ptr::addr_of_mut!(identity::INTERESTS) };
+    interests.arm(start, end, device.attachment_epoch, &identity::SERIAL)?;
     for report_index in start..end {
-        enqueue(report_index, ring, reports);
+        let cookie = interests.cookie(report_index, device.attachment_epoch)?;
+        enqueue(report_index, cookie, ring, reports);
     }
     #[cfg(feature = "native-latency-observation")]
     super::super::hid_observation::submitted(start, end);
@@ -93,7 +114,9 @@ pub(super) fn poll_report(
 ) -> Result<Option<()>, HidError> {
     #[cfg(feature = "native-latency-observation")]
     super::super::hid_observation::poll();
-    let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
+    let _ = dma_physical;
+    let interests = unsafe { &mut *core::ptr::addr_of_mut!(identity::INTERESTS) };
+    let cookie = interests.cookie(index, device.attachment_epoch)?;
     ensure_device_present(controller.port_status(device.root_port))?;
     let Some(event) =
         controller
@@ -107,13 +130,9 @@ pub(super) fn poll_report(
         super::super::hid_observation::empty_poll();
         return Ok(None);
     };
-    validate_interrupt_event(
-        event,
-        device.slot,
-        dci,
-        ring + (Position::at(index).slot * 16) as u64,
-    )?;
+    validate_interrupt_event(event, device.slot, dci, cookie)?;
     ensure_device_present(controller.port_status(device.root_port))?;
+    interests.retire(index, cookie)?;
     #[cfg(feature = "native-latency-observation")]
     super::super::hid_observation::completed(index);
     Ok(Some(()))

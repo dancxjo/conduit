@@ -20,6 +20,7 @@ enum Case {
 
 fn event(key: PendingEventKey, code: u8) -> Event {
     Event {
+        event_data: false,
         event_type: 32,
         completion_code: code,
         slot: key.slot,
@@ -49,6 +50,7 @@ fn stage_command(host: &mut UsbNativeHost<'_>, code: u8) {
         synthetic_transfer_event(
             &host.controller,
             Event {
+                event_data: false,
                 event_type: 32,
                 completion_code: 1,
                 slot: 0,

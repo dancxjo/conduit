@@ -32,6 +32,21 @@ impl TransferPosition {
         ]
     }
 
+    /// A keyboard TD has one payload followed by one Event Data TRB.
+    pub(super) fn chained_normal(self, reports: u64, bytes: usize) -> [u32; 4] {
+        let mut trb = self.normal(reports, bytes);
+        trb[3] = (1 << 10) | (1 << 4) | self.cycle;
+        trb
+    }
+    pub(super) fn event_data(self, cookie: u64) -> [u32; 4] {
+        [
+            cookie as u32,
+            (cookie >> 32) as u32,
+            0,
+            (7 << 10) | (1 << 5) | self.cycle,
+        ]
+    }
+
     pub(super) fn link(self, ring: u64) -> [u32; 4] {
         // xHCI 1.2b sections 4.9.2 and 6.4.4.1: the Link toggles
         // the controller cycle at wrap while retaining fixed physical storage.

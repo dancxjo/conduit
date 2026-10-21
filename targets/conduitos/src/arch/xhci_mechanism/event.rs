@@ -164,6 +164,7 @@ pub(super) fn read_owned_event(
     let high = read_word(1);
     let status = read_word(2);
     Some(Event {
+        event_data: control & (1 << 2) != 0,
         event_type: ((control >> 10) & 0x3f) as u8,
         completion_code: (status >> 24) as u8,
         slot: (control >> 24) as u8,

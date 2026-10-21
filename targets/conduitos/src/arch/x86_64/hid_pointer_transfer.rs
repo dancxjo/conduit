@@ -112,7 +112,7 @@ pub(super) fn validate_event(
     endpoint: u8,
     pointer: u64,
 ) -> Result<(), HidPointerError> {
-    if event.event_type != 32 || event.pointer != pointer {
+    if event.event_data || event.event_type != 32 || event.pointer != pointer {
         return Err(HidPointerError::WrongCompletion);
     }
     if event.slot != slot {

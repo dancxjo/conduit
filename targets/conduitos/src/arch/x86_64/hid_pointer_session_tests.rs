@@ -5,6 +5,7 @@ use crate::arch::xhci_mechanism::{synthetic_transfer_event, with_synthetic_stop_
 
 fn event(ready: HidPointerReady, index: usize) -> Event {
     Event {
+        event_data: false,
         event_type: 32,
         completion_code: 1,
         slot: 2,
@@ -168,6 +169,7 @@ fn unrelated_port_observation_is_retained_and_actual_attachment_loss_is_distinct
         let mut session = start_pointer_session(ready);
         session.begin_followup(&mut controller, &device).unwrap();
         let other_port = Event {
+            event_data: false,
             event_type: 34,
             slot: 0,
             endpoint: 0,

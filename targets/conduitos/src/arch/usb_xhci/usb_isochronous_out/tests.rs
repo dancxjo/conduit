@@ -28,6 +28,7 @@ fn transfer<'a>(
 fn completion(transfer: &IsochronousOutTransfer<'_>, code: u8) -> Event {
     let pending = transfer.pending[transfer.head].as_ref().unwrap();
     Event {
+        event_data: false,
         event_type: 32,
         completion_code: code,
         slot: 1,

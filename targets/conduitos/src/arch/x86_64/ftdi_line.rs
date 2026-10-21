@@ -407,7 +407,7 @@ fn validate_event(
     pointer: u64,
     requested: usize,
 ) -> Result<usize, FtdiLineError> {
-    if event.event_type != 32 || event.pointer != pointer {
+    if event.event_data || event.event_type != 32 || event.pointer != pointer {
         return Err(FtdiLineError::WrongCompletion);
     }
     if event.slot != slot {
