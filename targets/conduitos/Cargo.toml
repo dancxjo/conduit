@@ -261,6 +261,7 @@ limine = "=0.5.0"
 
 [target.'cfg(all(target_arch = "x86_64", target_os = "none"))'.dependencies]
 conduitos-compositor-core = { path = "compositor-core" }
+conduitos-creche-core = { path = "creche-core" }
 
 [dev-dependencies]
 conduitos-compositor-core = { path = "compositor-core" }

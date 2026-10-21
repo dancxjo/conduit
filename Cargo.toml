@@ -86,6 +86,7 @@ members = [
 	"targets/browser/runtime",
 	"targets/conduitos",
 	"targets/conduitos/compositor-core",
+	"targets/conduitos/creche-core",
 	"targets/conduitos/mask-offer",
 	"targets/conduitos/make",
 	"targets/esp32/make",
@@ -114,6 +115,7 @@ members = [
 exclude = [
 	"targets/conduitos/compositor-hostile-proof",
 	"targets/conduitos/compositor-service",
+	"targets/conduitos/creche-service",
 	"targets/avr/firmware/promicro-host",
 	"targets/esp32/firmware/c3-signal",
 	"targets/esp32/firmware/s3-signal",

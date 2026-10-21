@@ -3,7 +3,6 @@ name = "conduitos-creche-core"
 version = "0.1.0"
 edition = "2024"
 publish = false
-[workspace]
 [dependencies]
 conduit-birth-plot = { path = "../../../plots/birth" }
 conduit-body = { path = "../../../architecture/body" }

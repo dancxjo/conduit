@@ -603,9 +603,36 @@ The private-memory fixture above remains a separate mechanism proof. A passed
 ordinary journey does not itself prove hostile production-proxy replies,
 Root/sibling survival through that proxy, independent restart, other architecture
 confinement, accepted release, driver/DMA isolation or the complete microkernel.
-Crèche/product control, Face/Mask producers, the portable execution runtime and
-network/device services still execute in Root and remain migration work under
+The evidence above predates the Crèche service work described below. Product
+control, general Face/Mask producers, the portable execution runtime and
+network/device services remain migration work under
 [#6175](https://github.com/dancxjo/conduit/issues/6175).
+
+## Crèche service implementation in progress
+
+The x86_64 native Arrival path now routes draft ownership through a separate
+Crèche executable. That executable uses the existing canonical `BirthDraft`,
+`BirthActions`, widget and Face projection code. Root retains immutable guest
+snapshots and its reviewed Plot catalog, checks returned selections against that
+catalog, and continues to own Body admission and lifecycle effects. This does
+not move the complete product controller or general Face/Mask machinery out of
+Root.
+
+The closed service pool has independent compositor and Draft slots. Each image
+is bound to its profile; instance and request identities fence the bounded wire
+exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
+ceiling. A terminal transport failure quarantines and releases the owning slot.
+The standalone guest compiles with separate immutable code/constants and a
+private writable non-executable initialized-data page. Heap, complete stack
+depth and the finite Draft entry budget have not yet been measured at runtime.
+Earlier compositor journeys do not validate this later configuration.
+
+The controller platform adapter now owns hardware input handles and exposes
+typed events plus checked display effects to controller policy. This is a
+preparatory source boundary within Root, not controller hardware isolation.
+Expanded emulator proof, CI acceptance and physical/driver/DMA evidence are
+deferred while local implementation proceeds in draft PR
+[#6196](https://github.com/dancxjo/conduit/pull/6196).
 
 ## Deliberate limits
 
