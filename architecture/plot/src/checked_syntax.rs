@@ -1,3 +1,6 @@
+mod expanded_provenance;
+pub(crate) use expanded_provenance::provenance_digest;
+pub use expanded_provenance::ExpandedGearProvenance;
 mod startup_catalog;
 pub use crate::native_type::family::source::NativeTypeSourceOrigin;
 use crate::prelude::*;
@@ -290,17 +293,6 @@ impl CheckedSyntaxDocument {
     ) -> &BTreeMap<conduit_core::KindId, conduit_core::StructuredInfoType> {
         &self.structured_types
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ExpandedGearProvenance {
-    /// Compiler-owned validation scope; authored gear paths cannot grant it.
-    pub(crate) construction_owner: Option<conduit_core::KindId>,
-    pub gear_id: String,
-    pub plot_path: Vec<String>,
-    pub source_plot: String,
-    pub source_gear: String,
-    pub source_span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

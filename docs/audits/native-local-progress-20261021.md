@@ -818,3 +818,21 @@ provenance and acceptance when the explicit Source fact matches the checked
 owner. Syntax check passes. No build, broad tests, CI, platform journey or
 artifact rebuild ran. This is a correctness fence pending #6202, not fulfillment
 of Cord editing or the full interaction goal.
+
+## Establish provenance ownership before extending Cord origin (#6202)
+
+Extracted `ExpandedGearProvenance` and its canonical digest encoding into
+`checked_syntax/expanded_provenance.rs`. The module depends on provenance data,
+lexical spans and the existing hash primitive, not expansion orchestration,
+planning or Plot consumers. The existing public type path remains re-exported;
+fields, digest prefix, field order and length-prefixed encoding are unchanged.
+The old checked-syntax module is now 494 lines; the new responsibility is 40.
+No Cord origin data or changed identity algorithm was added in this checkpoint.
+
+A direct body comparison confirmed the digest body was preserved verbatim.
+Formatting and one existing selected-Back/provenance validation check pass
+(472 filtered out). Initial compilation found the moved hash helper needed an
+explicit import; corrected, negative log retained. Full workspace tests/Clippy
+remain deferred under tonight's explicit instruction; no broad build campaign,
+CI, platform journey or artifact rebuild ran. #6202 continues with actual origin
+propagation after this extraction seam.
