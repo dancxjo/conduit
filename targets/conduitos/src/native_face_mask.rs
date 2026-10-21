@@ -388,6 +388,9 @@ impl NativeFaceMask {
         };
         if !self.surface_admitted {
             self.compositor
+                .reacquire_namespace()
+                .map_err(NativeFaceMaskError::Compositor)?;
+            self.compositor
                 .admit_surface(&self.surface_id, bounds, 0)
                 .map_err(NativeFaceMaskError::Compositor)?;
             self.surface_admitted = true;
