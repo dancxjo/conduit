@@ -447,3 +447,18 @@ and existing Edit/stale-event behavior. Native/workbench compilation also passes
 No wider suite, image rebuild, platform journey or CI job ran. Actual canonical
 Face/Show production transport, ingress reservations and feedback remain #6201;
 these API/CPU checks are not installed-owner or stable acceptance.
+
+## Focused canonical resident command fixtures
+
+Three focused canonical API tests pass: Plot selection followed by explicit Edit
+returns the exact existing owner request; replayed prepared commands and replaced
+Shows refuse; unknown graph subjects and forged action contracts refuse without
+changing source observation. Fixtures compose outer-owned Body/Plot declarations
+with the real new contribution and reuse the existing shared planned-Mask helper.
+The added planner dependency is dev-only, with its required lockfile entry; no
+runtime dependency/framework was introduced.
+
+Compilation took 2 seconds, execution 0.96 seconds. Fixture acknowledgements are
+explicitly not actual Host effects. No wider suite, image rebuild, browser/QEMU
+journey or CI job ran. #6201's real producer/transport/Show feedback and its
+finite ingress/storage admission remain open.
