@@ -242,6 +242,10 @@ fn bounded_backend_preserves_integer_and_finite_float_values() {
         -f64::MAX,
         1.5,
         -2.25,
+        // Known failures of serde_json's non-roundtrip decoder.
+        51.24817837550540_4,
+        2.0030397744267762e-253,
+        7.101215824554616e260,
     ] {
         let actual: f64 = decode(&encoded(&value)).unwrap();
         assert_eq!(actual.to_bits(), value.to_bits(), "{value:e}");
@@ -254,6 +258,7 @@ fn bounded_backend_preserves_integer_and_finite_float_values() {
         f32::MAX,
         -f32::MAX,
         1.5,
+        7.038531e-26,
     ] {
         let actual: f32 = decode(&encoded(&value)).unwrap();
         assert_eq!(actual.to_bits(), value.to_bits(), "{value:e}");
