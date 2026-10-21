@@ -333,3 +333,18 @@ No endpoint or edit authority is inferred from geometry.
 Both changed JS modules pass Node syntax checking. No browser enactment, image
 rebuild, platform proof or CI job ran. Runtime boundary rendering/interaction
 acceptance remains open; this is implementation plus syntax evidence only.
+
+## Honest browser Cord omission notice
+
+The browser scene now retains a derived count of Cords in the current semantic
+projection. The diagram compares that count with its actual non-hidden edge
+state and presents a status notice when geometry omits Cords, including missing
+endpoints/closed Backs or collapsed workspace frames. It explicitly says
+"projected Cords", without claiming the current lens is the whole Face. Full
+Face identities/properties remain unchanged and inspectable; no graph store,
+connection, action or renderer bound is introduced by the count.
+
+The notice uses existing Look tokens, wraps within the canvas and does not
+intercept pointer input. Both changed JS modules pass syntax checking. No browser
+enactment, image rebuild, QEMU proof or CI job ran; actual visual/accessibility
+and omission-case acceptance remain open.

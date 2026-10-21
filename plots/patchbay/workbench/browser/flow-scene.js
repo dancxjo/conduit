@@ -220,7 +220,8 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
     if (relation.kind === "Contains" && nodeIds.has(relation.source)) owner.set(relation.target, relation.source);
   }
   const edges = [];
-  for (const cord of face.subjects.filter((subject) => subject.role === "Cord")) {
+  const cords = face.subjects.filter((subject) => subject.role === "Cord");
+  for (const cord of cords) {
     const properties = snapshot.face.properties.filter((property) => property.subject === cord.identity);
     const propertiesMap = subjectProperties.get(cord.identity) || new Map();
     let sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
@@ -265,6 +266,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
       .filter((property) => property.name === "semantic-id").map(value))],
     faceIdentity: face.identity,
     faceRevision: face.revision,
+    cordCount: cords.length,
     lens,
     nodes,
     edges,
