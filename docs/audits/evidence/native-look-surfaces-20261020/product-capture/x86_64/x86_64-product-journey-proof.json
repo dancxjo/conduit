@@ -1,0 +1,336 @@
+{
+  "body_id": "1be7a6fb05d3619dbea1da63338002bd3448d6ba09d0959c514b89d46d0f82c0",
+  "boot_id": "c5d1a1f73e1fa9c32da6157a5e79f4f7d3084e9e3938dac995d637baf63730c6",
+  "browser_comparison": "unsupported",
+  "build_id": "build:sha256:2f3b3e6b7ee1f426ae2b66a2dae19f7c0a31442a0f7f2efbab8916b7d7775cb4",
+  "committed_edit_receipt": "memory-lantern-native-edit.json",
+  "host_id": "bdac487951add965bb741bbf4aa6e65a56a104a9f37fed58e87cd375d08ffd08",
+  "human_enactment": false,
+  "image_id": "image:sha256:c4b05823e9f1a8807b50f2cff424807de662bb3ba962f83c5ec5a6c4227ec114",
+  "image_sha256": "91936dfa9d901b43660310bd83036552f51eccacb248aa19cd41811606eecc48",
+  "input": "real-qmp-keyboard-and-pointer",
+  "paired_reconstruction": "native-shell-paired-linear.json",
+  "parent_5356_acceptance": "open",
+  "physical_evidence": false,
+  "pointer_actions": {
+    "entrance": "normal-product-creche",
+    "held_motion_after_fresh_show": {
+      "coalesced": 0,
+      "delta_x": 4000,
+      "delta_y": 0,
+      "display_x": 977,
+      "display_y": 124,
+      "dropped": 0,
+      "face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+      "face_revision": 4,
+      "manifestation_id": "14b27399842b4fec3474f79aa3833055ec75dc95993bc352efe7914f18024750",
+      "position_x": 764000,
+      "position_y": 156000,
+      "press_edge": false,
+      "primary_pressed": true,
+      "schema": "conduit.native-pointer/v1",
+      "sequence": 5,
+      "show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1"
+    },
+    "held_motion_duplicate_effects": 0,
+    "held_motion_on_refreshed_control": true,
+    "human_enactment": false,
+    "keyboard_action_count": 2,
+    "physical_evidence": false,
+    "pointer_action_count": 2,
+    "presses": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 972,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "88e4db40ae94d40354bc39f6446dbe2fc7d81b14fa068011cf85be8bceab3444",
+        "face_revision": 3,
+        "manifestation_id": "fe5e33c35f4092334631607cf48d5a9f86e268cfb6eb76ce39d0ac7d815dfe76",
+        "position_x": 760000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 4,
+        "show_id": "show/ef053be17d2609b5bcb3252530136f183cdc15002cdf57ffff9898fd4b11c663"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+        "face_revision": 4,
+        "manifestation_id": "14b27399842b4fec3474f79aa3833055ec75dc95993bc352efe7914f18024750",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 7,
+        "show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1"
+      }
+    ],
+    "proof_class": "freestanding-emulator",
+    "releases": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+        "face_revision": 4,
+        "manifestation_id": "14b27399842b4fec3474f79aa3833055ec75dc95993bc352efe7914f18024750",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 6,
+        "show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "b28b0f6e26bf71277f87a573874b14667f0b262a8e75c011123a8b7039a812a2",
+        "face_revision": 5,
+        "manifestation_id": "addf1ae7c5839c4bbbdf9d81dbc0f7f64ce4bae15a56e5cd78ebc20649dc2726",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 8,
+        "show_id": "show/2f1a77ce934e06dd52f253a3b16d1bc7fbf976b63b57fd806780bc9db7a45bc2"
+      }
+    ],
+    "schema": "conduit.creche/native-pointer-proof@1",
+    "source_changes": [
+      {
+        "after_face_id": "14a555b5fccd3e75adc52150244e08ccd11c5a1c7f031bb9e4e0c5ed6ac46c64",
+        "after_revision": 2,
+        "after_show_id": "show/614d57b9dbcf101aee9836ea6d0b8e6e78d3333af967b76f4bd0ddea4f1007f0",
+        "before_face_id": "de22f8bf1bbec80e5fe81f850081ca616500bd8ce76bdf191f32d546c7076d60",
+        "before_revision": 1,
+        "before_show_id": "show/579d971507f6f7ca70fdb4b7c99ea0a82d6d8c0907eadaf54df3393a72b70ad1",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "de22f8bf1bbec80e5fe81f850081ca616500bd8ce76bdf191f32d546c7076d60",
+          "face_revision": 1,
+          "identity": "47abba10ba09c8119b90ff58bf7d54dddc8892e40f26b17f1f72b564b69195f0",
+          "sequence": 3,
+          "show_id": "show/579d971507f6f7ca70fdb4b7c99ea0a82d6d8c0907eadaf54df3393a72b70ad1",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "88e4db40ae94d40354bc39f6446dbe2fc7d81b14fa068011cf85be8bceab3444",
+        "after_revision": 3,
+        "after_show_id": "show/ef053be17d2609b5bcb3252530136f183cdc15002cdf57ffff9898fd4b11c663",
+        "before_face_id": "14a555b5fccd3e75adc52150244e08ccd11c5a1c7f031bb9e4e0c5ed6ac46c64",
+        "before_revision": 2,
+        "before_show_id": "show/614d57b9dbcf101aee9836ea6d0b8e6e78d3333af967b76f4bd0ddea4f1007f0",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "14a555b5fccd3e75adc52150244e08ccd11c5a1c7f031bb9e4e0c5ed6ac46c64",
+          "face_revision": 2,
+          "identity": "56b86faece7dcf9d1ed6eb10ba73620aee945ab7e15c493af347d3e1080db19e",
+          "sequence": 5,
+          "show_id": "show/614d57b9dbcf101aee9836ea6d0b8e6e78d3333af967b76f4bd0ddea4f1007f0",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+        "after_revision": 4,
+        "after_show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1",
+        "before_face_id": "88e4db40ae94d40354bc39f6446dbe2fc7d81b14fa068011cf85be8bceab3444",
+        "before_revision": 3,
+        "before_show_id": "show/ef053be17d2609b5bcb3252530136f183cdc15002cdf57ffff9898fd4b11c663",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "88e4db40ae94d40354bc39f6446dbe2fc7d81b14fa068011cf85be8bceab3444",
+          "face_revision": 3,
+          "identity": "6f44330bf86654ab3ff7475fdb9740aa1e46b3a5c60d88b0d855c544e18e01b1",
+          "sequence": 13,
+          "show_id": "show/ef053be17d2609b5bcb3252530136f183cdc15002cdf57ffff9898fd4b11c663",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "b28b0f6e26bf71277f87a573874b14667f0b262a8e75c011123a8b7039a812a2",
+        "after_revision": 5,
+        "after_show_id": "show/2f1a77ce934e06dd52f253a3b16d1bc7fbf976b63b57fd806780bc9db7a45bc2",
+        "before_face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+        "before_revision": 4,
+        "before_show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "ce874b6dcde8a79cc1d1c38d97113f9630bf55036d8792f6556b510ff50bfd4d",
+          "face_revision": 4,
+          "identity": "1099c44299ff63a8ddaae9d20eb0c20d7da1e155c5f66e82e2456255e7cb943c",
+          "sequence": 14,
+          "show_id": "show/faefb8ebb87f3d4acb69a10f47f7897fdcecff05f1ba9c309a6b582e00e996c1",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    ],
+    "status": "passed",
+    "target_action": "creche.plot.3",
+    "target_geometry": "observed-current-frame-hit-bounds"
+  },
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "proof_class": "freestanding-emulator",
+  "protected_keyboard_domain": {
+    "address_space_switches": 10,
+    "architecture": "x86_64",
+    "base_gate_transitions": 1,
+    "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "copied_bytes": 10,
+    "dma_isolation": false,
+    "domain_id": 2,
+    "driver_isolation": false,
+    "entries": 5,
+    "fixture": false,
+    "gate_transitions": 5,
+    "interrupt_entries": 0,
+    "partition_plan_id": "7570651ac36f86928d34163e0fa96aab2c9236c0bf7618053ce13ad98e6cc288",
+    "plan_id": "body-plan/sha256:4d854bfc8141f4a68cc95f2b87cd42c35067438e9d99348bee8b1730bae4f246",
+    "play_id": "body-play/sha256:5efb8c69a90176aa969de8011936a7e297a4c52aacac752262b4caded22864c9",
+    "preemptions": 0,
+    "privilege_transitions": 10,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 5,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 29664060,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 5,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1447299,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 10
+  },
+  "protected_retained_text_domain": {
+    "address_space_switches": 58,
+    "architecture": "x86_64",
+    "base_gate_transitions": 7,
+    "checked_plot_id": "deccebf0d1becbc0c1053f78360901f458f9cb67a5643b5bd82780129d8196e7",
+    "copied_bytes": 93,
+    "dma_isolation": false,
+    "domain_id": 1,
+    "driver_isolation": false,
+    "entries": 29,
+    "fixture": false,
+    "gate_transitions": 29,
+    "interrupt_entries": 0,
+    "partition_plan_id": "e827f83eea1a5da3f38f9c65da8a95776baeec0cb21d7773976859ca0cb80aa9",
+    "plan_id": "body-plan/sha256:4d854bfc8141f4a68cc95f2b87cd42c35067438e9d99348bee8b1730bae4f246",
+    "play_id": "body-play/sha256:5efb8c69a90176aa969de8011936a7e297a4c52aacac752262b4caded22864c9",
+    "preemptions": 0,
+    "privilege_transitions": 58,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 29,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 36265365,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 10,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1853597,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 58
+  },
+  "schema": "conduit.conduitos/face-journey-proof@1",
+  "screenshots": "journey-frames/manifest.json",
+  "source_commit": "7d5aacbab7b296c5e446788aa04082ee848a3925",
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "unavailable-wake-refused",
+    "plan",
+    "play",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ]
+}

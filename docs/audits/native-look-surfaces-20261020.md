@@ -18,4 +18,23 @@ Editorial uses navy background/inset surfaces, light body text, readable muted t
 
 [Full logs and hashes](evidence/native-look-surfaces-20261020/). No new assets, dependency, command limit, semantic action/value, reading order, field-cluster policy or owner authority. #6158 remains explicitly skipped; no pagination policy fix is claimed. #6159 remains broader layout work and #5629 remains focus/accessibility acceptance.
 
-Fresh source-pinned product capture is the next check. Older QEMU captures remain attributed to their original source. Full CI conventions and a PR are bypassed under the user's direct-dev instruction.
+## Fresh ordinary product capture
+
+Both supported commands exited 0 on clean, unchanged source **7d5aacbab7b296c5e446788aa04082ee848a3925**:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 cargo xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-surfaces-current-1/image --locked
+CARGO_PROFILE_DEV_DEBUG=0 cargo xtask make host verify /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-surfaces-current-1/image --journey --locked
+```
+
+The canonical build also completed its bare-metal library check and optimized kernel build. Final ISO SHA-256 is `91936dfa9d901b43660310bd83036552f51eccacb248aa19cd41811606eecc48`. Guest resolved-description image binding is separately `image:sha256:c4b05823e9f1a8807b50f2cff424807de662bb3ba962f83c5ec5a6c4227ec114`; it is not the ISO hash.
+
+The actual one-CPU QEMU product journey completed **22 checkpoints and 22 screenshots**, including keyboard and pointer 4→3→4 choices, Birth, lifecycle/retained domains, Home return and actual Patchbay inspect/return. The complete raw serial, QMP, journey proof, paired linear record, build/resolution records, source/status record, PNGs and their original manifest are [retained here](evidence/native-look-surfaces-20261020/product-capture/). Independently checked all 22 PNG byte lengths/file hashes and decoded RGBA hashes against the original manifest. The archived proof records preserve their original capture paths; matching retained copies are under the archive's `x86_64/` directory. No records were relabeled as the later evidence-only commit.
+
+Inspected real Crèche, Home, Body playing and Patchbay diagram PNGs. The Crèche shows antialiased rounded inset cards, a filled primary Birth action with dark high-contrast text, quiet secondary outlines, serif title, measured Sans controls, gold field focus and a half-width 1/2 page bar. Backgrounds precede text and do not erase it. The default Crèche's checked Source expression remains compact Phosphor at 100%; this capture does **not** assert actual editorial selection, two-Look swap or forced-color product acceptance. Editorial palette/density combinations remain covered by CPU tests only.
+
+![Actual default Crèche on 7d5aacbab](evidence/native-look-surfaces-20261020/product-capture/x86_64/journey-frames/front-door-ready.png)
+
+Deliberate differences from the #6174 illustration: exact source-owned names/order/values and available actions remain authoritative; the primary action remains in its existing full-width checked placement and uses dark label ink; no new shadow/gradient operation, italic resource or icon binding is invented. Card field arrangement/continuation is not redesigned here (#6159, and explicitly skipped #6158). The product Home/Body use their existing renderer paths, not a falsely unified scene implementation.
+
+This is freestanding-emulator evidence. Human enactment and physical evidence remain false, and parent acceptance remains open, as the original records state. No boot-speed, performance or complete #5628/#5629/#5608 claim. Older QEMU typography captures remain attributed to their original source. Full CI conventions and a PR are bypassed under the user's direct-dev instruction.
