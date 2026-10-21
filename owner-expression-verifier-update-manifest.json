@@ -1,0 +1,22 @@
+{
+  "parent": "959165ece0eae04939db74de4715bc21eeff0bd2",
+  "scope": "Explicit-source verifier and old-source recheck only; no current-source guest claim",
+  "files": [
+    {
+      "source": "work/verify-5628-owner-journeys.py",
+      "tree_path": "task-6038/work/verify-5628-owner-journeys.py",
+      "bytes": 4217,
+      "sha256": "b9048fae941546521b7070a2010c559c6535478172570c20069f59a207aabed4",
+      "mode": "100644",
+      "blob": "ef5351a8fcc983e2fe7ef0ea5127c987b87b18fd"
+    },
+    {
+      "source": "outputs/5628-old-owner-expression-recheck.json",
+      "tree_path": "task-6038/outputs/5628-old-owner-expression-recheck.json",
+      "bytes": 1085,
+      "sha256": "fc36ef4d718f375d32001949bc04f3f5cbdfdb10e0efdbaf73dd9bb9e90a429c",
+      "mode": "100644",
+      "blob": "3cf6c5b6dfafaf0c86fa9954406522704aef9f98"
+    }
+  ]
+}

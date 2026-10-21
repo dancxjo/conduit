@@ -27,6 +27,20 @@ for n in a.attempt:
   assert hashlib.sha256(b''.join(rows)).hexdigest()==c['rgb_sha256']
  records=json.loads((O/'native-observations.json').read_text());real=[x['value'] for x in records if x['prefix']=='CONDUIT_NATIVE_COMPONENT_REALIZATION'];assert len(real)==3
  assert all(x['face']==real[0]['face'] and all(x['configuration'][k]==real[0]['configuration'][k] for k in ('component','recipe')) for x in real)
+ expressions=[x['expression']['expression'] for x in real]
+ if r['matrix'] in ('axis-density','axis-palette'):
+  axis=r['matrix'].removeprefix('axis-');other='palette' if axis=='density' else 'density'
+  assert expressions[1][axis]!=expressions[0][axis]
+  assert expressions[1][other]==expressions[0][other]
+  assert expressions[2]==expressions[0]
+ elif r['matrix']=='typography':
+  assert expressions[0]['typography']=='engineering' and expressions[1]['typography']=='editorial'
+  assert expressions[2]['text_scale_percent']==200
+ elif r['matrix']=='forced-colors':
+  assert [x['expression']['platform_forced_colors'] for x in real]==[False,True,False]
+ elif r['matrix']=='scale-restore':
+  assert expressions[1]['text_scale_percent']==200
+  assert expressions[2]['text_scale_percent']==expressions[0]['text_scale_percent']
  shows=[x['acknowledged_show']['show_id'] for x in real];assert len(set(shows))==3
  for s in shows:assert any(x['prefix']=='CONDUIT_NATIVE_OWNER_FACE' and x['value'].get('status')=='acknowledged' and x['value'].get('show_id')==s for x in records)
  assert any(x['prefix']=='CONDUIT_NATIVE_COMPONENT_SELECTION' and x['value'].get('code')=='owner-look-provisional-input' for x in records)
