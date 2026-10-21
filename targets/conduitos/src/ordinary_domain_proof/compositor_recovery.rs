@@ -6,12 +6,12 @@ use crate::{
     display::{DisplayError, DisplayFormat, PixelTarget},
     native_compositor::{CompositorAdmission, NativeCompositor, NativeCompositorError},
     protected_compositor::{
-        display_grant::DisplayGrant,
+        display_grant::{DisplayGrant, SharedDisplayGrant},
         display_owner::{DisplayOwner, SharedDisplayOwner},
         session_owner::OwnerError,
     },
 };
-use alloc::vec;
+use alloc::{rc::Rc, vec};
 use conduit_core::{BootId, HostBaseId, HostId, ImplementationId, OfferGeneration, PlacementId};
 use conduit_face::LayoutRect;
 use conduitos_compositor_core::wire::{Request, Response};
@@ -27,7 +27,7 @@ fn format() -> DisplayFormat {
         blue_shift: 0,
     }
 }
-fn owner() -> SharedDisplayOwner {
+fn grant() -> SharedDisplayGrant {
     let grant = DisplayGrant::new(
         HostId::from("recovery-host"),
         BootId::from("recovery-boot"),
@@ -36,7 +36,12 @@ fn owner() -> SharedDisplayOwner {
         format(),
     )
     .unwrap_or_else(|_| refuse("compositor-recovery-grant"));
-    DisplayOwner::prepare(grant).unwrap_or_else(|error| {
+    Rc::new(grant)
+}
+fn owner(grant: &SharedDisplayGrant) -> SharedDisplayOwner {
+    // Root retains the same checked current display binding across explicit
+    // recovery. No new strings or Rc metadata precede the staging reservation.
+    DisplayOwner::prepare_shared(grant.clone()).unwrap_or_else(|error| {
         use core::fmt::Write;
         let mut detail = crate::sign_format::FixedText::new();
         let _ = writeln!(
@@ -98,9 +103,9 @@ impl PixelTarget for Target {
         Ok(())
     }
 }
-fn already_terminal_cleanup() {
+fn already_terminal_cleanup(grant: &SharedDisplayGrant) {
     for callback in [false, true] {
-        let old = owner();
+        let old = owner(grant);
         let mut proxy = presenter(old.clone());
         let allocated = crate::allocation::BOOT_ARENA.live_bytes();
         if callback {
@@ -132,8 +137,9 @@ fn already_terminal_cleanup() {
     }
 }
 pub(super) fn run() {
-    already_terminal_cleanup();
-    let old = owner();
+    let grant = grant();
+    already_terminal_cleanup(&grant);
+    let old = owner(&grant);
     let mut proxy = presenter(old.clone());
     let session = old
         .borrow()
@@ -161,7 +167,14 @@ pub(super) fn run() {
         refuse("compositor-recovery-staging-release");
     }
     // Replacement is explicit; old Rc clients and the old proxy remain alive.
-    let fresh = owner();
+    // Clone from Root's retained immutable grant, not from a reconstructed
+    // identity admission after the large staging hole has been released.
+    let attempts = crate::allocation::BOOT_ARENA.attempts();
+    let retained = grant.clone();
+    if !Rc::ptr_eq(&retained, &grant) || crate::allocation::BOOT_ARENA.attempts() != attempts {
+        refuse("compositor-recovery-shared-grant");
+    }
+    let fresh = owner(&retained);
     if fresh.borrow().sessions.service_instance() <= instance {
         refuse("compositor-recovery-instance");
     }
@@ -217,5 +230,5 @@ pub(super) fn run() {
     }
     drop(replacement);
     drop(fresh);
-    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@2\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"already_terminal_staging_released\":true,\"callback_terminal_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
+    arch::early_write(b"CONDUIT_COMPOSITOR_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-copy-recovery-fixture@3\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"root_copy_failure\":true,\"guest_cpu_fault\":false,\"malformed_guest_reply\":false,\"explicit_fresh_owner\":true,\"old_staging_released\":true,\"shared_current_display_grant\":true,\"already_terminal_staging_released\":true,\"callback_terminal_staging_released\":true,\"old_clients_alive_at_replacement\":true,\"stale_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"semantic_show_acknowledged\":false,\"physical_scanout\":false,\"fresh_black_pixels\":768}\n");
 }

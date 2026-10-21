@@ -3,7 +3,7 @@
 //! Wire this module only for the actual x86_64 freestanding service backend.
 use super::{
     CompositorService, TransportError,
-    display_grant::DisplayGrant,
+    display_grant::{DisplayGrant, SharedDisplayGrant},
     raster_staging::{RasterLease, RasterStaging, STAGING_PIXELS},
     session_owner::{OwnerError, SessionOwner},
 };
@@ -24,7 +24,8 @@ pub(crate) enum PreparationError {
 }
 
 /// A preparation snapshot, not a live execution-cost counter or a complete boot
-/// memory budget. Rc/RefCell metadata and caller-owned presenter state are extra.
+/// memory budget. Owner Rc/RefCell metadata, shared grant Rc metadata/identities
+/// and caller-owned presenter state are extra.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct PreparationReport {
     pub staging_logical_bytes: usize,
@@ -40,7 +41,7 @@ pub(crate) struct DisplayOwner {
     pub(crate) sessions: SessionOwner<CompositorService>,
     staging: Vec<u32>,
     report: PreparationReport,
-    grant: DisplayGrant,
+    grant: SharedDisplayGrant,
 }
 
 impl DisplayOwner {
@@ -49,6 +50,20 @@ impl DisplayOwner {
     /// The large arena reservation is fallible. Stable Rc::new follows the
     /// allocator's ordinary failure policy for its small metadata allocation.
     pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+        Self::prepare_shared(Rc::new(grant))
+    }
+
+    /// Explicit fresh preparation under Root's still-current display grant.
+    /// Root must retain and validate the same Host, Boot, offer generation, Base
+    /// and concrete target format; sharing does not renew a replaced provider.
+    /// Keep this immutable handle before releasing an old staging arena: cloning
+    /// it allocates nothing before the new contiguous 8 MiB reservation. Other
+    /// fragmentation can still refuse preparation; there is no retry or larger
+    /// memory profile here. Every successful preparation installs a fresh guest
+    /// instance and starts without presenter namespaces or semantic Show/input.
+    pub(crate) fn prepare_shared(
+        grant: SharedDisplayGrant,
+    ) -> Result<SharedDisplayOwner, PreparationError> {
         let (width, height) = grant.extent();
         let mut staging = Vec::new();
         staging

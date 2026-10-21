@@ -1,7 +1,13 @@
 //! Root's binding of one validated display provider and concrete scanout format.
 //! This is private possession, not a guest claim or a physical-display receipt.
 use crate::display::{DisplayError, DisplayFormat};
+use alloc::rc::Rc;
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
+
+/// Shared immutable Root custody of one checked display binding. Cloning this
+/// handle allocates no identity strings or Rc metadata. It does not refresh the
+/// provider, extend a Boot/offer lifetime, or authorize an old Mask/Show/input.
+pub(crate) type SharedDisplayGrant = Rc<DisplayGrant>;
 
 #[derive(Clone)]
 pub(crate) struct DisplayGrant {
@@ -138,3 +144,7 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+#[path = "display_grant/recovery_tests.rs"]
+mod recovery_tests;
