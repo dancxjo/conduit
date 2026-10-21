@@ -182,7 +182,6 @@ pub(super) fn execute_supplied_observed(
             "commons-arrival-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "body-playing", true)?;
-        artifacts.capture(&mut qmp, &mut reader, "commons-workshop", true)?;
         journey_input::open_hub_plot(
             &mut qmp,
             &mut reader,

@@ -1,6 +1,7 @@
 //! A single bounded picker over the current Body Play; no second launcher.
 use super::*;
 use crate::front_door::lifecycle_summary;
+use alloc::format;
 use conduit_face::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
     LayoutRect,
