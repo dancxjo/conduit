@@ -5,6 +5,7 @@ pub(super) fn connect(
     source: StageSource,
     sink: StageSink,
     origin: crate::ExpandedConnectionOrigin,
+    source_span: crate::Span,
     connections: &mut ConnectionInventory,
     inputs: &mut BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: &mut BTreeMap<String, TrackedEndpoint>,
@@ -76,10 +77,14 @@ pub(super) fn connect(
                     format!("runtime front input '{name}' repeats one internal binding"),
                 ));
             }
+            sink.source_origin = Some(crate::AuthoringCordOrigin {
+                source_span,
+                origin,
+            });
             endpoints.push(sink);
         }
         (
-            StageSource::Internal(source),
+            StageSource::Internal(mut source),
             StageSink::FaceOutput(name, value_type, temporal, abnormal_kind),
         ) => {
             if source.track == conduit_core::ConnectionTrack::Payload {
@@ -94,6 +99,10 @@ pub(super) fn connect(
                 };
                 validate_connection_contract(&source.port, &sink, source.track)?;
             }
+            source.source_origin = Some(crate::AuthoringCordOrigin {
+                source_span,
+                origin,
+            });
             insert_boundary(outputs, name, source)?;
         }
         (StageSource::FaceInput(_, _, _, _, _), StageSink::FaceOutput(_, _, _, _)) => {

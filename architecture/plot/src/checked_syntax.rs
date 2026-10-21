@@ -1,5 +1,8 @@
 mod cord;
 pub use cord::{CheckedCanonicalCord, CheckedCordStage};
+mod boundary_provenance;
+pub(crate) use boundary_provenance::boundary_provenance_digest;
+pub use boundary_provenance::AuthoringCordOrigin;
 pub(crate) mod connection_provenance;
 pub use connection_provenance::{ExpandedConnectionOrigin, ExpandedConnectionProvenance};
 mod expanded_provenance;
@@ -299,6 +302,7 @@ pub struct ExpandedActivation {
 /// deliberately retains unbound runtime Front Ports. It is not a runnable-root claim.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedAuthoringPlot {
+    pub boundary_provenance_digest: String,
     pub expanded: ExpandedCanonicalPlot,
     pub front: CheckedFront,
     pub input_bindings: Vec<AuthoringFrontBinding>,
@@ -311,6 +315,7 @@ pub struct ExpandedAuthoringPlot {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AuthoringFrontBinding {
+    pub source_origin: Option<AuthoringCordOrigin>,
     pub front_port_id: conduit_core::PortId,
     pub gear_id: conduit_core::GearId,
     pub gear_port_id: conduit_core::PortId,

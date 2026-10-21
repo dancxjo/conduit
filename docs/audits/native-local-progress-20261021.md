@@ -912,3 +912,28 @@ Cord fact; scoped the fixture mutation to the Cord and reran successfully. No CI
 DOM journey, image/ZIP rebuild or stable acceptance is claimed. Face admission at
 larger graph sizes, boundary-origin propagation, remaining #6202 acceptance and
 canonical resident installation under #6201 remain open.
+
+## Preserve root Fore Cord declarations (#6202)
+
+Boundary binding construction now retains its current checked Cord span and origin
+classification. When a root Fore connects through a child Plot, the binding is
+attributed to the caller Cord that materialized it, rather than the child's
+internal export. Root authoring projection combines those compiler-retained facts
+with its exact root Source/checked Plot context; it does not discover ownership
+from endpoint names. Absent provenance remains explicit for synthetic callers.
+
+A separate versioned boundary provenance digest binds direction, ordered Fore/
+Gear endpoints, track and origin coordinates to the root document/checked Plot.
+Patchbay validates it before projecting authoring boundaries. Boundary Cord
+identities now include track and length-prefixed ordered endpoints, matching the
+existing internal Cord identity law. A small shared graph Source record supports
+both internal and boundary origins through the same Face/editor projection.
+Updated the one manually constructed numeric-test binding with explicit unknown
+origin; it is not promoted to compiler-proven declaration truth.
+
+The plot and application compile checks pass. One focused graph test passes for
+both input/output boundary declarations through child expansion, including
+corrupt-span refusal. Removed an unused import reported by compilation. No broad
+suite, CI, platform journey or artifact rebuild ran. Face admission coverage,
+remaining #6202 acceptance and production canonical resident migration under
+#6201 remain unfinished. This is local implementation, not stable acceptance.

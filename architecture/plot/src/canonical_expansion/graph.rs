@@ -234,6 +234,7 @@ pub(super) fn infer_abnormal_export(
                         port: port.clone(),
                     },
                     track: conduit_core::ConnectionTrack::AbnormalTerminal,
+                    source_origin: None,
                 })
         })
         .collect::<Vec<_>>();

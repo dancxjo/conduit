@@ -94,11 +94,12 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
         0,
     )?;
     let front = plot.checked_front();
-    let input_bindings = fragment
+    let input_bindings: Vec<_> = fragment
         .inputs
         .iter()
         .flat_map(|(front_port, endpoints)| {
             endpoints.iter().map(|endpoint| AuthoringFrontBinding {
+                source_origin: endpoint.source_origin.clone(),
                 front_port_id: conduit_core::PortId::from(front_port.as_str()),
                 gear_id: endpoint.endpoint.gear_id.clone(),
                 gear_port_id: endpoint.endpoint.port.port_id.clone(),
@@ -106,10 +107,11 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
             })
         })
         .collect();
-    let output_bindings = fragment
+    let output_bindings: Vec<_> = fragment
         .outputs
         .iter()
         .map(|(front_port, endpoint)| AuthoringFrontBinding {
+            source_origin: endpoint.source_origin.clone(),
             front_port_id: conduit_core::PortId::from(front_port.as_str()),
             gear_id: endpoint.endpoint.gear_id.clone(),
             gear_port_id: endpoint.endpoint.port.port_id.clone(),
@@ -174,7 +176,14 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
         &provenance,
         &connection_provenance,
     );
+    let boundary_provenance_digest = crate::checked_syntax::boundary_provenance_digest(
+        &document.source_document_id,
+        &plot.checked_plot_id,
+        &input_bindings,
+        &output_bindings,
+    );
     Ok(ExpandedAuthoringPlot {
+        boundary_provenance_digest,
         expanded: ExpandedCanonicalPlot {
             source_document_id: document.source_document_id.clone(),
             checked_plot_id: plot.checked_plot_id.clone(),

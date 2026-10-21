@@ -129,7 +129,7 @@ impl PatchbayGraph {
                 .filter(|row| row.connection == *connection);
             let first = origins.next();
             let source_origin = if origins.next().is_none() {
-                first.cloned()
+                first.map(crate::PatchbayCordSource::from)
             } else {
                 None
             };
@@ -168,6 +168,8 @@ impl PatchbayGraph {
         plot: &conduit_plot::ExpandedAuthoringPlot,
     ) -> Result<Self, PatchbayGraphError> {
         let mut graph = Self::from_expanded(&plot.expanded)?;
+        plot.validate_boundary_provenance()
+            .map_err(|_| PatchbayGraphError::InvalidSourceProvenance)?;
         let boundary_count = plot.front.inputs().len() + plot.front.outputs().len();
         let port_count = graph
             .gears
@@ -232,8 +234,13 @@ impl PatchbayGraph {
                 .descriptor
                 .clone();
             graph.cords.push(PatchbayCord {
-                source_origin: None,
-                identity: format!("boundary/{source}->{sink}"),
+                source_origin: crate::cord_source::boundary_source(plot, binding),
+                identity: format!(
+                    "boundary/{}/{}/{source}/{}/{sink}",
+                    binding.track.as_str(),
+                    source.len(),
+                    sink.len()
+                ),
                 source_port: source,
                 sink_port: sink,
                 value_kind: descriptor.value_kind,
@@ -255,8 +262,13 @@ impl PatchbayGraph {
                 .descriptor
                 .clone();
             graph.cords.push(PatchbayCord {
-                source_origin: None,
-                identity: format!("boundary/{source}->{sink}"),
+                source_origin: crate::cord_source::boundary_source(plot, binding),
+                identity: format!(
+                    "boundary/{}/{}/{source}/{}/{sink}",
+                    binding.track.as_str(),
+                    source.len(),
+                    sink.len()
+                ),
                 source_port: source,
                 sink_port: sink,
                 value_kind: descriptor.value_kind,

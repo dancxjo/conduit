@@ -287,3 +287,17 @@ requires a Cord's own declaration provenance even when containment reaches the
 root; neither endpoint grouping nor absence of a nested Back proves authorship.
 Current unproven Cord targets refuse. This fixes an inference, not Cord Edit
 completion; exact origin propagation remains owned prerequisite work.
+
+## Current Cord origin checkpoint
+
+The missing-origin observation above records the original prerequisite baseline.
+Expansion now retains exact internal connection origins, and root Fore bindings
+retain the caller Cord's own span/classification through child expansion.
+Separate internal/boundary provenance digests bind their exact contracts and
+Source context. PatchbayGraph and shared browser/native Face carry those facts;
+the Handbook resolver requires exact inventory identities and valid Source byte
+extents, refuses generated/unproven wiring, and preserves local drafts.
+This does not install the canonical resident Fore or provide native Source editing.
+The native product still logs Edit-current requests without an editor effect;
+that remains an explicit production gap alongside #6201. #6202 remains open for
+its remaining correspondence, bounds and acceptance work.

@@ -140,10 +140,21 @@ pub struct PatchbayGear {
     pub controls: Vec<crate::FaceControl>,
 }
 
+/// Source declaration facts attached to the exact enclosing Cord contract.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatchbayCordSource {
+    pub source_document_id: SourceDocumentId,
+    pub checked_plot_id: CheckedPlotId,
+    pub source_plot: String,
+    pub plot_path: Vec<String>,
+    pub source_span: conduit_plot::Span,
+    pub origin: conduit_plot::ExpandedConnectionOrigin,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayCord {
-    /// Absent for unproven boundary bindings or ambiguous connection origins.
-    pub source_origin: Option<conduit_plot::ExpandedConnectionProvenance>,
+    /// Absent for unproven bindings or ambiguous connection origins.
+    pub source_origin: Option<PatchbayCordSource>,
     pub identity: String,
     pub source_port: String,
     pub sink_port: String,

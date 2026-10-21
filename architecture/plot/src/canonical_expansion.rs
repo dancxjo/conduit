@@ -48,6 +48,7 @@ struct Endpoint {
 
 #[derive(Debug, Clone)]
 struct TrackedEndpoint {
+    source_origin: Option<crate::AuthoringCordOrigin>,
     endpoint: Endpoint,
     track: conduit_core::ConnectionTrack,
 }
@@ -57,6 +58,7 @@ impl TrackedEndpoint {
         Self {
             endpoint,
             track: conduit_core::ConnectionTrack::Payload,
+            source_origin: None,
         }
     }
 }
@@ -715,6 +717,7 @@ fn instantiate_gear(
                 port: port.clone(),
             },
             track: conduit_core::ConnectionTrack::AbnormalTerminal,
+            source_origin: None,
         })
         .collect::<Vec<_>>();
     Ok(Instance {
