@@ -1,0 +1,28 @@
+{
+  "source_commit": "b2b465c6980329b80e5c498c2cfbc05dbf3b6674",
+  "passed": 619,
+  "failed": 0,
+  "ignored": 8,
+  "status": "passed",
+  "browser_wire_tests": 8,
+  "step_results": [
+    {
+      "step": "check.test.foundation",
+      "passed": 301,
+      "failed": 0,
+      "ignored": 2
+    },
+    {
+      "step": "check.kernel-alloc",
+      "passed": 306,
+      "failed": 0,
+      "ignored": 6
+    },
+    {
+      "step": "check.system-continuity",
+      "passed": 12,
+      "failed": 0,
+      "ignored": 0
+    }
+  ]
+}

@@ -1,0 +1,1288 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.29s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/conduit-xtask-dispatch check workspace-test-foundation`
+    Finished `dev` profile [unoptimized] target(s) in 0.73s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/xtask check workspace-test-foundation`
+» [check.test.foundation] Foundation crate unit and integration tests
+  $ cargo test --no-fail-fast -p conduit-face
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/face)
+    Finished `test` profile [optimized] target(s) in 0.52s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduit_face-48b896d6654e50a0)
+
+running 62 tests
+test application_canvas::tests::unicode_round_trip_and_unknown_selection_refusal ... ok
+test bitmap::tests::malformed_extent_count_and_trailing_data_refuse_distinctly ... ok
+test composition::tests::canonical_round_trip_and_exact_icon_policy ... ok
+test generative_manifestation_tests::accepted_output_requires_exact_typed_content_composition_and_action_correlations ... ok
+test application_canvas::tests::bounds_and_dangling_endpoints_refuse ... ok
+test composition::tests::finite_capacity_and_noncanonical_encodings_refuse ... ok
+test generative_manifestation::action_affordance_digest_tests::action_affordance_retains_the_v1_manual_digest_bytes_and_order ... ok
+test bitmap::tests::round_trip_is_exact_and_bounded ... ok
+test generative_manifestation_tests::deterministic_validator_accepts_only_exact_face_wording ... ok
+test aural::provenance_digest_tests::provenance_retains_the_v1_manual_digest_tags_and_field_order ... ok
+test generative_manifestation_tests::wording::count_property_wording_uses_only_the_current_face_value ... ok
+test generative_manifestation_tests::wording::finite_model_wording_is_rebuilt_from_exact_face_and_retains_provider_bytes ... ok
+test generative_manifestation_tests::terminal_dispositions_have_no_output ... ok
+test generative_manifestation_tests::rejects_invented_out_of_range_and_duplicate_correlations_and_uncorrelated_actions ... ok
+test generative_manifestation_tests::temporal_reference_and_fact_correlations_are_exact ... ok
+test generative_manifestation_tests::wording::wording_never_offers_an_unavailable_action ... ok
+test generative_presenter::tests::bounds_do_not_exceed_the_portable_llm_present_ceiling ... ok
+test generative_manifestation_tests::wording::finite_wording_rejects_stale_face_invented_claims_and_forged_acceptance ... ok
+test generative_presenter::tests::face_boundary_does_not_invent_face_context_or_focus ... ok
+test generative_presenter::tests::generated_content_cannot_invent_or_revive_an_action ... ok
+test generative_presenter::tests::exact_source_template_and_finite_output_are_required ... ok
+test generative_manifestation_tests::wording::refused_wording_retains_raw_model_output_without_speech ... ok
+test generative_presenter::tests::one_face_feeds_deterministic_and_generative_presenters ... ok
+test graphics::path::tests::malformed_diagonal_degenerate_and_excess_geometry_refuse ... ok
+test generative_presenter::tests::terminal_dispositions_cannot_smuggle_content_or_actions ... ok
+test graphics::path::tests::a_path_round_trips_as_one_bounded_command ... ok
+test graphics::tests::graphical_roles_round_trip_and_refuse_unknown_or_nontext_roles ... ok
+test generative_manifestation_tests::receipt_rejects_digest_provenance_face_and_mask_mismatch ... ok
+test generative_presenter::tests::wire_shape_keeps_policy_and_semantic_face_structurally_separate ... ok
+test generative_presenter::tests::speech_and_presented_thought_are_explicit_bounded_manifestation_roles ... ok
+test generative_presenter::tests::preserves_structured_semantics_separately_from_implementation_policy ... ok
+test graphics::tests::interaction_state_paints_round_trip_and_unknown_paints_refuse ... ok
+test graphics::tests::malformed_overflow_and_unknown_icon_refuse ... ok
+test graphics::tests::pane_sized_text_is_exactly_bounded_and_round_trips ... ok
+test graphics::tests::round_trip_and_clip_classes_are_raster_independent ... ok
+test graphics::tests::paint_extension_preserves_existing_tags_and_command_storage ... ok
+test layout::tests::row_rounding_is_stable_and_encoding_is_canonical ... ok
+test layout::tests::zero_maximum_undersized_clipping_and_alignment_are_exact ... ok
+test linear::tests::invalid_content_identity_fails_closed_before_rendering ... ok
+test linear::tests::linear_projection_preserves_exact_basis_and_all_nonspatial_content ... ok
+test linear::tests::rendering_is_deterministic_and_contains_no_renderer_local_input ... ok
+test readable_choices::tests::finite_control_free_text_choices_are_borrowed_without_changing_contract ... ok
+test readable_choices::tests::formatting_and_invisible_scalars_keep_the_generic_clause ... ok
+test readable_choices::tests::large_unsafe_and_negative_membership_keep_exact_generic_contract ... ok
+test spoken_template_looks::tests::actual_control_face_retains_human_settings_and_actions_in_checked_summary ... ignored, requires an actual retained control Face; no runtime or audio claim
+test spoken_template_looks::tests::actual_retained_face_preserves_essential_clauses_in_both_checked_looks ... ignored, requires explicit actual retained Face; never manufactures owner state
+test temporal_wording::tests::fixed_states_do_not_manufacture_precision ... ok
+test stroke_capture::tests::ordered_points_finish_as_one_bounded_path ... ok
+test temporal_wording::tests::uncertain_bounds_round_outward_and_keep_direction ... ok
+test temporal_wording::tests::scale_and_granularity_boundaries_are_finite ... ok
+test stroke_capture::tests::partial_pressure_and_frame_mismatch_are_distinct ... ok
+test remote_owner_mask_route::host_basis_tests::inventory_extent_and_current_host_identity_still_refuse ... ok
+test remote_owner_mask_route::host_basis_tests::larger_local_inventory_binds_a_compact_exact_basis ... ok
+test mask_catalog::tests::mask_role_names_resolve_to_canonical_semantic_values ... ok
+test generative_manifestation_tests::validator_session_requires_exact_kind_placement_and_current_plan_binding ... ok
+test spoken_template_artifact::tests::rehashed_wording_cannot_drop_selected_face_content ... ok
+test spoken_template_looks::tests::two_template_sources_have_distinct_checked_plots_and_exact_selected_plans ... ok
+test spoken_template_artifact::tests::rehashed_appended_claim_is_not_the_checked_template_output ... ok
+test spoken_template_artifact::tests::both_checked_template_metadata_bind_same_face_and_bounded_opening_only ... ok
+test spoken_template_artifact::tests::stale_face_source_identity_revision_plot_and_digests_refuse ... ok
+test spoken_template_looks::tests::one_primary_control_region_preserves_every_clause_and_refuses_ambiguous_titles ... ok
+test spoken_template_artifact::tests::dropped_coverage_actions_wrong_prefix_and_unbounded_frame_claims_refuse ... ok
+
+test result: ok. 60 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/application_canvas_bounds.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/application_canvas_bounds-4f12d0990b134786)
+
+running 5 tests
+test admission_refuses_oversized_provenance_and_wording ... ok
+test exact_multibyte_field_ceiling_still_round_trips ... ok
+test graph_record_counts_use_unsigned_decimal_syntax_across_masks ... ok
+test admission_refuses_a_total_envelope_even_when_individual_fields_fit ... ok
+test exact_canvas_envelope_is_admitted_and_one_more_byte_refuses ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/application_event_control_values.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/application_event_control_values-d5a59d7154d6edb5)
+
+running 6 tests
+test a_select_cannot_borrow_another_controls_option ... ok
+test exclusive_initial_selection_matches_source_lowering ... ok
+test graph_selection_is_an_exact_subject_of_the_current_canvas ... ok
+test native_boolean_values_round_trip_and_other_values_refuse ... ok
+test initial_selection_must_be_an_owned_option_unless_it_is_empty ... ok
+test select_values_must_belong_to_the_bound_controls_own_options ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/application_numeric_control_values.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/application_numeric_control_values-743af2267472123c)
+
+running 2 tests
+test progress_decimal_syntax_matches_browser_admission ... ok
+test zero_current_step_refuses_even_with_decimal_padding ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/application_view.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/application_view-f87d3a5259e4b107)
+
+running 15 tests
+test action_availability_state_round_trips_and_refuses_inconsistent_actions ... ok
+test controls_keep_labels_values_and_capacities_distinct ... ok
+test event_queue_refuses_aggregate_byte_pressure_and_releases_it_on_pop ... ok
+test event_values_refuse_invalid_component_capacity_and_utf8 ... ok
+test duplicate_keys_unknown_actions_and_depth_refuse ... ok
+test malformed_oversized_and_noncanonical_views_refuse ... ok
+test grouped_independent_choices_keep_semantic_identity_through_encoding ... ok
+test navigation_links_admit_destinations_without_becoming_actions ... ok
+test select_options_carry_finite_exact_values ... ok
+test events_refuse_stale_oversized_unknown_and_pressure ... ok
+test status_outcomes_remain_renderer_neutral_and_round_trip_exactly ... ok
+test maximum_book_editor_value_round_trips_without_truncation ... ok
+test same_site_links_admit_bounded_paths_without_actions_or_external_authority ... ok
+test the_finite_product_node_boundary_is_exact ... ok
+test application_view_round_trip_is_exact_and_finite ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/application_view_bounds.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/application_view_bounds-50d38d75186bda43)
+
+running 2 tests
+test view_validation_enforces_the_encoded_envelope_before_publication ... ok
+test exact_view_envelope_round_trips_and_one_more_byte_refuses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/aural.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/aural-10604c6dcca191b3)
+
+running 7 tests
+test semantic_dependencies_precede_identity_and_face_wording_stays_verbatim ... ok
+test read_all_includes_disclosure_and_temporal_context_with_exact_provenance ... ok
+test read_all_leads_with_context_even_when_context_is_serialized_last ... ok
+test unavailable_and_refused_actions_remain_distinct_without_becoming_invocations ... ok
+test source_destination_meaning_becomes_general_provenanced_clauses ... ok
+test exact_properties_survive_both_linear_and_aural_masks ... ok
+test exact_inward_participation_contract_survives_aural_projection ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bitmap_catalog_ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/bitmap_catalog_ownership-b75d75aeb8dc287f)
+
+running 2 tests
+test bitmap_face_identity_and_bound_remain_exact ... ok
+test bitmap_face_meaning_has_one_host_neutral_owner ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/committed_state_basis.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/committed_state_basis-bc1d255644575999)
+
+running 3 tests
+test changed_residence_and_generation_have_distinct_refusals ... ok
+test zero_digest_and_reused_read_are_refused ... ok
+test exact_lulled_shape_is_distinct_from_current_play_and_not_face_admission ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/component_action_contract.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/component_action_contract-a77d33dc3ad81c96)
+
+running 2 tests
+test duplicate_required_actions_and_over_capacity_contracts_refuse ... ok
+test exact_checked_argument_contract_is_required_not_just_kind_or_capacity ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/component_recipe.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/component_recipe-cdefbad4337347a6)
+
+running 7 tests
+test valid_face_reading_capacity_is_distinct_from_invalid_semantics ... ok
+test action_target_selects_original_subject_without_labels_or_role_assumptions ... ok
+test geometry_checks_outer_and_inter_column_gutters_before_subtraction ... ok
+test interleaved_regions_keep_typed_actions_facts_disclosure_and_reading_order ... ok
+test absent_optional_action_target_preserves_complete_generic_reading ... ok
+test different_structure_preserves_complete_original_reading_and_unmatched_meaning ... ok
+test slots_refuse_overlap_duplicate_regions_and_subject_capacity ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/configured_mask.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/configured_mask-29569d6d04da8c19)
+
+running 3 tests
+test exact_source_and_selected_plan_bind_renderer_configuration ... ok
+test two_roots_share_checked_component_fore_and_recipe_but_not_realization ... ok
+test explicit_component_forwarding_and_slash_plot_ancestry_are_checked ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/cross_mask_lifecycle.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/cross_mask_lifecycle-66fc3384f3f12502)
+
+running 3 tests
+test one_lulled_body_keeps_context_specific_faces_and_nonvisual_meaning ... ok
+test one_body_wake_projects_current_state_without_inventing_plan_or_play ... ok
+test context_switch_stale_show_and_invented_agency_refuse_without_changing_body ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/face.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/face-bb9cb593e615b3db)
+
+running 11 tests
+test direct_contributions_cannot_replace_face_truth_or_privately_choose_context ... ok
+test fulfilled_body_keeps_terminal_surface_without_wake_or_actions ... ok
+test lulled_body_has_an_exact_surface_without_a_running_plot ... ok
+test owner_names_refuse_stale_or_ambiguous_plot_labels ... ok
+test face_only_navigation_does_not_change_body_or_running_work ... ok
+test lulled_committed_contribution_requires_exact_selection_and_read_play ... ok
+test composition_is_finite_and_deterministic ... ok
+test owner_names_are_human_facing_while_exact_body_and_plot_truth_remain_inspectable ... ok
+test resident_view_joins_body_truth_only_for_its_current_play ... ok
+test open_domain_semantics::ordinary_plot_contributes_universal_truth_without_an_application_view ... ok
+test finite_places::finite_place_fixture_preserves_named_containment_and_bounded_agency ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/face_reading.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/face_reading-b7eca4c8b4c01522)
+
+running 6 tests
+test moves_by_semantic_subject_and_action_with_repeat_and_stop ... ok
+test reads_every_face_clause_independent_of_viewport ... ok
+test refuses_stale_revision_and_preserves_pending_read_on_unknown_focus ... ok
+test refresh_keeps_named_subject_but_never_carries_old_reading_or_indexed_fact ... ok
+test reads_only_primary_items_from_one_exact_face_and_keeps_provenance ... ok
+test read_all_reaches_the_last_item_of_a_long_view ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/generative_interaction.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/generative_interaction-2a03f6b3a3238964)
+
+running 3 tests
+test ambiguous_language_yields_clarification_without_an_interaction ... ok
+test exact_language_proposal_resolves_to_the_ordinary_interaction_contract ... ok
+test stale_unknown_unavailable_and_wrong_kind_proposals_refuse_ordinary_law ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/geometry_decimal.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/geometry_decimal-0e966aeb4176d000)
+
+running 2 tests
+test geometry_cannot_add_temperature_points_as_offsets ... ok
+test adding_zero_preserves_high_exponent_length_coordinates ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/geometry_ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/geometry_ownership-5851536addbef7d7)
+
+running 3 tests
+test portable_geometry_identities_and_bounds_remain_exact ... ok
+test portable_geometry_has_one_host_neutral_owner ... ok
+test static_geometry_round_trips_through_native_conduitese_types ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/human_interaction.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/human_interaction-4c408432b905a986)
+
+running 10 tests
+test changing_only_interaction_context_stales_action_and_input_correlation ... ok
+test finite_evidence_ack_retains_all_sixty_four_receipts_and_duplicate_guard ... ok
+test invalid_disposition_keeps_queued_interaction_for_retry ... ok
+test exact_available_interaction_round_trips_and_evidence_omits_plaintext ... ok
+test stale_wrong_empty_oversize_malformed_duplicate_and_pressure_refuse_distinctly ... ok
+test checked_text_pattern_is_face_truth_across_admission_identity_and_linear_inspection ... ok
+test cancellation_and_renderer_failure_are_terminal_evidence_not_success ... ok
+test ranges_and_finite_membership_are_face_truth_across_admission_and_linear_inspection ... ok
+test multiple_named_arguments_are_admitted_as_one_complete_atomic_interaction ... ok
+test zero_argument_action_needs_no_counterfeit_empty_input ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/input_binding_proposal.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/input_binding_proposal-57c124e71d4a8566)
+
+running 3 tests
+test proposal_cannot_smuggle_look_layout_or_application_callbacks ... ok
+test canonical_input_binding_proposal_is_bounded_and_preserves_source_reference ... ok
+test deserialized_proposal_must_still_satisfy_canonical_constraints ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input_binding_source.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/input_binding_source-b4dd882763ca1fd6)
+
+running 2 tests
+test imported_shape_without_native_laws_cannot_construct_binding_proposals ... ok
+test source_owned_start_remap_and_gameplay_policies_have_typed_fores ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/linear_navigation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/linear_navigation-138e9946f9b29343)
+
+running 3 tests
+test linear_manifestation_is_scoped_and_exposes_portable_navigation ... ok
+test stale_cursor_refuses_before_any_linear_output ... ok
+test follow_changes_only_cursor_and_linear_domain ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/look_browser_binding.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/look_browser_binding-2b38ea286a6ea8c4)
+
+running 1 test
+test browser_profile_matches_checked_source_and_native_type_exactly ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/look_contract.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/look_contract-1597677281842c63)
+
+running 5 tests
+test unknown_facet_request_is_bounded_and_explicit ... ok
+test historical_look_v1_wire_is_not_silently_extended_with_typography ... ok
+test spoken_and_generative_facets_are_distinct_closed_parameters ... ok
+test canonical_identity_version_and_retired_identities_are_exact ... ok
+test canonical_phosphor_assets_are_typed_and_self_consistent ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/look_selection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/look_selection-329e37405d593484)
+
+running 4 tests
+test accessibility_changes_realization_without_rewriting_the_look_resource ... ok
+test facet_absence_unknown_and_observed_host_unavailability_stay_distinct ... ok
+test foreign_visual_identity_cannot_be_attached_to_another_look ... ok
+test host_limit_fallback_retains_requested_and_selected_resource_truth ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/manifestation_placement.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/manifestation_placement-0829d84fa87d7ed1)
+
+running 1 test
+test one_face_has_two_exact_independent_cross_host_manifestations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/mask_journey.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/mask_journey-a3527b0003c2e885)
+
+running 3 tests
+test every_embodiment_must_advance_the_one_ordered_action_journey ... ok
+test the_shared_loop_proves_order_only_and_never_makes_embodiment_evidence ... ok
+test an_embodiment_cannot_replace_the_shared_journey_with_its_own_stage_play ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/mask_plot.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/mask_plot-ad05dc35012e2a63)
+
+running 8 tests
+test the_old_presentation_named_fore_is_not_a_mask_alias ... ok
+test the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner ... ok
+test an_ordinary_plot_without_the_mask_role_boundary_is_not_a_mask ... ok
+test owner_face_ensemble::local_spoken_mask_route_requires_the_exact_planned_host_grant ... ok
+test owner_face_ensemble::owner_face_ensemble_preserves_child_plans_and_reconciles_sealed_alternatives ... ok
+test two_mask_plots_share_one_body_plan_identity_and_unsealed_masks_refuse ... ok
+test owner_face_ensemble::mixed_local_remote_ensemble_requires_current_part_and_directional_lines ... ok
+test graphical_browser_and_spoken_masks_are_ordinary_plots_with_one_role_boundary ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/mask_topology.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/mask_topology-0ef152c0281cf06e)
+
+running 2 tests
+test ordinary_plan_cords_seal_a_typed_two_stage_presenter_chain ... ok
+test two_renderer_placements_are_two_independently_admitted_chains ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/mask_wardrobe.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/mask_wardrobe-838a7f8598f4ab80)
+
+running 8 tests
+test explicit_preference_orders_only_available_eligible_routes ... ok
+test preference_does_not_disturb_a_valid_selected_mask_plot ... ok
+test an_unsealed_or_other_plan_route_cannot_be_selected_as_fallback ... ok
+test owner_route_provenance_must_be_paired ... ok
+test unordered_eligibility_is_permutation_invariant_for_every_availability_case ... ok
+test same_plan_fallback_uses_only_a_sealed_available_mask_plot_route ... ok
+test worn_but_unrealizable_plot_has_no_show_and_requires_replacement_planning ... ok
+test wear_doff_and_preference_are_revisioned_plot_configuration ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/model_temporal_context.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/model_temporal_context-a9242b14b63f0496)
+
+running 3 tests
+test malformed_face_refuses_before_model_projection ... ok
+test new_reference_recomputes_context_without_mutating_observation_evidence ... ok
+test model_context_leads_with_age_and_keeps_exact_provenance ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/named_select.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/named_select-1f7a545959bac29d)
+
+running 2 tests
+test named_select_preserves_exact_values_independent_of_labels_through_wire_encoding ... ok
+test named_select_refuses_duplicate_identity_empty_label_missing_selection_and_wrong_event ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_application_action.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_application_action-bbbac757697232c1)
+
+running 2 tests
+test application_action_has_no_handwritten_duplicate ... ok
+test application_action_round_trips_at_the_exact_identity_bound ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_application_view_vocabulary.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_application_view_vocabulary-3a4ae98254e4ec4b)
+
+running 2 tests
+test application_view_wire_tags_belong_to_native_types ... ok
+test application_view_refusals_are_native_values ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_face_utterance_provenance.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_face_utterance_provenance-c598d03b5a2a5aeb)
+
+running 2 tests
+test face_utterance_provenance_enforces_exact_identity_boundaries ... ok
+test face_utterance_provenance_round_trips_every_payload_shape ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_face_vocabulary.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_face_vocabulary-88f8c10668009471)
+
+running 2 tests
+test generated_manifestation_vocabularies_preserve_serde_and_postcard_shapes ... ok
+test face_vocabularies_round_trip_through_exact_native_types ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_generated_action_affordance.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_generated_action_affordance-c97c5ae1ead46725)
+
+running 2 tests
+test generated_action_affordance_preserves_exact_serde_and_unknown_field_refusal ... ok
+test generated_action_affordance_round_trips_and_enforces_identity_bounds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_graphics_point.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_graphics_point-c21c022e4dba3473)
+
+running 2 tests
+test graphics_point_preserves_authored_coordinate_order ... ok
+test graphics_point_round_trips_exact_signed_coordinate_boundaries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_layout.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_layout-91c3446e2d6ecdce)
+
+running 2 tests
+test layout_family_has_no_handwritten_duplicates ... ok
+test layout_values_round_trip_through_their_native_owner ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_portable_vocabulary.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_portable_vocabulary-8d1c900f36d716b6)
+
+running 2 tests
+test navigation_vocabulary_keeps_its_existing_order_and_exact_codes ... ok
+test wardrobe_face_and_narrator_are_exact_native_vocabulary ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_rhetorical_composition.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_rhetorical_composition-bfff9acd414c1e82)
+
+running 3 tests
+test rhetorical_composition_has_no_handwritten_semantic_duplicate ... ok
+test rhetorical_composition_preserves_legacy_serde_shape_and_order ... ok
+test rhetorical_composition_round_trips_and_enforces_identity_bounds ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_theme_color.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_theme_color-aaf6f0e4ce5c89b8)
+
+running 1 test
+test theme_color_has_exact_native_rgb_and_legacy_const_access ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/navigation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/navigation-ea85ee45c186884c)
+
+running 8 tests
+test changed_navigation_truth_has_a_new_identity_and_stales_the_old_cursor ... ok
+test finite_navigation_composes_place_aspect_focus_depth_and_back ... ok
+test focus_and_disclose_moves_one_bounded_cursor_revision ... ok
+test invalid_roots_aspects_subjects_and_synthetic_follows_are_not_navigation_truth ... ok
+test follow_requires_exact_advertised_current_correlation ... ok
+test stale_unknown_and_exhausted_navigation_fail_closed_without_motion ... ok
+test superseded_face_and_bounded_history_are_refused ... ok
+test navigation_cannot_change_face_or_semantic_identity_basis ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/orifina_face.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/orifina_face-fca09268e86e2e8d)
+
+running 3 tests
+test exact_completion_is_derived_outside_the_model_and_voiced_without_authority ... ok
+test provider_replacement_changes_provenance_not_body_truth ... ok
+test policy_experiment_changes_only_manifestation_not_authoritative_state ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/parsec_input_instruction_producer.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/parsec_input_instruction_producer-e114e0ae723b2be0)
+
+running 6 tests
+test reproduced_but_changed_instruction_source_is_not_the_checked_producer ... ok
+test unknown_control_label_is_forwarded_honestly_without_truncation ... ok
+test malformed_overbound_cross_action_and_stale_revision_candidates_refuse_without_growth ... ok
+test explicit_or_unavailable_withdrawal_has_no_activation_wording_and_preserves_binding ... ok
+test component_frame_inspection_preserves_original_binding_and_wording_without_allocation ... ok
+test exact_policy_candidates_form_three_source_wordings_without_allocation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/parsec_input_policy.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/parsec_input_policy-a895976d2a8dcd67)
+
+running 1 test
+test checked_phase_and_remap_policy_preserves_context_and_exact_action_semantics ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/parsec_input_policy_producer.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/parsec_input_policy_producer-af46e832aaa19b00)
+
+running 5 tests
+test prepared_policy_evaluates_exact_phase_remap_and_custody_without_allocation ... ok
+test canonical_frames_with_forged_owner_refinements_are_refused ... ok
+test source_proposal_does_not_establish_context_revision_authority ... ok
+test malformed_frames_refuse_with_stable_prepared_storage ... ok
+test different_checked_policy_is_refused_even_with_its_reproduced_plan ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/parsec_map_transition.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/parsec_map_transition-95f35144d4f8e6e5)
+
+running 5 tests
+test stale_and_forged_revision_or_context_cannot_change_state ... ok
+test replaced_checked_program_refuses_even_with_reproduced_plan_and_same_shape ... ok
+test actual_game_step_then_source_remap_retains_state_and_both_plan_custodies ... ok
+test prepared_evaluation_and_refusal_allocate_nothing_and_preserve_buffer_capacity ... ok
+test revision_exhaustion_refuses_phase_and_control_change_without_partial_state ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/parsec_state_source.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/parsec_state_source-580d155074a61668)
+
+running 1 test
+test checked_plot_owns_start_to_gameplay_transition_and_refuses_stale_start ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/portable_renderer.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/portable_renderer-f124bf5b13db309f)
+
+running 5 tests
+test unchanged_front_plans_to_exact_wayland_and_dom_realizations ... ok
+test manifestation_is_exact_bounded_and_fails_closed_on_stale_identity ... ok
+test face_rejects_unbounded_and_drifting_semantic_content ... ok
+test headless_host_is_valid_but_cannot_invent_a_renderer_offer ... ok
+test renderer_front_can_be_composed_as_an_ordinary_plot_back ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/projection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/projection-7f873e242b41f11e)
+
+running 5 tests
+test action_and_plan_facts_are_scoped_without_changing_their_exact_truth ... ok
+test depth_reveals_exact_content_without_deleting_canonical_truth ... ok
+test identical_truth_is_deterministic_and_changes_are_identity_bearing ... ok
+test place_and_aspect_project_different_subject_sets_without_graph_fusion ... ok
+test stale_unknown_duplicate_and_missing_follow_truth_fail_closed ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/projection_report.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/projection_report-3e4910ca7e9d2bc8)
+
+running 1 test
+test linearization_preserves_accessible_meaning_and_reports_transformation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic_actions.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/semantic_actions-88c2f8b33492a4b2)
+
+running 3 tests
+test action_resolution_is_read_only_and_fails_closed ... ok
+test malformed_actions_and_disclosures_fail_closed ... ok
+test semantic_changes_are_identity_bearing_and_linear_projection_preserves_them ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/semantic_ui.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/semantic_ui-ec1cc5c730636f6a)
+
+running 13 tests
+test availability_and_warning_severity_survive_semantic_lowering ... ok
+test choices_and_links_lower_from_meaning_without_host_manifestation_terms ... ok
+test every_vocabulary_identity_is_distinct_and_versioned ... ok
+test evidence_artifact_definitions_and_code_keep_exact_bounded_data ... ok
+test incomplete_evidence_artifact_definition_and_code_refuse_before_lowering ... ok
+test exclusive_choices_refuse_multiple_selected_meanings ... ok
+test invalid_and_unbounded_plot_choices_refuse_before_expansion ... ok
+test inherited_node_text_action_and_depth_bounds_refuse ... ok
+test invalid_progress_availability_and_device_choice_refuse_exactly ... ok
+test plots_navigation_stepper_and_progress_keep_exact_shared_contracts ... ok
+test separator_lowers_as_passive_renderer_neutral_structure ... ok
+test shared_vocabulary_lowers_deterministically_without_host_truth ... ok
+test select_options_lower_as_finite_children_of_the_exact_field ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/stroke_capture_plot.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/stroke_capture_plot-15b34449cf3ba017)
+
+running 1 test
+test capture_and_route_consumer_are_checked_and_mechanism_free ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/structured_info.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/structured_info-88858aae84fd6adf)
+
+running 6 tests
+test llm_leaf_bytes_never_enter_face_content ... ok
+test quantity_sign_projects_unit_identity_and_signed_value_without_formatting_text ... ok
+test nominal_face_preserves_semantic_identity_and_representation_shape ... ok
+test declared_data_name_survives_typed_projection_and_invalid_names_are_refused ... ok
+test sequence_face_preserves_exact_minimum_and_maximum_cardinality ... ok
+test structured_sign_projection_discloses_shape_progressively_without_leaf_content ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/temporal_context.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/temporal_context-24dee78200d629e6)
+
+running 5 tests
+test changing_only_the_reference_recomputes_truth_not_observation_evidence ... ok
+test checked_relations_keep_overlap_distinct_from_exact_present ... ok
+test incomparable_invalid_and_overflowing_instants_refuse ... ok
+test temporal_facts_are_identity_bearing_validated_and_linearized ... ok
+test temporal_collections_and_reference_identities_are_finite ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/typed_value.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/typed_value-92deb7105695c438)
+
+running 6 tests
+test inline_quantity_and_resource_reference_are_distinct_semantic_contracts ... ok
+test face_identity_binds_the_value_kind_contract_and_exact_coordinate ... ok
+test inline_values_admit_only_finite_contracts_and_matching_canonical_bytes ... ok
+test physical_units_and_dimension_specific_quantities_have_semantic_wording ... ok
+test serde_and_postcard_preserve_the_new_value_and_existing_reference_variants ... ok
+test graphical_and_spoken_wording_keep_exact_negative_and_extreme_decimals ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/universal_grammar.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/universal_grammar-363993e3a2868fce)
+
+running 3 tests
+test malformed_open_identities_and_content_refuse ... ok
+test interaction_context_is_exact_identity_bearing_truth ... ok
+test one_open_domain_face_survives_linear_graphical_and_generative_masks ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/visual_expression.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/visual_expression-73265f1e5384ca74)
+
+running 7 tests
+test density_palette_and_text_preferences_are_independently_admitted ... ok
+test duplicate_fields_and_capacity_edges_are_rejected_or_explicit ... ok
+test invalid_expression_uses_phosphor_and_user_requirements_remain_authoritative ... ok
+test host_capacity_selects_fallback_without_discarding_user_text_requirement ... ok
+test expression_has_no_slot_action_topology_or_input_authority ... ok
+test typography_is_required_versioned_and_independent_of_palette_and_density ... ok
+test structured_expression_uses_exact_checked_schema_and_validated_values ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_face
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+» [check.kernel-alloc] Kernel alloc feature tests
+  $ cargo test -p conduit-kernel --features alloc
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/plot)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/human)
+    Finished `test` profile [optimized] target(s) in 1m 34s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduit_kernel-5f2f04760b10d567)
+
+running 208 tests
+test execution_disposition::tests::exact_failure_categories_survive_classification ... ok
+test execution_disposition::tests::stable_names_keep_semantic_and_embodiment_outcomes_distinct ... ok
+test execution_disposition::tests::drained_work_is_quiescent_unless_semantics_explicitly_complete ... ok
+test fixed_value_store::tests::dense_store_and_released_holes_preserve_first_free_slot_identity ... ok
+test hosted::compact_f32::tests::heterogeneous_slots_and_exhausted_generations_remain_bounded ... ok
+test hosted::compact_f32::tests::equal_physical_and_logical_lengths_never_leak_as_canonical_bytes ... ok
+test hosted::compact_f32::tests::logical_quota_and_generation_survive_compact_reference_fanout ... ok
+test hosted::compact_f32::tests::malformed_or_nonfinite_lanes_refuse_without_changing_ownership ... ok
+test hosted::native_values::tests::native_admission_respects_heterogeneous_capacity_live_bytes_and_retirement ... ok
+test hosted::native_values::tests::native_preparation_preserves_resources_and_never_copies_word_bytes ... ok
+test hosted::compact_f32::tests::canonical_compact_and_word_reuse_keep_separate_representations ... ok
+test hosted::owned_compact_f32::tests::committed_fanout_retains_one_buffer_and_releases_each_reference ... ok
+test fixed_value_store::tests::refused_storage_and_stale_release_do_not_move_free_bound ... ok
+test hosted::owned_compact_f32::tests::conversion_preserves_explicit_canonical_capacity_or_refuses_atomically ... ok
+test hosted::owned_compact_f32::tests::best_fit_conversion_preserves_larger_canonical_slots ... ok
+test hosted::owned_compact_f32::tests::invalid_batch_and_unadmitted_buffer_leave_store_truth_unchanged ... ok
+test hosted::owned_compact_f32::tests::exact_lane_buffer_moves_and_restores_without_a_payload_copy ... ok
+test hosted::owned_compact_f32::tests::logical_pressure_and_retired_generations_refuse_before_buffer_transfer ... ok
+test hosted::owned_compact_f32::tests::numerically_equal_foreign_pending_receipts_cannot_commit_another_store ... ok
+test hosted::owned_compact_f32::tests::releasing_owned_buffers_does_not_rewind_the_generic_cursor ... ok
+test hosted::owned_compact_f32::tests::retired_owned_slots_do_not_turn_generic_pressure_into_generation_exhaustion ... ok
+test hosted::owned_compact_f32::tests::typed_pools_preserve_the_generic_uniform_cursor_bound ... ok
+test hosted::owned_compact_f32::tests::wrong_owner_denial_preserves_pending_ticket_and_both_buffers ... ok
+test hosted::tests::full_hosted_store_preserves_size_and_byte_refusal_precedence ... ok
+test hosted::tests::mixed_hosted_capacities_keep_smallest_fit_and_first_equal_slot ... ok
+test native_value_store::tests::native_result_never_enters_canonical_storage_and_cannot_be_read_as_bytes ... ok
+test native_value_store::tests::pressure_and_generation_exhaustion_refuse_without_publishing_values ... ok
+test native_value_store::tests::unsupported_stores_refuse_and_native_reference_overflow_keeps_ownership ... ok
+test scheduler::active_capacity::tests::admits_zero_cord_calls_but_not_zero_nodes_or_capacity_overflow ... ok
+test scheduler::compact_f32::tests::ignored_invalid_publication_still_faults_the_transaction ... ok
+test scheduler::cord_prefix::tests::prefix_acceptance_matches_pairwise_oracle_for_unordered_and_invalid_layouts ... ok
+test scheduler::fanout_value::tests::invalid_fanout_count_refuses_before_storage_mutation ... ok
+test scheduler::host_call_index::tests::index_represents_the_entire_u16_node_cardinality_without_a_sentinel_collision ... ok
+test scheduler::cord_prefix::tests::ordered_ten_thousand_cords_need_no_pairwise_prefix_probes ... ok
+test scheduler::fanout_value::tests::maximum_representable_fanout_preserves_exact_reference_count ... ok
+test scheduler::prepared_session::owned_boundaries::tests::default_remote_refusal_and_exact_endpoint_admission_remain_distinct ... ok
+test scheduler::prepared_session::tests::all_back_preflights_precede_any_reset_or_evidence_transfer ... ok
+test scheduler::prepared_session::owned_boundaries::tests::missing_remote_evidence_refuses_before_any_rearm_mutation ... ok
+test scheduler::prepared_session::owned_boundaries::tests::pressure_stale_input_ack_failure_and_cancel_never_reprepare_or_replay ... ok
+test scheduler::prepared_session::tests::earlier_failure_cannot_be_laundered_by_a_later_structural_drain ... ok
+test scheduler::prepared_session::tests::same_kernel_resources_and_exact_old_evidence_survive_successful_rearm ... ok
+test scheduler::host_call_back::reuse_tests::rearm_preserves_request_generation_and_refuses_pending_or_exhausted ... ok
+test scheduler::prepared_session::tests::lost_resident_pin_refuses_before_reset_and_preserves_old_evidence ... ok
+test scheduler::prepared_session::owned_boundaries::tests::exact_owned_boundaries_preserve_sequences_resources_and_old_evidence ... ok
+test scheduler::quiescence::tests::ordinary_preparation_uses_only_active_cords ... ok
+test scheduler::prepared_session::owned_boundaries::tests::empty_value_closure_and_sequence_exhaustion_are_explicit_refusals ... ok
+test scheduler::queue_index::tests::bounded_ring_positions_match_wide_arithmetic ... ok
+test scheduler::quiescence::tests::boxed_preparation_uses_only_active_cords ... ok
+test scheduler::quiescence::tests::prepared_quiescence_bound_includes_last_match_and_ignores_empty_prefix ... ok
+test scheduler::quiescence::tests::quiescence_arming_visits_only_the_sources_routed_targets ... ok
+test hosted::tests::full_hosted_store_refuses_without_inspecting_slots_and_reopens_on_release ... ok
+test scheduler::quiescence::tests::sparse_armed_quiescence_ignores_unarmed_tail_without_losing_ineligible_edges ... ok
+test scheduler::ready_set::tests::isolated_wake_clear_and_large_boundaries_preserve_independent_membership ... ok
+test scheduler::remote_target_prefix::tests::ten_thousand_increasing_targets_skip_all_prefix_comparisons ... ok
+test scheduler::ready_set::tests::sparse_large_selection_skips_empty_groups_without_growing_storage ... ok
+test scheduler::route_membership::tests::boxed_preparation_initializes_cord_membership_once ... ok
+test scheduler::route_membership::tests::missing_empty_and_incomplete_routes_preserve_exact_refusals ... ok
+test scheduler::scan_characterization::capture_small_and_large_selector_replay ... ignored, manual deterministic replay and timing; diagnostic fixed stack, no SMP claim
+test scheduler::scan_characterization::characterize_loaded_and_sparse_fixed_scheduler_scans ... ignored, manual optimized instrumented kernel scan baseline; no timing threshold
+test scheduler::route_membership::tests::ingress_only_preparation_needs_no_route_membership_scratch ... ok
+test scheduler::scan_characterization::host_many::interleaving::global_cancel_clears_reinserted_and_queued_cancellations ... ok
+test scheduler::scan_characterization::host_many::interleaving::packed_adapter_bound_reverts_after_early_slot_consumption_leaves_a_hole ... ok
+test scheduler::scan_characterization::overhead_observation::allocator_probe_counts_real_storage_without_other_thread_noise ... ok
+test scheduler::scan_characterization::overhead_observation::value_observation_delegates_custody_and_counts_only_successful_copies ... ok
+test scheduler::prepared_session::tests::active_cancelled_and_nonempty_evidence_reservations_refuse ... ok
+test scheduler::route_membership::tests::source_fanout_targets_are_validated_once_without_reverse_walks ... ok
+test scheduler::route_membership::tests::routed_preparation_initializes_cord_membership_once ... ok
+test scheduler::ready_set::tests::completion_census_is_disjoint_from_ready_bits_and_survives_clear ... ok
+test scheduler::scan_characterization::host_many::interleaving::adapter_selection_matches_full_scan_through_competition_completion_and_reuse ... ok
+test scheduler::ready_set::tests::completion_census_represents_every_u16_node_identity ... ok
+test scheduler::scan_characterization::loaded_and_sparse_scan_counts_preserve_fairness_and_pressure ... ok
+test scheduler::route_membership::tests::duplicate_and_cross_source_route_targets_remain_invalid ... ok
+test scheduler::scan_characterization::terminal_completion::capture_completion_prefix ... ignored, manual optimized completion-prefix measurements
+test scheduler::scan_characterization::host_many::interleaving::earlier_cancellation_reinsertion_preserves_order_through_completion_races ... ok
+test scheduler::scan_characterization::host_many::interleaving::completion_sign_refusal_preserves_queued_cancellation_until_accepted_retry ... ok
+test scheduler::scan_characterization::terminal_completion::completion_count_uses_active_prefix_and_does_not_double_retire ... ok
+test scheduler::quiescence::tests::sparse_quiescence_matches_full_scan_eligibility_and_sign_order ... ok
+test scheduler::scan_characterization::terminal_completion::boxed_preparation_initializes_completion_count ... ok
+test scheduler::tests::a_back_cannot_evade_exposed_abnormal_truth_by_awaiting ... ok
+test scheduler::tests::a_back_observes_and_transduces_exact_abnormal_input_truth ... ok
+test scheduler::tests::a_cancellation_request_cannot_be_consumed_as_normal_completion ... ok
+test scheduler::tests::abnormal_finalization_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::abnormal_terminal_fanout_is_atomic_across_every_explicit_track ... ok
+test scheduler::tests::abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failure ... ok
+test scheduler::tests::all_inputs_close_contract_consumes_early_close_and_completes_on_last_close ... ok
+test scheduler::tests::blocked_join_preserves_every_input_until_atomic_commit ... ok
+test scheduler::tests::cancellation_rejects_late_host_completion_and_releases_pending_input ... ok
+test scheduler::tests::cancellation_releases_queued_and_driver_owned_values_and_is_terminal ... ok
+test scheduler::tests::cancellation_request_remains_pending_until_typed_disposition_after_multiple_steps ... ok
+test scheduler::tests::coalescing_cords_supersede_the_newest_pending_item_without_growth ... ok
+test scheduler::tests::fanout_storage::refused_abnormal_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::fanout_storage::refused_normal_close_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::fanout_storage::refused_quiescence_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::generated_value_envelope::generated_output_semantic_envelope_precedes_full_storage ... ok
+test scheduler::tests::host_alias::consumed_reference_can_transfer_while_another_input_keeps_its_alias ... ok
+test scheduler::tests::host_alias::consumed_unit_reference_releases_each_alias_after_completion ... ok
+test scheduler::tests::host_alias::explicitly_pinned_reference_stays_queued_until_host_completion ... ok
+test scheduler::tests::host_alias::pinned_unit_reference_remains_valid_until_its_cord_is_consumed ... ok
+test scheduler::tests::host_alias::unconsumed_queued_reference_cannot_be_borrowed_for_host_work ... ok
+test scheduler::tests::host_cancellation::accepted_completion_wins_before_cancellation ... ok
+test scheduler::tests::host_cancellation::cancels_and_replaces_one_dispatched_request ... ok
+test scheduler::tests::host_cancellation::global_cancellation_clears_pending_occupancy_with_the_request_table ... ok
+test scheduler::tests::host_cancellation::hosted_and_fixed_vectors_match ... ok
+test scheduler::tests::host_cancellation::refuses_cancellation_until_the_exact_request_is_dispatched ... ok
+test scheduler::tests::host_index::distinct_nodes_keep_exact_slots_through_out_of_order_completion ... ok
+test scheduler::scan_characterization::large_sparse_and_loaded_pressure_preserve_outputs_and_readiness ... ok
+test scheduler::tests::host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage ... ok
+test scheduler::tests::host_slot_allocation::host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order ... ok
+test scheduler::scan_characterization::blocked_wakes::input_wakes_of_host_blocked_nodes_are_characterized_without_running_backs ... ok
+test scheduler::tests::host_cancellation::indexed_completion_admission_preserves_exact_refusals_with_a_large_table ... ok
+test scheduler::tests::hosted_and_fixed_join_rollback_vectors_match ... ok
+test scheduler::tests::host_cancellation::unrelated_ready_node_does_not_scan_a_large_live_host_table ... ok
+test scheduler::tests::hosted_executor_keeps_allocation_shape_after_play_start ... ok
+test scheduler::tests::local_coalescing::local_steps_coalesce_newest_values_and_preserve_blocked_fanout ... ok
+test scheduler::tests::hosted_and_fixed_schedulers_have_matching_multi_value_vectors ... ok
+test scheduler::tests::hosted_and_fixed_host_call_vectors_match ... ok
+test scheduler::tests::multi_value_port_graph_handles_pressure_closure_and_uneven_consumers ... ok
+test scheduler::tests::normal_close_flush_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::non_flushing_all_inputs_close_contract_waits_for_the_last_close ... ok
+test scheduler::tests::hosted_and_fixed_cancellation_vectors_match ... ok
+test scheduler::tests::normal_close_track_delivers_one_unit_value_and_never_payload ... ok
+test scheduler::tests::only_a_plan_bound_recovery_contract_resolves_projected_abnormal_truth ... ok
+test scheduler::tests::prepared_back_storage_emits_beyond_the_inline_derived_value_envelope ... ok
+test scheduler::tests::host_value_pending::pending_ownership_skips_unused_tail_without_skipping_holes_or_completion_outputs ... ok
+test scheduler::scan_characterization::terminal_completion::completion_prefix_is_observed_after_progress_and_idle ... ok
+test scheduler::tests::host_cancellation_polling::rejecting_adapter_stops_after_last_undispatched_request_without_moving_cursor ... ok
+test scheduler::tests::remote_fanout::abnormal_closure_preserves_one_exact_terminal_on_every_branch ... ok
+test scheduler::tests::quiescence_track_fires_once_per_active_epoch_and_rearms_after_new_work ... ok
+test scheduler::tests::remote_delivery_sign_exhaustion_preserves_the_in_flight_value ... ok
+test scheduler::tests::remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth ... ok
+test scheduler::tests::host_value_occupancy::wrapped_and_coalescing_queued_values_remain_owned ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_is_admitted_with_item_room_and_pressured_when_slots_fill ... ok
+test scheduler::tests::remote_fanout::empty_remote_fanout_preserves_admitted_coalescing_policy ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_obeys_item_pressure_without_allocating_or_partial_fanout ... ok
+test scheduler::tests::host_cancellation_polling::sparse_reserved_host_adapter_polling_observation ... ok
+test scheduler::tests::remote_fanout::exhausted_sign_sequence_refuses_fanout_before_payload_or_closure_mutation ... ok
+test scheduler::tests::remote_fanout::invalid_or_pressured_closure_leaves_every_ingress_branch_open ... ok
+test scheduler::tests::host_cancellation_polling::cancellation_polling_skips_absent_settled_and_dispatched_obligations ... ok
+test scheduler::tests::remote_fanout::pressured_remote_ingress_branch_refuses_atomic_payload_fanout_without_partial_delivery ... ok
+test scheduler::tests::remote_fanout::remote_fanout_pressure_cannot_hide_invalid_or_stale_sibling_targets ... ok
+test scheduler::tests::remote_fanout::remote_fanout_rejects_more_targets_than_admitted_cords_even_under_pressure ... ok
+test scheduler::tests::remote_fanout::remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing ... ok
+test scheduler::tests::remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state ... ok
+test scheduler::tests::remote_payload_terminal_retains_exact_abnormal_truth ... ok
+test scheduler::tests::scheduler_admits_correlates_and_wakes_host_calls ... ok
+test scheduler::tests::scheduler_rejects_unbound_host_call_before_consumption_commit ... ok
+test scheduler::tests::scheduler_never_reuses_a_retired_request_identity ... ok
+test scheduler::tests::semantic_value_bound_is_enforced_independently_of_queue_storage ... ok
+test scheduler::tests::simultaneous_terminals_use_each_inputs_exact_contract_in_port_order ... ok
+test scheduler::tests::terminal_failure_and_cancellation_never_emit_quiescence ... ok
+test scheduler::tests::terminal_sign_admission::abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit ... ok
+test scheduler::tests::terminal_sign_admission::oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry ... ok
+test scheduler::tests::terminal_sign_admission::remote_terminal_sign_pressure_refuses_before_step_commit ... ok
+test scheduler::tests::terminal_sign_admission::terminal_sign_sequence_reserves_both_value_and_remote_closure ... ok
+test scheduler::tests::unconnected_checked_terminal_is_semantic_truth_not_invalid_port_access ... ok
+test sign_retention::tests::fixed_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test sign_retention::tests::fixed_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::fixed_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::fixed_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::fixed_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::fixed_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::fixed_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::hosted_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test sign_retention::tests::hosted_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::hosted_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::hosted_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::hosted_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::hosted_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::hosted_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::maximum_reservation_uses_retained_count_without_narrowing_overflow ... ok
+test single_source::tests::exact_single_source_uses_the_shared_step_and_sign_contracts ... ok
+test state_delay::continuation_tests::cancellation_discards_candidate_without_renewing_or_relabeling_it ... ok
+test state_delay::continuation_tests::finite_transition_budget_still_exhausts_without_committing_candidate ... ok
+test state_delay::tests::absent_and_multiple_candidates_have_finite_outcomes ... ok
+test state_delay::tests::fixed_and_hosted_profiles_share_numeric_recurrence_semantics ... ok
+test state_delay::transfer::tests::a_larger_profile_continues_committed_state_and_generation ... ok
+test state_delay::continuation_tests::externally_driven_state_has_finite_storage_without_a_semantic_step_count ... ok
+test state_delay::transfer::tests::insufficient_capacity_returns_the_unchanged_source ... ok
+test state_delay::transfer::tests::pending_candidate_is_not_silently_dropped ... ok
+test state_delay::transfer::tests::transfer_does_not_renew_transition_or_identity_capacity ... ok
+test tests::admitted_sink_host_call_may_have_no_output_payload ... ok
+test tests::admitted_source_host_call_may_have_no_input_payload ... ok
+test tests::fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth ... ok
+test tests::fixed_sign_has_independent_item_and_byte_budgets ... ok
+test tests::fixed_value_store_enforces_items_bytes_generation_and_fanout_references ... ok
+test tests::hosted_and_fixed_value_profiles_produce_the_same_storage_vector ... ok
+test tests::only_plan_admitted_host_calls_cross_the_boundary ... ok
+test tests::prebound_routes_never_broadcast_between_output_ports ... ok
+test tests::remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity ... ok
+test tests::remote_sign_identity_requires_separate_admission_and_fails_atomically ... ok
+test scheduler::tests::queue_ring_bounds::admitted_queue_arena_can_cross_the_u16_slot_address_boundary ... ok
+test state_delay::tests::same_primitive_expresses_parameter_updates ... ok
+test scheduler::tests::host_value_occupancy::host_value_cleanup_skips_empty_reserved_tables ... ok
+test state_delay::continuation_tests::generation_capacity_refuses_without_wrap_or_silent_reset ... ok
+test state_delay::transfer::tests::destination_bounds_must_fit_the_concrete_profile ... ok
+test state_delay::tests::cancellation_failure_and_reset_are_deterministic_and_observable ... ok
+test scheduler::tests::remote_fanout::shared_remote_publication_uses_remaining_fresh_generation_slot ... ok
+test scheduler::tests::queue_ring_bounds::large_wrapped_queue_preserves_order_and_coalescing_without_u16_addition ... ok
+test scheduler::tests::host_slot_allocation::one_packed_call_among_many_nodes_preserves_adapter_order ... ok
+test sign_retention::tests::fixed_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test scheduler::tests::remote_fanout::exhausted_generations_refuse_remote_publication_without_state_changes ... ok
+test sign_retention::tests::hosted_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test scheduler::remote_target_prefix::tests::duplicate_results_match_tuple_prefix_oracle_for_arbitrary_order ... ok
+test scheduler::scan_characterization::sparse_large::two_ready_among_ten_thousand_preserve_fairness_pressure_and_ownership ... ok
+test scheduler::scan_characterization::remote_many::ten_thousand_remote_targets_preserve_atomic_admission_and_terminal_lineage ... ok
+test scheduler::scan_characterization::host_many::thousands_of_host_cancellations_complete_rearm_and_cancel_without_prefix_rescans ... ok
+test scheduler::ready_set::tests::packed_iteration_matches_linear_round_robin_at_every_cursor ... ok
+test scheduler::ready_set::tests::summary_iteration_matches_linear_for_partial_active_prefixes ... ok
+
+test result: ok. 205 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/active_prefix.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/active_prefix-9c048d548b51ceb9)
+
+running 3 tests
+test inactive_capacity_is_rejected_and_never_cancelled ... ok
+test sealed_tables_cannot_reference_inactive_nodes_or_cords ... ok
+test one_scheduler_capacity_runs_two_different_active_shapes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/back_failure.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/back_failure-2fb26e146c3bce05)
+
+running 1 test
+test identical_detail_codes_do_not_erase_distinct_back_failures ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_evidence_and_faults.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/body_evidence_and_faults-ac7a5c03ce8d95fc)
+
+running 8 tests
+test cycles_and_excessive_direct_fan_in_refuse_before_mutation ... ok
+test fault_scope_isolated_degraded_replaced_and_stale_completion_refused ... ok
+test metadata_lookup_lends_exact_identity_without_changing_graph_storage ... ok
+test local_and_distributed_causal_chains_are_exact_not_temporal_guesses ... ok
+test oldest_edges_compact_deterministically_and_make_truncation_explicit ... ok
+test terminal_correlation_never_guesses_after_ambiguity_or_compaction ... ok
+test semantic_terminal_digest_resolves_to_exact_causal_evidence ... ok
+test trace_preserves_branching_and_merging_without_timestamp_inference ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compact_f32_allocations.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/compact_f32_allocations-80b602105fb3b92b)
+
+running 1 test
+test prepared_compact_publication_fanout_and_reuse_make_no_allocator_requests ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compact_f32_dag.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/compact_f32_dag-5f9bbf48e6cbaf31)
+
+running 15 tests
+test an_escaping_dispatch_boundary_retains_region_membership ... ok
+test canonical_escape_boundaries_and_overlapping_regions_cannot_be_erased ... ok
+test cancellation_can_stop_between_independent_members_of_the_physical_order ... ok
+test explicit_external_canonical_input_preserves_exact_transactions_and_zero_play_allocations ... ok
+test failed_preflight_is_atomic_and_never_admits_unsupported_or_unprepared_storage ... ok
+test canonical_input_declarations_refuse_conflicts_internal_edges_and_invalid_ports_atomically ... ok
+test mismatched_physical_width_or_logical_quota_refuses_before_any_binding ... ok
+test owned::failed_fanout_acceptance_restores_the_exact_pending_producer_buffer ... ok
+test diamond_multi_input_and_atomic_fanout_preserve_every_logical_sign ... ok
+test owned::sign_admission_failure_after_transfer_restores_the_pending_output ... ok
+test owned::selected_owner_buffer_denial_refuses_without_copying_fallback ... ok
+test failure_frontier_and_cancellation_release_match_the_canonical_graph ... ok
+test owner_checkpoint_stops_each_logical_frontier_inside_a_compact_region ... ok
+test owned::owned_diamond_preserves_pressure_fanout_events_and_zero_play_allocations ... ok
+test owned::cancellation_at_every_logical_frontier_releases_owned_and_canonical_values ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/debug_observation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/debug_observation-eb5ef1f126fd001b)
+
+running 7 tests
+test exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot ... ok
+test invalid_record_and_preview_budgets_refuse_before_attachment ... ok
+test attach_detach_and_fault_observation_do_not_change_execution_result ... ok
+test pressure_overwrites_only_debug_history_and_exposes_the_exact_gap ... ok
+test production_scheduler_emits_exact_bounded_start_value_and_completion_observations ... ok
+test stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_history ... ok
+test stale_and_distributed_breakpoints_refuse_before_execution_control ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/execution_region-5b5bff07ee8f0402)
+
+running 5 tests
+test execution_owner_can_stop_before_every_logical_gear_without_later_steps ... ok
+test every_logical_failure_point_survives_grouping ... ok
+test invalid_overlapping_and_late_chains_refuse_before_mutation ... ok
+test logical_outputs_pressure_terminal_signs_and_allocation_match ... ok
+test every_logical_checkpoint_can_suspend_then_cancel_or_resume ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region_unavailable.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/execution_region_unavailable-393d2aee08be28db)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/heterogeneous_value_store.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/heterogeneous_value_store-dce4198268cecfd5)
+
+running 2 tests
+test heterogeneous_live_quota_and_shape_exhaustion_are_independent ... ok
+test heterogeneous_slots_preserve_large_slots_and_never_allocate_during_use ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hosted_native_values.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/hosted_native_values-145545e730a26f58)
+
+running 1 test
+test hosted_native_sidecar_is_prepared_once_and_mixed_storage_never_grows ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_source.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/keyboard_source-0ba411aba8011bd9)
+
+running 3 tests
+test cancellation_and_host_input_failure_remain_distinct ... ok
+test full_key_cord_waits_under_pressure_without_dropping_or_overwriting ... ok
+test portable_vectors_cross_capacity_one_cord_and_close_exactly ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_prepared_session.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_prepared_session-669e79abec9b362c)
+
+running 1 test
+test native_bindings_and_value_generations_survive_eight_accepted_invocations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_region.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_region-ab3e36c409c5fbb3)
+
+running 8 tests
+test disjoint_regions_cannot_over_admit_the_same_native_reservation ... ok
+test debugger_boundaries_refuse_native_binding_or_require_an_unfused_reprepare ... ok
+test invalid_overlapping_and_late_native_bindings_refuse_without_changing_the_chain ... ok
+test native_binding_refuses_insufficient_reservation_before_changing_dispatch ... ok
+test native_regions_keep_every_logical_cancellation_checkpoint ... ok
+test pressure_outputs_all_signs_and_zero_allocations_match_without_canonical_intermediates ... ok
+test every_failure_retains_exact_source_frontier_and_cancel_releases_native_ownership ... ok
+test exhausted_sign_capacity_releases_staged_native_results_without_partial_commit ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_session_allocation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/prepared_session_allocation-560387774c7a7672)
+
+running 1 test
+test four_value_invocations_reuse_queues_and_store_without_boundary_or_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ready_selection_allocation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/ready_selection_allocation-fb809b95490222d6)
+
+running 1 test
+test thirty_two_ready_nodes_remain_fair_without_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduler_footprint.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/scheduler_footprint-fafed9518792aa04)
+
+running 1 test
+test observe_production_scheduler_footprint ... ignored, manual native production-layout observation; no size threshold
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_flow.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/shared_flow-b0a8af0ef02bfb13)
+
+running 4 tests
+test fan_preserves_per_branch_delivery_failure_and_cancellation ... ok
+test fan_rejects_duplicate_recipients_before_retaining_an_item ... ok
+test fan_retains_one_snapshot_and_value_until_every_addressed_branch_terminates ... ok
+test merge_is_bounded_ordered_and_preserves_exact_source_member_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/shared_pool-f0ee50aafe59abcc)
+
+running 4 tests
+test authority_realization_preparation_and_lifecycle_fail_independently ... ok
+test fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes ... ok
+test keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs ... ok
+test sign_exhaustion_never_partially_mutates_membership ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_cost_selection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/shared_pool_cost_selection-53987e87442f8d2d)
+
+running 3 tests
+test completion_policy_beats_capacity_reference_then_preserves_atomic_occupation_and_pinning ... ok
+test mismatched_or_stale_costs_keep_distinct_refusals_and_use_capacity_fallback ... ok
+test duplicate_cost_bounds_authority_and_evidence_refuse_before_occupation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_selection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/shared_pool_selection-4b14df68f3213446)
+
+running 5 tests
+test every_resource_must_be_current_and_each_observation_sign_is_retained ... ok
+test new_work_fills_two_sealed_realizations_without_replanning ... ok
+test healthy_but_occupied_capacity_is_not_provider_exhaustion ... ok
+test provider_loss_is_not_replay_but_later_work_uses_the_sealed_alternative ... ok
+test stale_and_unsealed_truth_cannot_escape_the_plan_envelope ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_capacity_cost.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/sign_capacity_cost-ecabf6d2b454a0a2)
+
+running 2 tests
+test observe_production_sign_capacity_cost ... ignored, manual Sign reservation cost capture; no timing threshold
+test capacity_probe_preserves_empty_sparse_full_and_sticky_logs ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_query_extent.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/sign_query_extent-65eb2fe1b2d1b70b)
+
+running 2 tests
+test fixed_queries_use_occupied_prefix_through_eviction ... ok
+test hosted_queries_use_occupied_prefix_through_eviction ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_record_cost.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/sign_record_cost-d3e01b38b3ce023f)
+
+running 2 tests
+test observe_production_sign_record_cost ... ignored, manual optimized native Sign cost observations; no timing threshold
+test probe_preserves_exact_events_and_full_log_retention ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_continuation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/state_continuation-dd61a80e39181ec5)
+
+running 6 tests
+test a_larger_transition_allowance_executes_the_same_input_without_hiding_exhaustion ... ok
+test derived_emission_capacity_is_checked_before_back_start ... ok
+test cancelling_a_pressured_update_retires_only_the_last_committed_state ... ok
+test input_wait_continued_back_and_explicit_closure_are_distinct ... ok
+test output_pressure_does_not_drop_the_queued_next_state ... ok
+test retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_prepared_output.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/state_prepared_output-cdc1b0fdeaed3cfc)
+
+running 3 tests
+test cancellation_during_pressure_retains_only_the_published_generation ... ok
+test prepared_state_preserves_empty_and_actual_short_extent ... ok
+test large_initialization_updates_and_pressure_preserve_exact_committed_values ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/static_merge.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/static_merge-be9f814479c3b1b1)
+
+running 2 tests
+test unknown_source_reordering_and_pressure_fail_distinctly ... ok
+test exact_static_sources_merge_in_kernel_order ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_atomic_discard.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/step_atomic_discard-9cfbcfa27e1cd70a)
+
+running 4 tests
+test discard_overflow_is_a_step_protocol_refusal ... ok
+test blocked_output_preserves_both_discards_until_atomic_commit ... ok
+test duplicate_and_stale_discard_fail_before_partial_commit ... ok
+test two_distinct_values_discard_in_one_terminal_step ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_fuel.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/step_fuel-e63beb5b5d6fd861)
+
+running 3 tests
+test cancellation_is_observed_between_finite_steps ... ok
+test exceeding_a_plan_owned_grant_is_atomic_and_observable ... ok
+test cooperative_continuations_consume_each_grant_and_remain_fair ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_input_bytes.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/step_input_bytes-737a1d129fe09404)
+
+running 2 tests
+test stale_identity_fails_before_a_step_payload_decision ... ok
+test fixed_and_hosted_stores_expose_the_same_exact_step_input_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/value_generation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/value_generation-d61933fd2d192b4f)
+
+running 2 tests
+test fixed_generations_retire_on_final_release_or_clear ... ok
+test hosted_generations_retire_on_final_release_or_clear ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/value_store_model.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/value_store_model-6bfa7443bb9a569a)
+
+running 2 tests
+test fixed_store_matches_full_scan_model_through_interleaved_lifecycles ... ok
+test hosted_uniform_and_mixed_stores_match_full_scan_lifecycle_model ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests conduit_kernel
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+» [check.system-continuity] Durable system continuity conformance
+  $ cargo test -p conduit-system-continuity
+   Compiling serde_core v1.0.229
+   Compiling serde_json v1.0.151
+   Compiling memchr v2.8.3
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/wire)
+   Compiling conduit-system-continuity v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/system-continuity)
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling heapless v0.8.0
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/kernel)
+   Compiling serde-json-core v0.6.0
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/plan-lowering)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/human)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/planner)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/web)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/audio)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/net)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/mechanisms/protocols/midi)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/purpose)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/catalog)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/signal)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/plots/todo/model)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/plots/thermostat/model)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/mechanisms/protocols/bluetooth)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/architecture/observatory)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/chat)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/proof/conformance/signal)
+    Finished `test` profile [optimized] target(s) in 2m 00s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduit_system_continuity-cefd556ac17d76fb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/continuity.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/continuity-b7c8b521a9a802f7)
+
+running 4 tests
+test reboot_acceptance_termination_replacement_and_replan_remain_distinct ... ok
+test exact_roles_bind_to_three_explicit_members_one_plan_and_distinct_plays ... ok
+test membership_availability_and_delegated_authority_fail_independently ... ok
+test compatible_front_does_not_inherit_assignment_grant_plan_or_play ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/delegated_reboot.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/delegated_reboot-3ea157b21256bb93)
+
+running 5 tests
+test same_semantics_with_a_different_name_is_compatible_but_grant_stays_exact ... ok
+test support_authority_reachability_boot_and_replay_fail_independently ... ok
+test malformed_request_is_denied_with_machine_readable_sign ... ok
+test authorized_reboot_separates_acceptance_line_loss_and_completed_proof ... ok
+test proof_window_expires_to_unknown_without_fabricating_transport_failure ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_reboot_denial.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/native_reboot_denial-b61c440771bf32a3)
+
+running 2 tests
+test reboot_denial_is_native_semantic_info_with_stable_rust_serde ... ok
+test reboot_progress_and_line_loss_vocabulary_is_native_semantic_info ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/ownership-07f19e2ed9e60ecd)
+
+running 1 test
+test semantic_owner_has_no_r1_composition_or_proof_dependency ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_system_continuity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

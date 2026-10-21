@@ -1,0 +1,21 @@
+{
+  "source_commit": "f017920f798c435d7dea643d683ec1dd976ed0e6",
+  "passed": 299,
+  "failed": 1,
+  "ignored": 2,
+  "failure": "Expected stale browser binding; actual refreshed checked type/value exported",
+  "files": {
+    "face-rebased-export.log": {
+      "bytes": 94759,
+      "sha256": "0ba168f9aa1d1488d270aac7a45c310b0638bd3e1b5c2780ae3b76489edbcdb9"
+    },
+    "phosphor-look-v2.bin": {
+      "bytes": 7102,
+      "sha256": "e952ac59ed7c381ca190232b5cd0792cd472b04da0bebc3fe74f65702948e24d"
+    },
+    "phosphor-look-v2.bin.type.hex": {
+      "bytes": 10826,
+      "sha256": "411f63abfdcb50bc5bc45e7521a0d11df7fb71c3ed0d57bb7681c0590d3566c5"
+    }
+  }
+}

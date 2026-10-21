@@ -1,0 +1,70 @@
+{
+  "parent": "609f30109b3be200bc4fa9223a16d308667a5ac6",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 9659,
+      "sha256": "68e449bdccc1da9e82add572114cd3078391174a28c8d23d1bd7133ff8b59aa5",
+      "mode": "100644",
+      "blob": "afb8c0d92cc882976a7df06dd4c3ce12102ea2c2"
+    },
+    {
+      "source": "work/5628-foundation-progress-comment.md",
+      "tree_path": "task-6038/work/5628-foundation-progress-comment.md",
+      "bytes": 979,
+      "sha256": "04a81b1fd193cdf60d45ced7ca4e4ef759d4a6f82eade4405c384a859e6733cb",
+      "mode": "100644",
+      "blob": "605cf16184ff89a3c5fbb4f7e40e7b4a161d9f95"
+    },
+    {
+      "source": "outputs/5628-selected-look-f017920f7/receipt.json",
+      "tree_path": "task-6038/outputs/5628-selected-look-f017920f7/receipt.json",
+      "bytes": 661,
+      "sha256": "e3d0c20ef1dfc53e89e916c5a4bee32eee1fe8e451dc16564ebba88fa54d30dc",
+      "mode": "100644",
+      "blob": "0ae8bd7d4883ebe846d34a912141c43cd14ad40e"
+    },
+    {
+      "source": "outputs/5628-selected-look-f017920f7/face-rebased-export.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-f017920f7/face-rebased-export.log",
+      "bytes": 94759,
+      "sha256": "0ba168f9aa1d1488d270aac7a45c310b0638bd3e1b5c2780ae3b76489edbcdb9",
+      "mode": "100644",
+      "blob": "b799b5ac0bbc8530ac74d919b4d2b415711cf4f8"
+    },
+    {
+      "source": "outputs/5628-selected-look-f017920f7/phosphor-look-v2.bin.type.hex",
+      "tree_path": "task-6038/outputs/5628-selected-look-f017920f7/phosphor-look-v2.bin.type.hex",
+      "bytes": 10826,
+      "sha256": "411f63abfdcb50bc5bc45e7521a0d11df7fb71c3ed0d57bb7681c0590d3566c5",
+      "mode": "100644",
+      "blob": "cdac93cee6a2e99e906a665b179ddfcbd547795a"
+    },
+    {
+      "source": "outputs/5628-selected-look-b2b465c69/face-receipt.json",
+      "tree_path": "task-6038/outputs/5628-selected-look-b2b465c69/face-receipt.json",
+      "bytes": 518,
+      "sha256": "337d163bbdd6180f5a98c3c55e826ad9f4cbd7a02c6ec593661fae776518fee9",
+      "mode": "100644",
+      "blob": "579f8f83d0bdbc7408b460b2ce734d3230a8f999"
+    },
+    {
+      "source": "outputs/5628-selected-look-b2b465c69/face-check.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-b2b465c69/face-check.log",
+      "bytes": 90811,
+      "sha256": "2dfd03b6a7ab368c88b174461afbed77b1098f6ac8eb32533b5a77e0f6f8fb1c",
+      "mode": "100644",
+      "blob": "b66dc698f608c782f8d61671a28ddf09464fd0f2"
+    },
+    {
+      "source": "outputs/5628-selected-look-b2b465c69/browser-wire.log",
+      "tree_path": "task-6038/outputs/5628-selected-look-b2b465c69/browser-wire.log",
+      "bytes": 799,
+      "sha256": "1296318c9ef0a3e6c775d9a3a925f1383669508f9b776dd9205da3f2760eacef",
+      "mode": "100644",
+      "blob": "7c91394ff32faf46741a6ac13fdd1d6f7ae19c00"
+    }
+  ]
+}
