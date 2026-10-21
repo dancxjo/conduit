@@ -1,13 +1,21 @@
 //! Bounded kernel Backs for the ordinary native Mask Plot.
-use super::{MAX_MASK_VALUE_BYTES, PORTS};
+use super::PORTS;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId};
 
 pub(super) enum MaskBack {
     ResourceSource,
     Tee,
-    Renderer { pending: bool, emitted: bool },
-    Interaction { seen_face: bool, pending: bool },
+    Renderer {
+        pending: bool,
+        emitted: bool,
+        maximum_value_bytes: u32,
+    },
+    Interaction {
+        seen_face: bool,
+        pending: bool,
+        maximum_value_bytes: u32,
+    },
 }
 
 impl StepBack<PORTS> for MaskBack {
@@ -19,8 +27,16 @@ impl StepBack<PORTS> for MaskBack {
         match self {
             Self::ResourceSource => StepOutcome::Complete,
             Self::Tee => pass_one(io),
-            Self::Renderer { pending, emitted } => render(pending, emitted, io),
-            Self::Interaction { seen_face, pending } => interact(seen_face, pending, io),
+            Self::Renderer {
+                pending,
+                emitted,
+                maximum_value_bytes,
+            } => render(pending, emitted, *maximum_value_bytes, io),
+            Self::Interaction {
+                seen_face,
+                pending,
+                maximum_value_bytes,
+            } => interact(seen_face, pending, *maximum_value_bytes, io),
         }
     }
 }
@@ -44,7 +60,12 @@ fn pass_one(io: &mut StepIo<PORTS>) -> StepOutcome {
     StepOutcome::Await
 }
 
-fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
+fn render(
+    pending: &mut bool,
+    emitted: &mut bool,
+    maximum_value_bytes: u32,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
     if *pending {
         let Some((request, outcome)) = io.host_completion() else {
             return StepOutcome::Await;
@@ -68,7 +89,7 @@ fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> Ste
         return StepOutcome::Progress;
     }
     if !*emitted && let Some(value) = io.input(PortId(0)) {
-        let Ok(value) = BoundedValueRef::new(value, MAX_MASK_VALUE_BYTES as u32) else {
+        let Ok(value) = BoundedValueRef::new(value, maximum_value_bytes) else {
             return failure();
         };
         if io.consume(PortId(0)).is_err()
@@ -87,7 +108,12 @@ fn render(pending: &mut bool, emitted: &mut bool, io: &mut StepIo<PORTS>) -> Ste
     StepOutcome::Await
 }
 
-fn interact(seen_face: &mut bool, pending: &mut bool, io: &mut StepIo<PORTS>) -> StepOutcome {
+fn interact(
+    seen_face: &mut bool,
+    pending: &mut bool,
+    maximum_value_bytes: u32,
+    io: &mut StepIo<PORTS>,
+) -> StepOutcome {
     if *pending {
         let Some((request, outcome)) = io.host_completion() else {
             return StepOutcome::Await;
@@ -120,7 +146,7 @@ fn interact(seen_face: &mut bool, pending: &mut bool, io: &mut StepIo<PORTS>) ->
         return StepOutcome::Progress;
     }
     if *seen_face && let Some(show) = io.input(PortId(1)) {
-        let Ok(input) = BoundedValueRef::new(show, MAX_MASK_VALUE_BYTES as u32) else {
+        let Ok(input) = BoundedValueRef::new(show, maximum_value_bytes) else {
             return failure();
         };
         if io.consume(PortId(1)).is_err()

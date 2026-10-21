@@ -1,0 +1,15 @@
+{
+  "status": "FROZEN_BEFORE_REPLAY",
+  "original_manifest_sha256": "25a4f7e8b41febbe1067fbdd10ae515a634a81c9fcb4840a66f77b68dcca26a5",
+  "replacement_manifest_sha256": "421e1eb34d814415b960903c1658b003302ce509b5099a370a39ba7dbf7442d5",
+  "source_pins_sha256": "d4905c43c31bafa1c14ed14aba5d26ae1a3b11bcf4bd318b2123b98a223c400b",
+  "source_commit": "26b13d753200a291768949a02b0c4dfe88276c0f",
+  "policy": "Full34 replay; never fill five missing reports using different binary; preserve original29 and exclude them from replacement aggregate. No fitting, tuning, changes to cases/revisions/stops or default.",
+  "missing_original_artifacts": [
+    "original executable",
+    "raw Source traces",
+    "evaluation-source-pins-v5.json"
+  ],
+  "helper_difference": "Evaluator byte-identical; loader changes only chunks_exact to as_chunks for fixed-size ABI verification. All replacement arms use identical pinned evaluator/helper/Source snapshot. Original source-pin equivalence is not established.",
+  "verification": "Verify all model/case/cohort/fit/trainer/gate/spec/profile hashes before replay. Capture rebuilt executable hash; archive full raw trace evidence. A replacement diagnostic is not current-dev or accepted installed runtime proof."
+}

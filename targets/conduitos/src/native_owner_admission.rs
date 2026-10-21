@@ -213,12 +213,17 @@ fn exchange_face(
     }
     line.send_binary(&encoded)
         .map_err(NativeOwnerFaceExchangeRefusal::Send)?;
-    let response: OwnerFaceSnapshotResponse = native_owner_document::receive(line, 64 * 1024)
-        .map_err(|error| match error {
-            DocumentRefusal::Receive(error) => NativeOwnerFaceExchangeRefusal::Receive(error),
-            DocumentRefusal::Bound => NativeOwnerFaceExchangeRefusal::FramePressure,
-            DocumentRefusal::Decode => NativeOwnerFaceExchangeRefusal::Encoding,
-        })?;
+    let response: OwnerFaceSnapshotResponse = native_owner_document::receive_for_profile(
+        line,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+            &receipt.host_advertisement,
+        ),
+    )
+    .map_err(|error| match error {
+        DocumentRefusal::Receive(error) => NativeOwnerFaceExchangeRefusal::Receive(error),
+        DocumentRefusal::Bound => NativeOwnerFaceExchangeRefusal::FramePressure,
+        DocumentRefusal::Decode => NativeOwnerFaceExchangeRefusal::Encoding,
+    })?;
     let admitted = matches!(
         &response,
         OwnerFaceSnapshotResponse::Snapshot {

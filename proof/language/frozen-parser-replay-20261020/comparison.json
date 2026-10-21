@@ -1,0 +1,2918 @@
+{
+  "classification": "UNACCEPTED_NONBLIND_REPLACEMENT_DIAGNOSTIC_NOT_INSTALLED_ACCEPTANCE",
+  "original29_reused_in_aggregate": false,
+  "manifest_sha256": "421e1eb34d814415b960903c1658b003302ce509b5099a370a39ba7dbf7442d5",
+  "source_pins_sha256": "d4905c43c31bafa1c14ed14aba5d26ae1a3b11bcf4bd318b2123b98a223c400b",
+  "replay_plan": {
+    "status": "FROZEN_BEFORE_REPLAY",
+    "original_manifest_sha256": "25a4f7e8b41febbe1067fbdd10ae515a634a81c9fcb4840a66f77b68dcca26a5",
+    "replacement_manifest_sha256": "421e1eb34d814415b960903c1658b003302ce509b5099a370a39ba7dbf7442d5",
+    "source_pins_sha256": "d4905c43c31bafa1c14ed14aba5d26ae1a3b11bcf4bd318b2123b98a223c400b",
+    "source_commit": "26b13d753200a291768949a02b0c4dfe88276c0f",
+    "policy": "Full34 replay; never fill five missing reports using different binary; preserve original29 and exclude them from replacement aggregate. No fitting, tuning, changes to cases/revisions/stops or default.",
+    "missing_original_artifacts": [
+      "original executable",
+      "raw Source traces",
+      "evaluation-source-pins-v5.json"
+    ],
+    "helper_difference": "Evaluator byte-identical; loader changes only chunks_exact to as_chunks for fixed-size ABI verification. All replacement arms use identical pinned evaluator/helper/Source snapshot. Original source-pin equivalence is not established.",
+    "verification": "Verify all model/case/cohort/fit/trainer/gate/spec/profile hashes before replay. Capture rebuilt executable hash; archive full raw trace evidence. A replacement diagnostic is not current-dev or accepted installed runtime proof."
+  },
+  "complete_report_sha256": "c088ce20f3776d771011675c4aa657e4e67c73c5d6dc43c08bc924058e00ed60",
+  "arms": {
+    "causal": {
+      "totals": {
+        "tokens": 47,
+        "uas_correct": 36,
+        "las_correct": 36,
+        "vocative_tp": 4,
+        "vocative_fp": 0,
+        "vocative_fn": 4,
+        "model_invocations": 627,
+        "illegal_candidates_refused": 1810,
+        "accepted_commits": 7,
+        "changes_after_commit": 0,
+        "winner_edge_revisions": 13,
+        "observed_prefix_elapsed_ns": 4200684743415,
+        "nonfinal_committing_cases": 1
+      },
+      "cases": [
+        {
+          "id": "email-enronsent29_01-0077",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "3d9a8b635cbdaecd12e2e61c6a59aff1e7f676b2e36df9ee84c17b635b9a363d",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 80953635502
+        },
+        {
+          "id": "email-enronsent19_02-0045",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "1e1754c86776d6b44fd45079263ca963209ffb3e1cec3171c39389df1d5f5749",
+          "model_invocations": 20,
+          "illegal_candidates_refused": 65,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 129390566622
+        },
+        {
+          "id": "email-enronsent00_02-0052",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "5c0e3ea69eb8301874cfdcd90babf78fd97e750ab273948371e7dc4d9bffeeed",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 77117361425
+        },
+        {
+          "id": "reviews-356361-0001",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "9fd7a5593d73a75fa2a0c14daeba77d9f03c7b8a2c2156e63714042048486c52",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 49,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 86913169897
+        },
+        {
+          "id": "reviews-371492-0001",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "3291a8ae52ddbe6c6551a82b6e78cf4eb31ded9481f08355b43e1a05082aca10",
+          "model_invocations": 33,
+          "illegal_candidates_refused": 108,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 220804265422
+        },
+        {
+          "id": "email-enronsent27_02-0013",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "04688efc313343ba896a4eaabc016927bcef4acfc4476c95382d0208506df9a2",
+          "model_invocations": 42,
+          "illegal_candidates_refused": 125,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 288221265703
+        },
+        {
+          "id": "email-enronsent04_02-0007",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "ba0b5c6d70a30a1415839970e2d43782a9b59d497c9da11fcd3aee6366d75002",
+          "model_invocations": 42,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 2,
+          "observed_prefix_elapsed_ns": 273652950995
+        },
+        {
+          "id": "email-enronsent36_01-0001",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "7c9fc73b6921303477f81246f7222c0b216d9bfa71482c7d4808f53dd5f351b8",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 77988107726
+        },
+        {
+          "id": "email-enronsent36_01-0007",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 1,
+          "report_sha256": "bc2ebee89eb8b071c06de27a43f899fcc785ed03ee0e767fd6adcbb190d449e6",
+          "model_invocations": 18,
+          "illegal_candidates_refused": 53,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 110829076878
+        },
+        {
+          "id": "email-enronsent36_01-0031",
+          "tokens": 3,
+          "uas_correct": 0,
+          "las_correct": 0,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "0e0fd83c423eee213ba5599f5caed73b818cfd475dbf92b31edfc57b3fd29748",
+          "model_invocations": 42,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 2,
+          "observed_prefix_elapsed_ns": 278126757814
+        },
+        {
+          "id": "reserved-punctuation-evaluation/motivator-partial",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "e19b0bcc82e43b992ce09c45f2721a96266076013b913e59a8beffa0240d18df",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 323623604027
+        },
+        {
+          "id": "reserved-punctuation-evaluation/motivator-period",
+          "tokens": 4,
+          "uas_correct": 4,
+          "las_correct": 4,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": true,
+          "first_commit_step": 2,
+          "report_sha256": "53dcd68adf1e3a6345e544556bfd955bc929496e748d38a97f402ab6321c9df6",
+          "model_invocations": 56,
+          "illegal_candidates_refused": 164,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 363696558592
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-name",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "f80589d0923967d4a0df94813b2b71ba7d7f8f7cc7d507b542e0fc7d320c832c",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 317260434292
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-greeting",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "f280e6b13583c265991ba00c9ca4ee2c128a4204a86784894b1972de96d1f7ea",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 320467062142
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-initial",
+          "tokens": 3,
+          "uas_correct": 1,
+          "las_correct": 1,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "4bb768aa6e05117cb4e7f571640a0239d63c050b0d55db060695214fd95bd447",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 127,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 304566575528
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-terminal",
+          "tokens": 3,
+          "uas_correct": 0,
+          "las_correct": 0,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "aea9e9f1646d867feb235fddcc5ec724bd6c032908fafa1cc1cfa3f3d575fa60",
+          "model_invocations": 50,
+          "illegal_candidates_refused": 126,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 343617995081
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-medial",
+          "tokens": 4,
+          "uas_correct": 1,
+          "las_correct": 1,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "515450ef54fb3882531f2530c9a7f6a57895fb71981d93aa3b43c628901bea6c",
+          "model_invocations": 84,
+          "illegal_candidates_refused": 207,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 603455355769
+        }
+      ]
+    },
+    "full": {
+      "totals": {
+        "tokens": 47,
+        "uas_correct": 36,
+        "las_correct": 36,
+        "vocative_tp": 4,
+        "vocative_fp": 0,
+        "vocative_fn": 4,
+        "model_invocations": 622,
+        "illegal_candidates_refused": 1793,
+        "accepted_commits": 7,
+        "changes_after_commit": 0,
+        "winner_edge_revisions": 13,
+        "observed_prefix_elapsed_ns": 4202420262736,
+        "nonfinal_committing_cases": 1
+      },
+      "cases": [
+        {
+          "id": "email-enronsent29_01-0077",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "591cb2592736ff28d4e965d815e4fec512da33b240e99f56103ef9be9bebba0c",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 76862662458
+        },
+        {
+          "id": "email-enronsent19_02-0045",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "07fb6aad3bf940cae09a47db0f500077b50ab0853789cc2b39826298b48a6c20",
+          "model_invocations": 20,
+          "illegal_candidates_refused": 65,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 112088477341
+        },
+        {
+          "id": "email-enronsent00_02-0052",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "59351c448cf6aab670938c072d12cc099914ac5d8ed76d706126ff7f3513be1d",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 82654126573
+        },
+        {
+          "id": "reviews-356361-0001",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "fb75663759815cfadc89695c80bb7c2d7c0db1d58bba3b1f7a616b48692b8d9f",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 49,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 88036272381
+        },
+        {
+          "id": "reviews-371492-0001",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "43daba14698ad31ee894851df62fb7713f0b2e663ff37c2646be9d0be91df3aa",
+          "model_invocations": 32,
+          "illegal_candidates_refused": 105,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 229410750687
+        },
+        {
+          "id": "email-enronsent27_02-0013",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "4cc60d803e244efe5c9ec1daff3ca55a16c5b1f0cf0697b97ee4baa3beaa09fe",
+          "model_invocations": 41,
+          "illegal_candidates_refused": 122,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 277394088541
+        },
+        {
+          "id": "email-enronsent04_02-0007",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "6562c4a0c0a22fe383e64a4823d568d40efabed0a384873e7170daf94870a4fc",
+          "model_invocations": 42,
+          "illegal_candidates_refused": 122,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 2,
+          "observed_prefix_elapsed_ns": 287318652636
+        },
+        {
+          "id": "email-enronsent36_01-0001",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "853e5c564423260dd1e2a8a7a4b174866740ad739383f04a031cb308a8939bf9",
+          "model_invocations": 14,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 89238935184
+        },
+        {
+          "id": "email-enronsent36_01-0007",
+          "tokens": 2,
+          "uas_correct": 2,
+          "las_correct": 2,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 1,
+          "report_sha256": "4ef1c554b3851dbbc1617338f28a0189c7dc2a80f7b26495a69c748a642dc39f",
+          "model_invocations": 18,
+          "illegal_candidates_refused": 52,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 106108690108
+        },
+        {
+          "id": "email-enronsent36_01-0031",
+          "tokens": 3,
+          "uas_correct": 0,
+          "las_correct": 0,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "4b30f07cb1701e3de2d126e44c2470ded33b3432789fbaac4eb349e04549acf7",
+          "model_invocations": 42,
+          "illegal_candidates_refused": 122,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 2,
+          "observed_prefix_elapsed_ns": 291543612935
+        },
+        {
+          "id": "reserved-punctuation-evaluation/motivator-partial",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "d368ad4ee5a2ca19a42f2296cb9b2f90ff31da9c74a58e2b9c28581a1311f729",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 127,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 303771840280
+        },
+        {
+          "id": "reserved-punctuation-evaluation/motivator-period",
+          "tokens": 4,
+          "uas_correct": 4,
+          "las_correct": 4,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": true,
+          "first_commit_step": 2,
+          "report_sha256": "2113948b05c6bb11852cd4a0ea2d79f91cfefacbc99f939a6263e0183c94d97e",
+          "model_invocations": 54,
+          "illegal_candidates_refused": 159,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 345371659771
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-name",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "774b91b7ecd1016b2cd903bb71b7b82750ce8b3dfb3ef7b7fbba6506d045120f",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 127,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 364132699007
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-greeting",
+          "tokens": 3,
+          "uas_correct": 3,
+          "las_correct": 3,
+          "vocative_tp": 1,
+          "vocative_fp": 0,
+          "vocative_fn": 0,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "4f4f3caeafeb4d729bb11357073b146a6b53d7f70c00d9d30218d625ce7910bd",
+          "model_invocations": 46,
+          "illegal_candidates_refused": 127,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 306139151385
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-initial",
+          "tokens": 3,
+          "uas_correct": 1,
+          "las_correct": 1,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": 2,
+          "report_sha256": "c6d983b486476c1adc7c73687baa1b0b3ed4712091ce83f1296cc326a17fdf63",
+          "model_invocations": 45,
+          "illegal_candidates_refused": 129,
+          "refused_expansions": 0,
+          "accepted_commits": 1,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 0,
+          "observed_prefix_elapsed_ns": 302269920388
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-terminal",
+          "tokens": 3,
+          "uas_correct": 0,
+          "las_correct": 0,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "b734a4658f1659702e287d17a3fb56dda6be9827538805df1490d00f95e626dc",
+          "model_invocations": 50,
+          "illegal_candidates_refused": 124,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 338895294302
+        },
+        {
+          "id": "reserved-punctuation-evaluation/reserved-medial",
+          "tokens": 4,
+          "uas_correct": 1,
+          "las_correct": 1,
+          "vocative_tp": 0,
+          "vocative_fp": 0,
+          "vocative_fn": 1,
+          "nonfinal_commit": false,
+          "first_commit_step": null,
+          "report_sha256": "5324b8e40bcc912fd74ebb3cd638029fa39001fd78ae347f0b1880d7dc1024ee",
+          "model_invocations": 84,
+          "illegal_candidates_refused": 207,
+          "refused_expansions": 0,
+          "accepted_commits": 0,
+          "changes_after_commit": 0,
+          "winner_edge_revisions": 1,
+          "observed_prefix_elapsed_ns": 601183428759
+        }
+      ]
+    }
+  },
+  "trace_files": {
+    "causal-00-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-00-prefix-00-source.jsonl": {
+      "sha256": "330e680e597da2cd2529e84273442bc1f232436b2a115065105582973bfbdd26",
+      "bytes": 2509120,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-00-prefix-01-source.jsonl": {
+      "sha256": "ebbee756d8e74ce3e1d876fa1eadae797610f9d6596230411cce33d6f4c1d153",
+      "bytes": 10497948,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-01-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-01-prefix-00-source.jsonl": {
+      "sha256": "e16c96fc179aae2f19696ef50ad2cbfe12f012ac3d9fa83787ae7c7fc6b13554",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-01-prefix-01-source.jsonl": {
+      "sha256": "50a588ace0cb02bcffff729435090cae27e09e369c9d4a3080c6e971ece17f55",
+      "bytes": 14153915,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-02-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-02-prefix-00-source.jsonl": {
+      "sha256": "46a31fa0ee0115954e7148537304512187c448afa5dcddc33f88c0ac53f1ab2a",
+      "bytes": 2509078,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-02-prefix-01-source.jsonl": {
+      "sha256": "1248ab2a8e9f72aeb3831dbd070254d26164fb7117c2b3224f1505cbff3935ba",
+      "bytes": 10497770,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-03-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-03-prefix-00-source.jsonl": {
+      "sha256": "39f7acdfe51b6f5a2e54f981ae78daa6d30c8aaf715a4dd40aa6832ebcf5375b",
+      "bytes": 2501394,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-03-prefix-01-source.jsonl": {
+      "sha256": "d55868a6432804804b131bfe7e907d2158eecfacba0d19e3016a97d4874d9bd4",
+      "bytes": 11527961,
+      "records": 269,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 25,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 29,
+        "language-parser-scorer-selected-transition": 20,
+        "language-parser-scorer-ranking-next": 20,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-04-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-04-prefix-00-source.jsonl": {
+      "sha256": "c6af5d38a13916174e9eefdfde360b000cbb1454f466f8b47e894fd284b2ffbc",
+      "bytes": 2501562,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-04-prefix-01-source.jsonl": {
+      "sha256": "3f2386d7ec385d3fbea8fe2adeeb311d0b8400e6752d794c75fe4acba68cb410",
+      "bytes": 11528865,
+      "records": 269,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 25,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 29,
+        "language-parser-scorer-selected-transition": 20,
+        "language-parser-scorer-ranking-next": 20,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-04-prefix-02-source.jsonl": {
+      "sha256": "c32a3cbc96a124faacc2853248914a42f732cc2dcd4c9f50528e70b52ea6d8c7",
+      "bytes": 21848455,
+      "records": 497,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 50,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 95,
+        "language-parser-transition": 95,
+        "language-parser-scorer-legality": 19,
+        "language-parser-scorer-branch": 48,
+        "language-parser-scorer-model-features": 19,
+        "language-parser-scorer-rank": 55,
+        "language-parser-scorer-selected-transition": 43,
+        "language-parser-scorer-ranking-next": 43,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-05-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-05-prefix-00-source.jsonl": {
+      "sha256": "2a64b96bc6d3399e220522f730b86654af4348de0d9c50b2247e4c8abb27b1fa",
+      "bytes": 4243748,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-05-prefix-01-source.jsonl": {
+      "sha256": "808bca69b4fb6b216dcaf0dc6abc923d9387d9174838849cd4d54ac16a6ce32b",
+      "bytes": 15221014,
+      "records": 347,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 36,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 40,
+        "language-parser-scorer-selected-transition": 30,
+        "language-parser-scorer-ranking-next": 30,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-05-prefix-02-source.jsonl": {
+      "sha256": "4ad8d8f7fd1c2a95c9745b79908a9d1f7f991d7bf35b509e5b9b445b1258a93c",
+      "bytes": 25360422,
+      "records": 573,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 60,
+        "language-parser-decode-complete": 25,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 22,
+        "language-parser-scorer-rank": 66,
+        "language-parser-scorer-selected-transition": 53,
+        "language-parser-scorer-ranking-next": 53,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-06-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-06-prefix-00-source.jsonl": {
+      "sha256": "1ad0fcc2593ba35be1e8c4fee075a6f1931d4440e07f9e76d6e062387f2a37bc",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-06-prefix-01-source.jsonl": {
+      "sha256": "b764236e032b55231e8f11dd69114926b3dfaf8b3e4877c91957fe77f6bfeced",
+      "bytes": 14336050,
+      "records": 331,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 34,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 38,
+        "language-parser-scorer-selected-transition": 28,
+        "language-parser-scorer-ranking-next": 28,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-06-prefix-02-source.jsonl": {
+      "sha256": "b5ba0f98c2399d46c0858eec1ffc82eb3316607d6db3869d4f5c61a5e8e2acf4",
+      "bytes": 25777896,
+      "records": 581,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 62,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 22,
+        "language-parser-scorer-rank": 67,
+        "language-parser-scorer-selected-transition": 56,
+        "language-parser-scorer-ranking-next": 56,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-07-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-07-prefix-00-source.jsonl": {
+      "sha256": "16ae95f61e1614cf77826d65e85325e17254179d597b7dc15968b1a0e16d78f0",
+      "bytes": 2509120,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-07-prefix-01-source.jsonl": {
+      "sha256": "e58af13930d15c47ed04830ec9563f0e6ca4b73fabd4f6f6a37aaa44135e1abc",
+      "bytes": 10497948,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-08-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-08-prefix-00-source.jsonl": {
+      "sha256": "3c21cc83fabcc730d358e8c289982ae44c8e675dc69fbbdbf842a1fa5489226b",
+      "bytes": 2509106,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-08-prefix-01-source.jsonl": {
+      "sha256": "d2637626da1fcd8824ff8bdf6269490c238f8852d23b8e93ea83eae97a5e74b0",
+      "bytes": 13781583,
+      "records": 317,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 36,
+        "language-parser-decode-complete": 14,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 20,
+        "language-parser-scorer-model-features": 15,
+        "language-parser-scorer-rank": 41,
+        "language-parser-scorer-selected-transition": 32,
+        "language-parser-scorer-ranking-next": 32,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-09-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-09-prefix-00-source.jsonl": {
+      "sha256": "abc68ded1e26fa0fa4adebe7f6fc2981c22e41278e3f20c02e6a8835dce5daae",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-09-prefix-01-source.jsonl": {
+      "sha256": "20238b8900bcc847a666a492475f75fb0ab0b4e282633bdb5c2ca1fffef9217c",
+      "bytes": 14335806,
+      "records": 331,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 34,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 38,
+        "language-parser-scorer-selected-transition": 28,
+        "language-parser-scorer-ranking-next": 28,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-09-prefix-02-source.jsonl": {
+      "sha256": "1ad349c353f99e541a8c685ddb533f6fd83a8ea37908abcae3e11ebb6bf2e38b",
+      "bytes": 25777380,
+      "records": 581,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 62,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 22,
+        "language-parser-scorer-rank": 67,
+        "language-parser-scorer-selected-transition": 56,
+        "language-parser-scorer-ranking-next": 56,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-10-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-10-prefix-00-source.jsonl": {
+      "sha256": "dce4a9fee2a352c475d67772cac8b439b3cff771cf3c06fc625b8df60c073942",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-10-prefix-01-source.jsonl": {
+      "sha256": "b10fca923d7d70e867df8ab26fe43fd95c98cdd2e4987c5cb9cc3a32e5353903",
+      "bytes": 14332883,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-10-prefix-02-source.jsonl": {
+      "sha256": "0e6ccedd97579a21838ddb69df9d4d97927bc979486e4dc0ccb73c8eb93e330a",
+      "bytes": 30186060,
+      "records": 663,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 80,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 84,
+        "language-parser-scorer-selected-transition": 74,
+        "language-parser-scorer-ranking-next": 74,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-11-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-11-prefix-00-source.jsonl": {
+      "sha256": "0dc7af9ca2454245f94968822f9088dca574437fe2059b79319366d6aa466db8",
+      "bytes": 4293408,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-11-prefix-01-source.jsonl": {
+      "sha256": "5774a093b4a254a103989390ed9b22c4693b836f105d6655d0557f7d815426f1",
+      "bytes": 14325385,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-11-prefix-02-source.jsonl": {
+      "sha256": "4424aeaf22de6f65a684891c26c04f9765028cec3ccff9e16bbf13595e88421c",
+      "bytes": 30169648,
+      "records": 663,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 80,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 84,
+        "language-parser-scorer-selected-transition": 74,
+        "language-parser-scorer-ranking-next": 74,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-11-prefix-03-source.jsonl": {
+      "sha256": "547012bba924c35fca618368bd4a3da0ebb7f044a9f590f060649c6c19438241",
+      "bytes": 10014876,
+      "records": 226,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 20,
+        "language-parser-decode-complete": 13,
+        "language-parser-score-proposal": 50,
+        "language-parser-transition": 50,
+        "language-parser-scorer-legality": 10,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 10,
+        "language-parser-scorer-rank": 22,
+        "language-parser-scorer-selected-transition": 14,
+        "language-parser-scorer-ranking-next": 14,
+        "language-parser-admitted-agreement": 4,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-12-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-12-prefix-00-source.jsonl": {
+      "sha256": "474a6f16410dbb78d7fffad1b2a1c4261caa00fb5b4f000b3ccbef4a02706b48",
+      "bytes": 4286688,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-12-prefix-01-source.jsonl": {
+      "sha256": "619f9b85ffca5616bd77c75bc4520ddcf3ace469102af9f7151f3844d4108798",
+      "bytes": 14302195,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-12-prefix-02-source.jsonl": {
+      "sha256": "4d3bc647666486e0da36b2224258d28000f5792db74483d995ef9016c6f729e2",
+      "bytes": 30118952,
+      "records": 663,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 80,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 84,
+        "language-parser-scorer-selected-transition": 74,
+        "language-parser-scorer-ranking-next": 74,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-13-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-13-prefix-00-source.jsonl": {
+      "sha256": "c4ae9c6610851b712f281d4f8088e4ddd9ad924981c45580b1743c1251fd2ff4",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-13-prefix-01-source.jsonl": {
+      "sha256": "c18e9b2cfb96ccc0143f7cb95075aac4c9c6305feb116a34c5d9e589f368072a",
+      "bytes": 14332883,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-13-prefix-02-source.jsonl": {
+      "sha256": "79e5c94d6fba8c9155c9c717d9b44c5946221cdc53cf3b68981fce846755fde4",
+      "bytes": 30186060,
+      "records": 663,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 80,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 84,
+        "language-parser-scorer-selected-transition": 74,
+        "language-parser-scorer-ranking-next": 74,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-14-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-14-prefix-00-source.jsonl": {
+      "sha256": "f158feec635c812e887c1eb7cce14da921cdd2229170fcaa06a8c5b8ddb3093c",
+      "bytes": 4293468,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-14-prefix-01-source.jsonl": {
+      "sha256": "cf6f4de8f2c82d6cee97805d5b4d3a1080aae4a80c17e5f93fee3c8066e849b5",
+      "bytes": 14324945,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "causal-14-prefix-02-source.jsonl": {
+      "sha256": "18875f4b6a58f45294c017aafba6005bf3ccbd966f133f9e2b65eda9ac47e8fe",
+      "bytes": 30097986,
+      "records": 661,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 78,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 83,
+        "language-parser-scorer-selected-transition": 73,
+        "language-parser-scorer-ranking-next": 73,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-15-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-15-prefix-00-source.jsonl": {
+      "sha256": "ff2d04eae1407b07b605267836d3e299e6d7db4c2c9fbbee43ab4323837ef4fb",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-15-prefix-01-source.jsonl": {
+      "sha256": "3a863f13f28927123cd6298cfa2838ec3adf844dc3db1646cecc9d6a12da474b",
+      "bytes": 18692256,
+      "records": 415,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 52,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 18,
+        "language-parser-scorer-rank": 56,
+        "language-parser-scorer-selected-transition": 46,
+        "language-parser-scorer-ranking-next": 46,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-15-prefix-02-source.jsonl": {
+      "sha256": "42f26651a53097b52f947d49da9572d9ae4d8c6075edd1168cb813274ceaa048",
+      "bytes": 28799856,
+      "records": 638,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 74,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 81,
+        "language-parser-scorer-selected-transition": 68,
+        "language-parser-scorer-ranking-next": 68,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "causal-16-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "causal-16-prefix-00-source.jsonl": {
+      "sha256": "343b981c97921ca0e9b755eeaa808d4f5d8a2c36f9475fc648e86ad2c9e8e5e6",
+      "bytes": 4291248,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-16-prefix-01-source.jsonl": {
+      "sha256": "fa1023ee224ca7d74b755f73122f215143eb6e7e1bc241eedb8661f731c10664",
+      "bytes": 18673588,
+      "records": 415,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 52,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 18,
+        "language-parser-scorer-rank": 56,
+        "language-parser-scorer-selected-transition": 46,
+        "language-parser-scorer-ranking-next": 46,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "causal-16-prefix-02-source.jsonl": {
+      "sha256": "8dbe3be5a566e893bf27e0c4bfa02e3b2416f7606ebd4105a9767859182d8c89",
+      "bytes": 28651248,
+      "records": 637,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 74,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 81,
+        "language-parser-scorer-selected-transition": 68,
+        "language-parser-scorer-ranking-next": 68,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3
+      }
+    },
+    "causal-16-prefix-03-source.jsonl": {
+      "sha256": "dc528260b7effd5d1153653928c1835d60320e6bb51f5a466915f62d64704cff",
+      "bytes": 40153534,
+      "records": 890,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 101,
+        "language-parser-decode-complete": 30,
+        "language-parser-score-proposal": 145,
+        "language-parser-transition": 145,
+        "language-parser-scorer-legality": 29,
+        "language-parser-scorer-branch": 88,
+        "language-parser-scorer-model-features": 34,
+        "language-parser-scorer-rank": 112,
+        "language-parser-scorer-selected-transition": 98,
+        "language-parser-scorer-ranking-next": 98,
+        "language-parser-admitted-agreement": 4,
+        "language-parser-advance-stable": 4
+      }
+    },
+    "full-00-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-00-prefix-00-source.jsonl": {
+      "sha256": "738cb0b6c597ce273912d09ba16f3152e4f8f0262898eb98d26c8b572f23eccc",
+      "bytes": 2509120,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-00-prefix-01-source.jsonl": {
+      "sha256": "40b8d4b8f19f8fbcf80e43a5dff3f89e821a64390886f0d1166e350d220365d1",
+      "bytes": 10497948,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-01-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-01-prefix-00-source.jsonl": {
+      "sha256": "34cedc8fe1dfe51ab0cb5a4abdc7e120ee8c2501195e4fe30bc1d0e5f396756b",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-01-prefix-01-source.jsonl": {
+      "sha256": "7b2a7c6591db5f6ba6a1bf1d146861f74641a5677103b1cb6266db561336e39f",
+      "bytes": 14153087,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-02-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-02-prefix-00-source.jsonl": {
+      "sha256": "bf61dba1350db137b1ef09ff2fd6958922ede3ea51c5098ab474b430f112fa05",
+      "bytes": 2509078,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-02-prefix-01-source.jsonl": {
+      "sha256": "efba5699e5eb00183303c2691f924630c6ad7ae297a1cd17c5c88920b8b2d3d9",
+      "bytes": 10497770,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-03-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-03-prefix-00-source.jsonl": {
+      "sha256": "981eb4586732ce1748b870cdd4d2e152f516cffdbb56421f59f5a67c8bcb4121",
+      "bytes": 2501394,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-03-prefix-01-source.jsonl": {
+      "sha256": "6880e1019d2331a6949328660eafe48cf349fc963596358443928a880e387122",
+      "bytes": 11527929,
+      "records": 269,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 25,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 29,
+        "language-parser-scorer-selected-transition": 20,
+        "language-parser-scorer-ranking-next": 20,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-04-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-04-prefix-00-source.jsonl": {
+      "sha256": "697290ebda21dc37f706a62efc34afd2707f99f4852ef86d124d488a881fc30b",
+      "bytes": 2501562,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-04-prefix-01-source.jsonl": {
+      "sha256": "976e2d79923c247e05634e18d3aa19dbf0ee08ae10dfe0af453bc667e703ba25",
+      "bytes": 11528833,
+      "records": 269,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 25,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 29,
+        "language-parser-scorer-selected-transition": 20,
+        "language-parser-scorer-ranking-next": 20,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-04-prefix-02-source.jsonl": {
+      "sha256": "4f1b48e370455829004e259d13840d630353c0987907747c33b5f7c7200d9c24",
+      "bytes": 20862796,
+      "records": 475,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 47,
+        "language-parser-decode-complete": 21,
+        "language-parser-score-proposal": 90,
+        "language-parser-transition": 90,
+        "language-parser-scorer-legality": 18,
+        "language-parser-scorer-branch": 48,
+        "language-parser-scorer-model-features": 18,
+        "language-parser-scorer-rank": 52,
+        "language-parser-scorer-selected-transition": 41,
+        "language-parser-scorer-ranking-next": 41,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3
+      }
+    },
+    "full-05-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-05-prefix-00-source.jsonl": {
+      "sha256": "17c189cf88ac7d1bc840ca6cd549a04d9981a6f1bfdccd02a0de369b3567224e",
+      "bytes": 4243748,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-05-prefix-01-source.jsonl": {
+      "sha256": "02bdaaaed1d410beedb99d9ac86e016ff78a74dd8b69f9dd7072a2b2ae1f6348",
+      "bytes": 15219902,
+      "records": 347,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 36,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 40,
+        "language-parser-scorer-selected-transition": 30,
+        "language-parser-scorer-ranking-next": 30,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-05-prefix-02-source.jsonl": {
+      "sha256": "9d9e9c5b41492d46b32f0a298d956ef5be2a6f0dc6e80b354b0b3dec3ef7d0a2",
+      "bytes": 24486227,
+      "records": 552,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 57,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 100,
+        "language-parser-transition": 100,
+        "language-parser-scorer-legality": 20,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 21,
+        "language-parser-scorer-rank": 63,
+        "language-parser-scorer-selected-transition": 51,
+        "language-parser-scorer-ranking-next": 51,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-06-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-06-prefix-00-source.jsonl": {
+      "sha256": "ec2abe15a5a9f3e27c0116acdc3c54c97e5abcd9d2b998bd9ff9fdac41602a8f",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-06-prefix-01-source.jsonl": {
+      "sha256": "4503cdf75c0c248b4507942aa8f203f7356147125cffbff6419800f350b8b594",
+      "bytes": 15552485,
+      "records": 353,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 38,
+        "language-parser-decode-complete": 18,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 41,
+        "language-parser-scorer-selected-transition": 31,
+        "language-parser-scorer-ranking-next": 31,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-06-prefix-02-source.jsonl": {
+      "sha256": "03ed92f6d3a932d51013cccb50de413013cfd4065de4cd8bb619aa1f9b5082c5",
+      "bytes": 26347900,
+      "records": 589,
+      "entries": {
+        "language-parser-revision-rebase": 4,
+        "language-parser-scorer-merge": 65,
+        "language-parser-decode-complete": 25,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 22,
+        "language-parser-scorer-rank": 68,
+        "language-parser-scorer-selected-transition": 57,
+        "language-parser-scorer-ranking-next": 57,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-07-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-07-prefix-00-source.jsonl": {
+      "sha256": "9863d72a0369dc8c7260642de78c02306acfcf78813725a982ca649df953564f",
+      "bytes": 2509120,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-07-prefix-01-source.jsonl": {
+      "sha256": "e42274dabc6137dbe344a4da42c56902bbd323eaf22180ff170ec32178f07689",
+      "bytes": 10497948,
+      "records": 250,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 22,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 11,
+        "language-parser-scorer-rank": 26,
+        "language-parser-scorer-selected-transition": 17,
+        "language-parser-scorer-ranking-next": 17,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-08-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-08-prefix-00-source.jsonl": {
+      "sha256": "e57f970a4131bf6e5f0861385cfaf672fa5129187c194962084a79d5927bc1a7",
+      "bytes": 2509106,
+      "records": 64,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 5,
+        "language-parser-score-proposal": 15,
+        "language-parser-transition": 15,
+        "language-parser-scorer-legality": 3,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 3,
+        "language-parser-scorer-rank": 6,
+        "language-parser-scorer-selected-transition": 3,
+        "language-parser-scorer-merge": 4,
+        "language-parser-scorer-ranking-next": 3,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-08-prefix-01-source.jsonl": {
+      "sha256": "4639ce481998a90e388a2a3902fc26fd257836b0f23c06d9907d2af7c0be4afc",
+      "bytes": 13859414,
+      "records": 319,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 38,
+        "language-parser-decode-complete": 15,
+        "language-parser-score-proposal": 55,
+        "language-parser-transition": 55,
+        "language-parser-scorer-legality": 11,
+        "language-parser-scorer-branch": 16,
+        "language-parser-scorer-model-features": 15,
+        "language-parser-scorer-rank": 42,
+        "language-parser-scorer-selected-transition": 33,
+        "language-parser-scorer-ranking-next": 33,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-09-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-09-prefix-00-source.jsonl": {
+      "sha256": "f200a13374c3ab2b950e2d68520d0e4d9a6ad4618cf4e05b327d8803eb8f9940",
+      "bytes": 4243488,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-09-prefix-01-source.jsonl": {
+      "sha256": "8eefa8985ed088b90ad22b58b21752eed87ab9db9a371e791cf6be359a8baba6",
+      "bytes": 15552193,
+      "records": 353,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 38,
+        "language-parser-decode-complete": 18,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 32,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 41,
+        "language-parser-scorer-selected-transition": 31,
+        "language-parser-scorer-ranking-next": 31,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-09-prefix-02-source.jsonl": {
+      "sha256": "282793dddea44b58d63509f5b15c31d808f4af3d1484a3fb39d3f8e329b02ef5",
+      "bytes": 26347368,
+      "records": 589,
+      "entries": {
+        "language-parser-revision-rebase": 4,
+        "language-parser-scorer-merge": 65,
+        "language-parser-decode-complete": 25,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 56,
+        "language-parser-scorer-model-features": 22,
+        "language-parser-scorer-rank": 68,
+        "language-parser-scorer-selected-transition": 57,
+        "language-parser-scorer-ranking-next": 57,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-10-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-10-prefix-00-source.jsonl": {
+      "sha256": "25bab78cb0287d39c7a35f2d5e36d2d5e7271887b77636826e7943332a2c1c06",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-10-prefix-01-source.jsonl": {
+      "sha256": "47610c51ae9659268951a67b271a9f9f8a2dd641f48298f4c8d88db523a1a132",
+      "bytes": 14332055,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-10-prefix-02-source.jsonl": {
+      "sha256": "0080b915861e80864c236710c79550284ac20e483dde3aa2b18ff81e6fdd0c3e",
+      "bytes": 30114312,
+      "records": 661,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 78,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 83,
+        "language-parser-scorer-selected-transition": 73,
+        "language-parser-scorer-ranking-next": 73,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-11-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-11-prefix-00-source.jsonl": {
+      "sha256": "13c99e8668143969bf12703b7a29caf5300886ddef88e33db4000a382e0d1cc3",
+      "bytes": 4293408,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-11-prefix-01-source.jsonl": {
+      "sha256": "31bab36394523546dbc794173ea0667f937ddadb64fdfc5c0eb67da13df6dd75",
+      "bytes": 14324557,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-11-prefix-02-source.jsonl": {
+      "sha256": "deb3f5c2c020ec3b70bcd35dbba64cb802524a7ecf622f7277e0cbf5274e4900",
+      "bytes": 30097830,
+      "records": 661,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 78,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 83,
+        "language-parser-scorer-selected-transition": 73,
+        "language-parser-scorer-ranking-next": 73,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-11-prefix-03-source.jsonl": {
+      "sha256": "2f4f102b66cfcbf48bd6a32587b801ee8b149637f6eebc9a161afda4851d000b",
+      "bytes": 7156370,
+      "records": 168,
+      "entries": {
+        "language-parser-revision-rebase": 1,
+        "language-parser-scorer-merge": 13,
+        "language-parser-decode-complete": 11,
+        "language-parser-score-proposal": 40,
+        "language-parser-transition": 40,
+        "language-parser-scorer-legality": 8,
+        "language-parser-scorer-branch": 8,
+        "language-parser-scorer-model-features": 8,
+        "language-parser-scorer-rank": 16,
+        "language-parser-scorer-selected-transition": 9,
+        "language-parser-scorer-ranking-next": 9,
+        "language-parser-admitted-agreement": 4,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-12-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-12-prefix-00-source.jsonl": {
+      "sha256": "e0f40d7936ff712b31f3d39b8cf31752addd61bb23759bf0ec7f1e8908315516",
+      "bytes": 4286688,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-12-prefix-01-source.jsonl": {
+      "sha256": "643c3ef264e9b5a7f7fbb7bb1a400118adbb5301109404492ede2b76ac8ab9c1",
+      "bytes": 14301367,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-12-prefix-02-source.jsonl": {
+      "sha256": "ffa008125b70a4cfc1d4e77eb56b12d35fd550150dfb1ecc642888b29f3388fa",
+      "bytes": 30046860,
+      "records": 661,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 78,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 83,
+        "language-parser-scorer-selected-transition": 73,
+        "language-parser-scorer-ranking-next": 73,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-13-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-13-prefix-00-source.jsonl": {
+      "sha256": "2330754cdb928cc906769c10ad06489d5347054edd1682ecee31ba12cc16b910",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-13-prefix-01-source.jsonl": {
+      "sha256": "d5859787eef80e0dd8c40ee755b9e85d7d3fcb32eee587ad54f2bc323829a139",
+      "bytes": 14332055,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-13-prefix-02-source.jsonl": {
+      "sha256": "20024dcf716fa83d1800d881684601124562d039ae49094004754372d605d41f",
+      "bytes": 30114312,
+      "records": 661,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 78,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 83,
+        "language-parser-scorer-selected-transition": 73,
+        "language-parser-scorer-ranking-next": 73,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-14-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-14-prefix-00-source.jsonl": {
+      "sha256": "23310a18e5d98ba53ff82b0335475aeb2eb23255c37824b90b938a73a3677d20",
+      "bytes": 4293468,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-14-prefix-01-source.jsonl": {
+      "sha256": "a0996f6a15fc8f4858474d7e732338400da5401c820e7b9c0874c792c83d886a",
+      "bytes": 14324901,
+      "records": 328,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 33,
+        "language-parser-decode-complete": 17,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 24,
+        "language-parser-scorer-model-features": 14,
+        "language-parser-scorer-rank": 37,
+        "language-parser-scorer-selected-transition": 27,
+        "language-parser-scorer-ranking-next": 27,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 2
+      }
+    },
+    "full-14-prefix-02-source.jsonl": {
+      "sha256": "18ea4185195ceb10f2504b90a30976761639b9c70e4edc5d871655205c10fb75",
+      "bytes": 28710889,
+      "records": 633,
+      "entries": {
+        "language-parser-revision-rebase": 3,
+        "language-parser-scorer-merge": 71,
+        "language-parser-decode-complete": 23,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 64,
+        "language-parser-scorer-model-features": 25,
+        "language-parser-scorer-rank": 77,
+        "language-parser-scorer-selected-transition": 66,
+        "language-parser-scorer-ranking-next": 66,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 3,
+        "language-parser-beam-commit": 1
+      }
+    },
+    "full-15-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-15-prefix-00-source.jsonl": {
+      "sha256": "4ec834eb3f8eb7da3a29b4fe769086d032995a8550be08a03d15513ed5f21a50",
+      "bytes": 4295568,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-15-prefix-01-source.jsonl": {
+      "sha256": "89ae01d1765ed15393fad271e5fc9c77724881fb7fb6b2a3d03f68993b16569e",
+      "bytes": 19476339,
+      "records": 429,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 55,
+        "language-parser-decode-complete": 18,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 36,
+        "language-parser-scorer-model-features": 18,
+        "language-parser-scorer-rank": 58,
+        "language-parser-scorer-selected-transition": 48,
+        "language-parser-scorer-ranking-next": 48,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-15-prefix-02-source.jsonl": {
+      "sha256": "bb0e6c1551a561c652af69547246e404b1224df43ede7ff01571e77d839efb50",
+      "bytes": 29164096,
+      "records": 641,
+      "entries": {
+        "language-parser-revision-rebase": 4,
+        "language-parser-scorer-merge": 75,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 81,
+        "language-parser-scorer-selected-transition": 68,
+        "language-parser-scorer-ranking-next": 68,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-16-preparation-source.jsonl": {
+      "sha256": "99224a75d710f33f29d01ac1558d37417c957478cf28ada865bbb868bfaa9eed",
+      "bytes": 132908,
+      "records": 18,
+      "entries": {
+        "language-parser-scorer-ranking-chunk": 15,
+        "language-parser-scorer-rank": 3
+      }
+    },
+    "full-16-prefix-00-source.jsonl": {
+      "sha256": "d7bc47e8c984f602d75fe26cb5f1bb22c114124c8d3f5d88c343d0b06fc8d4b9",
+      "bytes": 4291248,
+      "records": 108,
+      "entries": {
+        "language-parser-initialize": 1,
+        "language-parser-decode-complete": 8,
+        "language-parser-score-proposal": 25,
+        "language-parser-transition": 25,
+        "language-parser-scorer-legality": 5,
+        "language-parser-scorer-branch": 4,
+        "language-parser-scorer-model-features": 6,
+        "language-parser-scorer-rank": 12,
+        "language-parser-scorer-selected-transition": 6,
+        "language-parser-scorer-merge": 8,
+        "language-parser-scorer-ranking-next": 6,
+        "language-parser-admitted-agreement": 1,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-16-prefix-01-source.jsonl": {
+      "sha256": "9c8210aeaf250ebb6afa8853a0eb2f108279d50d26ba71217be5a79a75852dda",
+      "bytes": 19456935,
+      "records": 429,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 55,
+        "language-parser-decode-complete": 18,
+        "language-parser-score-proposal": 65,
+        "language-parser-transition": 65,
+        "language-parser-scorer-legality": 13,
+        "language-parser-scorer-branch": 36,
+        "language-parser-scorer-model-features": 18,
+        "language-parser-scorer-rank": 58,
+        "language-parser-scorer-selected-transition": 48,
+        "language-parser-scorer-ranking-next": 48,
+        "language-parser-admitted-agreement": 2,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-16-prefix-02-source.jsonl": {
+      "sha256": "c45b96a7eea6adf021c6163b97cf3dd9aaabdf5e45286a2b6261d42cf3122dee",
+      "bytes": 29132508,
+      "records": 641,
+      "entries": {
+        "language-parser-revision-rebase": 4,
+        "language-parser-scorer-merge": 75,
+        "language-parser-decode-complete": 24,
+        "language-parser-score-proposal": 105,
+        "language-parser-transition": 105,
+        "language-parser-scorer-legality": 21,
+        "language-parser-scorer-branch": 60,
+        "language-parser-scorer-model-features": 26,
+        "language-parser-scorer-rank": 81,
+        "language-parser-scorer-selected-transition": 68,
+        "language-parser-scorer-ranking-next": 68,
+        "language-parser-admitted-agreement": 3,
+        "language-parser-advance-stable": 1
+      }
+    },
+    "full-16-prefix-03-source.jsonl": {
+      "sha256": "f9e5c05f6b11e16127bfde52178fc6e2bbe6c653c89fe08c63c1c69cf8227733",
+      "bytes": 39583602,
+      "records": 879,
+      "entries": {
+        "language-parser-revision-rebase": 2,
+        "language-parser-scorer-merge": 98,
+        "language-parser-decode-complete": 30,
+        "language-parser-score-proposal": 145,
+        "language-parser-transition": 145,
+        "language-parser-scorer-legality": 29,
+        "language-parser-scorer-branch": 88,
+        "language-parser-scorer-model-features": 34,
+        "language-parser-scorer-rank": 110,
+        "language-parser-scorer-selected-transition": 95,
+        "language-parser-scorer-ranking-next": 95,
+        "language-parser-admitted-agreement": 4,
+        "language-parser-advance-stable": 4
+      }
+    }
+  },
+  "verification": {
+    "complete_case_arm_reports": 34,
+    "same_frozen_cases_models_schedule": true,
+    "numerical_receipts_checked": 1249,
+    "all_four_survivors_checked": 94,
+    "source_trace_records_checked": 30401,
+    "agreement_frontier_records_checked": 184
+  }
+}

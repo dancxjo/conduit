@@ -14,11 +14,25 @@ pub(super) fn accept(
     journey: &mut ProductJourney,
     presenter: &mut FrontDoorPresenter,
     face_workspace: &mut FaceWorkspace,
+    face_arrival: &mut super::FaceArrival,
     display: &mut impl PixelTarget,
     make: &MakeRecord,
 ) -> Result<(), &'static str> {
     if !front_door.observes_current_product(journey) {
         return Err("home-owner-changed");
+    }
+    // Returning to the already observed Plot is local view navigation, including
+    // its read-only stopped Face. It does not select or restart an inactive Play.
+    if event.usage() == 41
+        && event.transition() == conduit_human::KeyTransition::Pressed
+        && journey.projection().body_id.is_some()
+    {
+        front_door.close_home().map_err(|error| error.as_str())?;
+        let receipt = refresh(front_door, journey, presenter, face_workspace, display)?;
+        emit_journey_sign(&journey.projection(), make, &receipt);
+        super::workspace_view_sign::emit(front_door, journey, &receipt)?;
+        super::journey_sign::write_observation(b"CONDUIT_HOME_CHECKPOINT returned-to-plot\n");
+        return Ok(());
     }
     match front_door
         .accept_home(event, front_door.revision())
@@ -26,9 +40,15 @@ pub(super) fn accept(
     {
         crate::front_door::HomeInput::Unchanged => {}
         crate::front_door::HomeInput::Changed => {
-            presenter
+            let receipt = presenter
                 .present(front_door, display)
                 .map_err(|error| error.as_str())?;
+            emit_journey_sign(&journey.projection(), make, &receipt);
+            if let Some(place) = front_door.commons_place() {
+                super::journey_sign::write_observation(
+                    format!("CONDUIT_COMMONS_CONTEXT {place}\n").as_bytes(),
+                );
+            }
             arch::early_write(
                 format!(
                     "CONDUIT_HOME_STATE {} {}\n",
@@ -42,6 +62,7 @@ pub(super) fn accept(
         }
         crate::front_door::HomeInput::OpenTour => {
             tutorial::select(journey, front_door, presenter, display, make)?;
+            arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
         }
         crate::front_door::HomeInput::OpenPatchbay => {
             let requested = front_door
@@ -63,10 +84,18 @@ pub(super) fn accept(
             arch::early_write(b"CONDUIT_HOME_CHECKPOINT patchbay-opened\n");
         }
         crate::front_door::HomeInput::OpenCreche => {
-            arch::early_write(b"CONDUIT_HOME_CHECKPOINT creche-unavailable-after-birth\n");
-            presenter
-                .present(front_door, display)
-                .map_err(|error| error.as_str())?;
+            if journey.projection().body_id.is_none() && front_door.commons_creche_selected() {
+                let receipt =
+                    super::prebirth::enter_creche(front_door, face_arrival, presenter, display)?;
+                emit_journey_sign(&journey.projection(), make, &receipt);
+            } else {
+                front_door
+                    .action_refused("Visit Crèche from Commons Hub.")
+                    .map_err(|error| error.as_str())?;
+                presenter
+                    .present(front_door, display)
+                    .map_err(|error| error.as_str())?;
+            }
         }
         crate::front_door::HomeInput::OpenPlot(index) => {
             let requested = front_door
@@ -84,6 +113,7 @@ pub(super) fn accept(
             front_door.close_home().map_err(|error| error.as_str())?;
             let receipt = refresh(front_door, journey, presenter, face_workspace, display)?;
             emit_journey_sign(&journey.projection(), make, &receipt);
+            super::workspace_view_sign::emit(front_door, journey, &receipt)?;
             arch::early_write(
                 format!("CONDUIT_HOME_CHECKPOINT plot-opened {}\n", requested_name).as_bytes(),
             );

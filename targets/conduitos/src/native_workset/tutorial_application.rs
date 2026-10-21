@@ -1,18 +1,7 @@
 //! The same biography-driven resident Tutorial used by browser Workspace.
-use super::{NativeApplicationRequest, WorksetRefusal, play::PlayRefusal};
-use alloc::vec::Vec;
-use conduit_body::BodyBiographyEvidence;
+use super::WorksetRefusal;
 use conduit_core::{ConfigurationValue, PlannedGear};
-use conduit_face::{ApplicationEvent, ApplicationView};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TutorialAction {
-    Wake,
-    InspectLifecycle,
-    OpenLibrary,
-    InviteHost,
-    UseCurrent,
-}
+pub use conduitos_application_core::data::TutorialAction;
 
 pub(super) fn selected_application(placement: &PlannedGear) -> Result<&str, WorksetRefusal> {
     let mut entries = placement
@@ -32,50 +21,6 @@ pub(super) fn selected_application(placement: &PlannedGear) -> Result<&str, Work
             Ok(value)
         }
         _ => Err(WorksetRefusal::Plan),
-    }
-}
-
-pub(super) struct TutorialApplication {
-    view: ApplicationView,
-}
-impl TutorialApplication {
-    pub(super) fn prepare(
-        evidence: &BodyBiographyEvidence,
-        playback: conduit_tutorial_plot::TutorialPlayback,
-    ) -> Result<Self, WorksetRefusal> {
-        evidence.validate().map_err(|_| WorksetRefusal::Plan)?;
-        // The finite view revision counts retained records, not the opaque birth nonce.
-        let revision = u32::try_from(evidence.records.len()).map_err(|_| WorksetRefusal::Plan)?;
-        let view = conduit_tutorial_plot::face_from_evidence(evidence, revision, playback)
-            .and_then(|view| view.lower())
-            .map_err(|_| WorksetRefusal::Plan)?;
-        if view.encode().map_err(|_| WorksetRefusal::Plan)?.len()
-            > super::application_delivery::VIEW_BYTES as usize
-        {
-            return Err(WorksetRefusal::Resource);
-        }
-        Ok(Self { view })
-    }
-    pub(super) fn apply(
-        &self,
-        input: &[u8],
-    ) -> Result<(Vec<u8>, Option<NativeApplicationRequest>), PlayRefusal> {
-        let action = if input.is_empty() {
-            None
-        } else {
-            let event =
-                ApplicationEvent::decode(input, &self.view).map_err(|_| PlayRefusal::Kernel)?;
-            let action = match event.action.as_str() {
-                "body.wake" => TutorialAction::Wake,
-                "body.inspect-lifecycle" => TutorialAction::InspectLifecycle,
-                "body.open-library" => TutorialAction::OpenLibrary,
-                "body.invite-host" => TutorialAction::InviteHost,
-                "body.use-current" => TutorialAction::UseCurrent,
-                _ => return Err(PlayRefusal::Kernel),
-            };
-            Some(NativeApplicationRequest::Tutorial(action))
-        };
-        Ok((self.view.encode().map_err(|_| PlayRefusal::Kernel)?, action))
     }
 }
 

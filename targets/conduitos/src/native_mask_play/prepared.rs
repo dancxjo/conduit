@@ -50,6 +50,30 @@ impl PreparedNativeMaskPlay {
         surface_id: &str,
         display_base_id: HostBaseId,
     ) -> Result<Self, NativeMaskPlayError> {
+        Self::prepare_with_profile(
+            planned,
+            face,
+            play_sequence,
+            front_subject,
+            surface_id,
+            display_base_id,
+            NativeMaskStorageProfile::Standard,
+        )
+    }
+
+    /// The caller explicitly selects initialized storage; a larger Plan cannot
+    /// silently upgrade an existing default-profile renderer.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_with_profile(
+        planned: &PlannedMaskPlot,
+        face: &Face,
+        play_sequence: u64,
+        front_subject: &str,
+        surface_id: &str,
+        display_base_id: HostBaseId,
+        profile: NativeMaskStorageProfile,
+    ) -> Result<Self, NativeMaskPlayError> {
+        storage::validate_profile(planned, profile)?;
         face.validate().map_err(|_| NativeMaskPlayError::Face)?;
         if planned.plan.fragments.len() != 1 || display_base_id.as_str().is_empty() {
             return Err(NativeMaskPlayError::Plan);
@@ -71,7 +95,7 @@ impl PreparedNativeMaskPlay {
         )
         .map_err(|_| NativeMaskPlayError::Face)?;
         let face_bytes = serde_json::to_vec(face).map_err(|_| NativeMaskPlayError::Value)?;
-        if face_bytes.len() > MAX_MASK_VALUE_BYTES {
+        if face_bytes.len() > profile.bytes() as usize {
             return Err(NativeMaskPlayError::Value);
         }
         let show_value_id = show_value_id(planned, face, &active);
@@ -84,7 +108,7 @@ impl PreparedNativeMaskPlay {
             show_value_id: &show_value_id,
         })
         .map_err(|_| NativeMaskPlayError::Value)?;
-        if show_bytes.len() > MAX_MASK_VALUE_BYTES {
+        if show_bytes.len() > profile.bytes() as usize {
             return Err(NativeMaskPlayError::Value);
         }
         let lowered = lower_plan_fragment(fragment).map_err(|_| NativeMaskPlayError::Plan)?;
@@ -149,7 +173,9 @@ impl PreparedNativeMaskPlay {
         let face_fore = fore("face", PortDirection::Input)?;
         let show_fore = fore("show", PortDirection::Output)?;
         let interaction_fore = fore("interaction", PortDirection::Output)?;
-        let mut scheduler = alloc::boxed::Box::new(scheduler(fragment, &lowered)?);
+        let mut scheduler =
+            alloc::boxed::Box::new(scheduler_for_profile(fragment, &lowered, profile)?);
+        let storage_budget = storage::admit_budget(&scheduler, profile)?;
         if scheduler
             .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &face_bytes)
             .map_err(|_| NativeMaskPlayError::ForeAdmit)?
@@ -213,6 +239,8 @@ impl PreparedNativeMaskPlay {
                 surface_id: surface_id.into(),
                 kernel_signs: 0,
                 fore_endpoints: lowered.fore_ports.len() as u16,
+                collection_storage: (profile == NativeMaskStorageProfile::Collection)
+                    .then_some(storage_budget),
             }),
         })
     }

@@ -170,3 +170,41 @@ fn one_provider_cannot_mutate_a_sibling_entry() {
     );
     assert_eq!(host.advertisement().unwrap().capabilities.len(), 2);
 }
+
+#[test]
+fn projecting_one_ready_base_preserves_existing_owners_and_refuses_duplicates() {
+    let mut host = supervisor();
+    host.registry_mut()
+        .register(base("base/a", 1, "a/work"))
+        .unwrap();
+    let mut advertisement = host.advertisement().unwrap();
+    host.registry_mut()
+        .register(base("base/b", 1, "b/work"))
+        .unwrap();
+    host.registry()
+        .project_base_ready_into(&HostBaseId::from("base/b"), &mut advertisement)
+        .unwrap();
+    assert_eq!(advertisement.bases.len(), 2);
+    assert_eq!(advertisement.capabilities.len(), 2);
+    let unchanged = advertisement.clone();
+    assert_eq!(
+        host.registry()
+            .project_base_ready_into(&HostBaseId::from("base/b"), &mut advertisement),
+        Err(BaseRegistryRefusal::DuplicateBase)
+    );
+    assert_eq!(advertisement, unchanged);
+    host.registry_mut()
+        .set_lifecycle(
+            &HostBaseId::from("base/b"),
+            &BaseInstanceId::from("base/b/provider/1"),
+            1,
+            BaseLifecycle::Stopped,
+        )
+        .unwrap();
+    assert_eq!(
+        host.registry()
+            .project_base_ready_into(&HostBaseId::from("base/b"), &mut advertisement),
+        Err(BaseRegistryRefusal::BaseNotReady)
+    );
+    assert_eq!(advertisement, unchanged);
+}

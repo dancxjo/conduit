@@ -29,6 +29,8 @@ mod document;
 mod frame;
 #[path = "native_face_scene/input.rs"]
 mod input;
+#[path = "native_face_scene/inspection.rs"]
+mod inspection;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
 #[path = "native_face_scene/ports.rs"]
@@ -115,6 +117,7 @@ pub struct NativeFaceScene {
     input: input::InputState,
     interaction_admitted: bool,
     local_notice: Option<String>,
+    inspected_subject: Option<usize>,
 }
 
 impl NativeFaceScene {
@@ -152,6 +155,7 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_notice: None,
+            inspected_subject: None,
         })
     }
 

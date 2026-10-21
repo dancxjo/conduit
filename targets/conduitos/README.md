@@ -28,6 +28,19 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
 
+For the local Commons/Workshop desktop:
+
+```sh
+cargo xtask make conduitos workshop --locked
+cargo xtask make conduitos workshop-boot --locked
+```
+
+These use the same x86_64 product kernel, with a separate artifact at
+`target/conduitos/workshop/x86_64-pc/conduitos-x86_64.iso`. Boot opens Commons;
+Birth a Body, then select directly from the active plots after automatic Wake/Plan/Play.
+Rebuild with `workshop` after source changes; `workshop-boot` verifies and boots
+the retained image without rebuilding it.
+
 ### Prepare IA-32 UEFI firmware
 
 Before `cargo xtask make conduitos live-boot ia32 --locked`, prepare and

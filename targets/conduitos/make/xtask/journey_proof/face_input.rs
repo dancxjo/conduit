@@ -54,15 +54,20 @@ pub(super) fn return_and_reenter(
         "journey-return-home-timeout",
     )?;
     artifacts.capture(qmp, reader, "home-returned", true)?;
-    journey_input::key_pair(qmp, reader, "tab", "journey-reselect-patchbay")?;
-    let patchbay_before = stage_count(serial_path, "CONDUIT_HOME_CHECKPOINT patchbay-opened")?;
-    journey_input::key_pair(qmp, reader, "ret", "journey-reenter-patchbay")?;
-    hid_qmp::wait_for_stage_count(
-        serial_path,
-        child,
-        "CONDUIT_HOME_CHECKPOINT patchbay-opened",
-        patchbay_before + 1,
-        "journey-reenter-patchbay-timeout",
+    // The stopped Play has no active picker targets. Return to its retained,
+    // read-only Plot Face without selecting or restarting an application.
+    let before = stage_count(serial_path, "CONDUIT_HOME_CHECKPOINT returned-to-plot")?;
+    journey_input::held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &["esc"], down, "journey-return-stopped-plot"),
+        || {
+            hid_qmp::wait_for_stage_count(
+                serial_path,
+                child,
+                "CONDUIT_HOME_CHECKPOINT returned-to-plot",
+                before + 1,
+                "journey-return-stopped-timeout",
+            )
+        },
     )?;
     artifacts.capture(qmp, reader, "patchbay-reentered", true)?;
     Ok(())

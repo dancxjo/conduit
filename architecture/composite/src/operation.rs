@@ -1,10 +1,12 @@
 use crate::prelude::*;
+mod worker_memory;
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use conduit_core::{ImplementationId, PlannedGear};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::HostedValueStore;
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+pub use worker_memory::PreparedWorkerBack;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct KernelOperationBudget {
@@ -31,6 +33,15 @@ pub trait KernelOperationFactory: Send + Sync {
         placement: &PlannedGear,
         values: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String>;
+    /// Worker preparation additionally requires complete owner-reported Back
+    /// memory. Ordinary preparation never implies this contract.
+    fn prepare_worker(
+        &self,
+        _placement: &PlannedGear,
+        _values: &mut HostedValueStore,
+    ) -> Result<PreparedWorkerBack, String> {
+        Err("installed operation does not report worker Back memory".into())
+    }
     /// Opt-in only after exact preparation/profile admission. Unsupported or
     /// failed reuse is a refusal, never an implicit one-shot retry during Play.
     fn prepare_reusable_value(

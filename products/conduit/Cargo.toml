@@ -5,6 +5,7 @@ edition = "2021"
 default-run = "conduit"
 
 [dependencies]
+conduit-commons-plot = { path = "../../plots/commons" }
 clap = { version = "4", features = ["derive"] }
 conduit-alife = { path = "../../semantics/alife" }
 conduit-ai = { path = "../../semantics/ai" }

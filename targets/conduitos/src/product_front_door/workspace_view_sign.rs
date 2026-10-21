@@ -1,7 +1,6 @@
 //! Current shared view evidence emitted only after successful native face.
 use crate::{
-    arch, front_door::FrontDoor, native_compositor::CompositionReceipt,
-    product_journey::ProductJourney,
+    front_door::FrontDoor, native_compositor::CompositionReceipt, product_journey::ProductJourney,
 };
 use alloc::vec::Vec;
 use sha2::{Digest, Sha256};
@@ -43,8 +42,8 @@ pub(super) fn emit(
     if bytes.len() > 16 * 1024 {
         return Err("workspace-view-evidence-capacity-exceeded");
     }
-    arch::early_write(b"CONDUIT_WORKSPACE_VIEW ");
-    arch::early_write(&bytes);
-    arch::early_write(b"\n");
+    super::journey_sign::write_observation(b"CONDUIT_WORKSPACE_VIEW ");
+    super::journey_sign::write_observation(&bytes);
+    super::journey_sign::write_observation(b"\n");
     Ok(())
 }

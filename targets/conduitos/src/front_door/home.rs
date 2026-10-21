@@ -1,31 +1,68 @@
 //! Finite ConduitOS Home and command-bar face state.
 
-use alloc::{format, string::String, vec::Vec};
-use conduit_face::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
-    LayoutRect,
-};
+use alloc::vec::Vec;
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_home_model::{HomeEvent, HomeModel};
-use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
+use conduit_human::KeyEvent;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_human::{KeyTransition, PreparedKeymap};
 
 use super::{Error, FrontDoor};
+use crate::product_journey::JourneyStatus;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod presentation;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+mod scene;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(super) use crate::protected_creche::Home;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 pub(super) struct Home {
     model: HomeModel,
+    pub(super) commons: super::commons::Commons,
     keymap: PreparedKeymap,
-    refusal: Option<String>,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl Home {
-    fn new() -> Self {
-        Self {
-            model: HomeModel::new(),
+    fn new() -> Result<Self, Error> {
+        Ok(Self {
+            commons: super::commons::Commons::prepare()?,
+            model: HomeModel::plots(),
             keymap: PreparedKeymap::default_layout(),
-            refusal: None,
-        }
+        })
     }
 
+    fn try_new() -> Result<Self, Error> {
+        Self::new()
+    }
+
+    fn reset(&mut self) -> Result<(), Error> {
+        self.model = HomeModel::plots();
+        Ok(())
+    }
+
+    fn is_live(&self) -> bool {
+        true
+    }
+
+    fn model(&self) -> &HomeModel {
+        &self.model
+    }
+    fn application_view(
+        &self,
+        revision: u32,
+        titles: &[&str],
+    ) -> Result<conduit_face::ApplicationView, Error> {
+        self.model
+            .face(revision, titles)
+            .lower()
+            .map_err(|_| Error::Face)
+    }
+    fn accept_checked(&mut self, event: KeyEvent, plots: &[&str]) -> Result<HomeInput, Error> {
+        Ok(self.accept(event, plots))
+    }
     fn accept(&mut self, event: KeyEvent, plots: &[&str]) -> HomeInput {
         if event.transition() != KeyTransition::Pressed {
             let _ = self.keymap.apply(event);
@@ -35,7 +72,7 @@ impl Home {
             79 | 81 | 43 => HomeEvent::Next,
             80 | 82 => HomeEvent::Previous,
             40 => HomeEvent::Activate,
-            41 => HomeEvent::Escape,
+            41 => return HomeInput::Unchanged,
             42 => HomeEvent::Backspace,
             _ => match self.keymap.apply(event) {
                 Ok(Some(fragment)) => {
@@ -60,330 +97,108 @@ impl FrontDoor {
             .map_or(&[], |workspace| workspace.plots.as_slice())
     }
 
+    pub(super) fn home_active_plots(&self) -> &[crate::product_journey::WorkspacePlot] {
+        if self.journey.as_ref().is_some_and(|journey| {
+            journey.active_play_id.is_some()
+                && journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput
+        }) {
+            self.home_installed_plots()
+        } else {
+            &[]
+        }
+    }
+
     fn home_installed_titles(&self) -> Vec<&'static str> {
-        self.home_installed_plots()
+        self.home_active_plots()
             .iter()
             .map(|plot| plot.title)
             .collect()
     }
 
-    pub(super) fn home_refusal(&self) -> Option<&str> {
-        self.home.as_ref().and_then(|home| home.refusal.as_deref())
-    }
-
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     pub(super) fn home_model(&self) -> Option<&HomeModel> {
         self.home.as_ref().map(|home| &home.model)
     }
 
-    pub(super) fn home_scene(
-        &self,
-        display: &impl crate::display::PixelTarget,
-    ) -> Result<GraphicsScene, Error> {
-        let home = self.home.as_ref().ok_or(Error::Scene)?;
-        let journey = self.journey.as_ref().ok_or(Error::Scene)?;
-        let format = display.format().validate().map_err(Error::Display)?;
-        let screen = LayoutRect {
-            x: 0,
-            y: 0,
-            width: u16::try_from(format.width).map_err(|_| Error::Scene)?,
-            height: u16::try_from(format.height).map_err(|_| Error::Scene)?,
-        };
-        let mut scene = GraphicsScene::empty();
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    screen,
-                    screen,
-                    GraphicsPaintRole::Background,
-                    GraphicsShapeStyle::Fill,
-                )
-                .map_err(|_| Error::Scene)?,
-            )
-            .map_err(|_| Error::Scene)?;
-        draw_text(
-            &mut scene,
-            screen,
-            34,
-            28,
-            "CONDUIT",
-            GraphicsTextRole::Title,
-            GraphicsPaintRole::Accent,
-        )?;
-        draw_text(
-            &mut scene,
-            screen,
-            34,
-            60,
-            journey.friendly_name.as_deref().unwrap_or("Current body"),
-            GraphicsTextRole::Status,
-            GraphicsPaintRole::Muted,
-        )?;
-        match home.model.view() {
-            HomeView::Launcher => {
-                for (index, item) in conduit_home_model::HomeDestination::ALL.iter().enumerate() {
-                    let column = index % 3;
-                    let row = index / 3;
-                    let bounds = LayoutRect {
-                        x: 120 + column as i16 * 300,
-                        y: 130 + row as i16 * 190,
-                        width: 220,
-                        height: 132,
-                    };
-                    scene
-                        .push(
-                            GraphicsCommand::rect(
-                                bounds,
-                                screen,
-                                if index == home.model.selected_index() {
-                                    GraphicsPaintRole::Accent
-                                } else {
-                                    GraphicsPaintRole::Foreground
-                                },
-                                GraphicsShapeStyle::Stroke,
-                            )
-                            .map_err(|_| Error::Scene)?,
-                        )
-                        .map_err(|_| Error::Scene)?;
-                    draw_text(
-                        &mut scene,
-                        screen,
-                        bounds.x + 22,
-                        bounds.y + 48,
-                        item.label(),
-                        GraphicsTextRole::Heading,
-                        if index == home.model.selected_index() {
-                            GraphicsPaintRole::Accent
-                        } else {
-                            GraphicsPaintRole::Foreground
-                        },
-                    )?;
-                }
-                draw_text(
-                    &mut scene,
-                    screen,
-                    34,
-                    548,
-                    ">  type anywhere for Prompt",
-                    GraphicsTextRole::Code,
-                    GraphicsPaintRole::Status,
-                )?;
-            }
-            HomeView::Prompt => {
-                draw_text(
-                    &mut scene,
-                    screen,
-                    56,
-                    142,
-                    "CONDUIT PROMPT",
-                    GraphicsTextRole::Heading,
-                    GraphicsPaintRole::Accent,
-                )?;
-                draw_text(
-                    &mut scene,
-                    screen,
-                    56,
-                    214,
-                    &format!("conduit> {}_", home.model.command()),
-                    GraphicsTextRole::Code,
-                    GraphicsPaintRole::Foreground,
-                )?;
-                draw_text(
-                    &mut scene,
-                    screen,
-                    56,
-                    282,
-                    home.model.output(),
-                    GraphicsTextRole::Body,
-                    GraphicsPaintRole::Status,
-                )?;
-            }
-            HomeView::Plots => {
-                draw_text(
-                    &mut scene,
-                    screen,
-                    56,
-                    128,
-                    "INSTALLED PLOTS",
-                    GraphicsTextRole::Heading,
-                    GraphicsPaintRole::Accent,
-                )?;
-                for (index, plot) in self.home_installed_plots().iter().enumerate() {
-                    draw_text(
-                        &mut scene,
-                        screen,
-                        72,
-                        188 + index as i16 * 48,
-                        &format!(
-                            "{}  {}",
-                            if index == home.model.selected_plot_index() {
-                                ">"
-                            } else {
-                                " "
-                            },
-                            plot.title
-                        ),
-                        GraphicsTextRole::Body,
-                        GraphicsPaintRole::Foreground,
-                    )?;
-                }
-            }
-            HomeView::Body => {
-                draw_text(
-                    &mut scene,
-                    screen,
-                    56,
-                    128,
-                    "BODY",
-                    GraphicsTextRole::Heading,
-                    GraphicsPaintRole::Accent,
-                )?;
-                for (index, line) in [
-                    format!(
-                        "Name       {}",
-                        journey.friendly_name.as_deref().unwrap_or("Current body")
-                    ),
-                    format!(
-                        "Wake       {}",
-                        journey.wake_id.as_ref().map_or("-", |id| id.as_str())
-                    ),
-                    format!(
-                        "Plan       {}",
-                        journey.plan_id.as_ref().map_or("idle", |id| id.as_str())
-                    ),
-                    format!(
-                        "Play       {}",
-                        journey
-                            .active_play_id
-                            .as_ref()
-                            .map_or("-", |id| id.as_str())
-                    ),
-                    format!("Lines      {}", usize::from(self.connectivity.is_some())),
-                    format!("Host       {}", journey.host_id.as_str()),
-                ]
-                .iter()
-                .enumerate()
-                {
-                    draw_text(
-                        &mut scene,
-                        screen,
-                        72,
-                        188 + index as i16 * 44,
-                        line,
-                        GraphicsTextRole::Code,
-                        GraphicsPaintRole::Foreground,
-                    )?;
-                }
-            }
-        }
-        if let Some(reason) = &home.refusal {
-            draw_text(
-                &mut scene,
-                screen,
-                34,
-                i16::try_from(screen.height.saturating_sub(104)).map_err(|_| Error::Scene)?,
-                reason,
-                GraphicsTextRole::Status,
-                GraphicsPaintRole::Status,
-            )?;
-        }
-        let status_y = i16::try_from(screen.height.saturating_sub(52)).map_err(|_| Error::Scene)?;
-        if let Some(refusal) = &self.refusal {
-            draw_text(
-                &mut scene,
-                screen,
-                24,
-                status_y - 38,
-                &format!("{} {}", refusal.heading(), refusal.reason()),
-                GraphicsTextRole::Warning,
-                GraphicsPaintRole::Status,
-            )?;
-        }
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    LayoutRect {
-                        x: 0,
-                        y: status_y - 12,
-                        width: screen.width,
-                        height: 64,
-                    },
-                    screen,
-                    GraphicsPaintRole::Status,
-                    GraphicsShapeStyle::Stroke,
-                )
-                .map_err(|_| Error::Scene)?,
-            )
-            .map_err(|_| Error::Scene)?;
-        draw_text(
-            &mut scene,
-            screen,
-            24,
-            status_y,
-            &format!(
-                "BODY {}  |  WAKE {}  |  PLAN {}  |  PLAY {}  |  LINES {}  |  HOST {}",
-                journey.friendly_name.as_deref().unwrap_or("CURRENT"),
-                if journey.wake_id.is_some() { "1" } else { "-" },
-                if journey.plan_id.is_some() {
-                    "current"
-                } else {
-                    "idle"
-                },
-                if journey.active_play_id.is_some() {
-                    "current"
-                } else {
-                    "-"
-                },
-                usize::from(self.connectivity.is_some()),
-                journey.host_id.as_str()
-            ),
-            GraphicsTextRole::Status,
-            GraphicsPaintRole::Status,
-        )?;
-        Ok(scene)
-    }
-
     pub fn open_home(&mut self) -> Result<(), Error> {
-        if self
-            .journey
-            .as_ref()
-            .is_none_or(|journey| journey.body_id.is_none())
-        {
+        if self.journey.is_none() {
             return Err(Error::Face);
         }
-        self.home = Some(Home::new());
+        if self.home.is_some() {
+            return self.advance();
+        }
+        let home = if let Some(mut retained) = self.retained_home.take() {
+            retained
+                .commons
+                .back_to_hub(self.journey.as_ref().ok_or(Error::Face)?)?;
+            retained.reset()?;
+            retained
+        } else {
+            Home::try_new()?
+        };
+        self.home = Some(home);
         self.advance()
     }
 
+    /// Move, rather than copy, the Commons context while its Birth encounter is visible.
+    #[cfg_attr(not(feature = "native-compositor"), allow(dead_code))]
+    pub(crate) fn enter_prebirth_creche(&mut self) -> Result<(), Error> {
+        if !self.commons_creche_selected()
+            || self.arrival.is_none()
+            || self.retained_home.is_some()
+            || self
+                .journey
+                .as_ref()
+                .is_none_or(|journey| journey.body_id.is_some())
+        {
+            return Err(Error::Face);
+        }
+        self.retained_home = self.home.take();
+        self.advance()
+    }
+
+    pub fn commons_creche_selected(&self) -> bool {
+        self.home.as_ref().is_some_and(|home| home.commons.creche())
+    }
+
+    pub fn commons_place(&self) -> Option<&str> {
+        self.home.as_ref().map(|home| home.commons.selected())
+    }
+
     pub fn home_open(&self) -> bool {
-        self.home.is_some()
+        self.home.as_ref().is_some_and(|home| home.is_live())
     }
 
     pub fn close_home(&mut self) -> Result<(), Error> {
-        if self.home.take().is_none() {
+        if self.retained_home.is_some() || self.home.is_none() {
             return Err(Error::Face);
         }
+        self.retained_home = self.home.take();
         self.advance()
     }
 
     pub fn home_view(&self) -> Option<HomeView> {
-        self.home.as_ref().map(|home| home.model.view())
+        self.home
+            .as_ref()
+            .filter(|home| home.is_live())
+            .map(|home| home.model().view())
     }
 
     pub fn home_selection(&self) -> Option<usize> {
-        self.home.as_ref().map(|home| home.model.selected_index())
+        self.home
+            .as_ref()
+            .filter(|home| home.is_live())
+            .map(|home| home.model().selected_plot_index())
     }
 
     pub fn home_application_view(&self) -> Result<Option<conduit_face::ApplicationView>, Error> {
         self.home
             .as_ref()
             .map(|home| {
-                home.model
-                    .face(
-                        u32::try_from(self.revision).map_err(|_| Error::Face)?,
-                        &self.home_installed_titles(),
-                    )
-                    .lower()
-                    .map_err(|_| Error::Face)
+                home.application_view(
+                    u32::try_from(self.revision).map_err(|_| Error::Face)?,
+                    &self.home_installed_titles(),
+                )
             })
             .transpose()
     }
@@ -396,64 +211,21 @@ impl FrontDoor {
         let Some(home) = self.home.as_mut() else {
             return Ok(HomeInput::Unchanged);
         };
-        let result = home.accept(event, &titles);
-        let absent = match result {
-            HomeInput::OpenTour
-                if !titles.contains(&crate::native_workset::NativePlot::Tour.title()) =>
-            {
-                Some("Tour")
-            }
-            HomeInput::OpenPatchbay
-                if !titles.contains(&crate::native_workset::NativePlot::Patchbay.title()) =>
-            {
-                Some("Patchbay")
-            }
-            _ => None,
-        };
-        let result = if let Some(title) = absent {
-            home.refusal = Some(format!(
-                "{title} is unavailable: this Body has no installed {title} Plot."
-            ));
-            HomeInput::Changed
+        let journey = self.journey.as_ref().ok_or(Error::Face)?;
+        let result = if journey.body_id.is_none() {
+            home.commons.accept_birth(event, journey)?
+        } else if journey.active_play_id.is_some()
+            && journey.status == JourneyStatus::QuiescentAwaitingInput
+        {
+            home.accept_checked(event, &titles)?
         } else {
-            if result != HomeInput::Unchanged {
-                home.refusal = None;
-            }
-            result
+            HomeInput::Unchanged
         };
         if result != HomeInput::Unchanged {
             self.advance()?;
         }
         Ok(result)
     }
-}
-
-fn draw_text(
-    scene: &mut GraphicsScene,
-    screen: LayoutRect,
-    x: i16,
-    y: i16,
-    value: &str,
-    role: GraphicsTextRole,
-    paint: GraphicsPaintRole,
-) -> Result<(), Error> {
-    scene
-        .push(
-            GraphicsCommand::text(
-                LayoutRect {
-                    x,
-                    y,
-                    width: screen.width.saturating_sub(x.max(0) as u16 + 24),
-                    height: 34,
-                },
-                screen,
-                paint,
-                value,
-            )
-            .and_then(|command| command.with_text_role(role))
-            .map_err(|_| Error::Scene)?,
-        )
-        .map_err(|_| Error::Scene)
 }
 
 #[cfg(test)]
@@ -466,13 +238,22 @@ mod tests {
     }
 
     #[test]
-    fn launcher_is_finite_and_opens_prompt() {
-        let mut home = Home::new();
-        for _ in 0..5 {
-            assert_eq!(home.accept(key(43), &[]), HomeInput::Changed);
+    fn picker_cycles_only_the_provided_residents_and_has_no_second_launcher() {
+        let mut home = Home::new().unwrap();
+        assert_eq!(home.model().view(), HomeView::Plots);
+        for index in 0..5 {
+            assert_eq!(
+                home.accept(key(40), &["Text editor", "Canvas"]),
+                HomeInput::OpenPlot(index % 2)
+            );
+            assert_eq!(
+                home.accept(key(43), &["Text editor", "Canvas"]),
+                HomeInput::Changed
+            );
         }
-        assert_eq!(home.accept(key(40), &[]), HomeInput::Changed);
-        assert_eq!(home.model.view(), HomeView::Prompt);
+        assert_eq!(home.accept(key(41), &[]), HomeInput::Unchanged);
+        assert_eq!(home.model().view(), HomeView::Plots);
+        assert_eq!(home.accept(key(40), &[]), HomeInput::Unchanged);
     }
 
     #[test]

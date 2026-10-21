@@ -24,7 +24,7 @@ impl WorkspaceRefusal {
     #[allow(dead_code)]
     pub(super) fn heading(&self) -> &'static str {
         match self {
-            Self::Startup(_) => "Wake could not finish. Details:",
+            Self::Startup(_) => "Startup could not finish. Details:",
             Self::Play(_) => "Play stopped. Details:",
             Self::Action(_) => "Action refused. Details:",
         }
@@ -33,7 +33,8 @@ impl WorkspaceRefusal {
 
 impl FrontDoor {
     pub fn inspect_lifecycle(&mut self) -> Result<(), Error> {
-        self.exact_details_open = true;
+        self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.reading_command(conduitos_mask_core::control::Operation::Inspect)?;
         self.advance()
     }
 
@@ -53,6 +54,10 @@ impl FrontDoor {
         &mut self,
         journey: &crate::product_journey::ProductJourney,
     ) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if let Some(workspace) = journey.workspace_projection() {
             let application_view = if journey.foreground_is_tutorial() {
                 Some(journey.tutorial_view().map_err(|_| Error::Face)?)
@@ -73,7 +78,27 @@ impl FrontDoor {
                         .iter()
                         .find(|plot| plot.foreground)
                         .map(|plot| &plot.plot);
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            let graph_facts = journey
+                .foreground_patchbay_graph()
+                .map(|graph| {
+                    // The outer Face has the foreground Plot subject only;
+                    // other installed members are not already Face subjects.
+                    let present = workspace
+                        .plots
+                        .iter()
+                        .find(|plot| plot.foreground)
+                        .is_some_and(|plot| plot.plot.checked_plot_id == graph.checked_plot_id);
+                    journey
+                        .graph_face_facts(graph, present)
+                        .map_err(|_| Error::Face)
+                })
+                .transpose()?;
             self.observe_body(journey.projection(), workspace)?;
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            {
+                self.graph_facts = graph_facts;
+            }
             if changed {
                 self.reset_application_navigation();
             }
@@ -113,6 +138,10 @@ impl FrontDoor {
         journey: JourneyProjection,
         workspace: WorkspaceProjection,
     ) -> Result<(), Error> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.graph_facts = None;
+        }
         if journey.body_id.as_ref() != Some(&workspace.body_id)
             || journey.revision != workspace.revision
             || workspace.plots.is_empty()
@@ -212,6 +241,7 @@ impl FrontDoor {
             }
         }
         self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.reading_command(conduitos_mask_core::control::Operation::BodyAdmitted)?;
         if self
             .journey
             .as_ref()
@@ -223,10 +253,6 @@ impl FrontDoor {
         self.source_document_id = journey.source_document_id.clone().ok_or(Error::Face)?;
         self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Face)?;
         self.plot_subject = format!("plot/{}", self.checked_plot_id.as_str());
-        if self.selected_subject.starts_with("plot/") {
-            self.selected_subject = self.plot_subject.clone();
-        }
-        self.plot_open = false;
         // A newly admitted play supersedes an earlier startup/input refusal.
         if journey.status == crate::product_journey::JourneyStatus::QuiescentAwaitingInput
             && !matches!(self.refusal, Some(WorkspaceRefusal::Action(_)))

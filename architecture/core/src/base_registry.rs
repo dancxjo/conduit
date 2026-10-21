@@ -106,6 +106,8 @@ pub enum BaseRegistryRefusal {
     DuplicateBase,
     DuplicateProviderInstance,
     UnknownBase,
+    BaseNotReady,
+    AdvertisementConflict,
     StaleProvider,
     GenerationDidNotAdvance,
     AdvertisementCapacity,
@@ -224,12 +226,12 @@ impl BaseRegistry {
         capabilities: &mut Vec<CapabilityOffer>,
         resources: &mut Vec<ResourceOffer>,
         bases: &mut Vec<BaseProviderAdvertisement>,
+        selected_base: Option<&HostBaseId>,
     ) -> Result<(), BaseRegistryRefusal> {
-        for entry in self
-            .entries
-            .iter()
-            .filter(|entry| entry.lifecycle == BaseLifecycle::Ready)
-        {
+        for entry in self.entries.iter().filter(|entry| {
+            entry.lifecycle == BaseLifecycle::Ready
+                && selected_base.is_none_or(|id| &entry.base_id == id)
+        }) {
             if capabilities.len() + entry.capabilities.len()
                 > self.limits.maximum_advertised_capabilities as usize
                 || resources.len() + entry.resources.len()
@@ -262,6 +264,57 @@ impl BaseRegistry {
         Ok(())
     }
 
+    /// Append one Ready provider without duplicating other providers already
+    /// present in a live Host advertisement.
+    pub fn project_base_ready_into(
+        &self,
+        base_id: &HostBaseId,
+        advertisement: &mut HostAdvertisement,
+    ) -> Result<(), BaseRegistryRefusal> {
+        let entry = self
+            .entries
+            .iter()
+            .find(|entry| &entry.base_id == base_id)
+            .ok_or(BaseRegistryRefusal::UnknownBase)?;
+        if entry.lifecycle != BaseLifecycle::Ready {
+            return Err(BaseRegistryRefusal::BaseNotReady);
+        }
+        if advertisement
+            .bases
+            .iter()
+            .any(|base| base.base_id == entry.base_id)
+        {
+            return Err(BaseRegistryRefusal::DuplicateBase);
+        }
+        if advertisement
+            .bases
+            .iter()
+            .any(|base| base.provider_instance_id == entry.provider_instance_id)
+        {
+            return Err(BaseRegistryRefusal::DuplicateProviderInstance);
+        }
+        if entry.capabilities.iter().any(|offer| {
+            advertisement
+                .capabilities
+                .iter()
+                .any(|existing| existing.capability_id == offer.capability_id)
+        }) || entry.resources.iter().any(|offer| {
+            advertisement
+                .resources
+                .iter()
+                .any(|existing| existing.pool_id == offer.pool_id)
+        }) {
+            return Err(BaseRegistryRefusal::AdvertisementConflict);
+        }
+
+        self.append_ready_offers(
+            &mut advertisement.capabilities,
+            &mut advertisement.resources,
+            &mut advertisement.bases,
+            Some(base_id),
+        )
+    }
+
     /// Projects current ready entries into one host advertisement.
     ///
     /// The ordinary offers and their provider ownership are emitted together;
@@ -274,6 +327,7 @@ impl BaseRegistry {
             &mut advertisement.capabilities,
             &mut advertisement.resources,
             &mut advertisement.bases,
+            None,
         )
     }
 }
@@ -357,7 +411,7 @@ impl ThinHostSupervisor {
         let mut resources = Vec::new();
         let mut bases = Vec::new();
         self.registry
-            .append_ready_offers(&mut capabilities, &mut resources, &mut bases)?;
+            .append_ready_offers(&mut capabilities, &mut resources, &mut bases, None)?;
         Ok(HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: self.host_id.clone(),

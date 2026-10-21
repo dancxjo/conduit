@@ -14,7 +14,7 @@ pub enum TourWorkspaceRequest {
     OpenPatchbay,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TourRunProof {
     pub specimen_id: String,
     pub source_document_id: SourceDocumentId,
@@ -28,13 +28,13 @@ pub struct TourRunProof {
     pub multi_host: Option<TourMultiHostProof>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TourComparisonProof {
     pub expanded_plot_id: ExpandedPlotId,
     pub plan_id: PlanId,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct TourMultiHostProof {
     pub source_fragment_id: String,
     pub sink_fragment_id: String,
@@ -44,7 +44,7 @@ pub struct TourMultiHostProof {
     pub transferred_values: u32,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum TourRunTerminal {
     Completed,
     Stopped,

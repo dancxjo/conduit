@@ -88,7 +88,7 @@ pub struct PatchbayConnectionCandidate {
     pub compatibility: PatchbayPortCompatibility,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayPort {
     pub identity: String,
     pub gear_id: GearId,
@@ -96,20 +96,20 @@ pub struct PatchbayPort {
     pub value_contract: Option<CheckedValueContract>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayFrontPort {
     pub identity: String,
     pub descriptor: PortDescriptor,
     pub value_contract: Option<CheckedValueContract>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayCompositionBinding {
     pub front_port: String,
     pub internal_port: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayComposition {
     pub identity: String,
     pub gear_name: String,
@@ -121,7 +121,7 @@ pub struct PatchbayComposition {
     pub output_bindings: Vec<PatchbayCompositionBinding>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayGear {
     pub identity: String,
     pub gear_id: GearId,
@@ -136,7 +136,7 @@ pub struct PatchbayGear {
     pub controls: Vec<crate::FaceControl>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayCord {
     pub identity: String,
     pub source_port: String,
@@ -145,7 +145,7 @@ pub struct PatchbayCord {
     pub temporal: PortTemporal,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayGraph {
     pub source_document_id: SourceDocumentId,
     pub checked_plot_id: CheckedPlotId,

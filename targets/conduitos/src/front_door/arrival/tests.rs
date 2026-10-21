@@ -72,7 +72,7 @@ fn zero_body_arrival_has_no_lifecycle_plot_while_creche_inventory_is_usable() {
     assert!(lifecycle.source_document_id.is_none());
     assert!(lifecycle.checked_plot_id.is_none());
     assert!(lifecycle.expanded_plot_id.is_none());
-    assert!(!door.plot_open);
+    assert!(!door.reading.plot_open);
     door.observe_journey(lifecycle).unwrap();
 
     let face = door.face().unwrap();

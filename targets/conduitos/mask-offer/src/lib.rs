@@ -28,7 +28,9 @@ use conduit_plot::{
 };
 
 mod configured;
+mod storage_profile;
 pub use configured::*;
+pub use storage_profile::*;
 
 pub const MASK_BYTES: usize = 48 * 1024;
 
@@ -65,12 +67,15 @@ pub fn prepare_stage_from_offer(
     adapter: Adapter,
     advertisement: &HostAdvertisement,
 ) -> Result<MaskStage, MaskOfferError> {
-    if advertisement.protocol_version != PROTOCOL_VERSION
-        || advertisement.profile.as_str() != "conduitos/mask-host@1"
-        || advertisement.offer_generation.0 == 0
-    {
-        return Err(MaskOfferError::InvalidPlan);
-    }
+    prepare_stage_for_profile(adapter, advertisement, NativeMaskStorageProfile::Standard)
+}
+
+fn prepare_stage_for_profile(
+    adapter: Adapter,
+    advertisement: &HostAdvertisement,
+    profile: NativeMaskStorageProfile,
+) -> Result<MaskStage, MaskOfferError> {
+    profile.admit_host(advertisement, "renderer-conduitos")?;
     let mut catalog = ProfileCatalog::new();
     for projection in [
         renderer_kind_projection(),
@@ -126,7 +131,7 @@ pub fn prepare_stage_from_offer(
                 byte_capacity: if name == "interaction" {
                     conduit_face::MAX_FACE_INTERACTION_BYTES as u32
                 } else {
-                    MASK_BYTES as u32
+                    profile.bytes()
                 },
             },
         )
@@ -155,7 +160,7 @@ pub fn prepare_stage_from_offer(
             connection_bases: &empty_connections,
             line_candidates: &empty_lines,
             connection_item_capacity: 1,
-            connection_byte_capacity: MASK_BYTES as u32,
+            connection_byte_capacity: profile.bytes(),
             authority_grants: &authority_grants,
             protected_resource_grants: &[],
             line_offers: &[],
@@ -175,6 +180,24 @@ fn renderer_host(
     boot_id: &conduit_core::BootId,
     generation: u64,
     surface_provider: Option<&conduit_core::BaseProviderEntry>,
+) -> HostAdvertisement {
+    renderer_host_for_profile(
+        adapter,
+        host_id,
+        boot_id,
+        generation,
+        surface_provider,
+        NativeMaskStorageProfile::Standard,
+    )
+}
+
+fn renderer_host_for_profile(
+    adapter: Adapter,
+    host_id: &HostId,
+    boot_id: &conduit_core::BootId,
+    generation: u64,
+    surface_provider: Option<&conduit_core::BaseProviderEntry>,
+    profile: NativeMaskStorageProfile,
 ) -> HostAdvertisement {
     let (capability, implementation, artifact, target_kind, resource_class, input_resource) =
         match adapter {
@@ -198,54 +221,56 @@ fn renderer_host(
     let mut capabilities = vec![face_tee_offer(
         CapabilityId::from(format!("{capability}-tee")),
         ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+            execution_profile_id: ExecutionProfileId::from(profile.execution_profile()),
             implementation_id: ImplementationId::from("conduit.face/tee-kernel@1"),
             artifact_id: ArtifactId::from("conduitos/face-tee@1"),
         },
         CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+            max_queue_bytes: profile.renderer_queue_bytes(),
         },
     )];
     match adapter {
         Adapter::Native => {
-            capabilities.push(configured_resource_renderer_offer());
+            capabilities.push(configured::configured_resource_renderer_offer_for_profile(
+                profile,
+            ));
             capabilities.push(show_resource_source_offer(ShowResourceSourceOffer {
                 capability_id: CapabilityId::from("renderer-conduitos-resource-source"),
-                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+                execution_profile_id: ExecutionProfileId::from(profile.execution_profile()),
                 implementation_id: ImplementationId::from("face/conduitos-surface-source@1"),
                 artifact_id: ArtifactId::from("conduitos/native-compositor@1"),
                 resource_requirement: resource_requirement(conduit_face::SHOW_RESOURCE_CLASS, 1),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+                    max_queue_bytes: profile.renderer_queue_bytes(),
                 },
             }));
             capabilities.push(resource_renderer_offer(ResourceRendererRealizationOffer {
                 capability_id: CapabilityId::from(capability),
-                execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+                execution_profile_id: ExecutionProfileId::from(profile.execution_profile()),
                 implementation_id: ImplementationId::from(implementation),
                 artifact_id: ArtifactId::from(artifact),
                 host_call: HostCallRequirement {
                     contract_id: HostCallContractId::from("conduit.host/present@1"),
                     target_kind: Some(kind_id(target_kind)),
                     maximum_in_flight: 1,
-                    maximum_input_bytes: MASK_BYTES as u32,
-                    maximum_output_bytes: MASK_BYTES as u32,
+                    maximum_input_bytes: profile.bytes(),
+                    maximum_output_bytes: profile.bytes(),
                 },
                 authority_requirement: present_authority_requirement(kind_id(target_kind)),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+                    max_queue_bytes: profile.renderer_queue_bytes(),
                 },
             }));
         }
         Adapter::Speech => capabilities.push(renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from(capability),
-            execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+            execution_profile_id: ExecutionProfileId::from(profile.execution_profile()),
             implementation_id: ImplementationId::from(implementation),
             artifact_id: ArtifactId::from(artifact),
             host_call: HostCallRequirement {
@@ -259,13 +284,19 @@ fn renderer_host(
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,
-                max_queue_bytes: MAX_RENDERER_VALUE_BYTES,
+                max_queue_bytes: profile.renderer_queue_bytes(),
             },
         })),
     }
     capabilities.push(face_interaction_offer(FaceInteractionRealizationOffer {
         capability_id: CapabilityId::from(format!("{capability}-input")),
-        execution_profile_id: ExecutionProfileId::from("conduitos/bounded-interaction@1"),
+        execution_profile_id: ExecutionProfileId::from(
+            if profile == NativeMaskStorageProfile::Collection {
+                "conduitos/bounded-collection-interaction@1"
+            } else {
+                "conduitos/bounded-interaction@1"
+            },
+        ),
         implementation_id: ImplementationId::from(match adapter {
             Adapter::Native => "face/conduitos-human-input@1",
             Adapter::Speech => "face/test-speech-input@1",
@@ -285,7 +316,11 @@ fn renderer_host(
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 8,
-            max_queue_bytes: conduit_face::MAX_FACE_INTERACTION_BYTES as u32 * 8,
+            max_queue_bytes: if profile == NativeMaskStorageProfile::Collection {
+                profile.renderer_queue_bytes()
+            } else {
+                conduit_face::MAX_FACE_INTERACTION_BYTES as u32 * 8
+            },
         },
     }));
     let (surface_resource, bases) = if matches!(adapter, Adapter::Native) {
@@ -348,7 +383,7 @@ fn renderer_host(
         host_id: host_id.clone(),
         boot_id: boot_id.clone(),
         offer_generation: OfferGeneration(generation),
-        profile: HostProfileId::from("conduitos/mask-host@1"),
+        profile: HostProfileId::from(profile.host_profile()),
         bases,
         resources,
         capabilities,

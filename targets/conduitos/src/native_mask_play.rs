@@ -14,6 +14,12 @@ use backs::MaskBack;
 pub use interaction::NativeMaskInteractionSession;
 #[cfg(any(test, feature = "native-compositor"))]
 pub use prepared::PreparedNativeMaskPlay;
+#[cfg(any(test, feature = "native-compositor"))]
+mod storage;
+#[cfg(any(test, feature = "native-compositor"))]
+use conduit_conduitos_mask_offer::NativeMaskStorageProfile;
+#[cfg(any(test, feature = "native-compositor"))]
+pub use storage::NativeMaskStorageBudget;
 
 #[cfg(any(test, feature = "native-compositor"))]
 use alloc::{string::String, vec::Vec};
@@ -34,7 +40,7 @@ use sha2::{Digest, Sha256};
 
 // The current complete resident Patchbay Face is about 21 KiB encoded. This
 // finite native profile admits it whole; larger Faces require a new admission.
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(test)]
 pub const MAX_MASK_VALUE_BYTES: usize = conduit_conduitos_mask_offer::MASK_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -52,9 +58,11 @@ const VALUES: usize = CORDS + NODES;
 #[cfg(any(test, feature = "native-compositor"))]
 const INTERACTION_VALUE_BYTES: usize = conduit_face::MAX_FACE_INTERACTION_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
+#[cfg(test)]
 const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
 // Five Face/Show queues, one interaction queue, and the two Host Call results.
 #[cfg(any(test, feature = "native-compositor"))]
+#[cfg(test)]
 const VALUE_BYTES: usize = 6 * MAX_MASK_VALUE_BYTES + 2 * INTERACTION_VALUE_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
 const SIGNS: usize = 96;
@@ -88,6 +96,8 @@ pub struct NativeMaskPlayReceipt {
     pub surface_id: String,
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection_storage: Option<NativeMaskStorageBudget>,
 }
 
 #[cfg(any(test, feature = "native-compositor"))]
@@ -157,14 +167,24 @@ fn show_value_id(
 }
 
 #[cfg(any(test, feature = "native-compositor"))]
+#[cfg(test)]
 fn scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> Result<Scheduler, NativeMaskPlayError> {
+    scheduler_for_profile(fragment, lowered, NativeMaskStorageProfile::Standard)
+}
+
+#[cfg(any(test, feature = "native-compositor"))]
+fn scheduler_for_profile(
+    fragment: &conduit_core::PlanFragment,
+    lowered: &LoweredPlanFragment,
+    profile: NativeMaskStorageProfile,
+) -> Result<Scheduler, NativeMaskPlayError> {
     if !matches!(lowered.nodes.len(), 3 | NODES) || lowered.cords.len() != CORDS {
         return Err(NativeMaskPlayError::Shape);
     }
-    let value_bytes = admitted_value_bytes(lowered)?;
+    let value_bytes = admitted_value_bytes_for_profile(lowered, profile)?;
     let mut node_specs = lowered.node_specs.clone();
     if node_specs.len() == 3 {
         node_specs.push(conduit_kernel::scheduler::NodeSpec {
@@ -214,11 +234,13 @@ fn scheduler(
                 Ok(MaskBack::Renderer {
                     pending: false,
                     emitted: false,
+                    maximum_value_bytes: profile.bytes(),
                 })
             }
             conduit_face::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
                 seen_face: false,
                 pending: false,
+                maximum_value_bytes: profile.bytes(),
             }),
             _ => Err(NativeMaskPlayError::Shape),
         })
@@ -227,7 +249,7 @@ fn scheduler(
         drivers.push(MaskBack::ResourceSource);
     }
     let drivers = drivers.try_into().map_err(|_| NativeMaskPlayError::Shape)?;
-    let values = HostedValueStore::new(VALUES as u16, STORAGE_VALUE_BYTES as u32, value_bytes)
+    let values = HostedValueStore::new(VALUES as u16, profile.bytes(), value_bytes)
         .map_err(|_| NativeMaskPlayError::Value)?;
     let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
         lowered
@@ -243,10 +265,19 @@ fn scheduler(
 
 /// The preallocated store reserves 10 finite value slots at preparation; its live
 /// byte budget follows the admitted Cord queues plus the two bounded Host Call
-/// results. Native rendering narrows its larger semantic offer to 16 KiB;
+/// results. Native rendering narrows its larger semantic offer to this profile;
 /// interaction retains its declared 8192-byte bound. No budget grows during Play.
 #[cfg(any(test, feature = "native-compositor"))]
+#[cfg(test)]
 fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMaskPlayError> {
+    admitted_value_bytes_for_profile(lowered, NativeMaskStorageProfile::Standard)
+}
+
+#[cfg(any(test, feature = "native-compositor"))]
+fn admitted_value_bytes_for_profile(
+    lowered: &LoweredPlanFragment,
+    profile: NativeMaskStorageProfile,
+) -> Result<u32, NativeMaskPlayError> {
     if usize::from(lowered.cord_value_slots) > CORDS || lowered.host_calls.len() != 2 {
         return Err(NativeMaskPlayError::Shape);
     }
@@ -256,7 +287,7 @@ fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMask
             return Err(NativeMaskPlayError::Shape);
         }
         let bound = match call.contract_id.as_str() {
-            "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
+            "conduit.host/present@1" => profile.bytes() as usize,
             "conduit.host/face-interaction@1" => INTERACTION_VALUE_BYTES,
             _ => return Err(NativeMaskPlayError::Shape),
         } as u32;
@@ -267,7 +298,7 @@ fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMask
             .checked_add(call.binding.maximum_output_bytes)
             .ok_or(NativeMaskPlayError::Pressure)?;
     }
-    if bytes as usize > VALUE_BYTES {
+    if bytes > profile.bytes() * 6 + 2 * INTERACTION_VALUE_BYTES as u32 {
         return Err(NativeMaskPlayError::Pressure);
     }
     Ok(bytes)

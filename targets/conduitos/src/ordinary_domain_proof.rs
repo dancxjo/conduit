@@ -1,6 +1,11 @@
 //! Supplemental emulator evidence through real checked Source and the product kernel.
 use crate::{arch, boot, identity, offer, ordinary_plan, text_composition};
 
+mod compositor;
+#[cfg(conduitos_compositor_hostile_images)]
+mod compositor_hostile;
+#[cfg(feature = "native-compositor")]
+mod compositor_recovery;
 mod gates;
 mod morse;
 mod retained_text;
@@ -52,6 +57,11 @@ pub fn run(record: &boot::BootRecord) -> ! {
     retained_text::run(&plan, &offer);
     hostile_entries();
     service_memory::run();
+    compositor::run();
+    #[cfg(conduitos_compositor_hostile_images)]
+    compositor_hostile::run();
+    #[cfg(feature = "native-compositor")]
+    compositor_recovery::run();
     timer::run();
     arch::early_write(b"CONDUIT_ORDINARY_DOMAIN_SIGN {\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"ordinary_source\":true,\"protected_computation\":true,\"effect_capability_gates\":true,\"dma_isolation\":false,\"driver_isolation\":false,\"bounded\":true}\n");
     arch::deterministic_exit(true)
@@ -100,6 +110,11 @@ fn hostile_entries() {
             command == 9 && returned == Ok(DomainReturn::Fault(DomainFault::InvalidInstruction));
         if returned != Ok(DomainReturn::Fault(expected)) && !sysenter_denied {
             refuse("hostile-entry-did-not-fault");
+        }
+        if matches!(command, 6 | 17)
+            && (domain.cost().preemptions != 1 || domain.cost().interrupt_entries < 16)
+        {
+            refuse("hostile-entry-budget-not-enforced");
         }
         if domain.cost().scheduler_returns != 1 {
             refuse("hostile-entry-did-not-return-to-root");

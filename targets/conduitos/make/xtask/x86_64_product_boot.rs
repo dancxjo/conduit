@@ -110,8 +110,8 @@ fn boot_once(
     hid_qmp::wait_for_stage_with_budget(
         &serial_path,
         &mut child,
-        "CONDUIT_CRECHE_CHECKPOINT ready",
-        "profile-built-creche-ready-timeout",
+        "CONDUIT_COMMONS_CHECKPOINT ready",
+        "profile-built-commons-ready-timeout",
         Duration::from_secs(60),
     )?;
     let deadline = Instant::now() + Duration::from_secs(20);

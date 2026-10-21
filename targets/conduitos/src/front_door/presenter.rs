@@ -65,6 +65,16 @@ impl PresenterError {
 }
 
 impl FrontDoorPresenter {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) fn attach_display_owner(
+        &mut self,
+        owner: crate::protected_compositor::display_owner::SharedDisplayOwner,
+    ) -> Result<(), PresenterError> {
+        self.compositor
+            .attach_display_owner(owner)
+            .map_err(PresenterError::Compositor)
+    }
+
     pub const fn compositor_frame_sequence(&self) -> u64 {
         self.compositor.frame_sequence()
     }

@@ -27,7 +27,13 @@ fn main() {
             derive_serde_for_variants: true,
             // Fixed admitted input slots retain inline payloads during Play.
             inline_variant_types: ["InputAxisSlot".into(), "TouchContactSlot".into()].into(),
-            serde_record_types: ["InputSurfacePoint".into()].into(),
+            serde_nominal_types: [
+                "InteractionCanonicalBytes".into(),
+                "InteractionTypeDigest".into(),
+                "InteractionValueKind".into(),
+            ]
+            .into(),
+            serde_record_types: ["InputSurfacePoint".into(), "InteractionValue".into()].into(),
             serde_variant_exclusions: [
                 "ChordInfo".into(),
                 "ControlChordModifier".into(),
@@ -35,7 +41,6 @@ fn main() {
                 "ExperienceRefusal".into(),
                 "ExperienceSourceRefusal".into(),
                 "ExperienceUpdateRefusal".into(),
-                "InteractionFamily".into(),
                 "InteractionProposalPayload".into(),
                 "KeymapDisposition".into(),
                 "VisualExperienceRefusal".into(),

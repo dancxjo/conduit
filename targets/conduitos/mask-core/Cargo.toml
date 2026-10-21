@@ -1,0 +1,13 @@
+[package]
+name = "conduitos-mask-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-body = { path = "../../../architecture/body" }
+conduit-face = { path = "../../../semantics/face" }
+conduit-human = { path = "../../../semantics/human" }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde-json-core = { version = "0.6", default-features = false }

@@ -18,7 +18,9 @@ use crate::PatchbayGraphError;
 /// Instrument 1 synth surface without making arbitrary catalog growth free.
 pub const MAX_FACE_CONTROLS: usize = 16;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+mod wire;
+
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
 pub enum FaceControlKind {
     /// A Boolean is both a native toggle and a finite two-choice value.
     BooleanChoice {
@@ -61,7 +63,7 @@ impl FaceControlKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceControl {
     pub key: String,
     pub value: ConfigurationValue,
@@ -69,7 +71,7 @@ pub struct FaceControl {
     pub interaction: Option<FaceInteraction>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceInteraction {
     pub contract: InteractionContract,
     pub state: InteractionCurrentState,

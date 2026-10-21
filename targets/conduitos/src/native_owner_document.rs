@@ -14,9 +14,29 @@ pub(crate) enum DocumentRefusal {
     Decode,
 }
 
+#[cfg(test)]
 pub(crate) fn receive<T: DeserializeOwned>(
     line: &mut dyn BinaryWebSocketIo,
     maximum_bytes: usize,
+) -> Result<T, DocumentRefusal> {
+    receive_bounded(line, maximum_bytes, 16)
+}
+
+pub(crate) fn receive_for_profile<T: DeserializeOwned>(
+    line: &mut dyn BinaryWebSocketIo,
+    profile: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
+) -> Result<T, DocumentRefusal> {
+    receive_bounded(
+        line,
+        profile.owner_document_bytes(),
+        profile.owner_document_chunks(),
+    )
+}
+
+fn receive_bounded<T: DeserializeOwned>(
+    line: &mut dyn BinaryWebSocketIo,
+    maximum_bytes: usize,
+    maximum_chunks: usize,
 ) -> Result<T, DocumentRefusal> {
     let mut frame = vec![0; MAXIMUM_BINARY_MESSAGE_BYTES];
     let mut length = line
@@ -31,8 +51,8 @@ pub(crate) fn receive<T: DeserializeOwned>(
         }
         return serde_json::from_slice(&frame[..length]).map_err(|_| DocumentRefusal::Decode);
     }
-    let mut assembly = BoundedDocumentAssembly::new(maximum_bytes, 16);
-    for _ in 0..16 {
+    let mut assembly = BoundedDocumentAssembly::new(maximum_bytes, maximum_chunks);
+    for index in 0..maximum_chunks {
         let complete = assembly
             .push(&frame[..length])
             .map_err(|_| DocumentRefusal::Bound)?;
@@ -42,6 +62,9 @@ pub(crate) fn receive<T: DeserializeOwned>(
                 return Err(DocumentRefusal::Decode);
             }
             return serde_json::from_slice(document).map_err(|_| DocumentRefusal::Decode);
+        }
+        if index + 1 == maximum_chunks {
+            return Err(DocumentRefusal::Bound);
         }
         length = line
             .receive_binary(&mut frame)

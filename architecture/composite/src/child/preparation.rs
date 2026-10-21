@@ -1,12 +1,20 @@
 //! Admit child storage, routes, Host Calls and installed Backs before execution.
 use super::*;
+mod tables;
 use crate::{boundary::augment_boundary_cords, KernelOperationRegistry};
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::CordSpec;
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+use tables::ChildPreparationTables;
 
 impl ChildKernel {
+    /// Fixed inline/boxed backing only. Values, Signs and owned Back heaps are
+    /// additional; this is a preflight floor rather than a footprint receipt.
+    pub(crate) const fn fixed_storage_floor_bytes() -> usize {
+        core::mem::size_of::<Self>() + core::mem::size_of::<RawChildScheduler>()
+    }
+
     pub(crate) fn prepare(
         fragment: &PlanFragment,
         mut lowered: LoweredPlanFragment,
@@ -16,9 +24,47 @@ impl ChildKernel {
         reusable: bool,
     ) -> Result<Self, String> {
         augment_boundary_cords(&mut lowered, &boundaries)?;
+        let placements: Vec<_> = fragment.placements.iter().collect();
+        Self::prepare_selected(
+            &placements,
+            lowered.into(),
+            boundaries,
+            registry,
+            sign_storage,
+            reusable,
+            false,
+        )
+    }
+
+    pub(crate) fn prepare_region(
+        tables: &conduit_plan_lowering::execution_regions::PreparedRegionKernelTables<'_, '_>,
+        placements: &[&conduit_core::PlannedGear],
+        registry: &KernelOperationRegistry,
+        sign_storage: crate::KernelCompositeSignStorage,
+    ) -> Result<Self, String> {
+        Self::prepare_selected(
+            placements,
+            ChildPreparationTables::from_region(tables)?,
+            Vec::new(),
+            registry,
+            sign_storage,
+            false,
+            true,
+        )
+    }
+
+    fn prepare_selected(
+        placements: &[&conduit_core::PlannedGear],
+        lowered: ChildPreparationTables,
+        boundaries: Vec<BoundaryEndpoint>,
+        registry: &KernelOperationRegistry,
+        sign_storage: crate::KernelCompositeSignStorage,
+        reusable: bool,
+        worker: bool,
+    ) -> Result<Self, String> {
         if reusable
             && (!lowered.host_calls.is_empty()
-                || fragment.placements.iter().any(|p| {
+                || placements.iter().any(|p| {
                     !p.host_calls.is_empty()
                         || p.base.is_some()
                         || !p.resources.is_empty()
@@ -87,7 +133,7 @@ impl ChildKernel {
             .sign_items
             .checked_add(u16::try_from(active_nodes * 8 + active_cords * 8).map_err(debug)?)
             .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
-        for placement in &fragment.placements {
+        for placement in placements {
             let factory = registry.get(&placement.implementation_id).ok_or_else(|| {
                 format!(
                     "implementation '{}' is not installed",
@@ -130,11 +176,18 @@ impl ChildKernel {
         )
         .map_err(debug)?;
         let mut backs = Vec::with_capacity(MAX_NODES);
-        for placement in &fragment.placements {
+        let mut worker_back_bytes = 0usize;
+        for placement in placements {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
-            backs.push(if reusable {
+            backs.push(if worker {
+                let (back, bytes) = factory.prepare_worker(placement, &mut values)?.into_parts();
+                worker_back_bytes = worker_back_bytes
+                    .checked_add(bytes)
+                    .ok_or("worker Back memory overflow")?;
+                BoxedKernelBack::new(back)
+            } else if reusable {
                 BoxedKernelBack::reusable(factory.prepare_reusable_value(placement, &mut values)?)
             } else {
                 BoxedKernelBack::new(factory.prepare(placement, &mut values)?)
@@ -229,6 +282,7 @@ impl ChildKernel {
                 .map(|boundary| (boundary.external_port_id.clone(), boundary))
                 .collect(),
             status: SchedulerStatus::Idle,
+            worker_back_bytes: worker.then_some(worker_back_bytes),
         })
     }
 }

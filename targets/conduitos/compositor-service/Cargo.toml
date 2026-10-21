@@ -1,0 +1,22 @@
+[package]
+name = "conduitos-compositor-service"
+version = "0.1.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+
+[workspace]
+resolver = "2"
+
+[[bin]]
+name = "conduitos-compositor-service"
+path = "main.rs"
+
+[dependencies]
+conduitos-compositor-core = { path = "../compositor-core" }
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+codegen-units = 1
+lto = "fat"

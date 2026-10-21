@@ -3,7 +3,8 @@ use super::*;
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{PortDirection, bind_active_play};
 use conduit_kernel::{
-    Failure, FailureCode, FixedRoutes, FixedSignLog, FixedValueStore, PortId, SignSink,
+    Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore,
+    PortId, SignSink,
     scheduler::{
         FixedScheduler, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus, StepBack,
         StepInputBytes, StepIo, StepOutcome,
@@ -20,7 +21,7 @@ const REMOTE_SIGNS: u16 = 16;
 const WORK_STEPS: usize = 32;
 type Scheduler = FixedScheduler<
     SnapshotForward,
-    FixedValueStore<2, MAX_SNAPSHOT_BYTES>,
+    HostedValueStore,
     FixedSignLog<SIGNS>,
     1,
     2,
@@ -32,8 +33,8 @@ type Scheduler = FixedScheduler<
     1,
 >;
 
-pub struct PreparedFaceSnapshot<'a> {
-    owner: core::marker::PhantomData<&'a mut NativeFaceSnapshotProducer>,
+pub struct PreparedFaceSnapshot<'a, const BYTES: usize = MAX_SNAPSHOT_BYTES> {
+    owner: core::marker::PhantomData<&'a mut BoundedFaceSnapshotProducer<BYTES>>,
     scheduler: Box<Scheduler>,
     input: LoweredForePort,
     output: LoweredForePort,
@@ -43,7 +44,7 @@ pub struct PreparedFaceSnapshot<'a> {
     retired: bool,
 }
 
-impl NativeFaceSnapshotProducer {
+impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
     /// Values and output storage are bounded before the first kernel Step.
     /// This trusted local API does not authenticate arbitrary external snapshots.
     pub fn prepare_snapshot(
@@ -51,7 +52,7 @@ impl NativeFaceSnapshotProducer {
         face: Face,
         observation_sequence: u64,
         play_sequence: u64,
-    ) -> Result<PreparedFaceSnapshot<'_>, FaceSnapshotRefusal> {
+    ) -> Result<PreparedFaceSnapshot<'_, BYTES>, FaceSnapshotRefusal> {
         if self
             .last_play_sequence
             .is_some_and(|previous| play_sequence <= previous)
@@ -76,10 +77,10 @@ impl NativeFaceSnapshotProducer {
         // The caller supplies facts, not a claim that any Body Play is active.
         // Actual Host-owned forwarding Play identity is retained in the receipt.
         let bytes = serde_json::to_vec(&face).map_err(|_| FaceSnapshotRefusal::Face)?;
-        if bytes.len() > MAX_SNAPSHOT_BYTES {
+        if bytes.len() > BYTES {
             return Err(FaceSnapshotRefusal::Capacity);
         }
-        validate_shape(&self.plan, &self.lowered)?;
+        validate_shape::<BYTES>(&self.plan, &self.lowered)?;
         let fragment = &self.plan.fragments[0];
         let active = bind_active_play(
             &self.plan.plan_id,
@@ -87,7 +88,7 @@ impl NativeFaceSnapshotProducer {
             &fragment.boot_id,
             play_sequence,
         );
-        let receipt = FaceSnapshotReceipt {
+        let mut receipt = FaceSnapshotReceipt {
             observed_face_basis: basis.clone(),
             producer_plot: self.plot_identity(),
             producer_plan_id: self.plan.plan_id.clone(),
@@ -102,6 +103,7 @@ impl NativeFaceSnapshotProducer {
             value_sha256: Sha256::digest(&bytes).into(),
             kernel_signs: 0,
             fore_endpoints: self.lowered.fore_ports.len() as u16,
+            collection_storage: None,
         };
         let boundary = |direction| {
             self.lowered
@@ -123,7 +125,7 @@ impl NativeFaceSnapshotProducer {
                 .map_err(|_| FaceSnapshotRefusal::Shape)?;
         }
         routes.seal().map_err(|_| FaceSnapshotRefusal::Shape)?;
-        let values = FixedValueStore::<2, MAX_SNAPSHOT_BYTES>::new((2 * MAX_SNAPSHOT_BYTES) as u32)
+        let values = HostedValueStore::new(2, BYTES as u32, (2 * BYTES) as u32)
             .map_err(|_| FaceSnapshotRefusal::Capacity)?;
         let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
             (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
@@ -132,10 +134,17 @@ impl NativeFaceSnapshotProducer {
                 .ok_or(FaceSnapshotRefusal::Capacity)?,
         )
         .map_err(|_| FaceSnapshotRefusal::Capacity)?;
-        let scheduler = FixedScheduler::new(
+        let mut host_bindings = FixedHostCallBindings::<1>::new(1);
+        host_bindings
+            .seal()
+            .map_err(|_| FaceSnapshotRefusal::Shape)?;
+        let scheduler = Scheduler::new_boxed_with_active_counts_and_host_calls(
+            1,
+            2,
             [self.lowered.node_specs[0]],
             [self.lowered.cords[0].spec, self.lowered.cords[1].spec],
             routes,
+            host_bindings,
             [SnapshotForward],
             values,
             signs,
@@ -143,21 +152,38 @@ impl NativeFaceSnapshotProducer {
         .map_err(|_| FaceSnapshotRefusal::Kernel)?;
         let input = boundary(PortDirection::Input)?;
         let output = boundary(PortDirection::Output)?;
+        let observed = Vec::with_capacity(BYTES);
+        let (slots, payload) = scheduler.values().allocation_capacities();
+        if slots != 2 || payload != 2 * BYTES {
+            return Err(FaceSnapshotRefusal::Capacity);
+        }
+        if BYTES == COLLECTION_SNAPSHOT_BYTES {
+            receipt.collection_storage = Some(FaceSnapshotStorageBudget {
+                maximum_value_bytes: BYTES as u32,
+                value_slots: slots,
+                reserved_value_payload_bytes: payload,
+                reserved_value_storage_bytes: scheduler.values().reserved_storage_bytes(),
+                encoded_input_capacity: bytes.capacity(),
+                observed_output_capacity: observed.capacity(),
+                scheduler_inline_bytes: core::mem::size_of::<Scheduler>(),
+                prepared_inline_bytes: core::mem::size_of::<PreparedFaceSnapshot<'_, BYTES>>(),
+            });
+        }
         self.last_play_sequence = Some(play_sequence);
         Ok(PreparedFaceSnapshot {
             owner: core::marker::PhantomData,
-            scheduler: Box::new(scheduler),
+            scheduler,
             input,
             output,
             bytes,
-            observed: Vec::with_capacity(MAX_SNAPSHOT_BYTES),
+            observed,
             receipt,
             retired: false,
         })
     }
 }
 
-impl PreparedFaceSnapshot<'_> {
+impl<const BYTES: usize> PreparedFaceSnapshot<'_, BYTES> {
     pub fn run(mut self) -> Result<PublishedFaceSnapshot, FaceSnapshotRefusal> {
         if self
             .scheduler
@@ -245,7 +271,7 @@ impl PreparedFaceSnapshot<'_> {
     }
 }
 
-impl Drop for PreparedFaceSnapshot<'_> {
+impl<const BYTES: usize> Drop for PreparedFaceSnapshot<'_, BYTES> {
     fn drop(&mut self) {
         if !self.retired {
             let _ = self.scheduler.cancel();
@@ -253,7 +279,7 @@ impl Drop for PreparedFaceSnapshot<'_> {
     }
 }
 
-pub(super) fn validate_shape(
+pub(super) fn validate_shape<const BYTES: usize>(
     plan: &Plan,
     lowered: &LoweredPlanFragment,
 ) -> Result<(), FaceSnapshotRefusal> {
@@ -268,7 +294,7 @@ pub(super) fn validate_shape(
         || !lowered.host_calls.is_empty()
         || lowered.sign_items > SIGNS as u16
         || lowered.cord_value_slots > 2
-        || lowered.cord_value_bytes > (2 * MAX_SNAPSHOT_BYTES) as u32
+        || lowered.cord_value_bytes > (2 * BYTES) as u32
         || fragment.placements[0].kind_id.as_str() != conduit_face::FACE_TEE_KIND
         || fragment.placements[0].implementation_id.as_str() != planning::IMPLEMENTATION
     {
@@ -285,7 +311,7 @@ pub(super) fn validate_shape(
                 port.direction == direction
                     && port.front_port_id.as_str() == name
                     && port.item_capacity == 1
-                    && port.byte_capacity == MAX_SNAPSHOT_BYTES as u32
+                    && port.byte_capacity == BYTES as u32
             })
             .count()
             != 1

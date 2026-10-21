@@ -5,6 +5,7 @@ mod eligibility;
 mod keyboard_delivery;
 mod planning;
 mod play;
+mod preparation;
 mod text_state;
 mod tutorial_application;
 

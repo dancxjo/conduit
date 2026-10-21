@@ -10,6 +10,7 @@ impl NativeFaceScene {
         if self.interaction_admitted != previous.interaction_admitted || previous.input.submitted {
             return Err(FaceSceneError::InputUnavailable);
         }
+        self.inspected_subject = previous.inspected_subject;
         self.showing_details = previous.showing_details;
         self.showing_diagram = previous.showing_diagram;
         self.page = previous.page.min(self.pages() - 1);

@@ -1,16 +1,23 @@
 //! Allocation-independent installation of the lowered ordinary text Plan.
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use crate::text_kernel_backs::{FaceBack, LiteralBack, LiteralState, PlannedBack, UpperBack};
 use conduit_core::{ConfigurationValue, PlanFragment};
 #[cfg(test)]
 use conduit_kernel::RequestId;
 use conduit_kernel::{
-    BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
-    HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
-    scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+    BoundedValueRef, HostCallDisposition, HostCallOutcome, NodeId, ValueRef,
+    scheduler::{HostCallRequest, SchedulerError, SchedulerStatus},
+};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_kernel::{
+    FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, KernelEvent, SignSink,
+    ValueStorage, scheduler::FixedScheduler,
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod native;
 mod protection;
 
 const MAX_NODES: usize = 3;
@@ -25,7 +32,9 @@ const VALUE_SLOTS: usize = 6;
 const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
 const SIGN_CAPACITY: usize = 64;
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type Driver = PlannedBack;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type Scheduler = FixedScheduler<
     Driver,
     FixedValueStore<VALUE_SLOTS, VALUE_BYTES>,
@@ -40,6 +49,8 @@ type Scheduler = FixedScheduler<
     PENDING_REQUESTS,
 >;
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+type Scheduler = crate::protected_runtime::Scheduler;
 pub struct TextPlannedKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
@@ -62,7 +73,6 @@ impl TextPlannedKernel {
         expected_literal: &str,
     ) -> Result<Self, SchedulerError> {
         validate_shape(fragment, lowered, expected_literal)?;
-        let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
         let literal_index = fragment
             .placements
             .iter()
@@ -81,51 +91,56 @@ impl TextPlannedKernel {
             .position(|placement| placement.kind_id.as_str() == conduit_text::TEXT_UPPER_KIND)
             .ok_or(SchedulerError::InvalidPlan)?;
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
-        let text = values.store(literal.as_bytes())?;
-        let nodes = lowered
-            .node_specs
-            .as_slice()
-            .try_into()
-            .map_err(|_| SchedulerError::InvalidPlan)?;
-        let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
-        let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
-        for route in &lowered.routes {
-            routes.install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )?;
-        }
-        routes.seal()?;
-        let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
-        for operation in &lowered.host_calls {
-            bindings.install(operation.node, operation.binding)?;
-        }
-        bindings.seal()?;
-        let literal_driver = PlannedBack::Literal(LiteralBack {
-            text,
-            state: LiteralState::Emitting,
-        });
-        let face_driver = PlannedBack::Face(FaceBack {
-            pending: false,
-            complete: false,
-        });
-        let upper_driver = PlannedBack::Upper(UpperBack {
-            pending: false,
-            emitted: false,
-        });
-        let mut drivers = [None, None, None];
-        drivers[literal_index] = Some(literal_driver);
-        drivers[upper_index] = Some(upper_driver);
-        drivers[face_index] = Some(face_driver);
-        let [Some(first), Some(second), Some(third)] = drivers else {
-            return Err(SchedulerError::InvalidPlan);
-        };
-        let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
-        let signs = FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
-        Ok(Self {
-            scheduler: FixedScheduler::new_with_host_calls(
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let scheduler = native::prepare(lowered, literal, literal_index, upper_index, face_index)?;
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let scheduler = {
+            let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
+            let text = values.store(literal.as_bytes())?;
+            let nodes = lowered
+                .node_specs
+                .as_slice()
+                .try_into()
+                .map_err(|_| SchedulerError::InvalidPlan)?;
+            let cords = [lowered.cords[0].spec, lowered.cords[1].spec];
+            let mut routes = FixedRoutes::<ROUTE_SLOTS, ROUTE_TARGETS>::new(PORTS as u16);
+            for route in &lowered.routes {
+                routes.install(
+                    route.source_node,
+                    route.source_port,
+                    route.range,
+                    &route.targets,
+                )?;
+            }
+            routes.seal()?;
+            let mut bindings = FixedHostCallBindings::<HOST_BINDING_SLOTS>::new(MAX_NODES as u16);
+            for operation in &lowered.host_calls {
+                bindings.install(operation.node, operation.binding)?;
+            }
+            bindings.seal()?;
+            let literal_driver = PlannedBack::Literal(LiteralBack {
+                text,
+                state: LiteralState::Emitting,
+            });
+            let face_driver = PlannedBack::Face(FaceBack {
+                pending: false,
+                complete: false,
+            });
+            let upper_driver = PlannedBack::Upper(UpperBack {
+                pending: false,
+                emitted: false,
+            });
+            let mut drivers = [None, None, None];
+            drivers[literal_index] = Some(literal_driver);
+            drivers[upper_index] = Some(upper_driver);
+            drivers[face_index] = Some(face_driver);
+            let [Some(first), Some(second), Some(third)] = drivers else {
+                return Err(SchedulerError::InvalidPlan);
+            };
+            let minimum_sign_bytes = (SIGN_CAPACITY * core::mem::size_of::<KernelEvent>()) as u32;
+            let signs =
+                FixedSignLog::<SIGN_CAPACITY>::new(lowered.sign_bytes.max(minimum_sign_bytes))?;
+            let scheduler = FixedScheduler::new_with_host_calls(
                 nodes,
                 cords,
                 routes,
@@ -133,7 +148,11 @@ impl TextPlannedKernel {
                 [first, second, third],
                 values,
                 signs,
-            )?,
+            )?;
+            scheduler
+        };
+        Ok(Self {
+            scheduler,
             upper_node: NodeId(upper_index as u16),
             face_node: NodeId(face_index as u16),
             #[cfg(conduitos_protected_execution)]
@@ -238,7 +257,14 @@ impl TextPlannedKernel {
         self.scheduler.decisions()
     }
     pub fn sign_count(&self) -> u16 {
-        self.scheduler.signs().len()
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            self.scheduler.sign_count()
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            self.scheduler.signs().len()
+        }
     }
     pub fn pending_host_calls(&self) -> usize {
         self.scheduler.pending_host_call_count()

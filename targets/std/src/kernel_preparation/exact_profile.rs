@@ -13,6 +13,15 @@ pub(super) fn validate_exact_profile(
     if !fragment.execution_regions.is_empty() {
         return Err("execution regions are not installed in the std runner".into());
     }
+    validate_selected_placements(advertisement, fragment)
+}
+
+/// Shared current-offer checks. Only an initialized worker service may use
+/// this entrance after checking its own region backend and reservations.
+pub(super) fn validate_selected_placements(
+    advertisement: &HostAdvertisement,
+    fragment: &PlanFragment,
+) -> Result<(), String> {
     if fragment.host_id != advertisement.host_id {
         return Err("fragment is assigned to a different host".to_string());
     }

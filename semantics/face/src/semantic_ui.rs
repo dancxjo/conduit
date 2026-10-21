@@ -57,7 +57,7 @@ impl FaceMechanismKind {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct EvidenceFace {
     pub title: String,
     pub disposition: EvidenceDisposition,
@@ -65,7 +65,7 @@ pub struct EvidenceFace {
     pub provenance: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ArtifactFace {
     pub title: String,
     pub kind: String,
@@ -75,14 +75,14 @@ pub struct ArtifactFace {
     pub disposition: EvidenceDisposition,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum ActionAvailability {
     Available,
     Busy { detail: String },
     Unavailable { detail: String },
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SemanticAction {
     pub identity: String,
     pub event: ApplicationEventKind,
@@ -93,7 +93,7 @@ pub struct SemanticAction {
 mod form_field;
 pub use form_field::{FieldKind, FormField, SelectOption};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct ChoiceOption {
     pub identity: String,
     pub label: String,
@@ -113,7 +113,7 @@ impl AdmittedNavigationDestination {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FaceMechanism {
     Shell,
     Workbench,
@@ -219,14 +219,14 @@ impl FaceMechanism {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SemanticFaceNode {
     pub key: String,
     pub mechanism: FaceMechanism,
     pub children: Vec<Self>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SemanticApplicationView {
     pub revision: u32,
     pub root: SemanticFaceNode,
