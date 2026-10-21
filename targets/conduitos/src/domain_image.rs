@@ -51,8 +51,8 @@ impl<'a> DomainImage<'a> {
     ) -> Result<Self, ImageRefusal> {
         use ImageRefusal as Refusal;
         if maximum_bytes == 0
-            || maximum_bytes % PAGE_BYTES != 0
-            || text_start % PAGE_BYTES != 0
+            || !maximum_bytes.is_multiple_of(PAGE_BYTES)
+            || !text_start.is_multiple_of(PAGE_BYTES)
             || text_start.checked_add(maximum_bytes).is_none()
         {
             return Err(Refusal::InvalidMapping);
@@ -149,7 +149,7 @@ fn segment<'a>(
         || length > maximum_bytes
         || memory_length != length
         || alignment != PAGE_BYTES
-        || address % PAGE_BYTES != 0
+        || !address.is_multiple_of(PAGE_BYTES)
         || address < text_start
         || address
             .checked_add(length.div_ceil(PAGE_BYTES) * PAGE_BYTES)
