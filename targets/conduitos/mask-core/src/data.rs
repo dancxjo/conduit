@@ -143,6 +143,14 @@ pub struct Snapshot {
 }
 #[derive(Serialize, Deserialize)]
 pub enum Command {
+    Entrance {
+        expected: u64,
+        facts: crate::entrance::Facts,
+    },
+    Detail {
+        expected: u64,
+        facts: crate::entrance::Facts,
+    },
     Control {
         expected: u64,
         scope: crate::control::Scope,
@@ -210,8 +218,8 @@ pub fn decode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal
     }
     serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)
 }
-pub fn encode_frame(
-    receipt: &FrameReceipt,
+pub fn encode_scene<T: Serialize>(
+    receipt: &T,
     scene: conduit_face::GraphicsScene,
 ) -> Result<Vec<u8>, Refusal> {
     let metadata = encode(receipt)?;
@@ -230,7 +238,9 @@ pub fn encode_frame(
     bytes.extend_from_slice(&scene.encode()[..length]);
     Ok(bytes)
 }
-pub fn decode_frame(bytes: &[u8]) -> Result<(FrameReceipt, conduit_face::GraphicsScene), Refusal> {
+pub fn decode_scene<T: serde::de::DeserializeOwned>(
+    bytes: &[u8],
+) -> Result<(T, conduit_face::GraphicsScene), Refusal> {
     if bytes.len() > MAX_BLOB {
         return Err(Refusal::Bounds);
     }
@@ -249,4 +259,14 @@ pub fn decode_frame(bytes: &[u8]) -> Result<(FrameReceipt, conduit_face::Graphic
         decode(&bytes[4..end])?,
         conduit_face::GraphicsScene::decode(&bytes[end..]).map_err(|_| Refusal::Malformed)?,
     ))
+}
+
+pub fn encode_frame(
+    receipt: &FrameReceipt,
+    scene: conduit_face::GraphicsScene,
+) -> Result<Vec<u8>, Refusal> {
+    encode_scene(receipt, scene)
+}
+pub fn decode_frame(bytes: &[u8]) -> Result<(FrameReceipt, conduit_face::GraphicsScene), Refusal> {
+    decode_scene(bytes)
 }

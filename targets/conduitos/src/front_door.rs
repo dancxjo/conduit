@@ -15,6 +15,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod application_layout;
 mod arrival;
+mod entrance_facts;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod graph_facts;
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -106,12 +107,7 @@ pub enum ConnectivityStatus {
 
 impl ConnectivityStatus {
     pub const fn label(self) -> &'static str {
-        match self {
-            Self::Current => "USB LINE CURRENT",
-            Self::PeerAttached => "PEER ATTACHED / MEMBERSHIP NOT REQUESTED",
-            Self::ValueVisible => "LINE VALUE VISIBLE",
-            Self::Lost => "USB LINE LOST / STALE SESSION REFUSED",
-        }
+        self.mask_status().label()
     }
 }
 

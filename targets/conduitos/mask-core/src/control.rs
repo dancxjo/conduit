@@ -114,6 +114,14 @@ pub struct Controller {
     current: Option<Snapshot>,
 }
 impl Controller {
+    pub fn at(&self, scope: &Scope, revision: u64) -> Result<View, Refusal> {
+        self.current
+            .as_ref()
+            .filter(|current| &current.scope == scope && current.revision == revision)
+            .map(|current| current.view)
+            .ok_or(Refusal::Order)
+    }
+
     pub fn view(&self, scope: &Scope) -> Result<View, Refusal> {
         self.current
             .as_ref()

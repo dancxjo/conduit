@@ -1,69 +1,42 @@
-use alloc::{format, string::String};
-
-use conduit_face::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
-    LayoutRect,
-};
-
-use crate::{
-    display::PixelTarget, product_bindings::binding_for_intent, product_journey::JourneyProjection,
-};
-
+//! Root supplies scoped facts and admits canonical graphics; Mask owns scene policy.
 use super::{Error, FrontDoor};
-
+use crate::display::PixelTarget;
+use alloc::string::String;
+use conduit_face::GraphicsScene;
 impl FrontDoor {
     pub fn scene(&self, display: &impl PixelTarget) -> Result<GraphicsScene, Error> {
-        let reading = self.reading()?;
+        self.reading()?;
         if let Some(arrival) = &self.arrival {
             return arrival.scene(display, self);
         }
         if self.home.is_some() {
             return self.home_scene(display);
         }
-        self.face()?.validate().map_err(|_| Error::Face)?;
         let format = display.format().validate().map_err(Error::Display)?;
-        let screen = LayoutRect {
-            x: 0,
-            y: 0,
-            width: u16::try_from(format.width).map_err(|_| Error::Scene)?,
-            height: u16::try_from(format.height).map_err(|_| Error::Scene)?,
-        };
-        let mut scene = GraphicsScene::empty();
-        scene
-            .push(
-                GraphicsCommand::rect(
-                    screen,
-                    screen,
-                    GraphicsPaintRole::Background,
-                    GraphicsShapeStyle::Fill,
-                )
-                .map_err(|_| Error::Scene)?,
-            )
+        let facts = self.entrance_facts(
+            u16::try_from(format.width).map_err(|_| Error::Scene)?,
+            u16::try_from(format.height).map_err(|_| Error::Scene)?,
+        )?;
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let (workspace, scene) = self
+            .workspace_mask
+            .try_borrow_mut()
+            .map_err(|_| Error::Scene)?
+            .entrance_scene(facts)
             .map_err(|_| Error::Scene)?;
-        text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
-        let face = self.face()?;
-        if let Some(line) = &self.connectivity
-            && !reading.exact_details_open
-        {
-            text(&mut scene, 18, 42, "CURRENT BODY")?;
-            exact_text(&mut scene, 18, 66, line.body_id.as_str())?;
-            text(&mut scene, 18, 132, line.status.label())?;
-            exact_text(&mut scene, 18, 156, &line.line_id)?;
-            if let Some(value) = &line.value {
-                exact_text(&mut scene, 18, 184, value)?;
-            }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let (workspace, scene) = conduitos_mask_core::entrance::scene(&facts, self.reading()?)
+            .map_err(|_| Error::Scene)?;
+        if !workspace {
             return Ok(scene);
         }
-        if self
-            .journey
-            .as_ref()
-            .is_some_and(|journey| journey.body_id.is_some())
-            && !reading.exact_details_open
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-            return self.workspace_mask_scene(display);
-            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-            return super::workspace_scene::scene(
+            self.workspace_mask_scene(display)
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        {
+            super::workspace_scene::scene(
                 self.journey.as_ref().ok_or(Error::Scene)?,
                 self.workspace
                     .as_ref()
@@ -73,214 +46,27 @@ impl FrontDoor {
                 self.application_view.as_ref(),
                 self.application_viewport,
                 self.patchbay_graph.is_some(),
-                self.refusal
-                    .as_ref()
-                    .map(|refusal| (refusal.heading(), refusal.reason())),
+                self.refusal.as_ref().map(|r| (r.heading(), r.reason())),
                 display,
-            );
+            )
         }
-        if reading.exact_details_open {
-            let (label, value) = self.current_detail();
-            text(&mut scene, 18, 42, "EXACT HOST DETAILS")?;
-            text(&mut scene, 18, 76, label)?;
-            exact_text(&mut scene, 18, 100, &value)?;
-            text(&mut scene, 18, 160, "F2 NEXT DETAIL    ESC WORLD")?;
-        } else if reading.plot_open {
-            text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-            text(&mut scene, 18, 76, "PLOT OPEN / INSPECTION ONLY")?;
-            exact_text(&mut scene, 18, 100, &self.plot_subject)?;
-            text(
-                &mut scene,
-                18,
-                150,
-                "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
-            )?;
-            if let Some(action) = face
-                .actions
-                .iter()
-                .find(|action| action.intent == "conduit.intent/birth@1")
-            {
-                text(&mut scene, 18, 176, &local_action_label(action))?;
-            }
-        } else {
-            text(&mut scene, 18, 42, "THIS HOST    BODY: NONE")?;
-            text(&mut scene, 18, 70, "BODIES NEARBY    NONE OBSERVED")?;
-            text(&mut scene, 18, 96, "PLOTS")?;
-            text(
-                &mut scene,
-                26,
-                118,
-                if reading.selected_plot {
-                    "> CONDUITOS ENTRANCE PLOT"
-                } else {
-                    "  CONDUITOS ENTRANCE PLOT"
-                },
-            )?;
-            text(
-                &mut scene,
-                26,
-                140,
-                if !reading.selected_plot {
-                    "> DETAILS"
-                } else {
-                    "  DETAILS"
-                },
-            )?;
-            text(
-                &mut scene,
-                18,
-                176,
-                "ARROWS SELECT  ENTER OPEN  F2 DETAILS  F9 TOUR",
-            )?;
-        }
-        Ok(scene)
     }
-
     pub fn current_detail(&self) -> (&'static str, String) {
-        match self.reading().map_or(0, |view| view.details_page) {
-            0 => ("PROFILE ID", self.profile_id.clone()),
-            1 => ("BUILD ID", self.build_id.clone()),
-            2 => ("IMAGE BINDING", self.image_id.clone()),
-            3 => ("HOST ID", self.host_id.as_str().into()),
-            4 => ("BOOT ID", self.boot_id.as_str().into()),
-            5 => (
-                "CURRENT OFFERS",
-                format!(
-                    "COUNT {} / GENERATION {}",
-                    self.offer_count, self.offer_generation.0
-                ),
-            ),
-            6 => ("PLOT SUBJECT", self.plot_subject.clone()),
-            7 => (
-                "SOURCE DOCUMENT ID",
-                self.source_document_id.as_str().into(),
-            ),
-            8 => ("CHECKED PLOT ID", self.checked_plot_id.as_str().into()),
-            9 => (
-                "EXPANDED PLOT ID",
-                self.journey
-                    .as_ref()
-                    .and_then(|value| value.expanded_plot_id.as_ref())
-                    .map(|value| value.as_str().into())
-                    .unwrap_or_else(|| "NONE".into()),
-            ),
-            10 => lifecycle_detail(
-                &self.journey,
-                |value| value.body_id.as_ref().map(|id| id.as_str()),
-                "BODY ID",
-            ),
-            11 => lifecycle_detail(
-                &self.journey,
-                |value| value.wake_id.as_ref().map(|id| id.as_str()),
-                "WAKE ID",
-            ),
-            12 => lifecycle_detail(
-                &self.journey,
-                |value| value.plan_id.as_ref().map(|id| id.as_str()),
-                "PLAN ID",
-            ),
-            13 => lifecycle_detail(
-                &self.journey,
-                |value| value.active_play_id.as_ref().map(|id| id.as_str()),
-                "ACTIVE PLAY ID",
-            ),
-            14 => lifecycle_detail(
-                &self.journey,
-                |value| value.input_sign_id.as_ref().map(|id| id.as_str()),
-                "INPUT SIGN ID",
-            ),
-            _ => lifecycle_detail(
-                &self.journey,
-                |value| value.result_sign_id.as_ref().map(|id| id.as_str()),
-                "RESULT SIGN ID",
-            ),
-        }
+        self.try_current_detail()
+            .unwrap_or_else(|_| ("DETAILS UNAVAILABLE", String::new()))
     }
-}
-
-fn local_action_label(action: &conduit_face::FaceAction) -> String {
-    let binding = binding_for_intent(action.intent.as_str()).map_or("ENTER", |value| value.label);
-    let availability = match &action.availability {
-        conduit_face::FaceActionAvailability::Available => String::new(),
-        conduit_face::FaceActionAvailability::Unavailable { explanation, .. }
-        | conduit_face::FaceActionAvailability::Refused { explanation, .. } => {
-            format!(" / UNAVAILABLE: {explanation}")
-        }
-    };
-    format!(
-        "{binding} {}{availability}",
-        action.name.to_ascii_uppercase()
-    )
-}
-
-fn lifecycle_detail<'a>(
-    journey: &'a Option<JourneyProjection>,
-    select: impl FnOnce(&'a JourneyProjection) -> Option<&'a str>,
-    label: &'static str,
-) -> (&'static str, String) {
-    (
-        label,
-        journey
-            .as_ref()
-            .and_then(select)
-            .map(Into::into)
-            .unwrap_or_else(|| "NONE".into()),
-    )
-}
-
-fn text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
-    styled_text(
-        scene,
-        x,
-        y,
-        value,
-        GraphicsPaintRole::Foreground,
-        GraphicsTextRole::Body,
-    )
-}
-
-fn styled_text(
-    scene: &mut GraphicsScene,
-    x: i16,
-    y: i16,
-    value: &str,
-    role: GraphicsPaintRole,
-    typography: GraphicsTextRole,
-) -> Result<(), Error> {
-    let bounds = LayoutRect {
-        x,
-        y,
-        width: 610,
-        height: 18,
-    };
-    scene
-        .push(
-            GraphicsCommand::text(bounds, bounds, role, value)
-                .and_then(|command| command.with_text_role(typography))
-                .map_err(|_| Error::Scene)?,
-        )
-        .map_err(|_| Error::Scene)
-}
-
-fn exact_text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
-    let split = value.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
-    styled_text(
-        scene,
-        x,
-        y,
-        &value[..split],
-        GraphicsPaintRole::Accent,
-        GraphicsTextRole::Code,
-    )?;
-    if split < value.len() {
-        styled_text(
-            scene,
-            x,
-            y + 22,
-            &value[split..],
-            GraphicsPaintRole::Accent,
-            GraphicsTextRole::Code,
-        )?;
+    fn try_current_detail(&self) -> Result<(&'static str, String), Error> {
+        // No display extent is claimed by this read-only telemetry query.
+        let facts = self.entrance_facts(0, 0)?;
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let (kind, value) = self
+            .workspace_mask
+            .try_borrow_mut()
+            .map_err(|_| Error::Scene)?
+            .entrance_detail(facts)
+            .map_err(|_| Error::Scene)?;
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let (kind, value) = conduitos_mask_core::entrance::current_detail(&facts, self.reading()?);
+        Ok((kind.label(), value))
     }
-    Ok(())
 }

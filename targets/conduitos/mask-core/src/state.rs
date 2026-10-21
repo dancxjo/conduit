@@ -55,6 +55,33 @@ impl State {
                 }
                 let command: Command = data::decode(&incoming)?;
                 let output = match command {
+                    Command::Entrance { expected, facts } => {
+                        facts.validate()?;
+                        let view = self.control.at(&facts.scope.control, expected)?;
+                        let (workspace, scene) = crate::entrance::scene(&facts, view)?;
+                        crate::entrance::encode_scene(
+                            &crate::entrance::Receipt {
+                                scope: facts.scope.clone(),
+                                control_revision: expected,
+                                digest: facts.digest()?,
+                                workspace,
+                            },
+                            scene,
+                        )?
+                    }
+                    Command::Detail { expected, facts } => {
+                        facts.validate()?;
+                        let view = self.control.at(&facts.scope.control, expected)?;
+                        let (kind, value) = crate::entrance::current_detail(&facts, view);
+                        data::encode(&crate::entrance::DetailReceipt {
+                            scope: facts.scope.clone(),
+                            control_revision: expected,
+                            digest: facts.digest()?,
+                            kind,
+                            value,
+                        })?
+                    }
+
                     Command::Control {
                         expected,
                         scope,

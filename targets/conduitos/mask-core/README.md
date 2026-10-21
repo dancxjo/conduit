@@ -63,3 +63,30 @@ requires the initialized same-scope controller and uses its details-mode flag,
 rather than admitting a replacement mode from Root's fact DTO. General Face and
 scene paths query the controller before rendering Arrival/Home/workspace branches;
 terminal transport failure remains closed with no local controller fallback.
+
+## General World and exact-details scenes
+
+`entrance::Facts` carries only readonly identity/offer/lifecycle/line facts and
+one already reviewed Birth-action display descriptor. It has at most seven
+optional lifecycle IDs, one finite connectivity status, strings at most 2048
+bytes and an aggregate raw string ceiling of 8192 bytes. The existing 64KiB
+serialized-blob / 16KiB contiguous-transfer protocol remains the outer bound.
+It carries no Root addresses, Body state machine, grants, Show or effect proposal.
+
+`Entrance` and `Detail` are readonly commands fenced by the initialized controller
+scope and expected control revision. The guest selects the mode/page from its
+retained controller and runs the one shared scene/current-detail algorithm.
+Every response echoes the exact Host/Boot/service scope, outer and journey
+revision, extent, control revision and canonical request digest. Detail-only
+telemetry uses extent 0x0 and makes no display claim. A guest workspace advisory
+is admitted only when Root actually supplied a Body and no connectivity view;
+the existing workspace guest then renders it.
+
+Root decodes the existing canonical GraphicsScene representation and checks the
+established clipping contract: background uses the validated viewport, while
+general text preserves its original 610x18 pane clips and bounded nonnegative
+positions. Root display admission and actual rendering still clip to the real
+target. Arrival/Home and workspace layouts remain with their existing guest
+owners. The host reference calls the same canonical entrance functions; it does
+not retain a competing general projector. Failure never falls back to Root
+layout or a cached previous detail.

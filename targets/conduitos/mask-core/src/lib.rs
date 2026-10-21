@@ -3,6 +3,7 @@
 extern crate alloc;
 pub mod control;
 pub mod data;
+pub mod entrance;
 pub mod layout;
 pub mod reader;
 pub mod scene;

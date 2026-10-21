@@ -1,6 +1,7 @@
 //! Root transport custody and admission of advisory Mask results.
 //! This owner holds no selected-node/page model and grants no Show or input effect.
 mod control;
+mod entrance;
 mod transport;
 use conduit_face::{ApplicationView, GraphicsScene, LayoutRect};
 use conduitos_mask_core::data::{self, Command, Refusal, Reply, Scope, Snapshot, Update};
