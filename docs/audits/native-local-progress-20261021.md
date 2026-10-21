@@ -248,3 +248,23 @@ test-only lifecycle variant; corrected it to the existing legal Show transition
 and retained the failed and successful local logs separately. No browser suite,
 QEMU journey, whole-workspace suite or CI job ran. #5516/#5519 product acceptance
 and remaining adapter migration remain open.
+
+## First browser consumer of shared Port meaning
+
+The browser workbench's canonical Face producer now delegates both composition
+Front Ports and ordinary Gear Ports to the shared Patchbay Port projector used
+by native. Its exact existing human labels, value-contract properties, semantic
+subject reuse and separate Plan/Play augmentation remain intact. Direction,
+value kind, temporal contract, Port ID and abnormal-kind facts now come from one
+projector. Temporal wording uses the existing canonical `PortTemporal::as_str`
+vocabulary instead of Debug output; the workbench Face identity therefore changes
+truthfully. No transport/action protocol or canvas schema was changed.
+
+The shared Port input borrows only the three collections it changes, without
+unused text/disclosure scratch state. This retires duplicated Port projection
+in a real browser consumer; broader legacy canvas retirement remains unfinished.
+Final frozen-source compilation of native compositor and workbench passed
+(5 seconds). An intermediate API-edit compilation failed against an older
+compiled interface and is excluded; its log is retained separately. No tests,
+image rebuild, browser/QEMU journey or CI jobs ran for this delta. Existing
+cross-Mask and stable acceptance remain open.

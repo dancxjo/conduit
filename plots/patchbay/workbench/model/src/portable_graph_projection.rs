@@ -69,32 +69,17 @@ pub(super) fn append_exact_graph(
             },
         );
         for port in composition.inputs.iter().chain(&composition.outputs) {
-            let port_subject = content.subject_with_identity(
-                format!("port/{}", port.identity),
-                FaceRole::Port,
-                format!(
+            let port_subject = append_port(
+                content,
+                &subject,
+                &port.identity,
+                &port.descriptor,
+                &format!(
                     "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
                     port.descriptor.port_id.as_str(),
                     port.descriptor.value_kind.as_str()
                 ),
-            );
-            content.contains(&subject, &port_subject);
-            identity(content, &port_subject, "semantic-id", &port.identity);
-            text(
-                content,
-                &port_subject,
-                "direction",
-                match port.descriptor.direction {
-                    conduit_core::PortDirection::Input => "receiving",
-                    conduit_core::PortDirection::Output => "outgoing",
-                },
-            );
-            identity(
-                content,
-                &port_subject,
-                "value-kind",
-                port.descriptor.value_kind.as_str(),
             );
             if let Some(contract) = &port.value_contract {
                 content.property(
@@ -103,12 +88,6 @@ pub(super) fn append_exact_graph(
                     FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
-            text(
-                content,
-                &port_subject,
-                "temporal",
-                &format!("{:?}", port.descriptor.temporal),
-            );
             semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
@@ -180,32 +159,17 @@ pub(super) fn append_exact_graph(
         append_gear_plan(content, &subject, gear, plan, play);
         semantic_subjects.push((gear.identity.as_str(), subject.clone()));
         for port in gear.inputs.iter().chain(&gear.outputs) {
-            let port_subject = content.subject_with_identity(
-                format!("port/{}", port.identity),
-                FaceRole::Port,
-                format!(
+            let port_subject = append_port(
+                content,
+                &subject,
+                &port.identity,
+                &port.descriptor,
+                &format!(
                     "{} {:?} Port carrying {}",
                     port.descriptor.port_id.as_str(),
                     port.descriptor.direction,
                     port.descriptor.value_kind.as_str()
                 ),
-            );
-            content.contains(&subject, &port_subject);
-            identity(content, &port_subject, "semantic-id", &port.identity);
-            text(
-                content,
-                &port_subject,
-                "direction",
-                match port.descriptor.direction {
-                    conduit_core::PortDirection::Input => "receiving",
-                    conduit_core::PortDirection::Output => "outgoing",
-                },
-            );
-            identity(
-                content,
-                &port_subject,
-                "value-kind",
-                port.descriptor.value_kind.as_str(),
             );
             if let Some(contract) = &port.value_contract {
                 content.property(
@@ -214,12 +178,6 @@ pub(super) fn append_exact_graph(
                     FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
-            text(
-                content,
-                &port_subject,
-                "temporal",
-                &format!("{:?}", port.descriptor.temporal),
-            );
             semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
@@ -581,4 +539,25 @@ fn control_contract(kind: &FaceControlKind) -> String {
         }
         FaceControlKind::ShortText { maximum_bytes } => format!("max {maximum_bytes} bytes"),
     }
+}
+
+/// Reuse the same renderer-neutral Port facts consumed by native Masks.
+fn append_port(
+    content: &mut ContentBuilder,
+    parent: &str,
+    identity: &str,
+    descriptor: &conduit_core::PortDescriptor,
+    name: &str,
+) -> String {
+    patchbay_application::graph_face::append_named_port(
+        &mut patchbay_application::graph_face::PortContent {
+            subjects: &mut content.subjects,
+            relationships: &mut content.relationships,
+            properties: &mut content.properties,
+        },
+        parent,
+        identity,
+        descriptor,
+        name,
+    )
 }

@@ -117,36 +117,95 @@ fn append_port(
     identity: &str,
     descriptor: &conduit_core::PortDescriptor,
 ) {
-    let id = format!("port/{identity}");
-    subject(
-        content,
-        &id,
-        FaceRole::Port,
+    append_named_port(
+        &mut PortContent {
+            subjects: content.subjects,
+            relationships: content.relationships,
+            properties: content.properties,
+        },
+        parent,
+        identity,
+        descriptor,
         &format!(
             "{} · {}",
             descriptor.port_id.as_str(),
             descriptor.value_kind.as_str()
         ),
     );
-    relation(content, parent, &id, FaceRelationshipKind::Contains);
-    property(content, &id, "semantic-id", identity);
-    property(content, &id, "port-id", descriptor.port_id.as_str());
-    property(content, &id, "value-kind", descriptor.value_kind.as_str());
-    text_property(content, &id, "temporal", descriptor.temporal.as_str());
-    if let Some(kind) = &descriptor.abnormal_kind {
-        property(content, &id, "abnormal-kind", kind.as_str());
+}
+
+/// Collections changed by exact Port projection; no text/disclosure scratch state.
+pub struct PortContent<'a> {
+    pub subjects: &'a mut alloc::vec::Vec<FaceSubject>,
+    pub relationships: &'a mut alloc::vec::Vec<FaceRelationship>,
+    pub properties: &'a mut alloc::vec::Vec<FaceProperty>,
+}
+
+/// Shared exact Port projection with caller-owned human wording.
+/// The completed graph/Face remains subject to ordinary validation/admission.
+pub fn append_named_port(
+    content: &mut PortContent<'_>,
+    parent: &str,
+    identity: &str,
+    descriptor: &conduit_core::PortDescriptor,
+    name: &str,
+) -> String {
+    let id = format!("port/{identity}");
+    if let Some(existing) = content
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == id)
+    {
+        debug_assert_eq!(existing.role, FaceRole::Port);
+    } else {
+        content.subjects.push(FaceSubject {
+            identity: id.clone(),
+            role: FaceRole::Port,
+            name: name.into(),
+        });
     }
-    content.properties.push(FaceProperty {
-        subject: id,
-        name: "direction".into(),
-        value: FacePropertyValue::Text(
+    content.relationships.push(FaceRelationship {
+        source: parent.into(),
+        target: id.clone(),
+        kind: FaceRelationshipKind::Contains,
+    });
+    let mut property = |name: &str, value| {
+        content.properties.push(FaceProperty {
+            subject: id.clone(),
+            name: name.into(),
+            value,
+        })
+    };
+    property("semantic-id", FacePropertyValue::Identity(identity.into()));
+    property(
+        "port-id",
+        FacePropertyValue::Identity(descriptor.port_id.as_str().into()),
+    );
+    property(
+        "value-kind",
+        FacePropertyValue::Identity(descriptor.value_kind.as_str().into()),
+    );
+    property(
+        "temporal",
+        FacePropertyValue::Text(descriptor.temporal.as_str().into()),
+    );
+    if let Some(kind) = &descriptor.abnormal_kind {
+        property(
+            "abnormal-kind",
+            FacePropertyValue::Identity(kind.as_str().into()),
+        );
+    }
+    property(
+        "direction",
+        FacePropertyValue::Text(
             match descriptor.direction {
                 conduit_core::PortDirection::Input => "receiving",
                 conduit_core::PortDirection::Output => "outgoing",
             }
             .into(),
         ),
-    });
+    );
+    id
 }
 
 fn subject(content: &mut Content<'_>, identity: &str, role: FaceRole, name: &str) {
