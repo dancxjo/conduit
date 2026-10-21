@@ -620,7 +620,12 @@ Root. The native Crèche controller now also retains keyboard composition, focus
 name replacement and refusal handling inside that guest. Root forwards a
 revision-bound three-byte portable key event and consumes a finite outcome plus
 read-only projection; unchanged composition events do not advance the outer
-FrontDoor revision. Host and other-architecture controller paths remain local.
+FrontDoor revision. The same guest now constructs the native Crèche scene and
+Host Face projection from explicit viewport dimensions and scoped Host/Boot/
+revision values. Root decodes the existing canonical scene codec, checks the
+request binding and viewport clips, and validates returned Face scope, revision
+and content. No framebuffer address or PixelTarget reference crosses this
+protocol. Host and other-architecture controller/presentation paths remain local.
 
 The closed service pool has independent compositor and Draft slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
