@@ -349,7 +349,7 @@ fn failed_scene_invalidates_old_pixels_and_cannot_advance_revision() {
 fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     use conduit_core::HostBaseId;
     use conduit_face::{
-        admit_visual_expression, VisualExpression, VisualPalette, VisualUserConstraints,
+        VisualExpression, VisualPalette, VisualUserConstraints, admit_visual_expression,
     };
     let (face, plan, main, _, mut compositor) = fixture::fixture(1);
     let scene = scene(3);
@@ -409,6 +409,7 @@ fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale(
     };
     let (face, plan, main, _, mut compositor) = fixture::fixture(1);
     let extent = rect(0, 0, 96, 64);
+    compositor.place_surface(fixture::MAIN, extent, 0).unwrap();
     let mut scene = GraphicsScene::empty();
     scene
         .push(
@@ -437,6 +438,7 @@ fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale(
         .update_surface(&face, &main, &plan, fixture::MAIN, &base, &scene)
         .unwrap();
     let original = compositor.surfaces[0].buffer.pixels.clone();
+    assert!(original.iter().any(|pixel| *pixel != original[0]));
     let mut expression = VisualExpression::phosphor();
     expression.typography = VisualTypography::Engineering;
     compositor.surfaces[0].visual_expression = Some(
@@ -475,5 +477,21 @@ fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale(
             .typography,
         VisualTypography::Engineering
     );
-    assert_ne!(compositor.surfaces[0].buffer.pixels, original);
+    let engineering = &compositor.surfaces[0].buffer.pixels;
+    assert!(engineering.iter().any(|pixel| *pixel != engineering[0]));
+    assert_ne!(*engineering, original);
+    let (_, _, _, _, mut fresh) = fixture::fixture(2);
+    fresh.place_surface(fixture::MAIN, extent, 0).unwrap();
+    fresh.surfaces[0].visual_expression = compositor.surfaces[0].visual_expression.clone();
+    fresh
+        .update_surface(
+            &next_face,
+            &next_main,
+            &next_plan,
+            fixture::MAIN,
+            &base,
+            &scene,
+        )
+        .unwrap();
+    assert_eq!(*engineering, fresh.surfaces[0].buffer.pixels);
 }
