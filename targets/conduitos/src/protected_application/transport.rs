@@ -83,7 +83,10 @@ impl Service {
                 );
                 Err(error)
             }
-            (Request::Begin { .. } | Request::Write { .. } | Request::Preflight, Response::Ready)
+            (
+                Request::Begin { .. } | Request::Write { .. } | Request::Preflight,
+                Response::Ready,
+            )
             | (Request::Commit, Response::Blob { .. })
             | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
             _ => Err(Refusal::Malformed),
@@ -167,9 +170,7 @@ fn record_command_refusal(command: &Command, error: Refusal) {
         Command::PrepareTarget { slot, target, .. } => {
             ("prepare-target", Some(*slot), Some(*target))
         }
-        Command::FinishTarget { slot, target } => {
-            ("finish-target", Some(*slot), Some(*target))
-        }
+        Command::FinishTarget { slot, target } => ("finish-target", Some(*slot), Some(*target)),
         Command::PrepareTutorial { slot, .. } => ("prepare-tutorial", Some(*slot), None),
         Command::PrepareTour { slot } => ("prepare-tour", Some(*slot), None),
         Command::FinishInit => ("finish-init", None, None),

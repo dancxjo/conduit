@@ -166,7 +166,11 @@ impl State {
                         self.preparing = Some(Builder::new(manifest)?);
                         Reply::Prepared
                     }
-                    Command::PrepareTarget { slot, target, value } => {
+                    Command::PrepareTarget {
+                        slot,
+                        target,
+                        value,
+                    } => {
                         self.preparing
                             .as_ref()
                             .ok_or(Refusal::Order)?

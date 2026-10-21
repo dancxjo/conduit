@@ -26,7 +26,10 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
         )?;
     }
     if matches!(command, Command::PrepareTarget { .. }) {
-        assert_eq!(state.execute(Request::Preflight, &mut transfer)?, Response::Ready);
+        assert_eq!(
+            state.execute(Request::Preflight, &mut transfer)?,
+            Response::Ready
+        );
     }
     let Response::Blob { bytes } = state.execute(Request::Commit, &mut transfer)? else {
         return Err(Refusal::Malformed);

@@ -125,7 +125,10 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
             .unwrap();
     }
     if matches!(command, Command::PrepareTarget { .. }) {
-        assert_eq!(state.execute(Request::Preflight, transfer), Ok(Response::Ready));
+        assert_eq!(
+            state.execute(Request::Preflight, transfer),
+            Ok(Response::Ready)
+        );
     }
     let Response::Blob { bytes } = state.execute(Request::Commit, transfer).unwrap() else {
         panic!("missing reply");

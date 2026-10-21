@@ -8,12 +8,20 @@ pub struct Envelope {
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Request {
-    Begin { bytes: u32 },
-    Write { offset: u32, bytes: u32 },
+    Begin {
+        bytes: u32,
+    },
+    Write {
+        offset: u32,
+        bytes: u32,
+    },
     Commit,
     /// Validate a fully written target command before its typed Commit entry.
     Preflight,
-    Read { offset: u32, maximum: u32 },
+    Read {
+        offset: u32,
+        maximum: u32,
+    },
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Response {
