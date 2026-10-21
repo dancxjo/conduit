@@ -1,0 +1,62 @@
+{
+  "parent": "d7a34ca6e54e7444fe7acf8d16cb93f0f0dc0bc6",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/5992-ffcdb1a8e/workspace-full.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/workspace-full.json",
+      "bytes": 4094,
+      "sha256": "011abec3a1e17f2a2ed21c05119ba42995ed6b8c47eb79b8a757376b9e95eade",
+      "mode": "100644",
+      "blob": "55e27223abbc10cf08564be21cb1560122f2517a"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/workspace-ignored-tests.txt",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/workspace-ignored-tests.txt",
+      "bytes": 1406,
+      "sha256": "e5f83f010b50315c3672976f1a70b97fa4abaa9bc221be0ee62f2cea47962f2f",
+      "mode": "100644",
+      "blob": "a32957531441561e697e4aae21dcc536f668ee22"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/workspace-status.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/workspace-status.json",
+      "bytes": 760,
+      "sha256": "2b05621d4d86b0b0d782a2e85d86f00a345e600770b816bbf0b828af6b095484",
+      "mode": "100644",
+      "blob": "f1817e0909e5896b6fb0c0f3ade9111d4d46bfea"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/workspace-warnings.txt",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/workspace-warnings.txt",
+      "bytes": 1,
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "mode": "100644",
+      "blob": "8b137891791fe96927ad78e64b0aad7bded08bdc"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/workspace.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/workspace.log",
+      "bytes": 70200,
+      "sha256": "72e7d5801362fa7b419c851466c3c3f7ca2ebddc0173d980d6fc74104c2657b1",
+      "mode": "100644",
+      "blob": "02552a409ce73b0b0b52c17d145f8803638b4203"
+    },
+    {
+      "source": "work/5628-version-boundary-audit.md",
+      "tree_path": "task-6038/work/5628-version-boundary-audit.md",
+      "bytes": 2055,
+      "sha256": "95202c4e30535e411feb624b5c71ad933b57b2992888a7fa1610712faabec102",
+      "mode": "100644",
+      "blob": "8722ba45d4f6028db8a176ca0780a04cedad80cc"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 7051,
+      "sha256": "98c945201bbb29fa36b170a158b0389dfa08709dedc4037b77e6306abe97d6b1",
+      "mode": "100644",
+      "blob": "7364f062f0b5fd48f307d84f790f46a6364d5f6d"
+    }
+  ]
+}

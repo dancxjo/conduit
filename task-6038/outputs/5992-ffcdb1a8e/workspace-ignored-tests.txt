@@ -1,0 +1,7 @@
+334: test durable_host::owner::cli_smoke::installed_cli_runs_and_recovers_same_body_on_new_boot ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+348: test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::retained_dom_reconstruction::actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meaning ... ignored, requires exact-source retained DOM exchange and retained verified owner receipt
+402: test durable_host::owner::service_clock_smoke::installed_service_start_inspect_lull_and_restart_clock ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+519: test parsec_cross_mask_counterexample_tests::actual_parsec_instruction_is_lost_at_face_only_mask_boundary ... ignored, requires actual Body exchange in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; diagnostic only
+520: test parsec_instruction_encounter_tests::actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction ... ignored, requires actual Source-frame artifact in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; reconstruction only
+557: test screen_free_birth::tests::zero_body_face_produces_real_ordered_speech ... ignored, requires installed eSpeak NG and retains a real WAV
+619: test selected_installed_birth_speaks_one_current_face_clause ... ignored, requires explicit ALSA card/device, installed eSpeak NG, and a real speaker

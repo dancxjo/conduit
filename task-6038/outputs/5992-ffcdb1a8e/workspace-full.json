@@ -1,0 +1,78 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "tree": "bfb6ce1758348d1876ac84686bc0c8999b90ae66",
+  "args": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "check",
+    "workspace",
+    "--locked"
+  ],
+  "status": 1,
+  "free_before": 63017152512,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "RUST_TEST_THREADS": "1"
+  },
+  "seconds": 1466.5365374088287,
+  "free_after": 293527756800,
+  "log_sha256": "72e7d5801362fa7b419c851466c3c3f7ca2ebddc0173d980d6fc74104c2657b1",
+  "test_results": [
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 3.76s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 447 filtered out; finished in 0.00s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s",
+    "test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 0.00s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 446 filtered out; finished in 0.39s",
+    "test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.06s",
+    "test result: ok. 266 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 124.05s",
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s",
+    "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s",
+    "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s",
+    "test result: FAILED. 4 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 16.73s"
+  ],
+  "warning_header_occurrences": 0,
+  "ignored_test_occurrences": 7,
+  "boundary": "Exact ffc supported full-workspace validation; historical3860 result retained separately. Warning headers include repeated cross-check occurrences, not distinct defects. Product/guest evidence separate; no stable or human claim.",
+  "observed_test_totals_before_stop": {
+    "passed": 295,
+    "failed": 1,
+    "ignored": 7,
+    "filtered": 1466
+  },
+  "completed_result_sections": 13,
+  "gates_started": [
+    "check.committed-todo-mask-exchange",
+    "check.fmt",
+    "check.clippy",
+    "check.test"
+  ],
+  "first_failure": {
+    "test": "interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth",
+    "package": "conduit",
+    "target": "installed_screen_free_birth",
+    "source": "products/conduit/tests/installed_screen_free_birth.rs:727",
+    "error": "Os { code: 2, kind: NotFound, message: No such file or directory }",
+    "expected_path": "temp_dir()/conduit-interrupted-birth-<PID>-<nanos>/body/owner-transaction.json",
+    "proof_boundary": "control-outcome-unknown assertion passed; subsequent expected journal read failed. Fixture directory unavailable after run, cause unclassified. No rerun or source repair authorized/performed."
+  },
+  "source_clean_after": true,
+  "full_workspace_passed": false,
+  "required_core_checkpoint_passed": false,
+  "existing_repair_handoff": {
+    "issue": 6171,
+    "source": "03b5459fe54a592b0fd20ccec63508eb500db746",
+    "reported_by": "integration owner after failure",
+    "scope": "Known fixture journal/publication injection ordering; no repair or rerun of old ffc by this worker. Later full validation requires actual merged repair Source and explicit ownership handoff."
+  },
+  "disk_observation": "Free space increased from roughly59GiB to273GiB during run. This worker deleted nothing; external reclaimed space not attributed."
+}

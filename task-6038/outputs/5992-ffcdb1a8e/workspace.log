@@ -1,0 +1,637 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch check workspace --locked`
+    Finished `dev` profile [unoptimized] target(s) in 0.19s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask check workspace --locked`
+» [check.committed-todo-mask-exchange] Prove fresh owner checkpoint Faces through native, linear, aural and checked browser Masks
+  $ node proof/conformance/face-waist/committed-todo-exchange.mjs
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling ring v0.17.14
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling ureq v3.4.2
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/face)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/host-contract)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/workspace)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/patchbay-workbench)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/mask-offer)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/home)
+   Compiling rcgen v0.14.10
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/patchbay-workbench)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/runtime)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/products/conduit)
+    Finished `test` profile [optimized] target(s) in 3m 59s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-62961e5046e8d6a7)
+     Running unittests src/main.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-66ece41bc3ff7384)
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit_browser_runtime-4f4d777ddf6c13d3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+
+
+running 1 test
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::semantic_reconstruction::verified_three_item_todo_and_completion_preserve_nonvisual_meaning ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 3.76s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 447 filtered out; finished in 0.00s
+
+    Finished `test` profile [optimized] target(s) in 0.18s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-62961e5046e8d6a7)
+     Running unittests src/main.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-66ece41bc3ff7384)
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit_browser_runtime-4f4d777ddf6c13d3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 15 filtered out; finished in 0.00s
+
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 272 filtered out; finished in 0.00s
+
+
+running 1 test
+test owner_face_mask::committed_todo_tests::checked_browser_mask_consumes_actual_committed_todo_exchange ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 446 filtered out; finished in 0.39s
+
+» [check.fmt] Check formatting across workspace
+  $ cargo fmt --all --check
+» [check.clippy] Clippy warnings check across workspace
+  $ cargo clippy --locked --workspace --all-targets -- -D warnings
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+    Checking conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/model)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling ring v0.17.14
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+    Checking patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/host-contract)
+    Checking conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/embedded-build)
+    Checking conduit-system-continuity v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/system-continuity)
+   Compiling rustls v0.23.45
+    Checking rustls-webpki v0.103.15
+    Checking rcgen v0.14.10
+    Checking conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask-dispatch)
+    Checking conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/net)
+    Checking ureq v3.4.2
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plot)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+    Checking conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+    Checking conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+    Checking conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+    Checking conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/face)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/mask-offer)
+    Checking conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/home)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+    Checking conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/burn-model)
+    Checking conduit-body-lifecycle-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/body-lifecycle)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+    Checking conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+    Checking conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+    Checking conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/patchbay-workbench)
+    Checking conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/bodies/pete)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+    Checking conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/workspace)
+    Checking conduit-rp2040-pio-audio-extension v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/fixtures/rp2040-pio-audio-extension)
+    Checking conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/language)
+    Checking conduit-runtime-performance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/performance/runtime)
+    Checking patchbay-svg-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/svg-mask)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+    Checking conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+    Checking patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/patchbay-workbench)
+    Checking conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/runtime)
+    Checking conduit-browser-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/patchbay-workbench)
+    Checking conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/products/conduit)
+    Checking xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+    Checking conduit-pete-workload-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/pete-workload)
+    Finished `dev` profile [unoptimized] target(s) in 3m 10s
+» [check.test] Workspace unit and integration tests
+  $ cargo test --locked --workspace
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/model)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/face)
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/mask-offer)
+   Compiling ureq v3.4.2
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/home)
+   Compiling rcgen v0.14.10
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/host-contract)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/embedded-build)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/burn-model)
+   Compiling conduit-system-continuity v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/system-continuity)
+   Compiling conduit-body-lifecycle-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/body-lifecycle)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/workspace)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/patchbay-workbench)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/bodies/pete)
+   Compiling conduit-rp2040-pio-audio-extension v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/fixtures/rp2040-pio-audio-extension)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/language)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling conduit-runtime-performance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/performance/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/patchbay-workbench)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/runtime)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/products/conduit)
+   Compiling conduit-browser-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/patchbay-workbench)
+   Compiling conduit-pete-workload-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/pete-workload)
+   Compiling patchbay-svg-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/svg-mask)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/net)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask-dispatch)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plot)
+    Finished `test` profile [optimized] target(s) in 14m 18s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-5feb66d032f457bd)
+
+running 15 tests
+test plot_source::tests::a_shipped_dsp_type_selects_its_catalog_without_a_dsp_gear ... ok
+test plot_source::tests::authored_entry_survives_checked_dependency_reordering ... ok
+test plot_source::tests::dsp_names_in_comments_and_text_do_not_prepare_the_component_catalog ... ok
+test plot_source::tests::inline_dsp_selection_preserves_the_exact_port_contract ... ok
+test plot_source::tests::ordinary_todo_source_expands_without_preparing_unused_dsp_owners ... ok
+test plot_source::tests::prepared_standard_catalogs_do_not_share_source_local_types ... ok
+test plot_source::tests::product_authoring_checks_quoted_ipa_with_the_ordinary_speech_catalog ... ok
+test plot_source::tests::product_authoring_expands_the_owned_public_dsp_back ... ok
+test plot_source::tests::product_checks_qualified_quoted_transcriptions_and_located_refusals ... ok
+test plot_source::tests::product_compiler_checks_the_ordinary_mask_plot_boundary ... ok
+test tests::library_entrance_runs_the_same_real_hosted_plot_pipeline ... ok
+test tests::two_host_entrance_retains_fragments_plays_line_and_delivery ... ok
+test todo_action_bridge::tests::distinct_show_actions_stage_exact_commands_and_retain_separate_ids ... ok
+test todo_action_bridge::tests::face_from_another_parent_play_cannot_stage ... ok
+test todo_action_bridge::tests::malformed_stale_and_pressure_leave_queue_and_evidence_unchanged ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.06s
+
+     Running unittests src/main.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit-044b5b1db91be4c7)
+
+running 272 tests
+test body_product::tests::checked_body_drives_current_hosts_and_bounded_lines_without_fixture_identity ... ok
+test body_product::tests::structurally_different_body_refuses_the_exact_missing_runtime_class ... ok
+test body_product::tests::three_host_body_builds_current_runtime_and_line_truth_without_roles ... ok
+test body_terminal_owner::tests::named_todo_actions_keep_exact_ids_targets_and_arguments ... ok
+test body_terminal_owner::tests::requested_show_evidence_retains_exact_revision_and_refuses_a_foreign_face ... ok
+test body_terminal_owner::tests::terminal_action_help_names_actual_targets_and_values ... ok
+test body_terminal_owner::tests::terminal_action_refuses_unavailable_and_stale_show ... ok
+test cli::model::tests::selected_model_generation_requires_complete_explicit_selection ... ok
+test cli::public_surface_tests::body_help_exposes_joining_intent_without_protocol_phases ... ok
+test cli::public_surface_tests::body_host_and_schema_driven_inspection_parse_without_status_ceremony ... ok
+test cli::public_surface_tests::host_install_and_service_are_public_while_protocol_stages_stay_hidden ... ok
+test cli::public_surface_tests::no_arguments_enters_conduit ... ok
+test cli::public_surface_tests::plot_diagram_defaults_to_svg_and_accepts_mermaid ... ok
+test cli::public_surface_tests::public_help_names_intent_not_retired_shells_or_protocol_phases ... ok
+test cli::public_surface_tests::screen_free_birth_is_an_explicit_product_entrance ... ok
+test cli::public_surface_tests::service_install_model_requires_exact_endpoint_and_memory ... ok
+test cli::public_surface_tests::service_install_only_skips_start_when_explicitly_requested ... ok
+test cli::public_surface_tests::service_install_selection_requires_complete_explicit_equipment ... ok
+test cli::public_surface_tests::service_install_todo_checkpoint_requires_explicit_root_for_existing_version ... ok
+test cli::public_surface_tests::source_expansion_is_a_public_human_and_machine_entrance ... ok
+test cli::public_surface_tests::speaker_output_requires_one_explicit_device_and_provider ... ok
+test cli::speech::tests::artifact_retention_cli_requires_selection_and_both_bounds ... ok
+test cli::speech::tests::artifact_speech_requires_provider_without_inventing_speaker ... ok
+test cli::spoken_mask::look_tests::installed_spoken_look_selection_maps_only_checked_brief_and_expanded ... ok
+test cli::spoken_mask::look_tests::unknown_or_llm_combined_look_refuses_and_default_route_remains_ordinary ... ok
+test cli::spoken_mask::tests::installed_spoken_mask_accepts_remaining_item_request ... ok
+test deployment_carrier::tests::availability_distinguishes_download_only_from_local_realization ... ok
+test deployment_carrier::tests::availability_refuses_mixed_target_inventories ... ok
+test durable_host::invitation::document_bounds_tests::pending_document_accepts_exact_bound_and_refuses_one_more_byte ... ok
+test durable_host::owner::cli_smoke::installed_cli_runs_and_recovers_same_body_on_new_boot ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+test durable_host::owner::controller::checkpoint_once::tests::corrupt_selected_read_lulls_without_claiming_verified_todo ... ok
+test durable_host::owner::controller::checkpoint_once::tests::failed_todo_read_retry_refuses_stale_selector_and_corrupt_write_receipt ... ok
+test durable_host::owner::controller::checkpoint_once::tests::first_caller_supplied_action_commits_under_retained_body_before_ack ... ok
+test durable_host::owner::controller::checkpoint_once::tests::foreign_checkpoint_namespace_refuses_before_play_or_publication ... ok
+test durable_host::owner::controller::checkpoint_once::tests::fresh_boot_retries_failed_large_todo_read_only_from_exact_published_write ... ok
+test durable_host::owner::controller::checkpoint_once::tests::owner_execution_custody::full_custody_refuses_normal_owner_start_before_checkpoint_effects ... ok
+test durable_host::owner::controller::checkpoint_once::tests::owner_execution_custody::terminal_receipt_survives_publication_failure_and_retry_does_not_replay_effects ... ok
+test durable_host::owner::controller::checkpoint_once::tests::read_permissions::denied_selected_read_retains_finite_refusal_and_body_before_explicit_recovery ... ok
+test durable_host::owner::controller::checkpoint_once::tests::read_permissions::temporary_read_storage_error_stays_unverified_then_recovers_same_body ... ok
+test durable_host::owner::controller::checkpoint_once::tests::stale_current_and_foreign_grant_refuse_before_play ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::cancelled_next_action_can_read_an_explicitly_reselected_published_version ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::cancelled_next_action_refuses_unverified_retained_witness ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::interrupted_next_action_can_read_an_explicitly_reselected_published_version ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::retained_dom_reconstruction::actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meaning ... ignored, requires exact-source retained DOM exchange and retained verified owner receipt
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::retained_dom_reconstruction::recorded_owner_face::tests::javascript_rounded_revision_recovers_only_the_captured_exact_face ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::retained_dom_reconstruction::recorded_owner_face::tests::missing_substituted_and_inconsistent_exact_revisions_refuse ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::same_body_three_items_recover_on_another_admitted_host_without_a_cache ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_continuity::semantic_reconstruction::verified_three_item_todo_and_completion_preserve_nonvisual_meaning ... ok
+test durable_host::owner::controller::checkpoint_once::tests::todo_face_refuses_a_pre_play_contribution ... ok
+test durable_host::owner::controller::checkpoint_once::tests::waiting_owner_admits_exact_show_action_then_retains_commit_and_sign ... ok
+test durable_host::owner::controller::clock_interval::tests::only_reviewed_clock_sources_are_eligible ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_actual_acknowledged_show_routes_once_to_the_existing_owner ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_actual_source_navigation_preserves_the_original_owner_and_direction ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_fulfilled_owner_and_failed_output_never_retain_action_custody ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_no_owner_and_current_life_are_observations_never_birth_or_wake ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_refuses_replaced_owner_host_stale_show_and_unavailable_actions ... ok
+test durable_host::owner::controller::commons_encounter::tests::commons_requires_current_producer_and_native_observation_bounds ... ok
+test durable_host::owner::controller::commons_encounter::tests::current_observation::boot_and_generation_require_current_authenticated_owner_observation ... ok
+test durable_host::owner::controller::commons_encounter::tests::linear_journey::absent_owner_stays_explicit_without_inventing_linear_inspection_agency ... ok
+test durable_host::owner::controller::commons_encounter::tests::linear_journey::actual_commons_plan_play_linear_journey_preserves_cross_mask_truth ... ok
+test durable_host::owner::controller::commons_encounter::tests::linear_journey::commons_linear_navigation_refuses_unknown_reverse_stale_and_history_pressure ... ok
+test durable_host::owner::controller::participants::admission::tests::challenge_expiry_is_capped_by_authorization_and_elapsed_windows_refuse ... ok
+test durable_host::owner::controller::participants::admission::tests::claiming_the_authorized_host_does_not_authorize_a_different_or_unpinned_key ... ok
+test durable_host::owner::controller::participants::service::tests::aborted_challenge_is_not_retained_across_service_restart ... ok
+test durable_host::owner::controller::participants::service::tests::current_browser_window_discloses_only_requested_planning_offer_detail ... ok
+test durable_host::owner::controller::participants::service::tests::native_face_reseal_tests::browser_first_native_join_reseals_both_routes_on_one_current_face ... ok
+test durable_host::owner::controller::participants::service::tests::native_route_tests::remote_native_mask_accepts_only_the_offered_scoped_present_binding ... ok
+test durable_host::owner::controller::participants::service::tests::route_tests::browser_mask_planning_requires_the_reviewed_back_and_face_resource ... ok
+test durable_host::owner::controller::participants::service::tests::signed_browser_proof_uses_latest_owner_after_interleaved_native_admission ... ok
+test durable_host::owner::controller::participants::service::tests::terminal_transition_tests::attached_terminal_replaces_prior_generation_browser_witness_without_removing_its_part ... ok
+test durable_host::owner::controller::tests::actual_execution_receipt_survives_fresh_boot_as_history_only ... ok
+test durable_host::owner::controller::tests::checked_birth_and_fresh_boot_recovery_preserve_body_without_replaying_proposal ... ok
+test durable_host::owner::controller::tests::checked_thermostat_selects_the_ordinary_installed_plot_path ... ok
+test durable_host::owner::controller::tests::checked_todo_initial_selects_the_installed_host_before_owner_planning ... ok
+test durable_host::owner::controller::tests::independent_births_on_same_host_and_source_get_distinct_bodies ... ok
+test durable_host::owner::controller::tests::installed_owner_refuses_live_todo_before_shedding_its_scan_activation ... ok
+test durable_host::owner::controller::tests::lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth ... ok
+test durable_host::owner::controller::tests::missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability ... ok
+test durable_host::owner::controller::tests::operating_system_lock_excludes_another_owner_and_releases_on_drop ... ok
+test durable_host::owner::controller::tests::ordinary_kernel_execution_supplies_actual_play_and_output_then_retains_lull ... ok
+test durable_host::owner::controller::tests::owner_face_uses_checked_names_at_birth_and_after_fresh_boot ... ok
+test durable_host::owner::controller::tests::owner_refuses_worker_host_with_changed_offers_at_same_generation ... ok
+test durable_host::owner::controller::tests::owner_refuses_worker_host_with_drifted_offer_generation ... ok
+test durable_host::owner::controller::tests::recovery_refuses_same_boot_wrong_source_and_corrupt_biography ... ok
+test durable_host::owner::controller::tests::retained_invitation_admits_one_native_host_once_in_running_owner ... ok
+test durable_host::owner::controller::tests::scoped_todo_host_refuses_invalid_checked_form_and_keeps_ordinary_source ... ok
+test durable_host::owner::controller::tests::service_clock_runs_with_durable_live_play_and_explicit_lull ... ok
+test durable_host::owner::controller::tests::spoken_next_play_capacity_report_is_safe_while_worker_owns_host ... ok
+test durable_host::owner::controller::tests::subsequent_runs_keep_body_and_create_distinct_admitted_plays ... ok
+test durable_host::owner::controller::tests::terminal_show_returns_one_typed_clock_change_to_the_same_owner ... ok
+test durable_host::owner::controller::tests::unsupported_advertised_call_retains_untyped_refusal_without_inventing_play ... ok
+test durable_host::owner::controller::thermostat_worker::tests::installed_thermostat_owner_projects_and_routes_one_retained_scan ... ok
+test durable_host::owner::controller::thermostat_worker::tests::installed_thermostat_terminal_drain_observes_final_fore ... ok
+test durable_host::owner::controller::thermostat_worker::tests::remote_terminal::admitted_terminal_controls_the_same_running_thermostat_and_rejects_stale_show ... ok
+test durable_host::owner::image::tests::image_identity_accepts_exact_bytes_and_refuses_mismatch ... ok
+test durable_host::owner::native_observation::tests::altered_contract_authority_and_membership_claims_refuse ... ok
+test durable_host::owner::native_observation::tests::exact_serial_observation_becomes_only_a_portable_request ... ok
+test durable_host::owner::service_clock_smoke::installed_service_start_inspect_lull_and_restart_clock ... ignored, requires a freshly built product executable in CONDUIT_OWNER_SMOKE_BINARY
+test durable_host::owner::state::archive_tests::archive_rejects_missing_predecessor_and_foreign_head_before_publication ... ok
+test durable_host::owner::state::archive_tests::archive_transaction_replays_before_active_biography_and_refuses_corruption ... ok
+test durable_host::owner::state::archive_tests::installed_owner_continues_past_active_sign_capacity_and_resumes_same_body ... ok
+test durable_host::owner::state::execution_custody_tests::corruption_cross_body_and_stale_history_refuse_without_erasing_prior_outcomes ... ok
+test durable_host::owner::state::execution_custody_tests::distinct_receipts_survive_replacement_recovery_and_repeated_metadata_publication ... ok
+test durable_host::owner::state::execution_custody_tests::finite_capacity_refuses_before_play_and_never_evicts_old_receipts ... ok
+test durable_host::owner::state::execution_custody_tests::journal_replay_preserves_old_and_new_receipts_after_an_interrupted_archive_write ... ok
+test durable_host::owner::state::execution_custody_tests::legacy_latest_migrates_with_an_explicit_unavailable_prefix ... ok
+test durable_host::owner::state::execution_custody_tests::missing_index_cannot_discard_immutable_outcomes_but_journal_replay_can_complete_it ... ok
+test durable_host::owner::state::execution_custody_tests::oversized_or_inconsistent_terminal_transaction_refuses_without_replacing_current_receipt ... ok
+test durable_host::owner::state::tests::checked_source_and_biography_replay_as_one_owner_transaction ... ok
+test durable_host::owner::state::tests::interrupted_publication_recovers_and_corruption_never_becomes_birth ... ok
+test durable_host::owner::todo_speech_tests::todo_speech_default_is_selected_from_actual_plot_truth ... ok
+test durable_host::owner::todo_speech_tests::todo_speech_empty_finished_and_unknown_detail_stay_truthful ... ok
+test durable_host::owner::todo_speech_tests::todo_speech_model_cannot_invent_completion_actions_or_selected_detail ... ok
+test durable_host::owner::todo_speech_tests::todo_speech_pages_are_finite_complete_and_bound_to_one_face ... ok
+test durable_host::owner_lock::tests::releasing_owner_does_not_wait_for_an_inherited_descriptor_to_close ... ok
+test durable_host::routed_join::native_lines::tests::one_pinned_carrier_has_distinct_directional_bindings ... ok
+test durable_host::routed_join::response_document::tests::hosted_control_document_is_explicitly_bounded_without_growing_native_profile ... ok
+test durable_host::routed_join::response_document::tests::large_owner_face_remains_complete_across_native_frames ... ok
+test durable_host::routed_join::return_route::tests::chunk_assembly_accepts_large_exact_payload_and_refuses_offset_digest_and_pressure ... ok
+test durable_host::routed_join::return_route::tests::face_replacement_preserves_deadline_and_consumed_action_budget ... ok
+test durable_host::routed_join::return_route::tests::grant_is_bearer_bound_to_exact_credential_and_current_boot_claim ... ok
+test durable_host::routed_join::return_route::tests::native_eight_kib_frames_cover_the_full_bounded_return ... ok
+test durable_host::routed_join::return_route::tests::only_explicit_native_face_request_opts_into_return ... ok
+test durable_host::routed_join::return_route::tests::oversized_refreshed_face_keeps_action_truth_and_refuses_document_pressure ... ok
+test durable_host::routed_join::tests::reachability_and_endpoint_authentication_refusals_remain_distinct ... ok
+test durable_host::runtime_marker::tests::selected_back_changes_can_advance_more_than_one_generation ... ok
+test durable_host::selected_model::tests::generation_cannot_upgrade_a_preserved_or_removed_selection_implicitly ... ok
+test durable_host::selected_model::tests::retained_generation_profile_keeps_exact_artifact_and_resource_bounds ... ok
+test durable_host::selected_speech::retention::tests::legacy_retention_defaults_and_explicit_capacity_roundtrip_without_provider_effect ... ok
+test durable_host::selected_speech::retention::tests::retention_requires_explicit_selection_and_both_finite_bounds ... ok
+test durable_host::selected_speech::tests::artifact_selection_retains_provider_identity_and_no_device_authority ... ok
+test durable_host::selected_speech::tests::reviewed_selection_pins_bare_provider_digest_and_speaker_identity ... ok
+test durable_host::selected_todo::tests::selection_is_exact_and_root_rebinding_refuses ... ok
+test durable_host::selected_todo::tests::selection_requires_real_directory_and_exact_nonzero_version ... ok
+test durable_host::selection_recovery_tests::explicit_model_and_todo_checkpoint_selections_survive_reinstall ... ok
+test durable_host::selection_recovery_tests::legacy_selection_requires_explicit_replacement_or_removal ... ok
+test durable_host::selection_recovery_tests::replacement_cannot_reuse_undeclared_legacy_selection ... ok
+test durable_host::selection_recovery_tests::selection_recovery_cannot_bypass_body_identity_validation ... ok
+test durable_host::selection_recovery_tests::todo_checkpoint_and_speech_selection_survive_one_installation ... ok
+test durable_host::selection_recovery_tests::todo_selection_survives_reinstall_and_refuses_rebound_root_before_boot ... ok
+test durable_host::tests::admission_document_transaction_retains_current_offers_without_plan ... ok
+test durable_host::tests::body_status_reads_exact_retained_truth_without_mutating_it ... ok
+test durable_host::tests::colliding_release_layout_refuses_before_mutating_installation ... ok
+test durable_host::tests::installation_inspection_uses_validated_retained_host_truth ... ok
+test durable_host::tests::installed_body_issues_distinct_bounded_machine_readable_invitations ... ok
+test durable_host::tests::installed_host_accepts_exact_invitation_without_claiming_membership_or_play ... ok
+test durable_host::tests::invalid_body_evidence_refuses_without_changing_durable_ownership ... ok
+test durable_host::tests::launchd_definition_uses_exact_xml_escaped_paths_and_private_state ... ok
+test durable_host::tests::no_start_install_retains_verified_image_without_creating_boot ... ok
+test durable_host::tests::real_service_restarts_keep_host_and_refresh_boot ... ok
+test durable_host::tests::reinstall_preserves_host_identity_and_records_exact_release ... ok
+test durable_host::tests::retained_runtime_marker_without_authenticated_owner_is_offline ... ok
+test durable_host::tests::selected_equipment_survives_reinstall_and_can_be_explicitly_removed ... ok
+test durable_host::tests::systemd_definition_uses_absolute_escaped_paths_and_private_state ... ok
+test durable_host::tests::tampered_release_refuses_before_installation_state_exists ... ok
+test durable_host_control::body::control_client::tests::accepted_request_with_no_reply_has_an_unknown_outcome ... ok
+test durable_host_control::body::control_client::tests::local_control_reply_uses_its_distinct_finite_response_bound ... ok
+test durable_host_control::body::control_client::tests::local_control_request_uses_the_servers_finite_bound ... ok
+test durable_host_control::body::owner_spoken_playback::tests::direct_receipt_keeps_only_the_acknowledged_opening_and_same_play ... ok
+test durable_host_control::body::speech::tests::direct_reading_tests::artifact_remaining_batch_refuses_stale_source_and_precancel_without_provider_effect ... ok
+test durable_host_control::body::speech::tests::direct_reading_tests::direct_remaining_cancellation_restores_same_host_without_provider_effect ... ok
+test durable_host_control::body::speech::tests::direct_reading_tests::direct_remaining_requires_acknowledgement_and_refuses_changed_host_offer ... ok
+test durable_host_control::body::speech::tests::direct_reading_tests::owner_checked_spoken_looks_refuse_incompatible_face_without_replacing_route ... ok
+test durable_host_control::body::speech::tests::direct_reading_tests::remaining_scope_and_pages_select_the_same_actual_todo_primary_items ... ok
+test durable_host_control::body::speech::tests::selected_direct_readout_stops_and_restores_the_one_current_host ... ok
+test durable_host_control::body::speech::tests::selected_speech_equipment_survives_terminal_offer_changes_on_the_same_boot ... ok
+test durable_host_control::body::tests::service_resumes_one_body_and_serializes_invitation_admission_on_current_boot ... ok
+test durable_host_control::client_frame::tests::empty_and_partial_clients_leave_same_owner_available_for_valid_read ... ok
+test durable_host_control::speech_route::template_request_tests::older_direct_requests_default_to_ordinary_route_and_checked_look_roundtrips ... ok
+test durable_host_control::speech_route::template_request_tests::unknown_look_and_caller_wording_refuse_at_ipc_boundary ... ok
+test durable_host_control::speech_route::tests::authenticated_speech_status_distinguishes_unknown_operation_from_bad_token ... ok
+test durable_host_control::terminal_attach::tests::action_tests::actual_terminal_seal_refuses_matching_ids_without_back_or_resource ... ok
+test durable_host_control::terminal_attach::tests::action_tests::attached_action_replaces_lulled_workset_and_cannot_replay_after_new_show ... ok
+test durable_host_control::terminal_attach::tests::body_wardrobe_policy_survives_terminal_detach_and_requires_new_show ... ok
+test durable_host_control::terminal_attach::tests::closed_provider_before_ack_never_retains_an_available_show ... ok
+test durable_host_control::terminal_attach::tests::current_lulled_owner_attaches_actual_host_and_retains_interactive_show ... ok
+test durable_host_control::terminal_attach::tests::owner_wardrobe_doff_and_rewear_do_not_reuse_the_old_show ... ok
+test durable_host_control::terminal_attach::tests::selected_terminal_can_present_a_fresh_show_without_detaching ... ok
+test durable_host_control::terminal_attach::tests::stale_offer_generation_cannot_attach_a_terminal ... ok
+test durable_host_control::terminal_attach::tests::todo_tests::committed_todo_admits_next_action_without_terminal_provider ... ok
+test durable_host_control::terminal_attach::tests::todo_tests::terminal_completes_verified_todo_and_rejects_prior_show ... ok
+test durable_host_control::terminal_attach::tests::wrong_token_cannot_attach_or_advertise_terminal_output ... ok
+test durable_host_control::tests::cancellation_signal_names_one_exact_active_play_and_is_cleared_by_its_owner ... ok
+test durable_host_control::tests::durable_observation_request_cannot_invent_a_model_realization ... ok
+test durable_host_control::tests::durable_owner_signs_only_its_exact_current_boot_and_generation ... ok
+test durable_host_control::tests::durable_runtime_activates_and_drives_exact_remote_play_until_explicit_release ... ok
+test durable_host_control::tests::durable_runtime_retains_live_host_truth_instead_of_a_frozen_advertisement ... ok
+test durable_host_control::tests::expired_action_grant_is_rejected_before_owner_dispatch ... ok
+test durable_host_control::tests::local_admission_envelope_carries_two_host_offers_without_relaxing_remote_frames ... ok
+test durable_host_control::tests::unauthorized_helper_cannot_obtain_or_substitute_advertisement ... ok
+test durable_host_control::tests::unavailable_todo_and_thermostat_intents_can_open_native_return_but_cannot_dispatch ... ok
+test host_install::tests::carrier_selection_refuses_ambiguity_and_target_mismatch ... ok
+test host_install::tests::flash_receipt_does_not_infer_boot_observation ... ok
+test host_install::tests::native_realization_verifies_bundle_activates_service_and_observes_host ... ok
+test host_rendezvous::protected_tests::ordinary_rendezvous_session_crosses_the_real_user_operated_relay ... ok
+test host_rendezvous::protected_tests::ordinary_rendezvous_session_succeeds_above_the_protected_carrier ... ok
+test host_rendezvous::tests::canonical_host_advertisement_fits_the_bounded_rendezvous_envelope ... ok
+test host_rendezvous::tests::code_is_bounded_and_carries_no_host_or_body_identity ... ok
+test host_rendezvous::tests::joined_line_decodes_one_bounded_model_pool_observation_request ... ok
+test host_rendezvous::tests::joined_line_distinguishes_canonical_session_frames_from_control ... ok
+test host_rendezvous::tests::retained_websocket_idle_removes_the_handshake_read_deadline ... ok
+test host_rendezvous::tests::secret_comparison_checks_length_and_content ... ok
+test host_rendezvous::tests::serial_stream_line_retains_one_bounded_frame_per_newline ... ok
+test inspection::tests::malformed_known_schema_is_not_pretty_printed_as_truth ... ok
+test inspection::tests::unsupported_schema_fails_explicitly ... ok
+test native_package_install::tests::exact_body_bound_zip_becomes_a_verified_release_without_persisting_the_secret ... ok
+test native_package_install::tests::stale_artifact_and_mismatched_image_refuse_before_staging ... ok
+test numerical_run::tests::empty_numerical_fore_does_not_report_unexecuted_reservations ... ok
+test numerical_run::tests::malformed_input_does_not_spend_a_value_and_stop_retains_accepted_evidence ... ok
+test numerical_run::tests::numerical_child_keeps_pending_output_until_the_exact_ack_and_cancels_without_replay ... ok
+test numerical_run::tests::numerical_physical_refusal_keeps_failed_child_evidence_without_an_accepted_output ... ok
+test numerical_run::tests::producer_pressure_and_close_do_not_admit_an_extra_value ... ok
+test numerical_run::tests::refused_external_fore_delivery_is_not_reported_as_accepted_or_replayed ... ok
+test numerical_run::tests::substituted_plan_and_replacement_host_cannot_start_the_numerical_owner ... ok
+test parsec_cross_mask_counterexample_tests::actual_parsec_instruction_is_lost_at_face_only_mask_boundary ... ignored, requires actual Body exchange in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; diagnostic only
+test parsec_instruction_encounter_tests::actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction ... ignored, requires actual Source-frame artifact in CONDUIT_CROSS_MASK_PARSEC_ARTIFACT; reconstruction only
+test plot_source::tests::a_shipped_dsp_type_selects_its_catalog_without_a_dsp_gear ... ok
+test plot_source::tests::authored_entry_survives_checked_dependency_reordering ... ok
+test plot_source::tests::dsp_names_in_comments_and_text_do_not_prepare_the_component_catalog ... ok
+test plot_source::tests::inline_dsp_selection_preserves_the_exact_port_contract ... ok
+test plot_source::tests::ordinary_todo_source_expands_without_preparing_unused_dsp_owners ... ok
+test plot_source::tests::prepared_standard_catalogs_do_not_share_source_local_types ... ok
+test plot_source::tests::product_authoring_checks_quoted_ipa_with_the_ordinary_speech_catalog ... ok
+test plot_source::tests::product_authoring_expands_the_owned_public_dsp_back ... ok
+test plot_source::tests::product_checks_qualified_quoted_transcriptions_and_located_refusals ... ok
+test plot_source::tests::product_compiler_checks_the_ordinary_mask_plot_boundary ... ok
+test product_entrance_tests::resident_entrance_uses_the_workspace_browser_application ... ok
+test product_execution_tests::duplicate_host_id_is_refused_before_planning ... ok
+test product_execution_tests::heterogeneous_lines_use_their_exact_connection_bounds_independent_of_offer_order ... ok
+test product_execution_tests::planned_local_fragment_without_runtime_is_refused ... ok
+test product_execution_tests::portable_lenia_demo_executes_four_fields_through_the_product_entrance ... ok
+test product_execution_tests::product_context_does_not_classify_base_identity_names ... ok
+test product_execution_tests::two_advertisement_context_reaches_ordinary_planner_placement ... ok
+test release_obtain::tests::installed_target_selection_fetches_only_exact_manifest_and_reuses_cache ... ok
+test rendezvous_relay::provision::tests::provisioning_creates_distinct_private_exact_descriptors_without_overwrite ... ok
+test rendezvous_relay::provision::tests::provisioning_refuses_missing_authority_and_non_ascii_certificate_digest ... ok
+test rendezvous_relay::tests::capability_ingress_is_exact_and_erases_the_source ... ok
+test rendezvous_relay::tests::explicit_close_control_is_versioned_and_exact ... ok
+test rendezvous_relay::tests::network_listening_requires_explicit_non_loopback_authority ... ok
+test rendezvous_relay::tests::remote_execution_session_frames_cross_two_outbound_protected_relay_clients ... ok
+test screen_free_birth::input::tests::exact_id_commands_preserve_boolean_and_literal_text_values ... ok
+test screen_free_birth::input::tests::plot_argument_reached_by_reading_accepts_boolean_edits_on_current_birth_face ... ok
+test screen_free_birth::input::tests::read_current_items_is_a_generic_spoken_command ... ok
+test screen_free_birth::input::tests::review_command_reads_current_birth_choices_from_the_face ... ok
+test screen_free_birth::input::tests::selected_readout_keeps_multiple_bounded_segments_in_one_source_batch ... ok
+test screen_free_birth::selected_playback::play_sequence_tests::repeated_encounters_on_one_boot_reserve_distinct_play_identities ... ok
+test screen_free_birth::tests::bounded_command_reader_discards_rejected_line_tail ... ok
+test screen_free_birth::tests::eof_and_quit_do_not_birth ... ok
+test screen_free_birth::tests::screen_free_commands_navigate_current_birth_groups_and_refuse_long_input ... ok
+test screen_free_birth::tests::selected_speech_refused_input_does_not_interrupt_current_play ... ok
+test screen_free_birth::tests::selected_spoken_birth_opens_with_current_creche_and_help_on_request ... ok
+test screen_free_birth::tests::zero_body_commands_edit_select_read_and_birth_through_mask ... ok
+test screen_free_birth::tests::zero_body_face_produces_real_ordered_speech ... ignored, requires installed eSpeak NG and retains a real WAV
+test source_expansion::tests::expression_body_reports_its_lossless_ordinary_plot ... ok
+test source_expansion::tests::human_view_names_the_semantic_boundary ... ok
+test source_expansion::tests::installed_catalog_drives_both_json_and_human_views ... ok
+test source_expansion::type_tests::closed_type_import_reports_original_owner_source ... ok
+test source_expansion::type_tests::equivalent_argument_spelling_preserves_checked_identity_and_distinguishes_source ... ok
+test source_expansion::type_tests::imported_family_view_retains_consumer_import_spans_and_closed_owner_identity ... ok
+test source_expansion::type_tests::original_arguments_and_evaluated_nested_extents_share_one_checked_view ... ok
+test source_expansion::type_tests::repeated_admitted_types_refuse_excessive_inspection_expansion ... ok
+test thermostat_run::evidence::tests::mandatory_child_sign_refusal_is_not_hidden_by_an_unrequested_report ... ok
+test thermostat_run::evidence::tests::ordinary_reportless_execution_avoids_descriptive_reconstruction ... ok
+test thermostat_run::tests::ordinary_cli_thermostat_source_plans_with_exact_scoped_host ... ok
+test thermostat_run::tests::stdin_control_ingress_stops_at_its_finite_line_bound ... ok
+test two_std_line_tests::absent_runtime_peer_reaches_bounded_transport_refusal ... ok
+test two_std_line_tests::alternate_legal_placement_preserves_all_plot_identities ... ok
+test two_std_line_tests::body_line_executor_runs_two_std_kernels_over_exact_line ... ok
+test two_std_line_tests::old_plan_refuses_after_current_host_truth_changes ... ok
+test two_std_line_tests::stale_session_and_duplicate_frame_are_machine_readable_refusals ... ok
+test two_std_line_tests::wrong_boot_and_missing_peer_truth_refuse_planning ... ok
+test v1_history::archived_v1_sources_retain_identity_and_are_explicitly_refused ... ok
+
+test result: ok. 266 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 124.05s
+
+     Running unittests src/bin/conduit-relay.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit_relay-ea7e395af88ba629)
+
+running 1 test
+test tests::operator_help_names_relay_without_expanding_the_product_cli ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/glyph_inspection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/glyph_inspection-ff9475d0e5e69683)
+
+running 2 tests
+test public_expansion_reports_sealed_glyph_values_and_native_refinement_nodes ... ok
+test public_ipa_inspection_retains_exact_selected_basis_for_both_branches ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s
+
+     Running tests/hello.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/hello-5e2134fc75d85ba1)
+
+running 3 tests
+test actual_std_run_writes_a_read_only_observatory_report ... ok
+test canonical_hello_runs_locally ... ok
+test product_run_refuses_precanonical_fixture_source ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+
+     Running tests/installed_body_growth.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/installed_body_growth-e505731883064bfb)
+
+running 2 tests
+test routed_invitation_joins_two_installed_hosts_without_manual_protocol_phases ... ok
+test two_installed_processes_complete_pipeable_body_admission_without_creating_a_play ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/installed_screen_free_birth.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/installed_screen_free_birth-e908748610723066)
+
+running 6 tests
+test interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth ... FAILED
+test post_birth_refuses_stale_activation_and_controls_clock ... ok
+test retained_nonvisual_client_changes_the_owner_terminal_wardrobe ... ok
+test retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot ... ok
+test selected_installed_birth_speaks_one_current_face_clause ... ignored, requires explicit ALSA card/device, installed eSpeak NG, and a real speaker
+test zero_body_client_refuses_two_plots_then_continues_one_retained_body ... ok
+
+failures:
+
+---- interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth stdout ----
+
+thread 'interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth' (2601891) panicked at products/conduit/tests/installed_screen_free_birth.rs:727:73:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth
+
+test result: FAILED. 4 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 16.73s
+
+error: test failed, to rerun pass `-p conduit --test installed_screen_free_birth`
+xtask error: step 'check.test' failed (exit status: 101): cargo test --locked --workspace
