@@ -205,3 +205,67 @@ fn unknown_subject_and_forged_action_contract_refuse_without_mutation() {
     );
     assert_eq!(port.observe_fragment(basis, &body).unwrap(), before);
 }
+
+#[test]
+fn canonical_wire_callback_applies_once_without_legacy_event_conversion() {
+    let (mut port, body, basis) = setup();
+    let current = face(&port, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let encoded = interaction(&current, &show, "patchbay.plot.0", None).encode();
+    assert_eq!(
+        port.apply_face_interaction(&encoded, &body, &basis, &current, &show),
+        Ok(None)
+    );
+    let before = port.observe_fragment(basis.clone(), &body).unwrap();
+    assert_eq!(
+        port.apply_face_interaction(&encoded, &body, &basis, &current, &show),
+        Err(PatchbayCommandRefusal::StaleState)
+    );
+    assert_eq!(port.observe_fragment(basis, &body).unwrap(), before);
+}
+
+#[test]
+fn canonical_wire_callback_refuses_malformed_unacknowledged_and_foreign_owner_atomically() {
+    let (mut port, body, basis) = setup();
+    let current = face(&port, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let encoded = interaction(&current, &show, "patchbay.plot.0", None).encode();
+    let mut trailing = encoded.clone();
+    trailing.push(0);
+    let oversized = vec![0; MAX_FACE_INTERACTION_BYTES + 1];
+    let before = port.observe_fragment(basis.clone(), &body).unwrap();
+    for invalid in [&[][..], &[0][..], b"{}".as_slice(), &trailing, &oversized] {
+        assert_eq!(
+            port.apply_face_interaction(invalid, &body, &basis, &current, &show),
+            Err(PatchbayCommandRefusal::InvalidInteraction(
+                FaceInteractionRefusal::MalformedEncoding
+            ))
+        );
+        assert_eq!(port.observe_fragment(basis.clone(), &body).unwrap(), before);
+    }
+    let placement = show.planned_mask.show_placement();
+    let unavailable = MaskShow::prepared(
+        &show.planned_mask,
+        &current,
+        conduit_core::bind_active_play(
+            &show.planned_mask.plan.plan_id,
+            &placement.host_id,
+            &placement.boot_id,
+            2,
+        ),
+        current.subjects[0].identity.clone(),
+        "display/unacknowledged".into(),
+        SignId::from("fixture/show-unacknowledged"),
+    )
+    .unwrap();
+    assert!(matches!(
+        port.apply_face_interaction(&encoded, &body, &basis, &current, &unavailable),
+        Err(PatchbayCommandRefusal::InvalidInteraction(_))
+    ));
+    let foreign: BodyId = serde_json::from_str("\"body/foreign-owner\"").unwrap();
+    assert_eq!(
+        port.apply_face_interaction(&encoded, &foreign, &basis, &current, &show),
+        Err(PatchbayCommandRefusal::WrongOwner)
+    );
+    assert_eq!(port.observe_fragment(basis, &body).unwrap(), before);
+}

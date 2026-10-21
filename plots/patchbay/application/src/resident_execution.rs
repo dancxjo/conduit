@@ -3,10 +3,32 @@ use super::resident_command::{contribution_matches, has_property};
 use super::*;
 use conduit_body::BodyId;
 use conduit_face::{
-    Face, FaceContributionBasis, FaceInteractionRefusal, FacePropertyValue, MaskShow,
+    Face, FaceContributionBasis, FaceInteraction, FaceInteractionRefusal, FacePropertyValue,
+    MaskShow,
 };
 
 impl PatchbayApplicationPort {
+    /// Canonical wire callback for an explicitly admitted interaction ingress.
+    /// The owner supplies current evidence independently of the submitted bytes.
+    /// This is not the legacy application-event callback and does not grant a
+    /// route, reserve transport storage or dispatch the returned owner request.
+    pub fn apply_face_interaction(
+        &mut self,
+        input: &[u8],
+        body: &BodyId,
+        basis: &FaceContributionBasis,
+        face: &Face,
+        show: &MaskShow,
+    ) -> Result<Option<PatchbayApplicationRequest>, PatchbayCommandRefusal> {
+        // The canonical decoder checks the complete 8 KiB bound, magic and
+        // trailing bytes before owner admission; there is no initial-event
+        // sentinel and no conversion from an untyped application event.
+        let interaction =
+            FaceInteraction::decode(input).map_err(PatchbayCommandRefusal::InvalidInteraction)?;
+        let command = self.admit_face_command(body, basis.clone(), face, show, &interaction)?;
+        self.execute_face_command(command, body, basis, face, show)
+    }
+
     /// Execute only at the owner's admitted ingress, using its current retained
     /// Face/acknowledged Show and actual contribution basis. No Host effect runs
     /// here: Edit/Mask changes return typed requests to the existing owner.

@@ -65,3 +65,19 @@ placements and externally managed fragments have no local observation context.
 The same owner identity must anchor the eventual typed ingress. A NodeId is
 local to this admitted scheduler/Play, not portable identity or permission to
 submit a command. This binding does not itself admit interaction transport.
+
+## Canonical owner callback
+
+`PatchbayApplicationPort::apply_face_interaction` accepts only the canonical
+`FaceInteraction` byte encoding and its existing 8 KiB ceiling. It decodes,
+admits against independently supplied current owner Body/basis/Face/Show, then
+executes through the shared retained-state path. Empty input, the old `[0]`
+observation sentinel, JSON application events and trailing/oversized bytes are
+not alternative encodings. The callback returns typed owner requests and does
+not dispatch them. It is deliberately separate from `apply`/`apply_event`.
+
+This completes the reusable owner callback, not its transport admission. Browser
+and native must still select an exact typed input port, reserve canonical input
+and output storage before Play, retain acknowledged Show evidence, and invoke
+this callback only at that admitted boundary. No route may be inferred from the
+presence of this Rust method or from the old event Host Call.

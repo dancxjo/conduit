@@ -548,3 +548,20 @@ Three JavaScript syntax checks pass. Two focused bridge CPU checks pass,
 including memory growth during observation, exact output forwarding and refusal
 of malformed schemas/claimed interaction authority. This is a mock ABI fixture,
 not WASM/browser/platform enactment. No broad tests, CI or image rebuild ran.
+
+## Canonical wire-to-owner callback
+
+Added `PatchbayApplicationPort::apply_face_interaction`: the existing bounded
+canonical codec feeds owner admission and the shared retained-state execution
+path. Current Body/basis/Face/Show arrive independently from owner state, never
+inside the submitted frame. No sentinel conversion, new codec, hidden queue,
+transport grant or direct Host effect was added. Actual finite transport
+reservation and production invocation remain unfinished #6201 work.
+
+Two selected CPU checks pass (three other tests filtered out): valid canonical
+bytes apply once and replay refuses; empty/sentinel/JSON/trailing/oversized
+frames, an unacknowledged Show and a foreign Body refuse without model changes.
+The first refusal fixture tried the forbidden Available-to-Failed transition;
+its negative log is retained and the fixture now constructs a genuine Prepared
+Show. The production state machine was not relaxed. No broad suite, CI, image
+rebuild or platform proof ran.
