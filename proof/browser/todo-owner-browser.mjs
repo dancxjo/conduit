@@ -2,6 +2,7 @@
 // The owner and Handbook package are supplied by the caller; this driver never
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
+import { captureTodoAccessibility, withTodoStylesDisabled } from './todo-owner-accessibility.mjs';
 import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
 import { inspectTodoRealization, activateTodoAdd } from './todo-owner-realization.mjs';
 import { spawnSync } from 'node:child_process';
@@ -188,6 +189,8 @@ try {
   assert.equal(before.body_id, bodyId);
   assert.equal(before.show_state, 'available');
   const realization = await inspectTodoRealization({page,view:before,face,state});
+  const accessibleBefore = scenario === 'first-add'
+    ? await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'before-add' }) : null;
   if (scenario === 'look-replacement') {
     const observations = [];
     for (const [look, recipe] of [['compact', 'flat'], ['spacious', 'flat'], ['spacious', 'grouped']]) {
@@ -381,13 +384,14 @@ try {
   const adds = [];
   let after = retainedDom
     ? await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()) : before;
-  const performAdd = async text => {
+  const performAdd = async (text, unstyled = false) => {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
     assert.equal(priorOwner.face.identity, prior.face_id);
     const exactPrior = { ...prior, face_revision_decimal: priorOwner.face_revision_decimal };
     const add = page.locator('[data-owner-action="todo.add"]');
-    const activation = await activateTodoAdd({page,form:add,text,realization,scenario});
+    const activate = () => activateTodoAdd({page,form:add,text,realization,scenario});
+    const activation = unstyled ? await withTodoStylesDisabled(page, activate) : await activate();
     await page.waitForFunction(({ revision, name }) => {
       const current = globalThis.__conduitOwnerParticipation.face();
       return current?.face_revision !== revision && current?.subjects.some(subject => subject.name === name)
@@ -403,12 +407,18 @@ try {
       bodyId, exactPrior, ownerAfterAdd, 'todo.add');
     const screenshot = `browser-add-${adds.length + 1}.png`;
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
-    adds.push({ action_id: 'todo.add', text, activation, before: exactPrior, after, owner: ownerAfterAdd,
+    adds.push({ action_id: 'todo.add', text, activation, stylesheet_disabled_during_activation: unstyled, before: exactPrior, after, owner: ownerAfterAdd,
       mutation, screenshot });
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
     return adds.at(-1);
   };
-  for (const text of texts) await performAdd(text);
+  for (const text of texts) await performAdd(text, Boolean(accessibleBefore));
+  if (accessibleBefore) {
+    const accessibleAfter = await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'after-add' });
+    assert.equal(accessibleAfter.body_id, accessibleBefore.body_id);
+    assert.notEqual(accessibleAfter.face_revision, accessibleBefore.face_revision);
+    assert.notEqual(accessibleAfter.show_id, accessibleBefore.show_id);
+  }
   let crossMask = null;
   const speechBeforeCompletion = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
