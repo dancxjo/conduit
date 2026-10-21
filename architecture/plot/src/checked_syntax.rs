@@ -1,3 +1,5 @@
+mod cord;
+pub use cord::{CheckedCanonicalCord, CheckedCordStage};
 mod expanded_provenance;
 pub(crate) use expanded_provenance::provenance_digest;
 pub use expanded_provenance::ExpandedGearProvenance;
@@ -103,48 +105,6 @@ impl PartialEq for CheckedCanonicalGear {
 }
 
 impl Eq for CheckedCanonicalGear {}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CheckedCordStage {
-    Reference(String),
-    RelationalGear {
-        operands: Vec<String>,
-        gear: CheckedCanonicalGear,
-        input_ports: Vec<String>,
-        output_port: String,
-    },
-    TerminalProjection {
-        endpoint: String,
-        terminal: crate::TerminalProjection,
-        source_span: Span,
-    },
-    Cancellation {
-        gear: String,
-        source_span: Span,
-    },
-    When {
-        expression: crate::ExpressionSyntax,
-        source_span: Span,
-    },
-    PureExpression {
-        expression: crate::ExpressionSyntax,
-        source_span: Span,
-    },
-    InlineGear(CheckedCanonicalGear),
-    Literal {
-        value: CanonicalStartupValue,
-        source_span: Span,
-    },
-    StructuredSelector {
-        selector: conduit_core::StructuredSelector,
-        source_span: Span,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedCanonicalCord {
-    pub stages: Vec<CheckedCordStage>,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedPoolDeclaration {
