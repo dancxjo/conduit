@@ -19,6 +19,7 @@ pub(super) mod aarch64_domain;
 mod backbone;
 pub(super) mod ia32_domain;
 pub(super) mod loongarch64_domain;
+mod privilege_inventory;
 pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
@@ -314,8 +315,9 @@ fn execute_with_features(
     );
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --bin {binary} --target {target} --release --features {}",
-            features.join(",")
+            "cargo rustc -p conduitos --bin {binary} --target {target} --release --features {} -- -C link-arg=-Map={}",
+            features.join(","),
+            paths.built_binary(target, binary).with_extension("map").display(),
         );
         return dry_record(arch, &paths, artifact_role);
     }
@@ -341,7 +343,7 @@ fn execute_with_features(
     let mut command = Command::new("cargo");
     command
         .args([
-            "build",
+            "rustc",
             "-p",
             "conduitos",
             "--bin",
@@ -389,6 +391,7 @@ fn execute_with_features(
     if opts.locked {
         command.arg("--locked");
     }
+    let link_map = privilege_inventory::configure_link_map(&mut command, &paths, target, binary);
     let status = command.status().map_err(|error| {
         ConduitosError::refusal(
             "toolchain-unavailable",
@@ -418,7 +421,7 @@ fn execute_with_features(
         },
         elf_sha256: sha256_file(&paths.kernel)?,
     };
-    write_json(&paths.target.join("build.json"), &record)?;
+    privilege_inventory::publish(&paths, &record, features, &link_map)?;
     if !opts.quiet && !opts.json {
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
@@ -511,13 +514,6 @@ fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> 
         ));
     }
     Ok(())
-}
-
-fn write_json(path: &std::path::Path, value: &BuildRecord) -> Result<(), ConduitosError> {
-    let bytes = serde_json::to_vec_pretty(value)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))?;
-    fs::write(path, bytes)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))
 }
 
 fn dry_record(
