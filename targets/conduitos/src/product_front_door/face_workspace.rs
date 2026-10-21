@@ -474,7 +474,7 @@ fn interaction_refusal(reason: conduit_face::FaceInteractionRefusal) -> &'static
 
 #[cfg(test)]
 #[path = "face_workspace_tests.rs"]
-mod tests;
+pub(super) mod tests;
 
 #[cfg(test)]
 #[path = "face_workspace_continuity_tests.rs"]

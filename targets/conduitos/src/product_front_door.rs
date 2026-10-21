@@ -7,6 +7,7 @@ mod guest_join;
 mod home_input;
 mod input_actions;
 mod pointer_input;
+mod startup;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};
@@ -243,6 +244,8 @@ pub fn run(
                     &mut face_workspace,
                     display,
                     make,
+                    identities,
+                    offer,
                 )?;
                 return Ok(ProductInputControl::Continue);
             }
@@ -649,12 +652,18 @@ pub fn run(
                 )? {
                     FaceArrivalInput::Continue => {}
                     FaceArrivalInput::Born => {
-                        let (observation, play) = face_arrival.next_publication_sequences();
-                        face_workspace.continue_after_birth(observation, play);
                         consumed_birth_key = Some(event.usage());
-                        if journey.foreground_text_editor_active() {
-                            face_workspace.enter_editor(&front_door, &mut presenter, display)?;
-                        }
+                        startup::after_birth(
+                            &face_arrival,
+                            &mut front_door,
+                            &mut journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                            identities,
+                            offer,
+                            make,
+                        )?;
                     }
                 }
                 return Ok(ProductInputControl::Continue);

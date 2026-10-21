@@ -10,7 +10,7 @@ use conduit_face::GraphicsCommandKind;
 use conduit_human::{KeyModifiers, KeyTransition};
 
 #[derive(Default)]
-pub(super) struct CountingDisplay(pub(super) u64, pub(super) bool);
+pub(in crate::product_front_door) struct CountingDisplay(pub(super) u64, pub(super) bool);
 
 impl PixelTarget for CountingDisplay {
     fn format(&self) -> DisplayFormat {

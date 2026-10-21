@@ -183,7 +183,7 @@ pub(super) fn retain(
         "input_evidence":{"class":"real-qmp-keyboard-and-pointer","transcript":"journey-qmp.log",
             "unavailable_attempt":{"qmp_key":"f4","hid_usage":61,"binding":"wake",
                 "requested_intent":"conduit.intent/wake@1","label":"journey-unavailable-wake",
-                "precondition":"awake","completion":"CONDUIT_PRODUCT_ACTION handled wake"}},
+                "precondition":"quiescent-awaiting-input","completion":"CONDUIT_PRODUCT_ACTION handled wake"}},
         "pointer":super::creche_pointer::receipt(serial)?,
         "browser":{"status":"unsupported","reason":"no installed source-equivalent native shell browser route"},
         "stale_show_replay":{"coverage":"separate deterministic admission suite; not asserted by this harness","installed_enactment":false},

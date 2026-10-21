@@ -1,5 +1,7 @@
 //! Native lifecycle evidence emitted from the authoritative journey projection.
-use crate::{arch, make::MakeRecord, product_journey::JourneyProjection};
+#[cfg(not(test))]
+use crate::arch;
+use crate::{make::MakeRecord, product_journey::JourneyProjection};
 use alloc::{format, string::String};
 
 pub(super) fn emit_journey_sign(
@@ -159,11 +161,11 @@ pub(super) fn emit_journey_sign(
         ),
         json_identity(projection.last_request_id.as_deref()),
     );
-    arch::early_write(line.as_bytes());
+    write_observation(line.as_bytes());
     if let Some(mask) = &projection.mask
         && let Ok(json) = serde_json::to_string(mask)
     {
-        arch::early_write(format!("CONDUIT_MASK_SIGN {json}\n").as_bytes());
+        write_observation(format!("CONDUIT_MASK_SIGN {json}\n").as_bytes());
     }
 }
 
@@ -180,4 +182,13 @@ fn json_array(values: &[String]) -> String {
 
 fn json_identity(value: Option<&str>) -> String {
     serde_json::to_string(&value).expect("finite optional text serializes")
+}
+
+/// Bootstrap observations use serial on the guest and captured output in CPU tests.
+/// This carries evidence only; no test can acquire machine I/O through it.
+pub(super) fn write_observation(bytes: &[u8]) {
+    #[cfg(not(test))]
+    arch::early_write(bytes);
+    #[cfg(test)]
+    std::print!("{}", alloc::string::String::from_utf8_lossy(bytes));
 }

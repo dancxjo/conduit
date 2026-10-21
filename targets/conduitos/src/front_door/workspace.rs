@@ -24,7 +24,7 @@ impl WorkspaceRefusal {
     #[allow(dead_code)]
     pub(super) fn heading(&self) -> &'static str {
         match self {
-            Self::Startup(_) => "Wake could not finish. Details:",
+            Self::Startup(_) => "Startup could not finish. Details:",
             Self::Play(_) => "Play stopped. Details:",
             Self::Action(_) => "Action refused. Details:",
         }

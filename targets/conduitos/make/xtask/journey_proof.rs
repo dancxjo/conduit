@@ -168,36 +168,19 @@ pub(super) fn execute_supplied_observed(
             &mut artifacts,
         )?;
         journey_input::birth_from_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
-        artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
-        for (key, status, frame) in [
-            ("f4", "awake", "body-woken"),
-            ("f5", "planned", "body-planned"),
-            ("f6", "quiescent-awaiting-input", "body-playing"),
-        ] {
-            if key == "f5" {
-                journey_input::key_until_status(
-                    &mut qmp,
-                    &mut reader,
-                    &serial_path,
-                    &mut child,
-                    key,
-                    status,
-                )?;
-            } else {
-                journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
-                journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
-            }
-            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
-            if key == "f4" {
-                face_input::unavailable_wake(
-                    &serial_path,
-                    &mut child,
-                    &mut qmp,
-                    &mut reader,
-                    &mut artifacts,
-                )?;
-            }
+        // Birth is the only user lifecycle activation. The default policy
+        // must produce separate Wake/Plan/Play evidence without F4/F5/F6.
+        for status in ["awake", "planned", "quiescent-awaiting-input"] {
+            journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
         }
+        artifacts.capture(&mut qmp, &mut reader, "body-playing", true)?;
+        face_input::unavailable_wake(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
+        )?;
 
         let keyboard_identity =
             keyboard_domain::exercise(&serial_path, &mut child, &mut qmp, &mut reader)?;
@@ -337,7 +320,7 @@ pub(super) fn execute_supplied_observed(
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "look_selection":look_selection,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
