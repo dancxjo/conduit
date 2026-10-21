@@ -108,6 +108,17 @@ pub(super) fn run() {
         if exchange(&mut service).output[..8] != 3u64.to_le_bytes() {
             refuse("service-cpl3");
         }
+        // Root stages a full bounded upload window while the guest is stopped;
+        // protected reads observe both ends across separate entries.
+        service
+            .transfer_window()
+            .unwrap_or_else(|_| refuse("service-transfer-window"))
+            .fill(0xa5);
+        for address in edges(layout.output()) {
+            if read(&mut service, address) != 0xa5a5_a5a5_a5a5_a5a5 {
+                refuse("service-transfer-not-visible");
+            }
+        }
         for range in private_ranges(layout) {
             // Stack contents change during entry; verify its mapped edge pages
             // with writes and readback only at the unused bottom boundary.
@@ -164,6 +175,7 @@ pub(super) fn run() {
             || service.enter(1) != Err(DomainRefusal::InvalidLifecycle)
             || service.exchange().is_ok()
             || service.output().is_ok()
+            || service.transfer_window().is_ok()
             || u64::from(service.cost().teardown_zeroed_bytes) < layout.mapped_bytes()
         {
             refuse("service-hostile-not-contained");
