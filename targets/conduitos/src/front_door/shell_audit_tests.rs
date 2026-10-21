@@ -116,7 +116,7 @@ fn audit_zero_body_names_face_action_and_native_context_difference() {
 #[test]
 fn audit_home_tiles_are_shared_context_with_exact_current_body_face() {
     let mut door = body(NativePlot::MemoryLantern);
-    door.open_home().unwrap();
+    open_workshop(&mut door);
     let face = door.face().unwrap();
     let scene = scene(&door);
     assert_eq!(face.revision, door.revision());
@@ -205,7 +205,7 @@ fn home_key(door: &mut FrontDoor, usage: u8) -> HomeInput {
 fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority() {
     let mut door = body(NativePlot::MemoryLantern);
     let original_actions = door.face().unwrap().actions;
-    door.open_home().unwrap();
+    open_workshop(&mut door);
     let face = door.face().unwrap();
     for destination in conduit_home_model::HomeDestination::ALL {
         assert!(
@@ -340,7 +340,7 @@ fn resident_face_names_and_describes_the_exact_foreground_plot() {
 #[test]
 fn one_resident_home_scene_face_and_model_share_actual_body_membership() {
     let mut door = body(NativePlot::MemoryLantern);
-    door.open_home().unwrap();
+    open_workshop(&mut door);
     home_key(&mut door, 79);
     home_key(&mut door, 79);
     home_key(&mut door, 40);
@@ -400,7 +400,7 @@ fn absent_home_destinations_remain_local_unavailable_requests() {
     let mut door = body(NativePlot::MemoryLantern);
     let original_actions = door.face().unwrap().actions;
     let original_body = door.face().unwrap().basis.body_id;
-    door.open_home().unwrap();
+    open_workshop(&mut door);
     for destination in ["Tour", "Patchbay"] {
         assert_eq!(home_key(&mut door, 40), HomeInput::Changed);
         let face = door.face().unwrap();
@@ -413,4 +413,10 @@ fn absent_home_destinations_remain_local_unavailable_requests() {
         assert_eq!(door.home_installed_plots().len(), 1);
         home_key(&mut door, 79);
     }
+}
+
+fn open_workshop(door: &mut FrontDoor) {
+    door.open_home().unwrap();
+    assert_eq!(home_key(door, 40), HomeInput::Changed);
+    assert_eq!(door.commons_place(), Some("commons/workshop"));
 }

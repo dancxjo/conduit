@@ -105,6 +105,8 @@ fn default_startup_keeps_birth_and_listens_with_both_residents_in_one_play() {
     assert_eq!(born.status, JourneyStatus::BornLulled);
     assert!(born.plan_id.is_none());
     encounter.start().unwrap();
+    assert!(encounter.door.home_open());
+    assert_eq!(encounter.door.commons_place(), Some("commons/hub"));
     let active = encounter.journey.projection();
     assert_eq!(active.status, JourneyStatus::QuiescentAwaitingInput);
     assert_eq!(active.body_id, born.body_id);

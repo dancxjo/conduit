@@ -362,7 +362,7 @@ impl FrontDoor {
                 },
             );
         }
-        Face::new_with_semantics(
+        let face = Face::new_with_semantics(
             self.revision,
             basis,
             subjects,
@@ -372,7 +372,13 @@ impl FrontDoor {
             self.semantic_actions(&plot),
             disclosures,
         )
-        .map_err(|_| Error::Face)
+        .map_err(|_| Error::Face)?;
+        if let Some(home) = &self.home {
+            home.commons
+                .project(face, self.journey.as_ref().ok_or(Error::Face)?)
+        } else {
+            Ok(face)
+        }
     }
 }
 

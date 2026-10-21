@@ -368,3 +368,26 @@ mod tests {
         assert!(!observed.get());
     }
 }
+
+/// Enter Workshop through the current Commons Hub and await its rendered context.
+pub(super) fn enter_workshop(
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
+) -> Result<(), ConduitosError> {
+    let marker = "CONDUIT_COMMONS_CONTEXT commons/workshop";
+    let before = fs::read_to_string(serial)
+        .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
+        .lines()
+        .filter(|line| *line == marker)
+        .count();
+    key_pair(qmp, reader, "ret", "commons-enter-workshop")?;
+    hid_qmp::wait_for_stage_count(
+        serial,
+        child,
+        marker,
+        before + 1,
+        "commons-workshop-timeout",
+    )
+}

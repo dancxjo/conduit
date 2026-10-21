@@ -57,6 +57,7 @@ members = [
 	# Product and application compositions.
 	"products/conduit",
 	"plots/birth",
+	"plots/commons",
 	"plots/todo/model",
 	"semantics/home",
 	"semantics/plot-library",

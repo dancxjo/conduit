@@ -26,9 +26,15 @@ pub(super) fn accept(
     {
         crate::front_door::HomeInput::Unchanged => {}
         crate::front_door::HomeInput::Changed => {
-            presenter
+            let receipt = presenter
                 .present(front_door, display)
                 .map_err(|error| error.as_str())?;
+            emit_journey_sign(&journey.projection(), make, &receipt);
+            if let Some(place) = front_door.commons_place() {
+                super::journey_sign::write_observation(
+                    format!("CONDUIT_COMMONS_CONTEXT {place}\n").as_bytes(),
+                );
+            }
             arch::early_write(
                 format!(
                     "CONDUIT_HOME_STATE {} {}\n",
@@ -42,6 +48,7 @@ pub(super) fn accept(
         }
         crate::front_door::HomeInput::OpenTour => {
             tutorial::select(journey, front_door, presenter, display, make)?;
+            arch::early_write(b"CONDUIT_HOME_CHECKPOINT tour-opened\n");
         }
         crate::front_door::HomeInput::OpenPatchbay => {
             let requested = front_door

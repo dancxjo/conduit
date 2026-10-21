@@ -4,6 +4,13 @@ use alloc::vec::Vec;
 
 impl FrontDoor {
     pub(super) fn home_face_content(&self) -> (Vec<FaceProperty>, Vec<FaceText>) {
+        if self
+            .home
+            .as_ref()
+            .is_some_and(|home| !home.commons.workshop())
+        {
+            return (vec![], vec![]);
+        }
         let Some(home) = self.home_model() else {
             return (vec![], vec![]);
         };

@@ -14,6 +14,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod application_layout;
 mod arrival;
+mod commons;
 mod graph_projection;
 mod home;
 mod home_projection;

@@ -173,7 +173,22 @@ pub(super) fn execute_supplied_observed(
         for status in ["awake", "planned", "quiescent-awaiting-input"] {
             journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
         }
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_CRECHE_CHECKPOINT body-playing",
+            "commons-arrival-timeout",
+        )?;
         artifacts.capture(&mut qmp, &mut reader, "body-playing", true)?;
+        journey_input::enter_workshop(&mut qmp, &mut reader, &serial_path, &mut child)?;
+        artifacts.capture(&mut qmp, &mut reader, "commons-workshop", true)?;
+        journey_input::key_pair(&mut qmp, &mut reader, "ret", "commons-open-tour")?;
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_HOME_CHECKPOINT tour-opened",
+            "commons-tour-timeout",
+        )?;
         face_input::unavailable_wake(
             &serial_path,
             &mut child,
@@ -206,6 +221,7 @@ pub(super) fn execute_supplied_observed(
             "journey-home-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "home", true)?;
+        journey_input::enter_workshop(&mut qmp, &mut reader, &serial_path, &mut child)?;
         journey_input::key_pair(&mut qmp, &mut reader, "tab", "journey-select-patchbay")?;
         hid_qmp::wait_for_stage(
             &serial_path,
@@ -320,7 +336,7 @@ pub(super) fn execute_supplied_observed(
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","commons-hub","commons-workshop","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "look_selection":look_selection,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",

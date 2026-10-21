@@ -81,6 +81,15 @@ fn start(
         );
         return Ok(());
     }
+    workspace.relinquish()?;
+    if door.open_home().is_err() {
+        door.action_refused("Commons could not open; the current Plot is still available.")
+            .map_err(|error| error.as_str())?;
+    }
+    let receipt = presenter
+        .present(door, display)
+        .map_err(|error| error.as_str())?;
+    emit_journey_sign(&journey.projection(), make, &receipt);
     journey_sign::write_observation(b"CONDUIT_CRECHE_CHECKPOINT body-playing\n");
     Ok(())
 }

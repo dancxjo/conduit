@@ -54,6 +54,7 @@ pub(super) fn return_and_reenter(
         "journey-return-home-timeout",
     )?;
     artifacts.capture(qmp, reader, "home-returned", true)?;
+    journey_input::enter_workshop(qmp, reader, serial_path, child)?;
     journey_input::key_pair(qmp, reader, "tab", "journey-reselect-patchbay")?;
     let patchbay_before = stage_count(serial_path, "CONDUIT_HOME_CHECKPOINT patchbay-opened")?;
     journey_input::key_pair(qmp, reader, "ret", "journey-reenter-patchbay")?;
