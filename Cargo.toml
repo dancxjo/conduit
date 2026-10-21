@@ -88,6 +88,7 @@ members = [
 	"targets/conduitos/compositor-core",
 	"targets/conduitos/creche-core",
 	"targets/conduitos/runtime-core",
+	"targets/conduitos/network-core",
 	"targets/conduitos/application-core",
 	"targets/conduitos/mask-offer",
 	"targets/conduitos/make",
@@ -115,6 +116,7 @@ members = [
 	"tools/xtask",
 ]
 exclude = [
+	"targets/conduitos/network-service",
 	"targets/conduitos/compositor-hostile-proof",
 	"targets/conduitos/compositor-service",
 	"targets/conduitos/creche-service",

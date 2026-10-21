@@ -16,6 +16,12 @@ pub mod boot;
 pub mod bounded_host_calls;
 #[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_network;
 pub mod composition;
 #[cfg(test)]
 #[path = "protected_compositor/display_grant.rs"]
