@@ -1,0 +1,78 @@
+{
+  "parent": "cf2f4ae11cc1b97239cb2854236c75b73cfe0892",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/118955102437.log",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/118955102437.log",
+      "bytes": 465572,
+      "sha256": "e837d2141e271af2fc9cbcb98a5c92f03ebc599d2be5ae0c6a053824f45632fa",
+      "mode": "100644",
+      "blob": "d49bbd2522a523eeff825fe68aa5d9a1adc0fadc"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/118955639053.log",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/118955639053.log",
+      "bytes": 616227,
+      "sha256": "b96d9f34e87892bdb2f6941b81d398e71d910c7a10a48838306d90e0221ae5e8",
+      "mode": "100644",
+      "blob": "f10f78e251eb87311006231aa5e0df45e75a9266"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/118955639232.log",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/118955639232.log",
+      "bytes": 660977,
+      "sha256": "602cb6f741bb64b0479950a7dc28dc40dec8f3df4049c7682351fb8b0e91e223",
+      "mode": "100644",
+      "blob": "b6082381f6a7ef3d0ff6ca23f1dab1d3fad1f4e9"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/118955639235.log",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/118955639235.log",
+      "bytes": 462737,
+      "sha256": "7df891b54a0ca0c8918a3dbfcf414e0996dbb99db3abadcec352781263d7e571",
+      "mode": "100644",
+      "blob": "21f40d932bf02ad1a8c235bb5927b6f9776ecaac"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/jobs.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/jobs.json",
+      "bytes": 35625,
+      "sha256": "160bdb7de9914a28e0a288da1a80823ce21f096acb76dedd3152cd61cee319ce",
+      "mode": "100644",
+      "blob": "4b8389662bbc5ffdfd793e97444e689c7b1fd30d"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/preview.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/preview.json",
+      "bytes": 2614,
+      "sha256": "e118a468df58639fab491f442afda403e7e7e506c09924b340862dd5c6c939de",
+      "mode": "100644",
+      "blob": "42ab3b5164a3fec3124275a7360fe48fa0757506"
+    },
+    {
+      "source": "outputs/ci-resumed-20261020/proof6171/receipt.json",
+      "tree_path": "task-6038/outputs/ci-resumed-20261020/proof6171/receipt.json",
+      "bytes": 1665,
+      "sha256": "e913f5f8b392f6332a8c75cbb44269b6f0d007104cbb50c0d902c64a4718fae8",
+      "mode": "100644",
+      "blob": "568b83fc8a9825012e6b245634c87661eafbb08e"
+    },
+    {
+      "source": "outputs/native-acceptance-58979c509/source-identity.json",
+      "tree_path": "task-6038/outputs/native-acceptance-58979c509/source-identity.json",
+      "bytes": 7762,
+      "sha256": "7d9a41ef859ba9fe850075b21dcd7aae7e7917eda83bc7c658cfd47c54e4c887",
+      "mode": "100644",
+      "blob": "401470d98ea311ff8ceb4b0038d49957933c8bc0"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 7936,
+      "sha256": "0d5c871aeecb1e27c81dc5a79f83f799a22f11c38b2fecc68f30e76d894e3de0",
+      "mode": "100644",
+      "blob": "15420fbb1b32831a86294ea2129ef750be8001f2"
+    }
+  ]
+}

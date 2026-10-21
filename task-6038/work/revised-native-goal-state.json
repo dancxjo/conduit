@@ -103,7 +103,12 @@
     },
     "merged": "edc753a58a848da1d36a0c26d685b7795d509208",
     "issue_state": "closedMechanismOnly00:39:52UTC",
-    "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72"
+    "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+    "repaired_merged_workspace": {
+      "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+      "state": "running;correspondenceFmtFullStrictClippyPassed;testsCompiling",
+      "directory": "outputs/native-acceptance-58979c509"
+    }
   },
   "stable_through_stage06": {
     "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
@@ -139,7 +144,11 @@
       "head": "03b5459fe54a592b0fd20ccec63508eb500db746",
       "owned": "existingOtherFlow",
       "failure": "missing journal fixture and browser Lulled/readiness",
-      "action": "reviewExistingRepair;doNotDuplicate"
+      "action": "reviewExistingRepair;doNotDuplicate",
+      "merged": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+      "candidate": 39518127014,
+      "candidate_status": "all12JobsSuccess",
+      "tested_preview": "a75e24d4295694a47cdd2c8db4ce203edd4af0a7"
     },
     "external_ci_bypass_claim": "notAnInstructionForThisGoal;combinedStableProofStillRequired"
   },
@@ -153,5 +162,13 @@
       5992
     ],
     "state": "mapped_and_linked;queued;currentFontPRgateUnchanged"
+  },
+  "next_look_preparation": {
+    "issue": 5628,
+    "branch": "codex/5628-selected-typography",
+    "base": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+    "worktree": "work/selected-typography-look",
+    "state": "isolatedSourcePreparation;noBuildsWhileValidatorOwnsCache;noPRAdmissionBeforeCombinedGreen",
+    "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes"
   }
 }

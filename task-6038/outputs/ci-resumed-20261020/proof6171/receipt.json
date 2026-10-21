@@ -1,0 +1,53 @@
+{
+  "candidate": 39518127014,
+  "head": "03b5459fe54a592b0fd20ccec63508eb500db746",
+  "tested_preview": "a75e24d4295694a47cdd2c8db4ce203edd4af0a7",
+  "parents": [
+    "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+    "03b5459fe54a592b0fd20ccec63508eb500db746"
+  ],
+  "tested_tree": "3de817094b045af7742d83997daf21fa4d4114a2",
+  "all_12_jobs": "success",
+  "browser": {
+    "passed": 264,
+    "specs": 31,
+    "workers": 1,
+    "retries": 0,
+    "batches": 1
+  },
+  "installed_birth_target": {
+    "passed": 5,
+    "failed": 0,
+    "ignored": 1,
+    "regression": "passed"
+  },
+  "merged": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+  "merged_tree": "c05729d2bee15924d02ebe6181907107a51bfe55",
+  "boundary": "Candidate preview and actual merged tree differ; full merged local workspace and combined Integration remain required",
+  "files": {
+    "jobs.json": {
+      "sha256": "160bdb7de9914a28e0a288da1a80823ce21f096acb76dedd3152cd61cee319ce",
+      "bytes": 35625
+    },
+    "118955639232.log": {
+      "sha256": "602cb6f741bb64b0479950a7dc28dc40dec8f3df4049c7682351fb8b0e91e223",
+      "bytes": 660977
+    },
+    "118955639053.log": {
+      "sha256": "b96d9f34e87892bdb2f6941b81d398e71d910c7a10a48838306d90e0221ae5e8",
+      "bytes": 616227
+    },
+    "118955102437.log": {
+      "sha256": "e837d2141e271af2fc9cbcb98a5c92f03ebc599d2be5ae0c6a053824f45632fa",
+      "bytes": 465572
+    },
+    "118955639235.log": {
+      "sha256": "7df891b54a0ca0c8918a3dbfcf414e0996dbb99db3abadcec352781263d7e571",
+      "bytes": 462737
+    },
+    "preview.json": {
+      "sha256": "e118a468df58639fab491f442afda403e7e7e506c09924b340862dd5c6c939de",
+      "bytes": 2614
+    }
+  }
+}
