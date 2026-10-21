@@ -40,6 +40,7 @@ mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
+mod projected_open;
 mod resident_canvas;
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
@@ -116,7 +117,7 @@ pub use workbench_layout::{
 #[cfg(test)]
 mod topology_tests;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum PatchbayApplicationRequest {
     EditCurrent {
         expanded_plot_id: conduit_core::ExpandedPlotId,
@@ -208,18 +209,9 @@ impl PatchbayApplicationPort {
         plan_id: PlanId,
         body_plan_id: PlanId,
     ) -> Result<Self, PatchbayApplicationRefusal> {
-        let checked_plot_id = String::from(plot.checked_plot_id.as_str());
-        let entry = PatchbayActivePlot::project(
-            plot,
-            plot.name.clone(),
-            checked_plot_id,
-            plan_id,
-            PatchbayActivePlotState::Playing,
-            true,
-        )?;
-        let mut port = Self::open_active(vec![entry], body_plan_id, None)?;
-        port.selected_plot = Some(0);
-        Ok(port)
+        let graph =
+            PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        Self::open_graph(graph, plan_id, body_plan_id)
     }
 
     pub fn open_active(

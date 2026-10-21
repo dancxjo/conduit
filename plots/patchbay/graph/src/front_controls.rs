@@ -18,10 +18,11 @@ use crate::PatchbayGraphError;
 /// Instrument 1 synth surface without making arbitrary catalog growth free.
 pub const MAX_FACE_CONTROLS: usize = 16;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FaceControlKind {
     /// A Boolean is both a native toggle and a finite two-choice value.
     BooleanChoice {
+        #[serde(deserialize_with = "static_choices")]
         choices: [&'static str; 2],
     },
     TextChoice {
@@ -35,6 +36,7 @@ pub enum FaceControlKind {
     ScalarNumber {
         minimum: i64,
         maximum: i64,
+        #[serde(deserialize_with = "static_unit")]
         unit: &'static str,
     },
     Range {
@@ -61,7 +63,7 @@ impl FaceControlKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceControl {
     pub key: String,
     pub value: ConfigurationValue,
@@ -69,7 +71,7 @@ pub struct FaceControl {
     pub interaction: Option<FaceInteraction>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct FaceInteraction {
     pub contract: InteractionContract,
     pub state: InteractionCurrentState,
@@ -379,4 +381,23 @@ pub fn physical_interaction_value(
         .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
     InteractionValue::new(kind, wrapped)
         .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)
+}
+
+// Static representations are exactly the canonical projector's finite literals.
+// Deserialization never leaks or promotes arbitrary input to a static lifetime.
+fn static_choices<'de, D: serde::Deserializer<'de>>(d: D) -> Result<[&'static str; 2], D::Error> {
+    let values = <[String; 2] as serde::Deserialize>::deserialize(d)?;
+    if values[0] == "false" && values[1] == "true" {
+        Ok(["false", "true"])
+    } else {
+        Err(serde::de::Error::custom("noncanonical Boolean choices"))
+    }
+}
+fn static_unit<'de, D: serde::Deserializer<'de>>(d: D) -> Result<&'static str, D::Error> {
+    let value = <String as serde::Deserialize>::deserialize(d)?;
+    if value == "µ" {
+        Ok("µ")
+    } else {
+        Err(serde::de::Error::custom("noncanonical scalar unit"))
+    }
 }
