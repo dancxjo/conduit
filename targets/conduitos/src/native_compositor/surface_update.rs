@@ -280,16 +280,16 @@ fn visual_paint(
         }
     } else if expression.is_some_and(|value| value.expression.palette == VisualPalette::Editorial) {
         match role {
-            Role::Background => (255, 249, 238),
-            Role::Foreground => (36, 32, 47),
-            Role::Muted => (81, 75, 95),
-            Role::Accent | Role::Selected => (85, 51, 116),
-            Role::Status | Role::Warning => (110, 62, 0),
-            Role::Success => (0, 85, 45),
-            Role::Danger => (140, 20, 35),
-            Role::Focus | Role::Hovered => (0, 67, 140),
-            Role::Surface => (248, 240, 225),
-            Role::Border => (91, 85, 104),
+            Role::Background => (12, 24, 43),
+            Role::Foreground => (231, 236, 243),
+            Role::Muted => (153, 173, 199),
+            Role::Accent | Role::Selected => (114, 180, 255),
+            Role::Status | Role::Warning => (243, 198, 111),
+            Role::Success => (111, 218, 169),
+            Role::Danger => (255, 120, 135),
+            Role::Focus | Role::Hovered => (255, 204, 51),
+            Role::Surface => (19, 35, 55),
+            Role::Border => (84, 113, 150),
         }
     } else {
         match role {

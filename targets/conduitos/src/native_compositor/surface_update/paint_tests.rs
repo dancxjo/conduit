@@ -38,8 +38,8 @@ fn rect(x: i16, y: i16, width: u16, height: u16) -> LayoutRect {
 #[test]
 fn surface_border_and_text_paints_survive_real_raster_and_forced_colors() {
     use conduit_face::{
-        admit_visual_expression, GraphicsCommand, VisualExpression, VisualPalette,
-        VisualUserConstraints,
+        GraphicsCommand, VisualExpression, VisualPalette, VisualUserConstraints,
+        admit_visual_expression,
     };
     for palette in [VisualPalette::Phosphor, VisualPalette::Editorial] {
         for forced_colors in [false, true] {
@@ -88,6 +88,25 @@ fn surface_border_and_text_paints_survive_real_raster_and_forced_colors() {
             assert_eq!(target.read_pixel(23, 3).unwrap(), text);
             assert_ne!(surface, border);
             assert_ne!(surface, text);
+            assert!(contrast(surface, text) >= 4.5);
+            assert!(contrast(surface, border) >= 3.0);
+            for role in [
+                Paint::Muted,
+                Paint::Accent,
+                Paint::Warning,
+                Paint::Success,
+                Paint::Danger,
+            ] {
+                assert!(contrast(surface, visual_paint(format, role, Some(&admitted))) >= 4.5);
+            }
+            // Primary labels use Background ink over an Accent fill, including
+            // the platform's black/white forced-color mapping.
+            assert!(
+                contrast(
+                    background,
+                    visual_paint(format, Paint::Accent, Some(&admitted))
+                ) >= 4.5
+            );
             if forced_colors {
                 assert_eq!(surface, background);
                 assert_eq!(border, text);
@@ -103,7 +122,7 @@ fn surface_border_and_text_paints_survive_real_raster_and_forced_colors() {
 
 #[test]
 fn smooth_geometry_blends_background_and_clipped_redraw_matches_full() {
-    use crate::display::typography::{render_scene, TextRole};
+    use crate::display::typography::{TextRole, render_scene};
     use conduit_face::{FaceIconKey, GraphicsScene, LayoutRect};
     for (width, height) in [(12u16, 10u16), (24, 20), (28, 22)] {
         let bounds = LayoutRect {
@@ -173,10 +192,12 @@ fn smooth_geometry_blends_background_and_clipped_redraw_matches_full() {
                 crate::display::FOREGROUND.1,
                 crate::display::FOREGROUND.2,
             ) | 0xa0000000;
-            assert!(surface
-                .0
-                .iter()
-                .any(|pixel| *pixel != background && *pixel != foreground));
+            assert!(
+                surface
+                    .0
+                    .iter()
+                    .any(|pixel| *pixel != background && *pixel != foreground)
+            );
             assert!(surface.0.iter().all(|pixel| *pixel >> 24 == 0xa0));
             let expected = surface.0;
             let mut clipped = command;
@@ -200,4 +221,25 @@ fn smooth_geometry_blends_background_and_clipped_redraw_matches_full() {
             }
         }
     }
+}
+
+// Test-only sRGB luminance; production palette resolution stays integer-only.
+fn contrast(a: u32, b: u32) -> f64 {
+    let luminance = |pixel: u32| {
+        [16, 8, 0]
+            .into_iter()
+            .zip([0.2126, 0.7152, 0.0722])
+            .map(|(shift, weight)| {
+                let value = f64::from((pixel >> shift) & 255) / 255.0;
+                weight
+                    * if value <= 0.04045 {
+                        value / 12.92
+                    } else {
+                        ((value + 0.055) / 1.055).powf(2.4)
+                    }
+            })
+            .sum::<f64>()
+    };
+    let (a, b) = (luminance(a), luminance(b));
+    (a.max(b) + 0.05) / (a.min(b) + 0.05)
 }

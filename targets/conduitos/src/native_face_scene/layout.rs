@@ -28,6 +28,23 @@ pub(super) struct Row {
 }
 
 impl Row {
+    /// Source-owned primary disclosure becomes a filled action only while available.
+    pub fn emphasized(&self) -> bool {
+        self.role == GraphicsTextRole::Heading
+            && self.paint == GraphicsPaintRole::Accent
+            && self
+                .control
+                .is_some_and(|control| control.argument.is_none())
+    }
+
+    pub fn text_paint(&self) -> GraphicsPaintRole {
+        if self.emphasized() {
+            GraphicsPaintRole::Background
+        } else {
+            self.paint
+        }
+    }
+
     pub fn text_bounds(&self) -> LayoutRect {
         let inset = if self.checkbox.is_some() {
             super::boolean_choice::INSET
@@ -43,6 +60,24 @@ impl Row {
     }
 }
 
+/// Draw panel surfaces before any rows: authored geometry order may differ
+/// from the source reading order restored after layout admission.
+pub(super) fn append_panel_chrome(
+    scene: &mut GraphicsScene,
+    row: &Row,
+    screen: LayoutRect,
+) -> Result<(), FaceSceneError> {
+    if let Some(bounds) = row.panel_bounds {
+        for (paint, shape) in [
+            (GraphicsPaintRole::Surface, GraphicsShapeStyle::RoundedFill),
+            (GraphicsPaintRole::Border, GraphicsShapeStyle::RoundedStroke),
+        ] {
+            push(scene, GraphicsCommand::rect(bounds, screen, paint, shape))?;
+        }
+    }
+    Ok(())
+}
+
 /// Row-local drawing belongs with its measured bounds. A heading marker and
 /// control outline are Mask geometry; neither changes the Face or hit target.
 pub(super) fn append_row_chrome(
@@ -53,17 +88,6 @@ pub(super) fn append_row_chrome(
     showing_details: bool,
     focused: bool,
 ) -> Result<(), FaceSceneError> {
-    if !showing_details && let Some(bounds) = row.panel_bounds {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                bounds,
-                screen,
-                GraphicsPaintRole::Muted,
-                GraphicsShapeStyle::Stroke,
-            ),
-        )?;
-    }
     if !showing_details && row.region_start {
         push(
             scene,
@@ -83,7 +107,22 @@ pub(super) fn append_row_chrome(
     if row.control.is_some() {
         push(
             scene,
-            GraphicsCommand::rect(row.bounds, screen, outline, GraphicsShapeStyle::Stroke),
+            GraphicsCommand::rect(
+                row.bounds,
+                screen,
+                if row.emphasized() {
+                    GraphicsPaintRole::Accent
+                } else if focused || row.paint == GraphicsPaintRole::Muted {
+                    outline
+                } else {
+                    GraphicsPaintRole::Border
+                },
+                if row.emphasized() {
+                    GraphicsShapeStyle::RoundedFill
+                } else {
+                    GraphicsShapeStyle::RoundedStroke
+                },
+            ),
         )?;
     }
     // A second inset outline distinguishes focus even with identical paints
@@ -110,6 +149,22 @@ pub(super) fn append_row_chrome(
             GraphicsTextRole::Title | GraphicsTextRole::Heading
         )
     {
+        if row.emphasized() {
+            push(
+                scene,
+                GraphicsCommand::rect(
+                    row.bounds,
+                    screen,
+                    if focused {
+                        outline
+                    } else {
+                        GraphicsPaintRole::Border
+                    },
+                    GraphicsShapeStyle::RoundedStroke,
+                ),
+            )?;
+            return Ok(());
+        }
         push(
             scene,
             GraphicsCommand::rect(

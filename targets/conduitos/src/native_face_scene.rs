@@ -475,3 +475,7 @@ mod creche_navigation_tests;
 #[cfg(test)]
 #[path = "native_face_scene/observation_tests.rs"]
 mod observation_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/look_tests.rs"]
+mod look_tests;
