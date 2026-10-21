@@ -33,12 +33,13 @@ That graphical startup reaches these responsibilities:
 | `native_compositor`, compositor service | x86_64 native guest owns retained pixels, damage, visual focus/cursor and composition; Root validates scanout | Extend evidence and independent recovery; other architectures still need service backends |
 | Crèche draft service | x86_64 native guest owns canonical BirthDraft, naming and Birth Face projection; Root checks immutable snapshots/selections | Move remaining controller and presentation policy out of Root |
 | Home launcher/command bar | x86_64 Home guest owns canonical HomeModel, keyboard composition and refusals; guest also constructs scene/local Face content; Root validates replies and retains checked lifecycle effects | Relocate remaining general presentation and product control |
-| Ordinary runtime, planner and Body controllers | Root except explicitly protected regions | Protected runtime/service execution with existing semantic ownership |
+| Native Body workset runtime | x86_64 Runtime guest owns the canonical fixed scheduler, values, Cords and Signs; Root checks effect requests and input provenance | Extend to remaining execution paths and establish runtime evidence |
+| Ordinary/Tour runtime, planner and Body controllers | Root except explicitly protected regions | Protected runtime/service execution with existing semantic ownership |
 | USB, PCI, network, audio and display providers | Root; ports, MMIO, device buffers and physical addresses | Exact mediated grants; driver isolation needs DMA containment |
 | `domain/main.rs` | Separate immutable image; explicit command dispatch over a bounded frame, private stack/retained pages | Reuse hardware confinement, extend independently admitted services |
 
 The ordinary separate image handles text/keymap/editor, Morse and timer
-commands. x86_64 additionally has independently admitted compositor, Draft and Home
+commands. x86_64 additionally has independently admitted compositor, Draft, Home and Runtime
 service slots, each with its own address space and a 4 KiB exchange frame.
 The ordinary two-slot pool remains separate. A service architecture must
 account for simultaneous retained services and finite pixel memory; increasing

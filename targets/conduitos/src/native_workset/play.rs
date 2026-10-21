@@ -350,7 +350,12 @@ impl NativeWorksetPlay {
     pub fn cancel(&mut self) -> Result<(), PlayRefusal> {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
-        self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel)?;
+        let result = self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.fence_runtime_failure();
+        }
+        result?;
         self.pending.fill(None);
         self.application_requests.fill(None);
         self.held.fill(None);
@@ -383,7 +388,7 @@ impl NativeWorksetPlay {
         self.pending.fill(None);
         self.application_requests.fill(None);
         self.held.fill(None);
-        self.pure_results.fill(None);
+        self.pure_results.fill_with(|| None);
         self.active_body_play = None;
         self.faces.fill(None);
         self.application_views.fill_with(|| None);

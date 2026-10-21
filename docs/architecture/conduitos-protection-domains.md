@@ -638,7 +638,7 @@ request correlation, canonical scene decoding, exact viewport clips and finite
 Home-subject Face content before assembling the checked outer Face. Outer
 Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
-The closed service pool has independent compositor, Draft and Home slots. Each image
+The closed service pool has independent compositor, Draft, Home and Runtime slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
@@ -653,6 +653,34 @@ preparatory source boundary within Root, not controller hardware isolation.
 Expanded emulator proof, CI acceptance and physical/driver/DMA evidence are
 deferred while local implementation proceeds in draft PR
 [#6196](https://github.com/dancxjo/conduit/pull/6196).
+
+## Native workset execution runtime in progress
+
+The x86_64 native Body workset now constructs its existing canonical
+`FixedScheduler`, numeric Backs, value store, Cords and sign log in a separate
+Runtime executable. Root submits the checked numeric admission and services
+bounded Host Call requests. Host and other-architecture worksets use the same
+shared Back definitions and canonical scheduler locally. Tour/ordinary runtime
+paths and canonical application Host Call adapters still execute in Root; this
+is not a claim that the whole portable engine has left Root.
+
+The Root broker independently checks admitted nodes/calls/byte envelopes,
+pending completion identities, strictly increasing request IDs and at most one
+new request per node between Root step commands. Single-use Root-issued value
+loans bind effect inputs to exact completed bytes and reviewed downstream routes.
+This authority ledger does not choose runnable work or execute another scheduler.
+Initial empty Application/Edit flows have finite startup grants. Terminal errors
+release the guest and fence queued application actions, held inputs and unpublished
+views; a failed completion cannot publish a newly queued lifecycle action.
+
+A targeted native compile passes. Inspection of the first linked guest found a
+392,280-byte dispatch frame and a nested 141,176-byte scheduler construction
+frame, exceeding the initial 256 KiB stack. The corrected closed Runtime profile
+uses a 1 MiB stack and 1 MiB retained metadata; a compile-time assertion bounds
+retained storage. These observations do not establish full peak stack depth,
+execution timing, adversarial containment, physical execution or acceptance.
+Expanded proof and CI validation remain deferred for the local implementation
+workflow in draft #6196.
 
 ## Deliberate limits
 

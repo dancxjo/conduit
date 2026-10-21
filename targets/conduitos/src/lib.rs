@@ -173,6 +173,8 @@ pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) mod protected_runtime;
 #[cfg(conduitos_protected_execution)]
 mod protected_timer;
 pub mod protected_wire_session;

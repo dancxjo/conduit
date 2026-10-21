@@ -27,7 +27,7 @@ pub mod memory {
     pub const EXCHANGE: usize = 0x601000;
     pub const TRANSFER: usize = 0x603000;
     pub const TRANSFER_BYTES: usize = 16 * 1024;
-    pub const METADATA: usize = 0x649000;
+    pub const METADATA: usize = 0x709000;
     pub const METADATA_BYTES: usize = 1024 * 1024;
     pub const STATE: usize = METADATA + 4096;
 }

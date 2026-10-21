@@ -228,6 +228,7 @@ patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
+conduitos-runtime-core = { path = "runtime-core" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-planner = { path = "../../architecture/planner" }
 conduit-protected-line = { path = "../../architecture/protected-line", default-features = false, features = ["noise-session"] }

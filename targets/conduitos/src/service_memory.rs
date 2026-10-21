@@ -80,7 +80,8 @@ impl ServiceMemoryLayout {
                 2 * 1024 * 1024,
                 PAGE_BYTES,
                 16 * 1024,
-                256 * 1024,
+                // Linked initialization frames exceed 512 KiB when nested.
+                1024 * 1024,
                 1024 * 1024,
                 0,
                 0,
