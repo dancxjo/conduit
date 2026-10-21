@@ -245,7 +245,8 @@ mod tests {
                             width,
                             height
                         },
-                        scale
+                        scale,
+                        Typography::EDITORIAL
                     )
                     .unwrap()
                 );
