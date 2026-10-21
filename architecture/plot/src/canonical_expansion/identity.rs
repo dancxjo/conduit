@@ -32,7 +32,13 @@ impl ExpandedCanonicalPlot {
                 "expanded plot identity differs from its canonical primitive graph".into(),
             ));
         }
-        if self.provenance_digest != provenance_digest(&self.source_document_id, &self.provenance) {
+        if self.provenance_digest
+            != provenance_digest(
+                &self.source_document_id,
+                &self.provenance,
+                &self.connection_provenance,
+            )
+        {
             return Err(CanonicalExpansionDiagnostic::new(
                 "CND-FRM-049",
                 "expanded source provenance differs from its exact source document mapping".into(),
@@ -48,6 +54,10 @@ impl ExpandedCanonicalPlot {
                 "expanded Back selections must have unique canonical ordering".into(),
             ));
         }
+        crate::checked_syntax::connection_provenance::validate_connection_provenance(
+            &self.connections,
+            &self.connection_provenance,
+        )?;
         let gears = self
             .gears
             .iter()

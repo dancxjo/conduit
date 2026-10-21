@@ -9,6 +9,8 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod connection_inventory;
+use connection_inventory::ConnectionInventory;
 mod connection;
 use connection::connect;
 mod connection_contract;
@@ -70,7 +72,7 @@ impl core::ops::Deref for TrackedEndpoint {
 #[derive(Debug)]
 struct Fragment {
     gears: Vec<CheckedGear>,
-    connections: Vec<CheckedConnection>,
+    connections: ConnectionInventory,
     shared_pools: Vec<ExpandedSharedPool>,
     provenance: Vec<ExpandedGearProvenance>,
     activations: Vec<ExpandedActivation>,
@@ -198,7 +200,7 @@ fn instantiate_gear(
     realization_backs: &mut Vec<conduit_core::PlotBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
-    connections: &mut Vec<CheckedConnection>,
+    connections: &mut ConnectionInventory,
     shared_pools: &mut Vec<ExpandedSharedPool>,
     provenance: &mut Vec<ExpandedGearProvenance>,
     activations: &mut Vec<ExpandedActivation>,
@@ -635,6 +637,9 @@ fn instantiate_gear(
             realization_backs,
             depth + 1,
         )?;
+        fragment
+            .connections
+            .bind_document(&owner.document.source_document_id);
         for provenance in &mut fragment.provenance {
             if provenance.construction_owner.is_none() {
                 provenance.construction_owner = Some(kind_id.clone());

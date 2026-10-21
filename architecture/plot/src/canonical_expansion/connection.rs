@@ -4,7 +4,8 @@ use super::*;
 pub(super) fn connect(
     source: StageSource,
     sink: StageSink,
-    connections: &mut Vec<CheckedConnection>,
+    origin: crate::ExpandedConnectionOrigin,
+    connections: &mut ConnectionInventory,
     inputs: &mut BTreeMap<String, Vec<TrackedEndpoint>>,
     outputs: &mut BTreeMap<String, TrackedEndpoint>,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
@@ -20,31 +21,34 @@ pub(super) fn connect(
                 gear_id: sink_gear_id,
                 port: sink_port,
             } = sink.endpoint;
-            connections.push(CheckedConnection {
-                source_gear_id,
-                source_port_id: source_port.port_id,
-                sink_gear_id,
-                sink_port_id: sink_port.port_id,
-                value_kind: match connection_track {
-                    conduit_core::ConnectionTrack::Payload => source_port.value_kind.clone(),
-                    conduit_core::ConnectionTrack::NormalClose => {
-                        conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
-                    }
-                    conduit_core::ConnectionTrack::Quiescence => {
-                        conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
-                    }
-                    conduit_core::ConnectionTrack::AbnormalTerminal => source_port
-                        .abnormal_kind
-                        .clone()
-                        .expect("abnormal projection validated its exact Fore kind"),
+            connections.push_with_origin(
+                CheckedConnection {
+                    source_gear_id,
+                    source_port_id: source_port.port_id,
+                    sink_gear_id,
+                    sink_port_id: sink_port.port_id,
+                    value_kind: match connection_track {
+                        conduit_core::ConnectionTrack::Payload => source_port.value_kind.clone(),
+                        conduit_core::ConnectionTrack::NormalClose => {
+                            conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
+                        }
+                        conduit_core::ConnectionTrack::Quiescence => {
+                            conduit_core::kind_id(conduit_core::EMPTY_INFO_ID)
+                        }
+                        conduit_core::ConnectionTrack::AbnormalTerminal => source_port
+                            .abnormal_kind
+                            .clone()
+                            .expect("abnormal projection validated its exact Fore kind"),
+                    },
+                    track: connection_track,
+                    temporal: if connection_track == conduit_core::ConnectionTrack::Payload {
+                        source_port.temporal
+                    } else {
+                        conduit_core::PortTemporal::Value
+                    },
                 },
-                track: connection_track,
-                temporal: if connection_track == conduit_core::ConnectionTrack::Payload {
-                    source_port.temporal
-                } else {
-                    conduit_core::PortTemporal::Value
-                },
-            });
+                origin,
+            );
         }
         (
             StageSource::FaceInput(name, value_type, temporal, abnormal_kind, track),

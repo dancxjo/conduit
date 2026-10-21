@@ -136,7 +136,8 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
         &fragment.provenance,
         backs,
     )?;
-    let mut connections = fragment.connections;
+    let (mut connections, connection_provenance) =
+        fragment.connections.finish(&document.source_document_id)?;
     let mut shared_pools = fragment.shared_pools;
     let mut provenance = fragment.provenance;
     let mut activations = fragment.activations;
@@ -168,7 +169,11 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
         &realization_backs,
         &activations,
     );
-    let provenance_digest = provenance_digest(&document.source_document_id, &provenance);
+    let provenance_digest = provenance_digest(
+        &document.source_document_id,
+        &provenance,
+        &connection_provenance,
+    );
     Ok(ExpandedAuthoringPlot {
         expanded: ExpandedCanonicalPlot {
             source_document_id: document.source_document_id.clone(),
@@ -178,6 +183,7 @@ pub fn expand_canonical_plot_for_authoring_with_backs(
             completion: plot.completion,
             gears,
             connections,
+            connection_provenance,
             shared_pools,
             provenance,
             provenance_digest,

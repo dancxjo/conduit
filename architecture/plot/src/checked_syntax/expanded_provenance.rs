@@ -17,6 +17,7 @@ pub struct ExpandedGearProvenance {
 pub(crate) fn provenance_digest(
     source_document_id: &conduit_core::SourceDocumentId,
     provenance: &[ExpandedGearProvenance],
+    connections: &[crate::ExpandedConnectionProvenance],
 ) -> String {
     let mut canonical = String::from("canonical-expansion-provenance");
     push(&mut canonical, source_document_id.as_str());
@@ -29,6 +30,15 @@ pub(crate) fn provenance_digest(
         push(&mut canonical, &row.source_span.end.to_string());
         push(&mut canonical, &row.source_span.line.to_string());
         push(&mut canonical, &row.source_span.column.to_string());
+    }
+    push(&mut canonical, "connection-origins-v1");
+    let mut origins = connections
+        .iter()
+        .map(super::connection_provenance::provenance_key)
+        .collect::<Vec<_>>();
+    origins.sort();
+    for origin in origins {
+        push(&mut canonical, &origin);
     }
     hash_string(&canonical)
 }

@@ -851,3 +851,34 @@ canonical-encoding test pass. Full workspace tests and Clippy for the extraction
 remain explicitly deferred tonight. These extents are not yet propagated through
 flattened connections or projected into Patchbay: #6202 and #6201 remain open.
 No CI, platform journey, artifact rebuild or closure claim accompanies this work.
+
+## Preserve connection origins during expansion (#6202)
+
+Extracted connection materialization from the large graph module in a separate
+commit. Added a preparation-only connection inventory that retains origin beside
+its exact connection while recursively merging fragments. Each checked Cord
+attributes only previously unowned rows created during its expansion; it never
+infers ownership from endpoint names. Selected Backs bind their lexical Source
+document before merging, so nested/local child origins survive caller wiring.
+Root expansion binds remaining local origins to the root Source document.
+
+Expanded connection provenance contains the full ordered connection contract,
+Source document, checked Plot, Source Plot name, instance path and whole checked
+Cord/route-arm span. Cord-stage wiring, relational-operand wiring and generated
+semantic-expression wiring are distinct classifications. `CordStages` describes
+checked stages, not a claim that normalized Source was literally authored in that
+form. Internal generated wiring is not promoted to a directly editable declaration.
+
+The existing expanded primitive graph identity remains unchanged by connection
+location metadata. The separate provenance digest now includes a versioned,
+length-prefixed connection-origin section, with exact contract/track, all span
+coordinates and individually encoded path segments. Validation checks both that
+digest and one provenance row per exact connection, including multiplicity.
+Missing origin during compiler finalization fails explicitly.
+
+Focused local checks pass: existing selected-Back expansion test; two new tests
+for a local Plot inside a selected Back, fan-out and missing/span/track mutation;
+and the existing nested semantic-expression test expanded to check its generated
+connection origin. No full suite, workspace Clippy, CI, platform journey or
+artifact rebuild ran. Graph/Face propagation and editor use remain pending;
+#6202 and #6201 remain open.

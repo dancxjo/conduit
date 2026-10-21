@@ -1,5 +1,7 @@
 mod cord;
 pub use cord::{CheckedCanonicalCord, CheckedCordStage};
+pub(crate) mod connection_provenance;
+pub use connection_provenance::{ExpandedConnectionOrigin, ExpandedConnectionProvenance};
 mod expanded_provenance;
 pub(crate) use expanded_provenance::provenance_digest;
 pub use expanded_provenance::ExpandedGearProvenance;
@@ -264,6 +266,7 @@ pub struct ExpandedCanonicalPlot {
     pub completion: PlotCompletionPolicy,
     pub gears: Vec<crate::CheckedGear>,
     pub connections: Vec<crate::CheckedConnection>,
+    pub connection_provenance: Vec<ExpandedConnectionProvenance>,
     pub shared_pools: Vec<ExpandedSharedPool>,
     pub provenance: Vec<ExpandedGearProvenance>,
     pub provenance_digest: String,
