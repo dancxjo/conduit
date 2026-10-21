@@ -1,4 +1,4 @@
-//! Closed finite memory profiles for two x86_64 service address spaces.
+//! Closed finite memory profiles for independently owned x86_64 services.
 //!
 //! These ranges do not install mappings or establish isolation. A backend must
 //! map image segments RX/RO, private ranges RW+NX and leave every gap unmapped.
@@ -11,12 +11,14 @@ pub const COMPOSITOR_PIXEL_BYTES: u64 = 8 * 1024 * 1024;
 pub enum ServiceProfile {
     Compositor,
     Draft,
+    Home,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
         match self {
             Self::Compositor => ServiceMemoryLayout::compositor(),
             Self::Draft => ServiceMemoryLayout::draft(),
+            Self::Home => ServiceMemoryLayout::home(),
         }
     }
 }
@@ -61,8 +63,15 @@ impl ServiceMemoryLayout {
     }
     /// A bounded draft-state ceiling, not proof that a full Crèche implementation fits.
     pub const fn draft() -> Self {
+        Self::controller(ServiceProfile::Draft)
+    }
+    /// Same finite controller ceiling, independently owned by the Home service.
+    pub const fn home() -> Self {
+        Self::controller(ServiceProfile::Home)
+    }
+    const fn controller(profile: ServiceProfile) -> Self {
         Self::from_sizes(
-            ServiceProfile::Draft,
+            profile,
             [
                 2 * 1024 * 1024,
                 PAGE_BYTES,
@@ -109,14 +118,14 @@ impl ServiceMemoryLayout {
     pub const fn pixels(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[5]),
-            ServiceProfile::Draft => None,
+            ServiceProfile::Draft | ServiceProfile::Home => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
     pub const fn scratch(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[6]),
-            ServiceProfile::Draft => None,
+            ServiceProfile::Draft | ServiceProfile::Home => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -125,7 +134,7 @@ impl ServiceMemoryLayout {
     pub const fn range_count(self) -> usize {
         match self.profile {
             ServiceProfile::Compositor => 7,
-            ServiceProfile::Draft => 5,
+            ServiceProfile::Draft | ServiceProfile::Home => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -182,7 +191,7 @@ impl ServiceMemoryLayout {
 }
 
 /// ELF admitted against a fixed service profile. Image storage remains RX/RO.
-/// Draft alone may initialize the first metadata page from one bounded RW/NX
+/// Draft and Home may initialize the first metadata page from one bounded RW/NX
 /// LOAD; its BSS and all other mutable state come from zeroed private grants.
 /// The x86_64 backend must charge its page tables and trap stack in addition to
 /// `mapped_bytes`; neither is a user-visible allocation from this descriptor.
@@ -200,7 +209,7 @@ impl<'a> ServiceImage<'a> {
         layout.validate()?;
         let private = match profile {
             ServiceProfile::Compositor => None,
-            ServiceProfile::Draft => Some(PrivateDataWindow {
+            ServiceProfile::Draft | ServiceProfile::Home => Some(PrivateDataWindow {
                 start: layout.metadata().start(),
                 bytes: PAGE_BYTES,
             }),
