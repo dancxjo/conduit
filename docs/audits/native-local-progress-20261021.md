@@ -103,3 +103,15 @@ successfully at source c135ca3eb. The local ISO is
 No QEMU journey, acceptance suite or CI job was launched. Interactive
 `cargo +stable xtask make conduitos live-boot x86_64` requires a graphical display;
 this shell has none. The image build establishes compilation and packaging only.
+
+## Shared graph provenance correction
+
+The single-aspect graph projection now explicitly retains every property of its
+Gear/Port/Cord subjects. Previously it reused the workbench aspect filter, which
+excluded Plan/Play provenance from Structure despite native Details retaining it.
+The multi-aspect workbench keeps its existing partition. Exact IDs/endpoints keep
+their existing disclosure depths; no new authority or graph store is introduced.
+This is a local implementation correction for #5516/#5518, not cross-Mask proof.
+The previously built ISO predates this correction.
+`cargo +stable check -p patchbay-application` passed for this correction;
+no test suite, image rebuild or proof journey was run.
