@@ -225,6 +225,12 @@ pub(crate) mod virtio_tcp_stream;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tls;
 #[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_tls;
+#[cfg(all(
     target_arch = "x86_64",
     any(feature = "virtio-net-proof", feature = "hosted-tools")
 ))]
