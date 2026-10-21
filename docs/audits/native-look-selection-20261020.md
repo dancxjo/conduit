@@ -49,3 +49,27 @@ Inspected compact editorial, spacious editorial and compact engineering images. 
 At 100% the original pinned grayscale coverage remains byte-for-byte the sampling path. At larger admitted scales, fixed four-tap integer bilinear coverage filtering replaces repeated nearest-neighbor texels. Sampling uses destination pixel centers and clamps within the selected glyph's original atlas rectangle, never borrowing a neighboring glyph or creating a new ink extent. RGB blending against retained pixels remains unchanged. The filter allocates nothing, uses no floating-point operations and reads at most four coverage values per output sample. Glyph metrics, bearings, advances, measured extents, scale admission, assets and budgets stay unchanged; neither a font parser nor a new atlas is added.
 
 After this refinement, 137 non-overlapping checks pass: 21 typography, 97 native scene, 15 compositor and 4 arrival tests; two existing manual compositor performance observations remain ignored. Checks include numerical reconstruction, unchanged metrics/default sampling, real binary-fallback gray coverage at enlarged scales, bounded glyph ink, actual layout/raster guards, retained damage equality, state transfer and current-Show draft submission. These are the new `5628-scaled-font-filter.log` / `5628-filtered-*.log` records in the evidence directory. A fresh normal-product image and visual check follow before claiming filtered-font product success.
+
+
+## Filtered-font ordinary product acceptance for this slice
+
+Both canonical commands exited 0 on clean unchanged source **56d2dfefbd0d95f0a969eb77d5e078a5d638243d**:
+
+```sh
+CARGO_PROFILE_DEV_DEBUG=0 cargo xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image --locked
+CARGO_PROFILE_DEV_DEBUG=0 cargo xtask make host verify /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image --journey --locked
+```
+
+Final ISO SHA-256 is `a8e2268bf33d7b209182d9a60567b00df9e85898b58125f4a3687b9d3e1f53ef`. The separately resolved guest image binding is `image:sha256:c52750cb2bd5086bb41ded70bc88006ddd73a77e767b6a9f5bbe38f9c14e7c03`; these identities are not interchangeable.
+
+All 26 actual captures and the original 22 lifecycle/interaction checkpoints plus four real keyboard Look transitions passed. The source Face, checked component and recipe stayed identical across the four views, with fresh Shows, no Body action and return to the initial planned configuration. Render counts were 47, 24, 24, 47 commands, below 48. All 26 PNG sizes/file hashes and decoded RGBA hashes independently matched the original manifest. All three generated typography resource files byte-for-byte match the previously accepted resource ledger, including 761,651 coverage bytes; no font asset grew. [Complete raw evidence, hashes and PNGs](evidence/native-look-selection-20261020/filtered-product-capture/).
+
+Inspected the real 125% editorial frame against the earlier nearest-neighbor frame. Enlarged serif/Sans text is visibly smoother; the source field and focus remain intact. Layout/continuation is unchanged by the filter: the spacious profile legitimately reports 1/3, and no claim is made to fix explicitly skipped #6158 or redesign #6159 arrangement.
+
+![Filtered 125% native editorial Crèche](evidence/native-look-selection-20261020/filtered-product-capture/x86_64/journey-frames/creche-editorial-spacious.png)
+
+Only manifest-bound PNGs are part of these source-scoped archives. An old failure PNG left in the shared target directory by the cedf08fb2 verifier refusal was excluded from the earlier successful source archive; its actual failed trace remains preserved separately. This avoids attributing an unreferenced older frame to 76e6e48c8.
+
+The incoming dev integration d79897e6a contains import formatting and moves the unchanged rounded-shape function before its tests. It is integrated without rebasing these captured sources. Captures continue to name 56d2dfefb; the later formatting/evidence/merge commits are not relabeled as captured trees.
+
+Remaining #5628 work includes independent Todo owner-window controls and admitted icon placement, plus the issue's complete fallback/resource acceptance. Focus/accessibility #5629 and full product matrix #5608 remain their own later serial gates. Physical/human evidence is false, full CI was bypassed by user instruction, and no cosmetic speedup or parent completion is claimed.

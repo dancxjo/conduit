@@ -1,0 +1,100 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `target/debug/conduit-xtask-dispatch make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image --locked`
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 32.87s
+     Running `target/debug/xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image --locked`
+    Checking typenum v1.20.1
+    Checking cpufeatures v0.2.17
+    Checking cfg-if v1.0.5
+    Checking subtle v2.6.1
+    Checking memchr v2.8.3
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling libm v0.2.16
+   Compiling thiserror v2.0.20
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+    Checking itoa v1.0.18
+   Compiling generic-array v0.14.7
+    Checking signature v2.2.0
+    Checking tinyvec v1.13.3
+   Compiling curve25519-dalek v4.1.3
+    Checking minicbor v2.3.0
+    Checking opaque-debug v0.3.1
+    Checking arrayvec v0.7.8
+    Checking rand_core v0.6.4
+    Checking zeroize v1.9.0
+    Checking bitflags v2.13.2
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/language)
+    Checking ed25519 v2.2.3
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/human)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/audio)
+    Checking cobs v0.3.0
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/purpose)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/text)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/web)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/education)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/ai)
+    Checking noise-protocol v0.2.1
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/wire)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/home)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/tutorial)
+    Checking limine v0.5.0
+    Checking unicode-normalization v0.1.25
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+    Checking universal-hash v0.5.1
+    Checking aead v0.5.2
+    Checking digest v0.10.7
+    Checking cipher v0.4.4
+    Checking poly1305 v0.8.0
+    Checking sha2 v0.10.9
+    Checking chacha20 v0.9.1
+    Checking chacha20poly1305 v0.10.1
+    Checking noise-rust-crypto v0.6.2
+    Checking ed25519-dalek v2.2.0
+    Checking x25519-dalek v2.0.1
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/protected-line)
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/assigned-plan)
+    Checking postcard v1.1.3
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plan-lowering)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/composite)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/planner)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/observatory)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/mechanisms/protocols/midi)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/mechanisms/implementations/synth)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/birth)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos/mask-offer)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/catalog)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/tour)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/application)
+    Finished `dev` profile [unoptimized] target(s) in 38.81s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+    Finished `release` profile [optimized] target(s) in 42.11s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/conduitos/x86_64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/conduitos/x86_64/conduitos.iso
+BUILT image:sha256:a8e2268bf33d7b209182d9a60567b00df9e85898b58125f4a3687b9d3e1f53ef (DiskImage)
+IMAGE: /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image/conduitos-x86_64.iso
+manifest: /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-filtered-1/image/build-manifest.json

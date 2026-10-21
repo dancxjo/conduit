@@ -1,8 +1,8 @@
 //! Actual product preference transitions, joined to complete Face/Show receipts.
 use super::super::{qemu_artifacts::Artifacts, qmp};
-use super::{ConduitosError, face_correspondence, io_error, journey_input, refusal};
+use super::{face_correspondence, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::{Face, Show};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 const PREFIX: &str = "CONDUIT_NATIVE_COMPONENT_REALIZATION ";
 
