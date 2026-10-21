@@ -1,0 +1,20 @@
+{
+  "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+  "target": "conduitos library",
+  "result": "test result: ok. 1226 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 549.65s",
+  "ignored": [
+    "test display::raw::tests::volatile_scanout_performance ... ignored, manual optimized volatile scanout observation",
+    "test native_compositor::frame_composition::differential::span_compositor_performance ... ignored, manual optimized compositor performance observation",
+    "test native_compositor::raster_reuse::performance::retained_raster_performance ... ignored, manual optimized retained raster observation"
+  ],
+  "raw_section": "native-library.log",
+  "bytes": 131951,
+  "sha256": "01c17a6f2eded00990cccd4dc6b0b4e1c2d901b0bd4763a831b486c6c9996d9e",
+  "counts": {
+    "passed": 1226,
+    "failed": 0,
+    "ignored": 3,
+    "filtered": 0
+  },
+  "boundary": "Completed native library section extracted byte-for-byte from still-running full workspace log; not whole-workspace gate proof."
+}

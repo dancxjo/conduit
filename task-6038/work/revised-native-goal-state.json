@@ -106,8 +106,9 @@
     "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
     "repaired_merged_workspace": {
       "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
-      "state": "running;correspondenceFmtFullStrictClippyPassed;BirthJournalRegressionPassed;testsStillExecuting",
-      "directory": "outputs/native-acceptance-58979c509"
+      "state": "running;correspondenceFmtFullStrictClippyPassed;BirthRecoveryPassed;nativeLibrary1226Passed0Failed3Ignored;integrationTargetsContinuing",
+      "directory": "outputs/native-acceptance-58979c509",
+      "native_checkpoint": "outputs/native-acceptance-58979c509/native-library-checkpoint.json"
     }
   },
   "stable_through_stage06": {
@@ -168,9 +169,9 @@
     "branch": "codex/5628-selected-typography",
     "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
     "worktree": "work/selected-typography-look",
-    "state": "nativeFocusedPassOnf4Andf43;firstFailuresRetained;StrictClippyAndFailureChecksNext;NoProductProof",
+    "state": "nativeFocusedPassEarlierSources;ClippyFixAndActualPreSwapTestChecksLive;configuredLayoutExtractionQueuedFor507L;NoProductProof",
     "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
-    "head": "f43bdf1e53bdfd27ad4f56afa701b1e7745dfd90",
+    "head": "d402ec7490db3b13b202e5c398d7671f47950de8",
     "origin_verified": true,
     "target_cache": "work/selected-typography-host-target",
     "root_review": "work/5628-root-source-review.md",
@@ -213,7 +214,7 @@
     "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json"
   },
   "latest_ci_observation": {
-    "time": "2026-10-21T01:36:00Z",
+    "time": "2026-10-21T01:51:00Z",
     "old_6a8_run": 39519886483,
     "old_6a8_state": "terminalFailure;knownPre6171ProductsOnly;browserFoundationPassed",
     "current_dev": "77919bfa492626e0cbc566b77f7cbc32f74088b7",
@@ -221,11 +222,13 @@
     "state": "terminalFailureQuickFmtOnly;laterProofNotRun",
     "repair": {
       "pr": 6187,
-      "head": "ac2d854f3c873d45d453e72dcc87e62d72a6e223",
-      "candidate": 39527481470,
-      "state": "quickPassed;admissionTargetsRunning;autoMergeEnabled;existingOwnerNoDuplicate"
+      "head": "6c6737c7c0d3c701ce9505c18e75d5877923fceb",
+      "candidate": 39529095181,
+      "state": "running;autoMergeEnabled;existingOwner",
+      "superseded_candidate": 39527481470,
+      "superseded_state": "cancelled after admission items_after_test_module rounded.rs;ownedRepairAdvanced"
     },
-    "next_observation_not_before": "2026-10-21T01:51:00Z"
+    "next_observation_not_before": "2026-10-21T02:06:00Z"
   },
   "patchbay_preparation": {
     "issue": 5516,
