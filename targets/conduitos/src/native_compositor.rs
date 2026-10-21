@@ -5,6 +5,7 @@ mod damage;
 mod frame_composition;
 mod input_routing;
 mod interaction_affordance;
+mod paint;
 mod raster_reuse;
 mod scanline;
 mod scanout_acknowledgement;
