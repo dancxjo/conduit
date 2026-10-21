@@ -119,3 +119,7 @@ impl TourSession {
         }))
     }
 }
+
+#[cfg(test)]
+#[path = "patchbay_face_tests.rs"]
+mod tests;

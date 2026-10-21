@@ -501,3 +501,15 @@ Final browser runtime compilation passes (3 seconds). No tests, image rebuild,
 WASM/browser/QEMU enactment or CI job ran. Actual observation enactment, current
 Show feedback, exact typed ingress/storage reservation and final consumer switch
 remain #6201 acceptance work.
+
+## Browser observation CPU checks
+
+Two focused Body-session checks pass: observation yields a validated current
+Body Face with unavailable actions and no Show, repeated reads preserve pending
+effects and active Play identity, and missing optional biography evidence leaves
+legacy Patchbay startup working while refusing optional observation. The first
+run failed before observation because the general fixture omitted the reviewed
+inventory Source; binding the actual Patchbay Source corrected the fixture.
+Both logs remain in the task work directory. These checks do not enact WASM,
+DOM, a Host acknowledgement or typed production ingress. No broad suite or CI
+job was launched.
