@@ -33,3 +33,29 @@ and explain any remaining required continuation. Do not close from a differently
 sized or cropped screenshot. The existing selected-typography reconciliation is
 frozen on origin while focused checks run; do not silently fold this repair into
 that change. Serial delivery remains through #5994; broader #6159 stays separate.
+
+## Implementation seam confirmed from the allocator
+
+`panels::admit` currently computes `lane`, `width`, `text_width` and
+`maximum_height` once before a field cluster or text chunk can call
+`Flow::next_page`. A continuation policy must therefore change the measurement
+loop, not only `Flow::bounds` or `finish_band`. Otherwise the full-width panel
+would still wrap at half width and its control geometry would disagree.
+
+Use a page-local lane arrangement fixed before the first committed row. The
+bounded prepared item sequence already exposes the remaining authored regions;
+no new persistent document model is necessary. A continuation begun after the
+first authored region is exhausted can select one full-width lane for the
+remaining region. Freeze that arrangement for the page and derive panel bounds,
+content width, inset and measured field demand from the same arrangement.
+Re-evaluate an uncommitted field/chunk after a page transition. Do not retroactively
+rewrap or relocate rows already admitted to a page, and never retry a Source
+interaction as part of layout. Split text chunks preserve original item/chunk
+reading order through the existing restoration permutation.
+
+Required deterministic distinctions: height-only break, row-only break and
+command-only break; intact short field cluster at a transition; a field too large
+for one page; multibyte wrapping; paired regions on the initial page versus sole
+remaining region on continuation; every generated hit contained by its painted
+control. Existing chrome and panel-outline command reservations remain charged.
+This is an implementation plan, not an implemented or tested repair.

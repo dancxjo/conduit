@@ -1,0 +1,14 @@
+{
+  "parent": "fb3be79136e0dedf109d4a876364082b123a5bb6",
+  "scope": "Explicit-source verifier and old-source recheck only; no current-source guest claim",
+  "files": [
+    {
+      "source": "work/6158-reopened-flow-audit.md",
+      "tree_path": "task-6038/work/6158-reopened-flow-audit.md",
+      "bytes": 3976,
+      "sha256": "df55173f2467f1abaa78cb2f54a2c31c68e7f13db36a91479c2a56adbca091f7",
+      "mode": "100644",
+      "blob": "d37cf4acb3ea979edfb223d8e5a2060abd3bca1b"
+    }
+  ]
+}
