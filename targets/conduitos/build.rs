@@ -11,6 +11,8 @@ mod domain_image_build;
 #[allow(dead_code)]
 #[path = "src/domain_image.rs"]
 mod image_validation;
+#[path = "build/mask_image.rs"]
+mod mask_image;
 #[path = "build/network_image.rs"]
 mod network_image;
 #[path = "build/runtime_image.rs"]
@@ -31,6 +33,7 @@ fn main() {
     runtime_image::generate();
     application_image::generate();
     network_image::generate();
+    mask_image::generate();
     compositor_hostile_images::generate();
 
     println!("cargo:rerun-if-changed=firmware/linker/x86_64.ld");

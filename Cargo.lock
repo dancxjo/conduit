@@ -2854,6 +2854,7 @@ dependencies = [
  "conduitos-application-core",
  "conduitos-compositor-core",
  "conduitos-creche-core",
+ "conduitos-mask-core",
  "conduitos-network-core",
  "conduitos-runtime-core",
  "ed25519-dalek",
@@ -2903,6 +2904,19 @@ dependencies = [
  "conduit-core",
  "conduit-face",
  "conduit-home-model",
+ "conduit-human",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+]
+
+[[package]]
+name = "conduitos-mask-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
  "conduit-human",
  "serde",
  "serde-json-core",

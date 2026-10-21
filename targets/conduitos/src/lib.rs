@@ -183,6 +183,8 @@ pub mod protected_region;
 pub mod protected_relay_support;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) mod protected_runtime;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected_workspace_mask;
 #[cfg(conduitos_protected_execution)]
 mod protected_timer;
 pub mod protected_wire_session;

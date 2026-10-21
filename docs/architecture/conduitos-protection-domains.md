@@ -638,8 +638,8 @@ request correlation, canonical scene decoding, exact viewport clips and finite
 Home-subject Face content before assembling the checked outer Face. Outer
 Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
-The closed service pool has independent compositor, Draft, Home, Runtime, Application and Network slots. Each image
-is bound to its profile; instance and request identities fence the bounded wire
+The closed service pool has independent compositor, Draft, Home, Runtime,
+Application, Network, OrdinaryRuntime and Mask slots. Each image is bound to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
 The standalone guest compiles with separate immutable code/constants and a
@@ -660,10 +660,14 @@ The x86_64 native Body workset now constructs its existing canonical
 `FixedScheduler`, numeric Backs, value store, Cords and sign log in a separate
 Runtime executable. Root submits the checked numeric admission and services
 bounded Host Call requests. Host and other-architecture worksets use the same
-shared Back definitions and canonical scheduler locally. Tour/ordinary runtime
-paths still execute in Root; native application Host Calls cross a separate
-Application service boundary described below. This is not a claim that the
-whole portable engine has left Root.
+shared Back definitions and canonical scheduler locally. The ordinary/Tour text
+path now uses the same guest executable through an independent OrdinaryRuntime
+lease, preserving its original three-node scheduler and shared canonical text
+Backs. Root admits numeric plans and exact literal/input loans; guest statistics
+preserve the existing decision, Sign and pending-call receipts. Time/Morse and
+other execution paths remain in Root. Native application Host Calls cross a
+separate Application service boundary described below; the whole portable engine
+has not left Root.
 
 The Root broker independently checks admitted nodes/calls/byte envelopes,
 pending completion identities, strictly increasing request IDs and at most one
@@ -729,11 +733,29 @@ bytes use a 16 KiB transfer window; the existing 1,024-byte handshake,
 Root retains authenticated TLS/TCP streams, certificate and endpoint admission,
 cryptographic seed custody, deadlines, polling and actual writes. It checks exact
 instance/sequence replies, contiguous chunks, read capacity and positive bounded
-parser progress. Protocol and IO failures release the connection's guest; they
-do not silently restart it or fall back to a privileged codec. This moves a
+parser progress. Local argument bounds refusals preserve the connection; an
+operation-matched canonical codec refusal permits only its explicit Close.
+Protocol, service and IO failures release the connection's guest; they do not
+silently restart it or fall back to a privileged codec. This moves a
 parser boundary, not TLS, a driver or DMA authority. The Network profile has a
 2 MiB image, 1 MiB stack and 1 MiB metadata ceiling. These are engineering bounds;
 current execution, timing, fragmentation and containment acceptance remain open.
+
+## Retained workspace Mask service in progress
+
+Workspace paging, focus and native scene layout now have an independent Mask
+service lifetime across Body Play/Lull transitions. The guest uses the original
+canonical row splitting, action navigation and scene layout algorithms. Root
+supplies bounded read-only presentation facts and the current application view;
+page/selection state is retained in the guest rather than a second Root model.
+
+Root binds replies to the current owner, view, foreground identity, revision and
+extent. Selected nodes resolve only through the current validated Root view; a
+guest cannot mint action or lifecycle authority. Canonical scene decoding and
+clip checks precede rendering. Root still owns semantic Face/Mask/Show admission,
+publication counters and physical scanout. Terminal faults do not install a
+replacement behind the same owner. Compilation is not execution or timing proof;
+expanded runtime and containment acceptance remain open.
 
 ## Deliberate limits
 
