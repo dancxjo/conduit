@@ -17,17 +17,6 @@
     5
   ],
   "previous_proof_source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
-  "owner_native_matrix": {
-    "journeys": 3,
-    "captures": 27,
-    "independent_owner_reads": 15,
-    "origin_packet": "c0dd7027b4aaf3ada89515481f295d75eac41125",
-    "limitations": [
-      "local source-bound, no stable/physical/human claim",
-      "U+0174 replacement glyph",
-      "full fallback/resource/accessibility matrix still incomplete"
-    ]
-  },
   "workspace_253": "Complete supported52gate commandPASS0,6167.66s; required core10092passed/0failed/48ignored; native1240/0/3;86warning-header occurrences preserved; exact253 only",
   "current_source": {
     "commit": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
@@ -35,27 +24,26 @@
     "branch": "codex/5628-current-owner-reconciliation",
     "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "status": "179nativefocused/1manualignore,wire8/fmt pass;normal product+canonical journey26captures pass;sealed Linuxrelease/Handbook pipeline running;new full workspace queued after253terminalPASS",
-    "proof_driver": "Prepared explicitdb1 source pin, sealed Linux/browser file-hash preflight and exact packaged UI equality, provisioning source guard, five bounded scenarios incl shifted density/palette pending-edit refusal. Syntax/synthetic checks only; no current-source owner journey started.",
+    "status": "179 focused native checks,wire8/fmt,normal product+canonical26capture journey,Linux release,Handbook PASS; five actual owner journeys mechanically/visually verified; strict fullworkspace FAILED before tests on obsolete lint expectation",
+    "proof_driver": "Executed five fresh isolated installed-owner/browser/normal-QEMU journeys, all stopped with private state preserved",
     "normal_product": {
       "build_exit": 0,
       "canonical_journey_exit": 0,
       "captures": 26,
       "image_sha256": "0ead10806a141a7d3f504679fd75b818bc440ad1cc623d865b4875954e2d5aac",
       "archive": "bf0cc716508b49e2b09b11f0d89779291cee78cd",
-      "owner_typography_proof": false
+      "owner_typography_proof": true
     },
-    "full_workspace": "Started at clean exactdb1 with exclusive selected-typography-host-target after253 sealed; worker session16185; no current full-gate claim"
+    "full_workspace": "FAIL strictClippy unfulfilled expect; tests not reached; negative packet7d6d7ce62afb4bf1e3a55c8beeb13077e5b2e343"
   },
   "next": [
-    "Finish and separately prove reopened #6158 five-choice page-flow repair; keep #6162 regression intact",
-    "Finish focused/current-head validation",
-    "Rebuild and prove independent axes + typed draft refusal on current source",
-    "Complete remaining native fallback/resource acceptance",
-    "Complete Patchbay exact Gear/Port/Cord navigation and cross-Mask/QEMU proof",
-    "Exact accepted-tree closure audit for remaining issues"
+    "Complete full validation on lint-corrected source, reconcile current dev and CI repair before feature admission",
+    "Finish reopened #6158 five-choice page-flow repair with existing field cohesion intact",
+    "Complete native fallback/resource acceptance including #6190",
+    "Complete Patchbay Gear/Port/Cord navigation and cross-Mask/QEMU proof",
+    "Exact accepted-tree closure audit"
   ],
-  "timestamp": "2026-10-21T03:52:39Z",
+  "timestamp": "2026-10-21T04:41:51.870294+00:00",
   "reopened_6158": {
     "state": "OPEN verified live",
     "reopening_url": "https://github.com/dancxjo/conduit/issues/6158#issuecomment-6303396108",
@@ -79,5 +67,45 @@
     "state": "OPEN; not implemented",
     "scope": "native admission of existing reviewed required-item component, actual Source completion induces explicit graphical fallback",
     "parent": 5608
-  }
+  },
+  "previous_owner_native_matrix": {
+    "journeys": 3,
+    "captures": 27,
+    "independent_owner_reads": 15,
+    "origin_packet": "c0dd7027b4aaf3ada89515481f295d75eac41125",
+    "limitations": [
+      "local source-bound, no stable/physical/human claim",
+      "U+0174 replacement glyph",
+      "full fallback/resource/accessibility matrix still incomplete"
+    ]
+  },
+  "owner_native_matrix": {
+    "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+    "journeys": 5,
+    "captures": 45,
+    "independent_owner_reads": 25,
+    "visual_review": "complete including exact decoded-pixel equivalence for eight scale-restore frames",
+    "origin_packet": "acc585e821968c58cd16c84696025c0ec3aae291",
+    "scenarios": [
+      "axis-density",
+      "axis-palette",
+      "typography",
+      "forced-colors",
+      "scale-restore"
+    ],
+    "limitations": [
+      "local source-bound, no stable/physical/human claim",
+      "U+0174 replacement glyph",
+      "full fallback/resource/accessibility matrix still incomplete"
+    ]
+  },
+  "validation_repair": {
+    "commit": "31ef6eeeb84ccfaaef75dedd7b8add8d3d2581bf",
+    "tree": "41785b515dbf72ea92421bf3ef13893694714d1a",
+    "branch": "codex/5628-remove-stale-lint-expectation",
+    "delta": "remove four-line obsolete expect only",
+    "full_workspace": "running worker80781, exclusive selected cache",
+    "origin_verified": true
+  },
+  "observed_dev": "1e056b899bd9a1bcdd7b27f8930c5194e6d9e558"
 }

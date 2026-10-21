@@ -1,0 +1,22 @@
+{
+  "parent": "acc585e821968c58cd16c84696025c0ec3aae291",
+  "scope": "Explicit-source verifier and old-source recheck only; no current-source guest claim",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 4621,
+      "sha256": "ba8d5bcd2b000c82082476d52b0376659ee68a91c64e319f614d942efcbebd76",
+      "mode": "100644",
+      "blob": "18bced0c30ae2d5294a79c47ca7cadcbea968496"
+    },
+    {
+      "source": "work/5628-current-owner-pr-body.md",
+      "tree_path": "task-6038/work/5628-current-owner-pr-body.md",
+      "bytes": 3598,
+      "sha256": "76ef71e7efe1b90c8c05a06ff341c27e26c4d1a148ff81bd88f51160eb9c5c14",
+      "mode": "100644",
+      "blob": "e3865128eef46e67771eec16cd78cce628c347dc"
+    }
+  ]
+}
