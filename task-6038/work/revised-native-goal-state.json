@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "normal253BuildPassed;OwnerReleaseAndHandbookPipelineAndCanonicalJourneyRunning;WorkspaceRunning",
+  "current_stage": "normal253QEMUJourneyPassed26Captures;OwnerArtifactsAndWorkspaceRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -273,6 +273,8 @@
     "product_build": "passed",
     "product_iso": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb",
     "owner_artifact_pipeline_session": 5550,
-    "normal_journey_session": 50352
+    "normal_journey_session": 50352,
+    "normal_journey": "passed26captures/22steps/4localLookswaps;allPNGfileAndDecodedRGBAhashesRootVerified",
+    "owner_backed_typography_proof": "not yet run"
   }
 }

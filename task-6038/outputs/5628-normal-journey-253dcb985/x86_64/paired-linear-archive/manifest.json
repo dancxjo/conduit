@@ -1,0 +1,23 @@
+{
+  "original_file": "native-shell-paired-linear.json",
+  "sha256": "b315fdfd674968e2b39f01993e5dbc0c9fb270c619732e97b9dfe3efc3f07d85",
+  "bytes": 1827987,
+  "parts": [
+    {
+      "file": "part-01.txt",
+      "bytes": 699981,
+      "sha256": "cdbe84b5e2eec31723370c929379ba831722742f5f1c5e9a81e690900cafa765"
+    },
+    {
+      "file": "part-02.txt",
+      "bytes": 699999,
+      "sha256": "e4c68ee5fdf012f69c5e45f33213184d1a2cecf9a7d4c3d85dd8e4370708a35b"
+    },
+    {
+      "file": "part-03.txt",
+      "bytes": 428007,
+      "sha256": "1e84e8fa8ab986c2e58f8ee5bc8ded74e6a2a535b86d0009dbad86f80f4191c7"
+    }
+  ],
+  "join": "Concatenate raw part bytes in listed order; byte-identical original JSON"
+}

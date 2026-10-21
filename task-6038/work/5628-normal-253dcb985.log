@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.27s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make host verify /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5628-product-253dcb985 --journey`
+    Finished `dev` profile [unoptimized] target(s) in 0.30s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make host verify /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5628-product-253dcb985 --journey`
+ConduitOS Face journey proof: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-look-reconciled/target/conduitos/x86_64/journey-proof.json
+VERIFIED image:sha256:02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb
