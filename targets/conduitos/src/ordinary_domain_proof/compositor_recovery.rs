@@ -308,7 +308,10 @@ pub(super) fn run() {
         || replacement.focused_surface().is_some()
         || !fresh.borrow().sessions.is_active(fresh_session)
         || !matches!(
-            replacement.route_keyboard(&"retired".into()),
+            replacement.route_keyboard(
+                &serde_json::from_str("\"fixture/retired\"")
+                    .unwrap_or_else(|_| refuse("compositor-recovery-retired-id")),
+            ),
             Ok(crate::native_compositor::InputRoute::NoTarget)
         )
     {
