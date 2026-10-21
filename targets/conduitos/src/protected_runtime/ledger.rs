@@ -175,6 +175,23 @@ impl Ledger {
         ledger.publish(admission.literal_node.0 as usize, None, literal)?;
         Ok(ledger)
     }
+    pub fn new_morse(
+        admission: &conduitos_runtime_core::morse::Admission,
+    ) -> Result<Self, SchedulerError> {
+        let mut numeric = Admission::new(5, 4);
+        numeric.nodes[..5].copy_from_slice(&admission.nodes);
+        numeric.cords[..4].copy_from_slice(&admission.cords);
+        numeric.ranges[..conduitos_runtime_core::morse::ROUTES].copy_from_slice(&admission.ranges);
+        numeric.targets[..4].copy_from_slice(&admission.targets);
+        numeric.bindings[..5].copy_from_slice(&admission.bindings);
+        let mut ledger = Self::new(&numeric)?;
+        let literal = admission
+            .literal
+            .get(..admission.literal_bytes as usize)
+            .ok_or(SchedulerError::InvalidPlan)?;
+        ledger.publish(admission.roles[0].0 as usize, None, literal)?;
+        Ok(ledger)
+    }
     pub fn accept(&mut self, request: HostCallRequest, bytes: &[u8]) -> Result<(), SchedulerError> {
         let node = usize::from(request.node.0);
         if self.kinds[node] == BackKind::Keyboard {

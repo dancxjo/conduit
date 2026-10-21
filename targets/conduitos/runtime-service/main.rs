@@ -23,6 +23,7 @@ struct Retained {
 // The enum retains exactly one canonical scheduler; includes all value/Sign storage.
 const _: () = assert!(size_of::<Retained>() <= memory::METADATA_BYTES - 4096);
 const _: () = assert!(size_of::<conduitos_runtime_core::text::Scheduler>() <= size_of::<State>());
+const _: () = assert!(size_of::<conduitos_runtime_core::morse::Scheduler>() <= size_of::<State>());
 const _: () = assert!(memory::STATE.is_multiple_of(align_of::<Retained>()));
 /// # Safety
 /// Root installs the exact finite Runtime profile and passes its fixed exchange

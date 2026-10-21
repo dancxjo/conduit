@@ -2,6 +2,7 @@
 pub mod admission;
 mod codec;
 mod errors;
+pub mod morse_admission;
 pub mod text_admission;
 use codec::*;
 use conduit_kernel::{
@@ -24,6 +25,9 @@ pub enum Request {
     },
     /// Ordinary text scheduler, in an independent service lease.
     InitText {
+        bytes: u32,
+    },
+    InitMorse {
         bytes: u32,
     },
     Stats,
@@ -68,6 +72,7 @@ impl Request {
             Self::Cancel => 6,
             Self::InitText { .. } => 7,
             Self::Stats => 8,
+            Self::InitMorse { .. } => 9,
         }
     }
 }
@@ -76,8 +81,10 @@ impl Response {
         matches!(self, Self::Failed(_))
             || matches!(
                 (request, self),
-                (Request::Init { .. } | Request::InitText { .. }, Self::Ready)
-                    | (Request::Stats, Self::Stats(_))
+                (
+                    Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. },
+                    Self::Ready
+                ) | (Request::Stats, Self::Stats(_))
                     | (Request::Step, Self::Status(_))
                     | (Request::Next, Self::Next(_))
                     | (Request::Store { .. }, Self::Stored(_))
@@ -141,9 +148,10 @@ pub fn encoded_len(bytes: &[u8]) -> Result<usize, Malformed> {
 pub fn encode_request(e: Envelope, request: Request, bytes: &mut [u8]) -> Result<usize, Malformed> {
     let mut w = begin(bytes, e, request.tag())?;
     match request {
-        Request::Init { bytes } | Request::InitText { bytes } | Request::Store { bytes } => {
-            w.u32(bytes)?
-        }
+        Request::Init { bytes }
+        | Request::InitText { bytes }
+        | Request::InitMorse { bytes }
+        | Request::Store { bytes } => w.u32(bytes)?,
         Request::Complete {
             node,
             request,
@@ -172,6 +180,7 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), Malformed> {
         6 => Request::Cancel,
         7 => Request::InitText { bytes: r.u32()? },
         8 => Request::Stats,
+        9 => Request::InitMorse { bytes: r.u32()? },
         _ => return Err(Malformed),
     };
     r.finish()?;

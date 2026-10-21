@@ -2,6 +2,7 @@
 //! Root keeps only reviewed effect grants, pending calls and transient boundary
 //! bytes. Scheduler, ready/cord/value/sign state belong to the Runtime guest.
 mod ledger;
+mod morse;
 mod text;
 use crate::{
     arch::ServiceDomain,
@@ -28,6 +29,8 @@ pub(crate) struct Scheduler {
     value_bytes: usize,
     value_slots: u16,
     text_mode: bool,
+    sign_limit: u16,
+    pending_limit: u16,
     expected_requests: [Option<RequestId>; NODES],
     stats: wire::Stats,
     bindings: [Option<HostCallBinding>; NODES],
@@ -66,6 +69,8 @@ impl Scheduler {
             value_bytes: VALUE_BYTES,
             value_slots: 10,
             text_mode: false,
+            sign_limit: SIGN_ITEMS as u16,
+            pending_limit: NODES as u16,
             expected_requests: [None; NODES],
             stats: wire::Stats {
                 decisions: 0,

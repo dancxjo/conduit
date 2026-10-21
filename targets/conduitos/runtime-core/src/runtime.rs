@@ -1,6 +1,6 @@
 //! Guest-private owner of unchanged canonical scheduler specializations/storage.
 use crate::{
-    Scheduler, VALUE_BYTES, text,
+    Scheduler, VALUE_BYTES, morse, text,
     wire::{Request, Response, Stats},
 };
 use conduit_kernel::{SignQuery, SignRetentionGap, SignSink, scheduler::SchedulerError};
@@ -8,6 +8,7 @@ enum Owner {
     Empty,
     Native(Scheduler),
     Text(text::Scheduler),
+    Morse(morse::Scheduler),
 }
 pub struct Runtime {
     owner: Owner,
@@ -26,6 +27,7 @@ macro_rules! scheduler {
         match $owner {
             Owner::Native($s) => $body,
             Owner::Text($s) => $body,
+            Owner::Morse($s) => $body,
             Owner::Empty => return Err(SchedulerError::InvalidPlan),
         }
     };
@@ -36,6 +38,7 @@ impl Runtime {
             Owner::Empty => None,
             Owner::Native(s) => SignQuery::retention_gap(s.signs()),
             Owner::Text(s) => SignQuery::retention_gap(s.signs()),
+            Owner::Morse(s) => SignQuery::retention_gap(s.signs()),
         }
     }
     pub fn execute(
@@ -44,14 +47,20 @@ impl Runtime {
         transfer: &mut [u8],
     ) -> Result<Response, SchedulerError> {
         match request {
-            Request::Init { bytes } | Request::InitText { bytes } => {
+            Request::Init { bytes }
+            | Request::InitText { bytes }
+            | Request::InitMorse { bytes } => {
                 if !matches!(self.owner, Owner::Empty) {
                     return Err(SchedulerError::InvalidPlan);
                 }
                 let data = transfer
                     .get(..bytes as usize)
                     .ok_or(SchedulerError::InvalidPlan)?;
-                self.owner = if matches!(request, Request::InitText { .. }) {
+                self.owner = if matches!(request, Request::InitMorse { .. }) {
+                    let admission = crate::wire::morse_admission::decode(data)
+                        .map_err(|_| SchedulerError::InvalidPlan)?;
+                    Owner::Morse(admission.build()?)
+                } else if matches!(request, Request::InitText { .. }) {
                     let admission = crate::wire::text_admission::decode(data)
                         .map_err(|_| SchedulerError::InvalidPlan)?;
                     Owner::Text(admission.build()?)
@@ -64,7 +73,9 @@ impl Runtime {
             }
             _ => {}
         }
-        let maximum = if matches!(self.owner, Owner::Text(_)) {
+        let maximum = if matches!(self.owner, Owner::Morse(_)) {
+            morse::MAX_VALUE_BYTES
+        } else if matches!(self.owner, Owner::Text(_)) {
             text::MAX_VALUE_BYTES
         } else {
             VALUE_BYTES
@@ -117,7 +128,8 @@ impl Runtime {
                     s.cancel()?;
                     Ok(Response::Cancelled)
                 }
-                Request::Init { .. } | Request::InitText { .. } => Err(SchedulerError::InvalidPlan),
+                Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. } =>
+                    Err(SchedulerError::InvalidPlan),
             }
         )
     }

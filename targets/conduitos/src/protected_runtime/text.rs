@@ -55,6 +55,8 @@ impl Scheduler {
             value_bytes: canonical::MAX_VALUE_BYTES,
             value_slots: 6,
             text_mode: true,
+            sign_limit: canonical::SIGN_ITEMS as u16,
+            pending_limit: 3,
             expected_requests,
             stats: wire::Stats {
                 decisions: 0,
@@ -109,8 +111,8 @@ impl Scheduler {
         }
         if stats.decisions < self.stats.decisions
             || stats.signs < self.stats.signs
-            || stats.signs as usize > canonical::SIGN_ITEMS
-            || stats.pending > 3
+            || stats.signs > self.sign_limit
+            || stats.pending > self.pending_limit
             || (matches!(
                 response,
                 Response::Status(SchedulerStatus::Drained | SchedulerStatus::Cancelled)

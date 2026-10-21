@@ -54,3 +54,22 @@ Root must reexport these definitions; its Timer/TickFace wrappers continue to
 call the shared helpers. The core text bound256 and ports16 must be checked
 against `conduit_text::MAX_TEXT_BYTES` and lowering's canonical port constant at
 Root's preparation boundary. No new semantic reducer is introduced.
+
+Tour fan-out/Morse uses additive `InitMorse { bytes }` (tag9) and
+`wire::morse_admission::{encode,decode}`. Its five role ordinals are Literal,
+Upper, TextFace, Morse, Indicator; configured literal is at most32 bytes.
+The guest retains the original FixedScheduler specialization:5nodes/4cords,
+16ports,4queues,80routes/4targets,25bindings,4pending,12value slots with3604-byte
+storage capacity and3604-byte admitted budget,96Signs. Per-operation transfer
+is at most645 bytes. Request IDs remain Upper1/TextFace2/Morse5/Indicator6,
+HostCallId0. The shared Back definitions also serve Root's still-local comparison
+scheduler; comparison admission/execution is outside this migration.
+
+Native TourMorseKernel constructs only checked numeric admission and delegates
+to the same Root Host Call broker using the independent OrdinaryRuntime lease.
+This is sequential with ordinary text stages; NativeWorkset's Runtime lease
+remains separate. Root retains protected uppercase/Morse/serial effect providers,
+exact binding checks, initial literal and completed-value loans, and receipt
+acceptance. Stats remains the existing additive counter query, with mode-specific
+96Sign/4pending ceilings. ProtectedTimer is unchanged: that production path
+already owns its canonical timer scheduler in its private TextDomain.

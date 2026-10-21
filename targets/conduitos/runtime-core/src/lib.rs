@@ -2,6 +2,7 @@
 #![no_std]
 pub mod admission;
 pub mod backs;
+pub mod morse;
 pub mod runtime;
 pub mod text;
 pub mod wire;
