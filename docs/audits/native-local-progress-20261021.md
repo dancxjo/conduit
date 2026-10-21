@@ -462,3 +462,20 @@ Compilation took 2 seconds, execution 0.96 seconds. Fixture acknowledgements are
 explicitly not actual Host effects. No wider suite, image rebuild, browser/QEMU
 journey or CI job ran. #6201's real producer/transport/Show feedback and its
 finite ingress/storage admission remain open.
+
+## Existing browser application instance seam
+
+Extracted retained-application Host Call completion from the frozen 1,000-line
+engine transformation dispatcher into `engine_application.rs`. The original
+completion block is unchanged after whitespace normalization, at the same
+position in dispatch. It uses the existing prepared instance in
+`TourScheduler.applications`; no application state, scheduler, input port,
+operation identity, storage limit or effect behavior was added.
+
+Browser runtime compilation with its actual default/Crèche/plot-runner features
+passes. Full extraction workspace tests/Clippy remain deferred under tonight's
+instruction; no platform journey, image rebuild or CI job ran. The existing
+Thermostat Body Face/Show publication path supplies an integration precedent,
+but Patchbay's typed ingress still requires separate explicit admission. This
+extraction prepares a responsible access seam; it is not production Face startup
+or a side channel for injecting canonical commands into the old event Fore.

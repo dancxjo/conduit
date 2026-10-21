@@ -1,5 +1,7 @@
 //! Finite generic browser execution envelope for inline Plots.
 
+#[path = "engine_application.rs"]
+pub(super) mod application;
 #[path = "engine_attempt.rs"]
 mod attempt;
 #[path = "engine_completions.rs"]
