@@ -50,6 +50,66 @@ impl BrowserMaskRuntime {
         } else {
             (planned, alternate)
         };
+        Self::prepare_admitted_route(
+            body_id,
+            face,
+            wake,
+            body_plan,
+            base_plan,
+            planned,
+            alternate,
+            play_sequence,
+        )
+    }
+
+    /// Prepare only against Mask chains already present in the owner's exact
+    /// admitted Body Plan. No topology is added and no replacement Plan is sealed.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_in_body_plan(
+        body_id: BodyId,
+        host_id: HostId,
+        boot_id: BootId,
+        face: Face,
+        wake: Wake,
+        body_plan: BodyPlan,
+        play_sequence: u64,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
+        body_plan
+            .validate_for(&wake)
+            .map_err(|error| format!("browser Mask Body Plan: {error:?}"))?;
+        if body_plan.body_id != body_id || face.basis.body_id.as_ref() != Some(&body_id) {
+            return Err("browser Mask Face and owner Body Plan have different Bodies".into());
+        }
+        let host = crate::installed_browser::membership_advertisement(host_id, boot_id);
+        let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
+        let alternate = plan::planned_mask(
+            &host,
+            plan::ALTERNATE_MASK_SOURCE,
+            "browser-graphical-alternate",
+        )?;
+        Self::prepare_admitted_route(
+            body_id,
+            face,
+            wake,
+            body_plan.clone(),
+            body_plan,
+            planned,
+            alternate,
+            play_sequence,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepare_admitted_route(
+        body_id: BodyId,
+        face: Face,
+        wake: Wake,
+        body_plan: BodyPlan,
+        base_plan: BodyPlan,
+        planned: PlannedMaskPlot,
+        alternate: PlannedMaskPlot,
+        play_sequence: u64,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
         let routes = plan::admitted_routes(&body_plan, &planned, &alternate, true, true)?;
         let mask = planned.mask.clone();
         let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![])

@@ -25,7 +25,8 @@ impl PatchbayPublication {
         let observed = mask.observation();
         if !ingress.is_ready()
             || observed.mask_show.show.lifecycle != conduit_face::ManifestationLifecycle::Prepared
-            || observed.face.basis.body_id.is_none()
+            || observed.face.basis.body_id.as_ref() != Some(&observed.body_plan.body_id)
+            || observed.body_plan.plan_id != basis.plan_id
             || basis
                 .required_interaction_context
                 .as_ref()

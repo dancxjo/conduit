@@ -9,6 +9,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     let source = include_str!("../../../../../plots/patchbay/main.conduit");
     let mut request = body_start::tests::request_from_sources(&[source]);
     request.source = source.into();
+    seal_publication_masks(&mut request);
     let play = conduit_body::BodyPlayIdentity::bind(&request.plan, request.play_sequence);
     request.wake = request
         .wake
@@ -223,7 +224,7 @@ fn publication_for(
     )
     .unwrap()
     .face;
-    let (mask, effect) = BrowserMaskRuntime::prepare_sequenced(
+    let (mask, effect) = BrowserMaskRuntime::prepare_in_body_plan(
         request.plan.body_id.clone(),
         request.local_host_id.clone(),
         request.local_boot_id.clone(),
@@ -238,6 +239,7 @@ fn publication_for(
         request.local_boot_id.clone(),
     );
     host.capabilities.push(offer());
+    assert_eq!(mask.observation().body_plan, request.plan);
     let ingress =
         PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap();
     (
@@ -245,4 +247,49 @@ fn publication_for(
         effect,
         face,
     )
+}
+
+fn seal_publication_masks(request: &mut body_start::BodyStartRequest) {
+    let host = crate::installed_browser::membership_advertisement(
+        request.local_host_id.clone(),
+        request.local_boot_id.clone(),
+    );
+    let masks = [
+        (
+            crate::workspace_mask::plan::MASK_SOURCE,
+            "browser-graphical",
+        ),
+        (
+            crate::workspace_mask::plan::ALTERNATE_MASK_SOURCE,
+            "browser-graphical-alternate",
+        ),
+    ];
+    let chains = masks
+        .into_iter()
+        .map(|(source, name)| {
+            let planned = crate::workspace_mask::plan::planned_mask(&host, source, name).unwrap();
+            conduit_body::BodyMaskChainPlan {
+                stage_placement_ids: planned
+                    .plan
+                    .fragments
+                    .iter()
+                    .flat_map(|fragment| &fragment.placements)
+                    .map(|placement| placement.placement_id.clone())
+                    .collect(),
+                plan: planned.plan,
+            }
+        })
+        .collect();
+    request.plan = conduit_body::BodyPlan::seal_with_masks(
+        &request.wake,
+        request.plan.plots.clone(),
+        vec![conduit_body::BodyMaskTopology {
+            face: conduit_body::BodyFaceSelector {
+                plot: Some(request.plan.plots[0].plot.clone()),
+                source_placement_id: None,
+            },
+            chains,
+        }],
+    )
+    .unwrap();
 }

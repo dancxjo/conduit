@@ -988,3 +988,33 @@ publication without consuming its closing Mask input. Host acknowledgements are
 fixtures, not DOM enactment. No broad suite, CI, QEMU or artifact rebuild ran.
 Automatic installation/charging of both Plays, production presentation, legacy
 adapter retirement and native editor fulfillment remain unfinished #6201 work.
+
+## Prepare a Mask inside the captured owner Body Plan (#6201)
+
+Extracted finite Mask preparation/evidence assembly from the >500-line runtime
+module in an extraction-only commit. The runtime facade is now 340 lines and the
+preparation responsibility is 257. Existing recipe callers retain their behavior.
+Full workspace extraction checks remain deferred under tonight's instruction.
+
+Added `BrowserMaskRuntime::prepare_in_body_plan`: validate the captured Plan/Wake
+and Body/Face correspondence, require the exact installed Mask chains already in
+that Plan, and prepare their existing finite kernel without adding topology or
+sealing a replacement Plan. The existing prototype recipe is not silently used
+as production owner admission. Original Body Plan data and identity survive Show
+preparation and acknowledgement unchanged.
+
+PatchbayPublication now requires its Mask's Body Plan identity to equal the
+owner contribution basis and requires exact Face/Body correspondence. The
+composed test seals Mask topology before owner preparation and uses the new
+captured-plan entrance; it no longer attaches a shadow resealed Body Plan.
+This establishes planning identity correspondence, not aggregate storage/resource
+reservation or automatic production installation.
+
+Two focused CPU cases pass on final source: captured-plan preparation (missing
+routes and foreign Body refuse; exact Plan survives acknowledgement), and the
+existing composed Patchbay owner/Mask/typed ingress/request-retention case using
+one captured owner plan. Initial test-module lookup failed because the parent
+uses an explicit path; corrected its child path and retained the failed log.
+Acknowledgements remain fixtures. No broad suite, CI, DOM/QEMU journey or artifact
+rebuild ran. Parent storage admission, live publication, adapter retirement and
+native editor fulfillment remain unfinished #6201 work.

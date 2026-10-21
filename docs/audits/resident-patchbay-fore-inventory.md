@@ -328,3 +328,14 @@ pending request. Pressure admission precedes closing Mask/ingress consumption.
 A composed CPU case exercises this handoff with acknowledgement fixtures.
 This does not automatically attach the publication to Body preparation, reserve
 both Plays, publish DOM effects or retire the old event/view Fore.
+
+## Captured Body Plan preparation entrance
+
+The Mask runtime now offers `prepare_in_body_plan` for chains already sealed into
+the owner's exact Body Plan. It validates Plan/Wake and Body/Face correspondence;
+its planning/wardrobe admission cannot add chains or replace the owner seal.
+PatchbayPublication checks equality with its contribution basis Plan identity.
+The composed CPU path now seals Mask topology before preparing the actual owner
+and uses that same captured plan for every publication. The older recipe remains
+for existing prototype/journey callers. This does not charge aggregate Host
+storage, automatically install both Plays, or publish a genuine DOM effect.
