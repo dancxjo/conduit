@@ -7,10 +7,7 @@ use super::{
     raster_staging::{RasterLease, RasterStaging, STAGING_PIXELS},
     session_owner::{OwnerError, SessionOwner},
 };
-use crate::{
-    display::DisplayError,
-    protected_region::{DomainBackend, DomainCost},
-};
+use crate::{display::DisplayError, protected_region::DomainCost};
 use alloc::{rc::Rc, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
 
@@ -67,7 +64,7 @@ impl DisplayOwner {
         drop(admitted);
         let service = CompositorService::install_embedded(width, height)
             .map_err(PreparationError::Transport)?;
-        let service_cost_at_preparation = service.domain.cost();
+        let service_cost_at_preparation = service.cost();
         let sessions = SessionOwner::new(service).map_err(PreparationError::Owner)?;
         let report = PreparationReport {
             staging_logical_bytes: STAGING_BYTES,

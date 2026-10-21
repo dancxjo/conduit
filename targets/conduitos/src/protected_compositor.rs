@@ -25,7 +25,9 @@ pub enum TransportError {
 }
 
 pub struct CompositorService {
-    domain: ServiceDomain,
+    domain: Option<ServiceDomain>,
+    instance: u64,
+    final_cost: crate::protected_region::DomainCost,
     next_request: u64,
     frame_grant: FrameGrant,
 }
@@ -62,7 +64,9 @@ impl CompositorService {
         }
         let domain = ServiceDomain::install(image).map_err(TransportError::Backend)?;
         let mut service = Self {
-            domain,
+            instance: domain.instance(),
+            final_cost: domain.cost(),
+            domain: Some(domain),
             next_request: 1,
             frame_grant: FrameGrant::new(width, height),
         };
@@ -74,16 +78,24 @@ impl CompositorService {
     }
 
     pub(crate) fn cost(&self) -> crate::protected_region::DomainCost {
-        self.domain.cost()
+        self.domain
+            .as_ref()
+            .map_or(self.final_cost, DomainBackend::cost)
     }
 
     pub fn instance(&self) -> u64 {
-        self.domain.instance()
+        self.instance
     }
 
     pub fn quarantine(&mut self) {
         self.frame_grant.invalidate();
-        self.domain.quarantine();
+        // Taking the backend makes terminal release idempotent. Stale owners
+        // retain identity/cost only, so their later Drop cannot free a new slot.
+        if let Some(mut domain) = self.domain.take() {
+            domain.quarantine();
+            self.final_cost = domain.cost();
+            drop(domain);
+        }
     }
 
     /// One admitted bounded command. The service is hostile: correlation,
@@ -98,6 +110,9 @@ impl CompositorService {
     }
 
     fn exchange(&mut self, request: Request) -> Result<Response, TransportError> {
+        if self.domain.is_none() {
+            return Err(TransportError::Terminated);
+        }
         match request {
             Request::AcknowledgeScanout { sequence } => self
                 .frame_grant
@@ -120,13 +135,14 @@ impl CompositorService {
             .next_request
             .checked_add(1)
             .ok_or(TransportError::Exhausted)?;
-        let exchange = self.domain.exchange().map_err(TransportError::Backend)?;
+        let domain = self.domain.as_mut().ok_or(TransportError::Terminated)?;
+        let exchange = domain.exchange().map_err(TransportError::Backend)?;
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange).map_err(|_| TransportError::Protocol)?;
-        if self.domain.enter(1).map_err(TransportError::Backend)? != DomainReturn::Yielded {
+        if domain.enter(1).map_err(TransportError::Backend)? != DomainReturn::Yielded {
             return Err(TransportError::Terminated);
         }
-        let exchange = self.domain.exchange().map_err(TransportError::Backend)?;
+        let exchange = domain.exchange().map_err(TransportError::Backend)?;
         let length = u32::from_le_bytes(
             exchange
                 .get(8..12)
@@ -163,6 +179,8 @@ impl CompositorService {
         let count = u32::try_from(pixels.len()).map_err(|_| TransportError::Protocol)?;
         let window = self
             .domain
+            .as_mut()
+            .ok_or(TransportError::Terminated)?
             .transfer_window()
             .map_err(TransportError::Backend)?;
         wire::encode_pixels(window, 0, pixels).map_err(|_| TransportError::Protocol)?;
@@ -185,7 +203,12 @@ impl CompositorService {
             pixels: maximum_pixels,
         })? {
             Response::Frame(span) => {
-                let window = self.domain.output().map_err(TransportError::Backend)?;
+                let window = self
+                    .domain
+                    .as_ref()
+                    .ok_or(TransportError::Terminated)?
+                    .output()
+                    .map_err(TransportError::Backend)?;
                 let pixels = wire::decode_pixels(window, span.window_offset, span.pixels)
                     .map_err(|_| TransportError::Protocol)?;
                 Ok(Ok(FrameChunk { span, pixels }))

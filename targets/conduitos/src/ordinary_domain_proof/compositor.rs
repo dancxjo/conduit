@@ -219,7 +219,7 @@ pub(super) fn run() {
     if service.request(Request::Pointer { x: 6, y: 6 }).is_ok() {
         refuse("compositor-fixture-quarantine");
     }
-    drop(service);
+    let old_cost = service.cost();
     let mut fresh = CompositorService::install_embedded(WIDTH as u16, HEIGHT as u16)
         .unwrap_or_else(|_| refuse("compositor-fixture-reinstall"));
     if fresh.instance() == old_instance
@@ -234,13 +234,29 @@ pub(super) fn run() {
     {
         refuse("compositor-fixture-restart-state");
     }
+    // Old clients remain alive through independent replacement. Their requests
+    // and transfer writes stay terminal and cannot alter the fresh service.
+    if service.instance() != old_instance
+        || service.cost() != old_cost
+        || service.request(Request::DamagePending).is_ok()
+        || service.upload_chunk(0, &[0]).is_ok()
+        || service.frame_step(1, 1).is_ok()
+    {
+        refuse("compositor-fixture-retired-client");
+    }
+    service.quarantine();
+    drop(service);
+    // Inert stale Drop must not free the replacement's backend slot.
+    if response(&mut fresh, Request::DamagePending) != Response::DamagePending(false) {
+        refuse("compositor-fixture-stale-drop");
+    }
     drop(fresh);
     if first_pixels != VIEW_PIXELS as u32 || removed_pixels != 64 {
         refuse("compositor-fixture-pixel-total");
     }
     let digest = Sha256::digest(IMAGE);
     let mut sign = FixedText::new();
-    write!(sign, "CONDUIT_COMPOSITOR_GUEST_PROOF {{\"schema\":\"conduit.conduitos/compositor-guest-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"production_compositor\":false,\"physical_scanout\":false,\"semantic_show_acknowledged\":false,\"driver_isolation\":false,\"dma_isolation\":false,\"pixel_comparisons\":{},\"initial_pixels\":{},\"removed_rectangle_pixels\":{},\"frame_steps\":{},\"fixture_acknowledgements\":2,\"old_instance_quarantined\":true,\"fresh_instance_empty\":true,\"old_handle_rejected\":true,\"image_sha256\":\"", first_pixels + removed_pixels, first_pixels, removed_pixels, first_steps + removed_steps)
+    write!(sign, "CONDUIT_COMPOSITOR_GUEST_PROOF {{\"schema\":\"conduit.conduitos/compositor-guest-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"architecture\":\"x86_64\",\"privilege\":\"ring3\",\"production_compositor\":false,\"physical_scanout\":false,\"semantic_show_acknowledged\":false,\"driver_isolation\":false,\"dma_isolation\":false,\"pixel_comparisons\":{},\"initial_pixels\":{},\"removed_rectangle_pixels\":{},\"frame_steps\":{},\"fixture_acknowledgements\":2,\"old_instance_quarantined\":true,\"replacement_while_old_alive\":true,\"stale_drop_preserves_replacement\":true,\"fresh_instance_empty\":true,\"old_handle_rejected\":true,\"image_sha256\":\"", first_pixels + removed_pixels, first_pixels, removed_pixels, first_steps + removed_steps)
         .unwrap_or_else(|_| refuse("compositor-fixture-sign"));
     for byte in digest {
         write!(sign, "{byte:02x}").unwrap_or_else(|_| refuse("compositor-fixture-hash"));
