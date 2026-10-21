@@ -428,3 +428,7 @@ mod focused_query_tests {
         assert!(owner.transport.quarantined);
     }
 }
+
+#[cfg(test)]
+#[path = "session_owner/frame_failures.rs"]
+mod frame_failures;
