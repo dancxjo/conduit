@@ -410,3 +410,21 @@ this projection alone neither dispatches nor authorizes mutation. The legacy
 production route is unchanged. Native-compositor/workbench compilation passed
 (5 seconds). No tests, image rebuild, platform journey or CI job ran. #6201's
 actual typed command handler, Show feedback and production Fore remain open.
+
+## Canonical resident command admission
+
+Added pre-effect typed command admission for #6201. The owner must supply its
+retained current Face, genuine acknowledged Show and actual Playing contribution
+basis; submitted Mask evidence is not an owner context. Admission checks exact
+Body/context/contribution provenance, application revision and Body Plan, normal
+FaceInteraction validation and equality with the source's current action contract.
+Edit additionally validates the explicit semantic subject against the selected
+exact graph. Accepted requests use typed Plot/Plan/expanded-Plot identities.
+
+Prepared commands retain owner basis, Face/Show/interaction identity, sequence and
+state revision for rechecking at execution. They neither grant authority nor
+mutate/dispatch effects. No ApplicationEvent coercion or retry was introduced.
+Native-compositor/workbench compilation passed (5 seconds). No tests, image
+rebuild, platform journey or CI job ran. Execution-boundary rechecking, actual
+owner route/Show feedback and production Fore migration remain open; these
+preparation APIs are not production acceptance.

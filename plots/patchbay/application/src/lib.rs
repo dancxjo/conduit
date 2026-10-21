@@ -45,6 +45,8 @@ mod resident_actions;
 pub use resident_actions::PatchbayFaceProjectionError;
 mod resident_canvas;
 mod resident_face;
+mod resident_command;
+pub use resident_command::{PatchbayResidentCommand, PreparedPatchbayCommand, PatchbayCommandRefusal};
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;
