@@ -13,6 +13,7 @@ pub struct KernelStorageProfile {
     maximum_ports_per_node: usize,
     state_storage: Option<(u16, u32)>,
     owned_state_continuity: bool,
+    partitioned_regions: bool,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -37,6 +38,7 @@ impl KernelStorageProfile {
             maximum_ports_per_node,
             state_storage: None,
             owned_state_continuity: false,
+            partitioned_regions: false,
         })
     }
 
@@ -68,6 +70,17 @@ impl KernelStorageProfile {
         self.state_storage
     }
 
+    /// Only the explicit region-preparation entrance may opt in. Existing
+    /// target installers must not silently execute partitioned metadata.
+    pub(crate) const fn with_partitioned_regions(mut self) -> Self {
+        self.partitioned_regions = true;
+        self
+    }
+
+    pub(crate) const fn supports_partitioned_regions(self) -> bool {
+        self.partitioned_regions
+    }
+
     pub const fn maximum_ports_per_node(self) -> usize {
         self.maximum_ports_per_node
     }
@@ -77,6 +90,7 @@ pub const FIXED_KERNEL_STORAGE_PROFILE: KernelStorageProfile = KernelStorageProf
     maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
     state_storage: None,
     owned_state_continuity: false,
+    partitioned_regions: false,
 };
 
 #[cfg(test)]

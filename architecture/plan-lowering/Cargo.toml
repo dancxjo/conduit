@@ -3,6 +3,10 @@ name = "conduit-plan-lowering"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+default = []
+hosted-region-storage = ["conduit-kernel/alloc"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-kernel = { path = "../kernel" }

@@ -18,6 +18,17 @@ pub(super) fn validate_verified_fragment(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<(), LoweringError> {
+    if !profile.supports_partitioned_regions() {
+        if let Some(region) = fragment
+            .execution_regions
+            .iter()
+            .find(|r| r.scheduling.worker_storage().is_some())
+        {
+            return Err(LoweringError::UnsupportedExecutionRegion(
+                region.region_id.clone(),
+            ));
+        }
+    }
     // Fresh initialization profiles must never silently reset retained State.
     if let Some(state) = fragment
         .states
