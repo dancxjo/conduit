@@ -91,3 +91,54 @@ fn sealed_ingress_plan_has_exact_finite_local_fore_and_requires_offered_back() {
     wrong.capabilities.last_mut().unwrap().host_calls[0].maximum_input_bytes -= 1;
     assert!(PlannedPatchbayIngress::prepare(&wrong).is_err());
 }
+
+#[test]
+fn installed_kernel_carries_exact_bytes_once_and_terminates_without_storage_growth() {
+    use conduit_kernel::{HostCallDisposition, HostCallOutcome};
+    let mut host =
+        crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    host.capabilities.push(offer());
+    for disposition in [
+        HostCallDisposition::Completed,
+        HostCallDisposition::Failed,
+        HostCallDisposition::Denied,
+        HostCallDisposition::Cancelled,
+    ] {
+        let planned = PlannedPatchbayIngress::prepare(&host).unwrap();
+        let mut ingress = PreparedPatchbayIngress::prepare(planned).unwrap();
+        let capacity = ingress.value_capacities();
+        assert!(ingress.pending_input().is_err());
+        assert!(ingress.admit(&[]).is_err());
+        assert!(ingress.admit(&vec![0; BYTES as usize + 1]).is_err());
+        // Transport preserves bytes; semantic admission remains the owner's job.
+        let input = vec![42; BYTES as usize];
+        ingress.admit(&input).unwrap();
+        assert_eq!(ingress.pending_input().unwrap(), input);
+        assert!(ingress.admit(&input).is_err());
+        let completed = ingress.complete(HostCallOutcome {
+            disposition,
+            output: None,
+            failure: matches!(
+                disposition,
+                HostCallDisposition::Failed | HostCallDisposition::Denied
+            )
+            .then_some(conduit_kernel::Failure {
+                code: conduit_kernel::FailureCode::InvalidInput,
+                detail: 71,
+            }),
+        });
+        if disposition == HostCallDisposition::Completed {
+            completed.unwrap();
+        } else {
+            let error = completed.unwrap_err();
+            assert!(error.contains("BackFailed"));
+            if disposition == HostCallDisposition::Cancelled {
+                assert!(error.contains("Cancelled"));
+            }
+        }
+        assert!(ingress.is_terminal());
+        assert!(ingress.pending_input().is_err());
+        assert!(ingress.admit(&input).is_err());
+        assert_eq!(ingress.value_capacities(), capacity);
+    }
+}

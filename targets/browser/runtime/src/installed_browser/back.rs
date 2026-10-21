@@ -1,6 +1,8 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
 mod unary;
+mod sink;
+use sink::FaceBack;
 use unary::UnaryBack;
 
 use conduit_core::Scalar;
@@ -380,62 +382,6 @@ impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     }
 }
 
-struct FaceBack {
-    maximum_input_bytes: u32,
-    next_request: u32,
-    pending: Option<RequestId>,
-}
-
-impl<const PORTS: usize> StepBack<PORTS> for FaceBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if let Some((request, outcome)) = io.host_completion() {
-            if self.pending != Some(request) {
-                return fail(3);
-            }
-            match (outcome.disposition, outcome.output, outcome.failure) {
-                (HostCallDisposition::Completed, None, None) => {
-                    let Some(next) = self.next_request.checked_add(1) else {
-                        return identity_exhausted(3);
-                    };
-                    io.consume_host_completion()
-                        .expect("observed face completion");
-                    self.pending = None;
-                    self.next_request = next;
-                    return StepOutcome::Progress;
-                }
-                (HostCallDisposition::Failed | HostCallDisposition::Denied, None, Some(reason)) => {
-                    return StepOutcome::Fail(reason)
-                }
-                _ => return fail(3),
-            }
-        }
-        if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some() {
-                return fail(3);
-            }
-            let input = match BoundedValueRef::new(value, self.maximum_input_bytes) {
-                Ok(input) => input,
-                Err(_) => return fail(3),
-            };
-            let request = RequestId(self.next_request);
-            io.consume(PortId(0)).expect("present face input");
-            io.request_host_call(request, HostCallId(0), input)
-                .expect("face Host Call");
-            self.pending = Some(request);
-            return StepOutcome::Progress;
-        }
-        if io.input_closed(PortId(0)) && self.pending.is_none() {
-            io.consume_closed(PortId(0))
-                .expect("observed face input closure");
-            return StepOutcome::Complete;
-        }
-        StepOutcome::Await
-    }
-
-    fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
 
 struct InactiveBack;
 

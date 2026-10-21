@@ -599,3 +599,25 @@ refuse. A local formatting syntax correction added parentheses around an enum
 struct literal before compilation. No CI, platform proof, image rebuild or
 broad test suite ran. Kernel storage installation and current owner/Show binding
 remain #6201 implementation work.
+
+## Install canonical ingress kernel storage and tables
+
+Added a prepared one-frame transport using the existing fixed kernel, exact
+lowered node/cord/routes/Host Call bindings, one 8 KiB value slot and fixed Sign
+and pending-call storage. It closes input after admission and exposes bytes only
+from the emitted Host Call. No retained application model or hidden command
+queue is duplicated. Completion admits no output; consumed transport cannot
+retry. Parent Body storage/Play admission and current owner/Show binding remain
+unwired, and no production actions are enabled by this preparation primitive.
+
+Browser compilation passes. One focused CPU fixture passes across Completed,
+Failed, Denied and Cancelled outcomes (453 other tests filtered out): maximum
+8 KiB bytes arrive unchanged, empty/oversized inputs refuse, resubmission refuses,
+terminal state is retained and value allocation capacities do not grow. The
+first run correctly surfaced kernel BackFailed, exposing missing terminal-state
+recording in the wrapper; that was corrected while retaining the failure. Its
+negative log remains. The generic sink was extracted from the 656-line Back
+file to add explicit cancellation propagation without growing that file.
+Full extraction workspace tests/Clippy are deferred under tonight's instruction;
+only this directly relevant fixture ran. No Host owner effect, current Body
+installation, platform proof, image rebuild or CI job was claimed or launched.

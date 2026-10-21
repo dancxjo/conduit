@@ -122,3 +122,22 @@ storage requirements; they do not allocate a running scheduler or reserve
 resources on behalf of the parent Body Play. Subsequent installation must use
 these exact tables and storage budgets, bind the current owner and acknowledge
 its real Show before enabling interaction.
+
+## Prepared kernel transport
+
+`PreparedPatchbayIngress` now installs the sealed Plan's one node, cord, routes
+and Host Call bindings in the existing fixed kernel. Preparation allocates one
+8 KiB value slot, fixed event/remote Sign storage and fixed pending-call tables.
+One submitted frame closes this transport's input. Exact bytes become readable
+only after the planned kernel Host Call is emitted. A consumed transport cannot
+resubmit, including after failure; a successor requires explicit preparation.
+The caller supplies the actual Host Call outcome, and the sink admits no output.
+
+This is a transport preparation primitive, not a second retained application or
+an automatically installed Body child Play. The parent must still charge its
+storage, bind owner/Play identity and current Face/acknowledged Show, invoke the
+owner callback at the emitted call, and preserve resulting owner requests.
+Semantic decoding/admission belongs to that callback; transport delivery alone
+does not authorize the bytes. A failed/denied/cancelled call remains terminal
+failure. The common sink verb was extracted from `back.rs` to its own module;
+its cancelled completion now propagates `FailureCode::Cancelled` explicitly.

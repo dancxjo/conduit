@@ -58,3 +58,7 @@ mod tests;
 #[path = "patchbay_ingress_plan.rs"]
 mod plan;
 pub use plan::PlannedPatchbayIngress;
+
+#[path = "patchbay_ingress_kernel.rs"]
+mod kernel;
+pub use kernel::PreparedPatchbayIngress;
