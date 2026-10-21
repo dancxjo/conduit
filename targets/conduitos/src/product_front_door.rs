@@ -237,10 +237,9 @@ pub fn run(
             if matches!(
                 input,
                 ProductInputEvent::Key(_) | ProductInputEvent::Pointer(_)
-            ) {
-                if let Some(span) = first_input_wait.take() {
-                    span.finish();
-                }
+            ) && let Some(span) = first_input_wait.take()
+            {
+                span.finish();
             }
             if matches!(input, ProductInputEvent::Service) && pointer_admitted {
                 pointer_input::render(
