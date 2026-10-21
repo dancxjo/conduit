@@ -1,12 +1,20 @@
 //! Admit child storage, routes, Host Calls and installed Backs before execution.
 use super::*;
+mod tables;
 use crate::{boundary::augment_boundary_cords, KernelOperationRegistry};
 use conduit_core::PlanFragment;
 use conduit_kernel::scheduler::CordSpec;
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
+use tables::ChildPreparationTables;
 
 impl ChildKernel {
+    /// Fixed inline/boxed backing only. Values, Signs and owned Back heaps are
+    /// additional; this is a preflight floor rather than a footprint receipt.
+    pub(crate) const fn fixed_storage_floor_bytes() -> usize {
+        core::mem::size_of::<Self>() + core::mem::size_of::<RawChildScheduler>()
+    }
+
     pub(crate) fn prepare(
         fragment: &PlanFragment,
         mut lowered: LoweredPlanFragment,
@@ -16,9 +24,44 @@ impl ChildKernel {
         reusable: bool,
     ) -> Result<Self, String> {
         augment_boundary_cords(&mut lowered, &boundaries)?;
+        let placements: Vec<_> = fragment.placements.iter().collect();
+        Self::prepare_selected(
+            &placements,
+            lowered.into(),
+            boundaries,
+            registry,
+            sign_storage,
+            reusable,
+        )
+    }
+
+    pub(crate) fn prepare_region(
+        tables: &conduit_plan_lowering::execution_regions::PreparedRegionKernelTables<'_, '_>,
+        placements: &[&conduit_core::PlannedGear],
+        registry: &KernelOperationRegistry,
+        sign_storage: crate::KernelCompositeSignStorage,
+    ) -> Result<Self, String> {
+        Self::prepare_selected(
+            placements,
+            ChildPreparationTables::from_region(tables)?,
+            Vec::new(),
+            registry,
+            sign_storage,
+            false,
+        )
+    }
+
+    fn prepare_selected(
+        placements: &[&conduit_core::PlannedGear],
+        lowered: ChildPreparationTables,
+        boundaries: Vec<BoundaryEndpoint>,
+        registry: &KernelOperationRegistry,
+        sign_storage: crate::KernelCompositeSignStorage,
+        reusable: bool,
+    ) -> Result<Self, String> {
         if reusable
             && (!lowered.host_calls.is_empty()
-                || fragment.placements.iter().any(|p| {
+                || placements.iter().any(|p| {
                     !p.host_calls.is_empty()
                         || p.base.is_some()
                         || !p.resources.is_empty()
@@ -87,7 +130,7 @@ impl ChildKernel {
             .sign_items
             .checked_add(u16::try_from(active_nodes * 8 + active_cords * 8).map_err(debug)?)
             .ok_or_else(|| "kernel composite Sign bound overflow".to_string())?;
-        for placement in &fragment.placements {
+        for placement in placements {
             let factory = registry.get(&placement.implementation_id).ok_or_else(|| {
                 format!(
                     "implementation '{}' is not installed",
@@ -130,7 +173,7 @@ impl ChildKernel {
         )
         .map_err(debug)?;
         let mut backs = Vec::with_capacity(MAX_NODES);
-        for placement in &fragment.placements {
+        for placement in placements {
             let factory = registry
                 .get(&placement.implementation_id)
                 .ok_or_else(|| "installed implementation disappeared".to_string())?;
