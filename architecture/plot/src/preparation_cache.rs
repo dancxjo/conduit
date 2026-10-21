@@ -10,6 +10,21 @@ use read_trace::TraceHandle;
 pub use read_trace::{CatalogueRead, CatalogueTable};
 use sha2::{Digest, Sha256};
 
+/// Non-semantic preparation observations. These events do not change checking,
+/// cache eligibility, authority or outcomes. Callbacks may observe cold work;
+/// hits emit only their corresponding hit event, without manufacturing work.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SourcePreparationEvent {
+    CheckHit,
+    ParseStarted,
+    ParseFinished,
+    CheckStarted,
+    CheckFinished { accepted: bool },
+    ExpansionHit,
+    ExpansionStarted,
+    ExpansionFinished { accepted: bool },
+}
+
 /// Bounds retained entries, not admission of authored Source or catalogue data.
 /// Catalogue snapshots remain caller-admitted finite preparation inputs. This
 /// cache does not claim a byte-accurate total memory reservation.
@@ -144,6 +159,16 @@ impl SourcePreparationCache {
         source: &str,
         startup: &Arc<StartupCatalog>,
     ) -> Result<PreparedSource, SyntaxCheckDiagnostic> {
+        self.check_observed(source, startup, |_| {})
+    }
+    /// Same freshness and retention law as `check`, with allocation-free event
+    /// delivery to a caller-owned observer. No callback result is trusted.
+    pub fn check_observed(
+        &mut self,
+        source: &str,
+        startup: &Arc<StartupCatalog>,
+        mut observe: impl FnMut(SourcePreparationEvent),
+    ) -> Result<PreparedSource, SyntaxCheckDiagnostic> {
         let digest: [u8; 32] = Sha256::digest(source.as_bytes()).into();
         if let Some(entry) = self.entries.iter().find(|e| {
             e.prepared.digest == digest
@@ -155,6 +180,7 @@ impl SourcePreparationCache {
                         .is_some_and(|reads| e.prepared.startup.same_read_context(startup, reads)))
         }) {
             self.stats.check_hits = self.stats.check_hits.saturating_add(1);
+            observe(SourcePreparationEvent::CheckHit);
             return Ok(entry.prepared.clone());
         }
         self.stats.checks = self.stats.checks.saturating_add(1);
@@ -166,9 +192,9 @@ impl SourcePreparationCache {
         };
         let checked = Arc::new(if retained {
             let observed = startup.traced(trace.clone());
-            check_syntax_document(&parse_syntax_document(source), &observed)?
+            check_with_events(source, &observed, &mut observe)?
         } else {
-            check_syntax_document(&parse_syntax_document(source), startup)?
+            check_with_events(source, startup, &mut observe)?
         });
         let reads = trace.reads();
         let prepared = PreparedSource {
@@ -199,6 +225,18 @@ impl SourcePreparationCache {
         profiles: &Arc<ProfileCatalog>,
         backs: &Arc<CanonicalBackCatalog>,
     ) -> Result<Arc<ExpandedAuthoringPlot>, CanonicalExpansionDiagnostic> {
+        self.expand_observed(prepared, entry, profiles, backs, |_| {})
+    }
+    /// Same expansion/context law as `expand`. This remains an authoring
+    /// expansion; executable-root Front closure is a separate admission law.
+    pub fn expand_observed(
+        &mut self,
+        prepared: &PreparedSource,
+        entry: &str,
+        profiles: &Arc<ProfileCatalog>,
+        backs: &Arc<CanonicalBackCatalog>,
+        mut observe: impl FnMut(SourcePreparationEvent),
+    ) -> Result<Arc<ExpandedAuthoringPlot>, CanonicalExpansionDiagnostic> {
         let source = self
             .entries
             .iter()
@@ -214,6 +252,7 @@ impl SourcePreparationCache {
             })
         }) {
             self.stats.expansion_hits = self.stats.expansion_hits.saturating_add(1);
+            observe(SourcePreparationEvent::ExpansionHit);
             return Ok(cached.value.clone());
         }
         self.stats.expansions = self.stats.expansions.saturating_add(1);
@@ -223,22 +262,27 @@ impl SourcePreparationCache {
         } else {
             TraceHandle::default()
         };
-        let value = Arc::new(if retained {
+        observe(SourcePreparationEvent::ExpansionStarted);
+        let result = if retained {
             let observed = profiles.traced(trace.clone());
             expand_canonical_plot_for_authoring_with_backs(
                 &prepared.checked,
                 entry,
                 &observed,
                 backs,
-            )?
+            )
         } else {
             expand_canonical_plot_for_authoring_with_backs(
                 &prepared.checked,
                 entry,
                 profiles,
                 backs,
-            )?
+            )
+        };
+        observe(SourcePreparationEvent::ExpansionFinished {
+            accepted: result.is_ok(),
         });
+        let value = Arc::new(result?);
         let reads = trace.reads();
         if let Some(i) = source.filter(|_| self.limits.expansions_per_source > 0) {
             let expansions = &mut self.entries[i].expansions;
@@ -256,4 +300,20 @@ impl SourcePreparationCache {
         }
         Ok(value)
     }
+}
+
+fn check_with_events(
+    source: &str,
+    startup: &StartupCatalog,
+    observe: &mut impl FnMut(SourcePreparationEvent),
+) -> Result<CheckedSyntaxDocument, SyntaxCheckDiagnostic> {
+    observe(SourcePreparationEvent::ParseStarted);
+    let syntax = parse_syntax_document(source);
+    observe(SourcePreparationEvent::ParseFinished);
+    observe(SourcePreparationEvent::CheckStarted);
+    let result = check_syntax_document(&syntax, startup);
+    observe(SourcePreparationEvent::CheckFinished {
+        accepted: result.is_ok(),
+    });
+    result
 }
