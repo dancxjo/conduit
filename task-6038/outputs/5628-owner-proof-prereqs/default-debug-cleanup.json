@@ -1,0 +1,13 @@
+{
+  "removed_class": "verified inactive default debug compiler artifacts from failed owner entrance attempt4",
+  "recovered_bytes": 7023505408,
+  "method": "exact debug subtree removed after package-native cleaner refused the mixed product target parent for absent CACHEDIR.TAG; no tag added and no parent cleanup",
+  "preserved": [
+    "normal product images/kernels",
+    "unique proof captures/logs",
+    "private checkpoints/media/keys",
+    "both active build caches",
+    "all branches/worktrees"
+  ],
+  "active_references_before": []
+}

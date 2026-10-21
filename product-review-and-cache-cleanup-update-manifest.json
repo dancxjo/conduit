@@ -1,0 +1,22 @@
+{
+  "parent": "552385c34e0848e59baa72b193baab38731a618d",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/5628-current-owner-pr-body.md",
+      "tree_path": "task-6038/work/5628-current-owner-pr-body.md",
+      "bytes": 2509,
+      "sha256": "50d33d8cc9592797fd367df5a6a89fdab73d0a1163c55f8733554f28855afbb4",
+      "mode": "100644",
+      "blob": "d2670e934aea2de6d6e83575ff992ffec8fa90e4"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/default-debug-cleanup.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/default-debug-cleanup.json",
+      "bytes": 543,
+      "sha256": "ef7273d1aa84775817cc932f5715a2058085e7bb1a855d0193c4fa43867be124",
+      "mode": "100644",
+      "blob": "0ba0455c0de751b9ad81975a547412dece5abdbd"
+    }
+  ]
+}
