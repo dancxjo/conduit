@@ -20,7 +20,7 @@ pub(super) struct Image {
     entry: u64,
     load_segments: Vec<Segment>,
 }
-fn number(bytes: &[u8], offset: usize, size: usize) -> Result<u64, String> {
+pub(super) fn number(bytes: &[u8], offset: usize, size: usize) -> Result<u64, String> {
     let end = offset.checked_add(size).ok_or("ELF offset overflow")?;
     let slice = bytes.get(offset..end).ok_or("truncated ELF")?;
     Ok(slice.iter().rev().fold(0, |v, b| (v << 8) | u64::from(*b)))

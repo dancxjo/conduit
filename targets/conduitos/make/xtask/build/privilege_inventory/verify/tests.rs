@@ -1,25 +1,45 @@
 use super::*;
 fn specimen() -> (Value, Value, Value, Vec<u8>, Vec<u8>) {
-    let mut kernel = vec![0; 184];
+    let mut kernel = vec![0; 384];
     kernel[..6].copy_from_slice(b"\x7fELF\x02\x01");
     for (offset, value, size) in [
         (16, 2_u64, 2),
         (18, 62, 2),
         (24, 0x400000_u64, 8),
         (32, 64, 8),
-        (40, 120, 8),
+        (40, 192, 8),
         (54, 56, 2),
         (56, 1, 2),
         (58, 64, 2),
-        (60, 1, 2),
+        (60, 3, 2),
+        (62, 2, 2),
         (64, 1, 4),
         (68, 5, 4),
-        (96, 184, 8),
-        (104, 184, 8),
+        (72, 120, 8),
+        (80, 0x400000, 8),
+        (88, 0x400000, 8),
+        (96, 16, 8),
+        (104, 16, 8),
+        (256, 1, 4),
+        (260, 1, 4),
+        (264, 6, 8),
+        (272, 0x400000, 8),
+        (280, 120, 8),
+        (288, 16, 8),
+        (304, 16, 8),
+        (320, 7, 4),
+        (324, 3, 4),
+        (344, 136, 8),
+        (352, 17, 8),
+        (368, 1, 8),
     ] {
         kernel[offset..offset + size].copy_from_slice(&value.to_le_bytes()[..size]);
     }
-    let map = b"Root symbol map\n".to_vec();
+    kernel[136..153].copy_from_slice(b"\0.text\0.shstrtab\0");
+    let map = format!(
+        "{:>16} {:>16} {:>8} {:>5} Out     In      Symbol\n{:>16} {:>16} {:>8} {:>5} .text\n{:>16} {:>16} {:>8} {:>5} .shstrtab\n",
+        "VMA", "LMA", "Size", "Align", "400000", "400000", "10", "16", "0", "0", "11", "1"
+    ).into_bytes();
     let hash = digest(&kernel);
     let build = json!({"schema":"conduit.conduitos.build/v2", "artifact_role":"product-host", "base_commit":"a".repeat(40),"architecture":"x86_64","rust_target":"x86_64-unknown-none","elf_sha256":hash});
     let manifest = json!({"schema":"conduit.host/target-build-manifest@3","artifact_role":"product-host","target":"conduitos/x86_64/pc","source_identity":"a".repeat(40),"kernel":{"sha256":hash}});
@@ -33,6 +53,27 @@ fn exact_product_association_and_replaced_directory_record() {
     let mut replacement = build.clone();
     replacement["elf_sha256"] = json!("b".repeat(64));
     assert!(associate(&manifest, &replacement, &inventory, &kernel, &map).is_err());
+}
+
+#[test]
+fn foreign_map_refuses_even_with_self_consistent_hash_name_and_observations() {
+    let (manifest, build, inventory, kernel, map) = specimen();
+    let original = String::from_utf8(map).unwrap();
+    let missing = original.lines().take(2).collect::<Vec<_>>().join("\n");
+    for wrong in [
+        b"Root symbol map\n".to_vec(),
+        original.replace("400000", "500000").into_bytes(),
+        original.replace("      10", "      20").into_bytes(),
+        original.replace("   16 .text", "    8 .text").into_bytes(),
+        missing.into_bytes(),
+        format!("{original}{}\n", original.lines().nth(1).unwrap()).into_bytes(),
+    ] {
+        let mut forged = inventory.clone();
+        forged["root_link_map_sha256"] = json!(digest(&wrong));
+        forged["linked_responsibilities"] =
+            serde_json::to_value(super::super::linked_responsibilities(&wrong)).unwrap();
+        assert!(associate(&manifest, &build, &forged, &kernel, &wrong).is_err());
+    }
 }
 #[test]
 fn corrupt_or_foreign_kernel_source_role_map_and_features_refuse() {

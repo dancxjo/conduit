@@ -57,7 +57,7 @@ service/runtime/driver isolation is not established by this source inventory.
 Product/profile builds through the common builder (including
 `cargo xtask make conduitos live x86_64 --locked`) retain
 `privilege-inventory-<elf-sha256>-<artifact-role>.json` beside `build.json`. The sidecar binds the ELF digest,
-source base commit, artifact role, target, same-invocation Root link map and
+source base commit, artifact role, target, builder-recorded Root link map and
 its digest, requested features, Cargo's resolved
 normal/build dependencies and their enabled features, and observed dirty status.
 Dry runs do not create this evidence. Collectors must select the current
@@ -72,7 +72,11 @@ reachability. The separate domain workspace has its own dependency graph.
 Release ELFs strip symbols. The retained `.map` companion records their
 pre-strip linked symbols and addresses without enabling privileged behavior.
 The map filename includes the ELF digest and artifact role, and the inventory
-binds its content hash. It supports classification of linked responsibilities;
+binds its content hash. Verification compares every output section's name,
+address, size and alignment with the actual ELF section table, rejecting a
+foreign map even when its inventory hash and filename are self-consistent.
+This structural association does not independently authenticate the linker
+invocation or every symbol spelling. It supports classification of linked responsibilities;
 it does not prove which code executes. This sidecar is not an execution receipt; dirty
 source is not uniquely identified by the base commit. A complete audit must
 also inspect the exact clean-source build, Root and service ELF load segments
@@ -129,7 +133,7 @@ kernel hash to match both its digest-qualified inventory and **current**
 `build.json`. A different later build replacing `build.json` refuses, even if the
 older inventory remains. Preserve an exact evidence directory when retaining a
 build; never choose a convenient sidecar by filename age or overwrite a refusal.
-The map filename and hash, requested and complete resolved graphical feature
+The map filename, hash and ELF-consistent output sections, requested and complete resolved graphical feature
 closure, clean source, reviewed source hashes and linked ELF observations must
 also match. Full verification requires a clean checkout at the sealed Source:
 it recomputes the entire locked, offline, target-specific Cargo tree and compares
@@ -180,7 +184,7 @@ Default native Cargo closure is `default,native-compositor,native-owner-network`
 Build dependencies execute on the build host. Normal dependency membership is
 potential code, not privileged reachability. Source-reviewed calls establish
 possible paths; optimization may inline or remove symbols. The Root link map
-supports exact linked responsibility classification, while the v2 ELF observer
+supports builder-reported linked responsibility classification, while the v2 ELF observer
 records the Root and valid embedded ELF64 images with content hashes, entry points
 and load-segment flags/addresses/extents. Embedded image bytes establish neither
 which service profile selected them nor an executed privilege level. Image

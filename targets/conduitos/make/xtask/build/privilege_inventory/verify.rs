@@ -126,8 +126,9 @@ fn associate(
         return Err("unexpected resolved graphical feature closure; review inventory".into());
     }
     if digest(map) != text(inventory, "root_link_map_sha256")? || map.is_empty() {
-        return Err("missing or changed same-invocation Root link map".into());
+        return Err("missing or changed builder-recorded Root link map".into());
     }
+    super::link_map::validate(kernel, map)?;
     if serde_json::to_value(super::linked_responsibilities(map)).map_err(|e| e.to_string())?
         != inventory["linked_responsibilities"]
     {
@@ -221,7 +222,7 @@ fn verify(args: &Args) -> Result<Value, String> {
         return Err("reviewed responsibility inventory differs from exact committed source".into());
     }
     Ok(
-        json!({"schema":"conduit.conduitos/verified-privilege-inventory@1", "source":manifest["source_identity"], "build_id":manifest["build_id"], "kernel_sha256":sha, "inventory_sha256":digest(&read(&inventory_path)?), "root_link_map_sha256":inventory["root_link_map_sha256"], "dependency_closure_sha256":digest(observed.as_bytes()), "dependency_closure_verification":"recomputed locked offline target-specific Cargo tree at matching clean Source", "linked_responsibilities":inventory["linked_responsibilities"], "linked_images":inventory["linked_images"], "responsibilities":inventory["responsibilities"], "proof_class":"exact-source-and-linked-image-inventory", "service_isolation_established":false, "execution_established":false, "physical_or_dma_isolation_established":false, "limits":"Source anchors are reviewed reachability/authority observations, not an exhaustive computed call graph. ELF segments are linked bytes, not installed mappings or executed service entries. No isolation claim follows from module boundaries, feature closure or image presence."}),
+        json!({"schema":"conduit.conduitos/verified-privilege-inventory@1", "source":manifest["source_identity"], "build_id":manifest["build_id"], "kernel_sha256":sha, "inventory_sha256":digest(&read(&inventory_path)?), "root_link_map_sha256":inventory["root_link_map_sha256"], "root_map_association":"all output section names, addresses, sizes and alignments match the actual Root ELF", "dependency_closure_sha256":digest(observed.as_bytes()), "dependency_closure_verification":"recomputed locked offline target-specific Cargo tree at matching clean Source", "linked_responsibilities":inventory["linked_responsibilities"], "linked_images":inventory["linked_images"], "responsibilities":inventory["responsibilities"], "proof_class":"exact-source-and-linked-image-inventory", "service_isolation_established":false, "execution_established":false, "physical_or_dma_isolation_established":false, "limits":"Source anchors are reviewed reachability/authority observations, not an exhaustive computed call graph. Map association is structural, not independently authenticated linker-invocation or symbol provenance. ELF segments are linked bytes, not installed mappings or executed service entries. No isolation claim follows from module boundaries, feature closure or image presence."}),
     )
 }
 #[cfg(test)]

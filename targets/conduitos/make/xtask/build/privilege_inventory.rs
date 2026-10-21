@@ -8,6 +8,7 @@ use std::{
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 mod elf;
+mod link_map;
 mod source;
 pub(crate) mod verify;
 
