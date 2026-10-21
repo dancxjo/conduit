@@ -12,7 +12,7 @@ A new local Mask is fully prepared before the old Show retires. An explicit tran
 
 ## Diagnostics and resources
 
-Selection records join compact Source/component, root, recipe canonical-byte SHA-256 and size, expression/outcome/fallback, render counts and exact old/new Show identifiers to the separately emitted complete Face/Show publications. The new record uses the existing test-aware emitter with a 65,536-byte limit. It does not duplicate the large embedded planned Mask twice. Producer scope and Face checks prevent state transfer across unrelated encounters. No font asset, glyph corpus, graphics command/text/row/surface limit or action/owner state is added.
+Selection records join compact Source/component, root, recipe canonical-byte SHA-256 and size, expression/outcome/fallback, render counts and exact old/new Show identifiers to the separately emitted complete native Face/manifestation publications. The new record uses the existing test-aware emitter with a 65,536-byte limit. It does not duplicate the large embedded planned Mask twice. Producer scope and Face checks prevent state transfer across unrelated encounters. No font asset, glyph corpus, graphics command/text/row/surface limit or action/owner state is added.
 
 Initial checks caught an oversized diagnostic payload, test-only privileged serial I/O, and a test assertion reading an already consumed input session. The payload now retains compact identifiers/provenance instead of full duplicate plans; the existing hosted/native emitter is reused. No enlarged test stack is required, and the final tests use the normal stack. Failed attempts are not successful validation.
 
@@ -30,6 +30,9 @@ The separate `selection` filter also passes 17 checks, overlapping some of the a
 
 ## Product check to follow
 
-The ordinary canonical QEMU journey now includes four preference captures and joins every transition to complete validated Face/Show receipts. It requires unchanged full Face, component and canonical recipe hash; requested axes/scale; fresh available Shows in the same Host/Boot/generation; bounded commands; no Body action; and return to the original planned configuration. The ordinary capture admission rises 23→27 within the existing absolute 32 ceiling, allowing 26 expected captures plus one failure capture. The separate instrumented latency journey retains its prior workload and capture limit, explicitly marking Look transitions unexercised.
+The ordinary canonical QEMU journey now includes four preference captures and joins every transition to validated native Face/manifestation receipts. It requires unchanged full Face, component and canonical recipe hash; requested axes/scale; fresh available Shows in the same Host/Boot/generation; bounded commands; no Body action; and return to the original planned configuration. The ordinary capture admission rises 23→27 within the existing absolute 32 ceiling, allowing 26 expected captures plus one failure capture. The separate instrumented latency journey retains its prior workload and capture limit, explicitly marking Look transitions unexercised.
 
 A fresh source-pinned image/run is required before claiming product success. Earlier captures remain attributed to 7d5aacbab and earlier typography source 6a8e127b4. Direct-dev/standard CI bypass follows the user's explicit instruction. #6158 stays skipped; broader layout #6159 and complete focus/accessibility #5629 remain separate.
+
+
+The first fresh QEMU attempt on cedf08fb2 refused before any preference key: the new verifier incorrectly decoded the existing native-face/v1 compact Show receipt as a full MaskShow. The decoder now follows the installed compact receipt and its typed manifestation, validates their Face/Host/Boot/Plan/Play bindings, and retains the shared full-journey correspondence check. This failed attempt is not product acceptance.
