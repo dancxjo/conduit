@@ -46,8 +46,8 @@ export function resolvePatchbayEditorTarget(observation, plots) {
     if (recursive.length > 1 || (recursive.length && identity(recursive[0]) !== parents[0].source)) return fail('Recursive provenance differs from checked containment.');
     current = parents[0].source;
   }
-  if (foundBack && subject.role === 'Cord' && !face.properties.some(property =>
-      property.subject === subject.identity && property.name === 'source-plot')) return fail('The nested Cord has no declaration provenance.');
+  if (subject.role === 'Cord' && !face.properties.some(property =>
+      property.subject === subject.identity && property.name === 'source-plot')) return fail('The Cord has no declaration provenance.');
   if (sourceName !== null && sourceName !== declaration.name) return fail('The Source declaration differs from the checked owner.');
   return Object.freeze({ plot: declaration, subject });
 }

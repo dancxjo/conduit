@@ -804,3 +804,17 @@ check passes. The helper is 4,258 bytes; its source package resource admission
 was explicitly raised from 4 KiB to 8 KiB. No package/ZIP, build, broad suite,
 CI or platform journey ran. Actual browser enactment and the full canonical
 production/native acceptance remain unfinished.
+
+## Track and fence missing Cord declaration provenance
+
+Created #6202 under #6201 for exact authored/generated Cord provenance through
+expansion, PatchbayGraph and shared Face. Inspection found Gear provenance but
+only endpoint/type/track/temporal fields for flattened checked connections.
+The resolver now refuses unproven Cord ownership at the root as well as through
+nested Backs. It cannot infer authorship from endpoint containment.
+
+Five focused resolver CPU checks pass, including refusal without declaration
+provenance and acceptance when the explicit Source fact matches the checked
+owner. Syntax check passes. No build, broad tests, CI, platform journey or
+artifact rebuild ran. This is a correctness fence pending #6202, not fulfillment
+of Cord editing or the full interaction goal.

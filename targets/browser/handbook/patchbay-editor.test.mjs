@@ -75,3 +75,11 @@ test('nested Edit refuses unavailable or ambiguous Backs and inconsistent proven
   cord.observation.face.subjects[2].role = 'Cord';
   assert.throws(() => resolvePatchbayEditorTarget(cord.observation, [cord.plot, cord.back]), /Cord.*provenance/);
 });
+
+test('Cord editing requires declaration provenance even when containment reaches the root', () => {
+  const { plot, observation } = fixture();
+  observation.face.subjects[2].role = 'Cord';
+  assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]), /Cord.*provenance/);
+  observation.face.properties.push({ subject: 'port/lesson', name: 'source-plot', value: { Identity: 'lesson' } });
+  assert.equal(resolvePatchbayEditorTarget(observation, [plot]).plot, plot);
+});

@@ -277,3 +277,13 @@ recursive-parent fact against unique containment. It never routes by the Back's
 caption. Missing/ambiguous Backs or inconsistent provenance refuse. Nested Cords
 without their own declaration provenance remain explicitly unsupported: endpoint
 containment alone is insufficient evidence of where a Cord was authored.
+
+## Cord declaration prerequisite #6202
+
+Inspection confirms that `CheckedConnection`/`PatchbayCord` do not retain the
+authored or generated declaration origin carried for Gears. Exact propagation
+through checked expansion and shared Face is tracked in #6202. The editor now
+requires a Cord's own declaration provenance even when containment reaches the
+root; neither endpoint grouping nor absence of a nested Back proves authorship.
+Current unproven Cord targets refuse. This fixes an inference, not Cord Edit
+completion; exact origin propagation remains owned prerequisite work.
