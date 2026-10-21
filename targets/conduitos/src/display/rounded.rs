@@ -1,5 +1,5 @@
 //! Fixed-radius rectangle rasterization, clipped without inventing new borders.
-use super::{put, DisplayError, DisplayReceipt, GraphicsShapeStyle, LayoutRect, PixelTarget};
+use super::{DisplayError, DisplayReceipt, GraphicsShapeStyle, LayoutRect, PixelTarget, put};
 
 fn contains(x: i32, y: i32, width: i32, height: i32, radius: i32) -> bool {
     if x < 0 || y < 0 || x >= width || y >= height {
