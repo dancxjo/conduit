@@ -146,7 +146,15 @@ pub(super) fn append_row_chrome(
                     height: row.bounds.height - 6,
                 },
                 screen,
-                outline,
+                // Filled primary actions need an interior contrast against
+                // Accent, including white fills under forced colors. Keep the
+                // outer focus outline, but use the same contrasting paint as
+                // the primary label for this independent inset marker.
+                if row.emphasized() {
+                    GraphicsPaintRole::Background
+                } else {
+                    outline
+                },
                 GraphicsShapeStyle::Stroke,
             ),
         )?;
