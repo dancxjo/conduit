@@ -1,7 +1,11 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+use crate::protected_creche::CrecheDraft as BirthDraft;
 use alloc::{format, string::String, vec::Vec};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use conduit_birth_plot::BirthDraft;
 use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthWidgetFace};
-use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
+use conduit_birth_plot::{BirthDraftRefusal, BirthPlotChoice, BirthSelection};
 use conduit_face::ApplicationEventKind;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition, PreparedKeymap};
 
