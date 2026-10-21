@@ -1,0 +1,10 @@
+raw=857351 compressed=35648
+decodeframe Done used=35636 expected=35636 written=857351 declared=857351 typed=None
+arounderror "60f939ac9\",\"revision\":0,\"domain\":null,\"current\":[{\"canonical_bytes\":[77,101,115,115,97,103,101],\"value_kind\":\"value/text"
+fixture raw=857351 compressed=35648 heap=2072576 allocator=exact-guest32bitmap
+OOM request=10
+OOM roundedlive=2072576
+OOM peak=2072576
+memory allocation of 10 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+exit=-6

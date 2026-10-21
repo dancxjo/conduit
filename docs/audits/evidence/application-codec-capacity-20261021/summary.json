@@ -1,0 +1,32 @@
+{
+  "status": "non-admissible-experiment",
+  "code_commit": "aab623ff8",
+  "fixture_raw_json_bytes": 857351,
+  "fixture_wire_bytes": 35648,
+  "focused_codec_tests": 6,
+  "guest_heap_bytes": 2072576,
+  "exact_allocator_State_Init": "exhausted2072576 roundedbytes; next10-byteallocationfails; no successful Init commit or Graph reply",
+  "retained_models_without_wire_buffer": {
+    "peak_bytes": 355424,
+    "retained_bytes": 346560,
+    "limitations": "typed clone plus Models using exact guest allocator; no streaming decode or guest execution proof"
+  },
+  "streaming_CBOR_source_analysis": {
+    "ciborium_version": "0.2.2",
+    "source": "de/mod.rs size_hint passes untrusted array lengths; serde_core cautious caps each preallocation separately",
+    "counterexample_hex": "9bffffffffffffffff9bffffffffffffffff",
+    "typed_target": "Vec<Vec<u8>>",
+    "rounded_preallocations": [
+      1048576,
+      1048576
+    ],
+    "sum_bytes": 2097152,
+    "limitations": "source-derived counterexample, not a guest execution or implemented CBOR codec"
+  },
+  "required_next_step": "Bounded payload representation/deserialization with aggregate resource admission; do not raise metadata grant, omit graphs or fall back to Root execution",
+  "limits": [
+    "No normal guest build or lifecycle acceptance for this prototype",
+    "No physical, CI, or stable proof",
+    "Existing PRs do not include prototype"
+  ]
+}

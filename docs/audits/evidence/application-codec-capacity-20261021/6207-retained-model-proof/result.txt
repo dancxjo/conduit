@@ -1,0 +1,3 @@
+typed clone + Models peak=355424 retained=346560 heap=2072576
+PASS modeled retained startup fits without a decoded wire buffer; this does not prove streaming decode or guest execution
+exit=0

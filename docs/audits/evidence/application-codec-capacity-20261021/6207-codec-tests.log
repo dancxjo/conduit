@@ -1,0 +1,14 @@
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/application-codec/targets/conduitos/application-core)
+    Finished `test` profile [unoptimized] target(s) in 1.44s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos_application_core-a31eb01973310924)
+
+running 6 tests
+test data::codec::tests::nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values ... ok
+test data::codec::tests::small_raw_bytes_and_exact_wire_boundary_remain_unchanged ... ok
+test data::codec::tests::malformed_compressed_commit_cannot_partially_initialize_models ... ok
+test data::codec::tests::framing_checksum_trailing_bytes_and_expansion_claims_refuse ... ok
+test data::codec::tests::incompressible_data_cannot_expand_the_wire_limit ... ok
+test data::codec::tests::compressed_values_keep_every_byte_through_the_decoded_ceiling ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
