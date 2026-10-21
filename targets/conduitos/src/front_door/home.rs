@@ -2,7 +2,9 @@
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(super) use crate::protected_creche::Home;
-use alloc::{format, string::String, vec::Vec};
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+use alloc::string::String;
+use alloc::{format, vec::Vec};
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
 #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use conduit_home_model::{HomeEvent, HomeModel};

@@ -627,7 +627,14 @@ request binding and viewport clips, and validates returned Face scope, revision
 and content. No framebuffer address or PixelTarget reference crosses this
 protocol. Host and other-architecture controller/presentation paths remain local.
 
-The closed service pool has independent compositor and Draft slots. Each image
+Home launcher/command-bar state also runs in an independent Home-profile guest:
+the canonical HomeModel, keyboard composition and refusal state are guest-owned.
+Root consumes validated read-only snapshots and application views, checks current
+installed Plot indices, and retains lifecycle effects. Explicit reopen resets a
+live guest; terminal recovery releases the old owner before fresh installation.
+Home layout and Host Face content still run in Root from read-only projections.
+
+The closed service pool has independent compositor, Draft and Home slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
