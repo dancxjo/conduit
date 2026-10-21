@@ -616,7 +616,11 @@ Crèche executable. That executable uses the existing canonical `BirthDraft`,
 snapshots and its reviewed Plot catalog, checks returned selections against that
 catalog, and continues to own Body admission and lifecycle effects. This does
 not move the complete product controller or general Face/Mask machinery out of
-Root.
+Root. The native Crèche controller now also retains keyboard composition, focus,
+name replacement and refusal handling inside that guest. Root forwards a
+revision-bound three-byte portable key event and consumes a finite outcome plus
+read-only projection; unchanged composition events do not advance the outer
+FrontDoor revision. Host and other-architecture controller paths remain local.
 
 The closed service pool has independent compositor and Draft slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
