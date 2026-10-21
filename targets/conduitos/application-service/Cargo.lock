@@ -312,6 +312,7 @@ name = "conduitos-application-service"
 version = "0.1.0"
 dependencies = [
  "conduitos-application-core",
+ "sha2",
 ]
 
 [[package]]

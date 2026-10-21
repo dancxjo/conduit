@@ -52,6 +52,7 @@ name = "conduitos-network-service"
 version = "0.1.0"
 dependencies = [
  "conduitos-network-core",
+ "sha1",
 ]
 
 [[package]]

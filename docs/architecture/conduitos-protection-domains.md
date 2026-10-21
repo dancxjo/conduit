@@ -639,7 +639,8 @@ Home-subject Face content before assembling the checked outer Face. Outer
 Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
 The closed service pool has independent compositor, Draft, Home, Runtime,
-Application, Network, OrdinaryRuntime and Mask slots. Each image is bound to its profile; instance and request identities fence the bounded wire
+Application, Network, OrdinaryRuntime, Mask and TLS slots. Each image is bound
+to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
 The standalone guest compiles with separate immutable code/constants and a
@@ -664,8 +665,11 @@ shared Back definitions and canonical scheduler locally. The ordinary/Tour text
 path now uses the same guest executable through an independent OrdinaryRuntime
 lease, preserving its original three-node scheduler and shared canonical text
 Backs. Root admits numeric plans and exact literal/input loans; guest statistics
-preserve the existing decision, Sign and pending-call receipts. Time/Morse and
-other execution paths remain in Root. Native application Host Calls cross a
+preserve the existing decision, Sign and pending-call receipts. The production
+Tour Morse scheduler now uses this lease too, preserving its five-node graph,
+shared canonical Backs, fan-out loans and exact Host Call identities. Its
+protected effects and the existing protected timer implementation are retained.
+Other execution paths still require migration. Native application Host Calls cross a
 separate Application service boundary described below; the whole portable engine
 has not left Root.
 
@@ -730,8 +734,9 @@ partial frames and message accumulation execute behind that boundary. Bulk
 bytes use a 16 KiB transfer window; the existing 1,024-byte handshake,
 32,768-byte frame and 32,754-byte payload ceilings remain finite.
 
-Root retains authenticated TLS/TCP streams, certificate and endpoint admission,
-cryptographic seed custody, deadlines, polling and actual writes. It checks exact
+Root retains TCP streams, certificate and endpoint admission, seed custody,
+deadlines, polling and actual writes. A separate TLS service now supplies the
+authenticated stream interface described below. It checks exact
 instance/sequence replies, contiguous chunks, read capacity and positive bounded
 parser progress. Local argument bounds refusals preserve the connection; an
 operation-matched canonical codec refusal permits only its explicit Close.
@@ -741,10 +746,37 @@ parser boundary, not TLS, a driver or DMA authority. The Network profile has a
 2 MiB image, 1 MiB stack and 1 MiB metadata ceiling. These are engineering bounds;
 current execution, timing, fragmentation and containment acceptance remain open.
 
+## Native TLS service in progress
+
+TLS parsing, cryptographic state and the existing certificate verifier now run
+in a separate native TLS guest. It uses embedded-tls's public async API with one
+pinned operation future that owns its connection across mailbox IO. Root pumps
+bounded ciphertext through the existing TCP stream; it does not replay a
+blocking operation after an IO refusal. Root keeps endpoint/certificate selection,
+device ownership, deadlines and TCP retirement. Completed operations survive a
+close-notify failure under the existing retirement policy.
+
+The protocol binds service, operation and consecutive IO-event identities, with
+finite poll/ciphertext ceilings and contiguous bounded chunks. The guest retains
+the original cipher suite, pinned verifier, NoClock behavior, 1,024-byte
+certificate bound and 16,640/4,096-byte record buffers. Hardware faults, malformed
+replies and IO errors quarantine the slot. Its 1 MiB stack and 2 MiB metadata
+are engineering limits; compilation does not establish peak stack, timing,
+handshake behavior or adversarial containment.
+
+The x86 service ABI deliberately traps FPU/SIMD use. Affected standalone guests
+therefore force software SHA implementations and serial Curve25519; TLS also
+forces software AES/POLYVAL. Runtime CPU detection must not silently select SIMD
+inside this ABI. Root's separate crypto configuration is unchanged.
+
 ## Retained workspace Mask service in progress
 
 Workspace paging, focus and native scene layout now have an independent Mask
-service lifetime across Body Play/Lull transitions. The guest uses the original
+service lifetime across Body Play/Lull transitions. General entrance selection,
+plot-open/details mode and detail-page state also live in this guest, with an
+independent Host/Boot-scoped control revision before any Body or viewport exists.
+Host paths reuse the same canonical reducer; native Root has no mutable copy of
+these presentation flags. The guest uses the original
 canonical row splitting, action navigation and scene layout algorithms. Root
 supplies bounded read-only presentation facts and the current application view;
 page/selection state is retained in the guest rather than a second Root model.
@@ -754,7 +786,9 @@ extent. Selected nodes resolve only through the current validated Root view; a
 guest cannot mint action or lifecycle authority. Canonical scene decoding and
 clip checks precede rendering. Root still owns semantic Face/Mask/Show admission,
 publication counters and physical scanout. Terminal faults do not install a
-replacement behind the same owner. Compilation is not execution or timing proof;
+replacement behind the same owner. General controller failure blocks all
+presentation that depends on its snapshots; Home/Draft state owners remain
+separate. Compilation is not execution or timing proof;
 expanded runtime and containment acceptance remain open.
 
 ## Deliberate limits

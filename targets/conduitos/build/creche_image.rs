@@ -26,6 +26,8 @@ pub fn generate() {
         "code-model=kernel",
         "-C",
         "panic=abort",
+        "--cfg",
+        "curve25519_dalek_backend=\"serial\"",
     ];
     let result = Command::new(env::var_os("CARGO").expect("Cargo executable"))
         .args(["build", "--locked", "--release", "--manifest-path"])

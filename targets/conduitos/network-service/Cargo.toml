@@ -10,6 +10,7 @@ resolver = "2"
 name = "conduitos-network-service"
 path = "main.rs"
 [dependencies]
+sha1 = { version = "0.10", default-features = false, features = ["force-soft"] }
 conduitos-network-core = { path = "../network-core" }
 [profile.release]
 panic = "abort"

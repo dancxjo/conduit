@@ -30,6 +30,13 @@ pub fn generate() {
         "code-model=kernel",
         "-C",
         "panic=abort",
+        "--cfg",
+        "curve25519_dalek_backend=\"serial\"",
+        // The closed service ABI traps FPU/SIMD; never dispatch on host CPUID.
+        "--cfg",
+        "aes_force_soft",
+        "--cfg",
+        "polyval_force_soft",
     ];
     let result = Command::new(env::var_os("CARGO").expect("Cargo executable"))
         .args(["build", "--locked", "--release", "--manifest-path"])

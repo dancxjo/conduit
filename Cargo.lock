@@ -2857,6 +2857,7 @@ dependencies = [
  "conduitos-mask-core",
  "conduitos-network-core",
  "conduitos-runtime-core",
+ "conduitos-tls-core",
  "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-tls",
@@ -2937,6 +2938,17 @@ name = "conduitos-runtime-core"
 version = "0.1.0"
 dependencies = [
  "conduit-kernel",
+]
+
+[[package]]
+name = "conduitos-tls-core"
+version = "0.1.0"
+dependencies = [
+ "embedded-io 0.7.1",
+ "embedded-io-async",
+ "embedded-tls",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
 ]
 
 [[package]]

@@ -3,7 +3,6 @@ name = "conduitos-tls-core"
 version = "0.1.0"
 edition = "2024"
 publish = false
-[workspace]
 [dependencies]
 embedded-tls = { version = "0.19.0", default-features = false, features = ["rustpki", "ed25519"] }
 embedded-io = { version = "0.7.1", default-features = false }

@@ -43,7 +43,6 @@ impl Owner {
         snapshot: &Snapshot,
         scope: &Scope,
         revision: u64,
-        control_revision: u64,
         view: Option<&ApplicationView>,
     ) -> Result<(), Refusal> {
         if &snapshot.scope != scope

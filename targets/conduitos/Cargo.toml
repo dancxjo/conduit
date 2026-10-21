@@ -181,7 +181,7 @@ native-compositor = ["dep:fontdue", "native-owner-network"]
 native-latency-observation = ["native-compositor"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.
-native-owner-network = ["dep:conduitos-network-core", "dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
+native-owner-network = ["dep:conduitos-tls-core", "dep:conduitos-network-core", "dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
 native-http-client = []
 conduitos-isolation-proof = []
 ordinary-domain-proof = []
@@ -230,6 +230,7 @@ conduit-composite = { path = "../../architecture/composite" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduitos-runtime-core = { path = "runtime-core" }
 conduitos-network-core = { path = "network-core", optional = true }
+conduitos-tls-core = { path = "tls-core", optional = true }
 conduitos-application-core = { path = "application-core" }
 conduitos-mask-core = { path = "mask-core" }
 conduit-observatory = { path = "../../architecture/observatory" }

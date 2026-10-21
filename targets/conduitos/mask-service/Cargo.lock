@@ -142,6 +142,7 @@ name = "conduitos-mask-service"
 version = "0.1.0"
 dependencies = [
  "conduitos-mask-core",
+ "sha2",
 ]
 
 [[package]]

@@ -165,6 +165,7 @@ name = "conduitos-creche-service"
 version = "0.1.0"
 dependencies = [
  "conduitos-creche-core",
+ "sha2",
 ]
 
 [[package]]
