@@ -194,6 +194,9 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
           label: port.name,
           accessibilityName: port.name,
           direction: properties.get("direction"),
+          // Root Plot Ports face the external caller; their diagram handles
+          // face the graph interior. Semantic direction remains unchanged.
+          boundary: subject.role === "Plot",
           valueKind: properties.get("value-kind") || "typed value",
           temporal: properties.get("temporal") || "",
           compatibility: compatibility.get(properties.get("semantic-id")) || null,

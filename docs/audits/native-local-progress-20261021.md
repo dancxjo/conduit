@@ -319,3 +319,17 @@ Final native-compositor and workbench compilation passed (5 seconds). No tests,
 image rebuild, browser/QEMU journey or CI jobs ran. Root-boundary rendering,
 contract conformance and complete legacy canvas retirement remain open; the
 unchanged complete-Face and renderer bounds still govern admission/fallback.
+
+## Browser root-boundary handle orientation
+
+Browser scene Port records now explicitly mark containment by a Plot as a root
+boundary. Its handle faces the graph interior: an externally receiving Plot
+input supplies an internal Cord, while a Plot output receives an internal Cord.
+Ordinary Gear/Back Port orientation is unchanged. Semantic direction, exact Port
+IDs, Cord endpoint order and source-owned action validation remain authoritative;
+only ReactFlow handle type/side and its boundary accessibility annotation change.
+No endpoint or edit authority is inferred from geometry.
+
+Both changed JS modules pass Node syntax checking. No browser enactment, image
+rebuild, platform proof or CI job ran. Runtime boundary rendering/interaction
+acceptance remains open; this is implementation plus syntax evidence only.
