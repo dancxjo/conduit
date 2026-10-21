@@ -26,6 +26,13 @@ length capped at 1 MiB. A fixed output slice bounds compression; decompression
 requires exact declared length, complete stream consumption and checksum validity.
 No compressed size or decompressed length changes the private metadata grant.
 
+Private Command/Reply JSON has a separate `CAPSEQ1` envelope. Each array carries
+its exact element count, checked by an allocation-free syntax/count preflight
+before typed deserialization sees a reservation hint. Unknown sequence lengths,
+wrong versions and malformed extents refuse; there is no unframed fallback.
+Framing shares the existing decoded-byte ceiling and admitted workspace. Canonical
+graph serialization and graph-facts custody digests keep their existing encoding.
+
 Structured configuration custody validates values against the normalized schema
 without constructing an additional owned semantic value tree. Every transport
 refusal terminalizes the instance; Root quarantines it. Failed preparation never installs
