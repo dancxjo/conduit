@@ -1,0 +1,30 @@
+{
+  "parent": "00650f1fa37047b7409029a9049b67a70b05138c",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2152,
+      "sha256": "23bf03439e2a78091f5f0e7e3f182dd753d7c23fbd4766dc96cbee8020b82d0a",
+      "mode": "100644",
+      "blob": "1bfb445530843196992d19291aede6afe7a239c3"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/native-library-checkpoint.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/native-library-checkpoint.json",
+      "bytes": 836,
+      "sha256": "75507b420b9ddcc39c297d43152335cc930d1b80739dacec30d5ce347d115cde",
+      "mode": "100644",
+      "blob": "039814d7845960af122b500bd713bb8b9eb186ed"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/native-library.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/native-library.log",
+      "bytes": 133703,
+      "sha256": "c1db4bad92d005e825331481f90533d53d112039340776fe64b15daaabf56ece",
+      "mode": "100644",
+      "blob": "aa0b0f5fd07a02b4a817f8706e9fda03662c12cb"
+    }
+  ]
+}

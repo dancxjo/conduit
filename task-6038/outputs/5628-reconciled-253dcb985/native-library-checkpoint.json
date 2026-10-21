@@ -1,0 +1,12 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "result": "test result: ok. 1240 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 511.71s",
+  "raw_log": "native-library.log",
+  "sha256": "c1db4bad92d005e825331481f90533d53d112039340776fe64b15daaabf56ece",
+  "ignored": [
+    "test display::raw::tests::volatile_scanout_performance ... ignored, manual optimized volatile scanout observation",
+    "test native_compositor::frame_composition::differential::span_compositor_performance ... ignored, manual optimized compositor performance observation",
+    "test native_compositor::raster_reuse::performance::retained_raster_performance ... ignored, manual optimized retained raster observation"
+  ],
+  "boundary": "Exact253 completed native library only; full workspace ongoing, newerdb1 source distinct."
+}

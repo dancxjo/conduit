@@ -28,7 +28,7 @@
       "full fallback/resource/accessibility matrix still incomplete"
     ]
   },
-  "workspace_253": "live process2866731 through native product tests; no terminal full-gate claim",
+  "workspace_253": "Full gate still live through integration targets; native library completed 1240 passed/0 failed/3 manual ignored, source253 only",
   "current_source": {
     "commit": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
     "tree": "9e1f38adb6f9425e0b772c9488bb5b55ab7a8060",
