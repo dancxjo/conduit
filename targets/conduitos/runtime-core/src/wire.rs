@@ -2,6 +2,7 @@
 pub mod admission;
 mod codec;
 mod errors;
+pub mod text_admission;
 use codec::*;
 use conduit_kernel::{
     scheduler::{HostCallRequest, SchedulerError, SchedulerStatus},
@@ -21,6 +22,11 @@ pub enum Request {
     Init {
         bytes: u32,
     },
+    /// Ordinary text scheduler, in an independent service lease.
+    InitText {
+        bytes: u32,
+    },
+    Stats,
     Step,
     Next,
     Store {
@@ -36,12 +42,20 @@ pub enum Request {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Response {
     Ready,
+    Stats(Stats),
     Status(SchedulerStatus),
     Next(Option<HostCallRequest>),
     Stored(ValueRef),
     Ack,
     Cancelled,
     Failed(SchedulerError),
+}
+/// Canonical counters used by Root's existing MachineRunReceipt.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct Stats {
+    pub decisions: u32,
+    pub signs: u16,
+    pub pending: u16,
 }
 impl Request {
     pub fn tag(self) -> u16 {
@@ -52,6 +66,8 @@ impl Request {
             Self::Store { .. } => 4,
             Self::Complete { .. } => 5,
             Self::Cancel => 6,
+            Self::InitText { .. } => 7,
+            Self::Stats => 8,
         }
     }
 }
@@ -60,7 +76,8 @@ impl Response {
         matches!(self, Self::Failed(_))
             || matches!(
                 (request, self),
-                (Request::Init { .. }, Self::Ready)
+                (Request::Init { .. } | Request::InitText { .. }, Self::Ready)
+                    | (Request::Stats, Self::Stats(_))
                     | (Request::Step, Self::Status(_))
                     | (Request::Next, Self::Next(_))
                     | (Request::Store { .. }, Self::Stored(_))
@@ -124,7 +141,9 @@ pub fn encoded_len(bytes: &[u8]) -> Result<usize, Malformed> {
 pub fn encode_request(e: Envelope, request: Request, bytes: &mut [u8]) -> Result<usize, Malformed> {
     let mut w = begin(bytes, e, request.tag())?;
     match request {
-        Request::Init { bytes } | Request::Store { bytes } => w.u32(bytes)?,
+        Request::Init { bytes } | Request::InitText { bytes } | Request::Store { bytes } => {
+            w.u32(bytes)?
+        }
         Request::Complete {
             node,
             request,
@@ -151,6 +170,8 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), Malformed> {
             outcome: outcome_read(&mut r)?,
         },
         6 => Request::Cancel,
+        7 => Request::InitText { bytes: r.u32()? },
+        8 => Request::Stats,
         _ => return Err(Malformed),
     };
     r.finish()?;
@@ -169,6 +190,7 @@ pub fn encode_response(
         Response::Stored(_) => 0x8004,
         Response::Ack => 0x8005,
         Response::Cancelled => 0x8006,
+        Response::Stats(_) => 0x8008,
         Response::Failed(_) => 0x8fff,
     };
     let mut w = begin(bytes, e, tag)?;
@@ -196,6 +218,11 @@ pub fn encode_response(
                 w.u16(request.call.0)?;
                 bounded_write(&mut w, request.input)?;
             }
+        }
+        Response::Stats(stats) => {
+            w.u32(stats.decisions)?;
+            w.u16(stats.signs)?;
+            w.u16(stats.pending)?;
         }
         Response::Stored(value) => value_write(&mut w, value)?,
         Response::Failed(error) => errors::write(&mut w, error)?,
@@ -244,6 +271,11 @@ pub fn decode_response(
         0x8004 => Response::Stored(value_read(&mut r)?),
         0x8005 => Response::Ack,
         0x8006 => Response::Cancelled,
+        0x8008 => Response::Stats(Stats {
+            decisions: r.u32()?,
+            signs: r.u16()?,
+            pending: r.u16()?,
+        }),
         0x8fff => Response::Failed(errors::read(&mut r)?),
         _ => return Err(Malformed),
     };

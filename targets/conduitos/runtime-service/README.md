@@ -29,3 +29,28 @@ The first linked guest used a 392,280-byte Runtime dispatch frame and a
 141,176-byte nested scheduler construction frame. The closed 1 MiB stack
 accounts for those observed frames; complete peak stack depth and runtime
 execution remain unmeasured. No emulator or physical proof is claimed.
+
+Ordinary text admission is additive: `wire::Request::InitText { bytes }` (tag7)
+consumes `wire::text_admission::encode(&text::Admission, transfer)`. This selects
+an exclusive `Owner::Text` instead of `Owner::Native`; initialization cannot
+replace a live owner. Its original scheduler type/capacities are retained:
+3 nodes, 2 cords, 6 value slots/768 bytes, 64 Signs, 9 bindings, 3 pending slots.
+`Stats` (tag8; response0x8008) returns canonical decisions/signs/pending counters.
+Existing tags and Native Init bytes are unchanged. Text host input/output is
+bounded to256 bytes. The Root ordinary adapter must independently validate its
+checked literal/roles, exact node bindings, per-node RequestId1(Upper)/2(Face),
+input loan provenance and finite drains before performing effects.
+
+The same ELF can be admitted in the independent OrdinaryRuntime profile while
+NativeWorkset's Runtime remains live. Its State is an enum, so storage is the
+larger existing specialization plus its discriminant, not two live schedulers.
+The retained metadata compile assertion remains `size_of::<Retained>() <=
+METADATA_BYTES -4096` (1MiB metadata with first4KiB reserved). Source assertions
+are bounds; linked stack/image measurements and runtime proof remain separate.
+
+`runtime-core/text/backs.rs` is the canonical ordinary Literal/Upper/Face and
+shared transform/sink implementation moved from Root's text_kernel_backs.
+Root must reexport these definitions; its Timer/TickFace wrappers continue to
+call the shared helpers. The core text bound256 and ports16 must be checked
+against `conduit_text::MAX_TEXT_BYTES` and lowering's canonical port constant at
+Root's preparation boundary. No new semantic reducer is introduced.

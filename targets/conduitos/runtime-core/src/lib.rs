@@ -3,6 +3,7 @@
 pub mod admission;
 pub mod backs;
 pub mod runtime;
+pub mod text;
 pub mod wire;
 pub const NODES: usize = 14;
 pub const CORDS: usize = 10;

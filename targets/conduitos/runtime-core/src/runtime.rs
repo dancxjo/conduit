@@ -1,82 +1,124 @@
-//! Guest-private owner of the existing canonical scheduler and storage.
+//! Guest-private owner of unchanged canonical scheduler specializations/storage.
 use crate::{
-    Scheduler, VALUE_BYTES,
-    wire::{Request, Response},
+    Scheduler, VALUE_BYTES, text,
+    wire::{Request, Response, Stats},
 };
-use conduit_kernel::{SignQuery, SignRetentionGap, scheduler::SchedulerError};
+use conduit_kernel::{SignQuery, SignRetentionGap, SignSink, scheduler::SchedulerError};
+enum Owner {
+    Empty,
+    Native(Scheduler),
+    Text(text::Scheduler),
+}
 pub struct Runtime {
-    scheduler: Option<Scheduler>,
+    owner: Owner,
 }
 impl Default for Runtime {
     fn default() -> Self {
-        Self { scheduler: None }
+        Self {
+            owner: Owner::Empty,
+        }
     }
+}
+// Each branch calls the same canonical FixedScheduler implementation. The text
+// specialization retains its original capacities and Back lifecycle semantics.
+macro_rules! scheduler {
+    ($owner:expr, $s:ident, $body:expr) => {
+        match $owner {
+            Owner::Native($s) => $body,
+            Owner::Text($s) => $body,
+            Owner::Empty => return Err(SchedulerError::InvalidPlan),
+        }
+    };
 }
 impl Runtime {
     pub fn gap(&self) -> Option<SignRetentionGap> {
-        self.scheduler
-            .as_ref()
-            .and_then(|s| SignQuery::retention_gap(s.signs()))
+        match &self.owner {
+            Owner::Empty => None,
+            Owner::Native(s) => SignQuery::retention_gap(s.signs()),
+            Owner::Text(s) => SignQuery::retention_gap(s.signs()),
+        }
     }
     pub fn execute(
         &mut self,
         request: Request,
         transfer: &mut [u8],
     ) -> Result<Response, SchedulerError> {
-        if let Request::Init { bytes } = request {
-            if self.scheduler.is_some() {
-                return Err(SchedulerError::InvalidPlan);
-            }
-            let data = transfer
-                .get(..bytes as usize)
-                .ok_or(SchedulerError::InvalidPlan)?;
-            let admission =
-                crate::wire::admission::decode(data).map_err(|_| SchedulerError::InvalidPlan)?;
-            self.scheduler = Some(admission.build()?);
-            return Ok(Response::Ready);
-        }
-        let s = self.scheduler.as_mut().ok_or(SchedulerError::InvalidPlan)?;
         match request {
-            Request::Step => s.step().map(Response::Status),
-            Request::Next => {
-                let request = s.next_host_request();
-                transfer.fill(0);
-                if let Some(request) = request {
-                    let input = s.host_value(request.input.value)?;
-                    if input.len() > VALUE_BYTES {
+            Request::Init { bytes } | Request::InitText { bytes } => {
+                if !matches!(self.owner, Owner::Empty) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                let data = transfer
+                    .get(..bytes as usize)
+                    .ok_or(SchedulerError::InvalidPlan)?;
+                self.owner = if matches!(request, Request::InitText { .. }) {
+                    let admission = crate::wire::text_admission::decode(data)
+                        .map_err(|_| SchedulerError::InvalidPlan)?;
+                    Owner::Text(admission.build()?)
+                } else {
+                    let admission = crate::wire::admission::decode(data)
+                        .map_err(|_| SchedulerError::InvalidPlan)?;
+                    Owner::Native(admission.build()?)
+                };
+                return Ok(Response::Ready);
+            }
+            _ => {}
+        }
+        let maximum = if matches!(self.owner, Owner::Text(_)) {
+            text::MAX_VALUE_BYTES
+        } else {
+            VALUE_BYTES
+        };
+        scheduler!(
+            &mut self.owner,
+            s,
+            match request {
+                Request::Step => s.step().map(Response::Status),
+                Request::Stats => Ok(Response::Stats(Stats {
+                    decisions: s.decisions(),
+                    signs: s.signs().len(),
+                    pending: s.pending_host_call_count() as u16,
+                })),
+                Request::Next => {
+                    let request = s.next_host_request();
+                    transfer.fill(0);
+                    if let Some(request) = request {
+                        let input = s.host_value(request.input.value)?;
+                        if input.len() > maximum {
+                            return Err(SchedulerError::HostCallOutputExceeded);
+                        }
+                        transfer
+                            .get_mut(..input.len())
+                            .ok_or(SchedulerError::HostCallOutputExceeded)?
+                            .copy_from_slice(input);
+                    }
+                    Ok(Response::Next(request))
+                }
+                Request::Store { bytes } => {
+                    if bytes as usize > maximum {
                         return Err(SchedulerError::HostCallOutputExceeded);
                     }
-                    transfer
-                        .get_mut(..input.len())
-                        .ok_or(SchedulerError::HostCallOutputExceeded)?
-                        .copy_from_slice(input);
+                    s.store_host_value(
+                        transfer
+                            .get(..bytes as usize)
+                            .ok_or(SchedulerError::HostCallOutputExceeded)?,
+                    )
+                    .map(Response::Stored)
                 }
-                Ok(Response::Next(request))
-            }
-            Request::Store { bytes } => {
-                if bytes as usize > VALUE_BYTES {
-                    return Err(SchedulerError::HostCallOutputExceeded);
+                Request::Complete {
+                    node,
+                    request,
+                    outcome,
+                } => {
+                    s.complete_host_call(node, request, outcome)?;
+                    Ok(Response::Ack)
                 }
-                s.store_host_value(
-                    transfer
-                        .get(..bytes as usize)
-                        .ok_or(SchedulerError::HostCallOutputExceeded)?,
-                )
-                .map(Response::Stored)
+                Request::Cancel => {
+                    s.cancel()?;
+                    Ok(Response::Cancelled)
+                }
+                Request::Init { .. } | Request::InitText { .. } => Err(SchedulerError::InvalidPlan),
             }
-            Request::Complete {
-                node,
-                request,
-                outcome,
-            } => {
-                s.complete_host_call(node, request, outcome)?;
-                Ok(Response::Ack)
-            }
-            Request::Cancel => {
-                s.cancel()?;
-                Ok(Response::Cancelled)
-            }
-            Request::Init { .. } => Err(SchedulerError::InvalidPlan),
-        }
+        )
     }
 }
