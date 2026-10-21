@@ -312,6 +312,7 @@ pub(super) fn prepare(
     let patchbay_face = super::patchbay_face::PatchbayObservation::prepare(
         &request.plan, &wake_at_start, started_evidence.as_ref(),
         &request.foreground_checked_plot_id,
+        &lowered.partitions,
     )?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments

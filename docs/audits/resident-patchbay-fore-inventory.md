@@ -54,3 +54,14 @@ that application route. The browser resident port defaults to InlineGraph.
 
 No CI, platform journey, image rebuild or proof campaign was run for this
 inventory. Existing #6201 and parent acceptance remain open.
+
+## Exact resident owner binding
+
+Canonical browser observation now resolves the foreground resident's retained
+placement through its exact Plot Plan and fragment into the composed local
+kernel NodeId during preparation. Runtime reads address that bound node only;
+they never substitute another application by matching its type. Ambiguous
+placements and externally managed fragments have no local observation context.
+The same owner identity must anchor the eventual typed ingress. A NodeId is
+local to this admitted scheduler/Play, not portable identity or permission to
+submit a command. This binding does not itself admit interaction transport.

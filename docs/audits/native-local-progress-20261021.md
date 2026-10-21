@@ -513,3 +513,22 @@ inventory Source; binding the actual Patchbay Source corrected the fixture.
 Both logs remain in the task work directory. These checks do not enact WASM,
 DOM, a Host acknowledgement or typed production ingress. No broad suite or CI
 job was launched.
+
+## Bind canonical observation to the actual resident node
+
+Removed the scheduler-wide Patchbay type search. Preparation now matches the
+foreground resident's exact Plot Plan, fragment and placement to its composed
+local kernel node, and observations address only that instance. Multiple
+Patchbay residents no longer make an otherwise exact foreground observation
+ambiguous; an absent/wrong bound node refuses without choosing a substitute.
+Externally managed or ambiguous owners retain no optional observation context.
+
+The two new CPU checks cover a two-Patchbay Body and refusal of a missing bound
+node. Their initial multi-resident fixture used a concatenated Source document,
+which changes the original document identities and was correctly refused by the
+reviewed inventory. The corrected fixture uses the existing reviewed bundle
+format, preserving each Source identity. No production inventory bypass was
+introduced. Typed transport/Show publication and consumer replacement remain
+unfinished #6201 work; no platform or CI proof ran.
+
+Final exact-owner run: 4 passed, 0 failed, 447 filtered out (CPU only).

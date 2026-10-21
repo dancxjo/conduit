@@ -54,29 +54,22 @@ pub(super) fn complete_call(
 }
 
 /// Read the same instance used by the admitted application Host Call. Never
-/// clone retained domain state or guess which instance owns an ambiguous route.
+/// clone retained domain state or search for a substitute owner by type.
 #[cfg(feature = "creche-surface")]
 pub(in crate::plot_runner) fn observe_patchbay(
     scheduler: &TourScheduler,
+    owner: conduit_kernel::NodeId,
     body: &conduit_body::BodyId,
     basis: conduit_face::FaceContributionBasis,
 ) -> Result<(u32, conduit_face::FaceFragment), String> {
-    let mut ports =
-        scheduler
-            .applications
-            .iter()
-            .filter_map(|application| match application.as_deref() {
-                Some(super::super::application_state::PreparedApplication::Patchbay(port)) => {
-                    Some(port)
-                }
-                _ => None,
-            });
-    let port = ports
-        .next()
-        .ok_or("no prepared resident Patchbay instance")?;
-    if ports.next().is_some() {
-        return Err("Patchbay observation requires one exact prepared instance".into());
-    }
+    let port = match scheduler
+        .applications
+        .get(usize::from(owner.0))
+        .and_then(|app| app.as_deref())
+    {
+        Some(super::super::application_state::PreparedApplication::Patchbay(port)) => port,
+        _ => return Err("exact resident Patchbay owner is not prepared".into()),
+    };
     let fragment = port
         .face_fragment(basis, body, false)
         .map_err(|error| format!("Patchbay observation refused: {error:?}"))?;

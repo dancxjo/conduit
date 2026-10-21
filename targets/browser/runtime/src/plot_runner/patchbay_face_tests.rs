@@ -48,3 +48,40 @@ fn missing_optional_biography_does_not_break_legacy_patchbay_startup() {
         .contains("no admitted Patchbay observation context"));
     session.cancel().unwrap();
 }
+
+#[test]
+fn exact_owner_is_selected_when_two_patchbay_residents_are_prepared() {
+    let first = include_str!("../../../../../plots/patchbay/main.conduit");
+    let second = first.replacen("plot patchbay", "plot another_patchbay", 1);
+    let mut request = body_start::tests::request_from_sources(&[first, &second]);
+    request.source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [
+            { "slug": "first", "entry": "patchbay", "source": first },
+            { "slug": "second", "entry": "another_patchbay", "source": second }
+        ]
+    })
+    .to_string();
+    request.foreground_checked_plot_id = request.plan.plots[1].plot.checked_plot_id.as_str().into();
+    let selected = request.plan.plots[1].plot.checked_plot_id.clone();
+    let (session, _) = body_start::prepare(request).unwrap();
+    let observation = session.patchbay_observation().unwrap();
+    let observed: Face = serde_json::from_value(observation["face"].clone()).unwrap();
+    observed.validate().unwrap();
+    assert!(observed
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == format!("patchbay/document/{}", selected.as_str())));
+    session.cancel().unwrap();
+}
+
+#[test]
+fn wrong_bound_node_refuses_instead_of_searching_for_another_patchbay() {
+    let (mut session, _) = body_start::prepare(request()).unwrap();
+    session.patchbay_face.as_mut().unwrap().owner_node = conduit_kernel::NodeId(u16::MAX);
+    assert!(session
+        .patchbay_observation()
+        .unwrap_err()
+        .contains("exact resident Patchbay owner is not prepared"));
+    session.cancel().unwrap();
+}

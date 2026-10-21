@@ -12,6 +12,7 @@ pub(super) struct PatchbayObservation {
     plan: BodyPlan,
     wake: Wake,
     resident: ResidentPlot,
+    owner_node: conduit_kernel::NodeId,
 }
 
 impl PatchbayObservation {
@@ -20,6 +21,7 @@ impl PatchbayObservation {
         wake: &Wake,
         evidence: Option<&BodyBiographyEvidence>,
         foreground: &str,
+        local: &[conduit_plan_lowering::lowering::LoweredPlanFragment],
     ) -> Result<Option<Self>, String> {
         let Some(part) = plan
             .plots
@@ -28,25 +30,34 @@ impl PatchbayObservation {
         else {
             return Ok(None);
         };
-        let mut count = 0;
-        for placement in part
-            .plan
-            .fragments
-            .iter()
-            .flat_map(|fragment| &fragment.placements)
-        {
-            if placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
-                && crate::installed_browser::application::application_id(placement)? == "patchbay"
-            {
-                count += 1;
+        let mut owners = Vec::new();
+        for fragment in &part.plan.fragments {
+            for placement in &fragment.placements {
+                if placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
+                    && crate::installed_browser::application::application_id(placement)?
+                        == "patchbay"
+                {
+                    owners.push((fragment, placement));
+                }
             }
         }
-        if count == 0 {
+        // Optional during migration: ambiguous or externally managed owners
+        // cannot borrow another resident's local application instance.
+        let [(fragment, placement)] = owners.as_slice() else {
             return Ok(None);
-        }
-        // Observation is optional during migration; absence or ambiguous scope
-        // must not reject a previously supported legacy application startup.
-        if count != 1 {
+        };
+        let mut nodes = local
+            .iter()
+            .filter(|lowered| {
+                lowered.identity.plan_id == part.plan.plan_id
+                    && lowered.identity.fragment_id == fragment.fragment_id
+            })
+            .flat_map(|lowered| &lowered.nodes)
+            .filter(|node| node.placement_id == placement.placement_id);
+        let Some(owner) = nodes.next() else {
+            return Ok(None);
+        };
+        if nodes.next().is_some() {
             return Ok(None);
         }
         let Some(evidence) = evidence else {
@@ -60,6 +71,7 @@ impl PatchbayObservation {
             plan: plan.clone(),
             wake: wake.clone(),
             resident: part.plot.clone(),
+            owner_node: owner.node,
         }))
     }
 }
@@ -81,6 +93,7 @@ impl TourSession {
         };
         let (revision, fragment) = super::engine::application::observe_patchbay(
             &self.scheduler,
+            context.owner_node,
             &context.plan.body_id,
             basis,
         )?;
