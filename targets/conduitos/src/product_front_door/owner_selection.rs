@@ -59,6 +59,8 @@ pub(super) fn dispatch(
     let owner = route.as_mut().ok_or("native-owner-return-unavailable")?;
     let result = if shift_only && matches!(event.usage(), 63 | 64) {
         arrival.toggle_owner_axis(identities, prior, owner, event.usage(), display)
+    } else if event.usage() == 65 && shift_only {
+        arrival.select_owner_required_item(identities, prior, owner, display)
     } else if event.usage() == 66 && shift_only {
         arrival.toggle_owner_forced_colors(prior, owner, identities, display)
     } else if event.usage() == 66 {
@@ -98,15 +100,15 @@ fn selection_modifiers(event: KeyEvent) -> Option<bool> {
         && modifiers & !(KeyModifiers::LEFT_SHIFT.bits() | KeyModifiers::RIGHT_SHIFT.bits()) == 0;
     (event.transition() == KeyTransition::Pressed
         && matches!(event.usage(), 63..=66)
-        && (modifiers == 0 || (shift_only && matches!(event.usage(), 63 | 64 | 66))))
-    .then_some(shift_only)
+        && (modifiers == 0 || shift_only))
+        .then_some(shift_only)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn appearance_keys_admit_only_exact_unmodified_presets_and_shifted_axes_or_colors() {
+    fn appearance_keys_admit_only_exact_unmodified_presets_and_closed_shifted_controls() {
         for usage in 62..=67 {
             for modifiers in [
                 KeyModifiers::NONE,
@@ -122,7 +124,7 @@ mod tests {
                     modifiers,
                     KeyModifiers::LEFT_SHIFT | KeyModifiers::RIGHT_SHIFT
                 ) {
-                    matches!(usage, 63 | 64 | 66).then_some(true)
+                    matches!(usage, 63..=66).then_some(true)
                 } else {
                     None
                 };

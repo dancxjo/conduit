@@ -66,4 +66,17 @@ retains an independent contrasting inset under forced colors.
 
 The alternative Patchbay implementation on that branch is retained there;
 this branch has one selection model using the shared portable projection and
-same-traversal hits. #6190's required-item admission remains separate.
+same-traversal hits.
+
+## #6190 required-item admission
+
+The existing Source required-item component now has four expression roots in the
+same finite Todo catalog. The closed `required-item` recipe passes through the
+existing owner request/return codecs, exact native plan reconstruction and browser
+chooser. Shift+F8 selects it without changing the current owner Look; existing
+F6/F7/F8 meanings remain. Shared reverse lookup accepts only exact reviewed roots.
+Draft, authenticated predecessor-Show, Host-offer, Fore and four-refresh checks are
+unchanged. Real completion removes the component's required one-way action, so
+the existing explicit generic fallback can be reached without a fault flag or
+unreachable item-count fixture. Source/admission/runtime proof is still deferred;
+no installed-owner fallback or stable acceptance is claimed from compilation.

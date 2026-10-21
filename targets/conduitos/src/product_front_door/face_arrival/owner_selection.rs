@@ -5,6 +5,27 @@ use conduit_face::{
 };
 
 impl FaceArrival {
+    pub(in crate::product_front_door) fn select_owner_required_item(
+        &mut self,
+        identities: BootIdentities,
+        prior: &crate::native_guest_face::NativeGuestFace,
+        route: &mut NativeOwnerReturnRoute,
+        display: &mut impl PixelTarget,
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
+        let look = self
+            .preparation
+            .selected
+            .map_or(ComponentMaskLook::Compact, |(look, _)| look);
+        self.select_owner_component(
+            identities,
+            prior,
+            route,
+            look,
+            TodoComponentRecipe::RequiredItem,
+            display,
+        )
+    }
+
     pub(in crate::product_front_door) fn toggle_owner_axis(
         &mut self,
         identities: BootIdentities,

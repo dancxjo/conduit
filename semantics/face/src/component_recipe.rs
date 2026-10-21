@@ -274,8 +274,12 @@ pub fn component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
 
 pub const COMPONENT_MASK_KIND: &str = "face/component-mask";
 
-/// One checked document owns both expression roots and both independent recipes.
-pub const TODO_COMPONENT_MASK_SOURCE: &str = include_str!("../components/todo-mask.conduit");
+/// One checked document owns the finite expression roots and reviewed recipes.
+pub const TODO_COMPONENT_MASK_SOURCE: &str = concat!(
+    include_str!("../components/todo-mask.conduit"),
+    "\n",
+    include_str!("../components/todo-required-item.conduit"),
+);
 
 /// Crèche structure admits its three actual fields and full bounded inventory.
 /// Independent finite expression roots retain each checked component structure.
@@ -309,6 +313,7 @@ pub enum ComponentMaskLook {
 pub enum TodoComponentRecipe {
     Flat,
     Grouped,
+    RequiredItem,
 }
 
 pub fn todo_component_mask_root(

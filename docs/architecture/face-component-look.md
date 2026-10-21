@@ -188,6 +188,16 @@ and the previous Show becomes stale after selection. A pending edit refuses an o
 edit, the replacement restores bounded reading and focus state only through the
 identical-Face and producer-scope encounter checks used by local selection.
 
+The development catalog also admits the reviewed required-item component through
+`required-item`, selected in the owner window with Shift+F8 while retaining its
+current Look. The browser Layout chooser offers the same bound-item contract.
+Its fixed Source binding is `todo/item/task-1` with the offered Complete action;
+when that action disappears after completion, ordinary recipe refusal selects
+the existing generic reader. Native and browser reconstruct only exact reviewed
+roots through the shared finite lookup. This extends component choice without
+adding an edit action, fault switch, Host grant or replacement-budget increase.
+Actual installed-owner completion/fallback acceptance remains #6190 work.
+
 The native palette and font rasterizer consume the retained admitted expression.
 Text measurement and glyph coverage use the same bounded scale; structural
 capacity refusal records a reason and selects the original generic one-column

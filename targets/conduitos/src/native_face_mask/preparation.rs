@@ -137,26 +137,9 @@ impl NativeFaceMask {
                 route
                     .validate_mask_host_offer(&offer)
                     .map_err(|_| NativeFaceMaskError::Plan)?;
-                let mut selected = None;
-                for density in [
-                    conduit_face::VisualDensity::Compact,
-                    conduit_face::VisualDensity::Spacious,
-                ] {
-                    for palette in [
-                        conduit_face::VisualPalette::Phosphor,
-                        conduit_face::VisualPalette::Editorial,
-                    ] {
-                        let selection = conduit_face::ComponentVisualSelection { density, palette };
-                        for recipe in [
-                            conduit_face::TodoComponentRecipe::Flat,
-                            conduit_face::TodoComponentRecipe::Grouped,
-                        ] {
-                            if route.planned_mask.mask.plot_name == selection.todo_root(recipe) {
-                                selected = Some((selection, recipe));
-                            }
-                        }
-                    }
-                }
+                let selected = conduit_face::ComponentVisualSelection::from_todo_root(
+                    &route.planned_mask.mask.plot_name,
+                );
                 let local = if let Some((selection, recipe)) = selected {
                     let (stage, configuration) =
                         conduit_conduitos_mask_offer::prepare_selected_component_stage_from_offer(
