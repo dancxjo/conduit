@@ -11,6 +11,10 @@ use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
 use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
 
+#[path = "native_mask_route/profile.rs"]
+mod profile;
+pub(super) use profile::InvitedMaskOffer;
+
 enum SelectedRemoteMask<'a> {
     Native(
         Option<(
@@ -209,7 +213,12 @@ impl Owner {
             let digest = super::super::super::digest(
                 &serde_json::to_vec(native_offer).map_err(|error| error.to_string())?,
             );
-            if self.invited_mask_offers.get(&native_offer.host_id) != Some(&digest) {
+            if self
+                .invited_mask_offers
+                .get(&native_offer.host_id)
+                .map(|offer| &offer.digest)
+                != Some(&digest)
+            {
                 return Err("remote-terminal-offer-not-observed-at-admission".into());
             }
         }

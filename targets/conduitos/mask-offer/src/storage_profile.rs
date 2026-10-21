@@ -30,6 +30,36 @@ impl NativeMaskStorageProfile {
             Self::Collection => "conduitos/bounded-collection-mask@1",
         }
     }
+    /// Transfer limits come from the already admitted Host profile, never from
+    /// an incoming chunk length. Requests/actions retain their separate bounds.
+    pub fn owner_document_profile(host: &HostAdvertisement) -> Self {
+        if host.protocol_version == PROTOCOL_VERSION
+            && host.offer_generation.0 != 0
+            && host.profile.as_str() == Self::Collection.host_profile()
+        {
+            Self::Collection
+        } else {
+            Self::Standard
+        }
+    }
+    pub const fn owner_document_bytes(self) -> usize {
+        match self {
+            Self::Standard => 64 * 1024,
+            Self::Collection => 384 * 1024,
+        }
+    }
+    pub const fn owner_response_bytes(self) -> usize {
+        match self {
+            Self::Standard => conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES,
+            Self::Collection => self.owner_document_bytes() - 4 * 1024,
+        }
+    }
+    pub const fn owner_document_chunks(self) -> usize {
+        match self {
+            Self::Standard => 16,
+            Self::Collection => 64,
+        }
+    }
     pub(super) const fn renderer_queue_bytes(self) -> u32 {
         match self {
             Self::Standard => MAX_RENDERER_VALUE_BYTES,

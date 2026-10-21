@@ -16,6 +16,18 @@ pub(super) fn send<T: Serialize>(
     send_bounded(line, value, MAX_OWNER_DOCUMENT_BYTES)
 }
 
+pub(super) fn send_for_profile<T: Serialize>(
+    line: &mut impl super::BinaryRoute,
+    value: &T,
+    profile: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
+) -> Result<(), String> {
+    if profile == conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard {
+        send(line, value)
+    } else {
+        send_bounded(line, value, profile.owner_document_bytes())
+    }
+}
+
 pub(super) fn send_hosted<T: Serialize>(
     line: &mut impl super::BinaryRoute,
     value: &T,

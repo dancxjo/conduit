@@ -43,13 +43,20 @@ pub(super) fn offer_pair(
     binding_reference: &str,
 ) -> (LineOffer, LineOffer) {
     let credential = &guest.credential;
-    let face = line(
+    let mut face = line(
         "face",
         binding_reference,
         credential.credential_id.as_str(),
         owner,
         &guest.host_advertisement,
     );
+    let profile = conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+        &guest.host_advertisement,
+    );
+    if profile == conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection {
+        face.binding.limits.maximum_payload_bytes = profile.owner_document_bytes() as u32;
+        face.binding.limits.maximum_buffered_bytes = (2 * profile.owner_document_bytes()) as u32;
+    }
     let returned = line(
         "return",
         binding_reference,
