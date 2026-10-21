@@ -80,16 +80,14 @@ impl DisplayOwner {
         })))
     }
 
-    pub(crate) fn matches_admission(
+    pub(crate) fn matches_scope(
         &self,
-        admission: &crate::native_compositor::CompositorAdmission,
+        host: &conduit_core::HostId,
+        boot: &conduit_core::BootId,
+        generation: conduit_core::OfferGeneration,
+        base: &conduit_core::HostBaseId,
     ) -> bool {
-        self.grant.matches(
-            &admission.host_id,
-            &admission.boot_id,
-            admission.offer_generation,
-            &admission.display_base_id,
-        )
+        self.grant.matches(host, boot, generation, base)
     }
 
     pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {

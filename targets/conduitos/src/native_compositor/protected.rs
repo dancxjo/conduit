@@ -81,7 +81,12 @@ impl NativeCompositor {
         if !owner
             .try_borrow()
             .map_err(|_| NativeCompositorError::ServiceBusy)?
-            .matches_admission(&self.admission)
+            .matches_scope(
+                &self.admission.host_id,
+                &self.admission.boot_id,
+                self.admission.offer_generation,
+                &self.admission.display_base_id,
+            )
         {
             return Err(NativeCompositorError::StaleIdentity);
         }
