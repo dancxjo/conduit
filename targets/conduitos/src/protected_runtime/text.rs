@@ -3,37 +3,22 @@ use super::*;
 use conduitos_runtime_core::text as canonical;
 impl Scheduler {
     pub fn new_text(admission: canonical::Admission) -> Result<Self, SchedulerError> {
+        diagnose(
+            "text-contract",
+            crate::text_planned_kernel::contract::validate(
+                [
+                    admission.literal_node,
+                    admission.upper_node,
+                    admission.face_node,
+                ],
+                &admission.bindings,
+            ),
+        )?;
         let roles = [
-            admission.literal_node.0 as usize,
-            admission.upper_node.0 as usize,
-            admission.face_node.0 as usize,
+            usize::from(admission.literal_node.0),
+            usize::from(admission.upper_node.0),
+            usize::from(admission.face_node.0),
         ];
-        if roles.iter().any(|n| *n >= canonical::NODES)
-            || roles[0] == roles[1]
-            || roles[0] == roles[2]
-            || roles[1] == roles[2]
-        {
-            return diagnose("text-roles", Err(SchedulerError::InvalidPlan));
-        }
-        let upper = admission.bindings[roles[1]].ok_or(SchedulerError::InvalidPlan)?;
-        let face = admission.bindings[roles[2]].ok_or(SchedulerError::InvalidPlan)?;
-        if admission.bindings[roles[0]].is_some()
-            || upper.call != HostCallId(0)
-            || face.call != HostCallId(0)
-            || upper.maximum_input_bytes != 256
-            || upper.maximum_output_bytes != 256
-            || face.maximum_input_bytes != 256
-            || face.maximum_output_bytes != 0
-        {
-            #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
-            crate::arch::early_write(
-                alloc::format!(
-                    "CONDUIT_RUNTIME_DIAGNOSTIC text-bindings roles={roles:?} literal={:?} upper={upper:?} face={face:?}\n",
-                    admission.bindings[roles[0]],
-                ).as_bytes(),
-            );
-            return diagnose("text-bindings", Err(SchedulerError::InvalidPlan));
-        }
         let ledger = diagnose("text-ledger", Ledger::new_text(&admission))?;
         #[cfg(conduitos_runtime_image)]
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/runtime.elf"));
