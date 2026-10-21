@@ -1,0 +1,38 @@
+{
+  "parent": "06b750dadf3a14e24689e4b69eeae2b16b86fe3c",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 11955,
+      "sha256": "912a0ce131d92c238d9f6c546457bc56b3f75d80f4c0691c433657f4db241e7a",
+      "mode": "100644",
+      "blob": "1d88849f604adf9db6a498bc524b30f25c9b844d"
+    },
+    {
+      "source": "work/5628-current-dev-reconciliation-audit.md",
+      "tree_path": "task-6038/work/5628-current-dev-reconciliation-audit.md",
+      "bytes": 5392,
+      "sha256": "cc1fa61110fbd95ab332da78ad86cf580bbeecbf302ac5af94b530d6cb8faa8e",
+      "mode": "100644",
+      "blob": "d268f22aa2342b18b19d503ffc85e6769aab0bc2"
+    },
+    {
+      "source": "work/5628-reconciliation-progress-comment.md",
+      "tree_path": "task-6038/work/5628-reconciliation-progress-comment.md",
+      "bytes": 848,
+      "sha256": "03683538eef83aee642cbdc2995ef9f5a82a848c360702be05afc058d1545b14",
+      "mode": "100644",
+      "blob": "c051daecc93c3b469b12ee9f307c20f716d3946c"
+    },
+    {
+      "source": "work/5628-reconciled-fmt.log",
+      "tree_path": "task-6038/work/5628-reconciled-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    }
+  ]
+}

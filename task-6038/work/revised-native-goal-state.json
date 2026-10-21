@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "reconcileExternalNativeLookSelectionBeforeRefresh",
+  "current_stage": "reconciledSelectedLookFocusedNativeTestRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -253,6 +253,12 @@
     "selection_regressions": "2 passed",
     "private_qmp_adapter": "16 negative mutations rejected; synthetic only; no guest",
     "virtual_display": "1600x1200 Xvfb verified; QEMU GTK available",
-    "overlap": "cedf08fb2 adds current-dev local density/palette swaps; reconcile before refresh"
+    "overlap": "cedf08fb2 adds current-dev local density/palette swaps; reconcile before refresh",
+    "reconciled_source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "reconciled_branch": "codex/5628-reconciled-selection",
+    "reconciled_origin_verified": true,
+    "focused_native_session": 43507,
+    "fmt": "passed",
+    "native_proof": "running; not acceptance"
   }
 }
