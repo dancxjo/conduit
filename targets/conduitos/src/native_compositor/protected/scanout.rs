@@ -257,7 +257,7 @@ fn copy_span(
 /// Execution telemetry follows successful copies and guest acknowledgement.
 /// It is not a physical display, vblank, or human observation receipt.
 fn record_frame(
-    owner: &crate::display_owner::DisplayOwner,
+    owner: &crate::protected_compositor::display_owner::DisplayOwner,
     frame_sequence: u64,
     guest_sequence: u64,
     pixels_written: u32,
