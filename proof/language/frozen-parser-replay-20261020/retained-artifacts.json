@@ -1,0 +1,14 @@
+{
+  "complete_histories": 34,
+  "source": "26b13d753200a291768949a02b0c4dfe88276c0f",
+  "raw_local_backup": "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/6076-frozen-replay-complete-v2",
+  "original_output": "/tmp/conduit-frozen-replay-complete-v2",
+  "worker_sha256": "ed2cb512abe6cd8f18b610e89509c7ec63cbfa17f5b9cc4eaf314afaa29946ef",
+  "log_sha256": "d88e23888a04df23e2cc6f9a46dc44912526ce9a5f3f26f6db619a0877fb3591",
+  "comparison_sha256": "9ddb29a21f87297e641febaf625ecc637ef7f9126a53d8e1a74e349900b05dd1",
+  "numerical_plans_sha256": "140c739487775d02055f87641441d74a39aacb7bb3c0352756d2a5057ae6fb3a",
+  "original29_in_aggregate": false,
+  "failed28_in_aggregate": false,
+  "raw_traces_published": false,
+  "scope": "Source traces/reports retained locally without another replay or input changes; no stable publication acceptance"
+}
