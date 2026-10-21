@@ -226,7 +226,11 @@ pub(super) fn run() {
         || fresh.instance() == 0
         || response(&mut fresh, Request::Pointer { x: 6, y: 6 }) != Response::Pointer(None)
         || response(&mut fresh, Request::Remove(blue)) != Response::Refused(Error::Stale)
-        || response(&mut fresh, Request::BeginFrame) != Response::Refused(Error::NoDamage)
+        || response(&mut fresh, Request::BeginFrame)
+            != (Response::FrameIdle {
+                cursor_visible: false,
+                focus_visible: false,
+            })
     {
         refuse("compositor-fixture-restart-state");
     }

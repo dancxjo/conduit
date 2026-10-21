@@ -136,6 +136,7 @@ impl CompositorService {
                 .frame_grant
                 .begin(plan)
                 .map_err(|_| TransportError::Protocol)?,
+            (Request::BeginFrame, Response::FrameIdle { .. }) => self.frame_grant.invalidate(),
             (Request::FrameStep { sequence, pixels }, Response::Frame(span)) => self
                 .frame_grant
                 .admit(span, sequence, pixels)
@@ -195,6 +196,7 @@ fn response_matches(request: Request, response: Response) -> bool {
         (Request::Admit { .. }, Response::Surface(_))
             | (Request::PrepareUpload { .. }, Response::Prepared(_))
             | (Request::BeginFrame, Response::FrameStarted(_))
+            | (Request::BeginFrame, Response::FrameIdle { .. })
             | (Request::FrameStep { .. }, Response::Frame(_))
             | (Request::Pointer { .. }, Response::Pointer(_))
             | (Request::Keyboard, Response::Keyboard(_))

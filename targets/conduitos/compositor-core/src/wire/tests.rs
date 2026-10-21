@@ -210,6 +210,14 @@ fn response_variants_roundtrip_and_frame_ranges_are_checked() {
         Response::Surface(HANDLE),
         Response::Prepared(true),
         Response::FrameStarted(plan()),
+        Response::FrameIdle {
+            cursor_visible: false,
+            focus_visible: false,
+        },
+        Response::FrameIdle {
+            cursor_visible: true,
+            focus_visible: true,
+        },
         Response::Frame(frame),
         Response::Pointer(None),
         Response::Pointer(Some(crate::Route {
@@ -383,4 +391,23 @@ fn frame_plan_and_selected_mask_refuse_noncanonical_or_inconsistent_work() {
     let n = encode_response(ENV, Response::Frame(incomplete), &mut bytes).unwrap();
     bytes[57] = 1;
     assert!(decode_response(&bytes[..n]).is_err());
+}
+
+#[test]
+fn idle_frame_affordances_are_exact_canonical_booleans() {
+    let response = Response::FrameIdle {
+        cursor_visible: true,
+        focus_visible: false,
+    };
+    let mut bytes = [0; EXCHANGE_BYTES];
+    let n = encode_response(ENV, response, &mut bytes).unwrap();
+    assert_eq!(n, 34);
+    assert_eq!(decode_response(&bytes[..n]), Ok((ENV, response)));
+    for offset in [32, 33] {
+        let mut bad = bytes;
+        bad[offset] = 2;
+        assert_eq!(decode_response(&bad[..n]), Err(CodecError::Value));
+    }
+    bytes[8..12].copy_from_slice(&35u32.to_le_bytes());
+    assert_eq!(decode_response(&bytes[..35]), Err(CodecError::Length));
 }
