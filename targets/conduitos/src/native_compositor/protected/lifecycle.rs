@@ -117,7 +117,6 @@ impl NativeCompositor {
         visible: bool,
     ) -> Result<(), NativeCompositorError> {
         let i = self.index(id)?;
-        self.invalidate();
         self.unit(Request::Visible {
             surface: self.surfaces[i].handle,
             visible,
@@ -125,7 +124,6 @@ impl NativeCompositor {
     }
     pub fn focus_surface(&mut self, id: &str) -> Result<(), NativeCompositorError> {
         let i = self.index(id)?;
-        self.invalidate();
         self.unit(Request::Focus(self.surfaces[i].handle))
     }
     pub fn remove_surface(&mut self, id: &str) -> Result<(), NativeCompositorError> {
@@ -157,7 +155,6 @@ impl NativeCompositor {
         // Cursor position is guest-owned. The backend records only the last
         // Root input sample for resending a hover request, never for rendering.
         let position = self.pointer_sample.get();
-        self.invalidate();
         self.unit(Request::Cursor {
             position,
             hover: hovered,

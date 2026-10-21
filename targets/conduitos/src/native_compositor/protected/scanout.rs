@@ -162,6 +162,16 @@ impl NativeCompositor {
         if pixels == 0 {
             return None;
         }
+        // Mutators can be guest-recognized no-ops. Preserve the last exact
+        // coverage ledger, but let the authoritative renderer refuse it while
+        // any damage, upload or frame remains pending. The query releases its
+        // mutable transport borrow before this acknowledgement pins the owner.
+        if !matches!(
+            self.request(Request::DamagePending).ok()?,
+            Response::DamagePending(false)
+        ) {
+            return None;
+        }
         let owner = self.owner.as_ref()?.try_borrow().ok()?;
         if !owner.sessions.is_active(session) {
             return None;
