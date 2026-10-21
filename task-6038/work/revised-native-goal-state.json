@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "5992boundedfontmechanism;nativeworkerownsisolatedWT",
+  "current_stage": "repaired589WorkspaceRunning;selectedLookFocusedCompilationInSeparateCache;PatchbayQueued",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -106,7 +106,7 @@
     "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
     "repaired_merged_workspace": {
       "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
-      "state": "running;correspondenceFmtFullStrictClippyPassed;testsCompiling",
+      "state": "running;correspondenceFmtFullStrictClippyPassed;BirthJournalRegressionPassed;testsStillExecuting",
       "directory": "outputs/native-acceptance-58979c509"
     }
   },
@@ -168,7 +168,29 @@
     "branch": "codex/5628-selected-typography",
     "base": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
     "worktree": "work/selected-typography-look",
-    "state": "isolatedSourcePreparation;noBuildsWhileValidatorOwnsCache;noPRAdmissionBeforeCombinedGreen",
-    "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes"
+    "state": "sourceFrozenFirstFocusedCompileLive;separateCache;refreshOnto0d553AfterTerminalBeforeWireFixtures;noPRAdmissionBeforeCombinedGreen",
+    "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
+    "head": "4f1263b054db98bd1f9d1b6f246332d83dce5071",
+    "origin_verified": true,
+    "target_cache": "work/selected-typography-host-target",
+    "root_review": "work/5628-root-source-review.md",
+    "current_dev_target": "0d5530bc9fd0cfc29f3548ce28e93e620814173b"
+  },
+  "latest_ci_observation": {
+    "time": "2026-10-21T01:21:00Z",
+    "old_6a8_run": 39519886483,
+    "old_6a8_state": "foundation/browserRunning;knownPre6171ProductsFailure",
+    "coalesced_a066_run": 39525183575,
+    "current_dev": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
+    "integration": 39526786633,
+    "state": "pending",
+    "publisher": 39526791364,
+    "publisher_state": "skipped;notAcceptance",
+    "next_observation_not_before": "2026-10-21T01:36:00Z"
+  },
+  "patchbay_preparation": {
+    "issue": 5516,
+    "plan": "work/5516-bounded-input-plan.md",
+    "state": "readOnlyPlan;noSourceImplementation;checkedNavigationDistinctOwnerInvocation"
   }
 }

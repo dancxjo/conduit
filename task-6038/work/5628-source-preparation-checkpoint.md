@@ -1,6 +1,6 @@
 # #5628 Source preparation checkpoint
 
-Worktree: `work/selected-typography-look`, branch `codex/5628-selected-typography`, base `58979c509`. No build, Cargo test, Clippy, cache, fetch, push or GitHub mutation performed. Source-only rustfmt, JS syntax checks and diff whitespace checks completed. Source is uncommitted and not yet compilation-proven.
+Worktree: `work/selected-typography-look`, branch `codex/5628-selected-typography`, base `58979c509`. No build, Cargo test, Clippy, cache, fetch, push or GitHub mutation performed. Source-only rustfmt, JS syntax checks and diff whitespace checks completed. Source was committed as 4f1263b054db98bd1f9d1b6f246332d83dce5071 and verified on origin; it is not yet compilation-proven.
 
 ## Delta
 
@@ -21,3 +21,7 @@ Worktree: `work/selected-typography-look`, branch `codex/5628-selected-typograph
 ## Explicit remaining diagram boundary
 
 `native_face_scene/diagram.rs` retains its default, unscaled `single_line_preview` for Heading. Both selected intents map Heading to identical Sans20, so the Title-only typography variation does not introduce a family mismatch there. This preparation does not prove all Patchbay text-scale paths or close #5629 accessibility/scale acceptance. Diagram scale debt remains explicit; no unrelated graph refactor is included.
+
+## Separate-cache authorization
+
+At 2026-10-21 01:18 UTC root measured 247 GiB free disk, 57 GiB available RAM, 20 CPUs and load 2.08. Focused compilation/regeneration is authorized in the separate `work/selected-typography-host-target` cache with four build jobs and a 100 GiB disk floor. The repaired589 full validation continues untouched in `work/native-panels-host-target`. No product/QEMU builds or full-workspace duplicate run authorized yet.

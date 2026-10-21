@@ -1,0 +1,22 @@
+{
+  "parent": "9ef5da8c7a9e36a032c91552d1734d0f3464fc38",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 8981,
+      "sha256": "e6335ac190456ec5d5be416ff0b24298d54e9d0deb054e0f1a7b6893657225f2",
+      "mode": "100644",
+      "blob": "bae92d761feef82e2188d900d78ad14868dc470e"
+    },
+    {
+      "source": "work/5628-source-preparation-checkpoint.md",
+      "tree_path": "task-6038/work/5628-source-preparation-checkpoint.md",
+      "bytes": 4447,
+      "sha256": "c13b7833565cd88e2fdc29c063512a9db768a9d9f761aad0eacc916b52df7e83",
+      "mode": "100644",
+      "blob": "433006b84742695c300d1bfd62935362421a1531"
+    }
+  ]
+}
