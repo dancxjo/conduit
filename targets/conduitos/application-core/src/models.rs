@@ -171,6 +171,7 @@ impl Models {
         match command {
             Command::PrepareInit { .. }
             | Command::PrepareTarget { .. }
+            | Command::FinishTarget { .. }
             | Command::PrepareTutorial { .. }
             | Command::PrepareTour { .. }
             | Command::FinishInit

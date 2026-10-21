@@ -52,7 +52,7 @@ impl Owner {
             owner.prepared(&Command::PrepareInit {
                 manifest: InitManifest::from_initial(&initial),
             })?;
-            // Fixed arrays bound the complete transaction to at most 22 commands.
+            // Fixed arrays bound the complete transaction to at most 38 commands.
             // Each component gets a fresh protected entry; failed entries are
             // quarantined by command(), never retried or resumed.
             for (slot, initial) in initial.into_iter().enumerate() {
@@ -74,6 +74,10 @@ impl Owner {
                                     slot: slot as u8,
                                     target: target as u8,
                                     value,
+                                })?;
+                                owner.prepared(&Command::FinishTarget {
+                                    slot: slot as u8,
+                                    target: target as u8,
                                 })?;
                             }
                         }

@@ -83,7 +83,7 @@ impl Service {
                 );
                 Err(error)
             }
-            (Request::Begin { .. } | Request::Write { .. }, Response::Ready)
+            (Request::Begin { .. } | Request::Write { .. } | Request::Preflight, Response::Ready)
             | (Request::Commit, Response::Blob { .. })
             | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
             _ => Err(Refusal::Malformed),
@@ -120,6 +120,9 @@ impl Service {
                 bytes: chunk.len() as u32,
             })?;
             offset += chunk.len() as u32;
+        }
+        if matches!(command, Command::PrepareTarget { .. }) {
+            self.request(Request::Preflight)?;
         }
         let Response::Blob { bytes: total } = self.request(Request::Commit)? else {
             return Err(Refusal::Malformed);
@@ -163,6 +166,9 @@ fn record_command_refusal(command: &Command, error: Refusal) {
         Command::PrepareInit { .. } => ("prepare-init", None, None),
         Command::PrepareTarget { slot, target, .. } => {
             ("prepare-target", Some(*slot), Some(*target))
+        }
+        Command::FinishTarget { slot, target } => {
+            ("finish-target", Some(*slot), Some(*target))
         }
         Command::PrepareTutorial { slot, .. } => ("prepare-tutorial", Some(*slot), None),
         Command::PrepareTour { slot } => ("prepare-tour", Some(*slot), None),

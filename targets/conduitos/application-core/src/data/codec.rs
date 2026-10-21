@@ -101,6 +101,23 @@ impl Workspace {
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
         transport_codec::decode(decoded_json(bytes, &mut self.json)?)
     }
+    /// For large target commands, do decompression and the complete framing
+    /// preflight in their own protected entry. State freezes incoming bytes
+    /// until the following Commit, so verified allocation hints stay trusted.
+    pub(crate) fn preflight_command(&mut self, bytes: &[u8]) -> Result<usize, Refusal> {
+        let length = {
+            let decoded = decoded_json(bytes, &mut self.json)?;
+            transport_codec::preflight(decoded)?;
+            decoded.len()
+        };
+        if !bytes.starts_with(MAGIC) {
+            self.json[..length].copy_from_slice(bytes);
+        }
+        Ok(length)
+    }
+    pub(crate) fn decode_preflighted_command(&self, length: usize) -> Result<Command, Refusal> {
+        transport_codec::decode_validated(self.json.get(..length).ok_or(Refusal::Bounds)?)
+    }
     /// While a full graph is retained, reject every other command tag before
     /// decoding any second payload into the same fixed grant.
     pub(crate) fn decode_projection_finish(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {

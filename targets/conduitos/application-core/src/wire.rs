@@ -11,6 +11,8 @@ pub enum Request {
     Begin { bytes: u32 },
     Write { offset: u32, bytes: u32 },
     Commit,
+    /// Validate a fully written target command before its typed Commit entry.
+    Preflight,
     Read { offset: u32, maximum: u32 },
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,6 +73,7 @@ pub fn encode_request(e: Envelope, r: Request, out: &mut [u8]) -> Result<(), Ref
         Request::Begin { bytes } => (1, [bytes, 0, 0, 0]),
         Request::Write { offset, bytes } => (2, [offset, bytes, 0, 0]),
         Request::Commit => (3, [0; 4]),
+        Request::Preflight => (5, [0; 4]),
         Request::Read { offset, maximum } => (4, [offset, maximum, 0, 0]),
     };
     encode(e, tag, args, out)
@@ -85,6 +88,7 @@ pub fn decode_request(input: &[u8]) -> Result<(Envelope, Request), Refusal> {
             Request::Write { offset, bytes }
         }
         (3, [0, 0, 0, 0]) => Request::Commit,
+        (5, [0, 0, 0, 0]) => Request::Preflight,
         (4, [offset, maximum, 0, 0]) if maximum > 0 && maximum as usize <= TRANSFER_BYTES => {
             Request::Read { offset, maximum }
         }

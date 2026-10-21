@@ -138,6 +138,11 @@ pub enum Command {
         target: u8,
         value: Target,
     },
+    /// Construct the staged target on a separate protected entry.
+    FinishTarget {
+        slot: u8,
+        target: u8,
+    },
     PrepareTutorial {
         slot: u8,
         evidence: BodyBiographyEvidence,

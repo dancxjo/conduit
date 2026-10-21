@@ -13,7 +13,9 @@ pub struct State {
     preparing: Option<Builder>,
     workspace: Option<data::Workspace>,
     projection: Option<crate::graph_facts::PreparedProjection>,
+    pending_target: Option<(u8, u8, data::Target)>,
     incoming: Option<(usize, Vec<u8>)>,
+    preflighted: Option<usize>,
     outgoing: Vec<u8>,
     read: usize,
 }
@@ -28,6 +30,8 @@ impl State {
             self.models = None;
             self.preparing = None;
             self.projection = None;
+            self.pending_target = None;
+            self.preflighted = None;
             self.workspace = None;
             self.incoming = None;
             self.outgoing = Vec::new();
@@ -45,6 +49,8 @@ impl State {
                     || bytes == 0
                     || bytes as usize > MAX_BLOB
                     || (self.projection.is_some() && self.read != self.outgoing.len())
+                    || (self.pending_target.is_some()
+                        && (bytes > 256 || self.read != self.outgoing.len()))
                 {
                     return Err(Refusal::Order);
                 }
@@ -57,6 +63,7 @@ impl State {
                 }
                 self.outgoing.clear();
                 self.read = 0;
+                self.preflighted = None;
                 let mut incoming = Vec::new();
                 incoming
                     .try_reserve_exact(bytes as usize)
@@ -65,6 +72,9 @@ impl State {
                 Ok(Response::Ready)
             }
             Request::Write { offset, bytes } => {
+                if self.preflighted.is_some() {
+                    return Err(Refusal::Order);
+                }
                 let (total, incoming) = self.incoming.as_mut().ok_or(Refusal::Order)?;
                 if offset as usize != incoming.len()
                     || incoming
@@ -77,6 +87,21 @@ impl State {
                 incoming.extend_from_slice(transfer.get(..bytes as usize).ok_or(Refusal::Bounds)?);
                 Ok(Response::Ready)
             }
+            Request::Preflight => {
+                if self.preflighted.is_some()
+                    || self.projection.is_some()
+                    || self.pending_target.is_some()
+                {
+                    return Err(Refusal::Order);
+                }
+                let (total, incoming) = self.incoming.as_ref().ok_or(Refusal::Order)?;
+                if incoming.len() != *total {
+                    return Err(Refusal::Order);
+                }
+                let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
+                self.preflighted = Some(workspace.preflight_command(incoming)?);
+                Ok(Response::Ready)
+            }
             Request::Commit => {
                 let (total, incoming) = self.incoming.take().ok_or(Refusal::Order)?;
                 if incoming.len() != total {
@@ -85,6 +110,8 @@ impl State {
                 let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
                 let command: Command = if self.projection.is_some() {
                     workspace.decode_projection_finish(&incoming)?
+                } else if let Some(length) = self.preflighted.take() {
+                    workspace.decode_preflighted_command(length)?
                 } else {
                     workspace.decode_command(&incoming)?
                 };
@@ -94,10 +121,16 @@ impl State {
                     && !matches!(
                         &command,
                         Command::PrepareTarget { .. }
+                            | Command::FinishTarget { .. }
                             | Command::PrepareTutorial { .. }
                             | Command::PrepareTour { .. }
                             | Command::FinishInit
                     )
+                {
+                    return Err(Refusal::Order);
+                }
+                if self.pending_target.is_some()
+                    && !matches!(&command, Command::FinishTarget { .. })
                 {
                     return Err(Refusal::Order);
                 }
@@ -133,11 +166,23 @@ impl State {
                         self.preparing = Some(Builder::new(manifest)?);
                         Reply::Prepared
                     }
-                    Command::PrepareTarget {
-                        slot,
-                        target,
-                        value,
-                    } => {
+                    Command::PrepareTarget { slot, target, value } => {
+                        self.preparing
+                            .as_ref()
+                            .ok_or(Refusal::Order)?
+                            .validate_target(slot, target)?;
+                        self.pending_target = Some((slot, target, value));
+                        Reply::Prepared
+                    }
+                    Command::FinishTarget { slot, target } => {
+                        if self
+                            .pending_target
+                            .as_ref()
+                            .is_none_or(|(s, t, _)| *s != slot || *t != target)
+                        {
+                            return Err(Refusal::Order);
+                        }
+                        let (_, _, value) = self.pending_target.take().ok_or(Refusal::Order)?;
                         self.preparing
                             .as_mut()
                             .ok_or(Refusal::Order)?
