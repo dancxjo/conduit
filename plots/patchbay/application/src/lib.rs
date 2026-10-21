@@ -41,6 +41,8 @@ mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
+mod resident_actions;
+pub use resident_actions::PatchbayFaceProjectionError;
 mod resident_canvas;
 mod resident_face;
 mod resident_view;

@@ -393,3 +393,20 @@ Native-compositor/workbench compilation passed after correcting a BodyId import
 from core to its existing body crate (failed initial log retained separately).
 No tests, image rebuild, platform journey or CI job ran. Actual startup, typed
 owner effects and migration acceptance remain open.
+
+## Source-owned resident action projection
+
+Added `face_fragment` over the initial read-only observation, following Todo's
+owner-admitted-return-route projection pattern. Plot selection, explicit-subject
+Edit and the current topology's next Mask request have exact source-owned action
+contracts. Without an owner-admitted route they retain a typed unavailable
+reason. The flag is projection input from the owner, not authority from a Mask.
+Graph reading/inspection is navigation, with no new domain effect action.
+
+Edit carries an explicit bounded UTF-8 semantic-subject argument so its meaning
+does not depend on renderer cursor state. Future owner command admission must
+check exact graph membership before effects, alongside current Face/Show/basis;
+this projection alone neither dispatches nor authorizes mutation. The legacy
+production route is unchanged. Native-compositor/workbench compilation passed
+(5 seconds). No tests, image rebuild, platform journey or CI job ran. #6201's
+actual typed command handler, Show feedback and production Fore remain open.
