@@ -152,7 +152,7 @@ def run(config):
         iso = qmp.private(config['spore'])
         require(hashlib.file_digest(iso.open('rb'), 'sha256').hexdigest() == marker['iso_sha256'], 'private ISO digest')
         argv = ['cargo', '+stable', 'xtask', 'make', 'conduitos', 'live-owner-boot',
-                '--spore', config['spore'], '--candidate-id', config['candidate_id'],
+                '--spore', config['spore'], '--candidate-id', marker['candidate_id'],
                 '--owner-forward', config['owner_forward'], '--qmp-socket', config['qmp']]
         if config.get('xvfb', False):
             argv = ['xvfb-run', '-a', '--'] + argv

@@ -1,0 +1,46 @@
+{
+  "parent": "8e50a57131a1846830cc75fc050e6d871b713c39",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/5628-owner-browser-session.mjs",
+      "tree_path": "task-6038/work/5628-owner-browser-session.mjs",
+      "bytes": 31038,
+      "sha256": "f9244f93a9225ad6234161708b15ae9da0795246e7b011a70228cf0cb7b53272",
+      "mode": "100644",
+      "blob": "1bc7ea967f5db555e6c1a763e02478707e1d378e"
+    },
+    {
+      "source": "work/5628-owner-look-journey.py",
+      "tree_path": "task-6038/work/5628-owner-look-journey.py",
+      "bytes": 13856,
+      "sha256": "8f9c1fc565112c86725606bbb784ddd03f1a53c115e12a8f17e64ca3a88143d0",
+      "mode": "100644",
+      "blob": "1069523f22986e4d16fc4b23da044a3c79cd66c5"
+    },
+    {
+      "source": "work/5628-owner-look-qmp.py",
+      "tree_path": "task-6038/work/5628-owner-look-qmp.py",
+      "bytes": 19646,
+      "sha256": "e3f811f5e75878edec61a6606f0dff33ca3b55d1e6a43e2124528f7f83f4d073",
+      "mode": "100644",
+      "blob": "167e9204e0e664b909d02795aa2e8fd8b35038bb"
+    },
+    {
+      "source": "work/5628-provision-owner-spore.py",
+      "tree_path": "task-6038/work/5628-provision-owner-spore.py",
+      "bytes": 3920,
+      "sha256": "b322888a297a60856f8370a831e2a89234c9b4403c428d2079da25cfac34a781",
+      "mode": "100644",
+      "blob": "f71536cc924a54e47a8fc1015ca8cef1abbc3b7c"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-native-diagnostic-6b.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-native-diagnostic-6b.json",
+      "bytes": 1648,
+      "sha256": "a0f3ce8c667529ba892667427e29811da379bb3a66f536faa548c1ef45e8c779",
+      "mode": "100644",
+      "blob": "5efe6f9f900b48cc77ccf71b3ad1142a681eafa4"
+    }
+  ]
+}

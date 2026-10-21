@@ -66,6 +66,9 @@ def focus_matches(real, focus, named=None):
         require(named[1] is None or any(a['name'] == named[1] for a in action['arguments']), 'offered argument')
     b, d = focus['hit_bounds'], focus['display_bounds']
     require(1 <= focus['page'] <= focus['pages'] <= 64, 'page bounds')
+    if named is None and focus['action_id'] is None:
+        require(focus['argument_name'] is None and b is None, 'unfocused state must have no argument or hit')
+        return
     require(b is not None and b['width'] > 0 and b['height'] > 0, 'focus hit')
     require(b['x'] >= 0 and b['y'] >= 0 and b['x'] + b['width'] <= d['width'] and b['y'] + b['height'] <= d['height'], 'hit extent')
 

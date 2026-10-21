@@ -1,0 +1,30 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "status": "diagnostic-native-boot-handoff-and-first-look-only",
+  "acceptance": false,
+  "prior_browser_attempt6_failed_before_admission": true,
+  "prior_attempt6_raw_error_missing": "Private diagnostic filename was not unique; fixed for subsequent failures. Diagnostic rerun6b cannot establish flaky browser acceptance.",
+  "earlier_attempt5_refusal": "owner-boot-candidate-missing; corrected producer to use exact candidate_id from actual provisioned invitation rather than an invented test identifier",
+  "actual_native_guest_boot": true,
+  "actual_native_preference_and_F5_ack": true,
+  "actual_F6_configured_realization": true,
+  "expression": {
+    "density": "compact",
+    "identity": "conduit.face/compact@1",
+    "motion": "none",
+    "palette": "phosphor",
+    "text_scale_percent": 100,
+    "typography": "engineering",
+    "version": 2
+  },
+  "face_identity": "7aef5f77227ccd69db0e2e27406da0f9a617d3d4021560b6b495bc5c0a4e1c35",
+  "face_revision_decimal": "472461771987855191",
+  "current_show": "show/6d36229797555b8430121db804b0a83f9709d79e8bc3ebe87351a91e6a27f68c",
+  "owner_show_acknowledged": true,
+  "actual_unfocused_initial_state_validated": true,
+  "named_argument_focus_correctly_rejected": true,
+  "available_todo_add": true,
+  "native_serial_sha256": "94889cd3791e4e641dabe11ed196183f9e948aefffbff10df3c12ea5095a92b9",
+  "remaining": "Tab to exact offered Add argument; focused look changes, draft refusal, 200 percent and forced colors, independent owner snapshots and capture review; clean non-diagnostic rerun required",
+  "timestamp": "2026-10-21T03:36:37Z"
+}

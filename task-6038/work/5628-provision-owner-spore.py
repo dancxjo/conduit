@@ -25,7 +25,7 @@ elif mode=='--provision':
  with os.fdopen(fd,'wb') as log:
   for args in commands:
    r=subprocess.run(args,cwd=W,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=120);assert r.returncode==0,'supported provisioning refused; inspect private log'
- p=Path(d['spore']);assert p.stat().st_mode&0o077==0;receipt={'source':H,'iso_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'membership_admitted':False};fd=os.open(d['provision_ready'],os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+ p=Path(d['spore']);assert p.stat().st_mode&0o077==0;receipt={'source':H,'iso_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'membership_admitted':False,'candidate_id':next(c['candidate_id'] for c in inv['rendezvous']['candidates'] if c['line_family']=='authenticated-tls-stream')};fd=os.open(d['provision_ready'],os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
  with os.fdopen(fd,'w') as f:json.dump(receipt,f);f.write('\n')
  print('Private normal product spore provisioned; invitation/media remain private; membership not yet admitted')
 else:

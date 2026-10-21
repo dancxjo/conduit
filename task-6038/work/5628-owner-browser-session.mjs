@@ -486,7 +486,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     try {
       const parent = path.dirname(path.resolve(process.argv[7]));
       await privateDirectory(parent);
-      await writeFile(path.join(parent, 'browser-helper-failure.json'),
+      await writeFile(path.join(parent, `browser-helper-failure-${path.basename(process.argv[7])}.json`),
         JSON.stringify({name:error.name,message:String(error.message).slice(0,8192),
           stack:String(error.stack).slice(0,16384)},null,2), {mode:0o600,flag:'wx'});
     } catch {}
