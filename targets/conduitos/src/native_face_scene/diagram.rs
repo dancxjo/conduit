@@ -8,7 +8,10 @@ use conduit_face::{
 
 #[path = "diagram_geometry.rs"]
 mod geometry;
+#[path = "diagram/selection.rs"]
+mod selection;
 use geometry::{DiagramGeometry, GAP, GearHits, PORT_ROW, visible_ports};
+pub(super) use selection::hit_test;
 const MAX_VISIBLE_LINKS: usize = 12;
 
 pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
@@ -69,7 +72,7 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         )
     } else {
         alloc::format!(
-            "{} · {shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
+            "{} · {shown}/{} cords · {} omitted · Alt+arrows inspect · F2/F3",
             ordering.label(),
             cords.len(),
             cords.len() - shown
@@ -132,29 +135,8 @@ pub(super) fn append<'a>(
         if visible_links == MAX_VISIBLE_LINKS {
             break;
         }
-        let from = card(source_index);
-        let to = card(sink_index);
-        let (start_x, end_x) = if from.x <= to.x {
-            (from.x + from.width as i16 - 1, to.x)
-        } else {
-            (from.x, to.x + to.width as i16 - 1)
-        };
-        let start_y = from.y + 80 + source_row as i16 * PORT_ROW as i16;
-        let end_y = to.y + 80 + sink_row as i16 * PORT_ROW as i16;
-        let middle = if from.x == to.x {
-            from.x + from.width as i16 + GAP as i16 / 2
-        } else {
-            start_x + (end_x - start_x) / 2
-        };
-        let mut points = Vec::with_capacity(4);
-        points.push(GraphicsPoint::new(start_x, start_y).map_err(|_| FaceSceneError::SceneBound)?);
-        if start_y != end_y {
-            points
-                .push(GraphicsPoint::new(middle, start_y).map_err(|_| FaceSceneError::SceneBound)?);
-            points.push(GraphicsPoint::new(middle, end_y).map_err(|_| FaceSceneError::SceneBound)?);
-        }
-        points.push(GraphicsPoint::new(end_x, end_y).map_err(|_| FaceSceneError::SceneBound)?);
-        let path = GraphicsPath::new(&points).map_err(|_| FaceSceneError::SceneBound)?;
+        let path =
+            selection::cord_path(card(source_index), card(sink_index), source_row, sink_row)?;
         push(
             scene,
             GraphicsCommand::path(path, screen, GraphicsPaintRole::Accent),
