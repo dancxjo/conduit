@@ -233,3 +233,18 @@ reading/frame evidence, not physical keyboard/pointer enactment, browser/linear
 comparison, QEMU or CI. The browser workbench's richer Plan/Play augmentation
 remains intact; replacing it wholesale with the smaller projection would lose
 facts, so consumer migration remains open rather than being claimed here.
+
+## Graph keyboard/pointer routing
+
+Added two focused deterministic input-path regressions: Tab traverses every
+exact graph subject, Shift+Tab reverses, Enter on reading focus submits no action,
+and Escape restores the originating diagram page. Pointer coverage exercises
+emitted Gear/Port rectangles and uncovered Cord segments, verifies selected
+identities against the same Face, and refuses a Show transitioned to Replaced
+without moving selection. The fixture acknowledgement remains a fixture, not an
+observed Host effect. All four graph-reading tests pass (1,257 filtered out),
+compile 14 seconds / execution 0.22 seconds. The initial compile caught an invalid
+test-only lifecycle variant; corrected it to the existing legal Show transition
+and retained the failed and successful local logs separately. No browser suite,
+QEMU journey, whole-workspace suite or CI job ran. #5516/#5519 product acceptance
+and remaining adapter migration remain open.
