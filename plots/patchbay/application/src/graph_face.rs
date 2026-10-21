@@ -7,7 +7,7 @@ use conduit_face::{
     FaceDisclosure, FaceDisclosureLevel, FaceProperty, FacePropertyValue, FaceRelationship,
     FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
-use patchbay_graph::{PatchbayFrontPort, PatchbayGraph};
+use patchbay_graph::{PatchbayCord, PatchbayFrontPort, PatchbayGraph};
 
 pub struct Content<'a> {
     pub subjects: &'a mut alloc::vec::Vec<FaceSubject>,
@@ -88,22 +88,16 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
         append_front_port(content, &plot, port);
     }
     for cord in &graph.cords {
-        let id = format!("cord/{}", cord.identity);
-        subject(content, &id, FaceRole::Cord, "Typed connection");
-        relation(content, &plot, &id, FaceRelationshipKind::Contains);
-        property(content, &id, "semantic-id", &cord.identity);
-        property(content, &id, "source-port", &cord.source_port);
-        property(content, &id, "sink-port", &cord.sink_port);
-        property(content, &id, "value-kind", cord.value_kind.as_str());
-        text_property(content, &id, "temporal", cord.temporal.as_str());
-        for endpoint in [&cord.source_port, &cord.sink_port] {
-            relation(
-                content,
-                &id,
-                &format!("port/{endpoint}"),
-                FaceRelationshipKind::Connects,
-            );
-        }
+        append_named_cord(
+            &mut GraphFacts {
+                subjects: content.subjects,
+                relationships: content.relationships,
+                properties: content.properties,
+            },
+            &plot,
+            cord,
+            "Typed connection",
+        );
     }
 }
 
@@ -118,7 +112,7 @@ fn append_port(
     descriptor: &conduit_core::PortDescriptor,
 ) {
     append_named_port(
-        &mut PortContent {
+        &mut GraphFacts {
             subjects: content.subjects,
             relationships: content.relationships,
             properties: content.properties,
@@ -134,8 +128,8 @@ fn append_port(
     );
 }
 
-/// Collections changed by exact Port projection; no text/disclosure scratch state.
-pub struct PortContent<'a> {
+/// Collections changed by exact graph fact projection; no rendering state.
+pub struct GraphFacts<'a> {
     pub subjects: &'a mut alloc::vec::Vec<FaceSubject>,
     pub relationships: &'a mut alloc::vec::Vec<FaceRelationship>,
     pub properties: &'a mut alloc::vec::Vec<FaceProperty>,
@@ -144,7 +138,7 @@ pub struct PortContent<'a> {
 /// Shared exact Port projection with caller-owned human wording.
 /// The completed graph/Face remains subject to ordinary validation/admission.
 pub fn append_named_port(
-    content: &mut PortContent<'_>,
+    content: &mut GraphFacts<'_>,
     parent: &str,
     identity: &str,
     descriptor: &conduit_core::PortDescriptor,
@@ -230,10 +224,63 @@ fn property(content: &mut Content<'_>, subject: &str, name: &str, value: &str) {
     });
 }
 
-fn text_property(content: &mut Content<'_>, subject: &str, name: &str, value: &str) {
-    content.properties.push(FaceProperty {
-        subject: subject.into(),
-        name: name.into(),
-        value: FacePropertyValue::Text(String::from(value)),
+/// Preserve exact ordered endpoints even when an endpoint is absent. Only real
+/// Port subjects receive Connects relationships; no placeholder is fabricated.
+pub fn append_named_cord(
+    content: &mut GraphFacts<'_>,
+    parent: &str,
+    cord: &PatchbayCord,
+    name: &str,
+) -> String {
+    let id = format!("cord/{}", cord.identity);
+    if let Some(existing) = content
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == id)
+    {
+        debug_assert_eq!(existing.role, FaceRole::Cord);
+    } else {
+        content.subjects.push(FaceSubject {
+            identity: id.clone(),
+            role: FaceRole::Cord,
+            name: name.into(),
+        });
+    }
+    content.relationships.push(FaceRelationship {
+        source: parent.into(),
+        target: id.clone(),
+        kind: FaceRelationshipKind::Contains,
     });
+    for (name, value) in [
+        ("semantic-id", cord.identity.as_str()),
+        ("source-port", cord.source_port.as_str()),
+        ("sink-port", cord.sink_port.as_str()),
+        ("value-kind", cord.value_kind.as_str()),
+    ] {
+        content.properties.push(FaceProperty {
+            subject: id.clone(),
+            name: name.into(),
+            value: FacePropertyValue::Identity(value.into()),
+        });
+    }
+    content.properties.push(FaceProperty {
+        subject: id.clone(),
+        name: "temporal".into(),
+        value: FacePropertyValue::Text(cord.temporal.as_str().into()),
+    });
+    for endpoint in [&cord.source_port, &cord.sink_port] {
+        let target = format!("port/{endpoint}");
+        if content
+            .subjects
+            .iter()
+            .any(|subject| subject.identity == target && subject.role == FaceRole::Port)
+        {
+            content.relationships.push(FaceRelationship {
+                source: id.clone(),
+                target,
+                kind: FaceRelationshipKind::Connects,
+            });
+        }
+    }
+    id
 }

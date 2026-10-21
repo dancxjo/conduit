@@ -268,3 +268,21 @@ Final frozen-source compilation of native compositor and workbench passed
 compiled interface and is excluded; its log is retained separately. No tests,
 image rebuild, browser/QEMU journey or CI jobs ran for this delta. Existing
 cross-Mask and stable acceptance remain open.
+
+## Shared Cord consumer migration
+
+Native graph composition and browser workbench now share exact Cord subject,
+ordered source/sink identities, value kind, temporal contract and Connects
+projection. Browser full labels, collapsed-boundary properties and Plan/Play
+augmentation stay in its existing layer. Removed the browser's redundant
+semantic-subject lookup vector. Port/Cord projection borrows the same three
+collections through `GraphFacts`; no wire or transport format changed.
+
+Endpoint relationships are emitted only for existing exact Port subjects.
+Missing endpoint identities remain explicit source/sink properties, without a
+fabricated subject or dangling Face relationship; Masks can retain honest
+omission and complete Details. This aligns the shared projector with the former
+browser behavior while preserving ordered endpoint truth. Native and workbench
+compilation passed (5 seconds). No tests, image rebuild, QEMU/browser journey or
+CI job ran for this delta; missing-endpoint runtime/conformance and full canvas
+retirement remain open.

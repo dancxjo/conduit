@@ -1,9 +1,7 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
 use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
-use conduit_face::{
-    FaceIconKey, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole,
-};
+use conduit_face::{FaceIconKey, FacePropertyValue, FaceRole};
 
 use crate::portable_projection::ContentBuilder;
 
@@ -14,7 +12,6 @@ pub(super) fn append_exact_graph(
     play: Option<&PlayDocument>,
     content: &mut ContentBuilder,
 ) {
-    let mut semantic_subjects = Vec::new();
     for composition in &graph.compositions {
         let subject = content.subject_with_identity(
             format!("gear/{}", composition.identity),
@@ -88,7 +85,6 @@ pub(super) fn append_exact_graph(
                     FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
-            semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
     for gear in &graph.gears {
@@ -157,7 +153,6 @@ pub(super) fn append_exact_graph(
             }
         }
         append_gear_plan(content, &subject, gear, plan, play);
-        semantic_subjects.push((gear.identity.as_str(), subject.clone()));
         for port in gear.inputs.iter().chain(&gear.outputs) {
             let port_subject = append_port(
                 content,
@@ -178,20 +173,19 @@ pub(super) fn append_exact_graph(
                     FacePropertyValue::ValueContract(contract.clone()),
                 );
             }
-            semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
     for cord in &graph.cords {
-        let subject = content.subject_with_identity(
-            format!("cord/{}", cord.identity),
-            FaceRole::Cord,
-            format!("Cord from {} to {}", cord.source_port, cord.sink_port),
+        let subject = patchbay_application::graph_face::append_named_cord(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            cord,
+            &format!("Cord from {} to {}", cord.source_port, cord.sink_port),
         );
-        content.contains(plot, &subject);
-        identity(content, &subject, "semantic-id", &cord.identity);
-        identity(content, &subject, "source-port", &cord.source_port);
-        identity(content, &subject, "sink-port", &cord.sink_port);
-        identity(content, &subject, "value-kind", cord.value_kind.as_str());
         for composition in &graph.compositions {
             if let Some(binding) = composition
                 .output_bindings
@@ -219,18 +213,6 @@ pub(super) fn append_exact_graph(
             }
         }
         append_cord_plan(content, &subject, graph, cord, plan, play);
-        for endpoint in [&cord.source_port, &cord.sink_port] {
-            if let Some((_, port_subject)) = semantic_subjects
-                .iter()
-                .find(|(identity, _)| *identity == endpoint)
-            {
-                content.relationships.push(FaceRelationship {
-                    source: subject.clone(),
-                    target: port_subject.clone(),
-                    kind: FaceRelationshipKind::Connects,
-                });
-            }
-        }
     }
 }
 
@@ -550,7 +532,7 @@ fn append_port(
     name: &str,
 ) -> String {
     patchbay_application::graph_face::append_named_port(
-        &mut patchbay_application::graph_face::PortContent {
+        &mut patchbay_application::graph_face::GraphFacts {
             subjects: &mut content.subjects,
             relationships: &mut content.relationships,
             properties: &mut content.properties,
