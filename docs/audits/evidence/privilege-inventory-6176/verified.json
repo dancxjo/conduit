@@ -1,0 +1,563 @@
+{
+  "build_id": "build:sha256:26fc0edf802ef9adc284991783ede9043e6a135b36b219188255075785f0a36b",
+  "dependency_closure_sha256": "3b42ce63b9303f5f8136879479e78946b62076724a091287e4e202e8f22f0e19",
+  "dependency_closure_verification": "recomputed locked offline target-specific Cargo tree at matching clean Source",
+  "execution_established": false,
+  "inventory_sha256": "673cfb530086d554c7a80c90c9b422f8376dfb2ae51a1c245d7b966a5ffd125a",
+  "kernel_sha256": "9dae6197091f060e4dd35b2f11462e95c7349727e7556b3adcee3f7d0e1fec44",
+  "limits": "Source anchors are reviewed reachability/authority observations, not an exhaustive computed call graph. ELF segments are linked bytes, not installed mappings or executed service entries. No isolation claim follows from module boundaries, feature closure or image presence.",
+  "linked_images": [
+    {
+      "bytes": 76895824,
+      "entry": 18446744071562608608,
+      "load_segments": [
+        {
+          "file_bytes": 13463552,
+          "flags": 5,
+          "memory_bytes": 13463552,
+          "offset": 4096,
+          "physical_address": 18446744071562067968,
+          "virtual_address": 18446744071562067968
+        },
+        {
+          "file_bytes": 8171752,
+          "flags": 4,
+          "memory_bytes": 8171752,
+          "offset": 13467648,
+          "physical_address": 18446744071575531520,
+          "virtual_address": 18446744071575531520
+        },
+        {
+          "file_bytes": 55251704,
+          "flags": 6,
+          "memory_bytes": 55251704,
+          "offset": 21643264,
+          "physical_address": 18446744071583707136,
+          "virtual_address": 18446744071583707136
+        }
+      ],
+      "offset_in_root": 0,
+      "sha256": "9dae6197091f060e4dd35b2f11462e95c7349727e7556b3adcee3f7d0e1fec44"
+    },
+    {
+      "bytes": 142032,
+      "entry": 4243678,
+      "load_segments": [
+        {
+          "file_bytes": 54703,
+          "flags": 5,
+          "memory_bytes": 54703,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 61472,
+          "flags": 4,
+          "memory_bytes": 61472,
+          "offset": 61440,
+          "physical_address": 4251648,
+          "virtual_address": 4251648
+        }
+      ],
+      "offset_in_root": 13594440,
+      "sha256": "54e62e6d5903c0c61925822c996c6151f65e2c8320e3d8b3f3bc5c3b37dc0a0c"
+    },
+    {
+      "bytes": 182720,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 126415,
+          "flags": 5,
+          "memory_bytes": 126415,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 2128,
+          "flags": 4,
+          "memory_bytes": 2128,
+          "offset": 131072,
+          "physical_address": 4321280,
+          "virtual_address": 4321280
+        }
+      ],
+      "offset_in_root": 14824128,
+      "sha256": "a746625062284586a361ba3407f029ff056190bc898a768d5fe4d6c682fd4691"
+    },
+    {
+      "bytes": 29256,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 18777,
+          "flags": 5,
+          "memory_bytes": 18777,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 584,
+          "flags": 4,
+          "memory_bytes": 584,
+          "offset": 24576,
+          "physical_address": 4214784,
+          "virtual_address": 4214784
+        }
+      ],
+      "offset_in_root": 15007664,
+      "sha256": "2a66af44e4eddd5955e330787645e88e6cccc6417b079660934cfe01ac6cb3df"
+    },
+    {
+      "bytes": 39632,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 26975,
+          "flags": 5,
+          "memory_bytes": 26975,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 1512,
+          "flags": 4,
+          "memory_bytes": 1512,
+          "offset": 32768,
+          "physical_address": 4222976,
+          "virtual_address": 4222976
+        }
+      ],
+      "offset_in_root": 15085018,
+      "sha256": "b6d0e730a6c6912831da4b785ae72733ecfd954b2bdf33a5d82b9ab0596c4058"
+    },
+    {
+      "bytes": 1737680,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 1244203,
+          "flags": 5,
+          "memory_bytes": 1244203,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 106736,
+          "flags": 4,
+          "memory_bytes": 106736,
+          "offset": 1249280,
+          "physical_address": 5439488,
+          "virtual_address": 5439488
+        },
+        {
+          "file_bytes": 16,
+          "flags": 6,
+          "memory_bytes": 16,
+          "offset": 1359872,
+          "physical_address": 7376896,
+          "virtual_address": 7376896
+        }
+      ],
+      "offset_in_root": 15124762,
+      "sha256": "ec4b2baa5115425a95401f9c0dc42661e9455a93b8bd20c8eb86a713af3d9ee0"
+    },
+    {
+      "bytes": 176800,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 112443,
+          "flags": 5,
+          "memory_bytes": 112443,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 15528,
+          "flags": 4,
+          "memory_bytes": 15528,
+          "offset": 118784,
+          "physical_address": 4308992,
+          "virtual_address": 4308992
+        },
+        {
+          "file_bytes": 16,
+          "flags": 6,
+          "memory_bytes": 16,
+          "offset": 135168,
+          "physical_address": 7376896,
+          "virtual_address": 7376896
+        }
+      ],
+      "offset_in_root": 16862442,
+      "sha256": "3913226c99f8c5ab72bf62b8b84398b2dc10b5fbe72f9b1f8337dd8b12bd5ce7"
+    },
+    {
+      "bytes": 197600,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 159631,
+          "flags": 5,
+          "memory_bytes": 159631,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 4904,
+          "flags": 4,
+          "memory_bytes": 4904,
+          "offset": 163840,
+          "physical_address": 4354048,
+          "virtual_address": 4354048
+        }
+      ],
+      "offset_in_root": 17141086,
+      "sha256": "d1048ccc9f54a69f0a33d10a058a96c11485847d93f97f14ceb8a2400877443a"
+    },
+    {
+      "bytes": 1655576,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 1094795,
+          "flags": 5,
+          "memory_bytes": 1094795,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 237712,
+          "flags": 4,
+          "memory_bytes": 237712,
+          "offset": 1101824,
+          "physical_address": 5292032,
+          "virtual_address": 5292032
+        },
+        {
+          "file_bytes": 16,
+          "flags": 6,
+          "memory_bytes": 16,
+          "offset": 1343488,
+          "physical_address": 6393856,
+          "virtual_address": 6393856
+        }
+      ],
+      "offset_in_root": 17338736,
+      "sha256": "a809feb460abbdb9dad128b46b3a0ca44044fcfdb62042e3aba9f022d89a9588"
+    },
+    {
+      "bytes": 1655576,
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "file_bytes": 1094795,
+          "flags": 5,
+          "memory_bytes": 1094795,
+          "offset": 4096,
+          "physical_address": 4194304,
+          "virtual_address": 4194304
+        },
+        {
+          "file_bytes": 237712,
+          "flags": 4,
+          "memory_bytes": 237712,
+          "offset": 1101824,
+          "physical_address": 5292032,
+          "virtual_address": 5292032
+        },
+        {
+          "file_bytes": 16,
+          "flags": 6,
+          "memory_bytes": 16,
+          "offset": 1343488,
+          "physical_address": 6393856,
+          "virtual_address": 6393856
+        }
+      ],
+      "offset_in_root": 19031812,
+      "sha256": "a809feb460abbdb9dad128b46b3a0ca44044fcfdb62042e3aba9f022d89a9588"
+    }
+  ],
+  "linked_responsibilities": [
+    [
+      "graphical_startup",
+      14
+    ],
+    [
+      "product_front_door",
+      380
+    ],
+    [
+      "native_face_mask",
+      54
+    ],
+    [
+      "native_compositor",
+      118
+    ],
+    [
+      "protected_creche",
+      45
+    ],
+    [
+      "protected_runtime",
+      43
+    ],
+    [
+      "protected_application",
+      74
+    ],
+    [
+      "protected_network",
+      23
+    ],
+    [
+      "protected_tls",
+      53
+    ],
+    [
+      "domain_transition",
+      4
+    ]
+  ],
+  "physical_or_dma_isolation_established": false,
+  "proof_class": "exact-source-and-linked-image-inventory",
+  "responsibilities": [
+    {
+      "anchors": [
+        "graphical_startup::run(record)"
+      ],
+      "authority": "boot normalization and machine entry",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "entry",
+      "path": "targets/conduitos/src/main.rs",
+      "sha256": "e093c04083b54ee81f77812bdbd1edaf4b69b41009e518c79f72265e5f413329"
+    },
+    {
+      "anchors": [
+        "arch::initialize_xhci",
+        "boot::framebuffer_display",
+        "product_front_door::"
+      ],
+      "authority": "PCI/MMIO DMA-capable xHCI, firmware framebuffer, entropy and offers",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "startup",
+      "path": "targets/conduitos/src/graphical_startup.rs",
+      "sha256": "759615eb07fc2aa4e6d52e5971552dabab29681ffc756b521753b5a14a7398fb"
+    },
+    {
+      "anchors": [
+        "fn run_controller",
+        "runtime::RootRuntime"
+      ],
+      "authority": "product/lifecycle policy and checked effect dispatch remain privileged",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "controller",
+      "path": "targets/conduitos/src/product_front_door.rs",
+      "sha256": "b3859b5324765f1b2f966dd44bd9ef84a3cdcfe5eace6914a26c5bdf0ccd7e58"
+    },
+    {
+      "anchors": [
+        "controller: &mut XhciReady",
+        "hid_session: Option<&mut HidKeyboardSession>"
+      ],
+      "authority": "USB/input/rescue/network device handles and write-only display sink",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "physical-platform",
+      "path": "targets/conduitos/src/product_front_door/platform.rs",
+      "sha256": "4070b6883ebcd7630e694618875314601ba1834ac82794ed537b8881915110cc"
+    },
+    {
+      "anchors": [
+        "struct RootRuntime",
+        "run_tour"
+      ],
+      "authority": "ordinary/Tour execution paths remain Root; not all runtime moved",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "runtime",
+      "path": "targets/conduitos/src/product_front_door/runtime.rs",
+      "sha256": "4bd527d7363e724a9405d82a73f7fad6acca20c2af477e0cc8b44716f015f898"
+    },
+    {
+      "anchors": [
+        "pub struct NativeFaceMask",
+        "suspend"
+      ],
+      "authority": "Face/Show custody, checked input and scanout acknowledgement",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "mask-facade",
+      "path": "targets/conduitos/src/native_face_mask.rs",
+      "sha256": "e3f6a1cc71c36f8da6fd476fe9e249a0ae821c15f77d84c3cb397b3a4ad02045"
+    },
+    {
+      "anchors": [
+        "SharedDisplayOwner",
+        "validate_active_session"
+      ],
+      "authority": "grant/session validation and transient raster transport; no retained guest pixel ownership",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "compositor-facade",
+      "path": "targets/conduitos/src/native_compositor/protected.rs",
+      "sha256": "b7513c859581798d8f5702e97d8710d029a96612e314c5e6f65e1695d0525b25"
+    },
+    {
+      "anchors": [
+        "impl NativeCompositor"
+      ],
+      "authority": "validated returned spans copied to privileged display before acknowledgement",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "scanout",
+      "path": "targets/conduitos/src/native_compositor/protected/scanout.rs",
+      "sha256": "c05376946a9880bb98615c736bc4d69a636aeaa8c49ec0978363fa7a504ee66c"
+    },
+    {
+      "anchors": [
+        "ServiceImage"
+      ],
+      "authority": "page-table construction and service memory admission; mappings need execution proof",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "mapping",
+      "path": "targets/conduitos/src/arch/x86_64/service_memory.rs",
+      "sha256": "60edeac3ae2d08b00a67e1488ee46684094cddff1225dba3c5e4b1af0ce4147c"
+    },
+    {
+      "anchors": [
+        "ServiceProfile",
+        "AtomicBool"
+      ],
+      "authority": "nine independently claimed physical stores and page-table backing",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "physical-stores",
+      "path": "targets/conduitos/src/arch/x86_64/service_memory/storage.rs",
+      "sha256": "c0fbe0bc0521e907f181adbdee291942f0bd7a34062fdb3b1d2e72218fb9c7bc"
+    },
+    {
+      "anchors": [
+        "conduitos_ordinary_enter",
+        "domain_budget"
+      ],
+      "authority": "CPL3 entry, trap return and timer preemption; actual enforcement requires execution evidence",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "privilege-transition",
+      "path": "targets/conduitos/src/arch/x86_64/domain_transition.rs",
+      "sha256": "bae9f779ca466be534378be303ab449a14659ac3d61ef3d280a2326b8bbf23a5"
+    },
+    {
+      "anchors": [
+        "NativeProductBases"
+      ],
+      "authority": "admitted Root hardware/effect providers remain privilege-bearing",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "effect-bases",
+      "path": "targets/conduitos/src/product_bases.rs",
+      "sha256": "a986ab933750fa938602ac8372b4cb9d4d8872de5cad1ff622dd6807fd394723"
+    },
+    {
+      "anchors": [
+        "pub enum ServiceProfile",
+        "RX/RO",
+        "RW+NX"
+      ],
+      "authority": "closed ranges declare image/exchange/transfer/stack/private arenas; not installed mappings",
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "name": "profiles",
+      "path": "targets/conduitos/src/service_memory.rs",
+      "sha256": "0563fca95349d0f20702e7fa1bfc2d53e4e43458dc06f83b59510a8ae53e6f38"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "retained composition/focus/damage; no framebuffer/device pointer grant",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "compositor",
+      "path": "targets/conduitos/compositor-service/main.rs",
+      "sha256": "ab87b691a7d13c10c0ffc5efc72c3554239d6b0a903f41a42787219a76252118"
+    },
+    {
+      "anchors": [
+        "creche_entry",
+        "memory::EXCHANGE"
+      ],
+      "authority": "Draft and Home share immutable image but independent instances/arenas",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "draft-home",
+      "path": "targets/conduitos/creche-service/main.rs",
+      "sha256": "9262e6a54c46ae8a1ecc8fc5c403634f3f9a13714a60633da2b54513c3407595"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "bounded canonical native-workset scheduler; no second semantic scheduler",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "runtime-guest",
+      "path": "targets/conduitos/runtime-service/main.rs",
+      "sha256": "93309e9cb9cd1af9d079fe0677f01fe101d6ec676f5dc1eb5ff1524b6074702a"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "native retained application state; remaining Root product paths separate",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "application",
+      "path": "targets/conduitos/application-service/main.rs",
+      "sha256": "c39e4f08dde1fe62591ed3b0fbd8f823b1105d7eb5aa25121098f3fca8992562"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "bounded protocol state; Root retains NIC/USB device authority",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "network",
+      "path": "targets/conduitos/network-service/main.rs",
+      "sha256": "1f1edaa14802dcb563ca94584c4454599c583b061f4f6f126ad0c8ee35233bcc"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "bounded TLS protocol state; Root retains transport authority",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "tls",
+      "path": "targets/conduitos/tls-service/main.rs",
+      "sha256": "e88c97d48ce16c96801ea342fdbb8d8578598bacc46b72089a04cb7ef8af3671"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "checked Mask guest presentation state; Root retains input/scanout validation",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "mask-guest",
+      "path": "targets/conduitos/mask-service/main.rs",
+      "sha256": "25274a3698e9aa2c3917782f66d692e1f6079fe761de22ca7e571fc833c3b9b7"
+    },
+    {
+      "anchors": [
+        "no_std"
+      ],
+      "authority": "ordinary protected text/runtime commands; not all Root runtime paths",
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "name": "ordinary",
+      "path": "targets/conduitos/domain/main.rs",
+      "sha256": "2185a6f8d57daf7d3b8e77f9a6fe582fbe296be6d105ec10c77e28b0eddb22e1"
+    }
+  ],
+  "root_link_map_sha256": "65add7c9688383f78978c2c2d02fc90f53cde46e670632a40081b90b78ab9194",
+  "schema": "conduit.conduitos/verified-privilege-inventory@1",
+  "service_isolation_established": false,
+  "source": "9983d3f8e3a842a723581631a93d329675804305"
+}

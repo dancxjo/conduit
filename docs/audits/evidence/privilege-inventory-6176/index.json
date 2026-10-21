@@ -1,0 +1,88 @@
+{
+  "schema": "conduit.conduitos/privilege-inventory-audit@1",
+  "issue": 6176,
+  "source": "9983d3f8e3a842a723581631a93d329675804305",
+  "proof_class": "source-and-linked-graphical-product-inventory",
+  "checks": {
+    "focused": "8 passed, zero failed or ignored",
+    "lint": "xtask production binary Clippy with warnings denied passed",
+    "format": "cargo fmt --all --check passed",
+    "normal_native_build": "one successful clean-source normal native PROFILE build; no VM started",
+    "validator": "full sealed BUILD/kernel/map/Source/Cargo closure association passed",
+    "stale_directory_record": "exit 1: dirty, replaced or wrong-role build record; no success receipt written"
+  },
+  "negative_input": {
+    "source": "e1623417e86013bfbbb259a5cc3c86cc58d2f8ab",
+    "kernel_sha256": "b36f75cf4ec48fed7914e48ff852ecb2057f467d7b0f4e39c727ef779a39898b",
+    "interpretation": "Earlier actually observed directory replacement record, recovered from its retained inventory; current inventory/map were left unchanged."
+  },
+  "local_retained_files": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-native-build.log",
+      "bytes": 42901,
+      "sha256": "bb99195208934a5b5e2704b18ea4596a61d2f0a51c9f69fee3db79e9608d8aaf"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-focused-final.log",
+      "bytes": 2677,
+      "sha256": "0fc081e424837234ab1dc44176c0ac1a59e459f7a29515ecb476dfdabf1baba6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-clippy-final.log",
+      "bytes": 72,
+      "sha256": "2bc683fb4e4f4f21ee9ee39e2b8ecce2efe20d3b1be57bda5316aa519ab3d30a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-format-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-verify.log",
+      "bytes": 1254,
+      "sha256": "1044ee2c05d6d99e2db63986f9e4d55f3347f9cc1f43d99a3c29bfdcb96c7067"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-negative.log",
+      "bytes": 1220,
+      "sha256": "e03be5b8bd861c53c64c3a02f0083b544b6d0e971eb51d8b52e487081b6831c3"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-native-product/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "31b70b2e97cdb4ae235fb357161a2eee8201a791a7e45b77af3861d954c15c7b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-native-product/conduitos-kernel.elf",
+      "bytes": 76895824,
+      "sha256": "9dae6197091f060e4dd35b2f11462e95c7349727e7556b3adcee3f7d0e1fec44"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-native-product/conduitos-x86_64.iso",
+      "bytes": 81168384,
+      "sha256": "eb556954076f5bddc5c0ad691600d978d884ed21ca170b0b7854459a7b39d9c6"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-inventory-evidence/build.json",
+      "bytes": 319,
+      "sha256": "8cab26090be0f4a48a47355bb80c3249aad80beaddb3b161bcf7265691e8e4d8"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-inventory-evidence/privilege-inventory-9dae6197091f060e4dd35b2f11462e95c7349727e7556b3adcee3f7d0e1fec44-product-host.json",
+      "bytes": 62801,
+      "sha256": "673cfb530086d554c7a80c90c9b422f8376dfb2ae51a1c245d7b966a5ffd125a"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-inventory-evidence/privilege-inventory-9dae6197091f060e4dd35b2f11462e95c7349727e7556b3adcee3f7d0e1fec44-product-host.map",
+      "bytes": 17556772,
+      "sha256": "65add7c9688383f78978c2c2d02fc90f53cde46e670632a40081b90b78ab9194"
+    }
+  ],
+  "limits": [
+    "No computed exhaustive call graph",
+    "No installed-mapping or executed-service claim from ELF bytes",
+    "No physical or DMA isolation proof",
+    "No completion of #6175",
+    "Code is prepared on a branch; merge and relevant checks remain gates"
+  ]
+}
