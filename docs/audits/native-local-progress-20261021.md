@@ -57,8 +57,13 @@ it was updated but not executed tonight. Compile-only checks pass.
 
 ## Coordination
 
-Origin also contains `work/native-look-local` with overlapping Patchbay work
-and separate forced-color/fallback changes. It is preserved untouched. Reconcile
-those reviewed changes before admitting either branch; do not stack two local
-selection models. The present branch uses the portable navigation contract and
-same-traversal hit collection. #6190's required-item admission remains separate.
+The original `work/native-look-local` branch remains untouched. Its small
+forced-color primary-focus fix (2d1c9a50c) and configured-layout fallback fix
+(360ec7199) were reviewed and reused here with provenance in the new commit
+messages. An unfit configured layout now uses the existing generic reader with
+the same Face/expression and an explicit ConfiguredLayout refusal. Primary focus
+retains an independent contrasting inset under forced colors.
+
+The alternative Patchbay implementation on that branch is retained there;
+this branch has one selection model using the shared portable projection and
+same-traversal hits. #6190's required-item admission remains separate.
