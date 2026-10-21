@@ -7,7 +7,9 @@ use conduit_face::{
     FaceDisclosure, FaceDisclosureLevel, FaceProperty, FacePropertyValue, FaceRelationship,
     FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
-use patchbay_graph::{PatchbayCord, PatchbayFrontPort, PatchbayGraph};
+use patchbay_graph::{
+    PatchbayComposition, PatchbayCord, PatchbayFrontPort, PatchbayGear, PatchbayGraph,
+};
 
 pub struct Content<'a> {
     pub subjects: &'a mut alloc::vec::Vec<FaceSubject>,
@@ -50,35 +52,32 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
         text: "Exact selected Plot graph; connections are typed Ports and Cords".into(),
     });
     for gear in &graph.gears {
-        let id = format!("gear/{}", gear.identity);
-        subject(
-            content,
-            &id,
-            FaceRole::Gear,
+        let id = append_named_gear(
+            &mut GraphFacts {
+                subjects: content.subjects,
+                relationships: content.relationships,
+                properties: content.properties,
+            },
+            &plot,
+            graph,
+            gear,
             &format!("{} Gear · {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
-        relation(content, &plot, &id, FaceRelationshipKind::Contains);
-        property(content, &id, "semantic-id", &gear.identity);
-        property(content, &id, "kind-id", gear.kind_id.as_str());
         for port in gear.inputs.iter().chain(&gear.outputs) {
             append_port(content, &id, &port.identity, &port.descriptor);
         }
     }
     for composition in &graph.compositions {
-        let id = format!("gear/{}", composition.identity);
-        subject(
-            content,
-            &id,
-            FaceRole::Gear,
+        let id = append_named_composition(
+            &mut GraphFacts {
+                subjects: content.subjects,
+                relationships: content.relationships,
+                properties: content.properties,
+            },
+            &plot,
+            graph,
+            composition,
             &format!("{} · checked Plot Back", composition.gear_name),
-        );
-        relation(content, &plot, &id, FaceRelationshipKind::Contains);
-        property(content, &id, "semantic-id", &composition.identity);
-        property(
-            content,
-            &id,
-            "checked-back-id",
-            composition.checked_plot_id.as_str(),
         );
         for port in composition.inputs.iter().chain(&composition.outputs) {
             append_front_port(content, &id, port);
@@ -282,5 +281,135 @@ pub fn append_named_cord(
             });
         }
     }
+    id
+}
+
+/// Common exact Gear meaning, including its source-owned recursive containment.
+/// Icons, authored controls and actual Plan/Play augmentation remain separate.
+pub fn append_named_gear(
+    content: &mut GraphFacts<'_>,
+    plot: &str,
+    graph: &PatchbayGraph,
+    gear: &PatchbayGear,
+    name: &str,
+) -> String {
+    let id = format!("gear/{}", gear.identity);
+    if let Some(existing) = content
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == id)
+    {
+        debug_assert_eq!(existing.role, FaceRole::Gear);
+    } else {
+        content.subjects.push(FaceSubject {
+            identity: id.clone(),
+            role: FaceRole::Gear,
+            name: name.into(),
+        });
+    }
+    let parent = graph
+        .compositions
+        .iter()
+        .filter(|composition| {
+            gear.gear_id
+                .as_str()
+                .starts_with(&format!("{}/", composition.gear_name))
+        })
+        .max_by_key(|composition| composition.gear_name.len())
+        .map_or_else(
+            || String::from(plot),
+            |composition| format!("gear/{}", composition.identity),
+        );
+    content.relationships.push(FaceRelationship {
+        source: parent.clone(),
+        target: id.clone(),
+        kind: FaceRelationshipKind::Contains,
+    });
+    let mut property = |name: &str, value| {
+        content.properties.push(FaceProperty {
+            subject: id.clone(),
+            name: name.into(),
+            value,
+        })
+    };
+    if parent != plot {
+        property("recursive-parent", FacePropertyValue::Identity(parent));
+    }
+    property(
+        "semantic-id",
+        FacePropertyValue::Identity(gear.identity.clone()),
+    );
+    property(
+        "kind-id",
+        FacePropertyValue::Identity(gear.kind_id.as_str().into()),
+    );
+    property(
+        "source-plot",
+        FacePropertyValue::Identity(gear.source_plot.clone()),
+    );
+    property(
+        "plot-path",
+        FacePropertyValue::Text(gear.plot_path.join(" / ")),
+    );
+    id
+}
+
+/// Project the same checked Plot-backed Gear identity and recursive provenance.
+pub fn append_named_composition(
+    content: &mut GraphFacts<'_>,
+    plot: &str,
+    graph: &PatchbayGraph,
+    composition: &PatchbayComposition,
+    name: &str,
+) -> String {
+    let id = format!("gear/{}", composition.identity);
+    if let Some(existing) = content
+        .subjects
+        .iter()
+        .find(|subject| subject.identity == id)
+    {
+        debug_assert_eq!(existing.role, FaceRole::Gear);
+    } else {
+        content.subjects.push(FaceSubject {
+            identity: id.clone(),
+            role: FaceRole::Gear,
+            name: name.into(),
+        });
+    }
+    let parent = graph
+        .compositions
+        .iter()
+        .filter(|candidate| {
+            candidate.identity != composition.identity
+                && composition
+                    .gear_name
+                    .starts_with(&format!("{}/", candidate.gear_name))
+        })
+        .max_by_key(|candidate| candidate.gear_name.len())
+        .map_or_else(
+            || String::from(plot),
+            |candidate| format!("gear/{}", candidate.identity),
+        );
+    content.relationships.push(FaceRelationship {
+        source: parent.clone(),
+        target: id.clone(),
+        kind: FaceRelationshipKind::Contains,
+    });
+    let mut property = |name: &str, value| {
+        content.properties.push(FaceProperty {
+            subject: id.clone(),
+            name: name.into(),
+            value: FacePropertyValue::Identity(value),
+        })
+    };
+    if parent != plot {
+        property("recursive-parent", parent);
+    }
+    property("semantic-id", composition.identity.clone());
+    property(
+        "checked-back-id",
+        composition.checked_plot_id.as_str().into(),
+    );
+    property("back-source", composition.back_name.clone());
     id
 }

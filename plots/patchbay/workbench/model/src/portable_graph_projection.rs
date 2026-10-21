@@ -1,7 +1,7 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
 use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
-use conduit_face::{FaceIconKey, FacePropertyValue, FaceRole};
+use conduit_face::{FaceIconKey, FacePropertyValue};
 
 use crate::portable_projection::ContentBuilder;
 
@@ -13,41 +13,21 @@ pub(super) fn append_exact_graph(
     content: &mut ContentBuilder,
 ) {
     for composition in &graph.compositions {
-        let subject = content.subject_with_identity(
-            format!("gear/{}", composition.identity),
-            FaceRole::Gear,
-            format!(
+        let subject = patchbay_application::graph_face::append_named_composition(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            graph,
+            composition,
+            &format!(
                 "Plot-backed Gear {} through checked Back {}",
                 composition.gear_name,
                 composition.checked_plot_id.as_str()
             ),
         );
-        let parent = graph
-            .compositions
-            .iter()
-            .filter(|candidate| {
-                candidate.identity != composition.identity
-                    && composition
-                        .gear_name
-                        .starts_with(&format!("{}/", candidate.gear_name))
-            })
-            .max_by_key(|candidate| candidate.gear_name.len())
-            .map_or_else(
-                || plot.to_owned(),
-                |candidate| format!("gear/{}", candidate.identity),
-            );
-        content.contains(&parent, &subject);
-        if parent != plot {
-            identity(content, &subject, "recursive-parent", &parent);
-        }
-        identity(content, &subject, "semantic-id", &composition.identity);
-        identity(
-            content,
-            &subject,
-            "checked-back-id",
-            composition.checked_plot_id.as_str(),
-        );
-        identity(content, &subject, "back-source", &composition.back_name);
         text(content, &subject, "reviewed-back", "available");
         text(content, &subject, "back-expanded", "false");
         text(
@@ -91,32 +71,17 @@ pub(super) fn append_exact_graph(
         let icon = conduit_semantic_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
             .unwrap_or(FaceIconKey::GenericGear);
-        let subject = content.subject_with_identity(
-            format!("gear/{}", gear.identity),
-            FaceRole::Gear,
-            format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
+        let subject = patchbay_application::graph_face::append_named_gear(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            graph,
+            gear,
+            &format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
-        let parent = graph
-            .compositions
-            .iter()
-            .filter(|composition| {
-                gear.gear_id
-                    .as_str()
-                    .starts_with(&format!("{}/", composition.gear_name))
-            })
-            .max_by_key(|composition| composition.gear_name.len())
-            .map_or_else(
-                || plot.to_owned(),
-                |composition| format!("gear/{}", composition.identity),
-            );
-        content.contains(&parent, &subject);
-        if parent != plot {
-            identity(content, &subject, "recursive-parent", &parent);
-        }
-        identity(content, &subject, "semantic-id", &gear.identity);
-        identity(content, &subject, "kind-id", gear.kind_id.as_str());
-        identity(content, &subject, "source-plot", &gear.source_plot);
-        text(content, &subject, "plot-path", &gear.plot_path.join(" / "));
         text(content, &subject, "icon-token", icon.as_str());
         text(content, &subject, "icon-name", icon.name());
         for (index, control) in gear.controls.iter().enumerate() {

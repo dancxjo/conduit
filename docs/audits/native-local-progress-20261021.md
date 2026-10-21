@@ -286,3 +286,20 @@ browser behavior while preserving ordered endpoint truth. Native and workbench
 compilation passed (5 seconds). No tests, image rebuild, QEMU/browser journey or
 CI job ran for this delta; missing-endpoint runtime/conformance and full canvas
 retirement remain open.
+
+## Shared Gear and checked Back projection
+
+Native and browser now share ordinary Gear and Plot-backed Gear base projection:
+exact semantic/kind/checked-Back identities, source Plot/path provenance and
+recursive containment derived from the retained checked graph. Existing browser
+labels, reviewed-Back/realization facts, icon tokens, authored controls and
+Plan/Play augmentation remain in their original layer. Native gains the source
+provenance and recursive containment previously present only in the workbench;
+its resulting Face identity changes truthfully. Geometry supplies none of it.
+
+Both native-compositor and workbench compile on the final source without the
+removed obsolete import warning. No tests, image rebuild, QEMU/browser journey
+or CI jobs ran for this delta. This migrates the ordinary/Plot-backed Gear
+consumers; it is not complete cross-Mask acceptance or retirement of all legacy
+canvas transport. Native global-Face bounds and all renderer limits remain in
+force, with no expanded admission claim from compilation.
