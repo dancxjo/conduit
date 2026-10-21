@@ -13,6 +13,7 @@ struct Fake {
     generations: [u64; 8],
     forged_route: Option<Handle>,
     forged_coverage: bool,
+    forged_selection: bool,
     cursor: Option<(u32, u32)>,
     hover: bool,
     full_damage: bool,
@@ -29,6 +30,7 @@ impl Fake {
             generations: [0; 8],
             forged_route: None,
             forged_coverage: false,
+            forged_selection: false,
             cursor: Some((9, 9)),
             hover: true,
             full_damage: false,
@@ -46,6 +48,11 @@ impl Fake {
             window_offset: 0,
             pixels: 1,
             complete: true,
+            selected_mask: if self.forged_coverage || self.forged_selection {
+                1 << 7
+            } else {
+                0
+            },
             coverage,
         }
     }
@@ -463,4 +470,18 @@ fn reset_failures_or_refusals_quarantine_without_namespace_publication_or_retry(
             }
         }
     }
+}
+
+#[test]
+fn selected_but_fully_obscured_foreign_surface_cannot_escape_handle_fence() {
+    let mut owner = owner();
+    let id = owner.activate().unwrap().session;
+    owner.transport.forged_selection = true;
+    let mut called = false;
+    assert_eq!(
+        owner.with_frame_step(id, 1, 1, |_, _| called = true),
+        Err(OwnerError::Protocol)
+    );
+    assert!(!called);
+    assert_eq!(owner.transport.quarantines, 1);
 }

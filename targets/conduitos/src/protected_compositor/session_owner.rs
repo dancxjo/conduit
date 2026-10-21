@@ -295,10 +295,9 @@ impl<T: Transport> SessionOwner<T> {
 }
 
 fn mapped_coverage(handles: &[Option<Handle>; MAX_SURFACES], span: FrameSpan) -> bool {
-    span.coverage
-        .iter()
-        .enumerate()
-        .all(|(i, &count)| count == 0 || handles[i].is_some())
+    span.coverage.iter().enumerate().all(|(i, &count)| {
+        (count == 0 && span.selected_mask & (1 << i) == 0) || handles[i].is_some()
+    })
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]

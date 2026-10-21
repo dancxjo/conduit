@@ -3,7 +3,7 @@
 use super::refuse;
 use crate::{arch, protected_compositor::CompositorService, sign_format::FixedText};
 use conduitos_compositor_core::{
-    Error, Handle, Rect,
+    Error, FrameRect, Handle, Rect,
     wire::{Request, Response},
 };
 use core::fmt::Write;
@@ -85,10 +85,34 @@ fn expected(x: u32, y: u32, overlay: bool) -> u32 {
 /// Validate every span, uniqueness and exact expected damage coverage before the
 /// caller can issue the explicit fixture acknowledgement. No framebuffer effect.
 fn frame(service: &mut CompositorService, overlay: bool, full: bool) -> (u64, u32, u32) {
-    let sequence = match response(service, Request::BeginFrame) {
-        Response::FrameSequence(sequence) => sequence,
+    let plan = match response(service, Request::BeginFrame) {
+        Response::FrameStarted(plan) => plan,
         _ => refuse("compositor-fixture-begin-frame"),
     };
+    let expected_rect = if full {
+        FrameRect {
+            x: 0,
+            y: 0,
+            width: WIDTH,
+            height: HEIGHT,
+        }
+    } else {
+        FrameRect {
+            x: 4,
+            y: 4,
+            width: 8,
+            height: 8,
+        }
+    };
+    if plan.count != 1
+        || plan.rects[0] != expected_rect
+        || plan.conservative_fallback
+        || plan.cursor_visible
+        || plan.focus_visible
+    {
+        refuse("compositor-fixture-frame-plan");
+    }
+    let sequence = plan.sequence;
     let mut seen = [false; VIEW_PIXELS];
     let mut compared = 0u32;
     let mut steps = 0u32;

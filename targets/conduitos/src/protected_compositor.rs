@@ -132,9 +132,9 @@ impl CompositorService {
             return Err(TransportError::Protocol);
         }
         match (request, response) {
-            (Request::BeginFrame, Response::FrameSequence(sequence)) => self
+            (Request::BeginFrame, Response::FrameStarted(plan)) => self
                 .frame_grant
-                .begin(sequence)
+                .begin(plan)
                 .map_err(|_| TransportError::Protocol)?,
             (Request::FrameStep { sequence, pixels }, Response::Frame(span)) => self
                 .frame_grant
@@ -194,7 +194,7 @@ fn response_matches(request: Request, response: Response) -> bool {
         (request, response),
         (Request::Admit { .. }, Response::Surface(_))
             | (Request::PrepareUpload { .. }, Response::Prepared(_))
-            | (Request::BeginFrame, Response::FrameSequence(_))
+            | (Request::BeginFrame, Response::FrameStarted(_))
             | (Request::FrameStep { .. }, Response::Frame(_))
             | (Request::Pointer { .. }, Response::Pointer(_))
             | (Request::Keyboard, Response::Keyboard(_))
