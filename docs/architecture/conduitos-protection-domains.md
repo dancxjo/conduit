@@ -6,6 +6,8 @@ reviewed native emulator realizations, owned by
 protected execution. The original x86_64 adversarial profile
 [#3078](https://github.com/dancxjo/conduit/issues/3078) remains a separate proof.
 Driver, DMA and physical-machine isolation are not established by these lanes.
+The [microkernel privilege boundary](conduitos-microkernel.md) tracks moving
+production services out of Root; existing region proofs do not establish it.
 
 The hostile-entry proofs are authorized defensive development of ConduitOS.
 They execute repository-owned test implementations in local QEMU guests to

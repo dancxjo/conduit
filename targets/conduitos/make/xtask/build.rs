@@ -19,6 +19,7 @@ pub(super) mod aarch64_domain;
 mod backbone;
 pub(super) mod ia32_domain;
 pub(super) mod loongarch64_domain;
+mod privilege_inventory;
 pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
@@ -418,7 +419,7 @@ fn execute_with_features(
         },
         elf_sha256: sha256_file(&paths.kernel)?,
     };
-    write_json(&paths.target.join("build.json"), &record)?;
+    privilege_inventory::publish(&paths, &record, features)?;
     if !opts.quiet && !opts.json {
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
@@ -511,13 +512,6 @@ fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> 
         ));
     }
     Ok(())
-}
-
-fn write_json(path: &std::path::Path, value: &BuildRecord) -> Result<(), ConduitosError> {
-    let bytes = serde_json::to_vec_pretty(value)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))?;
-    fs::write(path, bytes)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))
 }
 
 fn dry_record(
