@@ -27,6 +27,7 @@ pub struct PreparedRegionKernel {
     worker_storage: conduit_core::ExecutionWorkerStorage,
     scratch: Box<[u8]>,
     memory: RegionMemoryReceipt,
+    maximum_transfer_bytes: usize,
     original_nodes: Vec<NodeId>,
     original_cords: Vec<CordId>,
 }
@@ -107,6 +108,16 @@ impl PreparedRegionKernel {
             worker_storage: storage.clone(),
             scratch: vec![0u8; scratch].into_boxed_slice(),
             memory: RegionMemoryReceipt::default(),
+            maximum_transfer_bytes: tables
+                .cords()
+                .iter()
+                .filter(|cord| {
+                    matches!(cord.source, conduit_kernel::CordEndpoint::Remote(_))
+                        || matches!(cord.sink, conduit_kernel::CordEndpoint::Remote(_))
+                })
+                .map(|cord| cord.maximum_value_bytes as usize)
+                .max()
+                .unwrap_or(0),
             original_nodes: tables.original_nodes().to_vec(),
             original_cords: tables.original_cords().to_vec(),
         };
@@ -124,6 +135,9 @@ impl PreparedRegionKernel {
     }
     pub fn worker_storage(&self) -> &conduit_core::ExecutionWorkerStorage {
         &self.worker_storage
+    }
+    pub fn maximum_transfer_bytes(&self) -> usize {
+        self.maximum_transfer_bytes
     }
     pub fn memory_receipt(&self) -> RegionMemoryReceipt {
         self.memory

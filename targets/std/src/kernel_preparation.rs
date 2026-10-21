@@ -18,6 +18,8 @@ use conduit_plan_lowering::lowering::{
 mod pool_usage;
 use pool_usage::PoolUsage;
 mod region_resources;
+#[allow(dead_code, reason = "worker service admission remains uninstalled")]
+mod worker;
 
 #[derive(Debug, Clone)]
 pub(super) struct KernelResourceLedger {
