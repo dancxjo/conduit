@@ -4,6 +4,7 @@
 //! Missing front coverage uses the pinned rescue subset; unsupported scalars use
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
+mod coverage;
 mod raster;
 pub use raster::{render_glyph, render_text, render_text_scaled};
 mod preview;
@@ -161,9 +162,20 @@ impl GlyphRaster {
         if x >= width || y >= height {
             return 0;
         }
-        let x = (u32::from(x) * 100 / u32::from(self.scale.0)) as u8;
-        let y = (u32::from(y) * 100 / u32::from(self.scale.0)) as u8;
-        let (width, _) = self.base_extent();
+        if self.scale.0 == 100 {
+            return self.base_coverage(x, y);
+        }
+        let (width, height) = self.base_extent();
+        coverage::sample(x, y, width, height, self.scale.0, |x, y| {
+            self.base_coverage(x, y)
+        })
+    }
+
+    fn base_coverage(&self, x: u8, y: u8) -> u8 {
+        let (width, height) = self.base_extent();
+        if x >= width || y >= height {
+            return 0;
+        }
         match self.raster {
             Raster::Smooth(glyph) => {
                 COVERAGE[glyph.offset + usize::from(y) * usize::from(width) + usize::from(x)]
@@ -185,25 +197,42 @@ mod tests {
     use super::*;
 
     #[test]
-    fn doubled_glyph_preserves_every_coverage_sample_in_four_pixels() {
+    fn scaled_coverage_keeps_metrics_and_smooths_binary_fallback() {
         for character in ['W', 'i', 'ề', '\u{10ffff}'] {
             let original = glyph(TextRole::Body, character);
-            let doubled = scaled_glyph(TextRole::Body, character, TextScale::new(200).unwrap());
             let (width, height) = original.extent();
-            assert_eq!(doubled.extent(), (width * 2, height * 2));
-            for y in 0..height {
-                for x in 0..width {
-                    for dy in 0..2 {
-                        for dx in 0..2 {
-                            assert_eq!(
-                                doubled.coverage(x * 2 + dx, y * 2 + dy),
-                                original.coverage(x, y)
-                            );
+            for percent in [100, 125, 200] {
+                let scale = TextScale::new(percent).unwrap();
+                let scaled = scaled_glyph(TextRole::Body, character, scale);
+                let extent = scaled.extent();
+                assert_eq!(
+                    extent,
+                    (
+                        scale.unsigned(u32::from(width)) as u8,
+                        scale.unsigned(u32::from(height)) as u8
+                    )
+                );
+                assert_eq!(
+                    scaled.advance(),
+                    scale.unsigned(u32::from(original.advance())) as u16
+                );
+                assert_eq!(scaled.unsupported, original.unsupported);
+                assert_eq!(scaled.coverage(extent.0, 0), 0);
+                assert_eq!(scaled.coverage(0, extent.1), 0);
+                let mut gray = false;
+                for y in 0..extent.1 {
+                    for x in 0..extent.0 {
+                        let coverage = scaled.coverage(x, y);
+                        if percent == 100 {
+                            assert_eq!(coverage, original.coverage(x, y));
                         }
+                        gray |= coverage > 0 && coverage < 255;
                     }
                 }
+                if percent > 100 {
+                    assert!(gray);
+                }
             }
-            assert_eq!(doubled.unsupported, original.unsupported);
         }
     }
 

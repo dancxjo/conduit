@@ -36,3 +36,16 @@ A fresh source-pinned image/run is required before claiming product success. Ear
 
 
 The first fresh QEMU attempt on cedf08fb2 refused before any preference key: the new verifier incorrectly decoded the existing native-face/v1 compact Show receipt as a full MaskShow. The decoder now follows the installed compact receipt and its typed manifestation, validates their Face/Host/Boot/Plan/Play bindings, and retains the shared full-journey correspondence check. This failed attempt is not product acceptance.
+
+
+## Actual selection before enlarged-font filtering
+
+Clean unchanged source **76e6e48c82f78af1c402c27b191ad8f4202eb8ac** completed both canonical normal-product build and `make host verify --journey` with exit 0. Final ISO SHA-256 `4047bda49ebeed351efdd6d17c0a64b898919ac86ae8f02b218d8285cab9d62e`. Four actual keyboard preference transitions passed, plus the original 22 lifecycle/interaction checkpoints: 26 screenshots total. Face, checked component and recipe stayed identical; exact fresh Show/Host/Boot/generation bindings, zero Body actions and return to the original planned configuration were checked. All 26 original PNG sizes/file hashes and decoded RGBA hashes independently matched the capture manifest. [Complete source-bound records and PNGs](evidence/native-look-selection-20261020/selection-before-font-filter/). This proves actual selection, not complete issue acceptance.
+
+Inspected compact editorial, spacious editorial and compact engineering images. Actual 125% nearest-neighbor text looked visibly rough, so this run is explicitly the **before-filter** evidence. Its functional success does not assert that enlarged typography already met the user's visual quality request.
+
+## Enlarged-font coverage refinement
+
+At 100% the original pinned grayscale coverage remains byte-for-byte the sampling path. At larger admitted scales, fixed four-tap integer bilinear coverage filtering replaces repeated nearest-neighbor texels. Sampling uses destination pixel centers and clamps within the selected glyph's original atlas rectangle, never borrowing a neighboring glyph or creating a new ink extent. RGB blending against retained pixels remains unchanged. The filter allocates nothing, uses no floating-point operations and reads at most four coverage values per output sample. Glyph metrics, bearings, advances, measured extents, scale admission, assets and budgets stay unchanged; neither a font parser nor a new atlas is added.
+
+After this refinement, 137 non-overlapping checks pass: 21 typography, 97 native scene, 15 compositor and 4 arrival tests; two existing manual compositor performance observations remain ignored. Checks include numerical reconstruction, unchanged metrics/default sampling, real binary-fallback gray coverage at enlarged scales, bounded glyph ink, actual layout/raster guards, retained damage equality, state transfer and current-Show draft submission. These are the new `5628-scaled-font-filter.log` / `5628-filtered-*.log` records in the evidence directory. A fresh normal-product image and visual check follow before claiming filtered-font product success.
