@@ -30,3 +30,25 @@ The second run is in progress. No complete aggregate, accepted model, new defaul
 installed Current controller, broad accuracy or real-time claim follows from
 this preparation. Numerical/canonical prerequisites #6062/#6063 and normal
 reviewed acceptance gates remain separate.
+
+## Local completion and next consumer
+
+The complete comparison remains pending the existing second worker; no third
+run is planned. Four histories remained at the last local observation (30/34).
+The final record will summarize both arms only after all histories finish,
+retaining attachment/vocative/control outcomes, commitment timing, revisions,
+contradictions and actual time/resource limits. Partial histories are not a
+comparative quality result. No fitted inputs or scheduling policy changed.
+
+The next consumer is [#5755](https://github.com/dancxjo/conduit/issues/5755),
+compact vocative realization from supplied committed structure. Its accepted
+#5724 gate is recorded in release #6160. Reuse #5725's lexical/IPA projection and
+the common prosody carrier for initial, medial and final vocatives, with
+source-linked phrase/boundary/pitch and PCM comparisons, comma-only controls,
+stale/session refusals and immutable played-output controls. This selection
+starts no implementation, changes no parser default, and does not grant
+installed Current authority. #6073/#6074/#6075/#6077 remain separate work.
+
+At the user's request, this is a local-work-first draft: automated proof and
+CI shepherding are deferred. Existing source-bound evidence is retained with
+its actual limits. Merge/publication acceptance is not claimed.
