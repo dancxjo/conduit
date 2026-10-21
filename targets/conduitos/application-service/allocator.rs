@@ -7,11 +7,24 @@ use core::{
 const UNIT: usize = 32;
 const UNITS: usize = HEAP_BYTES / UNIT;
 const CURSOR: usize = METADATA + 8192;
+// A failed allocation is terminal for this instance. Root quarantines every
+// Capacity refusal; only installation of a fresh cleared grant resets the latch.
+const EXHAUSTED: usize = CURSOR + core::mem::size_of::<usize>();
 const BITMAP: usize = METADATA + 12288;
+const _: () = assert!(EXHAUSTED + core::mem::size_of::<usize>() <= BITMAP);
 const _: () = assert!(12288 + UNITS.div_ceil(64) * 8 <= HEADER_BYTES);
 struct PrivateHeap;
 #[global_allocator]
 static HEAP: PrivateHeap = PrivateHeap;
+pub fn exhausted() -> bool {
+    // SAFETY: the exclusive Application metadata grant is installed before entry.
+    unsafe { (EXHAUSTED as *const usize).read() != 0 }
+}
+fn capacity_failure() -> *mut u8 {
+    // SAFETY: disjoint header word in the same exclusive metadata grant.
+    unsafe { (EXHAUSTED as *mut usize).write(1) };
+    ptr::null_mut()
+}
 fn rounded(layout: Layout) -> Option<usize> {
     layout
         .size()
@@ -57,18 +70,21 @@ unsafe fn find(mut index: usize, end: usize, needed: usize, alignment: usize) ->
 // concurrently and Root clears the complete grant before replacement.
 unsafe impl GlobalAlloc for PrivateHeap {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let Some(needed) = rounded(layout) else {
+        if exhausted() {
             return ptr::null_mut();
+        }
+        let Some(needed) = rounded(layout) else {
+            return capacity_failure();
         };
         let cursor = unsafe { (CURSOR as *const usize).read() };
         if cursor > UNITS {
-            return ptr::null_mut();
+            return capacity_failure();
         }
         let alignment = layout.align().max(UNIT);
         let found = unsafe { find(cursor, UNITS, needed, alignment) }
             .or_else(|| unsafe { find(0, cursor, needed, alignment) });
         let Some(index) = found else {
-            return ptr::null_mut();
+            return capacity_failure();
         };
         unsafe {
             mark(index, index + needed, true);
