@@ -1,0 +1,11 @@
+# #5516 inspection authority seam
+
+Read-only at prepared `ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7`.
+
+**Actual guest producer:** `front_door/workspace.rs:81` copies `ProductJourney::foreground_patchbay_graph`; `front_door/projection.rs:353–373` adds that admitted graph through `graph_projection::append`, then constructs the Face with `semantic_actions`. `graph_projection.rs:11–16` accepts only subjects/relationships/properties/text/disclosures: it adds exact Gear/Port/Cord topology and provenance, **no actions**. `front_door/semantics.rs:11–125` offers entrance/lifecycle actions on Plot/Body, not graph inspection/focus. `plots/patchbay/src/control.rs:8–34` likewise has no inspect/focus action. The similarly named `patchbay.inspect.next` in `workspace_scene.rs:351` is a test fixture, not a guest offer. `face_workspace.rs:429–454` validates actual actions and resolves only recognized lifecycle adapter verbs; it must not receive fabricated inspection actions.
+
+**Existing Details is legitimate local reading:** `native_face_scene/input.rs:111–143` checks Face identity/revision, finds an exact Gear/Port/Cord, and moves to its retained Details page. `native_face_scene.rs:321` expressly distinguishes this from semantic action invocation. Current Show checks precede pointer/key handling. Extending exact hits to this reader needs no edit/lifecycle authority, but cannot honestly be called a Source-admitted inspect action.
+
+**Canonical distinction:** `docs/presenter-hourglass.md:89–97,168–173` separates portable FOCUS/DISCLOSE navigation from INVOKE and local input mechanics. `semantics/face/src/navigation.rs:84–87,334` already provides checked Focus navigation.
+
+**Smallest honest seam:** implement bounded exact-role local Details targets as local reading, with stale checks and explicit receipts. If #5516’s “Face-selected inspect/focus actions” requires shared semantic selection, separately expose/validate the existing portable navigation contract from the guest projection and route both input modes through it; do not invent an edit action or mislabel local focus as owner state. That navigation wiring is presently missing, so local Details alone cannot prove that stronger clause.

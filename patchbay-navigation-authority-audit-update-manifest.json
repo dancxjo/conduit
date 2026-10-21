@@ -1,0 +1,14 @@
+{
+  "parent": "5bc589ead286d48710cf5a59f95dee9c2630bbc1",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "work/5516-inspection-authority-seam.md",
+      "tree_path": "task-6038/work/5516-inspection-authority-seam.md",
+      "bytes": 2231,
+      "sha256": "39321f3ec0d2f4cd72bf7e9c1b2a358e3dca9f9a469753416db013e0210e84d9",
+      "mode": "100644",
+      "blob": "643db2a8472eb7d2bcf413fd941c808c8095e07f"
+    }
+  ]
+}
