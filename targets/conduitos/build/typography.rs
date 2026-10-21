@@ -8,6 +8,7 @@ use sha2::{Digest, Sha256};
 const MAX_FONT_BYTES: usize = 1_048_576;
 const MAX_CODEPOINTS: usize = 1_024;
 const MAX_COVERAGE_BYTES: usize = 4 * 1_048_576;
+const MAX_PROFILES: usize = 6;
 const MAX_GLYPH_EDGE: usize = 64;
 const SUBSET: &str = "../../mechanisms/implementations/bounded-unifont/unifont-17.0.04-bounded.hex";
 const NAMES: &str = "../../plots/birth/names/catalog.mjs";
@@ -25,11 +26,16 @@ const FONTS: &[(&str, &str)] = &[
         "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582",
     ),
 ];
-// Fixed profile index: label, body, heading, title, code. These are Presenter
+// Fixed profile index: label, body, heading, editorial title, code, engineering title.
+// These are Presenter
 // resources, never part of a portable Face or authored plot identity.
-const PROFILES: &[(usize, u8)] = &[(0, 14), (0, 16), (0, 20), (1, 24), (2, 14)];
+const PROFILES: &[(usize, u8)] = &[(0, 14), (0, 16), (0, 20), (1, 24), (2, 14), (0, 24)];
 
 pub fn generate() {
+    assert!(
+        PROFILES.len() <= MAX_PROFILES,
+        "profile count exceeds admission"
+    );
     println!("cargo:rerun-if-changed={SUBSET}");
     println!("cargo:rerun-if-changed={NAMES}");
     let mut repertoire = BTreeSet::new();

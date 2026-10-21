@@ -17,7 +17,7 @@ selected renderer consumes that configuration from the actual planned placement;
 a copied Fore hash or handwritten parallel semantic tree is insufficient.
 
 `VisualExpression` is the initial finite visual Look facet, not a new multimodal
-Look language. Density, palette, text scale and restrained motion are independent
+Look language. Density, palette, typography, text scale and restrained motion are independent
 expression preferences. The closed schema cannot carry semantic selectors,
 actions, argument contracts, labels, role overrides, keyboard bindings, focus
 order or component topology. #5368 owns the common optional multimodal facets;
@@ -184,9 +184,9 @@ offer, renders, and acknowledges the new Show before enabling input. A failed
 or uncertain exchange retires the return route. The transport retains its
 explicit lifetime and finite replacement bound independently of the action
 budget. An available but unacknowledged Show cannot authorize a replacement,
-and the previous Show becomes stale after selection. The replacement restores
-unsubmitted draft and focus only through the identical-Face and producer-scope
-encounter checks used by local selection.
+and the previous Show becomes stale after selection. A pending edit refuses an owner replacement before any request. With no pending
+edit, the replacement restores bounded reading and focus state only through the
+identical-Face and producer-scope encounter checks used by local selection.
 
 The native palette and font rasterizer consume the retained admitted expression.
 Text measurement and glyph coverage use the same bounded scale; structural
@@ -204,3 +204,28 @@ complete; icon width is reserved before text wrapping and each icon's command
 is charged during ordinary and panel admission within the existing 48-command
 bound. These decorations add no control, state or authority. The existing
 antialiased icon coverage path draws them against the retained background.
+## Finite selected typography
+
+The development v2 expression carries an explicit `Editorial` or `Engineering`
+typography value. The same five semantic text purposes remain shared; the native
+Host admits six immutable profiles because Title can select Serif or Sans.
+Selection is resolved before measurement, wrapping, caret placement and paint.
+It is never inferred from a palette, density, subject name or action label.
+The component Fore and canonical Look/visual-expression data cut over together;
+v1 values remain negative fixtures rather than receiving an implicit default.
+
+The existing local Crèche F6/F7 density/palette selection and bounded encounter
+transfer remain available. Historical Crèche roots explicitly retain Editorial;
+original Todo compact/spacious roots select Engineering/Editorial. The additional
+crossed density/palette roots retain Editorial, preserving their prior Serif
+Title behavior. These are authored presets, not a runtime rule coupling axes.
+
+Authenticated owner replacement has a different custody boundary: a pending edit
+refuses replacement before an owner request, preserving the old Show and draft.
+Other route failures retire route custody. A successful replacement acknowledges
+the newly sealed Show before publishing its restored focus. The owner's unchanged
+Face/component/recipe do not imply an unchanged Mask or route Plan.
+
+Earlier density/palette QEMU captures stay bound to their recorded source. They
+do not establish v2 typography, owner replacement or acceptance of this combined
+development implementation; those need fresh source-bound proof.

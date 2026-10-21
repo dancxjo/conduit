@@ -5,42 +5,6 @@ use conduit_face::{
 };
 
 impl FaceArrival {
-    pub(super) fn replace_owner_mask(
-        &mut self,
-        fresh: &crate::native_guest_face::NativeGuestFace,
-        display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
-        let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
-            context.host_id.clone(),
-            context.boot_id.clone(),
-            context.generation,
-            &context.build_id,
-            context.display_base_id.clone(),
-            "conduitos/creche/face",
-            &context.provider,
-            fresh.route(),
-        )
-        .map_err(|error| error.as_str())?;
-        replacement
-            .set_visual_user_constraints(
-                context.forced_colors,
-                true,
-                context.minimum_text_scale_percent,
-            )
-            .map_err(|error| error.as_str())?;
-        replacement
-            .preserve_encounter_from(&mut self.mask)
-            .map_err(|error| error.as_str())?;
-        self.mask.suspend().map_err(|error| error.as_str())?;
-        self.mask = replacement;
-        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
-        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
-        // Keep owner Face identity/revision and independent Mask publication counters.
-        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
-        Ok(())
-    }
-
     pub(in crate::product_front_door) fn toggle_owner_axis(
         &mut self,
         identities: BootIdentities,
@@ -48,7 +12,7 @@ impl FaceArrival {
         route: &mut NativeOwnerReturnRoute,
         usage: u8,
         display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
+    ) -> Result<crate::native_guest_face::NativeGuestFace, OwnerSelectionError> {
         let (look, recipe) = axis_selection(self.preparation.selected, usage)?;
         self.select_owner_component(identities, prior, route, look, recipe, display)
     }
