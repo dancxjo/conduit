@@ -77,7 +77,7 @@ impl State {
                     return Err(Refusal::Order);
                 }
                 let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
-                let command: Command = workspace.decode(&incoming)?;
+                let command: Command = workspace.decode_command(&incoming)?;
                 drop(incoming);
                 let mut initialized = None;
                 if self.preparing.is_some()
@@ -147,7 +147,7 @@ impl State {
                         .ok_or(Refusal::Order)?
                         .execute(command)?,
                 };
-                workspace.encode_into(&reply, &mut self.outgoing)?;
+                workspace.encode_reply_into(&reply, &mut self.outgoing)?;
                 if let Some(models) = initialized {
                     self.models = Some(models);
                 }

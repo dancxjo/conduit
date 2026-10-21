@@ -103,7 +103,7 @@ fn on_caller<T>(operation: impl FnOnce() -> T) -> T {
     value
 }
 fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply {
-    let input = on_caller(|| data::encode(command).unwrap());
+    let input = on_caller(|| data::encode_command(command).unwrap());
     state
         .execute(
             Request::Begin {
@@ -144,7 +144,7 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
         };
         on_caller(|| output.extend_from_slice(&transfer[..bytes as usize]));
     }
-    on_caller(|| data::decode(&output).unwrap())
+    on_caller(|| data::decode_reply(&output).unwrap())
 }
 pub fn run() {
     // MAP_FIXED_NOREPLACE never overwrites a host mapping; fail rather than
@@ -294,7 +294,7 @@ pub fn run() {
     // A duplicate initialization after the full retained workset is terminal;
     // it cannot replace models or leave them usable after an Order refusal.
     let duplicate = on_caller(|| {
-        data::encode(&Command::PrepareInit {
+        data::encode_command(&Command::PrepareInit {
             manifest: data::InitManifest { slots: [None; 4] },
         })
         .unwrap()

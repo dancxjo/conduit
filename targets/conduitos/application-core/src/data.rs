@@ -210,4 +210,5 @@ pub enum Refusal {
     Application,
 }
 mod codec;
-pub use codec::{MAX_DECODED_JSON_BYTES, Workspace, decode, encode};
+mod transport_codec;
+pub use codec::{MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode, encode_command};

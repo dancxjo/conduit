@@ -7,7 +7,7 @@ fn manifest(slots: [Option<InitSlot>; 4]) -> Command {
     }
 }
 fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
-    let input = data::encode(command)?;
+    let input = data::encode_command(command)?;
     let mut transfer = vec![0; crate::memory::TRANSFER_BYTES];
     state.execute(
         Request::Begin {
@@ -42,7 +42,7 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
         };
         output.extend_from_slice(&transfer[..bytes as usize]);
     }
-    data::decode(&output)
+    data::decode_reply(&output)
 }
 fn terminal(state: &mut State) {
     assert!(state.models.is_none());

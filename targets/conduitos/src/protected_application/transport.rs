@@ -98,7 +98,7 @@ impl Service {
         result
     }
     fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
-        let input = data::encode(command)?;
+        let input = data::encode_command(command)?;
         self.request(Request::Begin {
             bytes: input.len() as u32,
         })?;
@@ -153,7 +153,7 @@ impl Service {
                 .map_err(|_| Refusal::Application)?;
             output.extend_from_slice(window.get(..bytes as usize).ok_or(Refusal::Malformed)?);
         }
-        data::decode(&output)
+        data::decode_reply(&output)
     }
 }
 

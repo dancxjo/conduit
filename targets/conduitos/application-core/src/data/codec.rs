@@ -1,6 +1,6 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
-use super::Refusal;
+use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
@@ -44,9 +44,9 @@ fn decoded_length(bytes: &[u8]) -> Result<Option<usize>, Refusal> {
     }
     Ok(Some(length))
 }
-fn decode_in<T: DeserializeOwned>(bytes: &[u8], json: &mut [u8]) -> Result<T, Refusal> {
+fn decoded_json<'a>(bytes: &'a [u8], json: &'a mut [u8]) -> Result<&'a [u8], Refusal> {
     let Some(length) = decoded_length(bytes)? else {
-        return serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed);
+        return Ok(bytes);
     };
     let json = json.get_mut(..length).ok_or(Refusal::Capacity)?;
     let compressed = &bytes[HEADER..];
@@ -61,7 +61,10 @@ fn decode_in<T: DeserializeOwned>(bytes: &[u8], json: &mut [u8]) -> Result<T, Re
     if status != TINFLStatus::Done || consumed != compressed.len() || written != length {
         return Err(Refusal::Malformed);
     }
-    serde_json::from_slice(json).map_err(|_| Refusal::Malformed)
+    Ok(json)
+}
+fn decode_in<T: DeserializeOwned>(bytes: &[u8], json: &mut [u8]) -> Result<T, Refusal> {
+    serde_json::from_slice(decoded_json(bytes, json)?).map_err(|_| Refusal::Malformed)
 }
 pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
     match decoded_length(bytes)? {
@@ -69,8 +72,16 @@ pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
         None => decode_in(bytes, &mut []),
     }
 }
+/// Private service replies use exact sequence framing, never graph custody JSON.
+pub fn decode_reply(bytes: &[u8]) -> Result<Reply, Refusal> {
+    match decoded_length(bytes)? {
+        Some(length) => transport_codec::decode(decoded_json(bytes, &mut buffer(length)?)?),
+        None => transport_codec::decode(decoded_json(bytes, &mut [])?),
+    }
+}
 /// One admitted reusable JSON workspace, reserved before retained controllers.
-/// Reuse changes allocation lifetime, never JSON, compression or custody bytes.
+/// Graph methods preserve canonical JSON/custody bytes. Private service methods
+/// use versioned exact-sequence framing in the same admitted storage.
 pub struct Workspace {
     json: Vec<u8>,
     compressor: Box<CompressorOxide>,
@@ -86,6 +97,21 @@ impl Workspace {
     }
     pub fn decode<T: DeserializeOwned>(&mut self, bytes: &[u8]) -> Result<T, Refusal> {
         decode_in(bytes, &mut self.json)
+    }
+    pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
+        transport_codec::decode(decoded_json(bytes, &mut self.json)?)
+    }
+    pub(crate) fn encode_reply_into(
+        &mut self,
+        reply: &Reply,
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
+        if output.capacity() < MAX_BLOB {
+            return Err(Refusal::Capacity);
+        }
+        output.resize(MAX_BLOB, 0);
+        let length = transport_codec::encode_to_slice(reply, &mut self.json)?;
+        self.finish_encoded(length, output)
     }
     pub fn encode<T: Serialize>(&mut self, value: &T) -> Result<Vec<u8>, Refusal> {
         let mut output = buffer(MAX_BLOB)?;
@@ -103,6 +129,9 @@ impl Workspace {
         output.resize(MAX_BLOB, 0);
         let length = serde_json_core::to_slice(&JsonBytes(value), &mut self.json)
             .map_err(|_| Refusal::Capacity)?;
+        self.finish_encoded(length, output)
+    }
+    fn finish_encoded(&mut self, length: usize, output: &mut Vec<u8>) -> Result<(), Refusal> {
         let json = &self.json[..length];
         if length > MAX_BLOB {
             self.compressor.reset();
@@ -115,13 +144,25 @@ impl Workspace {
 }
 
 pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
+    encode_with(value, |value, output| {
+        serde_json_core::to_slice(&JsonBytes(value), output).map_err(|_| Refusal::Capacity)
+    })
+}
+/// Encode one private Application command with exact sequence framing.
+pub fn encode_command(command: &Command) -> Result<Vec<u8>, Refusal> {
+    encode_with(command, transport_codec::encode_to_slice)
+}
+fn encode_with<T: Serialize>(
+    value: &T,
+    serialize: impl Fn(&T, &mut [u8]) -> Result<usize, Refusal>,
+) -> Result<Vec<u8>, Refusal> {
     // Finite serialization tiers avoid reserving a contiguous 1 MiB block for
     // a graph whose exact JSON fits 256 or 512 KiB. Failed serialization owns
     // no effects; each previous buffer is released before the next reservation.
     let mut encoded = None;
     for capacity in [MAX_BLOB, 2 * MAX_BLOB, 4 * MAX_BLOB, MAX_DECODED_JSON_BYTES] {
         let mut json = buffer(capacity)?;
-        if let Ok(length) = serde_json_core::to_slice(&JsonBytes(value), &mut json) {
+        if let Ok(length) = serialize(value, &mut json) {
             json.truncate(length);
             encoded = Some(json);
             break;
@@ -162,3 +203,6 @@ fn compress_json_into(
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod transport_tests;

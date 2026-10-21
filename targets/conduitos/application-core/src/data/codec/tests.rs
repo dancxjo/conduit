@@ -112,7 +112,7 @@ fn malformed_compressed_commit_cannot_partially_initialize_models() {
     let mut invalid = encode(&"a".repeat(2 * MAX_BLOB)).unwrap();
     *invalid.last_mut().unwrap() ^= 1;
     assert_eq!(commit(&mut state, &invalid), Err(Refusal::Malformed));
-    let init = encode(&Command::PrepareInit {
+    let init = encode_command(&Command::PrepareInit {
         manifest: crate::data::InitManifest {
             slots: [None; crate::SLOTS],
         },
@@ -151,7 +151,7 @@ fn nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values() {
 
 #[test]
 fn refused_uploads_are_terminal_and_never_expose_partial_models() {
-    let valid = encode(&Command::PrepareInit {
+    let valid = encode_command(&Command::PrepareInit {
         manifest: crate::data::InitManifest {
             slots: [None; crate::SLOTS],
         },
@@ -222,7 +222,10 @@ fn refused_uploads_are_terminal_and_never_expose_partial_models() {
         assert!(result.is_err(), "case {case}");
         assert_eq!(commit(&mut state, &valid), Err(Refusal::Order));
         assert_eq!(
-            commit(&mut state, &encode(&Command::Graph { slot: 0 }).unwrap()),
+            commit(
+                &mut state,
+                &encode_command(&Command::Graph { slot: 0 }).unwrap()
+            ),
             Err(Refusal::Order)
         );
     }
@@ -241,7 +244,10 @@ fn hostile_json_depth_strings_and_counts_refuse_before_initialization() {
         let mut state = State::default();
         assert!(commit(&mut state, input.as_bytes()).is_err());
         assert_eq!(
-            commit(&mut state, &encode(&Command::Graph { slot: 0 }).unwrap()),
+            commit(
+                &mut state,
+                &encode_command(&Command::Graph { slot: 0 }).unwrap()
+            ),
             Err(Refusal::Order)
         );
     }
