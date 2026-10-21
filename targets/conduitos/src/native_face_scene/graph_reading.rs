@@ -7,10 +7,13 @@ use conduit_face::{
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 use patchbay_application::PatchbayNavigationProjection;
 
+pub(super) const DIAGRAM_FALLBACK_NOTICE: &str = "Facts fallback";
+
 pub(super) struct GraphReading {
     bundle: PatchbayNavigationProjection,
     pub active: bool,
     pub diagram_page: usize,
+    diagram_refusal: Option<FaceSceneError>,
 }
 
 impl GraphReading {
@@ -31,6 +34,7 @@ impl GraphReading {
             bundle,
             active: false,
             diagram_page: 0,
+            diagram_refusal: None,
         }))
     }
 
@@ -72,6 +76,70 @@ impl GraphReading {
 }
 
 impl NativeFaceScene {
+    /// Last requested diagram outcome; presentation refusal never changes Face.
+    pub fn diagram_refusal(&self) -> Option<FaceSceneError> {
+        self.graph_reading
+            .as_ref()
+            .and_then(|reading| reading.diagram_refusal)
+    }
+
+    fn diagram_geometry_fits(&self) -> bool {
+        chrome::Chrome::prepare_selected(self.screen, self.text_scale_percent, self.typography)
+            .is_ok_and(|chrome| {
+                chrome.top == layout::HEADER && self.screen.height - chrome.bottom == layout::FOOTER
+            })
+    }
+
+    /// Unfit topology furniture falls back to the complete measured Face reader.
+    /// Its exact subjects remain navigable; no Source action or value changes.
+    pub fn show_diagram(&mut self, requested: bool) {
+        let requested = requested && self.has_diagram();
+        if requested && !self.diagram_geometry_fits() {
+            self.show_details(true);
+            if let Some(reading) = self.graph_reading.as_mut() {
+                reading.active = true;
+                reading.diagram_refusal = Some(FaceSceneError::InvalidExtent);
+            }
+            self.local_notice = Some(DIAGRAM_FALLBACK_NOTICE.into());
+            self.page = self.graph_focus_page().unwrap_or(self.page);
+            return;
+        }
+        if self.local_notice.as_deref() == Some(DIAGRAM_FALLBACK_NOTICE) {
+            self.local_notice = None;
+        }
+        self.showing_diagram = requested;
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = requested;
+            reading.diagram_refusal = None;
+        }
+        self.page = if requested {
+            self.graph_reading
+                .as_ref()
+                .map_or(0, |reading| reading.diagram_page)
+                .min(self.pages() - 1)
+        } else {
+            0
+        };
+        self.focus = None;
+    }
+
+    pub(super) fn graph_focus_page(&self) -> Option<usize> {
+        let reading = self
+            .graph_reading
+            .as_ref()
+            .filter(|reading| reading.active)?;
+        let identity = reading.bundle.cursor.focus.as_deref()?;
+        let subject = self
+            .face
+            .subjects
+            .iter()
+            .position(|subject| subject.identity == identity)?;
+        self.details
+            .iter()
+            .find(|row| row.subject_index == Some(subject))
+            .map(|row| row.page)
+    }
+
     pub fn graph_navigation(&self) -> Option<(&FaceNavigation, &FaceCursor)> {
         self.graph_reading
             .as_ref()
@@ -128,7 +196,11 @@ impl NativeFaceScene {
         &mut self,
         event: KeyEvent,
     ) -> Result<Option<FaceSceneInput>, FaceSceneError> {
-        if event.transition() != KeyTransition::Pressed {
+        if event.transition() != KeyTransition::Pressed
+            || self.focus.is_some()
+            || self.input.has_pending_input()
+        {
+            // An actual action/argument retains the ordinary checked input path.
             return Ok(None);
         }
         let active = self.showing_diagram

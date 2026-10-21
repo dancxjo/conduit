@@ -244,6 +244,9 @@ impl NativeFaceScene {
     }
 
     pub fn show_details(&mut self, details: bool) {
+        if self.local_notice.as_deref() == Some(graph_reading::DIAGRAM_FALLBACK_NOTICE) {
+            self.local_notice = None;
+        }
         if let Some(reading) = self.graph_reading.as_mut() {
             reading.active = false;
         }
@@ -259,24 +262,6 @@ impl NativeFaceScene {
         });
         self.focus = retained.map(|(control, _)| control);
         self.page = retained.map_or(0, |(_, page)| page);
-    }
-
-    /// A diagram is available only when Gear subjects actually occur in this
-    /// exact Face; F3 never constructs a specimen graph to fill an empty view.
-    pub fn show_diagram(&mut self, diagram: bool) {
-        self.showing_diagram = diagram && self.has_diagram();
-        if let Some(reading) = self.graph_reading.as_mut() {
-            reading.active = self.showing_diagram;
-        }
-        self.page = if self.showing_diagram {
-            self.graph_reading
-                .as_ref()
-                .map_or(0, |reading| reading.diagram_page)
-                .min(self.pages() - 1)
-        } else {
-            0
-        };
-        self.focus = None;
     }
 
     /// Mask-local reading navigation does not invoke a semantic action.

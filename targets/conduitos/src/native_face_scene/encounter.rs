@@ -10,9 +10,19 @@ impl NativeFaceScene {
         if self.interaction_admitted != previous.interaction_admitted || previous.input.submitted {
             return Err(FaceSceneError::InputUnavailable);
         }
+        self.graph_reading = previous.graph_reading;
+        self.local_notice = previous.local_notice;
         self.showing_details = previous.showing_details;
-        self.showing_diagram = previous.showing_diagram;
+        self.showing_diagram = false;
         self.page = previous.page.min(self.pages() - 1);
+        if previous.showing_diagram {
+            self.show_diagram(true);
+            if self.showing_diagram {
+                self.page = previous.page.min(self.pages() - 1);
+            }
+        } else if self.showing_details {
+            self.page = self.graph_focus_page().unwrap_or(self.page);
+        }
         if let Some(control) = previous.focus {
             let page = self
                 .rows()
@@ -27,9 +37,7 @@ impl NativeFaceScene {
             self.focus = Some(control);
             self.page = page;
         }
-        self.graph_reading = previous.graph_reading;
         self.input = previous.input;
-        self.local_notice = previous.local_notice;
         // The new layout must admit the retained draft/reading view before Show.
         self.frame()?;
         Ok(())

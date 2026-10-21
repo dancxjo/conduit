@@ -126,6 +126,9 @@ impl NativeFaceScene {
         {
             return self.commit(show, sequence, Some(self.focus_request(control)));
         }
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.focus = Some(control);
         if super::boolean_choice::applies(&self.face, control) && self.input.action.is_none() {
             return self.toggle_boolean(control, show, sequence);

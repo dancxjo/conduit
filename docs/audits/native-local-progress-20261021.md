@@ -42,6 +42,17 @@ outstanding.
 Read-only review found no blocking defect. Formatting and compile-only checks (the shared-projection update took 6 seconds)
 are the local verification scope; broad tests and product proof are deferred.
 
+## #5629 diagram fallback and focus
+
+When enlarged text changes measured chrome beyond the diagram's fixed furniture,
+F3 selects the complete measured Details reader, retains graph navigation and
+records a typed InvalidExtent diagram refusal with a short fallback notice.
+A Look replacement re-resolves a selected graph subject to its new Details page;
+old page offsets cannot move that subject's focus. A real action selected in
+Details leaves graph-reading mode and retains normal Enter/draft behavior.
+The existing expanded-chrome regression assertion now describes this fallback;
+it was updated but not executed tonight. Compile-only checks pass.
+
 ## Coordination
 
 Origin also contains `work/native-look-local` with overlapping Patchbay work
