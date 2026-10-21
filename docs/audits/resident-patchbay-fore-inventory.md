@@ -170,3 +170,19 @@ fails, revocation remains set, so the old stream cannot reopen. This revokes the
 transport only; a domain request already returned in a dispatch receipt remains
 the owner's responsibility. The eventual Show replacement/Body retirement
 caller must invoke this operation; current product wiring remains pending.
+
+## Retained acknowledged owner turn
+
+`PatchbayOwnerTurn` moves an owner's current Face/available Show and unused
+prepared ingress into one finite window. Binding checks Face/Show validity,
+Body and contribution correspondence and any required interaction context. The
+domain's existing contribution predicate is reused through a narrow public
+re-export; it checks scope correspondence and grants no authority. Submission
+still invokes current retained model validation at the actual kernel call.
+
+The turn stores its complete typed dispatch receipt before returning, so ignoring
+that return cannot discard an Edit/Mask request or overwrite it with another
+action. Retirement revokes ingress while preserving any prior receipt. Receipt
+ownership transfers once; transfer does not reopen the consumed turn. An owner
+must retire its old turn before installing a successor. These primitives do not
+create a genuine Host acknowledgement or install/charge a current Body route.

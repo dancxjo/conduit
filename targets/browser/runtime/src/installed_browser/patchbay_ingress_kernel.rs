@@ -96,6 +96,10 @@ impl PreparedPatchbayIngress {
         })
     }
 
+    pub fn is_ready(&self) -> bool {
+        !self.submitted && !self.revoked && !self.terminal
+    }
+
     pub fn planned(&self) -> &PlannedPatchbayIngress {
         &self.planned
     }

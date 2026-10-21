@@ -659,3 +659,19 @@ fixed. No broad suite, CI, platform proof or image rebuild ran.
 Live goal-state refresh: #6055 MERGED; #5990, #5607 and #5992 CLOSED; #6158 and
 #6201 OPEN. These issue states do not supply the still-deferred native/product
 proof or finish Patchbay production installation. The full goal remains active.
+
+## Retain current acknowledged owner turn and its result
+
+Added `PatchbayOwnerTurn` over moved owner Face/available Show and unused
+prepared ingress, without cloning an application model. Binding validates exact
+Face/Show/Body/contribution/context correspondence using the existing domain
+predicate. It stores the full typed dispatch receipt before returning; retiring
+or transferring that receipt cannot discard a request, overwrite it or reopen
+the consumed turn. Current retained owner validation still runs at dispatch.
+
+Browser compilation and two focused CPU fixtures pass (457 filtered out): exact
+Edit request/revision increment survives retirement and single ownership
+transfer; wrong contribution scope/unavailable Show refuses; retirement before
+submission leaves model unchanged. No platform acknowledgement was established,
+production route installed, broad suite/CI run, or image rebuilt. Current Body
+storage/Play admission and actual Show publication remain unfinished #6201.

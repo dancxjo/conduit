@@ -64,15 +64,18 @@ fn face(port: &PatchbayApplicationPort, body: &BodyId, basis: &FaceContributionB
     )
     .unwrap()
 }
-fn transport(bytes: &[u8]) -> PreparedPatchbayIngress {
+fn prepared_transport() -> PreparedPatchbayIngress {
     let mut host =
         crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
     host.capabilities.push(offer());
-    let mut transport =
-        PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap();
+    PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap()
+}
+fn transport(bytes: &[u8]) -> PreparedPatchbayIngress {
+    let mut transport = prepared_transport();
     transport.admit(bytes).unwrap();
     transport
 }
+
 fn edit(face: &Face, show: &MaskShow, subject: &str) -> Vec<u8> {
     let action = face
         .actions
@@ -217,5 +220,87 @@ fn revoked_show_transport_never_dispatches_pending_bytes_to_owner() {
     ready.retire().unwrap();
     assert!(ready.is_terminal());
     assert!(ready.admit(&input).is_err());
+    assert_eq!(owner.observe_fragment(basis, &body).unwrap(), before);
+}
+
+#[test]
+fn owner_turn_retains_request_through_retirement_and_transfer_without_reopening() {
+    let (mut owner, body, basis) = owner();
+    let current = face(&owner, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let subject = owner
+        .graph()
+        .subject_identities()
+        .next()
+        .unwrap()
+        .to_owned();
+    let input = edit(&current, &show, &subject);
+    let mut turn =
+        PatchbayOwnerTurn::bind(body, basis, current, show, prepared_transport()).unwrap();
+    assert!(turn.can_submit());
+    let initial_revision = owner.revision();
+    turn.submit(&mut owner, &input).unwrap();
+    assert_eq!(owner.revision(), initial_revision + 1);
+    assert!(!turn.can_submit());
+    turn.retire().unwrap();
+    assert!(turn.receipt().unwrap().transport_completion.is_ok());
+    assert_eq!(
+        turn.receipt().unwrap().owner_result,
+        Ok(Some(PatchbayApplicationRequest::EditCurrent {
+            expanded_plot_id: owner.graph().expanded_plot_id.clone(),
+            subject_identity: subject,
+        }))
+    );
+    let retained = turn.take_receipt().unwrap();
+    assert!(retained.owner_result.is_ok());
+    assert!(turn.take_receipt().is_none());
+    assert!(turn.submit(&mut owner, &input).is_err());
+    assert_eq!(owner.revision(), initial_revision + 1);
+}
+
+#[test]
+fn owner_turn_refuses_wrong_scope_or_unavailable_show_and_revokes_before_dispatch() {
+    let (mut owner, body, basis) = owner();
+    let current = face(&owner, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let mut foreign_basis = basis.clone();
+    foreign_basis.active_play_id = "play/foreign".into();
+    assert!(PatchbayOwnerTurn::bind(
+        body.clone(),
+        foreign_basis,
+        current.clone(),
+        show.clone(),
+        prepared_transport()
+    )
+    .is_err());
+    let replaced = show
+        .transition(
+            ManifestationLifecycle::Replaced,
+            "sign/replaced-turn".into(),
+        )
+        .unwrap();
+    assert!(PatchbayOwnerTurn::bind(
+        body.clone(),
+        basis.clone(),
+        current.clone(),
+        replaced,
+        prepared_transport()
+    )
+    .is_err());
+    let subject = owner.graph().subject_identities().next().unwrap();
+    let input = edit(&current, &show, subject);
+    let before = owner.observe_fragment(basis.clone(), &body).unwrap();
+    let mut turn = PatchbayOwnerTurn::bind(
+        body.clone(),
+        basis.clone(),
+        current,
+        show,
+        prepared_transport(),
+    )
+    .unwrap();
+    turn.retire().unwrap();
+    assert!(!turn.can_submit());
+    assert!(turn.submit(&mut owner, &input).is_err());
+    assert!(turn.receipt().is_none());
     assert_eq!(owner.observe_fragment(basis, &body).unwrap(), before);
 }

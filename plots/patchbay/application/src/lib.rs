@@ -48,6 +48,7 @@ mod resident_canvas;
 mod resident_face;
 mod resident_execution;
 mod resident_command;
+pub use resident_command::contribution_matches as patchbay_face_contribution_matches;
 pub use resident_command::{PatchbayResidentCommand, PreparedPatchbayCommand, PatchbayCommandRefusal};
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};

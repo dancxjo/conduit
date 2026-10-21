@@ -208,7 +208,8 @@ pub(super) fn has_property(
     })
 }
 
-pub(super) fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool {
+/// Scope correspondence only; this grants no return route or action authority.
+pub fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool {
     let standalone = face.basis.checked_plot_id.as_ref() == Some(&basis.checked_plot_id)
         && face.basis.plan_id.as_ref() == Some(&basis.plan_id)
         && face.basis.active_play_id.as_ref() == Some(&basis.active_play_id);
