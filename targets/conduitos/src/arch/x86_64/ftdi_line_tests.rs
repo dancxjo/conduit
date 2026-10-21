@@ -69,6 +69,7 @@ fn qemu_ft232bm_identity_and_bulk_pair_are_exact() {
 #[test]
 fn transfer_completion_classes_and_bounds_remain_distinct() {
     let event = Event {
+        event_data: false,
         pointer: 0x1000,
         completion_code: 13,
         event_type: 32,
