@@ -1,0 +1,46 @@
+{
+  "parent": "cae0d673bae18ff54e187ca09f3c0bd8d1c44369",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2562,
+      "sha256": "794184fb2469fe94efdfb505a20c53ecff534d1d888f8106e4ce1300b6fe0aae",
+      "mode": "100644",
+      "blob": "e86a6bf3f388755d53291dbf96b16ac086af521e"
+    },
+    {
+      "source": "work/5628-owner-browser-session.mjs",
+      "tree_path": "task-6038/work/5628-owner-browser-session.mjs",
+      "bytes": 31119,
+      "sha256": "ce533176472ddb037db1a9f503a2563f6c469e4276082c564ed4241c0de8ed80",
+      "mode": "100644",
+      "blob": "13b5ac0843b380872abd29e7f64b75560831eb69"
+    },
+    {
+      "source": "work/5628-owner-look-journey.py",
+      "tree_path": "task-6038/work/5628-owner-look-journey.py",
+      "bytes": 15626,
+      "sha256": "bb8c26c4a7a5172093fd1fd1973a518382cf5d16c2fbe245e19930c11d346468",
+      "mode": "100644",
+      "blob": "2bf743433229d00ef5afba2ff6acabbba0f47b70"
+    },
+    {
+      "source": "work/5628-export-owner-proof.py",
+      "tree_path": "task-6038/work/5628-export-owner-proof.py",
+      "bytes": 3314,
+      "sha256": "79fa665445e36feeae916355c65907f83083ccfa1d2166d0141408a8adec859e",
+      "mode": "100644",
+      "blob": "3aa61bd6e43097f79f5b986c355dbb22588e2d0f"
+    },
+    {
+      "source": "work/5608-required-item-prerequisite.txt",
+      "tree_path": "task-6038/work/5608-required-item-prerequisite.txt",
+      "bytes": 3237,
+      "sha256": "05ae1499f595fcf30ca4de78376b5f2c558c4490edd5e00038992076cca6712d",
+      "mode": "100644",
+      "blob": "02bbc8c921ebdfeace79e4e0a04db33500fe546e"
+    }
+  ]
+}

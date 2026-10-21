@@ -6,7 +6,7 @@ import { writeFileSync } from 'node:fs';
 import { lstat, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-const SOURCE = '253dcb985eb8890ddf873d672d3a282f2366e6db';
+const SOURCE = process.argv[8] ?? '253dcb985eb8890ddf873d672d3a282f2366e6db';
 const LIMIT = Object.freeze({ line: 4096, commands: 48, pending: 8,
   json: 1024 * 1024, report: 256 * 1024, actionMs: 12000,
   readinessMs: 120000, sessionMs: 1800000 });
@@ -207,9 +207,9 @@ async function selfTest() {
   process.stdout.write('synthetic command/sequence/bounds checks passed; no browser or owner launched\n');
 }
 async function main(args) {
-  assert.equal(args.length, 6,
-    'usage: node HELPER REPO INSTALLED-OWNER PRIVATE-STATE HANDBOOK PINNED-PLAYWRIGHT NEW-PRIVATE-OUTPUT');
-  const [repo, owner, state, handbook, playwright, output] = args.map(p => path.resolve(p));
+  assert.equal(args.length, 7,
+    'usage: node HELPER REPO INSTALLED-OWNER PRIVATE-STATE HANDBOOK PINNED-PLAYWRIGHT NEW-PRIVATE-OUTPUT SOURCE-SHA');
+  assert.match(SOURCE, /^[a-f0-9]{40}$/); const [repo, owner, state, handbook, playwright, output] = args.slice(0,6).map(p => path.resolve(p));
   await privateDirectory(state);
   await privateDirectory(path.dirname(output));
   const head = spawnSync('git', ['-C', repo, 'rev-parse', 'HEAD'], { encoding: 'utf8', timeout: 10000, maxBuffer: LIMIT.json });

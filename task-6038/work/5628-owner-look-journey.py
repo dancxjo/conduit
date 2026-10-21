@@ -33,7 +33,7 @@ class Browser:
         self.threads = []
         self.used = set()
         argv = ['node', str(HERE / '5628-owner-browser-session.mjs')] + [config[k] for k in
-                ('repo', 'owner', 'state', 'handbook', 'playwright')] + [str(output / 'browser')]
+                ('repo', 'owner', 'state', 'handbook', 'playwright')] + [str(output / 'browser'), config['source']]
         self.proc = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                      stderr=subprocess.PIPE, start_new_session=True)
         for name, stream in [('stdout', self.proc.stdout), ('stderr', self.proc.stderr)]:
@@ -116,12 +116,14 @@ def standby(guest):
 
 def run(config):
     os.umask(0o077)
+    scenario = config.get('matrix', 'typography')
+    require(scenario in ('typography', 'forced-colors', 'scale-restore', 'axis-density', 'axis-palette'), 'finite matrix scenario')
     output = Path(config['out']).absolute()
     qmp.private(output.parent, directory=True)
     require(not output.exists(), 'fresh output required')
     output.mkdir(mode=0o700)
     browser = guest = None
-    receipt = dict(schema='conduit.proof/private-owner-look-journey@1', status='running',
+    receipt = dict(schema='conduit.proof/private-owner-look-journey@1', source=config['source'], status='running',
                    proof_class='live owner plus graphical normal-product QEMU and one pinned browser', observations=[])
     try:
         browser = Browser(config, output)
@@ -218,7 +220,8 @@ def run(config):
         draft_at = key('a')
         guest.fresh_focus(draft_at)
         guest.capture('draft-before-refusal')
-        at = key('f7')
+        refusal_keys = ('shift', 'f6') if scenario == 'axis-density' else ('shift', 'f7') if scenario == 'axis-palette' else ('f7',)
+        at = key(*refusal_keys)
         guest.wait(lambda: any(p == qmp.REFUSE for p, _ in guest.rows()[at:]), 20)
         qmp.verify_refusal(baseline, guest.rows()[at:])
         report('provisional-refused', baseline)  # Includes independent installed CLI Face read.
@@ -226,8 +229,6 @@ def run(config):
         guest.fresh_focus(key('b'))  # One deliberate edit, never a polling action.
         guest.capture('draft-after-refusal-append')  # Inspect Draft: ab, proving retained a.
         guest.fresh_focus(key('esc'))
-        scenario = config.get('matrix', 'typography')
-        require(scenario in ('typography', 'forced-colors', 'scale-restore'), 'finite matrix scenario')
         receipt['matrix'] = scenario
         receipt['refresh_budget'] = dict(limit=4, requests=4, meaning='F5 activation, F6 baseline, two replacements')
         if scenario == 'typography':
@@ -236,6 +237,16 @@ def run(config):
             require(current['expression']['expression']['typography'] == 'editorial', 'spacious editorial typography')
             current = switch('minimum-scale-200', current, 'f9')
             require(current['expression']['expression']['text_scale_percent'] == 200, '200 percent admitted scale')
+        elif scenario in ('axis-density', 'axis-palette'):
+            axis = 'density' if scenario == 'axis-density' else 'palette'
+            other = 'palette' if axis == 'density' else 'density'
+            keys = ('shift', 'f6') if axis == 'density' else ('shift', 'f7')
+            current = switch(f'{axis}-changed', baseline, *keys)
+            prior_expression = baseline['expression']['expression']
+            changed = current['expression']['expression']
+            require(changed[axis] != prior_expression[axis] and changed[other] == prior_expression[other], 'independent authored appearance axis')
+            current = switch(f'{axis}-restored', current, *keys)
+            require(current['expression']['expression'] == prior_expression, 'same authored expression restored')
         elif scenario == 'forced-colors':
             current = switch('forced-colors', baseline, 'shift', 'f9')
             require(current['expression']['platform_forced_colors'] is True, 'forced colors admitted')

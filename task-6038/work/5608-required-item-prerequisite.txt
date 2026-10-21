@@ -1,0 +1,19 @@
+Parent #5608; coordinate serial native delivery through #5994 and selected-Look fallback #5628. Preserve existing #5645/#5365 required-item contracts and Source ownership. This is a bounded prerequisite, not a replacement renderer or general resource manager.
+
+## Problem
+The native fallback preparation already retains the exact Face, user expression and generic graphical agency when a checked component recipe refuses. Its CPU overflow witness creates21 Todo items, while actual Todo caps at20, so that fixture cannot establish a reachable Source-backed product fallback. Removing the graphical provider or failing its Plan is a different boundary.
+
+A reviewed Source component already exists at `semantics/face/components/todo-required-item.conduit`: its required bound Item asks for the actual `todo.complete.task-1` action. Real completion removes that one-way action, naturally making the selected component ineligible at the new Face revision. Browser required-item work does not yet imply native route support: native owner reconstruction only recognizes its closed ordinary Todo roots.
+
+## Scope
+Admit this reviewed required-item component through the existing finite owner/native component selection and exact Host/Fore/Plan reconstruction. Choose the smallest explicit finite catalog/selection extension; keep generic graphical realization independently available. No renderer fault flag, injected advertisement, malformed Source, invented semantic action, authority change, second topology/runtime truth or limit increase. Keep current typed draft refusal and acknowledged-predecessor Show validation.
+
+## Acceptance
+- [ ] Actual offered selection names the checked Source/component/Fore and exact planned native implementation; missing/foreign roots and stale/unacknowledged predecessor Shows refuse.
+- [ ] Before completion the selected required-item component renders and accepts the actual offered Complete action through the authenticated source-owned path.
+- [ ] At the resulting post-completion Face revision, recipe refusal is explicit and generic graphical fallback preserves that identical full Face and admitted expression, with a genuine fresh acknowledged Show and exact remaining action/argument access. Compare selected/generic presentations of that same post-completion Face, not pre/post mutation as unchanged identity.
+- [ ] One subsequent legitimate remaining action succeeds through fallback; stale former Shows refuse without repeating an action. No replay of uncertain outcomes.
+- [ ] Retain deterministic exact identity/slot/refusal/bounds checks plus source/image-bound installed-owner normal-QEMU captures and independent owner Face/Show observations. Respect48commands/192-byte text/20rows/8surfaces and four-refresh route bound.
+
+## Proof boundaries
+Keep original unreachable21-item CPU specimen as its own pressure proof. This prerequisite does not complete all #5608 missing-provider/overflow/wide/narrow cases, #5629 accessibility, #6158 page flow or stable acceptance. [Existing seam audit](https://github.com/dancxjo/conduit/blob/c0dd7027b4aaf3ada89515481f295d75eac41125/task-6038/work/5628-native-fallback-proof-seam.md) is historical guidance; inspect current Source before implementation.

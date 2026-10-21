@@ -35,7 +35,8 @@
     "branch": "codex/5628-current-owner-reconciliation",
     "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "status": "prepared; focused native compiling; formatting/wire8 pass; no feature PR admitted"
+    "status": "prepared; focused native compiling; formatting/wire8 pass; no feature PR admitted",
+    "proof_driver": "Prepared explicit source pin + two independent shifted-axis scenarios; syntax/synthetic checks pass; no current-source product execution"
   },
   "next": [
     "Finish and separately prove reopened #6158 five-choice page-flow repair; keep #6162 regression intact",
@@ -52,5 +53,11 @@
     "scope": "remaining five-choice pagination/flow defect distinct from proven orphaned-field fix",
     "audit": "work/6158-reopened-flow-audit.md",
     "current_fix_accepted": false
+  },
+  "fallback_prerequisite": {
+    "issue": 6190,
+    "state": "OPEN; not implemented",
+    "scope": "native admission of existing reviewed required-item component, actual Source completion induces explicit graphical fallback",
+    "parent": 5608
   }
 }

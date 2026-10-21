@@ -2,6 +2,7 @@
 from pathlib import Path
 import hashlib,json,re,struct,sys,zlib
 T=Path('/home/dancxjo/Documents/Codex/2026-10-19/goal-6038');d=json.loads((T/'work/5628-private-owner-paths.json').read_text());n=int(sys.argv[1]);D=Path(d['directory']);I=D/f'look-proof-{n}';N=I/'native';r=json.loads((I/'receipt.json').read_text());assert r['status']!='running'
+source=json.loads((I/'browser/browser-joined.json').read_text())['source'];assert re.fullmatch('[a-f0-9]{40}',source);assert r.get('source',source)==source
 O=T/f'outputs/5628-owner-look-{n}';O.mkdir();rows=[]
 def sha(x):return hashlib.sha256(x).hexdigest()
 def chunk(t,x):return struct.pack('>I',len(x))+t+x+struct.pack('>I',zlib.crc32(t+x)&0xffffffff)
@@ -18,7 +19,7 @@ assert len(records)<=512
 (O/'native-observations.json').write_text(json.dumps(records,indent=2)+'\n')
 bindings=[]
 for observation in r['observations']:
- p=I/'browser'/observation['browser_artifact']['file'];b=p.read_bytes();assert sha(b)==observation['browser_artifact']['sha256'];x=json.loads(b);report=x['report'];binding=x['revision_binding'];assert report['show_id']==observation['show'];assert binding['face_id']==observation['face'] and binding['face_revision_decimal']==observation['revision'];bindings.append(dict(label=observation['label'],original_private_artifact_sha256=sha(b),source=x['source'],workload=x['workload'],revision_binding=binding,owner_plan_id=report['owner_plan_id'],show_id=report['show_id'],selected=report['selected']))
+ p=I/'browser'/observation['browser_artifact']['file'];b=p.read_bytes();assert sha(b)==observation['browser_artifact']['sha256'];x=json.loads(b);assert x['source']==source;report=x['report'];binding=x['revision_binding'];assert report['show_id']==observation['show'];assert binding['face_id']==observation['face'] and binding['face_revision_decimal']==observation['revision'];bindings.append(dict(label=observation['label'],original_private_artifact_sha256=sha(b),source=x['source'],workload=x['workload'],revision_binding=binding,owner_plan_id=report['owner_plan_id'],show_id=report['show_id'],selected=report['selected']))
 (O/'independent-owner-bindings.json').write_text(json.dumps(bindings,indent=2)+'\n')
-public=dict(source='253dcb985eb8890ddf873d672d3a282f2366e6db',status=r['status'],matrix=r.get('matrix'),refresh_budget=r.get('refresh_budget'),capture_review='pending',native_serial_sha256=sha(serial),private_controller_receipt_sha256=sha((I/'receipt.json').read_bytes()),captures=rows,observations=[{k:v for k,v in x.items() if k!='browser_artifact'} for x in r['observations']],boundaries=['No stable, physical or human claim','Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained'])
+public=dict(source=source,status=r['status'],matrix=r.get('matrix'),refresh_budget=r.get('refresh_budget'),capture_review='pending',native_serial_sha256=sha(serial),private_controller_receipt_sha256=sha((I/'receipt.json').read_bytes()),captures=rows,observations=[{k:v for k,v in x.items() if k!='browser_artifact'} for x in r['observations']],boundaries=['No stable, physical or human claim','Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained'])
 (O/'receipt.json').write_text(json.dumps(public,indent=2)+'\n');print(json.dumps({'status':r['status'],'matrix':r.get('matrix'),'captures':len(rows),'owner_bindings':len(bindings)}))
