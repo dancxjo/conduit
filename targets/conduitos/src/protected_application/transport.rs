@@ -91,7 +91,8 @@ impl Service {
     }
     pub fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         let result = self.exchange_command(command);
-        if result.is_err() {
+        if let Err(error) = &result {
+            record_command_refusal(command, *error);
             self.quarantine();
         }
         result
@@ -153,6 +154,33 @@ impl Service {
             output.extend_from_slice(window.get(..bytes as usize).ok_or(Refusal::Malformed)?);
         }
         data::decode(&output)
+    }
+}
+
+fn record_command_refusal(command: &Command, error: Refusal) {
+    use core::fmt::Write;
+    let (operation, slot, target) = match command {
+        Command::PrepareInit { .. } => ("prepare-init", None, None),
+        Command::PrepareTarget { slot, target, .. } => {
+            ("prepare-target", Some(*slot), Some(*target))
+        }
+        Command::PrepareTutorial { slot, .. } => ("prepare-tutorial", Some(*slot), None),
+        Command::PrepareTour { slot } => ("prepare-tour", Some(*slot), None),
+        Command::FinishInit => ("finish-init", None, None),
+        Command::ProjectGraph { .. } => ("project-graph", None, None),
+        Command::ProjectTutorial { .. } => ("project-tutorial", None, None),
+        Command::Apply { slot, .. } => ("apply", Some(*slot), None),
+        Command::Refresh { .. } => ("refresh", None, None),
+        Command::Select { slot, target } => ("select", Some(*slot), Some(*target)),
+        Command::Topology { .. } => ("topology", None, None),
+        Command::CompleteTour { slot, .. } => ("complete-tour", Some(*slot), None),
+        Command::Graph { slot } => ("graph", Some(*slot), None),
+    };
+    let mut line = crate::sign_format::FixedText::new();
+    if writeln!(line,
+        "CONDUIT_APPLICATION_COMMAND_REFUSAL operation={operation} slot={slot:?} target={target:?} refusal={error:?}"
+    ).is_ok() {
+        crate::arch::early_write(line.as_bytes());
     }
 }
 

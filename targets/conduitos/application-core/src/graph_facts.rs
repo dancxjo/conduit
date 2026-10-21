@@ -36,7 +36,10 @@ impl Scope {
         Ok(scope)
     }
     pub fn validate(&self, graph: &PatchbayGraph) -> Result<(), Refusal> {
-        if self.owner_revision == 0 || self.graph_digest != digest(graph)? {
+        self.validate_digest(digest(graph)?)
+    }
+    fn validate_digest(&self, digest: [u8; 32]) -> Result<(), Refusal> {
+        if self.owner_revision == 0 || self.graph_digest != digest {
             return Err(Refusal::Bounds);
         }
         for identity in [self.host.as_str(), self.boot.as_str(), self.body.as_str()] {
@@ -67,8 +70,22 @@ pub fn digest(graph: &PatchbayGraph) -> Result<[u8; 32], Refusal> {
         &data::encode(graph)?,
     ))
 }
+pub(crate) fn project_with_workspace(
+    graph: &PatchbayGraph,
+    scope: Scope,
+    workspace: &mut data::Workspace,
+    output: &mut Vec<u8>,
+) -> Result<Contribution, Refusal> {
+    workspace.encode_into(graph, output)?;
+    let digest = conduit_core::semantic_digest("conduitos/graph-face-facts@1", output);
+    scope.validate_digest(digest)?;
+    Ok(project_checked(graph, scope))
+}
 pub fn project(graph: &PatchbayGraph, scope: Scope) -> Result<Contribution, Refusal> {
     scope.validate(graph)?;
+    Ok(project_checked(graph, scope))
+}
+fn project_checked(graph: &PatchbayGraph, scope: Scope) -> Contribution {
     let body = format!("body/{}", scope.body.as_str());
     let mut result = Contribution {
         scope,
@@ -79,5 +96,5 @@ pub fn project(graph: &PatchbayGraph, scope: Scope) -> Result<Contribution, Refu
         disclosures: Vec::new(),
     };
     projection::append(graph, &body, &mut result);
-    Ok(result)
+    result
 }

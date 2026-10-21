@@ -49,12 +49,38 @@ impl Owner {
         }
         if owner.needed {
             *owner.service.get_mut() = Some(Service::install()?);
-            if !matches!(
-                owner.command(&Command::Init {
-                    applications: initial
-                })?,
-                Reply::Initialized
-            ) {
+            owner.prepared(&Command::PrepareInit {
+                manifest: InitManifest::from_initial(&initial),
+            })?;
+            // Fixed arrays bound the complete transaction to at most 22 commands.
+            // Each component gets a fresh protected entry; failed entries are
+            // quarantined by command(), never retried or resumed.
+            for (slot, initial) in initial.into_iter().enumerate() {
+                match initial {
+                    None => {}
+                    Some(Initial::Tutorial { evidence }) => {
+                        owner.prepared(&Command::PrepareTutorial {
+                            slot: slot as u8,
+                            evidence,
+                        })?
+                    }
+                    Some(Initial::Tour) => {
+                        owner.prepared(&Command::PrepareTour { slot: slot as u8 })?
+                    }
+                    Some(Initial::Patchbay { targets, .. }) => {
+                        for (target, value) in targets.into_iter().enumerate() {
+                            if let Some(value) = value {
+                                owner.prepared(&Command::PrepareTarget {
+                                    slot: slot as u8,
+                                    target: target as u8,
+                                    value,
+                                })?;
+                            }
+                        }
+                    }
+                }
+            }
+            if !matches!(owner.command(&Command::FinishInit)?, Reply::Initialized) {
                 owner.abort();
                 return Err(Refusal::Malformed);
             }
@@ -65,6 +91,13 @@ impl Owner {
             }
         }
         Ok(owner)
+    }
+    fn prepared(&mut self, command: &Command) -> Result<(), Refusal> {
+        if matches!(self.command(command)?, Reply::Prepared) {
+            return Ok(());
+        }
+        self.abort();
+        Err(Refusal::Malformed)
     }
     pub fn kind(&self, slot: usize) -> Option<Kind> {
         if !self.is_live() {

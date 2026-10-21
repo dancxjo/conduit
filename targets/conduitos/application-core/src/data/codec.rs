@@ -2,7 +2,7 @@
 mod byte_sequences;
 use super::Refusal;
 use crate::MAX_BLOB;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
 use miniz_oxide::{
     deflate::core::{
@@ -30,33 +30,87 @@ fn buffer(bytes: usize) -> Result<Vec<u8>, Refusal> {
     Ok(output)
 }
 
-pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
+fn decoded_length(bytes: &[u8]) -> Result<Option<usize>, Refusal> {
     if bytes.is_empty() || bytes.len() > MAX_BLOB {
         return Err(Refusal::Bounds);
     }
-    if bytes.starts_with(MAGIC) {
-        let length = bytes.get(MAGIC.len()..HEADER).ok_or(Refusal::Malformed)?;
-        let length =
-            u32::from_le_bytes(length.try_into().map_err(|_| Refusal::Malformed)?) as usize;
-        if length == 0 || length > MAX_DECODED_JSON_BYTES {
-            return Err(Refusal::Bounds);
+    if !bytes.starts_with(MAGIC) {
+        return Ok(None);
+    }
+    let length = bytes.get(MAGIC.len()..HEADER).ok_or(Refusal::Malformed)?;
+    let length = u32::from_le_bytes(length.try_into().map_err(|_| Refusal::Malformed)?) as usize;
+    if length == 0 || length > MAX_DECODED_JSON_BYTES {
+        return Err(Refusal::Bounds);
+    }
+    Ok(Some(length))
+}
+fn decode_in<T: DeserializeOwned>(bytes: &[u8], json: &mut [u8]) -> Result<T, Refusal> {
+    let Some(length) = decoded_length(bytes)? else {
+        return serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed);
+    };
+    let json = json.get_mut(..length).ok_or(Refusal::Capacity)?;
+    let compressed = &bytes[HEADER..];
+    let (status, consumed, written) = decompress(
+        &mut DecompressorOxide::new(),
+        compressed,
+        json,
+        0,
+        inflate_flags::TINFL_FLAG_PARSE_ZLIB_HEADER
+            | inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF,
+    );
+    if status != TINFLStatus::Done || consumed != compressed.len() || written != length {
+        return Err(Refusal::Malformed);
+    }
+    serde_json::from_slice(json).map_err(|_| Refusal::Malformed)
+}
+pub fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
+    match decoded_length(bytes)? {
+        Some(length) => decode_in(bytes, &mut buffer(length)?),
+        None => decode_in(bytes, &mut []),
+    }
+}
+/// One admitted reusable JSON workspace, reserved before retained controllers.
+/// Reuse changes allocation lifetime, never JSON, compression or custody bytes.
+pub struct Workspace {
+    json: Vec<u8>,
+    compressor: Box<CompressorOxide>,
+}
+impl Workspace {
+    pub fn new() -> Result<Self, Refusal> {
+        Ok(Self {
+            json: buffer(MAX_DECODED_JSON_BYTES)?,
+            compressor: Box::new(CompressorOxide::new(create_comp_flags_from_zip_params(
+                6, 15, 0,
+            ))),
+        })
+    }
+    pub fn decode<T: DeserializeOwned>(&mut self, bytes: &[u8]) -> Result<T, Refusal> {
+        decode_in(bytes, &mut self.json)
+    }
+    pub fn encode<T: Serialize>(&mut self, value: &T) -> Result<Vec<u8>, Refusal> {
+        let mut output = buffer(MAX_BLOB)?;
+        self.encode_into(value, &mut output)?;
+        Ok(output)
+    }
+    pub(crate) fn encode_into<T: Serialize>(
+        &mut self,
+        value: &T,
+        output: &mut Vec<u8>,
+    ) -> Result<(), Refusal> {
+        if output.capacity() < MAX_BLOB {
+            return Err(Refusal::Capacity);
         }
-        let mut json = buffer(length)?;
-        let compressed = &bytes[HEADER..];
-        let (status, consumed, written) = decompress(
-            &mut DecompressorOxide::new(),
-            compressed,
-            &mut json,
-            0,
-            inflate_flags::TINFL_FLAG_PARSE_ZLIB_HEADER
-                | inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF,
-        );
-        if status != TINFLStatus::Done || consumed != compressed.len() || written != length {
-            return Err(Refusal::Malformed);
+        output.resize(MAX_BLOB, 0);
+        let length = serde_json_core::to_slice(&JsonBytes(value), &mut self.json)
+            .map_err(|_| Refusal::Capacity)?;
+        let json = &self.json[..length];
+        if length > MAX_BLOB {
+            self.compressor.reset();
+            return compress_json_into(json, &mut self.compressor, output);
         }
-        serde_json::from_slice(&json).map_err(|_| Refusal::Malformed)
-    } else {
-        serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)
+        output[..length].copy_from_slice(json);
+        output.truncate(length);
+        Ok(())
     }
 }
 
@@ -78,21 +132,32 @@ pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
     if length <= MAX_BLOB {
         return Ok(json);
     }
+    compress_json(&json)
+}
+fn compress_json(json: &[u8]) -> Result<Vec<u8>, Refusal> {
+    let mut compressor = CompressorOxide::new(create_comp_flags_from_zip_params(6, 15, 0));
+    compress_json_with(json, &mut compressor)
+}
+fn compress_json_with(json: &[u8], compressor: &mut CompressorOxide) -> Result<Vec<u8>, Refusal> {
     let mut output = buffer(MAX_BLOB)?;
+    compress_json_into(json, compressor, &mut output)?;
+    Ok(output)
+}
+fn compress_json_into(
+    json: &[u8],
+    compressor: &mut CompressorOxide,
+    output: &mut Vec<u8>,
+) -> Result<(), Refusal> {
+    let length = json.len();
     output[..MAGIC.len()].copy_from_slice(MAGIC);
     output[MAGIC.len()..HEADER].copy_from_slice(&(length as u32).to_le_bytes());
-    let mut compressor = CompressorOxide::new(create_comp_flags_from_zip_params(6, 15, 0));
-    let (status, consumed, written) = compress(
-        &mut compressor,
-        &json,
-        &mut output[HEADER..],
-        TDEFLFlush::Finish,
-    );
+    let (status, consumed, written) =
+        compress(compressor, json, &mut output[HEADER..], TDEFLFlush::Finish);
     if status != TDEFLStatus::Done || consumed != json.len() {
         return Err(Refusal::Capacity);
     }
     output.truncate(HEADER + written);
-    Ok(output)
+    Ok(())
 }
 
 #[cfg(test)]
