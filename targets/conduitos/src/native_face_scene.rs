@@ -479,3 +479,6 @@ mod observation_tests;
 #[cfg(test)]
 #[path = "native_face_scene/look_tests.rs"]
 mod look_tests;
+
+#[path = "native_face_scene/encounter.rs"]
+mod encounter;

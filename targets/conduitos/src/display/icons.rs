@@ -1,6 +1,6 @@
 //! Original fixed 24×24 native drawings for the semantic icon vocabulary.
 //! Geometry is rasterized directly from bounded compile-time shape rules.
-use super::{put, DisplayError, DisplayReceipt, PixelTarget};
+use super::{DisplayError, DisplayReceipt, PixelTarget, put};
 use conduit_face::{FaceIconKey as Icon, GraphicsCommand, LayoutRect};
 
 const EDGE: i32 = 24;

@@ -1,0 +1,17 @@
+{
+  "source_commit": "56d2dfefbd0d95f0a969eb77d5e078a5d638243d",
+  "profile": "targets/conduitos/profiles/conduitos-native.host.conduit",
+  "build_environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0"
+  },
+  "purpose": "actual local profile matrix with enlarged glyph coverage filtering",
+  "status_at_first_record": "",
+  "first_source_observation_phase": "build output complete; before verify",
+  "build_exit_code": 0,
+  "source_after_build": "56d2dfefbd0d95f0a969eb77d5e078a5d638243d",
+  "status_after_build": "",
+  "iso_sha256": "a8e2268bf33d7b209182d9a60567b00df9e85898b58125f4a3687b9d3e1f53ef",
+  "journey_exit_code": 0,
+  "source_after_journey": "56d2dfefbd0d95f0a969eb77d5e078a5d638243d",
+  "status_after_journey": ""
+}

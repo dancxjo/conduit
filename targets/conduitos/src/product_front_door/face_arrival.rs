@@ -494,3 +494,5 @@ impl FaceArrival {
 mod input;
 #[cfg(all(test, feature = "native-compositor"))]
 mod tests;
+
+mod look_selection;

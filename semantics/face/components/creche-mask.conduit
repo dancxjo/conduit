@@ -40,3 +40,69 @@ plot creche-mask-columns (
  component.show >> show
  component.interaction >> interaction
 }
+
+plot creche-mask-single-compact-editorial (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-single(expression = {density: compact(empty), identity: "conduit.face/compact-editorial@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 100, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot creche-mask-single-spacious-phosphor (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-single(expression = {density: spacious(empty), identity: "conduit.face/spacious-phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot creche-mask-single-spacious (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-single(expression = {density: spacious(empty), identity: "conduit.face/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot creche-mask-columns-compact-editorial (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-columns(expression = {density: compact(empty), identity: "conduit.face/compact-editorial@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 100, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot creche-mask-columns-spacious-phosphor (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-columns(expression = {density: spacious(empty), identity: "conduit.face/spacious-phosphor@1", motion: none(empty), palette: phosphor(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
+
+plot creche-mask-columns-spacious (
+ >> face: Face
+ show: Show >>
+ interaction: FaceInteraction...| >>
+) {
+ component: creche-component-columns(expression = {density: spacious(empty), identity: "conduit.face/spacious@1", motion: none(empty), palette: editorial(empty), text_scale_percent: 125, version: 1})
+ face >> component.face
+ component.show >> show
+ component.interaction >> interaction
+}
