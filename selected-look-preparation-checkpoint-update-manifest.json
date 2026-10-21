@@ -1,0 +1,46 @@
+{
+  "parent": "de7af707d5af22658f3e082b4c051b8cfd950dcb",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/5628-root-source-review.md",
+      "tree_path": "task-6038/work/5628-root-source-review.md",
+      "bytes": 1484,
+      "sha256": "071b6907f5c8e2943faa14bb6fb3df9d9ea6be2f03a8973e32dc3337f3733415",
+      "mode": "100644",
+      "blob": "55360df218377eabacbc62cad9ae5934805fc049"
+    },
+    {
+      "source": "work/5516-bounded-input-plan.md",
+      "tree_path": "task-6038/work/5516-bounded-input-plan.md",
+      "bytes": 2006,
+      "sha256": "9fbd63da02595725d0b98a434968bba384e61fef85c1f31ea4d744ab5cff1d18",
+      "mode": "100644",
+      "blob": "c196e85e8bb0b3a57634c39cb3fdef64f2dc3414"
+    },
+    {
+      "source": "work/5628-source-preparation-checkpoint.md",
+      "tree_path": "task-6038/work/5628-source-preparation-checkpoint.md",
+      "bytes": 3927,
+      "sha256": "9da14e894624391fda76abd9495b54fce1ab09ecfb46a15839179d73deb57405",
+      "mode": "100644",
+      "blob": "ec3f7a221faebfcf7ee4b689cca2c498bd7b165f"
+    },
+    {
+      "source": "work/5628-pending-input-disposition.md",
+      "tree_path": "task-6038/work/5628-pending-input-disposition.md",
+      "bytes": 2834,
+      "sha256": "a363d2a2337fa9ae799f5da6dc25015cef8fe2c8fe734939bbadbbfe2ea060c2",
+      "mode": "100644",
+      "blob": "9470f5da73b7d918cfcafb1d2e70f614a0966d08"
+    },
+    {
+      "source": "work/5628-preparation-origin-comment.md",
+      "tree_path": "task-6038/work/5628-preparation-origin-comment.md",
+      "bytes": 943,
+      "sha256": "f8da0fed7760edd068e08a044a6472745ba52d9abd88f0ae3c6ad1737c6af191",
+      "mode": "100644",
+      "blob": "5012a3323f3859a984f5f9b2ac6f9a1e25a94030"
+    }
+  ]
+}
