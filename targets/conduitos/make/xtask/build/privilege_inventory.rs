@@ -6,6 +6,10 @@ use std::{
 };
 
 use serde::Serialize;
+use sha2::{Digest, Sha256};
+mod elf;
+mod source;
+pub(crate) mod verify;
 
 use super::super::{
     profile::Paths,
@@ -24,6 +28,9 @@ struct Inventory<'a> {
     root_link_map_sha256: String,
     working_tree_status: String,
     service_isolation_established: bool,
+    responsibilities: Vec<source::Responsibility>,
+    linked_images: Vec<elf::Image>,
+    linked_responsibilities: Vec<(String, usize)>,
     interpretation: &'static str,
 }
 
@@ -49,25 +56,7 @@ pub(super) fn publish(
     features: &[&str],
     map: &Path,
 ) -> Result<(), ConduitosError> {
-    let mut tree = Command::new("cargo");
-    tree.current_dir(&paths.root).args([
-        "tree",
-        "--locked",
-        "--package",
-        "conduitos",
-        "--target",
-        record.rust_target,
-        "--edges",
-        "normal,build",
-        "--prefix",
-        "indent",
-        "--format",
-        "{p} features=[{f}]",
-    ]);
-    if !features.is_empty() {
-        tree.args(["--features", &features.join(",")]);
-    }
-    let resolved_dependencies = output(tree)?;
+    let resolved_dependencies = dependency_closure(&paths.root, record.rust_target, features)?;
     let mut status = Command::new("git");
     status
         .current_dir(&paths.root)
@@ -77,7 +66,7 @@ pub(super) fn publish(
         ConduitosError::refusal("privilege-inventory-unavailable", error.to_string())
     })?;
     let inventory = Inventory {
-        schema: "conduit.conduitos.privilege-inventory/v1",
+        schema: "conduit.conduitos.privilege-inventory/v2",
         proof_class: "build-dependency-and-link-observation",
         build: record,
         requested_features: features,
@@ -86,6 +75,13 @@ pub(super) fn publish(
         root_link_map_sha256: sha256_file(map)?,
         working_tree_status: output(status)?,
         service_isolation_established: false,
+        responsibilities: if record.architecture == "x86_64" && features.contains(&"native-compositor") {
+            source::observe(&paths.root, None).map_err(invalid)?
+        } else { Vec::new() },
+        linked_images: if record.architecture == "x86_64" && features.contains(&"native-compositor") {
+            elf::observe(&fs::read(&paths.kernel).map_err(|e| invalid(e.to_string()))?).map_err(invalid)?
+        } else { Vec::new() },
+        linked_responsibilities: linked_responsibilities(&fs::read(map).map_err(|e| invalid(e.to_string()))?),
         interpretation: "Normal dependencies are potentially included code; build dependencies execute on the build host. The same linker invocation retains a Root symbol map. Dependency membership and linker symbols do not establish runtime call reachability. The embedded domain image is linked separately. No service-isolation claim follows from this inventory. Dirty files are not identified by base_commit.",
     };
     write(paths.target.join(inventory_name(record)), &inventory)?;
@@ -167,4 +163,61 @@ mod tests {
         assert_ne!(appliance, inventory_name(&record));
         assert!(!product.contains('/'));
     }
+}
+
+fn digest(bytes: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(bytes))
+}
+fn invalid(detail: String) -> ConduitosError {
+    ConduitosError::refusal("privilege-inventory-invalid", detail)
+}
+
+fn linked_responsibilities(map: &[u8]) -> Vec<(String, usize)> {
+    let map = String::from_utf8_lossy(map);
+    [
+        "graphical_startup",
+        "product_front_door",
+        "native_face_mask",
+        "native_compositor",
+        "protected_creche",
+        "protected_runtime",
+        "protected_application",
+        "protected_network",
+        "protected_tls",
+        "domain_transition",
+    ]
+    .iter()
+    .map(|name| ((*name).into(), map.matches(name).count()))
+    .collect()
+}
+
+fn dependency_closure(
+    root: &Path,
+    target: &str,
+    features: &[&str],
+) -> Result<String, ConduitosError> {
+    let mut tree = Command::new("cargo");
+    tree.current_dir(root).args([
+        "tree",
+        "--locked",
+        "--offline",
+        "--package",
+        "conduitos",
+        "--target",
+        target,
+        "--edges",
+        "normal,build",
+        "--prefix",
+        "indent",
+        "--format",
+        "{p} features=[{f}]",
+    ]);
+    if !features.is_empty() {
+        tree.args(["--features", &features.join(",")]);
+    }
+    Ok(output(tree)?.replace(
+        root.to_str()
+            .ok_or_else(|| invalid("non-UTF-8 source root".into()))?,
+        "<source>",
+    ))
 }

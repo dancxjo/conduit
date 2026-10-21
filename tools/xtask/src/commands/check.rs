@@ -22,6 +22,8 @@ mod parser_scorer;
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
+#[path = "../suites/privilege_inventory.rs"]
+mod privilege_inventory;
 #[path = "../suites/prosody_commitment.rs"]
 mod prosody_commitment;
 #[path = "../suites/record_pronunciation.rs"]
@@ -98,6 +100,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
         CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
+        CheckSuite::PrivilegeInventory => run_suite(privilege_inventory::STEPS, &root, opts),
         CheckSuite::CategoricalRuntime => run_suite(categorical_runtime::STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),

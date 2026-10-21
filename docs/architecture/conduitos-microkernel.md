@@ -104,3 +104,93 @@ Require Root and sibling sentinels to survive, bounded preemption, revoked
 in-flight work, and recovery with a fresh service identity. Retain exact source,
 ELF and emulator identities. Emulator confinement does not establish physical
 or DMA isolation; every additional architecture needs its own evidence.
+
+## Enforced current graphical inventory (#6176)
+
+The v2 inventory contract audits the concrete `native-compositor` x86_64 product,
+not a generic claim about every architecture. Run its deterministic controls:
+
+```sh
+cargo xtask check privilege-inventory
+```
+
+Build a clean committed normal product, then verify its sealed BUILD and common
+builder evidence explicitly (the verifier does not build or boot):
+
+```sh
+cargo xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output target/privilege-product --locked
+cargo xtask make conduitos verify-privilege-inventory --build-dir target/privilege-product --inventory-dir target/conduitos/x86_64 --output target/privilege-receipt.json
+```
+
+The second directory is the owning proof/evidence root, independent of Cargo's
+compiled-artifact cache. Use the path actually printed by the build. Verification
+requires the sealed manifest's source, normal product role, target and actual
+kernel hash to match both its digest-qualified inventory and **current**
+`build.json`. A different later build replacing `build.json` refuses, even if the
+older inventory remains. Preserve an exact evidence directory when retaining a
+build; never choose a convenient sidecar by filename age or overwrite a refusal.
+The map filename and hash, requested and complete resolved graphical feature
+closure, clean source, reviewed source hashes and linked ELF observations must
+also match. Full verification requires a clean checkout at the sealed Source:
+it recomputes the entire locked, offline, target-specific Cargo tree and compares
+all transitive dependencies/features, normalizing only the checkout root path.
+Changing a transitive feature while retaining the root line refuses.
+Old v1 observations remain historical evidence; they cannot pass this stronger
+contract by relabelling their schema. An inventory cannot set its isolation flag
+or promote its proof class to hardware/executed evidence.
+
+### Current authority and startup classification
+
+The reviewed machine-readable responsibility table lives in
+`make/xtask/build/privilege_inventory/source.rs`. Each entry records exact source
+bytes and anchors; the verifier reads those bytes from the stated Git commit.
+The entry is `main -> graphical_startup -> product_front_door::run -> platform::run
+-> run_controller`. Startup initializes PCI/xHCI and USB attachment, machine
+state, entropy, firmware scanout and offers. `platform::run` receives mutable
+`XhciReady`, HID sessions and USB devices; its RootPlatform retains those hardware
+handles while the controller receives typed inputs and a checked display sink.
+`RootRuntime`, lifecycle admission, Body planning, separate Tour paths, Root
+facades and effect providers remain privileged. A restricted Rust signature
+reduces authority flow but does not itself enter an unprivileged address space.
+USB/PCI, device buffers, audio and framebuffer providers have not thereby become
+isolated drivers; DMA containment and physical evidence remain separate work.
+
+The x86 service backend constructs page tables, checks images and owns trap,
+preemption and capability machinery. `ServiceMemoryLayout` declares image,
+exchange, transfer, stack, metadata and optional pixel ranges; its values do not
+prove the resulting installed mappings. RX/RO images, RW+NX private ranges and
+unmapped gaps remain the mapping contract. `service_memory/storage.rs` owns
+**nine** independently claimed physical profile stores; the separate ordinary
+two-slot domain pool is additional. Old descriptions of six slots are historical,
+not the current inventory.
+
+| Profile | Source-owned responsibility | Authority retained outside it |
+| --- | --- | --- |
+| Compositor | Retained pixels, surfaces, damage, focus/cursor and composition | Root scanout grant, range validation and ACK |
+| Draft | Canonical Birth draft/naming and projection | Root lifecycle effects and immutable selection validation |
+| Home | Home controller and local presentation; independent instance of the Draft/Home image | Root product lifecycle and effect dispatch |
+| Runtime | Canonical native-workset scheduler/values/Cords/Signs | Root admitted hardware effects; remaining ordinary paths |
+| Application | Native retained application state | Root checks against prior views and admission facts |
+| Network | Bounded network protocol state | Root network device and transport handles |
+| OrdinaryRuntime | Separately leased ordinary text/Tour execution | Root provider/machine authority and remaining runtime paths |
+| Mask | Checked retained workspace layout/presentation policy | Root Face/Show/input custody and scanout validation |
+| Tls | Bounded TLS protocol state | Root socket/device transport and product policy |
+
+Default native Cargo closure is `default,native-compositor,native-owner-network`.
+Build dependencies execute on the build host. Normal dependency membership is
+potential code, not privileged reachability. Source-reviewed calls establish
+possible paths; optimization may inline or remove symbols. The Root link map
+supports exact linked responsibility classification, while the v2 ELF observer
+records the Root and valid embedded ELF64 images with content hashes, entry points
+and load-segment flags/addresses/extents. Embedded image bytes establish neither
+which service profile selected them nor an executed privilege level. Image
+identity, source-selected entry, installed mapping and actual service entry remain
+separate evidence. The ordinary image can serve more than one admitted profile;
+shared immutable bytes never imply shared mutable instance ownership.
+
+This issue's contract and negative checks cover stale source/hash/map/role,
+feature-profile substitution, dirty source, malformed ELF segments and unsupported
+isolation claims. A fresh build-bound receipt is source/link proof only. Existing
+QEMU receipts may establish their own exact-image service entries or interactions;
+they are not automatically imported or upgraded by this verifier. No new QEMU,
+physical/DMA confinement, full microkernel, recovery or #6175 completion is claimed.

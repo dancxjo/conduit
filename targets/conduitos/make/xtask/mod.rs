@@ -459,6 +459,9 @@ impl std::error::Error for ConduitosError {}
 
 pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     match args.command {
+        ConduitosCommand::VerifyPrivilegeInventory(args) => {
+            build::privilege_inventory::verify::execute(args, opts)
+        }
         ConduitosCommand::Acceptance(args) => acceptance::execute(&args.spore, opts),
         ConduitosCommand::ProtocolSource(args) => protocol_source::execute(args, opts),
         ConduitosCommand::ProtocolImage(args) => protocol_image::execute(args, opts),
