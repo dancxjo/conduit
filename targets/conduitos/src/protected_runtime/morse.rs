@@ -3,36 +3,8 @@ use super::*;
 use conduitos_runtime_core::morse as canonical;
 impl Scheduler {
     pub fn new_morse(admission: canonical::Admission) -> Result<Self, SchedulerError> {
-        let roles = admission.roles.map(|node| node.0 as usize);
-        if roles.iter().any(|n| *n >= canonical::NODES)
-            || roles
-                .iter()
-                .enumerate()
-                .any(|(i, n)| roles[..i].contains(n))
-        {
-            return Err(SchedulerError::InvalidPlan);
-        }
-        if admission.bindings[roles[0]].is_some() {
-            return Err(SchedulerError::InvalidPlan);
-        }
-        for (node, input, output) in [
-            (roles[1], 256, 256),
-            (roles[2], 256, 0),
-            (
-                roles[3],
-                canonical::MAX_INPUT_BYTES as u32,
-                canonical::MAX_VALUE_BYTES as u32,
-            ),
-            (roles[4], canonical::MAX_VALUE_BYTES as u32, 0),
-        ] {
-            let binding = admission.bindings[node].ok_or(SchedulerError::InvalidPlan)?;
-            if binding.call != HostCallId(0)
-                || binding.maximum_input_bytes != input
-                || binding.maximum_output_bytes != output
-            {
-                return Err(SchedulerError::InvalidPlan);
-            }
-        }
+        crate::tour_morse_kernel::contract::validate(admission.roles, &admission.bindings)?;
+        let roles = admission.roles.map(|node| usize::from(node.0));
         let ledger = Ledger::new_morse(&admission)?;
         #[cfg(conduitos_runtime_image)]
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/runtime.elf"));
