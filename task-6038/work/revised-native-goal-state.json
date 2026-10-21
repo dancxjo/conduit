@@ -9,10 +9,10 @@
   ],
   "completed_original_steps": [
     1,
-    2,
     3
   ],
   "remaining_original_steps": [
+    2,
     4,
     5
   ],
@@ -38,11 +38,19 @@
     "status": "prepared; focused native compiling; formatting/wire8 pass; no feature PR admitted"
   },
   "next": [
+    "Finish and separately prove reopened #6158 five-choice page-flow repair; keep #6162 regression intact",
     "Finish focused/current-head validation",
     "Rebuild and prove independent axes + typed draft refusal on current source",
     "Complete remaining native fallback/resource acceptance",
     "Complete Patchbay exact Gear/Port/Cord navigation and cross-Mask/QEMU proof",
     "Exact accepted-tree closure audit for remaining issues"
   ],
-  "timestamp": "2026-10-21T03:49:34Z"
+  "timestamp": "2026-10-21T03:52:39Z",
+  "reopened_6158": {
+    "state": "OPEN verified live",
+    "reopening_url": "https://github.com/dancxjo/conduit/issues/6158#issuecomment-6303396108",
+    "scope": "remaining five-choice pagination/flow defect distinct from proven orphaned-field fix",
+    "audit": "work/6158-reopened-flow-audit.md",
+    "current_fix_accepted": false
+  }
 }

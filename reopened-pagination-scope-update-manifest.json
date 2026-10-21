@@ -1,0 +1,22 @@
+{
+  "parent": "8779d3bbfa2bc96ff9f191e04c1d6a750d7d51d9",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 2101,
+      "sha256": "e6421ef0df286582c96245e7ed734573e59c92a00c0f9394aab64f8fe4b2fdc2",
+      "mode": "100644",
+      "blob": "685b64002a79e600c3dfe7cbfd61768272aa77f4"
+    },
+    {
+      "source": "work/6158-reopened-flow-audit.md",
+      "tree_path": "task-6038/work/6158-reopened-flow-audit.md",
+      "bytes": 2326,
+      "sha256": "2ab3a796cee2d1b894afb373cbc330c9ff71f6106428987d87dc5350c8811993",
+      "mode": "100644",
+      "blob": "e5e81e3867f0315f700b451c0157ca8433460c77"
+    }
+  ]
+}
