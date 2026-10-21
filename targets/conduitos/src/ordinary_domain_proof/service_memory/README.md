@@ -10,8 +10,15 @@ failures and their exact sources. The first attempt stopped in existing base
 Crèche code. After merging its reviewed repair, real compilation caught this
 recorder's incorrect assumption that `Serial` implements `fmt::Write`. The
 publication correction uses the existing `FixedText`/`early_write` mechanism;
-that corrected source has **not** been compiled or executed. The mock API
+the full corrected appliance has **not** been compiled or executed. The mock API
 harness missed this defect and is not freestanding compilation proof.
+
+The receipt formatter is now shared with actual owning-package host tests,
+using the production `sign_format::FixedText` rather than a replacement serial
+API. Two focused tests pass, checking valid complete single-line JSON and exact
+maximum-width counters. This compiles the real formatting API and catches the
+original trait mismatch without a VM; it does not establish native execution or
+a timing baseline. See `evidence/real-format-tests.json` and its raw log.
 
 The fixed recorder admits 20 observations: three trials each of terminal no-op,
 eight-byte uppercase and 256-byte uppercase on fresh and reused service domains,
