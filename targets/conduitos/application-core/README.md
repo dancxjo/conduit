@@ -1,4 +1,4 @@
-> Recovery checkpoint only: staged initialization/shared-workspace admission currently fails the exact fixed-heap regression. See docs/audits/evidence/application-entry-budget-20261021.
+> Recovery checkpoint only: staged initialization/shared-workspace admission currently fails the exact fixed-heap regression. See the [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md).
 
 # Canonical native application owner
 
