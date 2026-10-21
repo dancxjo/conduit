@@ -1,0 +1,54 @@
+{
+  "parent": "6fd0838180c512b2916f12dfb7f94df0878086ac",
+  "scope": "Uncompiled selected typography source checkpoint and bounded Patchbay input plan; no behavioral proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 10617,
+      "sha256": "ac4d15f1add0ce9b0624ad9ee049e5b136dc17187e238c4bab6724539c7be1b9",
+      "mode": "100644",
+      "blob": "843c6fc9112ee8e2b7a7b1d75141a7015ea864d1"
+    },
+    {
+      "source": "work/5628-provisional-refusal-caller-review.md",
+      "tree_path": "task-6038/work/5628-provisional-refusal-caller-review.md",
+      "bytes": 1907,
+      "sha256": "14385f4c757b803fb8fb01a7eddedc585b29348058b6d95cabf85189482b7526",
+      "mode": "100644",
+      "blob": "400c6d359fc9cc64414ad8fa1993b2ca1155ad27"
+    },
+    {
+      "source": "outputs/native-acceptance-58979c509/workspace-core-pass.json",
+      "tree_path": "task-6038/outputs/native-acceptance-58979c509/workspace-core-pass.json",
+      "bytes": 595,
+      "sha256": "83c434026edfdb03099deaa16146c4ee2041aa8f4d1a022100333eef9db4c182",
+      "mode": "100644",
+      "blob": "cfe18252313a169a2c0cd079cd882bcffbbe22e3"
+    },
+    {
+      "source": "outputs/native-acceptance-58979c509/core-archive/manifest.json",
+      "tree_path": "task-6038/outputs/native-acceptance-58979c509/core-archive/manifest.json",
+      "bytes": 975,
+      "sha256": "1c1fa1a74f781701dd773987306057cd9489774ebb04b9195e6363dd1d249e5d",
+      "mode": "100644",
+      "blob": "cd138324f20ab06f6fce25aa9861d530cd3c176b"
+    },
+    {
+      "source": "outputs/native-acceptance-58979c509/core-archive/part-001.log",
+      "tree_path": "task-6038/outputs/native-acceptance-58979c509/core-archive/part-001.log",
+      "bytes": 699983,
+      "sha256": "c19c9ebe238da514bc7ef789df222d1acf895c9c03db169c0cd694d65c972cec",
+      "mode": "100644",
+      "blob": "9070f097b261b52eb3ecdae51c1bd4406678e146"
+    },
+    {
+      "source": "outputs/native-acceptance-58979c509/core-archive/part-002.log",
+      "tree_path": "task-6038/outputs/native-acceptance-58979c509/core-archive/part-002.log",
+      "bytes": 690864,
+      "sha256": "2cb92fbabf1a76fc6c7ec20c80b25a2ba61caf3d8b46724695eed06879ee558d",
+      "mode": "100644",
+      "blob": "9f835eabd4068f0a22cf466c1ce65fe24ab5cc40"
+    }
+  ]
+}

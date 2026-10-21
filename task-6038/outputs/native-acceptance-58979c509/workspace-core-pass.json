@@ -1,0 +1,19 @@
+{
+  "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+  "gates_passed": [
+    "check.committed-todo-mask-exchange",
+    "check.fmt",
+    "check.clippy",
+    "check.test"
+  ],
+  "workspace_test_counts": {
+    "passed": 10067,
+    "failed": 0,
+    "ignored": 48,
+    "filtered": 0
+  },
+  "test_result_sections": 1358,
+  "raw_log": "workspace-core.log",
+  "sha256": "19271e3e16eb609810e63e419e87c0e4e4904dce7055191c207531b5bf1d88ee",
+  "boundary": "Required workspace core passed; remaining feature/cross-target gates still running. Not52-gate terminal success or newest combinedtree proof."
+}

@@ -1,0 +1,28 @@
+{
+  "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+  "original": "../workspace-core.log",
+  "original_bytes": 1390847,
+  "original_sha256": "19271e3e16eb609810e63e419e87c0e4e4904dce7055191c207531b5bf1d88ee",
+  "split": "line boundaries; concatenation equals every original byte",
+  "root_checked_workspace_counts": {
+    "passed": 10067,
+    "failed": 0,
+    "ignored": 48,
+    "filtered": 0
+  },
+  "workspace_result_sections": 1358,
+  "count_boundary": "check.test section only; preceding correspondence filters excluded from workspace count",
+  "boundary": "Completed workspace core only; feature/cross-target gates active; not newest combined dev",
+  "parts": [
+    {
+      "file": "part-001.log",
+      "bytes": 699983,
+      "sha256": "c19c9ebe238da514bc7ef789df222d1acf895c9c03db169c0cd694d65c972cec"
+    },
+    {
+      "file": "part-002.log",
+      "bytes": 690864,
+      "sha256": "2cb92fbabf1a76fc6c7ec20c80b25a2ba61caf3d8b46724695eed06879ee558d"
+    }
+  ]
+}

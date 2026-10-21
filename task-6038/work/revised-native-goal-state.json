@@ -106,9 +106,10 @@
     "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
     "repaired_merged_workspace": {
       "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
-      "state": "running;correspondenceFmtFullStrictClippyPassed;BirthRecoveryPassed;nativeLibrary1226Passed0Failed3Ignored;integrationTargetsContinuing",
+      "state": "requiredWorkspaceCorePassed10067/0/48;remainingFeatureCrossGatesRunning;notLatestDev",
       "directory": "outputs/native-acceptance-58979c509",
-      "native_checkpoint": "outputs/native-acceptance-58979c509/native-library-checkpoint.json"
+      "native_checkpoint": "outputs/native-acceptance-58979c509/native-library-checkpoint.json",
+      "core_receipt": "outputs/native-acceptance-58979c509/workspace-core-pass.json"
     }
   },
   "stable_through_stage06": {
@@ -169,9 +170,9 @@
     "branch": "codex/5628-selected-typography",
     "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
     "worktree": "work/selected-typography-look",
-    "state": "nativeFocusedPassEarlierSources;ClippyFixAndActualPreSwapTestChecksLive;configuredLayoutExtractionQueuedFor507L;NoProductProof",
+    "state": "typedLocalDraftRefusalCallerFixAndLayoutExtractionPublished;ChecksRunning;NoProductProof",
     "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
-    "head": "d402ec7490db3b13b202e5c398d7671f47950de8",
+    "head": "6221e2fab35dd6fd2d0f4ee15ed7549f40800639",
     "origin_verified": true,
     "target_cache": "work/selected-typography-host-target",
     "root_review": "work/5628-root-source-review.md",
@@ -211,7 +212,8 @@
       "directory": "outputs/5628-selected-look-e78f46037",
       "retry": "live with native-test-argument.patch;source frozen;not clean e78 proof"
     },
-    "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json"
+    "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json",
+    "critical_review": "work/5628-provisional-refusal-caller-review.md"
   },
   "latest_ci_observation": {
     "time": "2026-10-21T01:51:00Z",
