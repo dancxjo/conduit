@@ -311,11 +311,16 @@ This is development emulator evidence, not accepted-release evidence.
 
 The x86 budget now uses a separate Root-owned RTC periodic interrupt route.
 Admission requires an unused RTC interrupt channel and verifies interrupt
-delivery in Root with finite polling before entering hostile code. Three
-1024-Hz ticks bound an entry; Root restores RTC configuration, PIC masks and
-LINT routing afterward. Root owns the CMOS index port and keeps NMI enabled;
+delivery in Root with finite polling before entering hostile code. Sixteen
+1024-Hz ticks bound an x86_64 entry (approximately one 60-Hz frame); Root
+restores RTC configuration, PIC masks and LINT routing afterward. Root owns the CMOS index port and keeps NMI enabled;
 it never attempts to recover the mask by reading the write-only index port
-([QEMU RTC implementation](https://github.com/qemu/qemu/blob/master/hw/rtc/mc146818rtc.c)). This does not reprogram the Source LAPIC/PIT timer.
+([QEMU RTC implementation](https://github.com/qemu/qemu/blob/master/hw/rtc/mc146818rtc.c)).
+This does not reprogram the Source LAPIC/PIT timer. The former three-tick
+x86_64 quantum could stop an ordinary first Memory edit under host-time QEMU;
+the interactive profile now admits sixteen ticks without retrying a failed
+entry. This is an interrupt-count bound, not a host scheduling or physical
+response-time guarantee. Other architecture profiles retain their own bounds.
 The Source timer vector queues its original fact and resumes user execution;
 only the budget vector can preempt the domain. Cost records include user
 interrupt entries, Source timer interrupts and actual privilege transitions.

@@ -147,6 +147,13 @@ impl HomeModel {
         }
     }
 
+    /// Enter the existing resident picker without an intermediate launcher.
+    pub fn plots() -> Self {
+        let mut home = Self::new();
+        home.view = HomeView::Plots;
+        home
+    }
+
     pub const fn view(&self) -> HomeView {
         self.view
     }

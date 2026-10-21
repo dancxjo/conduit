@@ -10,7 +10,7 @@ import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 import { pointerFixture } from './conduitos-pointer-fixture.mjs';
 
 const names = [
-  'front-door-ready', 'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-born', 'body-woken', 'wake-refused', 'body-planned', 'body-playing',
+  'front-door-ready', 'creche-ready', 'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
@@ -53,7 +53,7 @@ test('Pages composition publishes only the exact refusal and reentry QMP journey
     assert.equal(JSON.parse(readFileSync(path.join(fixture.site, 'site-publication.json'))).conduitos.pairedSha256,
       digest(readFileSync(path.join(root, 'native-shell-paired-linear.json'))));
     assert.match(page, /Committed text receipt/);
-    assert.match(page, /Memory Lantern retains café/);
+    assert.match(page, /Text editor retains café/);
     assert.match(page, /Tab · A · Backspace · C · A · F · Right Alt\+E/);
     assert.doesNotMatch(page, /A · B · Backspace/);
     assert.equal(JSON.parse(readFileSync(path.join(fixture.site, 'site-publication.json'))).conduitos.committedEditSha256,
@@ -150,7 +150,7 @@ function makeFixture() {
     const bytes = png(index);
     writeFileSync(path.join(evidence, `${checkpoint}.png`), bytes);
     return {
-      checkpoint, unchanged: false, expected_change: index !== 0 && checkpoint !== 'wake-refused', health_refusal: null,
+      checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused'].includes(checkpoint), health_refusal: null,
       guest_boot_record: { boot_id: boot },
       frame: {
         checkpoint, width: 1280, height: 800, pixel_format: 'RGBA8',

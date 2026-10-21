@@ -14,6 +14,7 @@ use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 mod application_layout;
 mod arrival;
+mod commons;
 mod graph_projection;
 mod home;
 mod home_projection;
@@ -63,6 +64,7 @@ pub struct FrontDoor {
     arrival: Option<arrival::Arrival>,
     joining: Option<PendingJoinView>,
     home: Option<home::Home>,
+    retained_home: Option<home::Home>,
     refusal: Option<workspace::WorkspaceRefusal>,
     workspace: Option<crate::product_journey::WorkspaceProjection>,
     application_view: Option<conduit_face::ApplicationView>,
@@ -162,6 +164,7 @@ impl FrontDoor {
             arrival: None,
             joining: None,
             home: None,
+            retained_home: None,
             refusal: None,
             workspace: None,
             application_view: None,

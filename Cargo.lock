@@ -1587,6 +1587,7 @@ dependencies = [
  "conduit-body-make",
  "conduit-browser-mask-offer",
  "conduit-chat",
+ "conduit-commons-plot",
  "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",
@@ -1912,6 +1913,14 @@ dependencies = [
  "serde-json-core",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-commons-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -2825,6 +2834,7 @@ dependencies = [
  "conduit-audio",
  "conduit-birth-plot",
  "conduit-body",
+ "conduit-commons-plot",
  "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",

@@ -6,7 +6,9 @@ impl FrontDoor {
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }
-        if let Some(arrival) = &self.arrival {
+        if self.home.is_none()
+            && let Some(arrival) = &self.arrival
+        {
             return arrival.face(self);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
@@ -224,7 +226,7 @@ impl FrontDoor {
             ));
             properties.push(property(
                 home_identity,
-                "selected-launcher-index",
+                "selected-plot-index",
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
@@ -337,7 +339,7 @@ impl FrontDoor {
         if self.home_view().is_some() {
             texts.push(FaceText {
                 subject: home_identity.into(),
-                text: "Persistent launcher and finite Conduit command bar".into(),
+                text: "Active plots in the current Body Play".into(),
             });
             disclosures.push(FaceDisclosure {
                 subject: home_identity.into(),
@@ -362,7 +364,7 @@ impl FrontDoor {
                 },
             );
         }
-        Face::new_with_semantics(
+        let face = Face::new_with_semantics(
             self.revision,
             basis,
             subjects,
@@ -372,7 +374,13 @@ impl FrontDoor {
             self.semantic_actions(&plot),
             disclosures,
         )
-        .map_err(|_| Error::Face)
+        .map_err(|_| Error::Face)?;
+        if let Some(home) = &self.home {
+            home.commons
+                .project(face, self.journey.as_ref().ok_or(Error::Face)?)
+        } else {
+            Ok(face)
+        }
     }
 }
 

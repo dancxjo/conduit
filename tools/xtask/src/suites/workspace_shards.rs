@@ -182,6 +182,7 @@ package_test_shard!(
         "conduit-pete-workload-conformance",
         "conduit-tongues",
         "conduit-home-model",
+        "conduit-commons-plot",
         "conduit-body-invitation-plot",
         "conduit-body-lifecycle-conformance",
         "conduit-tour-model",

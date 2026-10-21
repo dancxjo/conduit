@@ -214,6 +214,7 @@ loongarch64-a4 = []
 loongarch64-product = []
 
 [dependencies]
+conduit-commons-plot = { path = "../../plots/commons" }
 conduit-birth-plot = { path = "../../plots/birth" }
 conduit-home-model = { path = "../../semantics/home" }
 conduit-audio = { path = "../../semantics/audio" }

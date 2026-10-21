@@ -93,6 +93,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "CONDUIT_BOOT_STAGE front-door-ready",
             "keyboard-repeat-arrival-timeout",
         )?;
+        journey_input::enter_creche(&mut stream, &mut reader, &serial, &mut child)?;
         artifacts.capture(&mut stream, &mut reader, "creche-ready", false)?;
         journey_input::key_pair(&mut stream, &mut reader, "ret", "keyboard-repeat-birth")?;
         journey_input::wait_status(&serial, &mut child, "quiescent-awaiting-input")?;

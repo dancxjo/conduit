@@ -7,6 +7,8 @@ mod guest_join;
 mod home_input;
 mod input_actions;
 mod pointer_input;
+mod prebirth;
+mod startup;
 mod tutorial;
 mod workspace_view_sign;
 use face_arrival::{FaceArrival, FaceArrivalInput};
@@ -187,7 +189,7 @@ pub fn run(
         } else if provisioned_guest {
             face_arrival.present_pending_join(&front_door, display)
         } else {
-            face_arrival.present_first(&front_door, display)
+            prebirth::enter_commons(&mut front_door, &mut face_arrival, &mut presenter, display)
         }
     })?;
     crate::native_observation::point(crate::native_observation::Stage::FirstFramebufferCommit);
@@ -201,8 +203,15 @@ pub fn run(
     let mut pointer_state = pointer_input::PointerState::new();
     let pointer_admitted = pointer_session.is_some() || ps2_input.is_some();
     if pointer_admitted {
-        let (x, y) = pointer_state.position(display)?;
-        face_arrival.pointer_motion(x, y, display)?;
+        pointer_input::render(
+            &pointer_state,
+            provisioned_guest,
+            &mut face_arrival,
+            &front_door,
+            &mut presenter,
+            &mut face_workspace,
+            display,
+        )?;
     }
     crate::display::profile::emit_boot_receipt();
     emit_journey_sign(&journey.projection(), make, &receipt);
@@ -212,7 +221,7 @@ pub fn run(
             arch::early_write(b"CONDUIT_JOIN_CHECKPOINT awaiting-owner-receipt\n");
         }
     } else {
-        arch::early_write(b"CONDUIT_CRECHE_CHECKPOINT ready\n");
+        arch::early_write(b"CONDUIT_COMMONS_CHECKPOINT ready\n");
     }
     let mut pointer_device = pointer_session.zip(pointer_usb);
     let mut consumed_birth_key = None;
@@ -228,10 +237,9 @@ pub fn run(
             if matches!(
                 input,
                 ProductInputEvent::Key(_) | ProductInputEvent::Pointer(_)
-            ) {
-                if let Some(span) = first_input_wait.take() {
-                    span.finish();
-                }
+            ) && let Some(span) = first_input_wait.take()
+            {
+                span.finish();
             }
             if matches!(input, ProductInputEvent::Service) && pointer_admitted {
                 pointer_input::render(
@@ -261,6 +269,8 @@ pub fn run(
                     &mut face_workspace,
                     display,
                     make,
+                    identities,
+                    offer,
                 )?;
                 return Ok(ProductInputControl::Continue);
             }
@@ -560,6 +570,7 @@ pub fn run(
             }
             if event.transition() == KeyTransition::Pressed
                 && product_control(event.usage()) == Some(ProductControl::Tour)
+                && journey.projection().body_id.is_some()
             {
                 face_workspace.relinquish()?;
                 tutorial::select(&mut journey, &mut front_door, &mut presenter, display, make)?;
@@ -643,7 +654,8 @@ pub fn run(
                 return Ok(ProductInputControl::Continue);
             }
             if front_door.home_open()
-                && product_control(event.usage()) != Some(ProductControl::Lifecycle)
+                && (journey.projection().body_id.is_none()
+                    || product_control(event.usage()) != Some(ProductControl::Lifecycle))
             {
                 home_input::accept(
                     event,
@@ -651,9 +663,21 @@ pub fn run(
                     &mut journey,
                     &mut presenter,
                     &mut face_workspace,
+                    &mut face_arrival,
                     display,
                     make,
                 )?;
+                return Ok(ProductInputControl::Continue);
+            }
+            if prebirth::back(
+                event,
+                &mut front_door,
+                &journey,
+                &mut face_arrival,
+                &mut presenter,
+                display,
+                make,
+            )? {
                 return Ok(ProductInputControl::Continue);
             }
             if front_door.creche_open() {
@@ -667,12 +691,18 @@ pub fn run(
                 )? {
                     FaceArrivalInput::Continue => {}
                     FaceArrivalInput::Born => {
-                        let (observation, play) = face_arrival.next_publication_sequences();
-                        face_workspace.continue_after_birth(observation, play);
                         consumed_birth_key = Some(event.usage());
-                        if journey.foreground_text_editor_active() {
-                            face_workspace.enter_editor(&front_door, &mut presenter, display)?;
-                        }
+                        startup::after_birth(
+                            &face_arrival,
+                            &mut front_door,
+                            &mut journey,
+                            &mut presenter,
+                            &mut face_workspace,
+                            display,
+                            identities,
+                            offer,
+                            make,
+                        )?;
                     }
                 }
                 return Ok(ProductInputControl::Continue);
