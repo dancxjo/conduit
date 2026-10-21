@@ -46,7 +46,7 @@ pub(super) fn append_exact_graph(
             },
         );
         for port in composition.inputs.iter().chain(&composition.outputs) {
-            let port_subject = append_port(
+            append_port(
                 content,
                 &subject,
                 &port.identity,
@@ -57,14 +57,8 @@ pub(super) fn append_exact_graph(
                     port.descriptor.port_id.as_str(),
                     port.descriptor.value_kind.as_str()
                 ),
+                port.value_contract.as_ref(),
             );
-            if let Some(contract) = &port.value_contract {
-                content.property(
-                    &port_subject,
-                    "value-contract",
-                    FacePropertyValue::ValueContract(contract.clone()),
-                );
-            }
         }
     }
     for gear in &graph.gears {
@@ -119,7 +113,7 @@ pub(super) fn append_exact_graph(
         }
         append_gear_plan(content, &subject, gear, plan, play);
         for port in gear.inputs.iter().chain(&gear.outputs) {
-            let port_subject = append_port(
+            append_port(
                 content,
                 &subject,
                 &port.identity,
@@ -130,15 +124,24 @@ pub(super) fn append_exact_graph(
                     port.descriptor.direction,
                     port.descriptor.value_kind.as_str()
                 ),
+                port.value_contract.as_ref(),
             );
-            if let Some(contract) = &port.value_contract {
-                content.property(
-                    &port_subject,
-                    "value-contract",
-                    FacePropertyValue::ValueContract(contract.clone()),
-                );
-            }
         }
+    }
+    for port in graph.front_inputs.iter().chain(&graph.front_outputs) {
+        append_port(
+            content,
+            plot,
+            &port.identity,
+            &port.descriptor,
+            &format!(
+                "Plot Front {:?} Port {} carrying {}",
+                port.descriptor.direction,
+                port.descriptor.port_id.as_str(),
+                port.descriptor.value_kind.as_str(),
+            ),
+            port.value_contract.as_ref(),
+        );
     }
     for cord in &graph.cords {
         let subject = patchbay_application::graph_face::append_named_cord(
@@ -495,6 +498,7 @@ fn append_port(
     identity: &str,
     descriptor: &conduit_core::PortDescriptor,
     name: &str,
+    value_contract: Option<&conduit_core::CheckedValueContract>,
 ) -> String {
     patchbay_application::graph_face::append_named_port(
         &mut patchbay_application::graph_face::GraphFacts {
@@ -506,5 +510,6 @@ fn append_port(
         identity,
         descriptor,
         name,
+        value_contract,
     )
 }

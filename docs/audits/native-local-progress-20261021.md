@@ -303,3 +303,19 @@ or CI jobs ran for this delta. This migrates the ordinary/Plot-backed Gear
 consumers; it is not complete cross-Mask acceptance or retirement of all legacy
 canvas transport. Native global-Face bounds and all renderer limits remain in
 force, with no expanded admission claim from compilation.
+
+## Typed contracts and root Plot Ports
+
+The shared Port projector now retains optional checked value contracts for
+ordinary, composition Front and root Plot Ports. Native previously omitted those
+facts; browser keeps its existing contracts through the same implementation.
+Browser canonical graph projection now also includes the graph's root Front
+inputs/outputs before Cord projection, so exact boundary endpoints are retained
+and can receive the existing Cord relationships. No endpoint is inferred from
+geometry, no typed input/action authority changes, and no contract is reduced
+to label parsing. New resulting Face identities remain ordinary content changes.
+
+Final native-compositor and workbench compilation passed (5 seconds). No tests,
+image rebuild, browser/QEMU journey or CI jobs ran. Root-boundary rendering,
+contract conformance and complete legacy canvas retirement remain open; the
+unchanged complete-Face and renderer bounds still govern admission/fallback.

@@ -64,7 +64,13 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
             &format!("{} Gear · {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
         for port in gear.inputs.iter().chain(&gear.outputs) {
-            append_port(content, &id, &port.identity, &port.descriptor);
+            append_port(
+                content,
+                &id,
+                &port.identity,
+                &port.descriptor,
+                port.value_contract.as_ref(),
+            );
         }
     }
     for composition in &graph.compositions {
@@ -101,7 +107,13 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
 }
 
 fn append_front_port(content: &mut Content<'_>, parent: &str, port: &PatchbayFrontPort) {
-    append_port(content, parent, &port.identity, &port.descriptor);
+    append_port(
+        content,
+        parent,
+        &port.identity,
+        &port.descriptor,
+        port.value_contract.as_ref(),
+    );
 }
 
 fn append_port(
@@ -109,6 +121,7 @@ fn append_port(
     parent: &str,
     identity: &str,
     descriptor: &conduit_core::PortDescriptor,
+    value_contract: Option<&conduit_core::CheckedValueContract>,
 ) {
     append_named_port(
         &mut GraphFacts {
@@ -124,6 +137,7 @@ fn append_port(
             descriptor.port_id.as_str(),
             descriptor.value_kind.as_str()
         ),
+        value_contract,
     );
 }
 
@@ -142,6 +156,7 @@ pub fn append_named_port(
     identity: &str,
     descriptor: &conduit_core::PortDescriptor,
     name: &str,
+    value_contract: Option<&conduit_core::CheckedValueContract>,
 ) -> String {
     let id = format!("port/{identity}");
     if let Some(existing) = content
@@ -198,6 +213,12 @@ pub fn append_named_port(
             .into(),
         ),
     );
+    if let Some(contract) = value_contract {
+        property(
+            "value-contract",
+            FacePropertyValue::ValueContract(contract.clone()),
+        );
+    }
     id
 }
 
