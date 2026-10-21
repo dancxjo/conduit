@@ -34,6 +34,7 @@ pub(crate) struct Activation {
 pub(crate) enum OwnerError<E> {
     Terminated,
     InactiveSession,
+    ActiveSurfaces,
     ForeignHandle,
     Capacity,
     Exhausted,
@@ -137,6 +138,18 @@ impl<T: Transport> SessionOwner<T> {
             retired,
             removed,
         })
+    }
+    /// Explicit presenter handoff after all surfaces have been withdrawn.
+    /// Unlike `activate`, this entrance cannot retire another live surface.
+    /// A live-surface refusal leaves the namespace and pending damage intact.
+    pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+        if self.terminated {
+            return Err(OwnerError::Terminated);
+        }
+        if self.handles.iter().any(Option::is_some) {
+            return Err(OwnerError::ActiveSurfaces);
+        }
+        self.activate()
     }
     pub fn quarantine(&mut self) {
         if !self.terminated {

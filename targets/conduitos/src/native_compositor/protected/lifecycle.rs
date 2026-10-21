@@ -1,6 +1,40 @@
 use super::*;
 use crate::native_compositor::SurfacePlacementReceipt;
 impl NativeCompositor {
+    /// Acquire a fresh display namespace at an explicit presenter handoff.
+    /// Generic removal retains its namespace and damage; it never calls this.
+    pub(crate) fn reacquire_namespace(&mut self) -> Result<(), NativeCompositorError> {
+        if self.failed {
+            return Err(NativeCompositorError::ServiceLost);
+        }
+        if !self.surfaces.is_empty() || self.admitted_pixels != 0 {
+            return Err(NativeCompositorError::ServiceBusy);
+        }
+        let owner = self.owner()?.clone();
+        let mut owner = owner
+            .try_borrow_mut()
+            .map_err(|_| NativeCompositorError::ServiceBusy)?;
+        if !owner.matches_scope(
+            &self.admission.host_id,
+            &self.admission.boot_id,
+            self.admission.offer_generation,
+            &self.admission.display_base_id,
+        ) {
+            return Err(NativeCompositorError::StaleIdentity);
+        }
+        let activation = owner.sessions.activate_withdrawn();
+        if owner.sessions.is_terminated() {
+            owner.quarantine();
+        }
+        // Publish only a successful new namespace. Transport failure remains
+        // terminal; neither an old ID nor an uncertain request is retried.
+        let session = activation.map_err(owner_error)?.session;
+        self.invalidate();
+        self.session = Some(session);
+        self.pointer_sample.set(None);
+        self.hover_sample.set(false);
+        Ok(())
+    }
     pub fn admit_surface(
         &mut self,
         id: &str,

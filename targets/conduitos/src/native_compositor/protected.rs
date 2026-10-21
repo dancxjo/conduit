@@ -219,6 +219,7 @@ fn owner_error(error: OwnerError<TransportError>) -> NativeCompositorError {
     match error {
         OwnerError::InactiveSession => E::StaleIdentity,
         OwnerError::ForeignHandle => E::StaleSurfaceBinding,
+        OwnerError::ActiveSurfaces => E::ServiceBusy,
         OwnerError::Capacity => E::SurfaceCapacityExceeded,
         OwnerError::Protocol => E::ServiceProtocol,
         OwnerError::Terminated | OwnerError::Exhausted | OwnerError::Transport(_) => E::ServiceLost,
