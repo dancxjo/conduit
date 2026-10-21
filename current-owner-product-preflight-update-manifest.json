@@ -1,0 +1,30 @@
+{
+  "parent": "5af6f2c77b9c56feb19492559969a05e29548537",
+  "scope": "Private proof helpers and truthful owner/browser orchestration failures; no guest proof; keys, private paths and invitations excluded",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 3707,
+      "sha256": "ab0115eb07ea5163d9118e986c719e642946915bf323e6c0e45dd13c6699f5b0",
+      "mode": "100644",
+      "blob": "85134b5a73d1692c473625d370a68bbd5b0b44bc"
+    },
+    {
+      "source": "work/5628-private-attempt.py",
+      "tree_path": "task-6038/work/5628-private-attempt.py",
+      "bytes": 4675,
+      "sha256": "faba38dc4dbb5870e6f2466f12aa16907c7f467842f6108a3ba7d70351586ec9",
+      "mode": "100644",
+      "blob": "0a8b44a9923c70aabc591c3d29d2b9931a828fa6"
+    },
+    {
+      "source": "work/5628-provision-owner-spore.py",
+      "tree_path": "task-6038/work/5628-provision-owner-spore.py",
+      "bytes": 4188,
+      "sha256": "a8ded9e531f19027c11e97ffc1212390002a88a3636011dc7e3ff60e4a0ac757",
+      "mode": "100644",
+      "blob": "050626b5e8da8b2be4308e72f456f6340c0cb87b"
+    }
+  ]
+}
