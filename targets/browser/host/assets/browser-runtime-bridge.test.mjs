@@ -547,3 +547,33 @@ test('Patchbay observation preserves refusal and rejects claimed interaction aut
     assert.throws(() => bridge.patchbayObservation(), expected);
   }
 });
+
+test('Patchbay disposition forwards exact scope, bounds input and retires bytes on refusal', () => {
+  const api = runtime({ inputPointer: 256, inputCapacity: 4096 });
+  api.conduit_tour_input_ptr = () => 256;
+  api.conduit_tour_input_capacity = () => 4096;
+  let outputLength = 0, calls = 0, refused = false;
+  api.conduit_browser_plot_output_ptr = () => 8192;
+  api.conduit_browser_plot_output_len = () => outputLength;
+  const message = { body_id: 'body/current', body_plan_id: 'plan/current', active_play_id: 'play/current',
+    owner_checked_plot_id: 'checked/owner', application_revision: 7, outcome: 'Uncertain', evidence_id: 'host/café' };
+  api.conduit_browser_patchbay_request_disposition = length => {
+    calls += 1;
+    assert.deepEqual(JSON.parse(new TextDecoder().decode(new Uint8Array(api.memory.buffer, 256, length))), message);
+    api.memory.grow(1);
+    const output = refused ? { message: 'stale owner Play', code: 'StaleOwner' }
+      : { schema: 'conduit.browser/patchbay-observation@1', mask_show: null, interaction_admitted: false,
+        last_owner_disposition: message };
+    const bytes = new TextEncoder().encode(JSON.stringify(output));
+    new Uint8Array(api.memory.buffer, 8192, bytes.length).set(bytes); outputLength = bytes.length;
+    return refused ? -1 : 1;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay disposition fixture' });
+  assert.deepEqual(bridge.patchbayRequestDisposition(message).last_owner_disposition, message);
+  assert(new Uint8Array(api.memory.buffer, 256, new TextEncoder().encode(JSON.stringify(message)).length).every(byte => byte === 0));
+  refused = true;
+  assert.throws(() => bridge.patchbayRequestDisposition(message), error => error.code === 'StaleOwner');
+  assert(new Uint8Array(api.memory.buffer, 256, new TextEncoder().encode(JSON.stringify(message)).length).every(byte => byte === 0));
+  assert.throws(() => bridge.patchbayRequestDisposition({ ...message, evidence_id: 'x'.repeat(4096) }), /input bound/);
+  assert.equal(calls, 2);
+});

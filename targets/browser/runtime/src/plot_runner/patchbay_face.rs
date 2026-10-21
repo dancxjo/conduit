@@ -9,10 +9,10 @@ use conduit_face::{
 
 pub(super) struct PatchbayObservation {
     evidence: BodyBiographyEvidence,
-    plan: BodyPlan,
+    pub(super) plan: BodyPlan,
     wake: Wake,
-    resident: ResidentPlot,
-    owner_node: conduit_kernel::NodeId,
+    pub(super) resident: ResidentPlot,
+    pub(super) owner_node: conduit_kernel::NodeId,
 }
 
 impl PatchbayObservation {
@@ -91,13 +91,12 @@ impl TourSession {
             active_play_id: self.active_play_id.clone(),
             required_interaction_context: None,
         };
-        let (revision, fragment, pending_owner_request) =
-            super::engine::application::observe_patchbay(
-                &self.scheduler,
-                context.owner_node,
-                &context.plan.body_id,
-                basis,
-            )?;
+        let source = super::engine::application::observe_patchbay(
+            &self.scheduler,
+            context.owner_node,
+            &context.plan.body_id,
+            basis,
+        )?;
         let names = [FaceResidentPlotName {
             source_document_id: &context.resident.source_document_id,
             checked_plot_id: &context.resident.checked_plot_id,
@@ -106,7 +105,7 @@ impl TourSession {
         let projected = BodyFace::project_with_names(
             &context.evidence.body,
             Some(&context.wake),
-            u64::from(revision),
+            u64::from(source.revision),
             FaceContext::ResidentPlot(context.resident.checked_plot_id.clone()),
             FaceFocus::Contribution {
                 role: FaceContributionRole::Foreground,
@@ -114,7 +113,7 @@ impl TourSession {
             },
             vec![FaceContribution::from_face(
                 FaceContributionRole::Foreground,
-                fragment,
+                source.fragment,
             )],
             FaceNames {
                 body_name: Some(&context.evidence.friendly_name),
@@ -127,7 +126,10 @@ impl TourSession {
             "body_plan_id": context.plan.plan_id,
             "active_play_id": self.active_play_id,
             "face": projected.face,
-            "pending_owner_request": pending_owner_request,
+            "owner_checked_plot_id": context.resident.checked_plot_id,
+            "pending_owner_request": source.pending_request,
+            "last_owner_disposition": source.last_disposition,
+            "last_input_refusal": source.input_refusal,
             "mask_show": null,
             "interaction_admitted": false,
             "reason_code": "patchbay-canonical-ingress-not-admitted",

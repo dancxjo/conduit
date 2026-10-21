@@ -195,14 +195,11 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       minimum: 1, label: 'local Thermostat Face input',
     }, invoke, { retireInput: true });
   };
-  return Object.freeze({
-    abi: ABI,
-    encodeJson: (value) => encoder.encode(JSON.stringify(value)),
-    decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
-    patchbayObservation() {
-      const status = call('conduit_browser_patchbay_observation');
+  const patchbayRequest = (name, message) => {
+    const invoke = length => {
+      const status = message === undefined ? call(name) : call(name, length);
       const output = maybeReadPlotOutputJson(api, 1);
-      if (status < 0) throw Object.assign(new Error(output?.message ?? 'Patchbay observation refused'), {
+      if (status < 0) throw Object.assign(new Error(output?.message ?? 'Patchbay request refused'), {
         code: output?.code ?? 'PatchbayObservationRefused', evidence: output,
       });
       if (output?.schema !== 'conduit.browser/patchbay-observation@1'
@@ -210,7 +207,21 @@ export function bindBrowserRuntimeBridge(api, { context }) {
         throw new Error('Malformed read-only Patchbay observation');
       }
       return output;
-    },
+    };
+    if (message === undefined) return invoke();
+    const bytes = encoder.encode(JSON.stringify(message));
+    if (bytes.length > 4096) throw new Error('Patchbay disposition exceeds its input bound');
+    return withInput(api, bytes, {
+      pointerExport: 'conduit_tour_input_ptr', capacityExport: 'conduit_tour_input_capacity',
+      minimum: 1, label: 'Patchbay disposition input',
+    }, invoke, { retireInput: true });
+  };
+  return Object.freeze({
+    abi: ABI,
+    encodeJson: (value) => encoder.encode(JSON.stringify(value)),
+    decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
+    patchbayObservation: () => patchbayRequest('conduit_browser_patchbay_observation'),
+    patchbayRequestDisposition: message => patchbayRequest('conduit_browser_patchbay_request_disposition', message),
     thermostatFace: () => localThermostat('conduit_browser_thermostat_face'),
     thermostatAcknowledge: message => localThermostat('conduit_browser_thermostat_acknowledge', message),
     thermostatInteract: message => localThermostat('conduit_browser_thermostat_interact', message),

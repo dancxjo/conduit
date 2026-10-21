@@ -547,6 +547,24 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       return completion;
     },
     patchbayObservation() { assertCurrent(); return bridge.patchbayObservation(); },
+    patchbayRequestDisposition(message) {
+      assertCurrent();
+      const channel = applicationChannels.get(message.owner_checked_plot_id);
+      const refresh = message.outcome !== 'Uncertain' && channel?.manifestation;
+      if (refresh && !channel.waiter && (channel.queue.length >= 8 || channel.bytes + 1 > 131072)) {
+        throw new Error('browser application observation queue pressure');
+      }
+      const observation = bridge.patchbayRequestDisposition(message);
+      if (refresh && observation.pending_owner_request === null) {
+        // Existing legacy empty observation requests a new view through the
+        // admitted event/state/view path. It never retries the owner request.
+        const bytes = new Uint8Array([0]);
+        if (channel.waiter) {
+          const waiter = channel.waiter; channel.waiter = null; waiter.resolve(bytes);
+        } else { channel.queue.push(bytes); channel.bytes += bytes.length; }
+      }
+      return observation;
+    },
     thermostatFace() { assertCurrent(); return bridge.thermostatFace(); },
     acknowledgeThermostatFace(acknowledgement) { assertCurrent(); return bridge.thermostatAcknowledge(acknowledgement); },
     submitThermostatInteraction(interaction) {

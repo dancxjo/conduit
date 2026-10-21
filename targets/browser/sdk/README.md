@@ -147,9 +147,17 @@ the returned Body, Plan and Play identities and retains the runtime's explicit
 not publish a Show or enable actions. Missing optional observation context,
 retiring Plays and unavailable owners refuse; the legacy interface remains the
 production interaction route pending #6201. `pending_owner_request` retains any
-legacy Edit/Mask request with its application revision; further legacy actions
-refuse while it awaits disposition. Observation does not perform that request.
-The owner disposition/effect handler remains unfinished. The bridge has local CPU checks;
+legacy Edit/Mask request with its application revision. While it awaits
+disposition, the legacy view marks controls busy and refuses further actions
+without failing the state gear. Observation does not perform that request.
+`play.reportPatchbayRequestDisposition({ observation, outcome, evidenceId })`
+records the Host's `Completed`, `Rejected`, `Cancelled` or `Uncertain` report
+against the exact current Body/Plan/Play/owner/request revision. Evidence IDs
+are nonblank and at most 256 UTF-8 bytes. `Uncertain` keeps the request pending;
+terminal reports release it and request a fresh legacy view through its existing
+admitted path. `last_owner_disposition` retains the exact request and latest
+report, not a durable history or proof that its effect happened. The actual
+Edit/Mask effect handler and canonical production consumer remain unfinished. The bridge has local CPU checks;
 WASM/browser enactment of this accessor remains unverified.
 
 The initial SDK profile has a finite, reviewed local adapter set. A capability

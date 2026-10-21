@@ -4,6 +4,8 @@ pub(crate) mod abi;
 mod application_state;
 #[cfg(feature = "creche-surface")]
 mod prepared_patchbay;
+#[cfg(feature = "creche-surface")]
+mod patchbay_disposition;
 mod audio;
 mod body_start;
 mod compact_patchbay;

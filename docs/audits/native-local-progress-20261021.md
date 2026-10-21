@@ -719,3 +719,31 @@ The fixture calls the production adapter directly; it is not Host-effect or DOM
 proof. Disposition/effect handling and durable cross-Play delivery remain absent;
 this checkpoint does not claim Edit was performed. No broad tests, CI, platform
 proof or image rebuild ran.
+
+## Resolve retained owner requests without pretending to execute effects
+
+Added current-Play request disposition from bounded ABI through Host adapter and
+SDK. Exact Body/Plan/Play/owner checked Plot/application revision and a nonblank,
+256-byte Host evidence identity are required. One latest typed Host report
+retains its original request; Uncertain keeps pending pressure, while Completed,
+Rejected and Cancelled reports release it. This records what the Host reports,
+not proof that an Edit/Mask effect ran. No Source values or application revision
+change merely from recording the report. Replay/foreign/stale reports refuse.
+
+Corrected the prior pending-input guard: returning an adapter error could fail
+the runtime state gear. Pending pressure now returns a checked busy legacy view
+with actions removed and a structured refusal, retaining Source text/values and
+allowing normal action presentation to resume after disposition. The Host uses
+one existing empty observation through the original bounded event/state/view
+route to refresh, preflighting queue pressure before recording the report.
+This is observation only, not an effect retry or a canonical-command side channel.
+
+Final focused Rust adapter/disposition check passes (460 filtered out): exact
+request retention, busy/refusal behavior, wrong Play/revision/evidence refusal,
+Uncertain retention, Cancelled resolution with original request retained,
+replay refusal, unchanged domain revision and later action progress. Four
+Patchbay bridge CPU checks pass, covering exact forwarding, byte bounds, memory
+growth and input retirement on refusal. Three JS syntax checks pass. The Host
+refresh branch and SDK operation were not enacted in a browser. No broad tests,
+CI, platform proof or image rebuild ran. Actual effect handling, canonical
+production installation and remaining native acceptance stay open.

@@ -339,16 +339,33 @@ export interface BrowserBodyEvent {
   readonly evidence: Readonly<Record<string, unknown>>;
 }
 
+export type PatchbayOwnerRequest =
+  Readonly<{ kind: "EditCurrent"; expanded_plot_id: string; subject_identity: string }>
+  | Readonly<{ kind: "ChangeMasks"; body_plan_id: string; mode: "graphical" | "graphical-and-speech" | "speech" }>;
+
+/** Host report only; this is not execution proof. Uncertain retains the pending request. */
+export interface PatchbayRequestDisposition {
+  readonly body_id: string;
+  readonly body_plan_id: string;
+  readonly active_play_id: string;
+  readonly owner_checked_plot_id: string;
+  readonly application_revision: number;
+  readonly outcome: "Completed" | "Rejected" | "Cancelled" | "Uncertain";
+  readonly evidence_id: string;
+}
+
 /** Read-only canonical meaning; unavailable actions grant no interaction route. */
 export interface PatchbayObservation {
   readonly schema: "conduit.browser/patchbay-observation@1";
+  readonly owner_checked_plot_id: string;
+  readonly last_input_refusal: Readonly<{ reason_code: "patchbay-owner-request-pending"; application_revision: number }> | null;
+  readonly last_owner_disposition: Readonly<PatchbayRequestDisposition & { request: PatchbayOwnerRequest }> | null;
   readonly body_plan_id: string;
   readonly active_play_id: string;
   readonly face: Readonly<Record<string, unknown>>;
   readonly pending_owner_request: null | Readonly<{
     application_revision: number;
-    request: Readonly<{ kind: "EditCurrent"; expanded_plot_id: string; subject_identity: string }>
-      | Readonly<{ kind: "ChangeMasks"; body_plan_id: string; mode: "graphical" | "graphical-and-speech" | "speech" }>;
+    request: PatchbayOwnerRequest;
   }>;
   readonly mask_show: null;
   readonly interaction_admitted: false;
@@ -364,6 +381,11 @@ export class BrowserPlay {
   readonly state: "playing" | "terminal" | "failed";
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
   patchbayObservation(): PatchbayObservation;
+  reportPatchbayRequestDisposition(options: {
+    observation: PatchbayObservation;
+    outcome: PatchbayRequestDisposition["outcome"];
+    evidenceId: string;
+  }): PatchbayObservation;
   dispatch(): Promise<Readonly<Record<string, unknown>> | null>;
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }

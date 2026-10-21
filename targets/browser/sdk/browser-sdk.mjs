@@ -507,7 +507,9 @@ export class BrowserPlay {
   /** Read canonical resident Patchbay meaning; this does not publish or acknowledge a Show. */
   patchbayObservation() {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    const observation = this.#adapter.patchbayObservation();
+    return this.#checkedPatchbayObservation(this.#adapter.patchbayObservation());
+  }
+  #checkedPatchbayObservation(observation) {
     if (observation?.schema !== 'conduit.browser/patchbay-observation@1'
         || observation.mask_show !== null || observation.interaction_admitted !== false
         || observation.active_play_id !== this.id
@@ -516,6 +518,26 @@ export class BrowserPlay {
       throw new Error('Patchbay observation differs from this Body Play');
     }
     return observation;
+  }
+  /** Report the Host's disposition; this does not execute or prove an owner effect. */
+  reportPatchbayRequestDisposition({ observation, outcome, evidenceId }) {
+    const current = this.patchbayObservation();
+    if (!['Completed', 'Rejected', 'Cancelled', 'Uncertain'].includes(outcome)
+        || typeof evidenceId !== 'string' || evidenceId.trim().length < 1
+        || encoder.encode(evidenceId).length > 256) throw new TypeError('Invalid Patchbay request disposition');
+    if (!current.pending_owner_request || !observation?.pending_owner_request
+        || observation.body_plan_id !== current.body_plan_id
+        || observation.active_play_id !== current.active_play_id
+        || observation.owner_checked_plot_id !== current.owner_checked_plot_id
+        || observation.pending_owner_request.application_revision !== current.pending_owner_request.application_revision
+        || JSON.stringify(observation.pending_owner_request.request) !== JSON.stringify(current.pending_owner_request.request)) {
+      throw new Error('Current exact pending Patchbay owner request is required');
+    }
+    return this.#checkedPatchbayObservation(this.#adapter.patchbayRequestDisposition({
+      body_id: this.#started.play.body_id, body_plan_id: current.body_plan_id,
+      active_play_id: current.active_play_id, owner_checked_plot_id: current.owner_checked_plot_id,
+      application_revision: current.pending_owner_request.application_revision, outcome, evidence_id: evidenceId,
+    }));
   }
   /** Read the contributed Face of this Play's admitted Thermostat scan. */
   thermostatFace() {

@@ -221,3 +221,24 @@ that request. Current Play cancellation remains the existing explicit lifetime
 boundary; no durable cross-Play request delivery is claimed. Canonical consumer
 installation must unify this pending-owner outcome with its retained turn result
 before retiring the legacy path.
+
+## Host-reported disposition and recoverable pending pressure
+
+The current Play now accepts a bounded request-disposition report, checking exact
+Body, Body Plan, active Play, owner checked Plot and application revision before
+changing delivery metadata. Nonblank Host evidence identities are capped at
+256 UTF-8 bytes; the ABI frame is capped at 4 KiB. One latest report retains its
+exact original request. Completed/Rejected/Cancelled reports release the pending
+slot; Uncertain preserves it and blocks further domain actions. Stale/foreign
+reports and replay after resolution refuse. Reports do not mutate Plot values,
+execute an Edit/Mask effect, prove completion, or provide durable history.
+
+The previous pending-input adapter error could terminate the state gear through
+its generic failed Host Call completion. Pending pressure now returns a valid
+busy view with no actions and an explicit `last_input_refusal` record. Original
+wording/values remain, and resolving the request restores normal actions without
+changing application revision. The browser Host preflights its existing bounded
+application queue and schedules one legacy empty observation after a terminal
+report, allowing the normal event/state/view path to refresh. This neither sends
+a canonical interaction through the old Fore nor retries the owner effect.
+The page refresh branch is syntax-checked, not browser-enacted.

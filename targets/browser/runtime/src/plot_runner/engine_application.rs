@@ -61,7 +61,7 @@ pub(in crate::plot_runner) fn observe_patchbay(
     owner: conduit_kernel::NodeId,
     body: &conduit_body::BodyId,
     basis: conduit_face::FaceContributionBasis,
-) -> Result<(u32, conduit_face::FaceFragment, Option<serde_json::Value>), String> {
+) -> Result<PatchbaySourceObservation, String> {
     let port = match scheduler
         .applications
         .get(usize::from(owner.0))
@@ -74,9 +74,41 @@ pub(in crate::plot_runner) fn observe_patchbay(
         .port
         .face_fragment(basis, body, false)
         .map_err(|error| format!("Patchbay observation refused: {error:?}"))?;
-    Ok((port.port.revision(), fragment, port.pending_observation()))
+    Ok(PatchbaySourceObservation {
+        revision: port.port.revision(),
+        fragment,
+        pending_request: port.pending_observation(),
+        last_disposition: port.last_disposition(),
+        input_refusal: port.input_refusal(),
+    })
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "creche-surface"))]
 #[path = "prepared_patchbay_tests.rs"]
 mod retention_tests;
+
+#[cfg(feature = "creche-surface")]
+pub(in crate::plot_runner) struct PatchbaySourceObservation {
+    pub revision: u32,
+    pub fragment: conduit_face::FaceFragment,
+    pub pending_request: Option<serde_json::Value>,
+    pub last_disposition: Option<serde_json::Value>,
+    pub input_refusal: Option<serde_json::Value>,
+}
+#[cfg(feature = "creche-surface")]
+pub(in crate::plot_runner) fn record_patchbay_disposition(
+    scheduler: &mut TourScheduler,
+    owner: conduit_kernel::NodeId,
+    disposition: super::super::patchbay_disposition::RequestDisposition,
+) -> Result<(), String> {
+    match scheduler
+        .applications
+        .get_mut(usize::from(owner.0))
+        .and_then(|app| app.as_deref_mut())
+    {
+        Some(super::super::application_state::PreparedApplication::Patchbay(app)) => {
+            app.record_disposition(disposition)
+        }
+        _ => Err("exact resident Patchbay owner is not prepared".into()),
+    }
+}
