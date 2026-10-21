@@ -1,12 +1,13 @@
 //! Finite historical execution receipts in the existing recoverable owner transaction.
 //! These records confer no authority and do not imply a Play is still live.
-use super::{bounded_read, digest, restrict_directory, write_bytes_atomic, write_json_atomic};
+use super::{bounded_read, digest, restrict_directory, write_bytes_atomic};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{collections::BTreeSet, fs, path::Path};
 
 pub(super) const MAX_RECEIPTS: usize = 64;
 pub(super) const MAX_RECEIPT_BYTES: u64 = 128 * 1024;
+const MAX_INDEX_BYTES: u64 = 192 * 1024;
 const MAX_RECORD_BYTES: u64 = MAX_RECEIPT_BYTES + 1024;
 const INDEX_SCHEMA: &str = "conduit.body/owner-execution@2";
 const RECORD_SCHEMA: &str = "conduit.body/execution-custody@1";
@@ -127,7 +128,7 @@ fn index(root: &Path, host: &str, body: &str, replay: bool) -> Result<Index, Str
             Err("execution custody index is not an ordinary file".into())
         }
         Ok(_) => {
-            let value: Index = serde_json::from_slice(&bounded_read(&path, 192 * 1024)?)
+            let value: Index = serde_json::from_slice(&bounded_read(&path, MAX_INDEX_BYTES)?)
                 .map_err(|e| e.to_string())?;
             validate(&value, host, body)?;
             Ok(value)
@@ -293,7 +294,14 @@ pub(super) fn commit(
         }
     }
     verify_history(root, &prepared.index)?;
-    write_json_atomic(&root.join("body/owner-execution.json"), &prepared.index)
+    // Storage must use the same compact representation admitted by receipt
+    // validation. Pretty printing can exceed the reader's finite bound even
+    // when the exact receipt is valid.
+    let encoded = serde_json::to_vec(&prepared.index).map_err(|error| error.to_string())?;
+    if encoded.len() as u64 > MAX_INDEX_BYTES {
+        return Err("execution custody index storage bound exhausted".into());
+    }
+    write_bytes_atomic(&root.join("body/owner-execution.json"), &encoded)
 }
 
 pub(super) fn latest(root: &Path, host: &str, body: &str) -> Result<Option<Value>, String> {
