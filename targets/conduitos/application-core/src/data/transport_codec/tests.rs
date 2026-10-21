@@ -195,3 +195,74 @@ fn tuple_arity_is_checked_independently_of_valid_sequence_framing() {
     assert!(decode::<(u8, u8)>(&encoded(&vec![1u8])).is_err());
     assert!(decode::<[u8; 2]>(&encoded(&vec![1u8, 2, 3])).is_err());
 }
+
+struct DisplayField;
+impl fmt::Display for DisplayField {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("collect_str λ\n\"quoted\"\\\u{0001}")
+    }
+}
+impl Serialize for DisplayField {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+struct CustomRefusal;
+impl Serialize for CustomRefusal {
+    fn serialize<S: Serializer>(&self, _: S) -> Result<S::Ok, S::Error> {
+        Err(serde::ser::Error::custom("unsupported fixture"))
+    }
+}
+#[test]
+fn bounded_backend_supports_chars_collect_str_and_refuses_invalid_map_keys() {
+    round_trip(&('λ', '\u{0001}', '\"', '\\'));
+    round_trip(&BTreeMap::from([(7u16, vec![1u8, 2])]));
+    let expected = alloc::format!("{DisplayField}");
+    assert_eq!(decode::<String>(&encoded(&DisplayField)).unwrap(), expected);
+    let mut output = vec![0; 1024];
+    assert_eq!(
+        encode_to_slice(&BTreeMap::from([((1u8, 2u8), 3u8)]), &mut output),
+        Err(Refusal::Malformed)
+    );
+    assert_eq!(
+        encode_to_slice(&CustomRefusal, &mut output),
+        Err(Refusal::Malformed)
+    );
+}
+
+#[test]
+fn bounded_backend_preserves_integer_and_finite_float_values() {
+    round_trip(&(i128::MIN, u128::MAX, i64::MIN, u64::MAX));
+    for value in [
+        0.0f64,
+        -0.0,
+        f64::MIN_POSITIVE,
+        f64::from_bits(1),
+        f64::MAX,
+        -f64::MAX,
+        1.5,
+        -2.25,
+    ] {
+        let actual: f64 = decode(&encoded(&value)).unwrap();
+        assert_eq!(actual.to_bits(), value.to_bits(), "{value:e}");
+    }
+    for value in [
+        0.0f32,
+        -0.0,
+        f32::MIN_POSITIVE,
+        f32::from_bits(1),
+        f32::MAX,
+        -f32::MAX,
+        1.5,
+    ] {
+        let actual: f32 = decode(&encoded(&value)).unwrap();
+        assert_eq!(actual.to_bits(), value.to_bits(), "{value:e}");
+    }
+    let mut output = [0; 128];
+    for value in [f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+        assert_eq!(
+            encode_to_slice(&value, &mut output),
+            Err(Refusal::Malformed)
+        );
+    }
+}

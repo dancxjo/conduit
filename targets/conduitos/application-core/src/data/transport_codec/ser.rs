@@ -154,6 +154,12 @@ impl<S: Serializer> Serializer for Encoder<S> {
             .serialize_struct_variant(name, index, variant, length)
             .map(Compound)
     }
+    fn collect_str<T: core::fmt::Display + ?Sized>(
+        self,
+        value: &T,
+    ) -> Result<Self::Ok, Self::Error> {
+        self.0.collect_str(value)
+    }
     fn is_human_readable(&self) -> bool {
         self.0.is_human_readable()
     }

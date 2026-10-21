@@ -4,6 +4,7 @@
 //! A no-allocation syntax/count preflight authenticates every hint before typed
 //! deserialization. Version and framing overhead share the existing decoded
 //! byte ceiling; this does not enlarge wire, heap or execution grants.
+mod backend;
 mod de;
 mod preflight;
 mod ser;
@@ -19,8 +20,7 @@ pub(crate) fn encode_to_slice<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
 ) -> Result<usize, Refusal> {
-    let length =
-        serde_json_core::to_slice(&ser::Envelope(value), output).map_err(|_| Refusal::Capacity)?;
+    let length = backend::encode(&ser::Envelope(value), output)?;
     preflight::validate(&output[..length])?;
     Ok(length)
 }
