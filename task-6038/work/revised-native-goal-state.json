@@ -47,13 +47,13 @@
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
     "base": "00525faf30522b6851d226613e61e277f2b48f43",
     "tree": "927ce36da9c289d9cc587db308ad906c71e81865",
-    "draft": true,
+    "draft": false,
     "candidate": 39506387888,
     "observed": "terminal_success2026-10-20T23:03UTC",
     "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
     "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
     "product_proof": "exact6f579normal7runsAndHeadless2bootsPassed;historicalNot3860",
-    "current_work": "ffc native7normal+2headless proof/rootauditsPassed; originalPRhead3860heldUntilCombinedDevGreen",
+    "current_work": "mergedbyExternalFlow;33fontBlobsEqual;ffcFullWorkspaceRunning;combinedStablePending",
     "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
     "previous_published_head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
     "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
@@ -87,7 +87,10 @@
       "headless": "supportedBuildExclusionsAnd2BootsPassed",
       "overall_receipt_sha256": "95bf8928d13e8e485157411ca0ed22e0d77986503c838ba37a3c06574fee8b85",
       "visual": "67PNGpixelsVerified;4RootReviewed;beforeAfterBound"
-    }
+    },
+    "merged": "edc753a58a848da1d36a0c26d685b7795d509208",
+    "issue_state": "closedMechanismOnly00:39:52UTC",
+    "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72"
   },
   "stable_through_stage06": {
     "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
@@ -110,13 +113,22 @@
     "local": "20focusedchecksPassed;actualChromiumpending",
     "candidate": 39510280635,
     "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
-    "current_dev": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+    "current_dev": "779ab7f1dfe5ec34b0475e40e6128cc77d25d4bf",
     "current_dev_integration": 39519886483,
-    "current_dev_observed": "pending00:15UTC;7cPendingIntegrationCoalescedCancelled",
+    "current_dev_observed": "fetched00:45UTC;latestIntegrationNeedsDiscovery",
     "merged": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
     "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
     "candidate_status": "terminal_success23:48UTC",
-    "browser": "263passed/31specs/onebatch/oneworker/zeroretries"
+    "browser": "263passed/31specs/onebatch/oneworker/zeroretries",
+    "issue_state": "closedByExternalFlow;CandidateProofRetained",
+    "additional_products_browser_repair": {
+      "pr": 6171,
+      "head": "03b5459fe54a592b0fd20ccec63508eb500db746",
+      "owned": "existingOtherFlow",
+      "failure": "missing journal fixture and browser Lulled/readiness",
+      "action": "reviewExistingRepair;doNotDuplicate"
+    },
+    "external_ci_bypass_claim": "notAnInstructionForThisGoal;combinedStableProofStillRequired"
   },
   "visual_reference": {
     "tracker": 6174,

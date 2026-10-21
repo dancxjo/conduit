@@ -1,0 +1,3 @@
+Correction to my earlier progress note: its PR state was stale. GitHub records #6165 rebased/merged at00:09:51UTC as `edc753a58`; all33 changed file blobs match the reviewed `3860` and refreshed `ffc` proof sources exactly. The complete source trees differ, so that file equivalence is not relabeled as exact-tree CI.
+
+The mechanism is now closed, and current-dev product acceptance is retained in `docs/audits/native-typography-acceptance-20261020.md`. Our seven fresh normal runs/two headless boots remain source-bound to `ffc`; its full workspace validation is still running after passing whole-workspace Clippy/fmt/correspondence. Combined Integration and stable acceptance remain separate for this goal. #5628/#5629 and the remaining native/Patchbay work continue.

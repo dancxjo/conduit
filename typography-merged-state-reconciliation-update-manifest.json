@@ -1,0 +1,54 @@
+{
+  "parent": "4e5e89d98b16caa4fcf664acef06e514fff5d187",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/5992-merged-state/blob-equivalence.json",
+      "tree_path": "task-6038/outputs/5992-merged-state/blob-equivalence.json",
+      "bytes": 2285,
+      "sha256": "0058be1de700e7542bc63c42bb54b81b16053c8f0338490d8c791d60685e1f29",
+      "mode": "100644",
+      "blob": "fd30a79241a619a7a56a16b1d8709d07ac7c7274"
+    },
+    {
+      "source": "outputs/5992-merged-state/pr-6165.json",
+      "tree_path": "task-6038/outputs/5992-merged-state/pr-6165.json",
+      "bytes": 353,
+      "sha256": "b2feb59d13a637e30d545ce9f6439610301f9a36babdc22a1db62865fcee0191",
+      "mode": "100644",
+      "blob": "5b90d1b6028c9fcb08537d53b768e2f61f189606"
+    },
+    {
+      "source": "outputs/5992-merged-state/pr-6171.json",
+      "tree_path": "task-6038/outputs/5992-merged-state/pr-6171.json",
+      "bytes": 334,
+      "sha256": "436c3b4fbbe07ab261ce1dbf849541d6a07cb1766c5fd8c648f201b5eb85ff27",
+      "mode": "100644",
+      "blob": "1e6182c60a98d9ca141e55a9a5a03ed40f3c7d2c"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 6520,
+      "sha256": "e284c3929954bf37e9d4149ee2841d14ab2ada173227387bf583e528ca6e44eb",
+      "mode": "100644",
+      "blob": "da76ae7532ad3b4c6230a12ebb5e5747df77e7b5"
+    },
+    {
+      "source": "work/5992-merged-state-correction.md",
+      "tree_path": "task-6038/work/5992-merged-state-correction.md",
+      "bytes": 770,
+      "sha256": "0fba84e619192243cd136e05f5a1851b9c13636afd7e54c78278af2e71683433",
+      "mode": "100644",
+      "blob": "bf572113154f115af68737358338169732afceb1"
+    },
+    {
+      "source": "work/6171-repair-review.md",
+      "tree_path": "task-6038/work/6171-repair-review.md",
+      "bytes": 1260,
+      "sha256": "e3b665942a63aa64789edf9151207e83c313ebfba0a938da3e5839ab626aaa10",
+      "mode": "100644",
+      "blob": "20fd43cc2d6375a1edb1d759459d531fe78d8b18"
+    }
+  ]
+}

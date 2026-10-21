@@ -1,0 +1,11 @@
+{
+  "number": 6165,
+  "state": "closed",
+  "draft": false,
+  "merged": true,
+  "merged_at": "2026-10-21T00:09:51Z",
+  "merge_commit_sha": "edc753a58a848da1d36a0c26d685b7795d509208",
+  "html_url": "https://github.com/dancxjo/conduit/pull/6165",
+  "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
+  "base": "400412f7a94a3e6c3a8c0f0afb6fd33bde18adb6"
+}

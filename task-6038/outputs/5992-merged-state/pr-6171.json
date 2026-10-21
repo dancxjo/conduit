@@ -1,0 +1,11 @@
+{
+  "number": 6171,
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "merged_at": null,
+  "merge_commit_sha": "a75e24d4295694a47cdd2c8db4ce203edd4af0a7",
+  "html_url": "https://github.com/dancxjo/conduit/pull/6171",
+  "head": "03b5459fe54a592b0fd20ccec63508eb500db746",
+  "base": "c93a4cca2ac48405415ce813e43e973d93005bad"
+}
