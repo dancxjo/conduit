@@ -42,6 +42,13 @@ pub(super) fn facts(
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 impl FrontDoor {
+    // An uninstalled owner is healthy before the first Show. A failed or busy
+    // owner cannot authorize cached workspace views or a new actionable Face.
+    fn workspace_mask_healthy(&self) -> bool {
+        self.workspace_mask
+            .try_borrow()
+            .is_ok_and(|owner| !owner.is_failed())
+    }
     fn mask_update(
         &self,
         width: u16,
@@ -114,6 +121,7 @@ impl FrontDoor {
             .map_or(0, |snapshot| snapshot.page as usize)
     }
     pub fn application_view(&self) -> Option<&conduit_face::ApplicationView> {
+        self.workspace_mask_healthy().then_some(())?;
         self.application_view.as_ref()
     }
     pub fn reset_application_navigation(&mut self) {

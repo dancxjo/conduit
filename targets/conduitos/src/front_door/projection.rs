@@ -9,6 +9,10 @@ impl FrontDoor {
         if let Some(arrival) = &self.arrival {
             return arrival.face(self);
         }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if self.home.is_none() && self.workspace.is_some() && !self.workspace_mask_healthy() {
+            return Err(Error::Scene);
+        }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
         let plot = self.plot_subject.clone();
         let mut subjects = vec![
