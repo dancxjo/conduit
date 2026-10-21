@@ -13,6 +13,9 @@ struct Fake {
     generations: [u64; 8],
     forged_route: Option<Handle>,
     forged_coverage: bool,
+    cursor: Option<(u32, u32)>,
+    hover: bool,
+    full_damage: bool,
 }
 impl Fake {
     fn new(instance: u64) -> Self {
@@ -26,6 +29,9 @@ impl Fake {
             generations: [0; 8],
             forged_route: None,
             forged_coverage: false,
+            cursor: Some((9, 9)),
+            hover: true,
+            full_damage: false,
         }
     }
     fn span(&self) -> FrameSpan {
@@ -82,6 +88,15 @@ impl Transport for Fake {
             })),
             Request::Keyboard => Response::Keyboard(self.forged_route.map(|h| (h, 1))),
             Request::FrameStep { .. } => Response::Frame(self.span()),
+            Request::Cursor { position, hover } => {
+                self.cursor = position;
+                self.hover = hover;
+                Response::Unit
+            }
+            Request::FailFrame => {
+                self.full_damage = true;
+                Response::Unit
+            }
             _ => Response::Unit,
         })
     }
@@ -150,8 +165,16 @@ fn one_service_slot_is_reused_with_fresh_namespace_and_stale_fences() {
     assert_eq!(b.removed, 2);
     assert_ne!(a.session, b.session);
     assert_eq!(
-        &owner.transport.commands[2..],
-        &[Request::Remove(first), Request::Remove(second)]
+        &owner.transport.commands[4..],
+        &[
+            Request::Remove(first),
+            Request::Remove(second),
+            Request::Cursor {
+                position: None,
+                hover: false
+            },
+            Request::FailFrame
+        ]
     );
     let calls = owner.transport.commands.len();
     assert_eq!(
@@ -200,7 +223,7 @@ fn foreign_instance_and_inactive_upload_or_frame_refuse_before_effects() {
         ),
         Err(OwnerError::Protocol)
     );
-    assert!(owner.transport.commands.is_empty());
+    assert_eq!(owner.transport.commands.len(), 2);
 }
 #[test]
 fn retirement_failure_quarantines_and_never_retries_or_reinstalls() {
@@ -209,9 +232,9 @@ fn retirement_failure_quarantines_and_never_retries_or_reinstalls() {
     admit(&mut owner, old);
     admit(&mut owner, old);
     admit(&mut owner, old);
-    owner.transport.fail_at = Some(5); // One remove succeeds; the next transport call fails.
+    owner.transport.fail_at = Some(7); // Initial reset + 3 admits + one successful Remove.
     assert_eq!(owner.activate(), Err(OwnerError::Transport(99)));
-    assert_eq!(owner.transport.commands.len(), 5);
+    assert_eq!(owner.transport.commands.len(), 7);
     assert_eq!(owner.transport.quarantines, 1);
     assert_eq!(owner.active_session(), None);
     assert!(owner.handles.iter().all(Option::is_none));
@@ -221,7 +244,7 @@ fn retirement_failure_quarantines_and_never_retries_or_reinstalls() {
         Err(OwnerError::Terminated)
     );
     owner.quarantine();
-    assert_eq!(owner.transport.commands.len(), 5);
+    assert_eq!(owner.transport.commands.len(), 7);
     assert_eq!(owner.transport.quarantines, 1);
 }
 #[test]
@@ -229,12 +252,12 @@ fn retirement_refusal_is_not_ignored_and_request_failure_is_terminal() {
     let mut owner = owner();
     let id = owner.activate().unwrap().session;
     admit(&mut owner, id);
-    owner.transport.refuse_at = Some(2);
+    owner.transport.refuse_at = Some(4);
     assert_eq!(owner.activate(), Err(OwnerError::Protocol));
     assert_eq!(owner.transport.quarantines, 1);
     let mut owner = SessionOwner::new(Fake::new(8)).unwrap();
     let id = owner.activate().unwrap().session;
-    owner.transport.fail_at = Some(1);
+    owner.transport.fail_at = Some(3);
     assert_eq!(
         owner.request(id, Request::Keyboard),
         Err(OwnerError::Transport(99))
@@ -243,7 +266,7 @@ fn retirement_refusal_is_not_ignored_and_request_failure_is_terminal() {
         owner.request(id, Request::Keyboard),
         Err(OwnerError::Terminated)
     );
-    assert_eq!(owner.transport.commands.len(), 1);
+    assert_eq!(owner.transport.commands.len(), 3);
 }
 #[test]
 fn exhaustion_and_capacity_refuse_before_retirement_or_guest_effects() {
@@ -331,10 +354,113 @@ fn upload_and_scoped_frame_borrow_use_single_admitted_service_without_escape() {
         )),
         Ok(Ok((1, Some(0))))
     );
-    owner.transport.fail_at = Some(3);
+    owner.transport.fail_at = Some(5);
     assert_eq!(
         owner.upload_chunk(id, 0, &[3]),
         Err(OwnerError::Transport(99))
     );
     assert_eq!(owner.transport.quarantines, 1);
+}
+
+#[test]
+fn initial_and_later_activation_reset_cursor_and_full_frame_before_publication() {
+    let mut owner = owner();
+    let first = owner.activate().unwrap();
+    assert_eq!(
+        owner.transport.commands,
+        vec![
+            Request::Cursor {
+                position: None,
+                hover: false
+            },
+            Request::FailFrame
+        ]
+    );
+    assert_eq!(owner.transport.cursor, None);
+    assert!(!owner.transport.hover);
+    assert!(owner.transport.full_damage);
+    for _ in 0..8 {
+        admit(&mut owner, first.session);
+    }
+    owner
+        .request(
+            first.session,
+            Request::Cursor {
+                position: Some((31, 17)),
+                hover: true,
+            },
+        )
+        .unwrap();
+    owner.transport.full_damage = false;
+    let before = owner.transport.commands.len();
+    let second = owner.activate().unwrap();
+    assert_eq!(second.removed, 8);
+    assert_eq!(owner.transport.commands.len() - before, 10);
+    assert!(
+        owner.transport.commands[before..before + 8]
+            .iter()
+            .all(|request| matches!(request, Request::Remove(_)))
+    );
+    assert_eq!(
+        &owner.transport.commands[before + 8..],
+        &[
+            Request::Cursor {
+                position: None,
+                hover: false
+            },
+            Request::FailFrame
+        ]
+    );
+    assert_eq!(owner.transport.cursor, None);
+    assert!(!owner.transport.hover);
+    assert!(owner.transport.full_damage);
+    assert_eq!(
+        owner.request(first.session, Request::Keyboard),
+        Err(OwnerError::InactiveSession)
+    );
+    assert!(
+        !owner
+            .transport
+            .commands
+            .iter()
+            .any(|request| matches!(request, Request::AbortUpload))
+    );
+}
+#[test]
+fn reset_failures_or_refusals_quarantine_without_namespace_publication_or_retry() {
+    for initial in [true, false] {
+        for reset in 1..=2 {
+            for refusal in [true, false] {
+                let mut owner = owner();
+                let old = if initial {
+                    None
+                } else {
+                    Some(owner.activate().unwrap().session)
+                };
+                let before = owner.transport.commands.len();
+                if refusal {
+                    owner.transport.refuse_at = Some(before + reset);
+                } else {
+                    owner.transport.fail_at = Some(before + reset);
+                }
+                let expected = if refusal {
+                    OwnerError::Protocol
+                } else {
+                    OwnerError::Transport(99)
+                };
+                assert_eq!(owner.activate(), Err(expected));
+                assert_eq!(owner.active_session(), None);
+                assert_eq!(owner.transport.commands.len(), before + reset);
+                assert_eq!(owner.transport.quarantines, 1);
+                if let Some(old) = old {
+                    assert_eq!(
+                        owner.request(old, Request::Keyboard),
+                        Err(OwnerError::Terminated)
+                    );
+                }
+                assert_eq!(owner.activate(), Err(OwnerError::Terminated));
+                assert_eq!(owner.transport.commands.len(), before + reset);
+            }
+        }
+    }
 }

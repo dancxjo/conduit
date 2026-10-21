@@ -73,7 +73,8 @@ impl<T: Transport> SessionOwner<T> {
     pub fn service_instance(&self) -> u64 {
         self.instance
     }
-    /// Explicitly retire all old handles before publishing the new namespace.
+    /// Retire <=8 old handles, clear cursor/hover and invalidate the full frame
+    /// before publishing the new namespace (at most ten transport commands).
     /// The retired namespace is fenced before the first fallible Remove. Every
     /// activation allocates a fresh ID; an old ID can never be reactivated.
     /// Finish/abort an upload before handoff: a Busy retirement refusal is
@@ -100,6 +101,28 @@ impl<T: Transport> SessionOwner<T> {
                         self.quarantine();
                         return Err(OwnerError::Transport(error));
                     }
+                }
+            }
+        }
+        // A logical presenter starts without the prior owner's cursor/hover,
+        // and its first frame must repaint stale scanout even with no surfaces.
+        // Both reset commands are bounded and happen before publishing the ID.
+        for request in [
+            Request::Cursor {
+                position: None,
+                hover: false,
+            },
+            Request::FailFrame,
+        ] {
+            match self.transport.request(request) {
+                Ok(Response::Unit) => {}
+                Ok(_) => {
+                    self.quarantine();
+                    return Err(OwnerError::Protocol);
+                }
+                Err(error) => {
+                    self.quarantine();
+                    return Err(OwnerError::Transport(error));
                 }
             }
         }
