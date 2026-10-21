@@ -62,6 +62,8 @@ pub(super) fn submit_report(
     for report_index in start..end {
         enqueue(report_index, ring, reports);
     }
+    #[cfg(feature = "native-latency-observation")]
+    super::super::hid_observation::submitted(start, end);
     controller.ring_endpoint(device.slot, dci);
     if index == 0 {
         serial::early_write(b"CONDUIT_BOOT_STAGE hid-awaiting-qemu-key\n");
@@ -89,6 +91,8 @@ pub(super) fn poll_report(
     index: usize,
     dma_physical: u64,
 ) -> Result<Option<()>, HidError> {
+    #[cfg(feature = "native-latency-observation")]
+    super::super::hid_observation::poll();
     let ring = dma_physical + core::mem::offset_of!(HidDma, transfer_ring) as u64;
     ensure_device_present(controller.port_status(device.root_port))?;
     let Some(event) =
@@ -99,6 +103,8 @@ pub(super) fn poll_report(
                 _ => HidError::TransferError,
             })?
     else {
+        #[cfg(feature = "native-latency-observation")]
+        super::super::hid_observation::empty_poll();
         return Ok(None);
     };
     validate_interrupt_event(
@@ -108,6 +114,8 @@ pub(super) fn poll_report(
         ring + (Position::at(index).slot * 16) as u64,
     )?;
     ensure_device_present(controller.port_status(device.root_port))?;
+    #[cfg(feature = "native-latency-observation")]
+    super::super::hid_observation::completed(index);
     Ok(Some(()))
 }
 

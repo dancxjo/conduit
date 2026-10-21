@@ -27,6 +27,8 @@ fn domain_ticks() -> u64 {
 #[cfg(target_os = "none")]
 pub use ordinary_domain::TextDomain;
 mod hid;
+#[cfg(feature = "native-latency-observation")]
+mod hid_observation;
 mod hid_pointer;
 mod hid_transfer_ring;
 mod i2c_pci;

@@ -60,6 +60,8 @@ pub fn receive_first_boot_keyboard_report(
     super::super::serial::early_write(b"CONDUIT_BOOT_STAGE hid-press-report\n");
     let current = super::parse_report(unsafe { &HID_DMA.reports[0] })?;
     let (transitions, count) = derive_transitions(BootReport::default(), current)?;
+    #[cfg(feature = "native-latency-observation")]
+    super::super::hid_observation::accepted(0, device);
     Ok(HidKeyboardSession {
         ready,
         previous: current,
@@ -120,6 +122,8 @@ impl HidKeyboardSession {
         let current =
             super::parse_report(unsafe { &HID_DMA.reports[index % super::REPORT_BUFFERS] })?;
         let (transitions, count) = derive_transitions(self.previous, current)?;
+        #[cfg(feature = "native-latency-observation")]
+        super::super::hid_observation::accepted(index, device);
         self.previous = current;
         self.pending_report_index = None;
         self.transition_count = self
