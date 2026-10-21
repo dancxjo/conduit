@@ -256,7 +256,15 @@ pub(super) fn admit(
             };
             let edge = if lane.is_some() { EDGE } else { 0 };
             let bottom = flow.bottom - edge;
-            let current_fits = measure(flow.width(lane))?.is_some_and(|demand| {
+            let current = match measure(flow.width(lane)) {
+                Err(FaceSceneError::InvalidExtent)
+                    if flow.continuation_width(item.region) > flow.width(lane) =>
+                {
+                    None
+                }
+                result => result?,
+            };
+            let current_fits = current.is_some_and(|demand| {
                 demand.fits(
                     flow.y(lane),
                     bottom,
@@ -283,19 +291,34 @@ pub(super) fn admit(
             let mut advanced = false;
             let (lane, width, end, height, cost) = loop {
                 let lane = flow.lane(item.region);
-                let width = flow
-                    .width(lane)
-                    .checked_sub(inset)
-                    .ok_or(FaceSceneError::InvalidExtent)?;
-                let text_width = field_clusters::text_width(&item, width, padding)?;
-                let (end, height) = measure_prefix(
-                    remaining,
-                    item.role,
-                    text_width,
-                    maximum_height,
-                    scale,
-                    typography,
-                )?;
+                let measured = (|| {
+                    let width = flow
+                        .width(lane)
+                        .checked_sub(inset)
+                        .ok_or(FaceSceneError::InvalidExtent)?;
+                    let text_width = field_clusters::text_width(&item, width, padding)?;
+                    let (end, height) = measure_prefix(
+                        remaining,
+                        item.role,
+                        text_width,
+                        maximum_height,
+                        scale,
+                        typography,
+                    )?;
+                    Ok((width, end, height))
+                })();
+                let (width, end, height) = match measured {
+                    // An indivisible glyph/indent may not fit the narrow lane.
+                    // Retry only when continuation actually provides more width.
+                    Err(FaceSceneError::InvalidExtent)
+                        if !advanced && flow.continuation_width(item.region) > flow.width(lane) =>
+                    {
+                        flow.next_page(item.region, &mut rows);
+                        advanced = true;
+                        continue;
+                    }
+                    result => result?,
+                };
                 let height = height + padding * 2;
                 let cost =
                     row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));

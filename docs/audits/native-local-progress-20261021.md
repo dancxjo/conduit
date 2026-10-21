@@ -137,3 +137,13 @@ reading cancels the retry. Refusals still do not alter Face or create an action.
 The earlier ISO predates this correction. Runtime scale/restore proof remains
 deferred.
 Native compositor compilation passed for the final correction (4 seconds).
+
+## Wider continuation measurement retry
+
+A narrow-lane InvalidExtent during field-cluster or row measurement no longer
+preempts the existing wider continuation of the second authored region. Only a
+strictly wider continuation can retry that failure, and each row advances at
+most once. The retry remeasures indent, text width, wrapping and command cost;
+other errors and a failure at full continuation width remain explicit refusals.
+Native compositor compilation passed (4 seconds). No regression suite, image
+rebuild or QEMU proof was run tonight; #6158 acceptance remains open.
