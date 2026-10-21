@@ -4,7 +4,7 @@
   "artifact_role": "architecture-proof-appliance",
   "proof_class": "freestanding-emulator",
   "current_status": "supported ordinary-domain-proof exited 0",
-  "cpu_status": "12 ordinary text contract controls and 2 Morse contract controls passed on exact source; five service_memory tests pending at packaging",
+  "cpu_status": "19 tests passed at exact clean source: 12 ordinary text controls, 2 Morse contract controls, 5 service image/layout controls; zero failures or ignored cases",
   "files": [
     {
       "path": "current/compositor-guest-fixture-proof.json",
@@ -188,6 +188,14 @@
       "bytes": 643,
       "original_sha256": "4e4828e05962a8cdb9989401b14db2e4f6c0946e75fd65e6c60794d7c21576b0",
       "original_bytes": 1455,
+      "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-service-memory-tests.log.gz",
+      "sha256": "57dc81292f098f3d62dc1380b386acd51f36f2a6a501d6c8303f1e186e66f5b5",
+      "bytes": 2239,
+      "original_sha256": "79a82f9f079030ec634a80f91df3ddabd0a7df44f2c06a9d1726c69a3d1a3f6a",
+      "original_bytes": 15077,
       "encoding": "gzip"
     }
   ],

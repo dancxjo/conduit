@@ -59,10 +59,11 @@ CPU image/layout contracts in `targets/conduitos/src/service_memory/tests.rs`
 cover unchanged ordinary 128 KiB image/16 KiB retained bounds; the separate
 compositor service image and 8 MiB retained plus 8 MiB scratch arenas; malformed,
 wrong-target, overlapping, oversized and writable/executable image rejection;
-and guard, overflow and alignment checks. This packet currently retains **12
-ordinary text tests and two Morse contract tests** passing at the tested source.
-The five focused service-memory CPU tests were pending during packaging and are
-not claimed as a current-source pass here.
+and guard, overflow and alignment checks. This packet retains **19 CPU tests** passing at the exact same clean tested
+source: 12 ordinary text controls, two Morse contract controls and five focused
+service-memory image/layout controls, with zero failures or ignored cases.
+The [service-memory test log](cpu/6181-service-memory-tests.log.gz) was appended
+after its owning process completed; the tested source remains `08a835229`.
 
 The actual backend fixture in
 `targets/conduitos/src/ordinary_domain_proof/service_memory.rs` checks CPL3,
