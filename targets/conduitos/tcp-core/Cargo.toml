@@ -1,0 +1,9 @@
+[package]
+name = "conduitos-tcp-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[workspace]
+resolver = "2"
+[dependencies]
+smoltcp = { version = "0.13.1", default-features = false, features = ["alloc", "medium-ethernet", "proto-ipv4", "socket-tcp", "iface-max-addr-count-1", "iface-max-route-count-1", "iface-neighbor-cache-count-4"] }

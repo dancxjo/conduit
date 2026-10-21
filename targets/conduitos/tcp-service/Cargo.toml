@@ -1,0 +1,18 @@
+[package]
+name = "conduitos-tcp-service"
+version = "0.1.0"
+edition = "2024"
+publish = false
+build = "build.rs"
+[workspace]
+resolver = "2"
+[[bin]]
+name = "conduitos-tcp-service"
+path = "main.rs"
+[dependencies]
+conduitos-tcp-core = { path = "../tcp-core" }
+[profile.release]
+panic = "abort"
+opt-level = "s"
+codegen-units = 1
+lto = "fat"
