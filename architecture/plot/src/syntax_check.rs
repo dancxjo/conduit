@@ -878,7 +878,10 @@ fn check_plot(
                     &mut resolver,
                     &mut gears,
                 )?;
-                cords.push(CheckedCanonicalCord { stages });
+                cords.push(CheckedCanonicalCord {
+                    source_span: cord.span,
+                    stages,
+                });
             }
             BackStatement::MatchedRoute(route) => cords.extend(check_matched_route(
                 route,
@@ -1085,7 +1088,10 @@ fn checked_route_track(
         resolver,
         gears,
     )?);
-    Ok(CheckedCanonicalCord { stages })
+    Ok(CheckedCanonicalCord {
+        source_span: arm.span,
+        stages,
+    })
 }
 
 fn route_diagnostic(span: crate::Span, message: &str) -> SyntaxCheckDiagnostic {

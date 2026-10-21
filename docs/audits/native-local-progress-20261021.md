@@ -836,3 +836,18 @@ explicit import; corrected, negative log retained. Full workspace tests/Clippy
 remain deferred under tonight's explicit instruction; no broad build campaign,
 CI, platform journey or artifact rebuild ran. #6202 continues with actual origin
 propagation after this extraction seam.
+
+## Retain checked Cord Source extents (#6202)
+
+Extracted checked Cord data and stage checking into responsibility modules,
+keeping existing public paths. Checked Cords now retain the whole ordinary Cord
+or matched-route arm span. Plain reference-only Cords therefore no longer lose
+all location information at checking. The new metadata is excluded from semantic
+equality and the existing canonical encoding; stage semantics are unchanged.
+Updated the two workbench construction fixtures.
+
+The plot crate compile check and one focused reference-Cord extent/equality/
+canonical-encoding test pass. Full workspace tests and Clippy for the extraction
+remain explicitly deferred tonight. These extents are not yet propagated through
+flattened connections or projected into Patchbay: #6202 and #6201 remain open.
+No CI, platform journey, artifact rebuild or closure claim accompanies this work.
