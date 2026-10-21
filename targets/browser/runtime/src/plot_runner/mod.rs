@@ -18,6 +18,8 @@ mod session_effects;
 mod session_projection;
 mod session_signs;
 mod shared_pool_abi;
+#[cfg(feature = "creche-surface")]
+mod patchbay_face;
 mod thermostat_face;
 #[cfg(feature = "creche-surface")]
 pub(crate) mod workspace;
@@ -39,6 +41,8 @@ use std::collections::BTreeMap;
 
 struct TourSession {
     thermostat_face: Option<Box<thermostat_face::ThermostatFace>>,
+    #[cfg(feature = "creche-surface")]
+    patchbay_face: Option<Box<patchbay_face::PatchbayObservation>>,
     /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
     cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
@@ -237,6 +241,8 @@ impl TourSession {
             terminal_sign_sequence: 0,
             latest_face: None,
             thermostat_face: None,
+            #[cfg(feature = "creche-surface")]
+            patchbay_face: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
             realization,

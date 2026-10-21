@@ -263,6 +263,10 @@ impl PatchbayApplicationPort {
         self.mask_topology = Some(topology);
     }
 
+    pub fn revision(&self) -> u32 {
+        self.revision
+    }
+
     pub fn graph(&self) -> &PatchbayGraph {
         &self.plots[0].graph
     }

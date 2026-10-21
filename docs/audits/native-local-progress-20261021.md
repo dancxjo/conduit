@@ -479,3 +479,25 @@ Thermostat Body Face/Show publication path supplies an integration precedent,
 but Patchbay's typed ingress still requires separate explicit admission. This
 extraction prepares a responsible access seam; it is not production Face startup
 or a side channel for injecting canonical commands into the old event Fore.
+
+## Browser-owned canonical observation connection
+
+Added the internal `conduit_browser_patchbay_observation` ABI over the current
+browser-owned Body Play. Preparation binds optional observation context to an
+exact foreground Patchbay placement and actual Body evidence/Wake/Plan. At
+observation, the engine reads its existing prepared Patchbay instance, refuses
+ambiguous instances, and composes the current source contribution with BodyFace.
+No domain application clone or second scheduler/store is created. No event or
+empty FaceInteraction is needed to obtain initial meaning.
+
+The response explicitly carries no MaskShow, reports interaction not admitted,
+and retains unavailable Patchbay action contracts until a typed route exists.
+It does not realize a graphical Mask, bypass the old event Fore, dispatch an
+effect or replace the working legacy interface. Missing evidence/ambiguous
+foreground placement disables this optional context rather than rejecting old
+supported startup. Retiring Plays refuse observation.
+
+Final browser runtime compilation passes (3 seconds). No tests, image rebuild,
+WASM/browser/QEMU enactment or CI job ran. Actual observation enactment, current
+Show feedback, exact typed ingress/storage reservation and final consumer switch
+remain #6201 acceptance work.

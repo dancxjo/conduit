@@ -308,6 +308,11 @@ pub(super) fn prepare(
         started_evidence.as_ref(),
         request.play_sequence,
     )?;
+    #[cfg(feature = "creche-surface")]
+    let patchbay_face = super::patchbay_face::PatchbayObservation::prepare(
+        &request.plan, &wake_at_start, started_evidence.as_ref(),
+        &request.foreground_checked_plot_id,
+    )?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments
             .iter()
@@ -332,6 +337,8 @@ pub(super) fn prepare(
         terminal_sign_sequence: 2,
         latest_face: None,
         thermostat_face: thermostat_face.map(Box::new),
+        #[cfg(feature = "creche-surface")]
+        patchbay_face: patchbay_face.map(Box::new),
         host_id: host.host_id,
         boot_id: host.boot_id,
         realization: MorseRealization::Direct,
