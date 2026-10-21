@@ -53,6 +53,7 @@ impl NativeCompositor {
                 cursor_visible,
                 focus_visible,
             } => {
+                record_frame(&owner, ordinal, 0, 0, 0);
                 return Ok((
                     FrameReceipt {
                         frame_sequence: ordinal,
@@ -117,6 +118,7 @@ impl NativeCompositor {
             Response::Unit => {}
             _ => return Err(NativeCompositorError::ServiceProtocol),
         }
+        record_frame(&owner, ordinal, plan.sequence, written, plan.count);
         let mut damage_rects = [DamageRect::default(); MAX_DAMAGE_RECTS];
         for (target, source) in damage_rects.iter_mut().zip(plan.rects) {
             *target = DamageRect {
@@ -250,4 +252,27 @@ fn copy_span(
         return Err(DisplayError::InvalidExtent);
     }
     Ok(())
+}
+
+/// Execution telemetry follows successful copies and guest acknowledgement.
+/// It is not a physical display, vblank, or human observation receipt.
+fn record_frame(
+    owner: &crate::display_owner::DisplayOwner,
+    frame_sequence: u64,
+    guest_sequence: u64,
+    pixels_written: u32,
+    damage_count: u8,
+) {
+    use core::fmt::Write;
+    let cost = owner.service_cost();
+    let mut line = crate::sign_format::FixedText::new();
+    if writeln!(
+        line,
+        "CONDUIT_COMPOSITOR_SERVICE_FRAME service_instance={} frame_sequence={} guest_sequence={} pixels_written={} damage_count={} entries={} privilege_transitions={} address_space_switches={} scheduler_returns={}",
+        owner.sessions.service_instance(), frame_sequence, guest_sequence,
+        pixels_written, damage_count, cost.entries, cost.privilege_transitions,
+        cost.address_space_switches, cost.scheduler_returns,
+    ).is_ok() {
+        crate::arch::early_write(line.as_bytes());
+    }
 }
