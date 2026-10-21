@@ -96,3 +96,17 @@ fn canonical_phosphor_assets_are_typed_and_self_consistent() {
         .collect();
     assert!(LookInfo::decode(&retired).is_err());
 }
+
+#[test]
+fn historical_look_v1_wire_is_not_silently_extended_with_typography() {
+    let bytes: Vec<_> = include_str!("../../../proof/conformance/face-look/phosphor-look-v1.hex")
+        .split_whitespace()
+        .collect::<String>()
+        .as_bytes()
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect();
+    assert!(LookInfo::decode(&bytes).is_err());
+}

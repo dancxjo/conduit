@@ -56,7 +56,7 @@ fn browser_profile_matches_checked_source_and_native_type_exactly() {
         .collect::<String>();
     assert!(javascript.contains(&format!("LOOK_CONTRACT_SOURCE_SHA256 = \"{digest}\"")));
     let value = phosphor_look().unwrap();
-    let golden = include_str!("../../../proof/conformance/face-look/phosphor-look-v1.hex")
+    let golden = include_str!("../../../proof/conformance/face-look/phosphor-look-v2.hex")
         .split_whitespace()
         .collect::<String>();
     let golden: Vec<_> = golden
