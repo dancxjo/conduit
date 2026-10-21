@@ -9,6 +9,10 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionScheduling {
     CooperativeBoundedStep,
+    /// Independent bounded partitions. Every Cord queue belongs to its sink
+    /// region, including typed local transfers crossing a region boundary.
+    /// Targets must explicitly install this scheduling profile before Play.
+    PartitionedBoundedStep,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +42,17 @@ pub struct ExecutionRegionRequirements {
 pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     if fragment.execution_regions.is_empty() {
         return true;
+    }
+    let partitioned = fragment
+        .execution_regions
+        .iter()
+        .any(|r| r.scheduling == ExecutionScheduling::PartitionedBoundedStep);
+    if partitioned
+        && fragment.execution_regions.iter().any(|r| {
+            r.scheduling != ExecutionScheduling::PartitionedBoundedStep || r.lane_count != 1
+        })
+    {
+        return false;
     }
     let mut region_ids = fragment
         .execution_regions
@@ -86,10 +101,11 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
         let mut region_connections = fragment.connections.iter().filter(|connection| {
             region
                 .admitted_placements
-                .contains(&connection.source_placement_id)
-                && region
-                    .admitted_placements
-                    .contains(&connection.sink_placement_id)
+                .contains(&connection.sink_placement_id)
+                && (partitioned
+                    || region
+                        .admitted_placements
+                        .contains(&connection.source_placement_id))
         });
         let cord_items = region_connections.clone().try_fold(0u32, |total, c| {
             total.checked_add(u32::from(c.item_capacity))
@@ -126,13 +142,22 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
         return false;
     }
     fragment.connections.iter().all(|connection| {
-        fragment.execution_regions.iter().any(|region| {
+        let source = fragment.execution_regions.iter().position(|region| {
             region
                 .admitted_placements
                 .contains(&connection.source_placement_id)
-                && region
-                    .admitted_placements
-                    .contains(&connection.sink_placement_id)
-        })
+        });
+        let sink = fragment.execution_regions.iter().position(|region| {
+            region
+                .admitted_placements
+                .contains(&connection.sink_placement_id)
+        });
+        source.is_some()
+            && sink.is_some()
+            && (source == sink
+                || (partitioned
+                    && connection.resource.is_none()
+                    && connection.selected_line.is_none()
+                    && connection.admitted_lines.is_empty()))
     })
 }

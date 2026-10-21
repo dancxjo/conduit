@@ -285,3 +285,124 @@ fn lane_offers_check_current_capacity_and_aggregate_shared_pool_demand() {
         Err(LaneOfferError::AmbiguousPool)
     ));
 }
+
+fn transfer_plan() -> Plan {
+    let mut fragment = plan(1).fragments.remove(0);
+    fragment.placements[0].inputs.clear();
+    fragment.placements[0].limits.max_queue_items = 2;
+    fragment.placements[0].limits.max_queue_bytes = 2;
+    let mut sink = fragment.placements[0].clone();
+    sink.placement_id = PlacementId::from("sink");
+    sink.gear_id = GearId::from("sink");
+    sink.inputs = vec![PortDescriptor {
+        port_id: port_id("next"),
+        value_kind: kind_id("fixture/byte@1"),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }];
+    sink.outputs.clear();
+    fragment.startup_order.push(sink.placement_id.clone());
+    let mut region = fragment.execution_regions[0].clone();
+    region.region_id = ExecutionRegionId::from("sink");
+    region.admitted_placements = vec![sink.placement_id.clone()];
+    region.requirements.cord_item_capacity = 2;
+    region.requirements.cord_byte_capacity = 2;
+    fragment.placements.push(sink);
+    fragment.execution_regions.push(region);
+    for region in &mut fragment.execution_regions {
+        region.scheduling = ExecutionScheduling::PartitionedBoundedStep;
+    }
+    fragment.connections.push(PlannedConnection {
+        connection_id: ConnectionId::from("transfer"),
+        source_placement_id: PlacementId::from("placement"),
+        source_port_id: port_id("current"),
+        sink_placement_id: PlacementId::from("sink"),
+        sink_port_id: port_id("next"),
+        value_kind: kind_id("fixture/byte@1"),
+        resource: None,
+        abnormal_kind: None,
+        track: ConnectionTrack::Payload,
+        temporal: PortTemporal::Value,
+        pressure_policy: DeliveryPressurePolicy::PreserveOrder,
+        selected_line: None,
+        admitted_lines: vec![],
+        item_capacity: 2,
+        byte_capacity: 2,
+    });
+    common::seal(fragment)
+}
+
+#[test]
+fn typed_transfer_requires_explicit_profile_and_exact_destination_storage() {
+    use conduit_plan_lowering::lowering::{lower_plan_fragment_from_plan, LoweringError};
+    let plan = transfer_plan();
+    assert!(verify_plan(&plan));
+    let id = &plan.fragments[0].fragment_id;
+    assert!(matches!(
+        lower_plan_fragment_from_plan(&plan, id),
+        Err(LoweringError::UnsupportedExecutionRegion(_))
+    ));
+    let limits = ExecutionRegionLimits {
+        maximum_regions: 2,
+        maximum_lanes: 2,
+        maximum_nodes: 2,
+        maximum_cords: 1,
+    };
+    let prepared = PreparedExecutionRegions::prepare(&plan, id, limits).unwrap();
+    let transfer = &prepared.transfers()[0];
+    assert!(std::ptr::eq(
+        transfer.connection(),
+        &plan.fragments[0].connections[0]
+    ));
+    assert_eq!((transfer.source_region(), transfer.sink_region()), (0, 1));
+    assert_eq!(transfer.cord(), prepared.lowered().cords[0].spec.cord);
+    assert!(prepared.regions()[0].cords().is_empty());
+    assert_eq!(prepared.regions()[1].cords(), &[transfer.cord()]);
+    assert!(matches!(
+        PreparedExecutionRegions::prepare(
+            &plan,
+            id,
+            ExecutionRegionLimits {
+                maximum_cords: 0,
+                ..limits
+            }
+        ),
+        Err(RegionPreparationError::CapacityExceeded)
+    ));
+    let mut fragment = plan.fragments[0].clone();
+    fragment.execution_regions[1]
+        .requirements
+        .cord_byte_capacity = 1;
+    assert!(!verify_plan(&common::seal(fragment)));
+    let mut fragment = plan.fragments[0].clone();
+    fragment.execution_regions[0].scheduling = ExecutionScheduling::CooperativeBoundedStep;
+    assert!(!verify_plan(&common::seal(fragment)));
+    let mut fragment = plan.fragments[0].clone();
+    for region in &mut fragment.execution_regions {
+        region.scheduling = ExecutionScheduling::CooperativeBoundedStep;
+        region.requirements.cord_item_capacity = 0;
+        region.requirements.cord_byte_capacity = 0;
+    }
+    assert!(!verify_plan(&common::seal(fragment)));
+    let mut reference = plan.fragments[0].clone();
+    reference.execution_regions.truncate(1);
+    reference.execution_regions[0].scheduling = ExecutionScheduling::CooperativeBoundedStep;
+    reference.execution_regions[0]
+        .admitted_placements
+        .push(PlacementId::from("sink"));
+    reference.execution_regions[0]
+        .requirements
+        .cord_item_capacity = 2;
+    reference.execution_regions[0]
+        .requirements
+        .cord_byte_capacity = 2;
+    let reference = common::seal(reference);
+    assert!(verify_plan(&reference));
+    assert!(lower_plan_fragment_from_plan(&reference, &reference.fragments[0].fragment_id).is_ok());
+    let prepared_reference =
+        PreparedExecutionRegions::prepare(&reference, &reference.fragments[0].fragment_id, limits)
+            .unwrap();
+    assert!(prepared_reference.transfers().is_empty());
+    assert_eq!(prepared_reference.regions()[0].cords().len(), 1);
+}

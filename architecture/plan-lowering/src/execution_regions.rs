@@ -1,10 +1,12 @@
-//! Immutable preparation of the Plan's existing closed execution regions.
+//! Immutable preparation of exact execution regions and typed local transfers.
 //!
 //! This is a preparation boundary, not a worker backend or a reservation. The
 //! caller must still admit current offers, reserve storage and lanes atomically,
-//! and install execution before starting Play. Cross-region execution remains
-//! unsupported; in particular, this API never invents a transfer or moves an effect.
+//! and install execution before starting Play. Cross-region
+//! execution requires an installed backend; this API never invents a Cord or moves an effect.
 
+mod transfers;
+pub use transfers::PreparedRegionTransfer;
 mod lane_offers;
 pub use lane_offers::{CheckedRegionLaneOffers, LaneOfferError};
 
@@ -14,7 +16,10 @@ use conduit_kernel::{CordId, NodeId};
 
 use crate::{
     activation_fragment::LoweredFragmentActivations,
-    lowering::{lower_plan_fragment_from_plan, LoweredPlanFragment, LoweringError},
+    lowering::{
+        lower_plan_fragment_for_profile_from_plan, LoweredPlanFragment, LoweringError,
+        FIXED_KERNEL_STORAGE_PROFILE,
+    },
 };
 
 /// Finite preparation ceilings supplied by the intended backend. These are
@@ -70,6 +75,7 @@ pub struct PreparedExecutionRegions<'plan> {
     lowered: LoweredPlanFragment,
     activations: LoweredFragmentActivations,
     regions: Vec<PreparedExecutionRegion<'plan>>,
+    transfers: Vec<PreparedRegionTransfer<'plan>>,
     requested_lanes: u32,
 }
 
@@ -101,16 +107,22 @@ impl<'plan> PreparedExecutionRegions<'plan> {
         }
         // This entrance validates the complete seal and retains activation
         // truth. A caller cannot supply a different lowered graph or profile.
-        let (lowered, activations) = lower_plan_fragment_from_plan(plan, fragment_id)
-            .map_err(RegionPreparationError::Lowering)?;
+        let lowered = lower_plan_fragment_for_profile_from_plan(
+            plan,
+            fragment_id,
+            FIXED_KERNEL_STORAGE_PROFILE.with_partitioned_regions(),
+        )
+        .map_err(RegionPreparationError::Lowering)?;
+        let activations = crate::activation_fragment::lower_fragment_activations(plan, fragment_id)
+            .map_err(|_| RegionPreparationError::Lowering(LoweringError::InvalidFragment))?;
         let region_for = |placement: &conduit_core::PlacementId| {
             fragment
                 .execution_regions
                 .iter()
                 .position(|region| region.admitted_placements.contains(placement))
         };
-        // Core already requires byte Cords to stay inside one region. Preserve
-        // the same closure for resource moves, startup ordering and fusion.
+        // Byte Cords may cross only under the explicit partitioned profile.
+        // Resource moves, startup ordering and fusion still require closure.
         let crosses = fragment.startup_dependencies.iter().any(|dependency| {
             region_for(&dependency.prerequisite_placement_id)
                 != region_for(&dependency.dependent_placement_id)
@@ -154,9 +166,6 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                         connection.connection_id == cord.connection_id
                             && admitted
                                 .admitted_placements
-                                .contains(&connection.source_placement_id)
-                            && admitted
-                                .admitted_placements
                                 .contains(&connection.sink_placement_id)
                     })
                 })
@@ -168,12 +177,14 @@ impl<'plan> PreparedExecutionRegions<'plan> {
                 cords,
             });
         }
+        let transfers = transfers::prepare(fragment, &lowered)?;
         Ok(Self {
             plan,
             fragment,
             lowered,
             activations,
             regions,
+            transfers,
             requested_lanes,
         })
     }
@@ -192,6 +203,9 @@ impl<'plan> PreparedExecutionRegions<'plan> {
     }
     pub fn regions(&self) -> &[PreparedExecutionRegion<'plan>] {
         &self.regions
+    }
+    pub fn transfers(&self) -> &[PreparedRegionTransfer<'plan>] {
+        &self.transfers
     }
     pub fn requested_lanes(&self) -> u32 {
         self.requested_lanes
