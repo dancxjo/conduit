@@ -26,7 +26,8 @@ There are no pointer-valued descriptors and no implicit restart.
   stream before reading its response. Seeded ChaCha20 and RNG erasure match the
   existing native carrier.
 - Upgrade: Root reads initially at most 1,024 bytes. Each Handshake input Commit
-  returns Ready when accepted or NeedInput(maximum remaining handshake capacity).
+  returns Accepted(trailing) when accepted or NeedInput(maximum remaining handshake
+  capacity, consumed=0, written=0).
   Root reads at most that allowance. Post-header bytes remain in the guest frame
   receive buffer, exactly as in the native adapter. Full incomplete handshake
   returns HandshakeAuthentication; Root EOF/error returns HandshakeRead.
@@ -34,10 +35,14 @@ There are no pointer-valued descriptors and no implicit restart.
   returns a WireFrame blob. Root copies, writes all and flushes; IO failure is
   FrameWrite and terminally releases this guest connection.
 - Receive: precheck caller output length in 1..=32,754; StartReceive(maximum) runs
-  one canonical codec read. Continue means StepReceive without reading the stream.
-  NeedInput(maximum) means Root reads at most min(maximum,16 KiB), uploads Receive
+  one canonical codec read. Continue(consumed,written) means StepReceive without reading the stream.
+  Each codec step reports consumed wire bytes and produced message bytes. Root
+  checks those against its retained-wire and remaining-output ledgers and requires
+  positive progress for parser Continue. Receive-input Commit Continue(0,0) is
+  only a transport acknowledgement, not parser progress. NeedInput(maximum) means Root reads at most min(maximum,16 KiB), uploads Receive
   input, then StepReceive. Never discard retained bytes between these calls.
-  BinaryMessage returns the complete accumulated payload, including legal empty
+  Blob descriptors include the exact remaining buffered wire-byte count for the
+  next operation. BinaryMessage returns the complete accumulated payload, including legal empty
   messages (zero-length blob: no Read requests). Copy it only into this caller's
   admitted output. Non-binary/control frames retain UnexpectedFrame behavior.
 - Close: Close returns canonical normal-close WireFrame bytes; Root writes and

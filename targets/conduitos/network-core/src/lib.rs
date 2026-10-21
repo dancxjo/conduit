@@ -24,6 +24,23 @@ pub enum WebSocketError {
     UnexpectedFrame,
     Close,
 }
+impl WebSocketError {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InvalidDescriptor => "websocket-descriptor-invalid",
+            Self::RequestTooLarge => "websocket-request-too-large",
+            Self::ResponseTooLarge => "websocket-response-too-large",
+            Self::HandshakeWrite => "websocket-handshake-write-failed",
+            Self::HandshakeRead => "websocket-handshake-read-failed",
+            Self::HandshakeAuthentication => "websocket-handshake-authentication-failed",
+            Self::FrameWrite => "websocket-frame-write-failed",
+            Self::FrameRead => "websocket-frame-read-failed",
+            Self::UnexpectedFrame => "websocket-frame-unexpected",
+            Self::Close => "websocket-close-failed",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Refusal {
     Bounds,

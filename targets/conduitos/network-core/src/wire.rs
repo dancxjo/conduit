@@ -36,10 +36,28 @@ pub enum Request {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Response {
     Ready,
-    NeedInput { maximum: u32 },
-    Continue,
-    Blob { kind: OutputKind, bytes: u32 },
-    Chunk { offset: u32, bytes: u32, total: u32 },
+    NeedInput {
+        maximum: u32,
+        consumed: u32,
+        written: u32,
+    },
+    Continue {
+        consumed: u32,
+        written: u32,
+    },
+    Accepted {
+        trailing: u32,
+    },
+    Blob {
+        kind: OutputKind,
+        bytes: u32,
+        buffered: u32,
+    },
+    Chunk {
+        offset: u32,
+        bytes: u32,
+        total: u32,
+    },
     Refused(Refusal),
 }
 fn encode(e: Envelope, tag: u16, args: [u32; 4], out: &mut [u8]) -> Result<(), Refusal> {
@@ -182,9 +200,18 @@ fn refusal(code: u32) -> Result<Refusal, Refusal> {
 pub fn encode_response(e: Envelope, r: Response, out: &mut [u8]) -> Result<(), Refusal> {
     let (tag, a) = match r {
         Response::Ready => (0x8001, [0; 4]),
-        Response::NeedInput { maximum } => (0x8002, [maximum, 0, 0, 0]),
-        Response::Continue => (0x8003, [0; 4]),
-        Response::Blob { kind, bytes } => (0x8004, [kind as u32, bytes, 0, 0]),
+        Response::NeedInput {
+            maximum,
+            consumed,
+            written,
+        } => (0x8002, [maximum, consumed, written, 0]),
+        Response::Continue { consumed, written } => (0x8003, [consumed, written, 0, 0]),
+        Response::Accepted { trailing } => (0x8006, [trailing, 0, 0, 0]),
+        Response::Blob {
+            kind,
+            bytes,
+            buffered,
+        } => (0x8004, [kind as u32, bytes, buffered, 0]),
         Response::Chunk {
             offset,
             bytes,
@@ -199,17 +226,32 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), Refusal> {
     let (e, tag, a) = decode(bytes)?;
     let r = match (tag, a) {
         (0x8001, [0, 0, 0, 0]) => Response::Ready,
-        (0x8002, [maximum, 0, 0, 0]) if maximum > 0 && maximum as usize <= crate::FRAME_BYTES => {
-            Response::NeedInput { maximum }
+        (0x8002, [maximum, consumed, written, 0])
+            if maximum > 0
+                && maximum as usize <= crate::FRAME_BYTES
+                && progress(consumed, written) =>
+        {
+            Response::NeedInput {
+                maximum,
+                consumed,
+                written,
+            }
         }
-        (0x8003, [0, 0, 0, 0]) => Response::Continue,
-        (0x8004, [kind, bytes, 0, 0])
+        (0x8003, [consumed, written, 0, 0]) if progress(consumed, written) => {
+            Response::Continue { consumed, written }
+        }
+        (0x8006, [trailing, 0, 0, 0]) if trailing as usize <= crate::HANDSHAKE_BYTES => {
+            Response::Accepted { trailing }
+        }
+        (0x8004, [kind, bytes, buffered, 0])
             if bytes as usize <= MAX_BLOB
+                && buffered as usize <= crate::FRAME_BYTES
                 && (bytes > 0 || kind == OutputKind::BinaryMessage as u32) =>
         {
             Response::Blob {
                 kind: output(kind)?,
                 bytes,
+                buffered,
             }
         }
         (0x8005, [offset, bytes, total, 0])
@@ -228,4 +270,8 @@ pub fn decode_response(bytes: &[u8]) -> Result<(Envelope, Response), Refusal> {
         _ => return Err(Refusal::Malformed),
     };
     Ok((e, r))
+}
+
+fn progress(consumed: u32, written: u32) -> bool {
+    consumed as usize <= crate::FRAME_BYTES && written as usize <= MAXIMUM_BINARY_MESSAGE_BYTES
 }

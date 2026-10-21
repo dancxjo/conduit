@@ -149,15 +149,15 @@ impl State {
                 self.publish(OutputKind::Upgrade, bytes)
             }
             InputKind::Handshake => {
-                match self
-                    .framer
-                    .as_mut()
-                    .ok_or(Refusal::Order)?
-                    .handshake(input)?
-                {
-                    None => Ok(Response::Ready),
+                let framer = self.framer.as_mut().ok_or(Refusal::Order)?;
+                match framer.handshake(input)? {
+                    None => Ok(Response::Accepted {
+                        trailing: framer.buffered() as u32,
+                    }),
                     Some(maximum) => Ok(Response::NeedInput {
                         maximum: maximum as u32,
+                        consumed: 0,
+                        written: 0,
                     }),
                 }
             }
@@ -167,7 +167,10 @@ impl State {
             }
             InputKind::Receive => {
                 self.framer.as_mut().ok_or(Refusal::Order)?.ingest(input)?;
-                Ok(Response::Continue)
+                Ok(Response::Continue {
+                    consumed: 0,
+                    written: 0,
+                })
             }
         }
     }
@@ -180,14 +183,27 @@ impl State {
         Ok(Response::Blob {
             kind,
             bytes: self.outgoing.len() as u32,
+            buffered: self
+                .framer
+                .as_ref()
+                .map_or(0, |framer| framer.buffered() as u32),
         })
     }
     fn step(&mut self, step: Step) -> Result<Response, Refusal> {
         match step {
-            Step::NeedInput(maximum) => Ok(Response::NeedInput {
+            Step::NeedInput {
+                maximum,
+                consumed,
+                written,
+            } => Ok(Response::NeedInput {
                 maximum: maximum as u32,
+                consumed: consumed as u32,
+                written: written as u32,
             }),
-            Step::Continue => Ok(Response::Continue),
+            Step::Continue { consumed, written } => Ok(Response::Continue {
+                consumed: consumed as u32,
+                written: written as u32,
+            }),
             Step::Message(bytes) => self.publish(OutputKind::BinaryMessage, bytes),
         }
     }

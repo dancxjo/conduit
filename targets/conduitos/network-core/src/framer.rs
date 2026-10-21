@@ -9,8 +9,15 @@ use embedded_websocket::{
     WebSocketReceiveMessageType, WebSocketSendMessageType,
 };
 pub enum Step {
-    NeedInput(usize),
-    Continue,
+    NeedInput {
+        maximum: usize,
+        consumed: usize,
+        written: usize,
+    },
+    Continue {
+        consumed: usize,
+        written: usize,
+    },
     Message(Vec<u8>),
 }
 pub struct Framer {
@@ -110,6 +117,9 @@ impl Framer {
             Err(_) => Err(Refusal::WebSocket(E::HandshakeAuthentication)),
         }
     }
+    pub fn buffered(&self) -> usize {
+        self.received
+    }
     fn open(&self) -> Result<(), Refusal> {
         if self.key.is_some() || self.closed {
             Err(Refusal::Order)
@@ -188,6 +198,8 @@ impl Framer {
             return Err(Refusal::Order);
         }
         let output = self.message.as_mut().ok_or(Refusal::Order)?;
+        let mut consumed = 0;
+        let mut written = 0;
         match self
             .websocket
             .read(&self.receive[..self.received], &mut output[self.written..])
@@ -198,6 +210,8 @@ impl Framer {
                 {
                     return Err(Refusal::WebSocket(E::UnexpectedFrame));
                 }
+                consumed = result.len_from;
+                written = result.len_to;
                 self.written = self
                     .written
                     .checked_add(result.len_to)
@@ -214,7 +228,7 @@ impl Framer {
                     return Err(Refusal::WebSocket(E::ResponseTooLarge));
                 }
                 if self.received != 0 {
-                    return Ok(Step::Continue);
+                    return Ok(Step::Continue { consumed, written });
                 }
             }
             Err(Error::ReadFrameIncomplete) => {}
@@ -224,7 +238,11 @@ impl Framer {
             return Err(Refusal::WebSocket(E::ResponseTooLarge));
         }
         self.awaiting = Some(FRAME_BYTES - self.received);
-        Ok(Step::NeedInput(FRAME_BYTES - self.received))
+        Ok(Step::NeedInput {
+            maximum: FRAME_BYTES - self.received,
+            consumed,
+            written,
+        })
     }
     pub fn close(&mut self) -> Result<Vec<u8>, Refusal> {
         self.open()?;
