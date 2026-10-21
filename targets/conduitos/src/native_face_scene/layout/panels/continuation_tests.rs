@@ -88,8 +88,9 @@ fn naming_field_moves_as_one_cluster_to_full_width_continuation() {
 fn unfit_narrow_row_remeasures_on_wider_page_and_full_width_still_refuses() {
     let mut indented = item("Exact retained label", Some(1));
     indented.indent = 50;
+    let expected = indented.text.clone();
     let rows = admit_configured(
-        vec![item("First region", Some(0)), indented.clone()],
+        vec![item("First region", Some(0)), indented],
         screen(1280, 800),
         12,
         2,
@@ -100,11 +101,12 @@ fn unfit_narrow_row_remeasures_on_wider_page_and_full_width_still_refuses() {
     .unwrap();
     assert_disjoint(&rows);
     assert_eq!(rows.len(), 2);
-    assert_eq!(rows[1].text, indented.text);
+    assert_eq!(rows[1].text, expected);
     assert_eq!(rows[1].page, 1);
     assert_eq!(rows[1].bounds.x, (12 + EDGE + 50 * INDENT_STEP) as i16);
     assert_eq!(rows[1].panel_bounds.unwrap().width, 1280 - 24);
 
+    let mut indented = item("Exact retained label", Some(1));
     indented.indent = 200;
     assert!(matches!(
         admit_configured(
