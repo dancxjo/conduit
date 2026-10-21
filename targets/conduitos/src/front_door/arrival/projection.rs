@@ -22,7 +22,7 @@ impl Arrival {
             property(
                 &host,
                 "selected-control",
-                FacePropertyValue::Count(self.focus as u64),
+                FacePropertyValue::Count(self.focus() as u64),
             ),
         ];
         if !self.draft.friendly_name().is_empty() {
@@ -79,8 +79,8 @@ impl Arrival {
             vec![FaceText {
                 subject: host.clone(),
                 text: self
-                    .refusal
-                    .clone()
+                    .refusal()
+                    .map(alloc::string::String::from)
                     .unwrap_or_else(|| "Name your body and choose its installed plots.".into()),
             }],
             actions,

@@ -278,6 +278,13 @@ fn response_matches(request: Request<'_>, response: Response) -> bool {
             },
         ) => true,
         (Request::Read { .. }, Response::Chunk { .. }) => true,
+        (
+            Request::NativeKey { .. },
+            Response::Blob {
+                kind: OutputKind::Native,
+                ..
+            },
+        ) => true,
         _ => false,
     }
 }

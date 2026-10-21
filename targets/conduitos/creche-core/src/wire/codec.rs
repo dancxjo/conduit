@@ -78,6 +78,7 @@ fn output(b: u8) -> Result<OutputKind, Refusal> {
         1 => Ok(OutputKind::Snapshot),
         2 => Ok(OutputKind::Face),
         3 => Ok(OutputKind::Selection),
+        4 => Ok(OutputKind::Native),
         _ => Err(Refusal::Malformed),
     }
 }
@@ -201,6 +202,15 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request<'_>), Refusal> 
             exact(b, 0)?;
             Request::AllowIdle
         }
+        9 => {
+            exact(b, 7)?;
+            let event: [u8; 3] = b[4..7].try_into().map_err(|_| Refusal::Malformed)?;
+            conduit_human::KeyEvent::decode(&event).map_err(|_| Refusal::Malformed)?;
+            Request::NativeKey {
+                revision: u32_at(b, 0)?,
+                event,
+            }
+        }
         _ => return Err(Refusal::Malformed),
     };
     Ok((env, request))
@@ -211,6 +221,7 @@ pub fn encode_request(env: Envelope, r: Request<'_>, out: &mut [u8]) -> Result<u
         Request::Write { .. } => (2, 12),
         Request::Commit => (3, 0),
         Request::AllowIdle => (8, 0),
+        Request::NativeKey { .. } => (9, 7),
         Request::Apply { action, value, .. } => {
             if action.len() > 64 || value.len() > 128 {
                 return Err(Refusal::Bounds);
@@ -238,6 +249,10 @@ pub fn encode_request(env: Envelope, r: Request<'_>, out: &mut [u8]) -> Result<u
             b[8..12].copy_from_slice(&bytes.to_le_bytes());
         }
         Request::Commit | Request::AllowIdle => {}
+        Request::NativeKey { revision, event } => {
+            b[..4].copy_from_slice(&revision.to_le_bytes());
+            b[4..].copy_from_slice(&event);
+        }
         Request::Apply {
             revision,
             event,

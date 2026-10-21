@@ -5,7 +5,7 @@ pub const EXCHANGE_BYTES: usize = 4096;
 pub const TRANSFER_BYTES: u32 = 16 * 1024;
 pub const MAX_BLOB_BYTES: u32 = 128 * 1024;
 pub const HEADER_BYTES: usize = 32;
-pub const VERSION: u16 = 1;
+pub const VERSION: u16 = 2;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Envelope {
     pub instance: u64,
@@ -24,6 +24,7 @@ pub enum OutputKind {
     Snapshot = 1,
     Face = 2,
     Selection = 3,
+    Native = 4,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[repr(u8)]
@@ -45,6 +46,10 @@ pub enum Request<'a> {
     },
     Commit,
     AllowIdle,
+    NativeKey {
+        revision: u32,
+        event: [u8; 3],
+    },
     Apply {
         revision: u32,
         event: Event,

@@ -114,7 +114,7 @@ impl Arrival {
                     } else {
                         &field.value
                     };
-                    line(132, value, self.focus == 0, GraphicsTextRole::Heading)?;
+                    line(132, value, self.focus() == 0, GraphicsTextRole::Heading)?;
                 }
                 ("name-system", FaceMechanism::FormField(field)) => {
                     let FieldKind::NamedSelect { options } = &field.kind else {
@@ -127,7 +127,7 @@ impl Arrival {
                     line(
                         176,
                         &format!("{}: {}", field.label, selected.label),
-                        self.focus == 1,
+                        self.focus() == 1,
                         GraphicsTextRole::Label,
                     )?;
                 }
@@ -135,7 +135,7 @@ impl Arrival {
                     line(
                         208,
                         &format!("{}  ·  F2", action.label),
-                        self.focus == 2,
+                        self.focus() == 2,
                         GraphicsTextRole::Action,
                     )?;
                 }
@@ -143,7 +143,7 @@ impl Arrival {
                     line(
                         232,
                         &format!("{}: {}", field.label, field.value),
-                        self.focus == 3,
+                        self.focus() == 3,
                         GraphicsTextRole::Code,
                     )?;
                 }
@@ -165,7 +165,7 @@ impl Arrival {
                                     " / unavailable"
                                 }
                             ),
-                            self.focus == index + 4,
+                            self.focus() == index + 4,
                             GraphicsTextRole::Body,
                         )?;
                     }
@@ -188,7 +188,7 @@ impl Arrival {
                     line(
                         392,
                         &format!("{}  ·  Enter / F3", action.label),
-                        self.focus == choice_count + 4,
+                        self.focus() == choice_count + 4,
                         GraphicsTextRole::Action,
                     )?;
                 }
@@ -206,7 +206,7 @@ impl Arrival {
             (None, Some(review)) => line(368, review, false, GraphicsTextRole::Status)?,
             (None, None) => {}
         }
-        if let Some(refusal) = &self.refusal {
+        if let Some(refusal) = self.refusal() {
             line(368, refusal, true, GraphicsTextRole::Warning)?;
         }
         line(
@@ -215,7 +215,7 @@ impl Arrival {
             false,
             GraphicsTextRole::Muted,
         )?;
-        if self.refusal.is_some() {
+        if self.refusal().is_some() {
             scene
                 .push(
                     GraphicsCommand::icon(

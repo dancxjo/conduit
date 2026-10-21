@@ -30,6 +30,8 @@ pub struct InteractionRequest {
 #[serde(deny_unknown_fields)]
 pub struct DraftSnapshot {
     pub revision: u32,
+    pub native_focus: u32,
+    pub native_refusal: Option<String>,
     pub friendly_name: String,
     pub search: String,
     pub requested_system: String,

@@ -1,6 +1,7 @@
 //! Immutable guest projections plus the exact Root-reviewed input catalog.
 //! No BirthDraft reducer, naming catalog, Face projector or mutable draft lives here.
 use super::{CrecheService, TransportError, errors};
+mod native;
 use alloc::{string::String, vec::Vec};
 use conduit_birth_plot::{
     BirthActionOutcome, BirthActions, BirthDraftRefusal, BirthFaceBasis, BirthFaceRefusal,
@@ -243,6 +244,11 @@ fn fetch_snapshot(
     let snapshot: Snapshot = decode(service, &bytes)?;
     if snapshot.revision != revision
         || snapshot.widget.revision != revision
+        || snapshot.native_focus > (conduit_body::MAX_BODY_PLOTS as u32 + 5)
+        || snapshot
+            .native_refusal
+            .as_ref()
+            .is_some_and(|text| text.len() > 256)
         || snapshot.choices.len() != reviewed.len()
         || snapshot.choices.iter().zip(reviewed).any(|(guest, root)| {
             guest.title != root.title

@@ -4,3 +4,4 @@ pub mod data;
 pub mod memory;
 pub mod state;
 pub mod wire;
+pub mod native;

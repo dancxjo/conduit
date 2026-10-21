@@ -9,7 +9,7 @@ use conduit_birth_plot::{
 };
 use conduit_face::ApplicationEventKind;
 pub struct State {
-    draft: Option<BirthDraft>,
+    draft: Option<super::native::Controller>,
     incoming: Option<(InputKind, u32, Vec<u8>)>,
     outgoing: Vec<u8>,
     read_offset: u32,
@@ -26,7 +26,10 @@ impl Default for State {
 }
 impl State {
     fn draft(&self) -> Result<&BirthDraft, Refusal> {
-        self.draft.as_ref().ok_or(Refusal::Order)
+        self.draft
+            .as_ref()
+            .map(|controller| &controller.draft)
+            .ok_or(Refusal::Order)
     }
     pub fn revision(&self) -> Result<u32, Refusal> {
         Ok(self.draft()?.revision())
@@ -89,7 +92,7 @@ impl State {
                 self.outgoing = Vec::new();
                 self.read_offset = 0;
                 Ok(Response::Ready {
-                    revision: self.draft.as_ref().map_or(1, BirthDraft::revision),
+                    revision: self.draft.as_ref().map_or(1, |draft| draft.revision()),
                 })
             }
             Request::Write {
@@ -114,16 +117,26 @@ impl State {
                     return Err(Refusal::Bounds);
                 }
                 Ok(Response::Ready {
-                    revision: self.draft.as_ref().map_or(1, BirthDraft::revision),
+                    revision: self.draft.as_ref().map_or(1, |draft| draft.revision()),
                 })
             }
             Request::Commit => self.commit(),
+            Request::NativeKey { revision, event } => {
+                if self.incoming.is_some() {
+                    return Err(Refusal::Order);
+                }
+                self.current(revision)?;
+                let event =
+                    conduit_human::KeyEvent::decode(&event).map_err(|_| Refusal::Malformed)?;
+                let outcome = self.draft.as_mut().ok_or(Refusal::Order)?.accept(event);
+                self.publish(OutputKind::Native, &outcome)
+            }
             Request::AllowIdle => {
                 if self.incoming.is_some() {
                     return Err(Refusal::Order);
                 }
                 let draft = self.draft.take().ok_or(Refusal::Order)?;
-                self.draft = Some(draft.allow_idle_body());
+                self.draft = Some(draft.allow_idle());
                 self.outgoing = Vec::new();
                 self.read_offset = 0;
                 Ok(Response::Ready {
@@ -160,6 +173,8 @@ impl State {
                 let draft = self.current(revision)?;
                 let value = DraftSnapshot {
                     revision,
+                    native_focus: self.draft.as_ref().ok_or(Refusal::Order)?.focus as u32,
+                    native_refusal: self.draft.as_ref().ok_or(Refusal::Order)?.refusal.clone(),
                     friendly_name: draft.friendly_name().into(),
                     search: draft.search().into(),
                     requested_system: draft.requested_system().into(),
@@ -225,7 +240,7 @@ impl State {
                 if input.allow_idle_body {
                     draft = draft.allow_idle_body();
                 }
-                self.draft = Some(draft);
+                self.draft = Some(super::native::Controller::new(draft));
                 Ok(Response::Ready {
                     revision: self.revision()?,
                 })
