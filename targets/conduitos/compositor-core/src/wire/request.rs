@@ -6,6 +6,11 @@ pub enum Request {
         z: u8,
     },
     Remove(Handle),
+    Resize {
+        surface: Handle,
+        rect: Rect,
+        z: u8,
+    },
     Place {
         surface: Handle,
         x: i16,
@@ -152,6 +157,11 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), CodecError> {
             }
             Request::Initialize { width, height }
         }
+        19 => Request::Resize {
+            surface: r.handle()?,
+            rect: r.rect()?,
+            z: r.u8()?,
+        },
         _ => return Err(CodecError::Operation),
     };
     r.done()?;
@@ -181,6 +191,7 @@ pub fn encode_request(
         Request::Pointer { .. } => (16, 8),
         Request::Keyboard => (17, 0),
         Request::Initialize { .. } => (18, 4),
+        Request::Resize { .. } => (19, 18),
     };
     let length = HEADER_BYTES + size;
     let mut w = begin(bytes, e, op, length)?;
@@ -190,6 +201,11 @@ pub fn encode_request(
             w.u8(z)?;
         }
         Request::Remove(h) | Request::Focus(h) => w.handle(h)?,
+        Request::Resize { surface, rect, z } => {
+            w.handle(surface)?;
+            w.rect(rect)?;
+            w.u8(z)?;
+        }
         Request::Place { surface, x, y, z } => {
             w.handle(surface)?;
             w.u16(x as u16)?;

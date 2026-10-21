@@ -61,7 +61,7 @@ impl Compositor<'_> {
         }
         Ok(())
     }
-    /// Resize belongs to a staged raster replacement, never an unchecked placement.
+    /// Move an unchanged raster; dimension changes use `resize`.
     pub fn place(&mut self, h: Handle, x: i16, y: i16, z: u8) -> Result<(), Error> {
         self.idle()?;
         let i = self.index(h)?;
@@ -75,6 +75,41 @@ impl Compositor<'_> {
         self.surfaces[i].rect.y = y;
         self.surfaces[i].z = z;
         self.damage.add(self.surfaces[i].rect);
+        Ok(())
+    }
+    /// Reserve a new extent and retire the previous raster immediately. Pixels
+    /// belonging to other surfaces remain in place until a later bounded upload
+    /// repacks them. The renderer-local revision fence survives invalidation.
+    pub fn resize(&mut self, h: Handle, rect: Rect, z: u8) -> Result<(), Error> {
+        self.idle()?;
+        let i = self.index(h)?;
+        let old = self.surfaces[i].rect;
+        if old.width == rect.width && old.height == rect.height {
+            return self.place(h, rect.x, rect.y, z);
+        }
+        let reserved = self
+            .surfaces
+            .iter()
+            .enumerate()
+            .filter(|(_, s)| s.live)
+            .try_fold(0usize, |sum, (index, s)| {
+                let pixels = if index == i {
+                    rect.pixels()?
+                } else {
+                    s.rect.pixels()?
+                };
+                sum.checked_add(pixels).ok_or(Error::Capacity)
+            })?;
+        if reserved > MAX_PIXELS {
+            return Err(Error::Capacity);
+        }
+        self.invalidate();
+        self.damage.add(old);
+        self.damage.add(rect);
+        self.surfaces[i].rect = rect;
+        self.surfaces[i].z = z;
+        self.surfaces[i].ready = false;
+        self.acknowledged[i] = false;
         Ok(())
     }
     pub fn visible(&mut self, h: Handle, value: bool) -> Result<(), Error> {
@@ -94,7 +129,8 @@ impl Compositor<'_> {
     pub fn focus(&mut self, h: Handle) -> Result<(), Error> {
         self.idle()?;
         let i = self.index(h)?;
-        if !self.surfaces[i].visible || !self.surfaces[i].ready || !self.acknowledged[i] {
+        // Focus is a visual affordance. Advisory routes remain scanout-gated.
+        if !self.surfaces[i].visible || !self.surfaces[i].ready {
             return Err(Error::Incomplete);
         }
         if self.focus == Some(h) {

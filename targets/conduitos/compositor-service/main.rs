@@ -67,6 +67,9 @@ fn execute(core: &mut Compositor<'static>, command: Request) -> Result<Response,
     match command {
         Request::Admit { rect, z } => core.admit(rect, z).map(Response::Surface),
         Request::Remove(surface) => core.remove(surface).map(|()| Response::Unit),
+        Request::Resize { surface, rect, z } => {
+            core.resize(surface, rect, z).map(|()| Response::Unit)
+        }
         Request::Place { surface, x, y, z } => {
             core.place(surface, x, y, z).map(|()| Response::Unit)
         }

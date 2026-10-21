@@ -19,6 +19,11 @@ fn every_request_roundtrips_and_rejects_truncation_or_trailing_bytes() {
     let requests = [
         Request::Admit { rect: RECT, z: 255 },
         Request::Remove(HANDLE),
+        Request::Resize {
+            surface: HANDLE,
+            rect: RECT,
+            z: 255,
+        },
         Request::Place {
             surface: HANDLE,
             x: i16::MIN,

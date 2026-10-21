@@ -59,3 +59,12 @@ Core revisions are renderer-local monotonically increasing upload sequences,
 not semantic Face revisions. A repaint of the same Face therefore uses a fresh
 upload sequence. The Root presenter retains exact Face, Mask and Show bindings;
 the local sequence cannot establish any of those semantic identities.
+
+`Resize` reserves the replacement extent against all live surfaces, including
+pending ones, before changing state. A dimension change invalidates the old
+raster immediately, retains its upload-sequence fence and blocks covered input
+until a fresh upload and scanout acknowledgement. Equal-dimension resize is a
+placement operation and preserves the raster. Visual focus is allowed on a
+visible raster before its first scanout; pointer and keyboard routing remain
+acknowledgement-gated. Semantic focus/Show admission remains the Root owner's
+responsibility.

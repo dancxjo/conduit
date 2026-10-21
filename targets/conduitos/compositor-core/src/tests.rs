@@ -309,7 +309,7 @@ fn unchanged_input_readiness_survives_overlay_partial_and_no_damage_frames() {
     };
     let h = c.admit(r, 0).unwrap();
     upload(&mut c, h, 1, r, &[7; 64]);
-    assert_eq!(c.focus(h), Err(Error::Incomplete));
+    assert_eq!(c.keyboard(), None);
     let mut screen = vec![0; 64 * 32];
     let initial = render(&mut c, &mut screen, MAX_CHUNK);
     c.acknowledge_scanout(initial.sequence()).unwrap();
@@ -445,3 +445,5 @@ fn cursor_uses_full_display_extent_and_checked_i32_damage_coordinates() {
     );
     assert_eq!(c.cursor, old);
 }
+
+mod fidelity;
