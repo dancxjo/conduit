@@ -315,8 +315,9 @@ fn execute_with_features(
     );
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --bin {binary} --target {target} --release --features {}",
-            features.join(",")
+            "cargo rustc -p conduitos --bin {binary} --target {target} --release --features {} -- -C link-arg=-Map={}",
+            features.join(","),
+            paths.built_binary(target, binary).with_extension("map").display(),
         );
         return dry_record(arch, &paths, artifact_role);
     }
@@ -342,7 +343,7 @@ fn execute_with_features(
     let mut command = Command::new("cargo");
     command
         .args([
-            "build",
+            "rustc",
             "-p",
             "conduitos",
             "--bin",
@@ -390,6 +391,7 @@ fn execute_with_features(
     if opts.locked {
         command.arg("--locked");
     }
+    let link_map = privilege_inventory::configure_link_map(&mut command, &paths, target, binary);
     let status = command.status().map_err(|error| {
         ConduitosError::refusal(
             "toolchain-unavailable",
@@ -419,7 +421,7 @@ fn execute_with_features(
         },
         elf_sha256: sha256_file(&paths.kernel)?,
     };
-    privilege_inventory::publish(&paths, &record, features)?;
+    privilege_inventory::publish(&paths, &record, features, &link_map)?;
     if !opts.quiet && !opts.json {
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }

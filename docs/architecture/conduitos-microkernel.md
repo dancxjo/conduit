@@ -49,7 +49,8 @@ page mappings; weakening the text profile is not a substitute.
 Product/profile builds through the common builder (including
 `cargo xtask make conduitos live x86_64 --locked`) retain
 `privilege-inventory-<elf-sha256>-<artifact-role>.json` beside `build.json`. The sidecar binds the ELF digest,
-source base commit, artifact role, target, requested features, Cargo's resolved
+source base commit, artifact role, target, same-invocation Root link map and
+its digest, requested features, Cargo's resolved
 normal/build dependencies and their enabled features, and observed dirty status.
 Dry runs do not create this evidence. Collectors must select the current
 ELF digest and artifact role and compare the embedded build record. Separate
@@ -60,10 +61,14 @@ Normal dependencies conservatively identify potentially included code; build
 dependencies run on the build host and are not automatically Root code. Dead-code
 elimination, crate membership and feature selection do not establish runtime
 reachability. The separate domain workspace has its own dependency graph.
-This sidecar is neither an ELF-symbol audit nor an execution receipt; dirty
+Release ELFs strip symbols. The retained `.map` companion records their
+pre-strip linked symbols and addresses without enabling privileged behavior.
+The map filename includes the ELF digest and artifact role, and the inventory
+binds its content hash. It supports classification of linked responsibilities;
+it does not prove which code executes. This sidecar is not an execution receipt; dirty
 source is not uniquely identified by the base commit. A complete audit must
-also retain the exact clean-source build, Root and service ELF load segments
-and symbols, and observed production service entries. Existing architecture
+also inspect the exact clean-source build, Root and service ELF load segments
+and their linked responsibilities, and observe production service entries. Existing architecture
 proof appliances and non-graphical profiles must retain their distinct roles.
 
 ## First isolation milestone
