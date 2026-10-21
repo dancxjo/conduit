@@ -4,6 +4,7 @@ pub mod admission;
 pub mod backs;
 pub mod morse;
 pub mod runtime;
+pub mod snapshot;
 pub mod text;
 pub mod wire;
 pub const NODES: usize = 14;

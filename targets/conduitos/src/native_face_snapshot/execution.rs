@@ -18,6 +18,7 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGNS: usize = 64;
 const REMOTE_SIGNS: u16 = 16;
 const WORK_STEPS: usize = 32;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 type Scheduler = FixedScheduler<
     SnapshotForward,
     FixedValueStore<2, MAX_SNAPSHOT_BYTES>,
@@ -34,7 +35,10 @@ type Scheduler = FixedScheduler<
 
 pub struct PreparedFaceSnapshot<'a> {
     owner: core::marker::PhantomData<&'a mut NativeFaceSnapshotProducer>,
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     scheduler: Box<Scheduler>,
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    scheduler: crate::protected_runtime::snapshot::Snapshot,
     input: LoweredForePort,
     output: LoweredForePort,
     bytes: Vec<u8>,
@@ -111,42 +115,49 @@ impl NativeFaceSnapshotProducer {
                 .cloned()
                 .ok_or(FaceSnapshotRefusal::Shape)
         };
-        let mut routes = FixedRoutes::<PORTS, 2>::new(PORTS as u16);
-        for route in &self.lowered.routes {
-            routes
-                .install(
-                    route.source_node,
-                    route.source_port,
-                    route.range,
-                    &route.targets,
-                )
-                .map_err(|_| FaceSnapshotRefusal::Shape)?;
-        }
-        routes.seal().map_err(|_| FaceSnapshotRefusal::Shape)?;
-        let values = FixedValueStore::<2, MAX_SNAPSHOT_BYTES>::new((2 * MAX_SNAPSHOT_BYTES) as u32)
-            .map_err(|_| FaceSnapshotRefusal::Capacity)?;
-        let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
-            (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
-            REMOTE_SIGNS,
-            conduit_kernel::remote_sign_storage_bytes(REMOTE_SIGNS)
-                .ok_or(FaceSnapshotRefusal::Capacity)?,
-        )
-        .map_err(|_| FaceSnapshotRefusal::Capacity)?;
-        let scheduler = FixedScheduler::new(
-            [self.lowered.node_specs[0]],
-            [self.lowered.cords[0].spec, self.lowered.cords[1].spec],
-            routes,
-            [SnapshotForward],
-            values,
-            signs,
-        )
-        .map_err(|_| FaceSnapshotRefusal::Kernel)?;
         let input = boundary(PortDirection::Input)?;
         let output = boundary(PortDirection::Output)?;
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let scheduler = native::prepare(&self.lowered, &input, &output)?;
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let scheduler = {
+            let mut routes = FixedRoutes::<PORTS, 2>::new(PORTS as u16);
+            for route in &self.lowered.routes {
+                routes
+                    .install(
+                        route.source_node,
+                        route.source_port,
+                        route.range,
+                        &route.targets,
+                    )
+                    .map_err(|_| FaceSnapshotRefusal::Shape)?;
+            }
+            routes.seal().map_err(|_| FaceSnapshotRefusal::Shape)?;
+            let values =
+                FixedValueStore::<2, MAX_SNAPSHOT_BYTES>::new((2 * MAX_SNAPSHOT_BYTES) as u32)
+                    .map_err(|_| FaceSnapshotRefusal::Capacity)?;
+            let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
+                (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
+                REMOTE_SIGNS,
+                conduit_kernel::remote_sign_storage_bytes(REMOTE_SIGNS)
+                    .ok_or(FaceSnapshotRefusal::Capacity)?,
+            )
+            .map_err(|_| FaceSnapshotRefusal::Capacity)?;
+            let scheduler = FixedScheduler::new(
+                [self.lowered.node_specs[0]],
+                [self.lowered.cords[0].spec, self.lowered.cords[1].spec],
+                routes,
+                [SnapshotForward],
+                values,
+                signs,
+            )
+            .map_err(|_| FaceSnapshotRefusal::Kernel)?;
+            Box::new(scheduler)
+        };
         self.last_play_sequence = Some(play_sequence);
         Ok(PreparedFaceSnapshot {
             owner: core::marker::PhantomData,
-            scheduler: Box::new(scheduler),
+            scheduler,
             input,
             output,
             bytes,
@@ -159,6 +170,30 @@ impl NativeFaceSnapshotProducer {
 
 impl PreparedFaceSnapshot<'_> {
     pub fn run(mut self) -> Result<PublishedFaceSnapshot, FaceSnapshotRefusal> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        {
+            let (observed, signs) = self
+                .scheduler
+                .forward(&self.bytes)
+                .map_err(|_| FaceSnapshotRefusal::Kernel)?;
+            if observed != self.bytes {
+                return Err(FaceSnapshotRefusal::ForeOutput);
+            }
+            self.observed = observed;
+            self.retired = true;
+            self.receipt.kernel_signs = signs;
+            let face =
+                serde_json::from_slice(&self.observed).map_err(|_| FaceSnapshotRefusal::Face)?;
+            Ok(PublishedFaceSnapshot {
+                face,
+                receipt: self.receipt.clone(),
+            })
+        }
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        self.run_local()
+    }
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    fn run_local(mut self) -> Result<PublishedFaceSnapshot, FaceSnapshotRefusal> {
         if self
             .scheduler
             .admit_remote_input(self.input.endpoint, self.input.cord, 0, &self.bytes)
@@ -296,30 +331,8 @@ pub(super) fn validate_shape(
     Ok(())
 }
 
-struct SnapshotForward;
-impl StepBack<PORTS> for SnapshotForward {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if let Some(value) = io.input(PortId(0)) {
-            if !io.output_ready(PortId(0)) {
-                return StepOutcome::Await;
-            }
-            if io.consume(PortId(0)).is_err() || io.send(PortId(0), value).is_err() {
-                return StepOutcome::Fail(Failure {
-                    code: FailureCode::InvalidLifecycle,
-                    detail: 1,
-                });
-            }
-            return StepOutcome::Progress;
-        }
-        if io.input_closed(PortId(0)) {
-            if io.consume_closed(PortId(0)).is_err() {
-                return StepOutcome::Fail(Failure {
-                    code: FailureCode::InvalidLifecycle,
-                    detail: 2,
-                });
-            }
-            return StepOutcome::Complete;
-        }
-        StepOutcome::Await
-    }
-}
+use conduitos_runtime_core::snapshot::SnapshotForward;
+const _: () = assert!(PORTS == conduitos_runtime_core::PORTS);
+const _: () = assert!(MAX_SNAPSHOT_BYTES == conduitos_runtime_core::snapshot::VALUE_BYTES);
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod native;

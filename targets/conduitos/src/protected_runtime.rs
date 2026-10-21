@@ -3,6 +3,7 @@
 //! bytes. Scheduler, ready/cord/value/sign state belong to the Runtime guest.
 mod ledger;
 mod morse;
+pub(crate) mod snapshot;
 mod text;
 use crate::{
     arch::ServiceDomain,

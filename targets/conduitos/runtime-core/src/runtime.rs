@@ -9,6 +9,7 @@ enum Owner {
     Native(Scheduler),
     Text(text::Scheduler),
     Morse(morse::Scheduler),
+    Snapshot(crate::snapshot::Runtime),
 }
 pub struct Runtime {
     owner: Owner,
@@ -28,7 +29,7 @@ macro_rules! scheduler {
             Owner::Native($s) => $body,
             Owner::Text($s) => $body,
             Owner::Morse($s) => $body,
-            Owner::Empty => return Err(SchedulerError::InvalidPlan),
+            Owner::Empty | Owner::Snapshot(_) => return Err(SchedulerError::InvalidPlan),
         }
     };
 }
@@ -36,6 +37,7 @@ impl Runtime {
     pub fn gap(&self) -> Option<SignRetentionGap> {
         match &self.owner {
             Owner::Empty => None,
+            Owner::Snapshot(s) => s.gap(),
             Owner::Native(s) => SignQuery::retention_gap(s.signs()),
             Owner::Text(s) => SignQuery::retention_gap(s.signs()),
             Owner::Morse(s) => SignQuery::retention_gap(s.signs()),
@@ -49,14 +51,19 @@ impl Runtime {
         match request {
             Request::Init { bytes }
             | Request::InitText { bytes }
-            | Request::InitMorse { bytes } => {
+            | Request::InitMorse { bytes }
+            | Request::InitSnapshot { bytes } => {
                 if !matches!(self.owner, Owner::Empty) {
                     return Err(SchedulerError::InvalidPlan);
                 }
                 let data = transfer
                     .get(..bytes as usize)
                     .ok_or(SchedulerError::InvalidPlan)?;
-                self.owner = if matches!(request, Request::InitMorse { .. }) {
+                self.owner = if matches!(request, Request::InitSnapshot { .. }) {
+                    let admission = crate::wire::snapshot_admission::decode(data)
+                        .map_err(|_| SchedulerError::InvalidPlan)?;
+                    Owner::Snapshot(admission.build()?)
+                } else if matches!(request, Request::InitMorse { .. }) {
                     let admission = crate::wire::morse_admission::decode(data)
                         .map_err(|_| SchedulerError::InvalidPlan)?;
                     Owner::Morse(admission.build()?)
@@ -72,6 +79,9 @@ impl Runtime {
                 return Ok(Response::Ready);
             }
             _ => {}
+        }
+        if let Owner::Snapshot(snapshot) = &mut self.owner {
+            return snapshot.execute(request, transfer);
         }
         let maximum = if matches!(self.owner, Owner::Morse(_)) {
             morse::MAX_VALUE_BYTES
@@ -128,8 +138,13 @@ impl Runtime {
                     s.cancel()?;
                     Ok(Response::Cancelled)
                 }
-                Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. } =>
-                    Err(SchedulerError::InvalidPlan),
+                Request::Init { .. }
+                | Request::InitText { .. }
+                | Request::InitMorse { .. }
+                | Request::InitSnapshot { .. }
+                | Request::SnapshotWrite { .. }
+                | Request::SnapshotRun
+                | Request::SnapshotRead { .. } => Err(SchedulerError::InvalidPlan),
             }
         )
     }

@@ -73,3 +73,25 @@ exact binding checks, initial literal and completed-value loans, and receipt
 acceptance. Stats remains the existing additive counter query, with mode-specific
 96Sign/4pending ceilings. ProtectedTimer is unchanged: that production path
 already owns its canonical timer scheduler in its private TextDomain.
+
+Face snapshot forwarding adds `InitSnapshot`10, `SnapshotWrite`11,
+`SnapshotRun`12, and `SnapshotRead`13. Initialization admits only numeric checked
+Fore coordinates/routes/cords. Write uploads exactly one nonempty value at most
+48KiB in contiguous16KiB chunks. Run invokes the original1node/2cord canonical
+FixedScheduler, with2*48KiB value storage,64Signs plus16remoteSigns, shared
+SnapshotForward Back, and the original32-step bound. It accepts/normal-closes the
+one ingress, compares actual egress bytes with ingress, acknowledges delivery,
+and requires canonical Drained plus NormalClose before returning bytes/signs.
+Read downloads only that completed actual egress, in contiguous bounded chunks.
+No Host Call is admitted and cancellation is terminal.
+
+Root keeps Face validation, genuine basis and Plan/Play/sequence receipts,
+serialized byte hash, and publication. Its native snapshot adapter uses the
+existing Runtime envelope transport with an empty effect ledger on a transient
+OrdinaryRuntime lease, compares every returned byte to its authorized Face, and
+only then decodes/publishes. NativeWorkset Runtime and the retained Mask session
+have independent ownership; ordinary Tour text/Morse has returned/dropped before
+publication. Host/otherarch keep the original scheduler loop with the same shared
+Back source. Snapshot staging increases retained State and construction stack;
+the existing1MiB metadata assertion and SnapshotRuntime<=State assertion bound
+storage only. Linked stack/image measurement and runtime proof remain separate.

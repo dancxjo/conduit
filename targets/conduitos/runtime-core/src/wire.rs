@@ -3,6 +3,7 @@ pub mod admission;
 mod codec;
 mod errors;
 pub mod morse_admission;
+pub mod snapshot_admission;
 pub mod text_admission;
 use codec::*;
 use conduit_kernel::{
@@ -30,6 +31,19 @@ pub enum Request {
     InitMorse {
         bytes: u32,
     },
+    InitSnapshot {
+        bytes: u32,
+    },
+    SnapshotWrite {
+        offset: u32,
+        bytes: u32,
+        total: u32,
+    },
+    SnapshotRun,
+    SnapshotRead {
+        offset: u32,
+        maximum: u32,
+    },
     Stats,
     Step,
     Next,
@@ -47,6 +61,8 @@ pub enum Request {
 pub enum Response {
     Ready,
     Stats(Stats),
+    Snapshot { bytes: u32, signs: u16 },
+    SnapshotChunk { offset: u32, bytes: u32, total: u32 },
     Status(SchedulerStatus),
     Next(Option<HostCallRequest>),
     Stored(ValueRef),
@@ -73,6 +89,10 @@ impl Request {
             Self::InitText { .. } => 7,
             Self::Stats => 8,
             Self::InitMorse { .. } => 9,
+            Self::InitSnapshot { .. } => 10,
+            Self::SnapshotWrite { .. } => 11,
+            Self::SnapshotRun => 12,
+            Self::SnapshotRead { .. } => 13,
         }
     }
 }
@@ -82,9 +102,15 @@ impl Response {
             || matches!(
                 (request, self),
                 (
-                    Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. },
+                    Request::Init { .. }
+                        | Request::InitText { .. }
+                        | Request::InitMorse { .. }
+                        | Request::InitSnapshot { .. },
                     Self::Ready
                 ) | (Request::Stats, Self::Stats(_))
+                    | (Request::SnapshotWrite { .. }, Self::Ack)
+                    | (Request::SnapshotRun, Self::Snapshot { .. })
+                    | (Request::SnapshotRead { .. }, Self::SnapshotChunk { .. })
                     | (Request::Step, Self::Status(_))
                     | (Request::Next, Self::Next(_))
                     | (Request::Store { .. }, Self::Stored(_))
@@ -151,7 +177,21 @@ pub fn encode_request(e: Envelope, request: Request, bytes: &mut [u8]) -> Result
         Request::Init { bytes }
         | Request::InitText { bytes }
         | Request::InitMorse { bytes }
+        | Request::InitSnapshot { bytes }
         | Request::Store { bytes } => w.u32(bytes)?,
+        Request::SnapshotWrite {
+            offset,
+            bytes,
+            total,
+        } => {
+            w.u32(offset)?;
+            w.u32(bytes)?;
+            w.u32(total)?;
+        }
+        Request::SnapshotRead { offset, maximum } => {
+            w.u32(offset)?;
+            w.u32(maximum)?;
+        }
         Request::Complete {
             node,
             request,
@@ -181,6 +221,17 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), Malformed> {
         7 => Request::InitText { bytes: r.u32()? },
         8 => Request::Stats,
         9 => Request::InitMorse { bytes: r.u32()? },
+        10 => Request::InitSnapshot { bytes: r.u32()? },
+        11 => Request::SnapshotWrite {
+            offset: r.u32()?,
+            bytes: r.u32()?,
+            total: r.u32()?,
+        },
+        12 => Request::SnapshotRun,
+        13 => Request::SnapshotRead {
+            offset: r.u32()?,
+            maximum: r.u32()?,
+        },
         _ => return Err(Malformed),
     };
     r.finish()?;
@@ -200,6 +251,8 @@ pub fn encode_response(
         Response::Ack => 0x8005,
         Response::Cancelled => 0x8006,
         Response::Stats(_) => 0x8008,
+        Response::Snapshot { .. } => 0x800c,
+        Response::SnapshotChunk { .. } => 0x800d,
         Response::Failed(_) => 0x8fff,
     };
     let mut w = begin(bytes, e, tag)?;
@@ -232,6 +285,19 @@ pub fn encode_response(
             w.u32(stats.decisions)?;
             w.u16(stats.signs)?;
             w.u16(stats.pending)?;
+        }
+        Response::Snapshot { bytes, signs } => {
+            w.u32(bytes)?;
+            w.u16(signs)?;
+        }
+        Response::SnapshotChunk {
+            offset,
+            bytes,
+            total,
+        } => {
+            w.u32(offset)?;
+            w.u32(bytes)?;
+            w.u32(total)?;
         }
         Response::Stored(value) => value_write(&mut w, value)?,
         Response::Failed(error) => errors::write(&mut w, error)?,
@@ -285,6 +351,15 @@ pub fn decode_response(
             signs: r.u16()?,
             pending: r.u16()?,
         }),
+        0x800c => Response::Snapshot {
+            bytes: r.u32()?,
+            signs: r.u16()?,
+        },
+        0x800d => Response::SnapshotChunk {
+            offset: r.u32()?,
+            bytes: r.u32()?,
+            total: r.u32()?,
+        },
         0x8fff => Response::Failed(errors::read(&mut r)?),
         _ => return Err(Malformed),
     };
