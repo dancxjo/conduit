@@ -189,3 +189,83 @@ fn pointer_uses_emitted_gear_port_and_uncovered_cord_targets() {
     assert_eq!(scene.graph_projection().unwrap().cursor, cursor);
     assert_eq!(scene.face(), &face);
 }
+
+fn scaled_scene(face: &Face, scale: u16) -> NativeFaceScene {
+    let mut expression = conduit_face::VisualExpression::phosphor();
+    expression.text_scale_percent = scale;
+    let admitted = conduit_face::admit_visual_expression(
+        Ok(expression),
+        conduit_face::VisualUserConstraints {
+            forced_colors: false,
+            reduced_motion: true,
+            minimum_text_scale_percent: 100,
+            maximum_supported_text_scale_percent: 200,
+        },
+    )
+    .unwrap();
+    NativeFaceScene::prepare_visual_fallback(face.clone(), 1280, 800, true, &admitted).unwrap()
+}
+
+#[test]
+fn requested_graph_and_exact_focus_restore_after_enlarged_text_fallback() {
+    let face = specimen();
+    let identity = &face
+        .subjects
+        .iter()
+        .find(|subject| subject.role == FaceRole::Cord)
+        .unwrap()
+        .identity;
+    let mut original = scaled_scene(&face, 100);
+    original
+        .inspect_subject(&face.identity, face.revision, identity)
+        .unwrap();
+    original.show_diagram(true);
+    for _ in 1..original.pages() {
+        original.turn_page(true);
+    }
+    let page = original.page();
+    let mut enlarged = scaled_scene(&face, 200);
+    enlarged.retain_encounter(original).unwrap();
+    assert!(enlarged.showing_details());
+    assert!(!enlarged.showing_diagram());
+    assert_eq!(
+        enlarged.diagram_refusal(),
+        Some(FaceSceneError::InvalidExtent)
+    );
+    assert_eq!(enlarged.page(), enlarged.graph_focus_page().unwrap());
+    assert_eq!(
+        enlarged.graph_projection().unwrap().cursor.focus.as_deref(),
+        Some(identity.as_str())
+    );
+    let mut restored = scaled_scene(&face, 100);
+    restored.retain_encounter(enlarged).unwrap();
+    assert!(restored.showing_diagram());
+    assert_eq!(restored.page(), page);
+    assert_eq!(restored.diagram_refusal(), None);
+    assert_eq!(restored.local_notice, None);
+    assert_eq!(
+        restored.graph_projection().unwrap().cursor.focus.as_deref(),
+        Some(identity.as_str())
+    );
+    restored.frame().unwrap();
+    assert_eq!(restored.face(), &face);
+}
+
+#[test]
+fn explicitly_leaving_graph_reading_cancels_restore_request() {
+    let face = specimen();
+    let mut enlarged = scaled_scene(&face, 200);
+    enlarged.show_diagram(true);
+    assert_eq!(
+        enlarged.diagram_refusal(),
+        Some(FaceSceneError::InvalidExtent)
+    );
+    enlarged.show_details(true);
+    let mut restored = scaled_scene(&face, 100);
+    restored.retain_encounter(enlarged).unwrap();
+    assert!(restored.showing_details());
+    assert!(!restored.showing_diagram());
+    assert_eq!(restored.local_notice, None);
+    restored.frame().unwrap();
+    assert_eq!(restored.face(), &face);
+}

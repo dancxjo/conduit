@@ -360,3 +360,18 @@ Removing the canvas codec alone would break a supported graph path. #6201 owns
 its typed Face/Show/Interaction migration, real consumer retirement, preserved
 operations and exact finite admission; it does not waive parent acceptance or
 claim completion from the shared graph projection. No CI/proof was launched.
+
+## Focused Look fallback/restoration checks
+
+Added two deterministic graph encounter regressions. An exact selected Cord and
+originating diagram page survive same-Face transfer into 200% measured-text
+fallback; a fitting 100% Look restores the requested diagram and exact cursor,
+clears the refusal notice and assembles its frame. Explicitly leaving graph
+reading cancels that restoration request and retains Details. Face identity and
+content are unchanged by either operation.
+
+All six graph-reading tests pass (1,257 filtered out), compile 30 seconds /
+execution 0.46 seconds. This includes the earlier semantic, keyboard/pointer and
+stale-Show cases at this source. It is CPU encounter/input/frame evidence, not
+an actual owner Show refresh, browser comparison or QEMU/CI acceptance. No broader
+suite, image rebuild, platform journey or CI job ran.
