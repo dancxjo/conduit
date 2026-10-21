@@ -3,6 +3,39 @@ from pathlib import Path
 import json,hashlib,sys,collections
 root=Path(sys.argv[1]).resolve(); admission=Path(sys.argv[2]).resolve(); output=Path(sys.argv[3])
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+
+def verify_commit_observation(o):
+ # Independently mirror frozen Source agreement/advance and actual commit application.
+ c=o['commit']; before=c['before']; after=c['after']; active=[h for h in before if h['active']]
+ assert len(before)==len(after)==4 and active
+ assert after==o['occupancy']['all_four']
+ initial=before[0]['committed']; stable=initial; halted=False
+ assert len(c['agreements'])==o['available_count']
+ for ordinal,a in enumerate(c['agreements']):
+  ref=active[0]
+  edge=lambda h:(h['heads'][ordinal],h['relations'][ordinal],h['relation_subtypes'][ordinal])
+  agrees=ref['heads'][ordinal]<5 and all(edge(h)==edge(ref) for h in active)
+  assert a['ordinal']==ordinal and a['survivors']==len(active)
+  assert a['head']==ref['heads'][ordinal] and a['relation']==ref['relations'][ordinal]
+  assert a['agrees']==agrees
+  if not halted and ordinal==stable:
+   if agrees and stable<4: stable+=1
+   else: halted=True
+ assert c['stable']==stable
+ through=c['pending_consumer_through']
+ requested=through is not None and initial<through<=stable
+ assert c['actual_result_applied_to_current_beam']==requested
+ assert not c['accepted'] or requested
+ assert c['committed']==(through if c['accepted'] else initial)
+ for old,new in zip(before,after):
+  expected=dict(old)
+  if c['accepted'] and old['active']: expected['committed']=through
+  assert new==expected, 'commit changed fields beyond accepted active frontier'
+ for h in before:
+  assert len(h['choices'])==len(h['relations'])==len(h['relation_subtypes'])==4
+  assert len(h['heads'])==5 and 0<=h['committed']<=4 and 0<=h['selected']<=4
+  assert all(isinstance(v,int) and 0<=v<4 for v in h['choices'])
+ return len(c['agreements'])
 manifest=json.load(open(admission/'pair-manifest.json'));cases=json.load(open(manifest['cases']['path']))['cases']
 expected={f'{arm}-{i:02}-report.json' for arm in ['causal','full'] for i in range(17)}
 assert {p.name for p in root.glob('*-report.json')}==expected,'incomplete34report set'
@@ -27,7 +60,7 @@ for arm in ['causal','full']:
    receipt['verification']['all_four_survivors_checked']+=1
    for h in o['occupancy']['all_four']:
     assert len(h['choices'])==4 and len(h['heads'])==5 and len(h['relations'])==4
-   if o['commit']['accepted']: assert o['commit']['actual_result_applied_to_current_beam']
+   receipt['verification']['agreement_frontier_records_checked']=receipt['verification'].get('agreement_frontier_records_checked',0)+verify_commit_observation(o)
   traces=[r['preparation_source_trace']]+r['prefix_source_traces']
   for tr in traces:
    p=Path(tr['path']);assert p.parent==root and p.stat().st_size==tr['end_exclusive'] and tr['start_inclusive']==0 and 0<p.stat().st_size<=67108864
