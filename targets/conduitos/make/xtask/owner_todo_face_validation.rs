@@ -79,6 +79,7 @@ pub(super) fn read_and_validate_current(
     }
     Ok(json!({
         "source":"installed-owner-body-face-json",
+        "face":face,
         "body_id":args.expected_body_id,
         "face_id":face["identity"],
         "face_revision":face["revision"],
