@@ -188,7 +188,7 @@ fn prepare_inner(
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let scheduler = admission.build().map_err(|_| WorksetRefusal::Kernel)?;
     let initial = super::super::application_delivery::initial(prepared, evidence)?;
-    let applications = NativeApplications::new(initial).map_err(|_| WorksetRefusal::Plan)?;
+    let applications = NativeApplications::new(initial).map_err(WorksetRefusal::Application)?;
     Ok(NativeWorksetPlay {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         pure_results: core::array::from_fn(|_| None),
