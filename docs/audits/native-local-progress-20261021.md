@@ -375,3 +375,21 @@ execution 0.46 seconds. This includes the earlier semantic, keyboard/pointer and
 stale-Show cases at this source. It is CPU encounter/input/frame evidence, not
 an actual owner Show refresh, browser comparison or QEMU/CI acceptance. No broader
 suite, image rebuild, platform journey or CI job ran.
+
+## Resident initial observation preparation
+
+Added `PatchbayApplicationPort::observe_fragment` as a read-only preparation
+operation over the retained source model. It needs no event or fabricated
+FaceInteraction. It records current inventory/selection and observed Plan/state
+facts, reuses shared exact graph projection, and references rather than
+redeclares the outer Face's Body/resident Plot subjects. Caller-supplied
+contribution basis is provenance, not authority; final composition/Face byte
+bounds and storage admission remain the owner's responsibility. No actions are
+advertised before an exact return route exists.
+
+This is a #6201 preparation seam, not a switched production Fore or a completed
+startup scheduler/Show feedback loop. Existing application paths remain intact.
+Native-compositor/workbench compilation passed after correcting a BodyId import
+from core to its existing body crate (failed initial log retained separately).
+No tests, image rebuild, platform journey or CI job ran. Actual startup, typed
+owner effects and migration acceptance remain open.

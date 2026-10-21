@@ -42,6 +42,7 @@ mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
 mod resident_canvas;
+mod resident_face;
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;
