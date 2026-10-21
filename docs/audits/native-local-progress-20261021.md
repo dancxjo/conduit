@@ -80,3 +80,9 @@ unchanged. Real completion removes the component's required one-way action, so
 the existing explicit generic fallback can be reached without a fault flag or
 unreachable item-count fixture. Source/admission/runtime proof is still deferred;
 no installed-owner fallback or stable acceptance is claimed from compilation.
+
+The required-item owner binary and native compositor/owner-network code compile;
+JS module syntax checks pass. An optional Source check with the retained db1 CLI
+reports CND-FRM-053 on VisualExpressionInfo for both the existing todo-mask source
+and the extended required-item source. That baseline diagnostic does not establish
+native Host-specific admission; runtime/catalog acceptance remains deferred.
