@@ -1,0 +1,173 @@
+{
+  "schema": "conduit.proof/mask-correspondence-continuation@1",
+  "source": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+  "prior_browser_receipt_sha256": "da0378fb8990263f48fb85ec599e866a16494dbe02996c97acec12d34599df32",
+  "prior_checkpoint_sha256": "sha256:4a19d601744a22d50a783476fbca02dd08257cfc43e23c44ea7e3bb2edf81a10",
+  "prior_mutations": 2,
+  "terminal_mutations": 1,
+  "action_id": "todo.add",
+  "target": "todo/list",
+  "browser_input": "trusted native pointer click",
+  "terminal_input": "scripted owner terminal action command",
+  "browser_show": {
+    "face_id": "5ca78517568143853c55dd6b7f8836de16e4b724e205cbe1ffd1b5d487a35406",
+    "face_revision": "3560740827112447465",
+    "mask_plot_id": "1a0d316df5a2f92740f41d3f905b19bb82bc71d04a2fd00775ea78f523964453",
+    "mask_plan_id": "1dc0f3a3e431dcbecf8eae3057d8d5b05e288fb054712e5ef00cc339306fff25",
+    "mask_play_id": "96a79119e7eed67c5828848d940f5336afceb57e2daadd57c1c0e6b6902a8b22",
+    "show_id": "show/76ff587f56dd5a1eda63fe03c34c27cadb31b72960f69d9fd5ca70e2989a671c",
+    "route": {
+      "plan_id": "plan/remote-owner-mask/4ed9f9f392cac12553b35fd6c5b95f2741f1db6b018388b6f7c54e077fba5af9",
+      "owner_host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+      "owner_boot_id": "boot/installed/a695c39c60999b84b47fe88619d36589998b527c4c8f14b3b355fa827fe82a57",
+      "mask_host_id": "browser/0c4a04cc-5955-4ffa-8c7f-2862e7e69544",
+      "mask_boot_id": "browser-boot/01bc4b58-40d2-4edf-b874-0308f75bca9f"
+    }
+  },
+  "terminal_show": {
+    "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+    "boot_id": "boot/installed/571b72cde63d07b3c57d1f4f831b2bb21058092411593ecefd8ab3f432d93cac",
+    "bytes_written": 707,
+    "face_id": "e804c73eacefda6199102e7108c695a72f48f956a353b41be425647b84cb71df",
+    "face_revision": "3560740827112447496",
+    "frame_sha256": [
+      111,
+      44,
+      52,
+      211,
+      20,
+      198,
+      253,
+      63,
+      106,
+      117,
+      188,
+      207,
+      177,
+      225,
+      197,
+      197,
+      114,
+      113,
+      148,
+      37,
+      90,
+      33,
+      98,
+      226,
+      241,
+      113,
+      218,
+      137,
+      138,
+      71,
+      34,
+      112
+    ],
+    "host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+    "mask_plan_id": "f2716e6758ba56b97cc69249731bbaddb43bd7c74354352047a28891a359f8d5",
+    "mask_play_id": "b1f996933de3ecd89bf66981a9f4b7c184d0e811b3196b69b62882a97fccd0b6",
+    "owner_selected_show_current": true,
+    "route_plan_id": "plan/local-owner-mask/f03dc416ef0d353a53b756db39e218e77d4f22bf70a32a0e44f86b9b98eb2fd2",
+    "schema": "conduit.body/terminal-show-evidence@1",
+    "show_id": "show/9f9b091e67995f295c37e11a71111a1c566aae1b2d4483aa81433a0a4380cad6",
+    "show_sha256": [
+      1,
+      149,
+      79,
+      98,
+      4,
+      9,
+      160,
+      134,
+      152,
+      19,
+      120,
+      176,
+      205,
+      136,
+      239,
+      193,
+      180,
+      82,
+      77,
+      244,
+      108,
+      234,
+      4,
+      6,
+      189,
+      212,
+      213,
+      240,
+      115,
+      116,
+      41,
+      16
+    ],
+    "show_state": "available"
+  },
+  "terminal_interaction_id": "3d393c0f183cc1a80673deb53d86b965001db844fa6e29af9de7ce5570bda21d",
+  "write_plan_id": "body-plan/sha256:070a00fa7f90326afd5da687b6fd7b5550978b223a8c268e2c8120dc5fff6e5b",
+  "write_play": {
+    "active_play_id": "body-play/sha256:cba0ac2a8012556118a9e628a5a2d9e19c119cb402975dc98c5b7b2cfc5bb887",
+    "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+    "plan_id": "body-plan/sha256:070a00fa7f90326afd5da687b6fd7b5550978b223a8c268e2c8120dc5fff6e5b",
+    "play_sequence": 1,
+    "wake_id": "bb5650efb02c96cb521374b16eab021f3c3eb017d70ef62738927956e640c141"
+  },
+  "write_sign": {
+    "active_play_id": "body-play/sha256:cba0ac2a8012556118a9e628a5a2d9e19c119cb402975dc98c5b7b2cfc5bb887",
+    "boot_id": "boot/installed/571b72cde63d07b3c57d1f4f831b2bb21058092411593ecefd8ab3f432d93cac",
+    "host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+    "sequence": 2,
+    "sign_id": "ddd13c25e965874c8f43418b816344f2cdbcc84143f110fd865bfb0099366b10"
+  },
+  "read_plan_id": "body-plan/sha256:1d4fee61e040c782e54612e586701028b732cd33164e2a70ca04c4b9b895d504",
+  "read_play": {
+    "active_play_id": "body-play/sha256:3f16571afd723a1de5b7e73774744205c70c4d2a31cbbf23853ed66c879b8537",
+    "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+    "plan_id": "body-plan/sha256:1d4fee61e040c782e54612e586701028b732cd33164e2a70ca04c4b9b895d504",
+    "play_sequence": 2,
+    "wake_id": "5c946527d821eda423e62a285b4d600088d52c7cf60e43324ea39f8f8347f3ce"
+  },
+  "read_sign": {
+    "active_play_id": "body-play/sha256:3f16571afd723a1de5b7e73774744205c70c4d2a31cbbf23853ed66c879b8537",
+    "boot_id": "boot/installed/571b72cde63d07b3c57d1f4f831b2bb21058092411593ecefd8ab3f432d93cac",
+    "host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+    "sequence": 2,
+    "sign_id": "7683bdb9c10df043f13fbcaf9329621a2164236edcce9e2df86700e1b0c1cf0c"
+  },
+  "resulting_face_id": "3e0dcb7bc7218961b8a492fbdcc08981a5c04b3ccdd0ece8c9d70d98b6abac60",
+  "committed_fore_sha256": "sha256:146e1165bff4bbada7135538e40224c959a7f726ba2ad132a91dbfd29b0edec4",
+  "scope": "Guarded continuation of the same known-successful source-pinned installation after service restart; distinct current Faces/Shows, same Body and offered action. Scripted terminal output/input, not human physical input. No old action replay.",
+  "exact_canonical_action": {
+    "identity": "todo.add",
+    "intent": "todo/add@1",
+    "target": "todo/list",
+    "name": "add an item",
+    "arguments": [
+      {
+        "name": "text",
+        "value_name": "Item text",
+        "contract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 72,
+          "constraints": [
+            {
+              "ByteLength": {
+                "minimum": 1,
+                "maximum": 72
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "disclosure": "CurrentAction",
+    "availability": "Available"
+  },
+  "canonical_action_equality": "full object equality against same source/Body browser accessibility receipt",
+  "producer_sha256": "70105a2a28eea2ba74e298fa8642bd8bd552256c56e1a653769c07fde80837e1"
+}

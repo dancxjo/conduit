@@ -1,0 +1,44 @@
+{
+  "schema": "conduit.proof/todo-observed-mutation@1",
+  "observed_at_unix_ms": 1792596474023,
+  "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+  "action_id": "todo.add",
+  "initiating_face_id": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+  "initiating_face_revision": "3560740827112447474",
+  "initiating_show_id": "show/eb04d4ea57a37873228cc48fd31ac5b37e15f7a7d5233e271499518b42f51fd7",
+  "interaction_id": "7c5c5b3fac5100f65b591a2fd27c99960e6d2ea74fc6ce28dacbdeff940e85ff",
+  "queue_sequence": 13,
+  "resulting_face_id": "5e598eeba8158f7940139c398914b93d0a42a54aa17a29188954479e2df6b747",
+  "resulting_face_revision": "3560740827112447488",
+  "write_plan_id": "body-plan/sha256:b69dc373610f209f30e5cbd1b2ba4e3c7045776e74cc83d8b5705b9332b1e243",
+  "write_play": {
+    "active_play_id": "body-play/sha256:f6a23d6995fbbf9830080e7063cdaeb7029fef2d217cf2819758d2414134763f",
+    "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+    "plan_id": "body-plan/sha256:b69dc373610f209f30e5cbd1b2ba4e3c7045776e74cc83d8b5705b9332b1e243",
+    "play_sequence": 2,
+    "wake_id": "a702c5d294dcabaac6e2b4f562aa802824f04e1815cd3545ee93ffcd7f15b0cc"
+  },
+  "write_terminal_sign": {
+    "active_play_id": "body-play/sha256:f6a23d6995fbbf9830080e7063cdaeb7029fef2d217cf2819758d2414134763f",
+    "boot_id": "boot/installed/a695c39c60999b84b47fe88619d36589998b527c4c8f14b3b355fa827fe82a57",
+    "host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+    "sequence": 2,
+    "sign_id": "a67b8a5c147dba74ee5d4642f762529181cb4fc5e4eb0db21f5abaf59d67cd3e"
+  },
+  "read_plan_id": "body-plan/sha256:7a6fe6f7e441c392b2fbce711a9df3b710da31b696fcf49f723c4dee76eed74c",
+  "read_play": {
+    "active_play_id": "body-play/sha256:45c1556ff3a82136f0f785dd848071aeda72b3f406c68117c96d9db59be6bd43",
+    "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+    "plan_id": "body-plan/sha256:7a6fe6f7e441c392b2fbce711a9df3b710da31b696fcf49f723c4dee76eed74c",
+    "play_sequence": 3,
+    "wake_id": "830e6f1c5de44df848f1109f14b198e8b113f201a64e0ceb6c24d7d5c723c388"
+  },
+  "read_terminal_sign": {
+    "active_play_id": "body-play/sha256:45c1556ff3a82136f0f785dd848071aeda72b3f406c68117c96d9db59be6bd43",
+    "boot_id": "boot/installed/a695c39c60999b84b47fe88619d36589998b527c4c8f14b3b355fa827fe82a57",
+    "host_id": "host/installed/5fe84bbf3c60a6314cbba0ab0f025e6f67f4a582cda51b4f1b17eef84911a211",
+    "sequence": 2,
+    "sign_id": "e2ee35cbadd952ca6bc67edfff71eea036aad728ff4d968228e7b6625a174818"
+  },
+  "committed_fore_sha256": "sha256:4a19d601744a22d50a783476fbca02dd08257cfc43e23c44ea7e3bb2edf81a10"
+}

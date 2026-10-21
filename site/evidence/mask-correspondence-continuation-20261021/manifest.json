@@ -1,0 +1,57 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2674,
+      "sha256": "f974f011834843bb83a0788cee1464be45c2c4c251035d68a1a3812f97cd8d45"
+    },
+    {
+      "path": "browser-accessibility-after-add.json",
+      "bytes": 19185,
+      "sha256": "571a6c4538fd34764257adf8b866ed8572dfcfe2d948d66e6b8c893932c2fd12"
+    },
+    {
+      "path": "browser-add-1-mutation.json",
+      "bytes": 2718,
+      "sha256": "09c8d2a2f7a985f2ec4a4fbf7e01d593e832f324e0b5446106280394104c3351"
+    },
+    {
+      "path": "browser-add-2-mutation.json",
+      "bytes": 2719,
+      "sha256": "e4a88caefb1bf8455838c087d934aa52ba6032bd3c86eafa6fc2f1630e79b053"
+    },
+    {
+      "path": "canonical-before-terminal.json",
+      "bytes": 14132,
+      "sha256": "ec75b2d6366ac603aaac62f83eb4ceed12ebb37e6dce841f3cf11376d17873ec"
+    },
+    {
+      "path": "producer.py",
+      "bytes": 5823,
+      "sha256": "70105a2a28eea2ba74e298fa8642bd8bd552256c56e1a653769c07fde80837e1"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 6533,
+      "sha256": "43f9378d41b395d07339cfad0bb19b69304e9db7a61f5ee6cc1b7d3a42d79421"
+    },
+    {
+      "path": "terminal.input",
+      "bytes": 114,
+      "sha256": "a45de6bb80e394f8ee3977e49684477eb290a43901806e19b2dcc489e3f7c1ec"
+    },
+    {
+      "path": "terminal.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "terminal.stdout",
+      "bytes": 9722,
+      "sha256": "7f0d36577b3ccd5aa8f6c191ba795b1c8e3934535c44b4b28fa547499455657f"
+    }
+  ],
+  "excluded": [
+    "Private installation and checkpoint payloads, control secrets, raw credential-bearing execution receipt, and service files."
+  ]
+}
