@@ -13,6 +13,7 @@ pub enum ServiceProfile {
     Draft,
     Home,
     Runtime,
+    Application,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
@@ -21,6 +22,7 @@ impl ServiceProfile {
             Self::Draft => ServiceMemoryLayout::draft(),
             Self::Home => ServiceMemoryLayout::home(),
             Self::Runtime => ServiceMemoryLayout::runtime(),
+            Self::Application => ServiceMemoryLayout::application(),
         }
     }
 }
@@ -88,6 +90,22 @@ impl ServiceMemoryLayout {
             ],
         )
     }
+    /// One finite heap-backed application-model owner shared across its Plots.
+    /// These ceilings are engineering limits, not measured execution/fit evidence.
+    pub const fn application() -> Self {
+        Self::from_sizes(
+            ServiceProfile::Application,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                1024 * 1024,
+                2 * 1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
     const fn controller(profile: ServiceProfile) -> Self {
         Self::from_sizes(
             profile,
@@ -137,14 +155,20 @@ impl ServiceMemoryLayout {
     pub const fn pixels(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[5]),
-            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => None,
+            ServiceProfile::Draft
+            | ServiceProfile::Home
+            | ServiceProfile::Runtime
+            | ServiceProfile::Application => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
     pub const fn scratch(self) -> Option<MemoryRange> {
         match self.profile {
             ServiceProfile::Compositor => Some(self.ranges[6]),
-            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => None,
+            ServiceProfile::Draft
+            | ServiceProfile::Home
+            | ServiceProfile::Runtime
+            | ServiceProfile::Application => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -153,7 +177,10 @@ impl ServiceMemoryLayout {
     pub const fn range_count(self) -> usize {
         match self.profile {
             ServiceProfile::Compositor => 7,
-            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => 5,
+            ServiceProfile::Draft
+            | ServiceProfile::Home
+            | ServiceProfile::Runtime
+            | ServiceProfile::Application => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -228,12 +255,13 @@ impl<'a> ServiceImage<'a> {
         layout.validate()?;
         let private = match profile {
             ServiceProfile::Compositor => None,
-            ServiceProfile::Draft | ServiceProfile::Home | ServiceProfile::Runtime => {
-                Some(PrivateDataWindow {
-                    start: layout.metadata().start(),
-                    bytes: PAGE_BYTES,
-                })
-            }
+            ServiceProfile::Draft
+            | ServiceProfile::Home
+            | ServiceProfile::Runtime
+            | ServiceProfile::Application => Some(PrivateDataWindow {
+                start: layout.metadata().start(),
+                bytes: PAGE_BYTES,
+            }),
         };
         let (image, private_data) = DomainImage::parse_service(
             bytes,
