@@ -1,6 +1,6 @@
 //! Graphical retained-scene rendering; rescue scanout rendering stays separate.
 
-use super::{render_text_scaled, TextRole};
+use super::{TextRole, render_text_scaled};
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
 use conduit_face::{GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene};
 
