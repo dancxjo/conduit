@@ -661,8 +661,9 @@ The x86_64 native Body workset now constructs its existing canonical
 Runtime executable. Root submits the checked numeric admission and services
 bounded Host Call requests. Host and other-architecture worksets use the same
 shared Back definitions and canonical scheduler locally. Tour/ordinary runtime
-paths and canonical application Host Call adapters still execute in Root; this
-is not a claim that the whole portable engine has left Root.
+paths still execute in Root; native application Host Calls cross a separate
+Application service boundary described below. This is not a claim that the
+whole portable engine has left Root.
 
 The Root broker independently checks admitted nodes/calls/byte envelopes,
 pending completion identities, strictly increasing request IDs and at most one
@@ -703,8 +704,13 @@ unpublished views and releases the Application lease.
 The Application image fits its closed RX/RO window and uses a separate 16-byte
 initialized RW/NX metadata template. Native compilation passes; entry-frame and
 segment inspection do not establish full stack/heap fit or execution acceptance.
-The separate ProductJourney lifecycle Tutorial projection/action adapter remains
-in Root, as do actual lifecycle/effect admission, general Face/Mask and the
+The separate ProductJourney lifecycle Tutorial view now also uses a scoped,
+read-only Application query, sharing its canonical projector with retained
+Tutorial models. A live workset reuses its owner; a lulled Body or text-only
+workset uses an explicit transient lease. Failed live owners cannot silently
+retry through a cold lease. Read failures immediately fence cached views and
+actions, and the next mutable boundary retires sibling execution. Root retains
+the exact lifecycle action admission and effects, general Face/Mask and the
 remaining execution/network/device paths. Expanded runtime proof is deferred.
 
 ## Deliberate limits
