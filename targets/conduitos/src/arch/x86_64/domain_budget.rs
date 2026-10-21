@@ -10,6 +10,11 @@ use core::{
 };
 
 pub(super) const VECTOR: u8 = 0x28;
+// An ordinary first Memory edit exhausted the former three-tick quantum
+// in a normal host-time QEMU product run. Admit one finite frame-sized turn.
+// Sixteen RTC ticks give roughly one 60 Hz frame of execution at 1024 Hz,
+// while retaining a finite, independent return even for a non-yielding entry.
+const ENTRY_BUDGET_TICKS: u32 = 16;
 static READY: AtomicBool = AtomicBool::new(false);
 static SEEN: AtomicU32 = AtomicU32::new(0);
 static REMAINING: AtomicU32 = AtomicU32::new(0);
@@ -84,7 +89,7 @@ impl Budget {
         }
         USER_INTERRUPTS.store(0, Ordering::Release);
         SOURCE_INTERRUPTS.store(0, Ordering::Release);
-        REMAINING.store(3, Ordering::Release);
+        REMAINING.store(ENTRY_BUDGET_TICKS, Ordering::Release);
         Ok(guard)
     }
 }

@@ -101,6 +101,11 @@ fn hostile_entries() {
         if returned != Ok(DomainReturn::Fault(expected)) && !sysenter_denied {
             refuse("hostile-entry-did-not-fault");
         }
+        if matches!(command, 6 | 17)
+            && (domain.cost().preemptions != 1 || domain.cost().interrupt_entries < 16)
+        {
+            refuse("hostile-entry-budget-not-enforced");
+        }
         if domain.cost().scheduler_returns != 1 {
             refuse("hostile-entry-did-not-return-to-root");
         }
