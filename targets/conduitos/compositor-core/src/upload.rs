@@ -1,5 +1,7 @@
 use crate::*;
 impl Compositor<'_> {
+    /// Revision is a renderer-local upload sequence, not a semantic Face revision.
+    /// Same-Face repaint requires a fresh upload sequence; Root keeps Face/Show binding.
     /// One transaction replaces exactly one raster. Other committed rasters are
     /// copied to scratch in finite steps; their current arena remains untouched.
     pub fn begin_upload(&mut self, h: Handle, revision: u64, rect: Rect) -> Result<(), Error> {
@@ -13,6 +15,13 @@ impl Compositor<'_> {
         surfaces[slot].rect = rect;
         surfaces[slot].revision = revision;
         surfaces[slot].ready = true;
+        let reserved = surfaces
+            .iter()
+            .filter(|s| s.live)
+            .try_fold(0, |sum, s| Ok::<_, Error>(sum + s.rect.pixels()?))?;
+        if reserved > MAX_PIXELS {
+            return Err(Error::Capacity);
+        }
         let mut offset = 0;
         for s in &mut surfaces {
             if s.live && s.ready {
@@ -25,6 +34,7 @@ impl Compositor<'_> {
             return Err(Error::Capacity);
         }
         self.invalidate();
+        self.acknowledged[slot] = false;
         self.upload = Some(Upload {
             slot,
             surfaces,

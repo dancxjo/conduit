@@ -70,7 +70,7 @@ impl Compositor<'_> {
             return Err(Error::Stale);
         }
         if output.is_empty() || output.len() > MAX_CHUNK {
-            self.invalidate();
+            self.fail_frame();
             return Err(Error::Bounds);
         }
         let mut p = self.frame.take().ok_or(Error::Order)?;
@@ -78,42 +78,53 @@ impl Compositor<'_> {
         let n = output.len().min((r.right - p.x) as usize);
         let x = p.x as u32;
         let y = p.y as u32;
-        for (dx, pixel) in output[..n].iter_mut().enumerate() {
-            let px = x + dx as u32;
-            let selected = self.selected(px, y);
-            *pixel = selected.map_or(0, |i| {
+        let focus = self.focus.and_then(|h| self.index(h).ok()).and_then(|i| {
+            let s = self.surfaces[i];
+            (s.visible && s.ready).then_some(s.rect)
+        });
+        for (left, right, selected) in self.intervals(x, x + n as u32, y, focus) {
+            let start = (left - x) as usize;
+            let len = (right - left) as usize;
+            let target = &mut output[start..start + len];
+            if let Some(i) = selected {
                 let s = self.surfaces[i];
-                let local_x = (i64::from(px) - i64::from(s.rect.x)) as usize;
-                let local_y = (i64::from(y) - i64::from(s.rect.y)) as usize;
-                self.pixels[s.offset + local_y * usize::from(s.rect.width) + local_x]
+                let offset = s.offset
+                    + (i64::from(y) - i64::from(s.rect.y)) as usize * usize::from(s.rect.width)
+                    + (i64::from(left) - i64::from(s.rect.x)) as usize;
+                target.copy_from_slice(&self.pixels[offset..offset + len]);
+            } else {
+                target.fill(0);
+            }
+            let focused = focus.is_some_and(|r| {
+                r.contains(left, y)
+                    && (i64::from(left) == i64::from(r.x)
+                        || i64::from(left) == i64::from(r.x) + i64::from(r.width) - 1
+                        || i64::from(y) == i64::from(r.y)
+                        || i64::from(y) == i64::from(r.y) + i64::from(r.height) - 1)
             });
-            let focus = self
-                .focus
-                .and_then(|h| self.index(h).ok())
-                .is_some_and(|i| {
-                    let s = self.surfaces[i];
-                    let r = s.rect;
-                    s.visible
-                        && s.ready
-                        && r.contains(px, y)
-                        && (i64::from(px) == i64::from(r.x)
-                            || i64::from(px) == i64::from(r.x) + i64::from(r.width) - 1
-                            || i64::from(y) == i64::from(r.y)
-                            || i64::from(y) == i64::from(r.y) + i64::from(r.height) - 1)
-                });
-            let cursor = self
+            let mut uncovered = if focused {
+                target.fill(0x00ffcc33);
+                0
+            } else {
+                len as u32
+            };
+            if self
                 .cursor
-                .and_then(|position| cursor_color(position, px, y, self.hover));
-            if focus {
-                *pixel = 0x00ffcc33;
-            }
-            if let Some(color) = cursor {
-                *pixel = color;
-            }
-            if !focus && cursor.is_none() {
-                if let Some(i) = selected {
-                    p.coverage[i] += 1;
+                .is_some_and(|(cx, cy)| left >= cx && left < cx + 10 && y >= cy && y < cy + 16)
+            {
+                for (dx, pixel) in target.iter_mut().enumerate() {
+                    if let Some(color) = self.cursor.and_then(|position| {
+                        cursor_color(position, left + dx as u32, y, self.hover)
+                    }) {
+                        *pixel = color;
+                        if !focused {
+                            uncovered -= 1;
+                        }
+                    }
                 }
+            }
+            if let Some(i) = selected {
+                p.coverage[i] += uncovered;
             }
         }
         p.x += n as i32;
@@ -157,12 +168,13 @@ impl Compositor<'_> {
             .filter(|frame| frame.sequence == sequence)
             .ok_or(Error::Stale)?;
         for (i, count) in complete.coverage.into_iter().enumerate() {
-            self.acknowledged[i] = count > 0;
+            self.acknowledged[i] |= count > 0;
         }
         Ok(())
     }
     pub fn fail_frame(&mut self) {
         self.invalidate();
+        self.acknowledged.fill(false);
         // Completion may already have consumed damage before Root reports a copy
         // failure. Repaint the complete display to recover without stale coverage.
         self.damage.add(Rect {
@@ -181,9 +193,9 @@ const FILL: [u16; 16] = [
     0, 0, 0x0002, 0x0006, 0x000e, 0x001e, 0x003e, 0x007e, 0x00fe, 0x001e, 0x0036, 0x0062, 0x0060,
     0x00c0, 0x00c0, 0,
 ];
-fn cursor_color((cx, cy): (u16, u16), x: u32, y: u32, hover: bool) -> Option<u32> {
-    let dx = x.checked_sub(u32::from(cx))?;
-    let dy = y.checked_sub(u32::from(cy))?;
+fn cursor_color((cx, cy): (u32, u32), x: u32, y: u32, hover: bool) -> Option<u32> {
+    let dx = x.checked_sub(cx)?;
+    let dy = y.checked_sub(cy)?;
     let row = usize::try_from(dy).ok()?;
     let bit = 1u16.checked_shl(dx)?;
     if FILL.get(row).is_some_and(|m| m & bit != 0) {

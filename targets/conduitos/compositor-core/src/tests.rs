@@ -104,7 +104,7 @@ fn malformed_stale_partial_upload_and_failed_frame_cannot_authorize_input() {
     assert_eq!(screen, [7; 64]);
     assert!(c.pointer(2, 2).is_some());
     assert_eq!(c.begin_upload(h, 1, r), Err(Error::Stale));
-    assert_eq!(c.cursor(Some((u16::MAX, 0)), false), Err(Error::Bounds));
+    assert_eq!(c.cursor(Some((u32::MAX, 0)), false), Err(Error::Bounds));
 }
 #[test]
 fn frozen_native_reference_matches_overlaps_clipping_ties_cursor_and_focus() {
@@ -133,16 +133,30 @@ fn frozen_native_reference_matches_overlaps_clipping_ties_cursor_and_focus() {
             if i == 3 {
                 c.visible(h, false).unwrap();
             }
-            if i == 2 {
-                c.focus(h).unwrap();
-            }
         }
-        let cursor = (seed as u16, seed as u16 / 2);
-        c.cursor(Some(cursor), seed % 2 == 0).unwrap();
         let mut screen = vec![0; 31 * 25];
+        let initial = render(&mut c, &mut screen, MAX_CHUNK);
+        c.acknowledge_scanout(initial.sequence()).unwrap();
+        let focus = initial
+            .coverage()
+            .iter()
+            .position(|&count| count > 0)
+            .unwrap();
+        c.focus(Handle {
+            slot: focus as u8,
+            generation: 1,
+        })
+        .unwrap();
+        let cursor = (seed as u16, seed as u16 / 2);
+        c.cursor(
+            Some((u32::from(cursor.0), u32::from(cursor.1))),
+            seed % 2 == 0,
+        )
+        .unwrap();
+        c.fail_frame();
         let done = render(&mut c, &mut screen, 1 + (seed as usize * 71) % MAX_CHUNK);
         let (expected, coverage) =
-            reference::compose(&fixtures, 31, 25, Some(2), Some(cursor), seed % 2 == 0);
+            reference::compose(&fixtures, 31, 25, Some(focus), Some(cursor), seed % 2 == 0);
         assert_eq!(screen, expected, "seed {seed}");
         assert_eq!(done.coverage(), coverage, "coverage seed {seed}");
     }
@@ -163,7 +177,7 @@ fn lifecycle_damage_repaints_old_bounds_and_ack_is_invalidated() {
     let done = render(&mut c, &mut screen, 3);
     c.acknowledge_scanout(done.sequence()).unwrap();
     c.focus(h).unwrap();
-    assert_eq!(c.keyboard(), None);
+    assert_eq!(c.keyboard(), Some((h, 1)));
     let done = render(&mut c, &mut screen, 7);
     c.acknowledge_scanout(done.sequence()).unwrap();
     assert_eq!(c.keyboard(), Some((h, 1)));
@@ -281,4 +295,153 @@ fn pending_top_surface_blocks_pointer_fallthrough() {
     let frame = render(&mut c, &mut screen, 4);
     c.acknowledge_scanout(frame.sequence()).unwrap();
     assert_eq!(c.pointer(1, 1).unwrap().surface, lower);
+}
+
+#[test]
+fn unchanged_input_readiness_survives_overlay_partial_and_no_damage_frames() {
+    let (mut a, mut b) = arenas();
+    let mut c = Compositor::new(&mut a, &mut b, 64, 32).unwrap();
+    let r = Rect {
+        x: 0,
+        y: 0,
+        width: 8,
+        height: 8,
+    };
+    let h = c.admit(r, 0).unwrap();
+    upload(&mut c, h, 1, r, &[7; 64]);
+    assert_eq!(c.focus(h), Err(Error::Incomplete));
+    let mut screen = vec![0; 64 * 32];
+    let initial = render(&mut c, &mut screen, MAX_CHUNK);
+    c.acknowledge_scanout(initial.sequence()).unwrap();
+    c.focus(h).unwrap();
+    let focused = render(&mut c, &mut screen, MAX_CHUNK);
+    c.acknowledge_scanout(focused.sequence()).unwrap();
+    c.cursor(Some((40, 10)), true).unwrap();
+    assert_eq!(c.keyboard(), Some((h, 1)));
+    assert!(c.pointer(2, 2).is_some());
+    let cursor = render(&mut c, &mut screen, MAX_CHUNK);
+    assert_eq!(cursor.coverage(), [0; 8]);
+    c.acknowledge_scanout(cursor.sequence()).unwrap();
+    assert_eq!(c.keyboard(), Some((h, 1)));
+    c.place(h, 0, 0, 0).unwrap();
+    c.visible(h, true).unwrap();
+    c.focus(h).unwrap();
+    c.cursor(Some((40, 10)), true).unwrap();
+    assert_eq!(c.completed(), Some(cursor));
+    assert_eq!(c.begin_frame(), Err(Error::NoDamage));
+    assert_eq!(c.keyboard(), Some((h, 1)));
+    assert!(c.pointer(2, 2).is_some());
+    let other_rect = Rect {
+        x: 20,
+        y: 0,
+        width: 4,
+        height: 4,
+    };
+    let other = c.admit(other_rect, 1).unwrap();
+    upload(&mut c, other, 1, other_rect, &[9; 16]);
+    let partial = render(&mut c, &mut screen, MAX_CHUNK);
+    assert_eq!(partial.coverage()[0], 0);
+    c.acknowledge_scanout(partial.sequence()).unwrap();
+    assert_eq!(c.keyboard(), Some((h, 1)));
+    c.begin_upload(h, 2, r).unwrap();
+    assert_eq!(c.keyboard(), None);
+    assert_eq!(c.pointer(2, 2), None);
+    assert_eq!(c.pointer(21, 1).unwrap().surface, other);
+    while !c.prepare_upload(MAX_CHUNK).unwrap() {}
+    c.upload_chunk(0, &[8; 64]).unwrap();
+    c.commit_upload().unwrap();
+    assert_eq!(c.keyboard(), None);
+    let updated = render(&mut c, &mut screen, MAX_CHUNK);
+    assert_eq!(c.keyboard(), None);
+    c.acknowledge_scanout(updated.sequence()).unwrap();
+    assert_eq!(c.keyboard(), Some((h, 2)));
+    c.fail_frame();
+    assert_eq!(c.keyboard(), None);
+    assert_eq!(c.pointer(21, 1), None);
+}
+#[test]
+fn admission_and_resize_reserve_pending_extents_before_effects() {
+    let (mut a, mut b) = arenas();
+    let mut c = Compositor::new(&mut a, &mut b, 4, 4).unwrap();
+    let r = Rect {
+        x: 0,
+        y: 0,
+        width: 4,
+        height: 4,
+    };
+    let h = c.admit(r, 0).unwrap();
+    upload(&mut c, h, 1, r, &[1; 16]);
+    let mut screen = [0; 16];
+    let ack = render(&mut c, &mut screen, MAX_CHUNK);
+    c.acknowledge_scanout(ack.sequence()).unwrap();
+    let whole = Rect {
+        width: 2048,
+        height: 1024,
+        ..r
+    };
+    assert_eq!(c.admit(whole, 1), Err(Error::Capacity));
+    assert_eq!(c.completed(), Some(ack));
+    assert_eq!(c.pointer(1, 1).unwrap().surface, h);
+    let pending = c
+        .admit(
+            Rect {
+                width: 1024,
+                height: 1024,
+                ..r
+            },
+            1,
+        )
+        .unwrap();
+    assert_eq!(c.begin_upload(h, 2, whole), Err(Error::Capacity));
+    assert!(c.upload.is_none());
+    assert!(c.acknowledged[0]);
+    assert_eq!(c.surfaces[0].revision, 1);
+    assert_eq!(
+        c.admit(
+            Rect {
+                width: 1024,
+                height: 1024,
+                ..r
+            },
+            2
+        ),
+        Err(Error::Capacity)
+    );
+    assert_eq!(c.focus(pending), Err(Error::Incomplete));
+    c.visible(pending, false).unwrap();
+    c.focus(h).unwrap();
+    c.visible(h, false).unwrap();
+    assert_eq!(c.focus, None);
+    assert_eq!(c.focus(h), Err(Error::Incomplete));
+}
+#[test]
+fn cursor_uses_full_display_extent_and_checked_i32_damage_coordinates() {
+    let (mut a, mut b) = arenas();
+    let mut c = Compositor::new(&mut a, &mut b, u16::MAX, 1).unwrap();
+    let r = Rect {
+        x: 0,
+        y: 0,
+        width: u16::MAX,
+        height: 1,
+    };
+    let h = c.admit(r, 0).unwrap();
+    upload(&mut c, h, 1, r, &vec![5; usize::from(u16::MAX)]);
+    let mut screen = vec![0; usize::from(u16::MAX)];
+    let initial = render(&mut c, &mut screen, MAX_CHUNK);
+    c.acknowledge_scanout(initial.sequence()).unwrap();
+    c.cursor(Some((65534, 0)), false).unwrap();
+    let edge = render(&mut c, &mut screen, MAX_CHUNK);
+    assert_eq!(screen[65534], 0);
+    c.acknowledge_scanout(edge.sequence()).unwrap();
+    assert!(c.pointer(1, 0).is_some());
+    c.cursor(Some((100_000, 100_000)), false).unwrap();
+    render(&mut c, &mut screen, MAX_CHUNK);
+    assert_eq!(screen[65534], 5);
+    assert_eq!(c.cursor, Some((100_000, 100_000)));
+    let old = c.cursor;
+    assert_eq!(
+        c.cursor(Some((i32::MAX as u32, 0)), false),
+        Err(Error::Bounds)
+    );
+    assert_eq!(c.cursor, old);
 }

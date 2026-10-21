@@ -2,6 +2,7 @@ use crate::*;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Route {
     pub surface: Handle,
+    /// Renderer-local upload sequence; Root separately binds semantic Face/Show.
     pub revision: u64,
     pub x: u16,
     pub y: u16,
@@ -10,7 +11,16 @@ impl Compositor<'_> {
     /// Admission creates metadata only; an initial raster upload makes it visible.
     pub fn admit(&mut self, rect: Rect, z: u8) -> Result<Handle, Error> {
         self.idle()?;
-        rect.pixels()?;
+        let reserved = self
+            .surfaces
+            .iter()
+            .filter(|s| s.live)
+            .try_fold(rect.pixels()?, |sum, s| {
+                Ok::<_, Error>(sum + s.rect.pixels()?)
+            })?;
+        if reserved > MAX_PIXELS {
+            return Err(Error::Capacity);
+        }
         let i = self
             .surfaces
             .iter()
@@ -22,6 +32,7 @@ impl Compositor<'_> {
             .ok_or(Error::Exhausted)?;
         let order = self.next_order.checked_add(1).ok_or(Error::Exhausted)?;
         self.invalidate();
+        self.acknowledged[i] = false;
         self.next_order = order;
         self.surfaces[i] = Surface {
             live: true,
@@ -42,6 +53,7 @@ impl Compositor<'_> {
         let i = self.index(h)?;
         self.invalidate();
         self.damage.add(self.surfaces[i].rect);
+        self.acknowledged[i] = false;
         self.surfaces[i].live = false;
         self.surfaces[i].ready = false;
         if self.focus == Some(h) {
@@ -54,6 +66,9 @@ impl Compositor<'_> {
         self.idle()?;
         let i = self.index(h)?;
         let old = self.surfaces[i].rect;
+        if old.x == x && old.y == y && self.surfaces[i].z == z {
+            return Ok(());
+        }
         self.invalidate();
         self.damage.add(old);
         self.surfaces[i].rect.x = x;
@@ -65,14 +80,26 @@ impl Compositor<'_> {
     pub fn visible(&mut self, h: Handle, value: bool) -> Result<(), Error> {
         self.idle()?;
         let i = self.index(h)?;
+        if self.surfaces[i].visible == value {
+            return Ok(());
+        }
         self.invalidate();
         self.damage.add(self.surfaces[i].rect);
         self.surfaces[i].visible = value;
+        if !value && self.focus == Some(h) {
+            self.focus = None;
+        }
         Ok(())
     }
     pub fn focus(&mut self, h: Handle) -> Result<(), Error> {
         self.idle()?;
         let i = self.index(h)?;
+        if !self.surfaces[i].visible || !self.surfaces[i].ready || !self.acknowledged[i] {
+            return Err(Error::Incomplete);
+        }
+        if self.focus == Some(h) {
+            return Ok(());
+        }
         self.invalidate();
         if let Some(old) = self.focus {
             let j = self.index(old)?;
@@ -82,18 +109,21 @@ impl Compositor<'_> {
         self.damage.add(self.surfaces[i].rect);
         Ok(())
     }
-    pub fn cursor(&mut self, position: Option<(u16, u16)>, hover: bool) -> Result<(), Error> {
+    pub fn cursor(&mut self, position: Option<(u32, u32)>, hover: bool) -> Result<(), Error> {
         self.idle()?;
-        if position.is_some_and(|(x, y)| x > i16::MAX as u16 || y > i16::MAX as u16) {
+        if position.is_some_and(|(x, y)| x > i32::MAX as u32 - 10 || y > i32::MAX as u32 - 16) {
             return Err(Error::Bounds);
+        }
+        if self.cursor == position && self.hover == hover {
+            return Ok(());
         }
         self.invalidate();
         for (x, y) in [self.cursor, position].into_iter().flatten() {
-            self.damage.add(Rect {
-                x: x as i16,
-                y: y as i16,
-                width: 10,
-                height: 16,
+            self.damage.add_box(crate::damage::BoxRect {
+                left: x as i32,
+                top: y as i32,
+                right: x as i32 + 10,
+                bottom: y as i32 + 16,
             });
         }
         self.cursor = position;

@@ -3,6 +3,7 @@
 mod damage;
 mod frame;
 mod lifecycle;
+mod scanline;
 mod state;
 mod upload;
 use damage::Damage;

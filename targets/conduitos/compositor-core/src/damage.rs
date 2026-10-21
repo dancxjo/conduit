@@ -36,7 +36,10 @@ impl Damage {
         }
     }
     pub fn add(&mut self, rect: Rect) {
-        let mut r = BoxRect::from(rect);
+        self.add_box(BoxRect::from(rect));
+    }
+    pub fn add_box(&mut self, rect: BoxRect) {
+        let mut r = rect;
         let mut i = 0;
         while i < self.count {
             let o = self.rects[i];

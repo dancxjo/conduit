@@ -77,7 +77,7 @@ pub struct Compositor<'a> {
     pub(crate) next_order: u64,
     pub(crate) sequence: u64,
     pub(crate) focus: Option<Handle>,
-    pub(crate) cursor: Option<(u16, u16)>,
+    pub(crate) cursor: Option<(u32, u32)>,
     pub(crate) hover: bool,
     pub(crate) damage: Damage,
     pub(crate) frame: Option<frame::Progress>,
@@ -133,8 +133,8 @@ impl<'a> Compositor<'a> {
     pub(crate) fn invalidate(&mut self) {
         self.frame = None;
         self.completed = None;
-        self.acknowledged.fill(false);
     }
+    #[cfg(test)]
     pub(crate) fn selected(&self, x: u32, y: u32) -> Option<usize> {
         (0..MAX_SURFACES)
             .filter(|&i| {
