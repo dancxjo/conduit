@@ -93,3 +93,9 @@ operation `0x8009`), the guest's logical visual focus. It is a read-only query a
 does not cancel pending frame work. It is distinct from acknowledgement-gated
 `Keyboard` routing and grants no semantic input authority. The client must fence
 any returned handle against the active display/session's admitted handle map.
+
+`DamagePending` (request operation 21; response `0x800a` with one canonical
+boolean) reports guest damage, upload, or frame work. The read-only query keeps
+pending frame grants intact. An unchanged focus, visibility or cursor command
+can leave this false; Root must consult this guest status when preserving prior
+acknowledgements rather than maintaining another damage-state truth.

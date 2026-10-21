@@ -57,6 +57,12 @@ pub(crate) struct Progress {
     focus_visible: bool,
 }
 impl Compositor<'_> {
+    /// Authoritative renderer work status, including an in-flight upload/frame.
+    /// A read-only query does not invalidate a completed scanout acknowledgement.
+    pub fn damage_pending(&self) -> bool {
+        self.damage.count > 0 || self.upload.is_some() || self.frame.is_some()
+    }
+
     /// Logical native affordance presence, including zero-work frames. This is
     /// neither observed ink nor physical/semantic presentation evidence.
     pub fn logical_affordances(&self) -> (bool, bool) {

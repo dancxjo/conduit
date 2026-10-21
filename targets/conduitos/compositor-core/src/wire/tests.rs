@@ -76,6 +76,7 @@ fn every_request_roundtrips_and_rejects_truncation_or_trailing_bytes() {
         },
         Request::Keyboard,
         Request::Focused,
+        Request::DamagePending,
         Request::Initialize {
             width: u16::MAX,
             height: u16::MAX,
@@ -229,6 +230,8 @@ fn response_variants_roundtrip_and_frame_ranges_are_checked() {
         })),
         Response::Keyboard(None),
         Response::Focused(None),
+        Response::DamagePending(false),
+        Response::DamagePending(true),
         Response::Focused(Some(HANDLE)),
         Response::Keyboard(Some((HANDLE, u64::MAX))),
         Response::Refused(Error::NoDamage),
@@ -435,4 +438,26 @@ fn focused_reply_requires_canonical_presence_and_exact_valid_handle_payload() {
     assert_eq!(n, 32);
     bytes[8..12].copy_from_slice(&33u32.to_le_bytes());
     assert_eq!(decode_request(&bytes[..33]), Err(CodecError::Length));
+}
+
+#[test]
+fn pending_work_query_has_no_payload_and_reply_requires_one_canonical_boolean() {
+    let mut bytes = [0; EXCHANGE_BYTES];
+    let n = encode_request(ENV, Request::DamagePending, &mut bytes).unwrap();
+    assert_eq!(n, 32);
+    assert_eq!(
+        decode_request(&bytes[..n]),
+        Ok((ENV, Request::DamagePending))
+    );
+    bytes[8..12].copy_from_slice(&33u32.to_le_bytes());
+    assert_eq!(decode_request(&bytes[..33]), Err(CodecError::Length));
+    let n = encode_response(ENV, Response::DamagePending(true), &mut bytes).unwrap();
+    assert_eq!(n, 33);
+    bytes[32] = 2;
+    assert_eq!(decode_response(&bytes[..n]), Err(CodecError::Value));
+    bytes[32] = 0;
+    assert_eq!(
+        decode_response(&bytes[..n]),
+        Ok((ENV, Response::DamagePending(false)))
+    );
 }

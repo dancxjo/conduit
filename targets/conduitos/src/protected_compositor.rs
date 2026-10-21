@@ -105,7 +105,8 @@ impl CompositorService {
             Request::FrameStep { .. }
             | Request::Pointer { .. }
             | Request::Keyboard
-            | Request::Focused => {}
+            | Request::Focused
+            | Request::DamagePending => {}
             // Frames are transactions. Other commands cancel a pending Root
             // grant even when the renderer ultimately reports a no-op/refusal.
             _ => self.frame_grant.invalidate(),
@@ -208,6 +209,7 @@ fn response_matches(request: Request, response: Response) -> bool {
             | (Request::Pointer { .. }, Response::Pointer(_))
             | (Request::Keyboard, Response::Keyboard(_))
             | (Request::Focused, Response::Focused(_))
+            | (Request::DamagePending, Response::DamagePending(_))
             | (
                 Request::Remove(_)
                     | Request::Place { .. }

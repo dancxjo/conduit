@@ -148,3 +148,43 @@ fn authoritative_logical_focus_precedes_ack_and_does_not_cancel_frame() {
     c.remove(h).unwrap();
     assert_eq!(c.focused_surface(), None);
 }
+
+#[test]
+fn unchanged_affordances_preserve_acknowledged_work_status_and_changes_report_pending() {
+    let (mut a, mut b) = (vec![0; MAX_PIXELS], vec![0; MAX_PIXELS]);
+    let mut c = Compositor::new(&mut a, &mut b, 4, 4).unwrap();
+    assert!(!c.damage_pending());
+    let rect = Rect {
+        x: 0,
+        y: 0,
+        width: 4,
+        height: 4,
+    };
+    let h = c.admit(rect, 0).unwrap();
+    c.begin_upload(h, 1, rect).unwrap();
+    assert!(c.damage_pending());
+    assert!(c.prepare_upload(16).unwrap());
+    c.upload_chunk(0, &[7; 16]).unwrap();
+    c.commit_upload().unwrap();
+    c.focus(h).unwrap();
+    c.cursor(Some((0, 0)), false).unwrap();
+    let sequence = c.begin_frame().unwrap();
+    assert!(c.damage_pending());
+    while !c.compose_next(sequence, &mut [0; 4]).unwrap().complete {}
+    c.acknowledge_scanout(sequence).unwrap();
+    assert!(!c.damage_pending());
+    c.focus(h).unwrap();
+    c.visible(h, true).unwrap();
+    c.cursor(Some((0, 0)), false).unwrap();
+    assert!(!c.damage_pending());
+    assert_eq!(c.completed().unwrap().sequence(), sequence);
+    assert!(c.keyboard().is_some());
+    c.cursor(Some((1, 0)), false).unwrap();
+    assert!(c.damage_pending());
+    // Pending state is also authoritative before damage pixels are committed.
+    let sequence = c.begin_frame().unwrap();
+    while !c.compose_next(sequence, &mut [0; 4]).unwrap().complete {}
+    assert!(!c.damage_pending());
+    c.begin_upload(h, 2, rect).unwrap();
+    assert!(c.damage_pending());
+}

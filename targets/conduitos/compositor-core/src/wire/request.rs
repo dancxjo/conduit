@@ -57,6 +57,7 @@ pub enum Request {
     },
     Keyboard,
     Focused,
+    DamagePending,
     Initialize {
         width: u16,
         height: u16,
@@ -151,6 +152,7 @@ pub fn decode_request(bytes: &[u8]) -> Result<(Envelope, Request), CodecError> {
         },
         17 => Request::Keyboard,
         20 => Request::Focused,
+        21 => Request::DamagePending,
         18 => {
             let width = r.u16()?;
             let height = r.u16()?;
@@ -193,6 +195,7 @@ pub fn encode_request(
         Request::Pointer { .. } => (16, 8),
         Request::Keyboard => (17, 0),
         Request::Focused => (20, 0),
+        Request::DamagePending => (21, 0),
         Request::Initialize { .. } => (18, 4),
         Request::Resize { .. } => (19, 18),
     };
