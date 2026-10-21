@@ -36,7 +36,18 @@ fn owner() -> SharedDisplayOwner {
         format(),
     )
     .unwrap_or_else(|_| refuse("compositor-recovery-grant"));
-    DisplayOwner::prepare(grant).unwrap_or_else(|_| refuse("compositor-recovery-owner"))
+    DisplayOwner::prepare(grant).unwrap_or_else(|error| {
+        use core::fmt::Write;
+        let mut detail = crate::sign_format::FixedText::new();
+        let _ = writeln!(
+            detail,
+            "CONDUIT_COMPOSITOR_RECOVERY_ADMISSION error={error:?} live_bytes={} capacity={}",
+            crate::allocation::BOOT_ARENA.live_bytes(),
+            crate::allocation::BOOT_ARENA.capacity()
+        );
+        arch::early_write(detail.as_bytes());
+        refuse("compositor-recovery-owner")
+    })
 }
 fn presenter(owner: SharedDisplayOwner) -> NativeCompositor {
     let admission = CompositorAdmission::new(
