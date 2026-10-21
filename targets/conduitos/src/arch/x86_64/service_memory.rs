@@ -103,6 +103,16 @@ impl AddressSpace {
         // SAFETY: the unique AddressSpace owns this slot and mutable window.
         Ok(unsafe { &mut (*POOL.0.get()).exchange.0 })
     }
+    /// Exclusive Root staging while the service is stopped. Direction and valid
+    /// length belong to the checked request protocol, never to guest pointers.
+    pub fn transfer_window(&mut self) -> Result<&mut [u8], DomainRefusal> {
+        if self.cleared {
+            return Err(DomainRefusal::InvalidLifecycle);
+        }
+        // SAFETY: this address space is exclusively owned and no service runs
+        // concurrently with its Root caller. The mutable borrow prevents entry.
+        Ok(unsafe { &mut (*POOL.0.get()).output.0 })
+    }
     pub fn output(&self) -> Result<&[u8], DomainRefusal> {
         if self.cleared {
             return Err(DomainRefusal::InvalidLifecycle);

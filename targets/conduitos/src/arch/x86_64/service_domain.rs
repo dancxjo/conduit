@@ -51,13 +51,21 @@ impl ServiceDomain {
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         self.space.exchange()
     }
+    /// Fixed private transfer window, available only between protected entries.
+    /// A protocol must admit direction, length and instance before using bytes.
+    pub fn transfer_window(&mut self) -> Result<&mut [u8], DomainRefusal> {
+        self.space.transfer_window()
+    }
     pub fn output(&self) -> Result<&[u8], DomainRefusal> {
         self.space.output()
     }
 }
 impl DomainBackend for ServiceDomain {
     fn enter(&mut self, maximum_work: u32) -> Result<DomainReturn, DomainRefusal> {
-        if self.quarantined || maximum_work == 0 {
+        // This backend admits exactly one protected entry per call. The shared
+        // RTC mechanism bounds elapsed execution; it does not count semantic
+        // compositor operations. The protocol separately bounds each command.
+        if self.quarantined || maximum_work != 1 {
             return Err(DomainRefusal::InvalidLifecycle);
         }
         let result = domain_transition::enter_context(self.space.context()?)?;
