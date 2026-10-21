@@ -1,289 +1,48 @@
 {
-  "objective": "merge6055;fix6158/finish5990;close5607;finish5992/remainingnativeproof;Patchbayinteraction",
-  "completed": {
-    "6055_merge": "2024df899d52cd89c6ca553c6626066a09a8cad9",
-    "6158_merge": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "5990": "closed2026-10-20T20:22:00Z",
-    "5607": "closed2026-10-20T20:22:03Z",
-    "6158": "closed2026-10-20T20:22:05Z"
-  },
-  "candidate": {
-    "run": 39471533018,
-    "status": "success",
-    "tested_head": "e29922753a2fca04145551bbb6ae00504fed76a9",
-    "preview": "a7320fe33261f6277b668a3a068569f941e0247f",
-    "tree": "77166933eb300f12a64e2ddf445d7a39b69183ee"
-  },
-  "merged_tree": "f6088d8fc2d7c24233cb1eb7698d05aa9ed8a171",
-  "combined_integration": {
-    "run": 39490452233,
-    "source": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "last_observed": "terminal_success2026-10-20T21:29UTC;alljobs;publisher_unverified",
-    "superseded_pending_run": 39484454692,
-    "superseded_outcome": "cancelled/coalesced;notacceptance"
-  },
-  "6158_prepared_head": "63af5abb13a8939d2c52665f61dfd5666e76d50b",
-  "6158_next": "complete",
-  "parked": [
-    "C1/C2/W1/W4/N4 portablecontrols",
-    "6159generalmechanicallayoutproposal"
-  ],
   "goal_status": "active",
-  "6158_current": {
-    "pr": 6162,
-    "head": "e1c6dda63e71247c268aaf44fd7d3cdad8b925da",
-    "tree": "fccca2ce0c48203790d02443bb594298dbc4aa48",
-    "ready": true,
-    "local": "295preflight/111nativeFace/Clippy/fmt/fiveNormalQEMU passed",
-    "proof_origin": "9aed8d8597480bebbb6b7f3ff3db9a4d6a57635b",
-    "screens_origin": "aa7face54221ec1d4fb79f37e7a21ae290d81ddb",
-    "candidate_run": 39485010086,
-    "candidate_observed": "terminal_success20:21UTC",
-    "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
+  "objective": [
+    "Merge #6055",
+    "Fix #6158 / finish #5990",
+    "Close #5607 focus and navigation",
+    "Finish #5992 typography and remaining native proof",
+    "Complete Patchbay interaction path"
+  ],
+  "completed_original_steps": [
+    1,
+    2,
+    3
+  ],
+  "remaining_original_steps": [
+    4,
+    5
+  ],
+  "previous_proof_source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "owner_native_matrix": {
+    "journeys": 3,
+    "captures": 27,
+    "independent_owner_reads": 15,
+    "origin_packet": "c0dd7027b4aaf3ada89515481f295d75eac41125",
+    "limitations": [
+      "local source-bound, no stable/physical/human claim",
+      "U+0174 replacement glyph",
+      "full fallback/resource/accessibility matrix still incomplete"
+    ]
   },
-  "current_stage": "PrivateOwnerFirstAttemptTerminalAtWaitingDeadline;HandbookAndWorkspaceRunning",
-  "font_stage": {
-    "pr": 6165,
-    "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
-    "base": "00525faf30522b6851d226613e61e277f2b48f43",
-    "tree": "927ce36da9c289d9cc587db308ad906c71e81865",
-    "draft": false,
-    "candidate": 39506387888,
-    "observed": "terminal_success2026-10-20T23:03UTC",
-    "old_prepared_source": "ef8c6c8300236ba7e43845ea24a72e6a2d7a6ff0",
-    "old_source_checks": "20typography/113native/2allocation/Clippy/fmt passed; fresh exactSource checks running",
-    "product_proof": "exact6f579normal7runsAndHeadless2bootsPassed;historicalNot3860",
-    "current_work": "mergedMechanism;allGuestProofPassed;ffcFullWorkspaceFailedKnown6171Fixture;followOwnedRepairAndCombinedStable",
-    "proof_origin": "6391be2de4ae5ee7e693833135585b311799babb",
-    "previous_published_head": "6f579f684500e6bf54c5dd7b5870c5c5c6fb7d6d",
-    "local_broad_negative": "41cbc:1216pass/2testexpectationfail/3ignored/4filtered;testonlycorrectionfocused3green",
-    "screenshots_origin": "13e4c79af3575c6b06ea5d2d39b9fd67add4ce2a",
-    "candidate_preview": "fc528b00cbb6c4ef82d149870bce3b507806a2e3",
-    "candidate_preview_base": "400412f7a94a3e6c3a8c0f0afb6fd33bde18adb6",
-    "candidate_preview_tree": "928f5533bd17b1c3776ceaef5050a97ba3ff60e7",
-    "workspace_core": {
-      "source": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
-      "fmt": "passed",
-      "clippy": "wholeworkspace_alltargets_warningsDenied_passed",
-      "tests": {
-        "passed": 10020,
-        "failed": 0,
-        "ignored": 48,
-        "filtered": 0
-      },
-      "aggregate": "52_supported_steps_passed_exit0"
-    },
-    "prepared_refresh": {
-      "head": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
-      "base": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
-      "branch": "codex/5992-repaired-dev-preparation",
-      "origin_verified": true,
-      "delta": "33paths/fullbinarypatchIdentical3860",
-      "proof": "none;buildsHeld",
-      "pr_head_unchanged": true,
-      "checks": "preflight/fmt/strictClippy/20font113native2alloc7headless3TourPassed",
-      "normal_product": "all7QEMUrunsPassed22journeySteps",
-      "normal_iso": "a5acbdbe2aef0d83e9c5e2a8d992b099f62478f9e520c428ae863178ab58dd1a",
-      "headless": "supportedBuildExclusionsAnd2BootsPassed",
-      "overall_receipt_sha256": "95bf8928d13e8e485157411ca0ed22e0d77986503c838ba37a3c06574fee8b85",
-      "visual": "67PNGpixelsVerified;4RootReviewed;beforeAfterBound",
-      "full_workspace": {
-        "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
-        "status": "failed",
-        "passed_gates": [
-          "correspondence",
-          "fmt",
-          "wholeworkspaceStrictClippy"
-        ],
-        "failure": "installed_screen_free_birth:727 journal ENOENT",
-        "owned_repair": 6171,
-        "receipt_sha256": "011abec3a1e17f2a2ed21c05119ba42995ed6b8c47eb79b8a757376b9e95eade",
-        "next": "verifyactualmergedrepairsource;noOldSourceRerun"
-      }
-    },
-    "merged": "edc753a58a848da1d36a0c26d685b7795d509208",
-    "issue_state": "closedMechanismOnly00:39:52UTC",
-    "current_product_acceptance_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
-    "repaired_merged_workspace": {
-      "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
-      "state": "terminalSuccessAll52SupportedGates;10067WorkspacePassed0Failed48Ignored;Source589NotLatestDev",
-      "directory": "outputs/native-acceptance-58979c509",
-      "native_checkpoint": "outputs/native-acceptance-58979c509/native-library-checkpoint.json",
-      "core_receipt": "outputs/native-acceptance-58979c509/workspace-core-pass.json",
-      "full_receipt": "outputs/native-acceptance-58979c509/receipt.json",
-      "receipt_sha256": "dfd9ef3271576787bfc27abf3235ea86d836bc17064fd3c2e9b8f9f099d2bae2"
-    }
-  },
-  "stable_through_stage06": {
-    "tested_source": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "accepted_main": "f78adef760e9906272c2a64b3562c3506aec4cd9",
-    "tree": "fccca2ce0c48203790d02443bb594298dbc4aa48",
-    "integration": 39490452233,
-    "publisher": 39500834785,
-    "live_pages_source": "72ab3b367c236653dff0b5726939e08de62390b9",
-    "observed": "2026-10-20T21:40UTC"
-  },
-  "dev_browser_blocker": {
-    "issue": 6172,
-    "pr": 6173,
-    "head": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
-    "base": "c93a4cca2ac48405415ce813e43e973d93005bad",
-    "failed_integration": 39500212975,
-    "failed_source": "00525faf30522b6851d226613e61e277f2b48f43",
-    "failed_artifact": 12304194618,
-    "scope": "restore defaultsingleworker; keep2batchoptin; untouchedtimeouts/retries/specs",
-    "local": "20focusedchecksPassed;actualChromiumpending",
-    "candidate": 39510280635,
-    "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
-    "current_dev": "779ab7f1dfe5ec34b0475e40e6128cc77d25d4bf",
-    "current_dev_integration": 39519886483,
-    "current_dev_observed": "fetched00:45UTC;latestIntegrationNeedsDiscovery",
-    "merged": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
-    "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
-    "candidate_status": "terminal_success23:48UTC",
-    "browser": "263passed/31specs/onebatch/oneworker/zeroretries",
-    "issue_state": "closedByExternalFlow;CandidateProofRetained",
-    "additional_products_browser_repair": {
-      "pr": 6171,
-      "head": "03b5459fe54a592b0fd20ccec63508eb500db746",
-      "owned": "existingOtherFlow",
-      "failure": "missing journal fixture and browser Lulled/readiness",
-      "action": "reviewExistingRepair;doNotDuplicate",
-      "merged": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
-      "candidate": 39518127014,
-      "candidate_status": "all12JobsSuccess",
-      "tested_preview": "a75e24d4295694a47cdd2c8db4ce203edd4af0a7"
-    },
-    "external_ci_bypass_claim": "notAnInstructionForThisGoal;combinedStableProofStillRequired"
-  },
-  "visual_reference": {
-    "tracker": 6174,
-    "image_origin": "c8fdc8949a426873364665abd98bf8dc34edf98c",
-    "owners": [
-      5628,
-      6159,
-      5629,
-      5992
-    ],
-    "state": "mapped_and_linked;queued;currentFontPRgateUnchanged"
-  },
-  "next_look_preparation": {
-    "issue": 5628,
-    "branch": "codex/5628-selected-typography",
-    "base": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
-    "worktree": "work/selected-typography-look",
-    "state": "localGuardCallerAndPreSwapRegressions2Passed;PinnedChromiumRendererFixtures5Passed;OwnClippyFixedInherited6187Pending;NoOwnerQEMUProof",
-    "api": "requiredVisualTypographyEditorialEngineering;v2closedExpressionLookSchemaFore;6PrivateGlyphProfiles5FacePurposes",
-    "head": "50748a2331e791764a75e09702f76dc5cb2a47c1",
+  "workspace_253": "live process2866731 through native product tests; no terminal full-gate claim",
+  "current_source": {
+    "commit": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+    "tree": "9e1f38adb6f9425e0b772c9488bb5b55ab7a8060",
+    "branch": "codex/5628-current-owner-reconciliation",
+    "base": "0ce5e9eb774dab20156e0e7acba2854cb321ebac",
     "origin_verified": true,
-    "target_cache": "work/selected-typography-host-target",
-    "root_review": "work/5628-root-source-review.md",
-    "current_dev_target": "0d5530bc9fd0cfc29f3548ce28e93e620814173b",
-    "remote_branch": "codex/5628-selected-typography-current-dev",
-    "first_face_check": {
-      "source": "4f1263b054db98bd1f9d1b6f246332d83dce5071",
-      "passed": 298,
-      "failed": 1,
-      "ignored": 2,
-      "failure": "expected stale browser type binding",
-      "directory": "outputs/5628-selected-look-4f1263b05"
-    },
-    "foundation": {
-      "source": "b2b465c6980329b80e5c498c2cfbc05dbf3b6674",
-      "Face": {
-        "passed": 301,
-        "ignored": 2
-      },
-      "kernel_alloc": {
-        "passed": 306,
-        "ignored": 6
-      },
-      "continuity": {
-        "passed": 12,
-        "ignored": 0
-      },
-      "browser_wire": {
-        "passed": 8,
-        "failed": 0
-      }
-    },
-    "native_first_compile": {
-      "source": "e78f4603794aef65c338aa51c1505ffebdc9dcfb",
-      "status": "failed",
-      "failure": "E0061 text_editor unit-test append helper missing Typography",
-      "directory": "outputs/5628-selected-look-e78f46037",
-      "retry": "live with native-test-argument.patch;source frozen;not clean e78 proof"
-    },
-    "native_positive_receipt": "outputs/5628-selected-look-f4fdee9ff/root-positive-receipt.json",
-    "critical_review": "work/5628-provisional-refusal-caller-review.md",
-    "browser_receipt": "outputs/5628-browser-title-50748a233/receipt.json",
-    "owner_driver_audit": "read-only existing supported-route seam audit active; no owner secrets/builds yet"
+    "status": "prepared; focused native compiling; formatting/wire8 pass; no feature PR admitted"
   },
-  "latest_ci_observation": {
-    "time": "2026-10-21T02:06:00Z",
-    "old_6a8_run": 39519886483,
-    "old_6a8_state": "terminalFailure;knownPre6171ProductsOnly;browserFoundationPassed",
-    "current_dev": "77919bfa492626e0cbc566b77f7cbc32f74088b7",
-    "integration": 39527187309,
-    "state": "terminalFailureQuickFmtOnly;laterProofNotRun",
-    "repair": {
-      "pr": 6187,
-      "head": "6c6737c7c0d3c701ce9505c18e75d5877923fceb",
-      "candidate": 39529095181,
-      "state": "quickAndIA32Passed;admissionFourTargetsRunning;autoMergeEnabled;unmerged",
-      "superseded_candidate": 39527481470,
-      "superseded_state": "cancelled after admission items_after_test_module rounded.rs;ownedRepairAdvanced"
-    },
-    "next_observation_not_before": "2026-10-21T02:21:00Z"
-  },
-  "patchbay_preparation": {
-    "issue": 5516,
-    "plan": "work/5516-bounded-input-plan.md",
-    "state": "readOnlyPlan;noSourceImplementation;checkedNavigationDistinctOwnerInvocation"
-  },
-  "latest_observation": {
-    "repair_pr": 6187,
-    "merged": "d79897e6a5e6f40a0861a2b0e5f816374eb8f0c3",
-    "candidate": 39529095181,
-    "candidate_result": "success",
-    "dev": "c4c10b3e38bc0d217e001f980f65a642dfe82280",
-    "integration": 39535021466,
-    "integration_status": "pending;previous395326cancelled/coalesced;395316in_progress;observed02:51UTC",
-    "selected_source": "ba44c5cb3ddf9447b46349346d16ee490ec9a173",
-    "selection_regressions": "2 passed",
-    "private_qmp_adapter": "16 negative mutations rejected; synthetic only; no guest",
-    "virtual_display": "1600x1200 Xvfb verified; QEMU GTK available",
-    "overlap": "cedf08fb2 adds current-dev local density/palette swaps; reconcile before refresh",
-    "reconciled_source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
-    "reconciled_branch": "codex/5628-reconciled-selection",
-    "reconciled_origin_verified": true,
-    "focused_native_session": 43507,
-    "fmt": "passed",
-    "native_proof": "running; not acceptance",
-    "focused_native": "6passed/0failed/0ignored/1237filtered",
-    "workspace_session": 16467,
-    "product_build_session": 53194,
-    "wire": "8passed/0failed",
-    "selected_cache_owner": "native_ci_validation",
-    "product_cache_owner": "root/native-panels-host-target",
-    "private_proof_setup": "new mode0700 directory, empty isolated checkpoint, private P256 TLS certificate verified for guestIP; no owner/invitation/guest yet",
-    "browser_session_helper": "root-reviewed synthetic checks passed; current-report identity and unchanged-state cases corrected; no actual execution",
-    "owner_report_review": "outer FacePlan can change across nativeLookswap; helper corrected before execution",
-    "native_fallback": "actual generic fallback exists but inspected normal-product trigger absent; CPU21item specimen exceeds actualTodoMAX20 and is not guestproof",
-    "product_build": "passed",
-    "product_iso": "02743a01e04a3d5f066fae7c1c7d4ecb8d5a14acf983a21a0aaa842f65dd51eb",
-    "owner_artifact_pipeline_session": 5550,
-    "normal_journey_session": 50352,
-    "normal_journey": "passed26captures/22steps/4localLookswaps;allPNGfileAndDecodedRGBAhashesRootVerified",
-    "owner_backed_typography_proof": "not yet run",
-    "current_dev": "54e8fe00908e46a6c49fb47532a2ac1477b6c385",
-    "incoming_owner_selection": "ShiftF6density/ShiftF7palette;unmodifiedpresetsunchanged;readOnlyReconciliationAuditComplete;doNotMergeDuringFrozenProof",
-    "workspace": "correspondence/fmt/full strict workspace Clippy passed; full tests compiling",
-    "owner_artifacts": "Linuxreleasepassed0;firstHandbookfailedmissingwasm-opt;Binaryen133installed;supportedHandbookretry43004running",
-    "owner_service_session": 52651,
-    "owner_setup": "freshprivateinstalled253TodoBody initialized using body start;noinvitation/browser/guest",
-    "large_revision": "ownerrevision>2^53;privatebrowserhelper exactindependentownerdecimalbinding underreview",
-    "owner_service": "52651terminal1;waitingPlay60000mswithoutnextcheckpoint;negativepreserved;noinvitation/browser/guest",
-    "browser_helper": "exactlargeRevisionindependentownerreadcorrectedandselftestpassed"
-  }
+  "next": [
+    "Finish focused/current-head validation",
+    "Rebuild and prove independent axes + typed draft refusal on current source",
+    "Complete remaining native fallback/resource acceptance",
+    "Complete Patchbay exact Gear/Port/Cord navigation and cross-Mask/QEMU proof",
+    "Exact accepted-tree closure audit for remaining issues"
+  ],
+  "timestamp": "2026-10-21T03:49:34Z"
 }
