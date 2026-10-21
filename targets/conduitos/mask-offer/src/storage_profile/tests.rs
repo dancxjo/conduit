@@ -30,6 +30,20 @@ fn collection_plans_use_exact_capacity_and_refuse_smaller_offers() {
         .unwrap();
     let generic = prepare_collection_stage_from_offer(&large).unwrap();
     assert!(verify_plan(&generic.planned_mask.plan));
+    assert_eq!(
+        prepare_advertised_native_stage_from_offer(&large, None)
+            .unwrap()
+            .planned_mask,
+        generic.planned_mask
+    );
+    assert_eq!(
+        prepare_advertised_native_stage_from_offer(&small, None)
+            .unwrap()
+            .planned_mask,
+        prepare_stage_from_offer(Adapter::Native, &small)
+            .unwrap()
+            .planned_mask
+    );
     assert!(
         generic
             .planned_mask
@@ -47,6 +61,18 @@ fn collection_plans_use_exact_capacity_and_refuse_smaller_offers() {
         prepare_collection_component_stage_from_offer(&large, selection, TodoComponentRecipe::Flat)
             .unwrap();
     assert!(verify_plan(&configured.planned_mask.plan));
+    assert_eq!(
+        prepare_advertised_native_stage_from_offer(
+            &large,
+            Some((selection, TodoComponentRecipe::Flat))
+        )
+        .unwrap()
+        .planned_mask,
+        configured.planned_mask
+    );
+    let mut unknown = large.clone();
+    unknown.profile = "unsupported/native-profile".into();
+    assert!(prepare_advertised_native_stage_from_offer(&unknown, None).is_err());
     assert_eq!(original.component, collection.component);
     assert_eq!(original.recipe, collection.recipe);
     assert_eq!(original.expression, collection.expression);

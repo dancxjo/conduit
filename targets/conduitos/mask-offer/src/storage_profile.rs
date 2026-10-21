@@ -148,3 +148,30 @@ pub fn prepare_collection_creche_stage_from_offer(
 
 #[cfg(test)]
 mod tests;
+
+/// Plan against the exact already-observed native advertisement. Existing
+/// standard-only entrances never call this and never upgrade themselves.
+/// Membership, carrier presence and authority must be established by the caller.
+pub fn prepare_advertised_native_stage_from_offer(
+    host: &HostAdvertisement,
+    selection: Option<(ComponentVisualSelection, TodoComponentRecipe)>,
+) -> Result<MaskStage, MaskOfferError> {
+    let profile = match host.profile.as_str() {
+        "conduitos/mask-host@1" => NativeMaskStorageProfile::Standard,
+        "conduitos/collection-mask-host@1" => NativeMaskStorageProfile::Collection,
+        _ => return Err(MaskOfferError::InvalidPlan),
+    };
+    match (profile, selection) {
+        (NativeMaskStorageProfile::Standard, None) => {
+            prepare_stage_from_offer(Adapter::Native, host)
+        }
+        (NativeMaskStorageProfile::Collection, None) => prepare_collection_stage_from_offer(host),
+        (NativeMaskStorageProfile::Standard, Some((look, recipe))) => {
+            prepare_selected_component_stage_from_offer(host, look, recipe).map(|(stage, _)| stage)
+        }
+        (NativeMaskStorageProfile::Collection, Some((look, recipe))) => {
+            prepare_collection_component_stage_from_offer(host, look, recipe)
+                .map(|(stage, _)| stage)
+        }
+    }
+}

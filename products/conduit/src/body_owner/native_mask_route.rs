@@ -250,19 +250,10 @@ impl Owner {
                 interaction_line,
             )?
         } else {
-            (if let Some((look, recipe)) = component_selection {
-                conduit_conduitos_mask_offer::prepare_component_stage_from_offer(
-                    native_offer,
-                    look,
-                    recipe,
-                )
-                .map(|(stage, _)| stage)
-            } else {
-                conduit_conduitos_mask_offer::prepare_stage_from_offer(
-                    conduit_conduitos_mask_offer::Adapter::Native,
-                    native_offer,
-                )
-            })
+            conduit_conduitos_mask_offer::prepare_advertised_native_stage_from_offer(
+                native_offer,
+                component_selection.map(|(look, recipe)| (look.into(), recipe)),
+            )
             .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
             .planned_mask
         };
