@@ -173,6 +173,8 @@ impl NativeFaceScene {
                 "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
             } else if !self.interaction_admitted {
                 "Read only · PgUp/PgDn pages · F2 facts".into()
+            } else if self.showing_details && self.has_diagram() {
+                "Alt+Left/Right subjects · PgUp/PgDn · F3 graph".into()
             } else if self.showing_details {
                 "PgUp/PgDn pages · Tab next · F2 return".into()
             } else if self.has_diagram() {

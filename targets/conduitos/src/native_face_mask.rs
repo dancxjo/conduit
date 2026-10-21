@@ -259,7 +259,7 @@ impl NativeFaceMask {
         ),
         NativeFaceMaskError,
     > {
-        let fallback;
+        let mut fallback = None;
         let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.expression.canonical_value(),
         )
@@ -273,15 +273,31 @@ impl NativeFaceMask {
         .map_err(|_| NativeFaceMaskError::Plan)?;
         let scene = match conduit_face::prepare_component_recipe(recipe, face) {
             Ok(prepared) => {
-                fallback = None;
-                NativeFaceScene::prepare_configured(
+                let configured = NativeFaceScene::prepare_configured(
                     face.clone(),
                     width,
                     height,
                     interaction_admitted,
                     &prepared,
                     &expression,
-                )
+                );
+                match configured {
+                    Err(
+                        error @ (FaceSceneError::InvalidExtent
+                        | FaceSceneError::DocumentBound
+                        | FaceSceneError::SceneBound),
+                    ) => {
+                        fallback = Some(alloc::format!("ConfiguredLayout({error:?})"));
+                        NativeFaceScene::prepare_visual_fallback(
+                            face.clone(),
+                            width,
+                            height,
+                            interaction_admitted,
+                            &expression,
+                        )
+                    }
+                    result => result,
+                }
             }
             Err(error) => {
                 fallback = Some(alloc::format!("{error:?}"));
