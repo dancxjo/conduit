@@ -1,4 +1,4 @@
-use crate::{MAX_BLOB, SLOTS};
+use crate::SLOTS;
 use alloc::vec::Vec;
 use conduit_body::BodyBiographyEvidence;
 use conduit_core::PlanId;
@@ -55,6 +55,36 @@ impl Initial {
         }
     }
 }
+/// Fixed preparation declaration; target bits name exact Target positions.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum InitSlot {
+    Tutorial,
+    Tour,
+    Patchbay { targets: u8, selected: u8 },
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct InitManifest {
+    pub slots: [Option<InitSlot>; SLOTS],
+}
+impl InitManifest {
+    pub fn from_initial(initial: &[Option<Initial>; SLOTS]) -> Self {
+        Self {
+            slots: core::array::from_fn(|slot| {
+                initial[slot].as_ref().map(|initial| match initial {
+                    Initial::Tutorial { .. } => InitSlot::Tutorial,
+                    Initial::Tour => InitSlot::Tour,
+                    Initial::Patchbay { targets, selected } => InitSlot::Patchbay {
+                        targets: targets.iter().enumerate().fold(0, |mask, (index, target)| {
+                            mask | (u8::from(target.is_some()) << index)
+                        }),
+                        selected: *selected,
+                    },
+                })
+            }),
+        }
+    }
+}
 /// Read-only custody of one biography projection request, never effect authority.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -91,17 +121,31 @@ impl TutorialScope {
 // Keep the admitted finite payload inline in the shared application wire.
 #[allow(clippy::large_enum_variant)]
 pub enum Command {
-    ProjectGraph {
+    PrepareGraphProjection {
         graph: PatchbayGraph,
         scope: crate::graph_facts::Scope,
     },
+    FinishGraphProjection,
     ProjectTutorial {
         evidence: BodyBiographyEvidence,
         scope: TutorialScope,
     },
-    Init {
-        applications: [Option<Initial>; SLOTS],
+    PrepareInit {
+        manifest: InitManifest,
     },
+    PrepareTarget {
+        slot: u8,
+        target: u8,
+        value: Target,
+    },
+    PrepareTutorial {
+        slot: u8,
+        evidence: BodyBiographyEvidence,
+    },
+    PrepareTour {
+        slot: u8,
+    },
+    FinishInit,
     Apply {
         slot: u8,
         input: Vec<u8>,
@@ -145,6 +189,7 @@ pub enum Reply {
         scope: TutorialScope,
         view: Vec<u8>,
     },
+    Prepared,
     Initialized,
     Applied {
         snapshot: Snapshot,
@@ -165,19 +210,6 @@ pub enum Refusal {
     Capacity,
     Application,
 }
-pub fn decode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
-    if bytes.is_empty() || bytes.len() > MAX_BLOB {
-        return Err(Refusal::Bounds);
-    }
-    serde_json::from_slice(bytes).map_err(|_| Refusal::Malformed)
-}
-pub fn encode<T: Serialize>(value: &T) -> Result<Vec<u8>, Refusal> {
-    let mut bytes = Vec::new();
-    bytes
-        .try_reserve_exact(MAX_BLOB)
-        .map_err(|_| Refusal::Capacity)?;
-    bytes.resize(MAX_BLOB, 0);
-    let length = serde_json_core::to_slice(value, &mut bytes).map_err(|_| Refusal::Capacity)?;
-    bytes.truncate(length);
-    Ok(bytes)
-}
+mod codec;
+mod transport_codec;
+pub use codec::{MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode, encode_command};

@@ -12,5 +12,10 @@ conduit-tour-model = { path = "../../../plots/tour" }
 patchbay-application = { path = "../../../plots/patchbay/application" }
 patchbay-graph = { path = "../../../plots/patchbay/graph" }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
-serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc", "float_roundtrip"] }
 serde-json-core = { version = "0.6", default-features = false }
+miniz_oxide = { version = "0.8.9", default-features = false, features = ["with-alloc"] }
+
+[[test]]
+name = "private_heap"
+harness = false

@@ -1,0 +1,35 @@
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6207-init-stream/targets/conduitos/application-core)
+    Finished `test` profile [unoptimized] target(s) in 1.77s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduitos_application_core-a31eb01973310924)
+
+running 16 tests
+test data::codec::tests::nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values ... ok
+test data::codec::tests::small_raw_bytes_and_exact_wire_boundary_remain_unchanged ... ok
+test state::tests::finish_moves_prepared_controllers_only_after_complete_acknowledgement ... ok
+test data::codec::tests::hostile_json_depth_strings_and_counts_refuse_before_initialization ... ok
+test data::codec::tests::refused_uploads_are_terminal_and_never_expose_partial_models ... ok
+test state::tests::invalid_manifest_is_rejected_before_controller_construction ... ok
+test data::codec::tests::malformed_compressed_commit_cannot_partially_initialize_models ... ok
+test state::tests::missing_duplicate_out_of_order_and_early_use_are_terminal ... ok
+test data::codec::tests::framing_checksum_trailing_bytes_and_expansion_claims_refuse ... ok
+test state::tests::selected_unfilled_target_cannot_finish ... ok
+test state::tests::exact_target_coverage_and_selected_position_survive_staging ... ok
+test data::codec::tests::incompressible_data_cannot_expand_the_wire_limit ... ok
+test state::tests::projection_during_staging_and_repeat_finish_are_terminal ... ok
+test state::tests::wrong_target_order_kind_and_duplicate_fail_without_model_publication ... ok
+test data::codec::tests::compressed_values_keep_every_byte_through_the_decoded_ceiling ... ok
+test data::codec::tests::reusable_workspace_preserves_exact_wire_and_graph_custody_bytes ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.38s
+
+     Running tests/private_heap.rs (/home/dancxjo/conduit/target/debug/deps/private_heap-5ae2458b85ab52e9)
+OOM stage=1
+OOM request=131072
+OOM live=1811168
+OOM peak=1843936
+memory allocation of 131072 bytes failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: test failed, to rerun pass `-p conduitos-application-core --test private_heap`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/conduit/target/debug/deps/private_heap-5ae2458b85ab52e9` (signal: 6, SIGABRT: process abort signal)
