@@ -26,7 +26,7 @@ pub(super) struct InputState {
     keymap: PreparedKeymap,
     action: Option<usize>,
     values: Vec<Option<Vec<u8>>>,
-    submitted: bool,
+    pub(super) submitted: bool,
 }
 
 impl InputState {

@@ -157,8 +157,25 @@ or complete issue acceptance.
 
 ## Native face entrance
 
+In the local Crèche, F6 toggles compact/spacious spacing and F7 toggles the
+engineering/editorial palette independently. Each request selects one of four
+finite checked Source expressions over the same Crèche component recipe and
+Face. The replacement is prepared before the previous Show retires; its new
+layout restores an unsubmitted draft and exact focus only for the identical
+Face and producer scope, before publishing the fresh Show. These preference
+keys do not submit a Face interaction or create/advance a Body. The same four
+expression combinations are available to the checked Todo component preparer.
+Selection diagnostics retain the expression, component provenance, canonical
+recipe hash, exact old/new Show identifiers and bounded render counts, joined
+to the complete Face/Show publication records.
+
 The native owner window exposes F6 (Compact/Flat), F7 (Spacious/Flat), F8
-(Spacious/Grouped), and F9 (100%/200% minimum text size). These are Mask-local
+(Spacious/Grouped), and F9 (100%/200% minimum text size). Shift+F6 toggles
+density and Shift+F7 toggles palette independently, preserving the current
+recipe. Native owner selection uses four closed checked-Source preset names:
+`compact`, `spacious`, `compact-editorial`, and `spacious-phosphor`; the first
+two keep their existing meanings. This selector does not extend the visual
+declaration language or the browser selector. These are Mask-local
 requests through the current authenticated, acknowledged Show; they do not add
 Face actions or alter Todo commands. The owner returns the same exact Face and
 an independently sealed configured Mask route. The guest retires its previous
@@ -166,7 +183,10 @@ surface, prepares the exact returned Plan against its current observed Host
 offer, renders, and acknowledges the new Show before enabling input. A failed
 or uncertain exchange retires the return route. The transport retains its
 explicit lifetime and finite replacement bound independently of the action
-budget.
+budget. An available but unacknowledged Show cannot authorize a replacement,
+and the previous Show becomes stale after selection. The replacement restores
+unsubmitted draft and focus only through the identical-Face and producer-scope
+encounter checks used by local selection.
 
 The native palette and font rasterizer consume the retained admitted expression.
 Text measurement and glyph coverage use the same bounded scale; structural
@@ -174,3 +194,13 @@ capacity refusal records a reason and selects the original generic one-column
 semantic projection at that user-respecting scale. This entrance and fallback
 remain subject to actual native execution and maximum-bound journey proof; their
 source implementation is not that proof.
+
+
+Native primary subject labels decorate explicit Body, Host, Gear, Port,
+Cord/Line, Plan, Play, Status and Diagnostic roles with the existing finite
+icon resource. Unknown roles retain text without an inferred icon. Names, action
+identifiers and arbitrary properties do not select icons. The label stays
+complete; icon width is reserved before text wrapping and each icon's command
+is charged during ordinary and panel admission within the existing 48-command
+bound. These decorations add no control, state or authority. The existing
+antialiased icon coverage path draws them against the retained background.

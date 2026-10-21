@@ -1024,7 +1024,7 @@ fn checked_native_recipe_marks_contiguous_runs_without_reordering_controls() {
 }
 
 #[test]
-fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_looks() {
+fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_all_native_profiles() {
     use conduit_todo_face::todo_fragment;
     use conduit_todo_plot::{TodoItem, TodoState};
     let state = TodoState {
@@ -1070,7 +1070,12 @@ fn maximum_todo_projection_keeps_all_controls_and_detail_pages_in_both_native_lo
         1,
         &provider,
     );
-    for look in [ComponentMaskLook::Compact, ComponentMaskLook::Spacious] {
+    for look in [
+        ComponentMaskLook::Compact,
+        ComponentMaskLook::Spacious,
+        ComponentMaskLook::CompactEditorial,
+        ComponentMaskLook::SpaciousPhosphor,
+    ] {
         for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
             let (_, configuration) =
                 conduit_conduitos_mask_offer::prepare_component_stage_from_offer(

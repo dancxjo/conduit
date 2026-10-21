@@ -13,6 +13,21 @@ impl FaceArrival {
         display: &mut impl PixelTarget,
         make: &MakeRecord,
     ) -> Result<FaceArrivalInput, &'static str> {
+        match self.select_local_look(event, door, display) {
+            Ok(true) => return Ok(FaceArrivalInput::Continue),
+            Ok(false) => {}
+            Err(reason) => {
+                super::super::native_action_evidence::emit_with_limit(
+                    b"CONDUIT_NATIVE_COMPONENT_SELECTION ",
+                    &serde_json::json!({"status":"refused", "code":reason}),
+                    1_024,
+                )?;
+                if self.mask.show().is_none() {
+                    return Err(reason);
+                }
+                return Ok(FaceArrivalInput::Continue);
+            }
+        }
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;

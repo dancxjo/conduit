@@ -1,0 +1,215 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `target/debug/conduit-xtask-dispatch make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-semantic-icon-product-1/image --locked`
+   Compiling ring v0.17.14
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/face)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/chat)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/birth)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/tutorial)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/plot-library)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/thermostat/face)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/body-invitation)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/home)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos/mask-offer)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/todo/face)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/make/host)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/signal)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/browser/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/avr/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/rp2040/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/make/body)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/std/make)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/proof/conformance/patchbay-workbench)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/bodies/pete)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/browser/mask-offer)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/make/workspace)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/proof/conformance/network-r1)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay/workbench/model)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 47.53s
+     Running `target/debug/xtask make host build targets/conduitos/profiles/conduitos-native.host.conduit --output /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-semantic-icon-product-1/image --locked`
+   Compiling generic-array v0.14.7
+    Checking typenum v1.20.1
+    Checking cpufeatures v0.2.17
+    Checking cfg-if v1.0.5
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+    Checking subtle v2.6.1
+   Compiling libm v0.2.16
+   Compiling zmij v1.0.23
+   Compiling thiserror v2.0.20
+   Compiling serde_json v1.0.151
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking signature v2.2.0
+    Checking tinyvec v1.13.3
+   Compiling curve25519-dalek v4.1.3
+    Checking minicbor v2.3.0
+    Checking opaque-debug v0.3.1
+    Checking arrayvec v0.7.8
+    Checking rand_core v0.6.4
+    Checking zeroize v1.9.0
+    Checking bitflags v2.13.2
+    Checking ed25519 v2.2.3
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/human)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/audio)
+    Checking cobs v0.3.0
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/purpose)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/alife)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/net)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/education)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/ai)
+    Checking noise-protocol v0.2.1
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/tutorial)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/semantics/home)
+    Checking limine v0.5.0
+    Checking unicode-normalization v0.1.25
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+    Checking universal-hash v0.5.1
+    Checking aead v0.5.2
+    Checking cipher v0.4.4
+    Checking digest v0.10.7
+    Checking poly1305 v0.8.0
+    Checking sha2 v0.10.9
+    Checking chacha20 v0.9.1
+    Checking chacha20poly1305 v0.10.1
+    Checking noise-rust-crypto v0.6.2
+    Checking ed25519-dalek v2.2.0
+    Checking x25519-dalek v2.0.1
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/protected-line)
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/assigned-plan)
+    Checking postcard v1.1.3
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/plots/patchbay)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/plan-lowering)
+error: failed to write `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/build/conduit-language-f3925513caa07dd9/root-output`
+
+Caused by:
+  No space left on device (os error 28)
+warning: build failed, waiting for other jobs to finish...
+error: error writing dependencies to `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/deps/conduit_body-7e08123442f07693.d`: No space left on device (os error 28)
+
+error: could not compile `conduit-body` (lib) due to 1 previous error
+error: couldn't create a temp dir: No space left on device (os error 28) at path "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/deps/rmetaCyz9ef"
+
+error: could not compile `conduit-plan-lowering` (lib) due to 1 previous error
+error: failed to run custom build command for `conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/debug/build/conduitos-048e8915a111be17/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=domain/main.rs
+  cargo:rerun-if-changed=domain/build.rs
+  cargo:rerun-if-changed=domain/Cargo.toml
+  cargo:rerun-if-changed=domain/Cargo.lock
+  cargo:rerun-if-changed=domain/allocation.rs
+  cargo:rerun-if-changed=domain/keymap.rs
+  cargo:rerun-if-changed=domain/morse.rs
+  cargo:rerun-if-changed=domain/timer.rs
+  cargo:rerun-if-changed=src/tour_timer_runtime.rs
+  cargo:rerun-if-changed=src/tour_timer_runtime
+  cargo:rerun-if-changed=../../architecture/kernel
+  cargo:rerun-if-changed=../../semantics/time
+  cargo:rerun-if-changed=../../semantics/text
+  cargo:rerun-if-changed=../../semantics/catalog/src/text_state/retained.rs
+  cargo:rerun-if-changed=../../semantics/human
+  cargo:rerun-if-changed=../../architecture/core
+  cargo:rerun-if-changed=../../architecture/assigned-plan
+  cargo:rerun-if-changed=../../architecture/plot
+  cargo:rerun-if-changed=domain/gate.rs
+  cargo:rerun-if-changed=domain/memory.rs
+  cargo:rerun-if-changed=domain/memory_words.rs
+  cargo:rerun-if-changed=domain/frame.rs
+  cargo:rerun-if-changed=domain/layout.rs
+  cargo:rerun-if-changed=domain/probes.rs
+  cargo:rerun-if-changed=domain/probes_ia32.rs
+  cargo:rerun-if-changed=domain/probes_aarch64.rs
+  cargo:rerun-if-changed=domain/probes_riscv64.rs
+  cargo:rerun-if-changed=domain/probes_loongarch64.rs
+  cargo:rerun-if-changed=domain/probe_gate.rs
+  cargo:rerun-if-changed=domain/linker.ld
+  cargo:rerun-if-changed=src/text_transform.rs
+  cargo:rustc-check-cfg=cfg(conduitos_protected_execution)
+  cargo:rustc-check-cfg=cfg(conduitos_domain_image)
+  cargo:rustc-check-cfg=cfg(conduitos_domain_backend)
+  cargo:rustc-cfg=conduitos_protected_execution
+  cargo:rustc-cfg=conduitos_domain_backend
+
+  --- stderr
+
+  thread 'main' (2325612) panicked at targets/conduitos/build/domain_image.rs:154:9:
+  pure domain image failed:    Compiling version_check v0.9.5
+     Compiling serde_core v1.0.229
+     Compiling proc-macro2 v1.0.107
+     Compiling quote v1.0.47
+     Compiling unicode-ident v1.0.26
+     Compiling serde v1.0.229
+     Compiling libm v0.2.16
+     Compiling typenum v1.20.1
+     Compiling cfg-if v1.0.5
+     Compiling cpufeatures v0.2.17
+     Compiling zmij v1.0.23
+     Compiling serde_json v1.0.151
+     Compiling tinyvec v1.13.3
+     Compiling itoa v1.0.18
+     Compiling memchr v2.8.3
+     Compiling conduitos-domain v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos/domain)
+     Compiling unicode-normalization v0.1.25
+     Compiling generic-array v0.14.7
+     Compiling syn v3.0.6
+     Compiling block-buffer v0.10.4
+     Compiling crypto-common v0.1.7
+     Compiling digest v0.10.7
+     Compiling sha2 v0.10.9
+     Compiling serde_derive v1.0.229
+     Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/assigned-plan)
+     Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/core)
+     Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/architecture/kernel)
+  error: failed to write to `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/build/conduitos-e45f1196829b6cdd/out/domain-target/x86_64-unknown-none/release/deps/rmetaaCV1eX/full.rmeta`: No space left on device (os error 28)
+
+  error: failed to write to `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/build/conduitos-e45f1196829b6cdd/out/domain-target/release/deps/rmetaeLPXjp/full.rmeta`: No space left on device (os error 28)
+
+  error: could not compile `conduit-core` (lib) due to 1 previous error
+  warning: build failed, waiting for other jobs to finish...
+  error: could not compile `conduit-core` (lib) due to 1 previous error
+
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: failed to write to `/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/x86_64-unknown-none/debug/deps/rmetax4g3Cq/full.rmeta`: No space left on device (os error 28)
+
+error: could not compile `conduit-plot` (lib) due to 1 previous error
+xtask error: ConduitOS proof refusal [matrix-common-backbone-failed]: shared ConduitOS backbone did not compile for x86_64-unknown-none

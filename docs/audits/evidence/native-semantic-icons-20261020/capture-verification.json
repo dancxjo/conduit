@@ -1,0 +1,10 @@
+{
+  "source_commit": "c340c74260ec3209973ac96faf08f63bb02304ff",
+  "iso_sha256": "f8ea1d02612d8f8db05ce2fa85d2553eb2ff46c6e0b4ef5ce773b61856612d63",
+  "guest_resolved_image_binding": "image:sha256:55c9a8bf81089e93c15c9449ff9daa30faa7cf3d126755e802ff762254a4cc31",
+  "checkpoint_count": 26,
+  "png_byte_and_rgba_hashes_verified": 26,
+  "look_transitions": 4,
+  "look_body_actions": 0,
+  "status": "passed"
+}

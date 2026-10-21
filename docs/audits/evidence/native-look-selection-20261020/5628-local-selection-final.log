@@ -1,0 +1,12 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 4.69s
+     Running unittests src/lib.rs (target/debug/deps/conduitos-3a4f10f452ab3861)
+
+running 4 tests
+test product_front_door::face_arrival::tests::read_only_owner_standby_requires_fresh_show_for_explicit_activation ... ok
+test product_front_door::face_arrival::tests::route_loss_retires_owner_show_before_read_only_republication ... ok
+test product_front_door::face_arrival::tests::owner_face_retires_arrival_revision_domain_once ... ok
+test product_front_door::face_arrival::look_selection::tests::local_selection_keeps_face_and_draft_while_retiring_each_old_show ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 1232 filtered out; finished in 4.36s
+

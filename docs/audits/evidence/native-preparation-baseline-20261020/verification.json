@@ -1,0 +1,173 @@
+{
+  "source_commit": "21777e52382cc04d86e85fd7cacfbde0b51365c1",
+  "image_sha256": "7c3526f402d8c41d65b4c361be4dc9e63f33e9199af3edafb5bfe48977109137",
+  "status": "passed",
+  "trials": [
+    {
+      "index": 0,
+      "host_id": "1e8f2fce578bc599e148ca589ccfac0861a379423b7948f838072dc94d8dae9c",
+      "boot_id": "a6861213a921e3ca77b5f2a0695d8df943d7ea50e4b1224bcda3687980a32069",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:583ff7dec76758a64199af8aea5d4d6578169e6b5c22d2feb77dfc8e9776000b",
+      "journey_ns": 92668463797,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10608116426,
+      "boot_to_first_usable_input_ack_ticks": 11544134694,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 18317992361,
+          "maximum_ticks": 18317992361,
+          "aggregate_nested_ticks": 18317992361
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 38981723,
+          "maximum_ticks": 38981723,
+          "aggregate_nested_ticks": 38981723
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 191335,
+          "maximum_ticks": 5256247,
+          "aggregate_nested_ticks": 18191539
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 110685076,
+          "maximum_ticks": 110685076,
+          "aggregate_nested_ticks": 110685076
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 458362944,
+          "maximum_ticks": 2091446756,
+          "aggregate_nested_ticks": 155210384617
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 940856,
+          "maximum_ticks": 1083625811,
+          "aggregate_nested_ticks": 2169249846
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 38432053778,
+          "maximum_ticks": 38432053778,
+          "aggregate_nested_ticks": 38432053778
+        }
+      }
+    },
+    {
+      "index": 1,
+      "host_id": "bd7e2f49dfe2a0ce90e48dbe55b0fc83c7f9cc7fdd47481a168b873eb006084e",
+      "boot_id": "21d4062aaa56200dab918cee30056c58e042d559d5142540013a330875949623",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:583ff7dec76758a64199af8aea5d4d6578169e6b5c22d2feb77dfc8e9776000b",
+      "journey_ns": 92208179997,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10583941646,
+      "boot_to_first_usable_input_ack_ticks": 11529667812,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 18119947061,
+          "maximum_ticks": 18119947061,
+          "aggregate_nested_ticks": 18119947061
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 28947969,
+          "maximum_ticks": 28947969,
+          "aggregate_nested_ticks": 28947969
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 200147,
+          "maximum_ticks": 5440940,
+          "aggregate_nested_ticks": 18746261
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 115108021,
+          "maximum_ticks": 115108021,
+          "aggregate_nested_ticks": 115108021
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 446655640,
+          "maximum_ticks": 2068027369,
+          "aggregate_nested_ticks": 153975241352
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 865643,
+          "maximum_ticks": 1102433018,
+          "aggregate_nested_ticks": 2201215916
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 38060690288,
+          "maximum_ticks": 38060690288,
+          "aggregate_nested_ticks": 38060690288
+        }
+      }
+    },
+    {
+      "index": 2,
+      "host_id": "adf89f804d057ebf5bdb8ed409473579dff43f416ffa10396d82c6d4d8b0c337",
+      "boot_id": "b2f11305cc884f03fb2410d32afdc2024ef1bf39c838a808c51b4d0ab74d7993",
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "build_id": "build:sha256:583ff7dec76758a64199af8aea5d4d6578169e6b5c22d2feb77dfc8e9776000b",
+      "journey_ns": 92167437733,
+      "png_byte_and_rgba_hashes_verified": 31,
+      "boot_to_first_commit_ticks": 10603314906,
+      "boot_to_first_usable_input_ack_ticks": 11526210840,
+      "stages": {
+        "kernel-prepare": {
+          "count": 1,
+          "minimum_ticks": 18186397713,
+          "maximum_ticks": 18186397713,
+          "aggregate_nested_ticks": 18186397713
+        },
+        "plan-seal": {
+          "count": 1,
+          "minimum_ticks": 29189649,
+          "maximum_ticks": 29189649,
+          "aggregate_nested_ticks": 29189649
+        },
+        "play-input": {
+          "count": 17,
+          "minimum_ticks": 204402,
+          "maximum_ticks": 5529998,
+          "aggregate_nested_ticks": 19506063
+        },
+        "play-start": {
+          "count": 1,
+          "minimum_ticks": 111005939,
+          "maximum_ticks": 111005939,
+          "aggregate_nested_ticks": 111005939
+        },
+        "plot-build": {
+          "count": 105,
+          "minimum_ticks": 448947196,
+          "maximum_ticks": 2076752572,
+          "aggregate_nested_ticks": 154292171743
+        },
+        "pointer-feedback": {
+          "count": 8,
+          "minimum_ticks": 892998,
+          "maximum_ticks": 1064077361,
+          "aggregate_nested_ticks": 2128462889
+        },
+        "workset-prepare": {
+          "count": 1,
+          "minimum_ticks": 38178653301,
+          "maximum_ticks": 38178653301,
+          "aggregate_nested_ticks": 38178653301
+        }
+      }
+    }
+  ],
+  "interpretation": "Fresh process, instrumented Root, same image/profile/workload; host caches uncontrolled. Journey wall includes QEMU, scripted input, polling, capture and teardown. Raw TSC frequency unknown; intervals may nest/overlap and are not additive. Actual first input ACK includes harness work, not time-to-input-readiness. No uninstrumented, physical, SMP or speedup claim."
+}

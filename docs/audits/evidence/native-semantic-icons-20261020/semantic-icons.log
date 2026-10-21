@@ -1,0 +1,10 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 15.64s
+     Running unittests src/lib.rs (target/debug/deps/conduitos-3a4f10f452ab3861)
+
+running 2 tests
+test native_face_scene::semantic_icons::tests::roles_select_only_truthful_existing_icons_without_name_inference ... ok
+test native_face_scene::semantic_icons::tests::icons_are_measured_before_wrap_and_fit_bounded_pages_without_semantic_changes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1238 filtered out; finished in 0.12s
+

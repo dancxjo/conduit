@@ -1,6 +1,6 @@
 //! Closed native face selection on the existing finite return bearer.
 use super::*;
-use conduit_std_host::browser_admission::{BrowserComponentLook, BrowserComponentRecipe};
+use conduit_std_host::browser_admission::BrowserComponentRecipe;
 
 pub(super) const SCHEMA: &str = "conduit.body/native-owner-component-selection@1";
 
@@ -12,7 +12,7 @@ struct Selection {
     sequence: u8,
     request: OwnerFaceSnapshotRequest,
     show: MaskShow,
-    look: BrowserComponentLook,
+    look: conduit_face::ComponentMaskLook,
     recipe: BrowserComponentRecipe,
 }
 
@@ -34,10 +34,6 @@ pub(super) fn serve(
         return Err("native component selection grant or basis invalid".into());
     }
     line.complete_bounded_input();
-    let look = match selection.look {
-        BrowserComponentLook::Compact => conduit_face::ComponentMaskLook::Compact,
-        BrowserComponentLook::Spacious => conduit_face::ComponentMaskLook::Spacious,
-    };
     let recipe = match selection.recipe {
         BrowserComponentRecipe::Flat => conduit_face::TodoComponentRecipe::Flat,
         BrowserComponentRecipe::Grouped => conduit_face::TodoComponentRecipe::Grouped,
@@ -50,7 +46,7 @@ pub(super) fn serve(
         old.receipt.clone(),
         selection.request.clone(),
         selection.show,
-        look,
+        selection.look,
         recipe,
     )?;
     refresh::serve(

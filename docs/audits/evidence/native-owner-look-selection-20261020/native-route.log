@@ -1,0 +1,9 @@
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/products/conduit)
+    Finished `test` profile [unoptimized] target(s) in 10.14s
+     Running unittests src/main.rs (target/debug/deps/conduit-f6e63120cf70015b)
+
+running 1 test
+test durable_host::owner::controller::participants::service::tests::native_route_tests::remote_native_mask_accepts_only_the_offered_scoped_present_binding ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 271 filtered out; finished in 23.45s
+

@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+     Running `target/debug/conduit-xtask-dispatch make host verify /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-current-2/image --journey --locked`
+    Finished `dev` profile [unoptimized] target(s) in 0.23s
+     Running `target/debug/xtask make host verify /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5628-native-selection-current-2/image --journey --locked`
+ConduitOS Face journey proof: /home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/conduit-shallow/target/conduitos/x86_64/journey-proof.json
+VERIFIED image:sha256:4047bda49ebeed351efdd6d17c0a64b898919ac86ae8f02b218d8285cab9d62e

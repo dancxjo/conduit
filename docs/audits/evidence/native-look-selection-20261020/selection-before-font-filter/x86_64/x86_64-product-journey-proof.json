@@ -1,0 +1,574 @@
+{
+  "body_id": "48eb33d0592af01ea411848dc0f16a42f735073de2e9167015f795be7c90ee2b",
+  "boot_id": "4052dfc21fbde30a1d99c5a08103b01b5e768e7a9659ce53f1536e822d60060d",
+  "browser_comparison": "unsupported",
+  "build_id": "build:sha256:48f77baeded3c7610602fe2c6822964063092e442058c07bb8546dc78b88154a",
+  "committed_edit_receipt": "memory-lantern-native-edit.json",
+  "host_id": "33f16b1544763d41828e3616342335ccbe1588c4c8fd597bd367a1c7917256d9",
+  "human_enactment": false,
+  "image_id": "image:sha256:60f27ae8f872e781126a8da7ec06e555d4d6bdeef044fa4830bd622da535c0b8",
+  "image_sha256": "4047bda49ebeed351efdd6d17c0a64b898919ac86ae8f02b218d8285cab9d62e",
+  "input": "real-qmp-keyboard-and-pointer",
+  "look_selection": {
+    "body_actions": 0,
+    "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+    "face_revision": 1,
+    "human_enactment": false,
+    "input": "real-qmp-keyboard",
+    "physical_evidence": false,
+    "same_checked_component": {
+      "checked_plot_id": "5c15b909b9c3f566e439e72531c2988d1ce98b9295199a4852e621ea2ac704ea",
+      "fore_id": "1b49a3bb196f28112a7d721ac946bb64f3e807ba3ce658e3e6b1e1dfffa400bf",
+      "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+    },
+    "same_recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+    "schema": "conduit.conduitos/local-look-proof@1",
+    "status": "passed",
+    "transitions": [
+      {
+        "active_play_id": "862f720985c92923465d5090903c7dd5ea9d044b2b5b0e240346db9a6a20e104",
+        "boot_id": "4052dfc21fbde30a1d99c5a08103b01b5e768e7a9659ce53f1536e822d60060d",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "5c15b909b9c3f566e439e72531c2988d1ce98b9295199a4852e621ea2ac704ea",
+            "fore_id": "1b49a3bb196f28112a7d721ac946bb64f3e807ba3ce658e3e6b1e1dfffa400bf",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-compact-editorial",
+            "component"
+          ],
+          "placement_id": "864dbaaf44562928bb1f9deaaea1e63b550c11093f871d0eb87829b2ab2f9c93",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-compact-editorial"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "compact",
+            "identity": "conduit.face/compact-editorial@1",
+            "motion": "none",
+            "palette": "editorial",
+            "text_scale_percent": 100,
+            "version": 1
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "33f16b1544763d41828e3616342335ccbe1588c4c8fd597bd367a1c7917256d9",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "a437b339696199e1c21ff6603828d145c927b328df5da0a375a33ab6fef7b7dc",
+        "mask_plan_id": "e0c04c72f5919be49b43b1cbe5ceca9c84a6086d7360a6e8cdd170ffc36e45b3",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/86cce875953987c185e47a0c3682e84b9b320f4c36dccc74256dbb1dfe562c57",
+        "render": {
+          "commands": 47,
+          "pixels_written": 1477050
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/363e9dc162070f738aa16c3fe721b4b1d9a63c2351f83f7d5572569da2451164"
+      },
+      {
+        "active_play_id": "4c282be401877961bf9293877477c1857bef80c726fafad83df30bb50877d1f5",
+        "boot_id": "4052dfc21fbde30a1d99c5a08103b01b5e768e7a9659ce53f1536e822d60060d",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "5c15b909b9c3f566e439e72531c2988d1ce98b9295199a4852e621ea2ac704ea",
+            "fore_id": "1b49a3bb196f28112a7d721ac946bb64f3e807ba3ce658e3e6b1e1dfffa400bf",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-spacious",
+            "component"
+          ],
+          "placement_id": "9df302fae1fcb9133c46f770ac1919d822a30bcae3d9ec493fcb25f4e8b7f510",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-spacious"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "spacious",
+            "identity": "conduit.face/spacious@1",
+            "motion": "none",
+            "palette": "editorial",
+            "text_scale_percent": 125,
+            "version": 1
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "33f16b1544763d41828e3616342335ccbe1588c4c8fd597bd367a1c7917256d9",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "bd99415f61fb57dd9d372b1dfd5c4070d65478887a3c304f2aa82d0439446fcc",
+        "mask_plan_id": "568f9a7fabf30718a9a5e8f2f33afc913238d383d385a46c7517ea2b9c7586d6",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/363e9dc162070f738aa16c3fe721b4b1d9a63c2351f83f7d5572569da2451164",
+        "render": {
+          "commands": 24,
+          "pixels_written": 1271856
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/a0009c9ac32099a0f145bc35fd14f80b1366229ed7a3dfe54245eefe401c3530"
+      },
+      {
+        "active_play_id": "ba2f2d67659bcd31ce74331d0e4cb6477d1b6d5e210d01523cef375df5e747bd",
+        "boot_id": "4052dfc21fbde30a1d99c5a08103b01b5e768e7a9659ce53f1536e822d60060d",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "5c15b909b9c3f566e439e72531c2988d1ce98b9295199a4852e621ea2ac704ea",
+            "fore_id": "1b49a3bb196f28112a7d721ac946bb64f3e807ba3ce658e3e6b1e1dfffa400bf",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-spacious-phosphor",
+            "component"
+          ],
+          "placement_id": "b079bccb4fb75470330dcce185c0d5c8072c6c7e4005a9b22bcdd6eed8e58fcb",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-spacious-phosphor"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "spacious",
+            "identity": "conduit.face/spacious-phosphor@1",
+            "motion": "none",
+            "palette": "phosphor",
+            "text_scale_percent": 125,
+            "version": 1
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "33f16b1544763d41828e3616342335ccbe1588c4c8fd597bd367a1c7917256d9",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "42abfe0e14b9a20b71ebf14992a8a5905d9eaf5f75e9c045b37616033d6c2af0",
+        "mask_plan_id": "c6dce109c4c47f0c4be7576066417a869e37a16147e201682f883a2497e5544a",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/a0009c9ac32099a0f145bc35fd14f80b1366229ed7a3dfe54245eefe401c3530",
+        "render": {
+          "commands": 24,
+          "pixels_written": 1271856
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/82e8e1718b6e15bfd94c59072a4d432959a0f2f4ab60c6c7f00d48b57e51f21b"
+      },
+      {
+        "active_play_id": "5b802635bdf7174cc936176c3bac2f67f198bc28ec353eef88ae1af94515b7b4",
+        "boot_id": "4052dfc21fbde30a1d99c5a08103b01b5e768e7a9659ce53f1536e822d60060d",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "5c15b909b9c3f566e439e72531c2988d1ce98b9295199a4852e621ea2ac704ea",
+            "fore_id": "1b49a3bb196f28112a7d721ac946bb64f3e807ba3ce658e3e6b1e1dfffa400bf",
+            "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns",
+            "component"
+          ],
+          "placement_id": "dc2971c306eae77031c6366b7b28605f0388bd3538b6b8dd30e62ed3ddbdafd9",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "compact",
+            "identity": "conduit.face/compact@1",
+            "motion": "none",
+            "palette": "phosphor",
+            "text_scale_percent": 100,
+            "version": 1
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "33f16b1544763d41828e3616342335ccbe1588c4c8fd597bd367a1c7917256d9",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "8d96855f04e2ed19e4bd35f52b74810a3c73374b1776e6193a363b9bd5fb86cb",
+        "mask_plan_id": "0e8a61361b3a951b266fe48fba244ff406f21843aab467080c1db0ee75d56690",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/82e8e1718b6e15bfd94c59072a4d432959a0f2f4ab60c6c7f00d48b57e51f21b",
+        "render": {
+          "commands": 47,
+          "pixels_written": 1477050
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/7683568fe2caf1970540de33671fee9a047687bfd2fe2a40ca3e20784cb4ad34"
+      }
+    ]
+  },
+  "paired_reconstruction": "native-shell-paired-linear.json",
+  "parent_5356_acceptance": "open",
+  "physical_evidence": false,
+  "pointer_actions": {
+    "entrance": "normal-product-creche",
+    "held_motion_after_fresh_show": {
+      "coalesced": 0,
+      "delta_x": 4000,
+      "delta_y": 0,
+      "display_x": 977,
+      "display_y": 124,
+      "dropped": 0,
+      "face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+      "face_revision": 4,
+      "manifestation_id": "bfbb67b22a9a97beebd96049e0683cb509e497e042f59f8096e81c296d7740fc",
+      "position_x": 764000,
+      "position_y": 156000,
+      "press_edge": false,
+      "primary_pressed": true,
+      "schema": "conduit.native-pointer/v1",
+      "sequence": 5,
+      "show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05"
+    },
+    "held_motion_duplicate_effects": 0,
+    "held_motion_on_refreshed_control": true,
+    "human_enactment": false,
+    "keyboard_action_count": 2,
+    "physical_evidence": false,
+    "pointer_action_count": 2,
+    "presses": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 972,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "b8077ab8f401f8b8beaaf1e6f2e28220b07faf70a1d14ea26a5b1def340f81c7",
+        "face_revision": 3,
+        "manifestation_id": "5f1065e4c310b082a0060c8d847bf165033329a7ee51a3bf50ca411db01513f3",
+        "position_x": 760000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 4,
+        "show_id": "show/82f447fc3faa9b25f6cf4569eddc807669c6448a951a41de72e5fabba6bd4b15"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+        "face_revision": 4,
+        "manifestation_id": "bfbb67b22a9a97beebd96049e0683cb509e497e042f59f8096e81c296d7740fc",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 7,
+        "show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05"
+      }
+    ],
+    "proof_class": "freestanding-emulator",
+    "releases": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+        "face_revision": 4,
+        "manifestation_id": "bfbb67b22a9a97beebd96049e0683cb509e497e042f59f8096e81c296d7740fc",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 6,
+        "show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 977,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "70cd4079f260eac68a0c039f341e46610c702fec24bcd85bc2ac5bccf007fadc",
+        "face_revision": 5,
+        "manifestation_id": "b49eb6097dd92df82c32f9fb4935ba9e0cb047d2be576cdf339908683c6cfbb9",
+        "position_x": 764000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 8,
+        "show_id": "show/44d53255624a73a50e7db01800aeaf808bfdc09593b2aff185f580268819f900"
+      }
+    ],
+    "schema": "conduit.creche/native-pointer-proof@1",
+    "source_changes": [
+      {
+        "after_face_id": "2f3aae6f7b2f12b23184249db6f42f436ad4aab24e13f8f3b733a22848c72a61",
+        "after_revision": 2,
+        "after_show_id": "show/5973bccfa816a1c49d49460fb58c7928a89b27bc93be0e7512e81e8a0e589a85",
+        "before_face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+        "before_revision": 1,
+        "before_show_id": "show/7683568fe2caf1970540de33671fee9a047687bfd2fe2a40ca3e20784cb4ad34",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "86c5fa9bc193e6236eebb13c8bbffd830803db3b7dc6f097d1e63b51581716b2",
+          "face_revision": 1,
+          "identity": "d75737930fe4169e2a429888a9102d05524309f159a33aab0301fa86b1d270e0",
+          "sequence": 7,
+          "show_id": "show/7683568fe2caf1970540de33671fee9a047687bfd2fe2a40ca3e20784cb4ad34",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "b8077ab8f401f8b8beaaf1e6f2e28220b07faf70a1d14ea26a5b1def340f81c7",
+        "after_revision": 3,
+        "after_show_id": "show/82f447fc3faa9b25f6cf4569eddc807669c6448a951a41de72e5fabba6bd4b15",
+        "before_face_id": "2f3aae6f7b2f12b23184249db6f42f436ad4aab24e13f8f3b733a22848c72a61",
+        "before_revision": 2,
+        "before_show_id": "show/5973bccfa816a1c49d49460fb58c7928a89b27bc93be0e7512e81e8a0e589a85",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "2f3aae6f7b2f12b23184249db6f42f436ad4aab24e13f8f3b733a22848c72a61",
+          "face_revision": 2,
+          "identity": "68016e44971232277cb3a5718b3a42602697159013b3afc03846688f70f71710",
+          "sequence": 9,
+          "show_id": "show/5973bccfa816a1c49d49460fb58c7928a89b27bc93be0e7512e81e8a0e589a85",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+        "after_revision": 4,
+        "after_show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05",
+        "before_face_id": "b8077ab8f401f8b8beaaf1e6f2e28220b07faf70a1d14ea26a5b1def340f81c7",
+        "before_revision": 3,
+        "before_show_id": "show/82f447fc3faa9b25f6cf4569eddc807669c6448a951a41de72e5fabba6bd4b15",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "b8077ab8f401f8b8beaaf1e6f2e28220b07faf70a1d14ea26a5b1def340f81c7",
+          "face_revision": 3,
+          "identity": "44c578e9dc76656c53ea11161cad7f0cfdd3e3aa4a2351204a6150824655af1e",
+          "sequence": 17,
+          "show_id": "show/82f447fc3faa9b25f6cf4569eddc807669c6448a951a41de72e5fabba6bd4b15",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "70cd4079f260eac68a0c039f341e46610c702fec24bcd85bc2ac5bccf007fadc",
+        "after_revision": 5,
+        "after_show_id": "show/44d53255624a73a50e7db01800aeaf808bfdc09593b2aff185f580268819f900",
+        "before_face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+        "before_revision": 4,
+        "before_show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "b334458227640ae19ccffce7b31c4207a32aad23d0cea66f60af2b0abc5c13dd",
+          "face_revision": 4,
+          "identity": "ab6ff3d13257d117a1eaf5f1a23990dbf03114f309bb03c38e25bc61604013e8",
+          "sequence": 18,
+          "show_id": "show/346554b9b6454735074f8169c5fc1befe09a5d37ef3e3081f76db091cab6df05",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    ],
+    "status": "passed",
+    "target_action": "creche.plot.3",
+    "target_geometry": "observed-current-frame-hit-bounds"
+  },
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "proof_class": "freestanding-emulator",
+  "protected_keyboard_domain": {
+    "address_space_switches": 10,
+    "architecture": "x86_64",
+    "base_gate_transitions": 1,
+    "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "copied_bytes": 10,
+    "dma_isolation": false,
+    "domain_id": 2,
+    "driver_isolation": false,
+    "entries": 5,
+    "fixture": false,
+    "gate_transitions": 5,
+    "interrupt_entries": 0,
+    "partition_plan_id": "bcc09d23990db63b454ce9175efd816aba172cb3c46cf49a58eb4dbe4bfaa063",
+    "plan_id": "body-plan/sha256:03f6726f01c48625860ff237782b36100617087965f2ecb5d5a0330d66bcb06f",
+    "play_id": "body-play/sha256:f955321a6f836ee3c8f0c5ad3f49c8398b1bdc676eb3a0d89822fcf077ad989f",
+    "preemptions": 0,
+    "privilege_transitions": 10,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 5,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 28999773,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 5,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1493578,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 10
+  },
+  "protected_retained_text_domain": {
+    "address_space_switches": 58,
+    "architecture": "x86_64",
+    "base_gate_transitions": 7,
+    "checked_plot_id": "deccebf0d1becbc0c1053f78360901f458f9cb67a5643b5bd82780129d8196e7",
+    "copied_bytes": 93,
+    "dma_isolation": false,
+    "domain_id": 1,
+    "driver_isolation": false,
+    "entries": 29,
+    "fixture": false,
+    "gate_transitions": 29,
+    "interrupt_entries": 0,
+    "partition_plan_id": "d04cca9f1ec1515eccd32c04e62b160e701d6ed81a422f520128cf3a0b030d83",
+    "plan_id": "body-plan/sha256:03f6726f01c48625860ff237782b36100617087965f2ecb5d5a0330d66bcb06f",
+    "play_id": "body-play/sha256:f955321a6f836ee3c8f0c5ad3f49c8398b1bdc676eb3a0d89822fcf077ad989f",
+    "preemptions": 0,
+    "privilege_transitions": 58,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 29,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116175,
+    "setup_ticks": 35693020,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 10,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1717556,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 58
+  },
+  "schema": "conduit.conduitos/face-journey-proof@1",
+  "screenshots": "journey-frames/manifest.json",
+  "source_commit": "76e6e48c82f78af1c402c27b191ad8f4202eb8ac",
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "unavailable-wake-refused",
+    "plan",
+    "play",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ]
+}

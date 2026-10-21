@@ -212,6 +212,24 @@ fn host(
     ),
     WorksetRefusal,
 > {
+    crate::native_observation::Progress::result(
+        crate::native_observation::Phase::HostPreparation,
+        "native-workset",
+        || host_inner(identities, offer, build_id),
+    )
+}
+
+fn host_inner(
+    identities: &BootIdentities,
+    offer: &HostOffer<'_>,
+    build_id: &str,
+) -> Result<
+    (
+        HostAdvertisement,
+        crate::keyboard_offer::KeyboardRealization,
+    ),
+    WorksetRefusal,
+> {
     let keyboard = offer.keyboard.ok_or(WorksetRefusal::Host)?;
     let mut advertisement = crate::ordinary_plan::advertisement(identities, offer, build_id)
         .map_err(|_| WorksetRefusal::Host)?;
@@ -237,6 +255,18 @@ fn host(
 }
 
 fn plan_plots(
+    identities: &[conduit_body::ResidentPlot],
+    advertisement: &HostAdvertisement,
+    fixed: &HostOffer<'_>,
+) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
+    crate::native_observation::Progress::result(
+        crate::native_observation::Phase::WorksetPlanning,
+        "native-workset",
+        || plan_plots_inner(identities, advertisement, fixed),
+    )
+}
+
+fn plan_plots_inner(
     identities: &[conduit_body::ResidentPlot],
     advertisement: &HostAdvertisement,
     fixed: &HostOffer<'_>,
@@ -314,6 +344,14 @@ fn plan_plots(
 }
 
 fn lower_plots(plots: &[BodyPlotPlan]) -> Result<LoweredFragmentSet, WorksetRefusal> {
+    crate::native_observation::Progress::result(
+        crate::native_observation::Phase::WorksetLowering,
+        "native-workset",
+        || lower_plots_inner(plots),
+    )
+}
+
+fn lower_plots_inner(plots: &[BodyPlotPlan]) -> Result<LoweredFragmentSet, WorksetRefusal> {
     lower_local_fragment_set(
         &plots
             .iter()

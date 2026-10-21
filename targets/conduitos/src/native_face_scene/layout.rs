@@ -24,6 +24,7 @@ pub(super) struct Row {
     pub region_start: bool,
     pub padding: u16,
     pub checkbox: Option<bool>,
+    pub icon: Option<conduit_face::FaceIconKey>,
     pub panel_bounds: Option<LayoutRect>,
 }
 
@@ -50,7 +51,7 @@ impl Row {
             super::boolean_choice::INSET
         } else {
             0
-        };
+        } + super::semantic_icons::inset(self.icon);
         LayoutRect {
             x: self.bounds.x + self.padding as i16 + inset as i16,
             y: self.bounds.y + self.padding as i16,
@@ -309,6 +310,7 @@ pub(super) fn admit_with_expression(
                 region_start,
                 padding,
                 checkbox: item.checkbox,
+                icon: item.icon,
                 panel_bounds: None,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,
@@ -382,7 +384,8 @@ fn fit_padding<'a>(
 }
 
 fn row_commands(item: &document::Item, region_start: bool) -> usize {
-    1 + 2 * usize::from(item.checkbox.is_some())
+    1 + usize::from(item.icon.is_some())
+        + 2 * usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some())
         + usize::from(region_start)
         + usize::from(matches!(

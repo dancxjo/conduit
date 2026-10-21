@@ -1,0 +1,16 @@
+{
+  "source_commit": "76e6e48c82f78af1c402c27b191ad8f4202eb8ac",
+  "status_before_build": "",
+  "profile": "targets/conduitos/profiles/conduitos-native.host.conduit",
+  "build_environment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0"
+  },
+  "purpose": "rerun local profile matrix with decoder following native-face/v1",
+  "build_exit_code": 0,
+  "source_after_build": "76e6e48c82f78af1c402c27b191ad8f4202eb8ac",
+  "status_after_build": "",
+  "iso_sha256": "4047bda49ebeed351efdd6d17c0a64b898919ac86ae8f02b218d8285cab9d62e",
+  "journey_exit_code": 0,
+  "source_after_journey": "76e6e48c82f78af1c402c27b191ad8f4202eb8ac",
+  "status_after_journey": ""
+}
