@@ -348,3 +348,15 @@ The notice uses existing Look tokens, wraps within the canvas and does not
 intercept pointer input. Both changed JS modules pass syntax checking. No browser
 enactment, image rebuild, QEMU proof or CI job ran; actual visual/accessibility
 and omission-case acceptance remain open.
+
+## Explicit resident Fore migration prerequisite
+
+Filed #6201 under #5358/#5356 for the remaining production resident Patchbay
+adapter retirement. Actual Source is `plots/patchbay/main.conduit`:
+`input/application-event` → `application/retained` → `face/application-view`.
+Browser plot_runner returns the retained application's encoded view; native's
+separate 3 KiB TextInspection route coexists with canonical graph projection.
+Removing the canvas codec alone would break a supported graph path. #6201 owns
+its typed Face/Show/Interaction migration, real consumer retirement, preserved
+operations and exact finite admission; it does not waive parent acceptance or
+claim completion from the shared graph projection. No CI/proof was launched.
