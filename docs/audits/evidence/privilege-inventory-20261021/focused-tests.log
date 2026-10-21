@@ -1,0 +1,170 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/conduit-xtask-dispatch check privilege-inventory`
+   Compiling syn v3.0.6
+   Compiling zeroize v1.9.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling syn v1.0.109
+   Compiling proc-macro-error v1.0.4
+   Compiling thiserror-impl v1.0.69
+   Compiling cipher v0.4.4
+   Compiling chacha20 v0.9.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling noise-rust-crypto v0.6.2
+   Compiling rustls-webpki v0.103.15
+   Compiling curve25519-dalek v4.1.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling synstructure v0.14.0
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/protected-line)
+   Compiling rustls v0.23.45
+   Compiling thiserror v1.0.69
+   Compiling str-newtype-derive v2.0.0
+   Compiling webpki-roots v1.0.9
+   Compiling ureq v3.4.2
+   Compiling rustls-pemfile v2.2.0
+   Compiling str-newtype v2.0.0
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.3
+   Compiling thiserror v2.0.20
+   Compiling cobs v0.3.0
+   Compiling static-automata-macros v1.0.3
+   Compiling zerovec-derive v0.11.6
+   Compiling static-automata v1.0.3
+   Compiling langtag v1.1.0
+   Compiling displaydoc v0.2.7
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.3
+   Compiling tungstenite v0.30.0
+   Compiling clap_derive v4.6.7
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/core)
+   Compiling postcard v1.1.3
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/kernel)
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling toml_edit v0.22.27
+   Compiling toml v0.8.23
+   Compiling heapless v0.8.0
+   Compiling serde-json-core v0.6.0
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling zerovec v0.11.8
+   Compiling tinystr v0.8.4
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/patchbay)
+   Compiling icu_locale_core v2.3.0
+   Compiling potential_utf v0.1.6
+   Compiling zerotrie v0.2.5
+   Compiling icu_provider v2.3.1
+   Compiling icu_locale_fallback v2.3.0
+   Compiling icu_collections v2.3.0
+   Compiling icu_segmenter v2.3.0
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/plan-lowering)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/thermostat/model)
+   Compiling tongues-pipeline v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/composite)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/commons)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/patchbay/workbench/host-contract)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/rp2040/network-realization)
+   Compiling textwrap v0.16.4
+   Compiling conduitos-runtime-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos/runtime-core)
+   Compiling cliclack v0.5.6
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/make/embedded-build)
+   Compiling clap v4.6.7
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/browser/runtime)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/data)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/alife)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/audio)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/robotics)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/signal)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/mechanisms/protocols/midi)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/tutorial)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/mechanisms/protocols/bluetooth)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/architecture/observatory)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/plot-library)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/birth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/thermostat/face)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/little-seismograph/fixture)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/home)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/proof/conformance/alife-distributed)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos/mask-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos/mask-offer)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/std/offers)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/patchbay/application)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/tour)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/std/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/proof/conformance/signal)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/avr/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/esp32/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/raspberry-pi/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/orange-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/rp2040/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/make/body)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/make/workspace)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos/application-core)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/proof/conformance/network-r1)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/proof/conformance/patchbay-workbench)
+   Compiling conduit-pete v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/bodies/pete)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/conduitos)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 3m 21s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/xtask check privilege-inventory`
+» [privilege-inventory.contract] Reject stale graphical artifacts and unsupported privilege/isolation claims
+  $ cargo test --locked -p xtask --bin xtask privilege_inventory:: -- --nocapture
+   Compiling ring v0.17.14
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/tools/xtask)
+    Finished `test` profile [unoptimized] target(s) in 25.43s
+     Running unittests src/main.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/xtask-a700fc9647e6fec9)
+
+running 9 tests
+test commands::conduitos::build::privilege_inventory::tests::final_link_map_survives_evidence_root_replacement_and_space_in_paths ... ok
+test commands::conduitos::build::privilege_inventory::tests::replacement_artifacts_and_roles_cannot_share_an_inventory_name ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::malformed_embedded_elf_is_not_a_service_and_root_segments_are_checked ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::dependency_or_module_evidence_cannot_become_isolation_or_execution_proof ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::transitive_only_feature_substitution_refuses_with_unchanged_root_line ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::exact_product_association_and_replaced_directory_record ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::foreign_map_refuses_even_with_self_consistent_hash_name_and_observations ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::corrupt_or_foreign_kernel_source_role_map_and_features_refuse ... ok
+test commands::conduitos::build::privilege_inventory::verify::tests::reviewed_source_contract_covers_current_service_profiles_and_authority ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 602 filtered out; finished in 0.00s
+
