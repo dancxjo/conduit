@@ -171,11 +171,16 @@ impl NativeCompositor {
             let format = surface.buffer.format();
             let expression = surface.visual_expression.as_ref();
             super::raster_reuse::raster(&mut surface.buffer, scene, previous, |buffer, replay| {
-                crate::display::typography::render_scene_configured(
+                crate::display::typography::render_scene_selected(
                     buffer,
                     replay,
                     |_, command| command.text_role().into(),
                     expression.map_or(100, |value| value.expression.text_scale_percent),
+                    crate::display::typography::Typography::new(
+                        expression.map_or(conduit_face::VisualTypography::Editorial, |value| {
+                            value.expression.typography
+                        }),
+                    ),
                     |role| visual_paint(format, role, expression),
                 )
             })?

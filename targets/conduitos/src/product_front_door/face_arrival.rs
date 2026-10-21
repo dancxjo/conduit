@@ -17,6 +17,9 @@ use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
 
+#[path = "face_arrival/selection.rs"]
+mod selection;
+
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
     basis: BirthFaceBasis,
@@ -111,93 +114,6 @@ impl FaceArrival {
                 route_plan_id: owner_route.map(|route| route.route_plan_id.clone()),
             },
         })
-    }
-
-    /// Mask-local appearance replacement through the current authenticated owner.
-    /// The owner returns the identical Face and a newly sealed planned Mask.
-    pub(super) fn select_owner_component(
-        &mut self,
-        identities: BootIdentities,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        look: conduit_face::ComponentMaskLook,
-        recipe: conduit_face::TodoComponentRecipe,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        let old_show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
-        let fresh = route.select_component(identities, prior, &old_show, look, recipe)?;
-        self.replace_owner_mask(&fresh, display)?;
-        self.acknowledge_owner_show(route, identities)?;
-        self.preparation.selected = Some((look, recipe));
-        Ok(fresh)
-    }
-
-    fn replace_owner_mask(
-        &mut self,
-        fresh: &crate::native_guest_face::NativeGuestFace,
-        display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
-        let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
-            context.host_id.clone(),
-            context.boot_id.clone(),
-            context.generation,
-            &context.build_id,
-            context.display_base_id.clone(),
-            "conduitos/creche/face",
-            &context.provider,
-            fresh.route(),
-        )
-        .map_err(|error| error.as_str())?;
-        replacement
-            .set_visual_user_constraints(
-                context.forced_colors,
-                true,
-                context.minimum_text_scale_percent,
-            )
-            .map_err(|error| error.as_str())?;
-        self.mask.suspend().map_err(|error| error.as_str())?;
-        self.mask = replacement;
-        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
-        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
-        // Keep owner Face identity/revision and independent Mask publication counters.
-        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
-        Ok(())
-    }
-
-    pub(super) fn toggle_owner_text_scale(
-        &mut self,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        identities: BootIdentities,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        self.preparation.minimum_text_scale_percent =
-            if self.preparation.minimum_text_scale_percent == 100 {
-                200
-            } else {
-                100
-            };
-        let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_face::ComponentMaskLook::Compact,
-            conduit_face::TodoComponentRecipe::Flat,
-        ));
-        self.select_owner_component(identities, prior, route, look, recipe, display)
-    }
-
-    pub(super) fn toggle_owner_forced_colors(
-        &mut self,
-        prior: &crate::native_guest_face::NativeGuestFace,
-        route: &mut NativeOwnerReturnRoute,
-        identities: BootIdentities,
-        display: &mut impl PixelTarget,
-    ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
-        self.preparation.forced_colors = !self.preparation.forced_colors;
-        let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_face::ComponentMaskLook::Compact,
-            conduit_face::TodoComponentRecipe::Flat,
-        ));
-        self.select_owner_component(identities, prior, route, look, recipe, display)
     }
 
     pub(super) fn route_keyboard(&self) -> Result<bool, &'static str> {

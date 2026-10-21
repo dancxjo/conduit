@@ -33,8 +33,9 @@ impl Flow {
         gutter: u16,
         scale: u16,
         groups: [u8; 2],
+        typography: Typography,
     ) -> Result<Self, FaceSceneError> {
-        let chrome = chrome::Chrome::prepare(screen, scale)?;
+        let chrome = chrome::Chrome::prepare_selected(screen, scale, typography)?;
         let width = screen
             .width
             .checked_sub(gutter.checked_mul(2).ok_or(FaceSceneError::InvalidExtent)?)
@@ -162,14 +163,16 @@ pub(super) fn admit(
     scale: u16,
     padding: u16,
     groups: [u8; 2],
+    typography: Typography,
 ) -> Result<Vec<Row>, FaceSceneError> {
     let items = ordering::prepare(items, groups)?;
-    let mut flow = Flow::new(screen, gutter, scale, groups)?;
+    let mut flow = Flow::new(screen, gutter, scale, groups, typography)?;
     let padding = fit_padding(
         items.iter().map(|(_, item)| item),
         (flow.bottom - flow.top).saturating_sub(EDGE * 2),
         scale,
         padding,
+        typography,
     );
     let mut rows = Vec::new();
     let mut reading_order = Vec::new();
@@ -209,6 +212,7 @@ pub(super) fn admit(
                     width: flow.width(lane),
                     maximum_height,
                     scale,
+                    typography,
                     padding,
                 },
                 region_start,
@@ -235,8 +239,14 @@ pub(super) fn admit(
         let mut remaining = item.text.as_str();
         let mut chunk = 0usize;
         while !remaining.is_empty() {
-            let (end, height) =
-                measure_prefix(remaining, item.role, text_width, maximum_height, scale)?;
+            let (end, height) = measure_prefix(
+                remaining,
+                item.role,
+                text_width,
+                maximum_height,
+                scale,
+                typography,
+            )?;
             let height = height + padding * 2;
             // Reserve the actual panel outline before admitting its first row.
             let mut cost = row_commands(&item, region_start) + usize::from(flow.new_panel(lane));

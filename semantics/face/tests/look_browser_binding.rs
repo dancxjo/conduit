@@ -5,6 +5,24 @@ use sha2::{Digest, Sha256};
 
 #[test]
 fn browser_profile_matches_checked_source_and_native_type_exactly() {
+    // Regeneration exports the actual checked type/value before exact comparisons.
+    // A stale browser binding or golden still fails below; export is not a bypass.
+    if let Ok(path) = std::env::var("CONDUIT_LOOK_WIRE_FIXTURE") {
+        let value = phosphor_look().unwrap();
+        std::fs::write(&path, value.encode().unwrap()).unwrap();
+        let profile = LookInfo::semantic_type()
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        std::fs::write(
+            format!("{path}.type.hex"),
+            profile
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>(),
+        )
+        .unwrap();
+    }
     let javascript = include_str!("../../../targets/browser/host/assets/application-look.mjs");
     let hex = javascript
         .split("const LOOK_TYPE_HEX = \"")
@@ -54,7 +72,4 @@ fn browser_profile_matches_checked_source_and_native_type_exactly() {
         LookInfo::decode(&value.clone().encode().unwrap()).unwrap(),
         value
     );
-    if let Ok(path) = std::env::var("CONDUIT_LOOK_WIRE_FIXTURE") {
-        std::fs::write(path, value.encode().unwrap()).unwrap();
-    }
 }

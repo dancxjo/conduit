@@ -17,7 +17,7 @@ fn neutral(
 
 #[test]
 fn canonical_identity_version_and_retired_identities_are_exact() {
-    let value = neutral("conduit.look/neutral@1", 1).unwrap();
+    let value = neutral("conduit.look/neutral@1", 2).unwrap();
     assert_eq!(
         LookInfo::decode(&value.clone().encode().unwrap()).unwrap(),
         value
@@ -27,11 +27,11 @@ fn canonical_identity_version_and_retired_identities_are_exact() {
         "conduit.face/phosphor@1",
         "conduit.presentation/phosphor@1",
     ] {
-        assert!(neutral(identity, 1).is_err());
+        assert!(neutral(identity, 2).is_err());
     }
-    assert!(neutral(&"x".repeat(129), 1).is_err());
+    assert!(neutral(&"x".repeat(129), 2).is_err());
     assert!(neutral("conduit.look/neutral@1", 0).is_err());
-    assert!(neutral("conduit.look/neutral@1", 2).is_err());
+    assert!(neutral("conduit.look/neutral@1", 1).is_err());
 }
 
 #[test]
@@ -45,7 +45,7 @@ fn spoken_and_generative_facets_are_distinct_closed_parameters() {
         generative,
         "conduit.look/narration@1".into(),
         spoken,
-        1,
+        2,
         LookVisualFacetOption::None,
     )
     .unwrap();

@@ -41,12 +41,19 @@
     {
       "purpose": "Title",
       "file": "DejaVuSerif.ttf",
-      "pixels": 24
+      "pixels": 24,
+      "typography": "editorial"
     },
     {
       "purpose": "Code",
       "file": "DejaVuSansMono.ttf",
       "pixels": 14
+    },
+    {
+      "purpose": "Title",
+      "typography": "engineering",
+      "file": "DejaVuSans.ttf",
+      "pixels": 24
     }
   ],
   "fallback": "Absent selected scalar uses pinnedSans; Code keeps Mono cell advance. Remaining scalars use pinnedUnifont rescue/replacement. No shaping or ambientfontclaim.",
@@ -54,7 +61,9 @@
     "font_source_bytes_each": 1048576,
     "scalars": 1024,
     "coverage_bytes": 4194304,
-    "glyph_edge": 64
+    "glyph_edge": 64,
+    "profiles": 6,
+    "glyph_records": 6144
   },
   "active_make_path": "targets/conduitos/build/typography.rs -> OUT_DIR/native_typography.rs + native_coverage.bin; resource ledger native_typography_resources.tsv",
   "historical_asset_manifest": "assets/graphical/manifest.json is retained legacy four-atlas provenance, not consumed by current native generator"
