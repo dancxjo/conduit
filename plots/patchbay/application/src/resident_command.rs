@@ -37,6 +37,8 @@ pub struct PreparedPatchbayCommand {
     pub(super) show_id: MaskShowId,
     pub(super) interaction_id: FaceInteractionId,
     pub(super) sequence: u64,
+    pub(super) interaction: FaceInteraction,
+    pub(super) mask_mode: Option<PatchbayMaskMode>,
     pub(super) body: BodyId,
     pub(super) basis: FaceContributionBasis,
     pub(super) command: PatchbayResidentCommand,
@@ -72,6 +74,7 @@ pub enum PatchbayCommandRefusal {
     UnknownAction,
     UnknownSubject,
     Projection(PatchbayFaceProjectionError),
+    Domain(super::PatchbayApplicationRefusal),
 }
 
 impl PatchbayApplicationPort {
@@ -185,6 +188,8 @@ impl PatchbayApplicationPort {
             show_id: show.show_id.clone(),
             interaction_id: interaction.identity.clone(),
             sequence: interaction.sequence,
+            interaction: interaction.clone(),
+            mask_mode: self.mask_topology.as_ref().map(|topology| topology.mode),
             body: body.clone(),
             basis,
             command,
@@ -192,13 +197,18 @@ impl PatchbayApplicationPort {
     }
 }
 
-fn has_property(face: &Face, subject: &str, name: &str, value: &FacePropertyValue) -> bool {
+pub(super) fn has_property(
+    face: &Face,
+    subject: &str,
+    name: &str,
+    value: &FacePropertyValue,
+) -> bool {
     face.properties.iter().any(|property| {
         property.subject == subject && property.name == name && property.value == *value
     })
 }
 
-fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool {
+pub(super) fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool {
     let standalone = face.basis.checked_plot_id.as_ref() == Some(&basis.checked_plot_id)
         && face.basis.plan_id.as_ref() == Some(&basis.plan_id)
         && face.basis.active_play_id.as_ref() == Some(&basis.active_play_id);

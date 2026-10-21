@@ -10,7 +10,6 @@ use conduit_face::{
     ApplicationNodeState, ApplicationView, ApplicationViewNode, ApplicationViewRefusal,
 };
 use conduit_plot::ExpandedCanonicalPlot;
-use patchbay_control::PatchbayAction;
 use patchbay_graph::{PatchbayGraph, PatchbayGraphError, PatchbayInspection};
 
 pub const INSPECT_NEXT_ACTION_ID: &str = "patchbay.inspect.next";
@@ -45,6 +44,7 @@ mod resident_actions;
 pub use resident_actions::PatchbayFaceProjectionError;
 mod resident_canvas;
 mod resident_face;
+mod resident_execution;
 mod resident_command;
 pub use resident_command::{PatchbayResidentCommand, PreparedPatchbayCommand, PatchbayCommandRefusal};
 mod resident_view;
@@ -301,82 +301,6 @@ impl PatchbayApplicationPort {
                 .map_err(PatchbayApplicationRefusal::Event)?,
             request,
         })
-    }
-
-    fn apply_event(
-        &mut self,
-        event: &ApplicationEvent,
-    ) -> Result<Option<PatchbayApplicationRequest>, PatchbayApplicationRefusal> {
-        if event.action == resident_canvas::SELECT_SUBJECT
-            && event.kind == ApplicationEventKind::Change
-        {
-            self.select_canvas_subject(&event.value)?;
-            return Ok(None);
-        }
-        if event.kind != ApplicationEventKind::Activate {
-            return Err(PatchbayApplicationRefusal::UnknownAction);
-        }
-        match event.action.as_str() {
-            INSPECT_NEXT_ACTION_ID => {
-                let count = self
-                    .selected_active_plot()?
-                    .graph
-                    .subject_identities()
-                    .count();
-                if count == 0 {
-                    return Err(PatchbayApplicationRefusal::NoSubject);
-                }
-                self.selected_subject = (self.selected_subject + 1) % count;
-                self.revision = self
-                    .revision
-                    .checked_add(1)
-                    .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
-                Ok(None)
-            }
-            EDIT_CURRENT_ACTION_ID => {
-                let inspection = self.inspection()?;
-                // Reuse the shared semantic action identity; realization remains
-                // outside application state and cannot acquire ambient authority.
-                debug_assert_eq!(PatchbayAction::ConfigureGear.as_str(), "configure-gear");
-                self.edit_requested = true;
-                self.revision = self
-                    .revision
-                    .checked_add(1)
-                    .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
-                Ok(Some(PatchbayApplicationRequest::EditCurrent {
-                    expanded_plot_id: self.selected_active_plot()?.graph.expanded_plot_id.clone(),
-                    subject_identity: inspection.subject_identity,
-                }))
-            }
-            CHANGE_MASKS_ACTION_ID => {
-                let topology = self
-                    .mask_topology
-                    .as_ref()
-                    .ok_or(PatchbayApplicationRefusal::UnknownAction)?;
-                let mode = topology.next_mode();
-                Ok(Some(PatchbayApplicationRequest::ChangeMasks {
-                    body_plan_id: topology.body_plan_id.clone(),
-                    mode,
-                }))
-            }
-            action if action.starts_with(SELECT_PLOT_ACTION_PREFIX) => {
-                let index = action[SELECT_PLOT_ACTION_PREFIX.len()..]
-                    .parse::<usize>()
-                    .map_err(|_| PatchbayApplicationRefusal::UnknownAction)?;
-                if index >= self.plots.len() {
-                    return Err(PatchbayApplicationRefusal::UnknownAction);
-                }
-                self.selected_plot = Some(index);
-                self.selected_subject = 0;
-                self.edit_requested = false;
-                self.revision = self
-                    .revision
-                    .checked_add(1)
-                    .ok_or(PatchbayApplicationRefusal::RevisionExhausted)?;
-                Ok(None)
-            }
-            _ => Err(PatchbayApplicationRefusal::UnknownAction),
-        }
     }
 
     fn selected_active_plot(&self) -> Result<&PatchbayActivePlot, PatchbayApplicationRefusal> {

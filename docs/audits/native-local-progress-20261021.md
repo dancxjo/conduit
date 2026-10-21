@@ -428,3 +428,22 @@ Native-compositor/workbench compilation passed (5 seconds). No tests, image
 rebuild, platform journey or CI job ran. Execution-boundary rechecking, actual
 owner route/Show feedback and production Fore migration remain open; these
 preparation APIs are not production acceptance.
+
+## Resident command execution boundary
+
+Added execution-boundary checks against the owner's current Body/contribution,
+Face/Show identities, original validated interaction, model revision/Body Plan
+and Mask mode. Prepared commands retain bounded interaction evidence; replacement
+or stale owner state refuses before mutation. Canonical and legacy paths now
+use one typed retained-state update implementation. Edit/Mask operations return
+existing owner requests; this module performs no Host effect or retry.
+
+All fallible domain/revision checks precede state writes. Legacy inspection no
+longer changes selection before discovering revision exhaustion. Mask requests
+now advance the application revision, making the same old event stale rather
+than permitting repeat admission. Three focused checks pass: atomic exhaustion
+across selection/Edit/inspection, exact Body-Plan Mask request plus stale replay,
+and existing Edit/stale-event behavior. Native/workbench compilation also passes.
+No wider suite, image rebuild, platform journey or CI job ran. Actual canonical
+Face/Show production transport, ingress reservations and feedback remain #6201;
+these API/CPU checks are not installed-owner or stable acceptance.
