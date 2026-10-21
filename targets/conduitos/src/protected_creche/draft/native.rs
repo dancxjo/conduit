@@ -3,12 +3,6 @@ use super::*;
 use conduit_human::KeyEvent;
 use conduitos_creche_core::native::NativeOutcome;
 impl CrecheDraft {
-    pub(crate) fn native_focus(&self) -> usize {
-        self.snapshot.native_focus as usize
-    }
-    pub(crate) fn native_refusal(&self) -> Option<&str> {
-        self.snapshot.native_refusal.as_deref()
-    }
     pub(crate) fn accept_native(
         &mut self,
         event: KeyEvent,

@@ -244,3 +244,6 @@ fn refusal_text(error: BirthDraftRefusal) -> &'static str {
         _ => "The Crèche could not accept this change.",
     }
 }
+
+mod projection;
+mod scene;

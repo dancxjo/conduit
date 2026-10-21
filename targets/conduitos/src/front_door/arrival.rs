@@ -20,7 +20,11 @@ use conduit_human::{KeyModifiers, PreparedKeymap};
 use super::{Error, FrontDoor};
 
 mod mask_interaction;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod projection;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected_projection;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 mod scene;
 
 pub(super) struct Arrival {
@@ -336,25 +340,13 @@ fn refusal_text(error: BirthDraftRefusal) -> &'static str {
 mod tests;
 
 impl Arrival {
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     fn focus(&self) -> usize {
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-        {
-            self.draft.native_focus()
-        }
-        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-        {
-            self.focus
-        }
+        self.focus
     }
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     fn refusal(&self) -> Option<&str> {
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-        {
-            self.draft.native_refusal()
-        }
-        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-        {
-            self.refusal.as_deref()
-        }
+        self.refusal.as_deref()
     }
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     fn accept(&mut self, event: KeyEvent) -> ArrivalInput {

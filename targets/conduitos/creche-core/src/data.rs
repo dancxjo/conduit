@@ -97,3 +97,41 @@ pub fn validate_basis(basis: &BirthFaceBasis) -> Result<(), Refusal> {
     }
     Ok(())
 }
+
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeScope {
+    pub revision: u32,
+    pub outer_revision: u64,
+    pub host_id: conduit_core::HostId,
+    pub boot_id: conduit_core::BootId,
+}
+impl NativeScope {
+    pub fn validate(&self) -> Result<(), Refusal> {
+        for value in [self.host_id.as_str(), self.boot_id.as_str()] {
+            if value.is_empty() || value.len() > 2048 || value.chars().any(char::is_control) {
+                return Err(Refusal::Bounds);
+            }
+        }
+        if self.revision == 0 || self.outer_revision == 0 {
+            return Err(Refusal::Bounds);
+        }
+        Ok(())
+    }
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeSceneRequest {
+    pub scope: NativeScope,
+    pub width: u16,
+    pub height: u16,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NativeFaceOutput {
+    pub scope: NativeScope,
+    pub face: conduit_face::Face,
+}
+pub fn scene_request_digest(bytes: &[u8]) -> [u8; 32] {
+    conduit_core::semantic_digest("conduitos/creche-native-scene-request@1", bytes)
+}

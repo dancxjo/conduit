@@ -70,6 +70,8 @@ fn kind(b: u8) -> Result<InputKind, Refusal> {
         1 => Ok(InputKind::Initialize),
         2 => Ok(InputKind::FaceBasis),
         3 => Ok(InputKind::FaceInteraction),
+        4 => Ok(InputKind::NativeFace),
+        5 => Ok(InputKind::NativeScene),
         _ => Err(Refusal::Malformed),
     }
 }
@@ -79,6 +81,8 @@ fn output(b: u8) -> Result<OutputKind, Refusal> {
         2 => Ok(OutputKind::Face),
         3 => Ok(OutputKind::Selection),
         4 => Ok(OutputKind::Native),
+        5 => Ok(OutputKind::NativeFace),
+        6 => Ok(OutputKind::NativeScene),
         _ => Err(Refusal::Malformed),
     }
 }

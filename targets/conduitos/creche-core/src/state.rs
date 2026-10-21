@@ -8,6 +8,7 @@ use conduit_birth_plot::{
     BirthActionOutcome, BirthActions, BirthDraft, BirthFaceRefusal, BirthWidgetFace,
 };
 use conduit_face::ApplicationEventKind;
+mod presentation;
 pub struct State {
     draft: Option<super::native::Controller>,
     incoming: Option<(InputKind, u32, Vec<u8>)>,
@@ -227,6 +228,8 @@ impl State {
             return Err(Refusal::Order);
         }
         match kind {
+            InputKind::NativeScene => self.native_scene(&bytes),
+            InputKind::NativeFace => self.native_face(&bytes),
             InputKind::Initialize => {
                 let input: Initialize = data::decode(&bytes)?;
                 drop(bytes);

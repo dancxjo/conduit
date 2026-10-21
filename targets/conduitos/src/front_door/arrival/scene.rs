@@ -12,6 +12,7 @@ impl Arrival {
     pub(in crate::front_door) fn scene(
         &self,
         display: &impl PixelTarget,
+        _door: &super::FrontDoor,
     ) -> Result<GraphicsScene, Error> {
         let format = display.format().validate().map_err(Error::Display)?;
         let width = u16::try_from(format.width).map_err(|_| Error::Scene)?;
