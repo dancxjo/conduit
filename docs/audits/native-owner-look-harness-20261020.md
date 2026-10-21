@@ -39,3 +39,9 @@ system prerequisites; no credentials or alternate fabricated installation are
 used here. This leaves #5628 and #5994 step10 open; #6156 also retains its queue
 dependency. Per the user's instruction, work proceeds to the next actionable P0,
 #6180, instead of treating this local blocker as completion or a global impasse.
+
+
+After the disjoint incoming #6188 merge, the same actual xtask owner-proof
+module was rebuilt on combined source `a4c9aa7f3` and all seven tests passed
+again. `evidence/native-owner-look-harness-20261020/combined-dev.log` retains
+that result. It is a hosted check, not a live owner capture.

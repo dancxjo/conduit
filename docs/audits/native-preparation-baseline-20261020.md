@@ -61,3 +61,10 @@ semantic identities, current Host planning and kernel authority; cached Source
 is not cached Host authority. No SMP or speedup conclusion is supported yet.
 The separate live owner Todo appearance work remains blocked by its recorded
 Linux release cross-toolchain prerequisite; #6158/#6055/#6155 remain skipped.
+
+
+After capture, incoming #6188 (bounded private compositor service memory) was
+merged from origin/dev through `a4c9aa7f3` without rewriting either history.
+The retained three-run baseline remains attributed to `21777e523`; it is not
+relabelled as the combined source. New subphase attribution and controlled
+before/after reuse measurements must include the combined dev changes.
