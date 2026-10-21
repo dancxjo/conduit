@@ -1,0 +1,46 @@
+✔ application and compatibility identities isolate state while compatible packages retain it (8.78905ms)
+✔ ownership is lazy and a session caches its one Body without duplicate restore (1.437782ms)
+✔ failed termination cannot clear state or release ownership (0.224797ms)
+✔ forgetting unopened state acquires ownership; refused ownership cannot reset (0.172878ms)
+✔ cooperative lock excludes competitors, releases explicitly, and retains Workspace default (0.494909ms)
+✔ close waits for an in-flight birth and its Body settlement before releasing (0.229941ms)
+✔ application continuity retains checked metadata while its identity digest is pending (1.331952ms)
+✔ browser Face controls pass only named, bounded values from the current action (2.27295ms)
+✔ actions with no arguments are ordinary buttons; nontext without choices is unavailable (0.174483ms)
+✔ browser Face argument admission refuses malformed declaration names and whole choice tables (0.2267ms)
+✔ owner interaction arguments bind to the last acknowledged Show and its declarations (0.594607ms)
+✔ Face text admission rejects unpaired surrogates without changing valid Unicode (0.214305ms)
+✔ adversarial adapter admission retains finite typed refusal dispositions (0.319214ms)
+✔ Face snapshot uses one bounded same-origin SDK request (36.95088ms)
+✔ Face interaction carries exact caller-owned semantic basis (0.373528ms)
+✔ Face client refuses failed, empty, and oversized responses (0.907514ms)
+✔ Face response overflow cancels before consuming the rest of the stream (0.989313ms)
+✔ Face response streams preserve exact-boundary UTF-8 across chunks (0.40129ms)
+✔ Face interrupted response retains the operation and releases its reader (0.351138ms)
+✔ clearing a Show fences an acknowledgement already awaiting the owner (1.286311ms)
+✔ newer acknowledgement supersedes old completion (newest first: false) (1.039433ms)
+✔ newer acknowledgement supersedes old completion (newest first: true) (0.116338ms)
+✔ lost presence and owner refusal never publish an acknowledged snapshot (0.269735ms)
+✔ an old owner refusal cannot clear a newer pending acknowledgement (0.170334ms)
+✔ component selection cannot refresh after new-show (0.293192ms)
+✔ component selection cannot refresh after lost-presence (0.150747ms)
+✔ current component selection refreshes once and preserves owner refusal (0.742764ms)
+✔ older Face frame never reaches preparation (newest first: false) (0.403013ms)
+✔ older Face frame never reaches preparation (newest first: true) (0.201991ms)
+✔ pending Face frame cannot prepare after clear (0.198654ms)
+✔ pending Face frame cannot prepare after presence (0.095807ms)
+✔ current Face frame prepares once; failed download never invokes preparation (0.170223ms)
+✔ prepared Show custody is detached from returned views and cleared on invalidation (0.168727ms)
+✔ acknowledgement admits the WASM-owned permission transition on the same Show (2.653489ms)
+✔ another Body, Show, Face or revision cannot replace acknowledged identity (0.327868ms)
+✔ counterfeit preparation admission and invalid lifecycle never grant interactions (0.123776ms)
+✔ validated acknowledgement retains identity and nested contracts despite caller mutation (0.126872ms)
+✔ available caller views require retained authority and cannot replace its action table (0.158608ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 135.736434

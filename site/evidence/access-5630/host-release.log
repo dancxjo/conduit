@@ -1,0 +1,547 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/conduit-xtask-dispatch make host release --platform linux --output /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5630-host-release`
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling libm v0.2.16
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling thiserror v2.0.20
+   Compiling zmij v1.0.23
+   Compiling tinyvec v1.13.3
+   Compiling serde_json v1.0.151
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling minicbor v2.3.0
+   Compiling hashbrown v0.17.1
+   Compiling equivalent v1.0.2
+   Compiling utf8parse v0.2.2
+   Compiling toml_write v0.1.2
+   Compiling winnow v0.7.15
+   Compiling anstyle-parse v1.0.0
+   Compiling colorchoice v1.0.5
+   Compiling anstyle-query v1.1.5
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling anstyle v1.0.14
+   Compiling heck v0.5.0
+   Compiling unicode-normalization v0.1.25
+   Compiling strsim v0.11.1
+   Compiling clap_lex v1.1.1
+   Compiling anstream v1.0.0
+   Compiling indexmap v2.14.2
+   Compiling generic-array v0.14.7
+   Compiling clap_builder v4.6.7
+   Compiling syn v3.0.6
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling clap_derive v4.6.7
+   Compiling cobs v0.3.0
+   Compiling clap v4.6.7
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling toml_edit v0.22.27
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/core)
+   Compiling toml v0.8.23
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/body)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/language)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/robotics)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/text)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/purpose)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/audio)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/midi)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/host)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/make)
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 1m 39s
+     Running `target/xtask-host-release/debug/conduit-xtask-dispatch host release --platform linux --output /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5630-host-release`
+aarch64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+aarch64-linux-gnu-g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+Copyright (C) 2025 Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+cmake version 4.2.3
+
+CMake suite maintained and supported by Kitware (kitware.com/cmake).
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling libm v0.2.16
+   Compiling typenum v1.20.1
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling cpufeatures v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling thiserror v2.0.20
+   Compiling subtle v2.6.1
+   Compiling itoa v1.0.18
+   Compiling semver v1.0.28
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling tinyvec v1.13.3
+   Compiling memchr v2.8.3
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling minicbor v2.3.0
+   Compiling libc v0.2.189
+   Compiling syn v1.0.109
+   Compiling hashbrown v0.17.1
+   Compiling rustc_version v0.4.1
+   Compiling equivalent v1.0.2
+   Compiling unicode-normalization v0.1.25
+   Compiling winnow v0.7.15
+   Compiling toml_write v0.1.2
+   Compiling cpufeatures v0.3.1
+   Compiling thiserror v1.0.69
+   Compiling const-oid v0.10.2
+   Compiling siphasher v1.0.3
+   Compiling option-ext v0.2.0
+   Compiling heapless v0.8.0
+   Compiling byteorder v1.5.0
+   Compiling generic-array v0.14.7
+   Compiling curve25519-dalek v4.1.3
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling indexmap v2.14.2
+   Compiling proc-macro-error v1.0.4
+   Compiling hybrid-array v0.4.15
+   Compiling syn v3.0.6
+   Compiling syn v2.0.119
+   Compiling phf_shared v0.11.3
+   Compiling anyhow v1.0.104
+   Compiling hash32 v0.3.1
+   Compiling phf v0.11.3
+   Compiling stable_deref_trait v1.2.1
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling ryu v1.0.23
+   Compiling isolang v2.4.0
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling unicode-segmentation v1.13.3
+   Compiling digest v0.10.7
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling sha2 v0.10.9
+   Compiling cc v1.6.0
+   Compiling getrandom v0.2.17
+   Compiling dirs-sys v0.5.0
+   Compiling inout v0.1.4
+   Compiling rand_core v0.6.4
+   Compiling dirs v6.0.0
+   Compiling crossbeam-utils v0.8.23
+   Compiling digest v0.11.3
+   Compiling universal-hash v0.5.1
+   Compiling zerocopy v0.8.57
+   Compiling adler2 v2.0.1
+   Compiling opaque-debug v0.3.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling sha2 v0.11.0
+   Compiling miniz_oxide v0.8.9
+   Compiling poly1305 v0.8.0
+   Compiling aead v0.5.2
+   Compiling httparse v1.10.1
+   Compiling arrayvec v0.7.8
+   Compiling autocfg v1.5.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling untrusted v0.9.0
+   Compiling noise-protocol v0.2.1
+   Compiling getrandom v0.4.3
+   Compiling rayon-core v1.13.0
+   Compiling rand_core v0.10.1
+   Compiling bytes v1.12.1
+   Compiling parking_lot_core v0.9.12
+   Compiling log v0.4.34
+   Compiling scopeguard v1.2.0
+   Compiling rustls v0.23.45
+   Compiling smallvec v1.16.1
+   Compiling lock_api v0.4.14
+   Compiling chacha20 v0.10.2
+   Compiling base64 v0.23.1
+   Compiling getrandom v0.3.4
+   Compiling either v1.18.0
+   Compiling http v1.5.0
+   Compiling once_cell v1.21.4
+   Compiling qrcode v0.14.1
+   Compiling parking_lot v0.12.5
+   Compiling rand v0.10.3
+   Compiling sha1 v0.11.0
+   Compiling num_cpus v1.17.0
+   Compiling num-traits v0.2.19
+   Compiling percent-encoding v2.3.2
+   Compiling utf8parse v0.2.2
+   Compiling data-encoding v2.11.1
+   Compiling utf8-zero v0.8.1
+   Compiling anstyle-parse v1.0.0
+   Compiling anstyle v1.0.14
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling anstyle-query v1.1.5
+   Compiling rayon v1.12.0
+   Compiling colorchoice v1.0.5
+   Compiling heck v0.5.0
+   Compiling anstream v1.0.0
+   Compiling clap_lex v1.1.1
+   Compiling strsim v0.11.1
+   Compiling ureq-proto v0.6.4
+   Compiling clap_builder v4.6.7
+   Compiling socket2 v0.6.5
+   Compiling ordered-float v3.9.2
+   Compiling ring v0.17.14
+   Compiling ppv-lite86 v0.2.21
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling clap_derive v4.6.7
+   Compiling instant-distance v0.6.1
+   Compiling zeroize_derive v1.5.0
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling thiserror-impl v1.0.69
+   Compiling cobs v0.3.0
+   Compiling static-automata-macros v1.0.3
+   Compiling tungstenite v0.30.0
+   Compiling zeroize v1.9.0
+   Compiling static-automata v1.0.3
+   Compiling cipher v0.4.4
+   Compiling rustls-pki-types v1.15.1
+   Compiling chacha20 v0.9.1
+   Compiling clap v4.6.7
+   Compiling chacha20poly1305 v0.10.1
+   Compiling webpki-roots v1.0.9
+   Compiling rustls-pemfile v2.2.0
+   Compiling noise-rust-crypto v0.6.2
+   Compiling str-newtype-derive v2.0.0
+   Compiling ed25519-dalek v2.2.0
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/protected-line)
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/core)
+   Compiling toml_edit v0.22.27
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/kernel)
+   Compiling serde-json-core v0.6.0
+   Compiling str-newtype v2.0.0
+   Compiling langtag v1.1.0
+   Compiling toml v0.8.23
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plan-lowering)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/network-realization)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/runtime)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/composite)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/host-contract)
+   Compiling patchbay-svg-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/svg-mask)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/commons)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/human)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/purpose)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/signal)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/wire)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/plot-library)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/body-invitation)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/finance)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/bluetooth)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/model)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/data)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/little-seismograph/fixture)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/ai)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/observatory)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/birth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/face)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/face)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/conduitos/mask-offer)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/alife-distributed)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/orange-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/avr/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/esp32/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/raspberry-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/conduitos/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/workspace)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/patchbay-workbench)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/model)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/runtime)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/patchbay-workbench)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/products/conduit)
+    Finished `release` profile [optimized] target(s) in 5m 24s
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling libm v0.2.16
+   Compiling subtle v2.6.1
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling libc v0.2.189
+   Compiling generic-array v0.14.7
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling thiserror v2.0.20
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.151
+   Compiling zeroize v1.9.0
+   Compiling curve25519-dalek v4.1.3
+   Compiling tinyvec v1.13.3
+   Compiling signature v2.2.0
+   Compiling minicbor v2.3.0
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.17.1
+   Compiling winnow v0.7.15
+   Compiling toml_write v0.1.2
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/language)
+   Compiling ed25519 v2.2.3
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/human)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/face)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/data)
+   Compiling cobs v0.3.0
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/web)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/audio)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/purpose)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/education)
+   Compiling const-oid v0.10.2
+   Compiling siphasher v1.0.3
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/ai)
+   Compiling byteorder v1.5.0
+   Compiling option-ext v0.2.0
+   Compiling anyhow v1.0.104
+   Compiling heapless v0.8.0
+   Compiling static-automata v1.0.3
+   Compiling str-newtype v2.0.0
+   Compiling stable_deref_trait v1.2.1
+   Compiling hash32 v0.3.1
+   Compiling langtag v1.1.0
+   Compiling phf_shared v0.11.3
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling unicode-segmentation v1.13.3
+   Compiling ryu v1.0.23
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tongues)
+   Compiling unicode-normalization v0.1.25
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/chat)
+   Compiling phf v0.11.3
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/signal)
+   Compiling crossbeam-utils v0.8.23
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/wire)
+   Compiling opaque-debug v0.3.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling zerocopy v0.8.57
+   Compiling isolang v2.4.0
+   Compiling ring v0.17.14
+   Compiling rustls-pki-types v1.15.1
+   Compiling indexmap v2.14.2
+   Compiling hybrid-array v0.4.15
+   Compiling arrayvec v0.7.8
+   Compiling cpufeatures v0.2.17
+   Compiling cpufeatures v0.3.1
+   Compiling getrandom v0.2.17
+   Compiling dirs-sys v0.5.0
+   Compiling httparse v1.10.1
+   Compiling noise-protocol v0.2.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling dirs v6.0.0
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling inout v0.1.4
+   Compiling digest v0.10.7
+   Compiling rand_core v0.6.4
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling aead v0.5.2
+   Compiling sha2 v0.10.9
+   Compiling poly1305 v0.8.0
+   Compiling untrusted v0.9.0
+   Compiling log v0.4.34
+   Compiling adler2 v2.0.1
+   Compiling chacha20 v0.9.1
+   Compiling bytes v1.12.1
+   Compiling rand_core v0.10.1
+   Compiling parking_lot_core v0.9.12
+   Compiling rayon-core v1.13.0
+   Compiling getrandom v0.4.3
+   Compiling miniz_oxide v0.8.9
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/plot-library)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/speech)
+   Compiling num-traits v0.2.19
+   Compiling noise-rust-crypto v0.6.2
+   Compiling smallvec v1.16.1
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling ed25519-dalek v2.2.0
+   Compiling digest v0.11.3
+   Compiling http v1.5.0
+   Compiling x25519-dalek v2.0.1
+   Compiling sha2 v0.11.0
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/protected-line)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/runtime)
+   Compiling chacha20 v0.10.2
+   Compiling qrcode v0.14.1
+   Compiling once_cell v1.21.4
+   Compiling either v1.18.0
+   Compiling base64 v0.23.1
+   Compiling getrandom v0.3.4
+   Compiling ordered-float v3.9.2
+   Compiling rayon v1.12.0
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/finance)
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/assigned-plan)
+   Compiling postcard v1.1.3
+   Compiling serde_spanned v0.6.9
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/kernel)
+   Compiling toml_datetime v0.6.11
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay)
+   Compiling toml_edit v0.22.27
+   Compiling ureq-proto v0.6.4
+   Compiling rand v0.10.3
+   Compiling sha1 v0.11.0
+   Compiling parking_lot v0.12.5
+   Compiling serde-json-core v0.6.0
+   Compiling num_cpus v1.17.0
+   Compiling webpki-roots v1.0.9
+   Compiling ppv-lite86 v0.2.21
+   Compiling percent-encoding v2.3.2
+   Compiling utf8-zero v0.8.1
+   Compiling utf8parse v0.2.2
+   Compiling data-encoding v2.11.1
+   Compiling rand_chacha v0.3.1
+   Compiling anstyle-parse v1.0.0
+   Compiling rustls-pemfile v2.2.0
+   Compiling rand v0.8.8
+   Compiling anstyle-query v1.1.5
+   Compiling anstyle v1.0.14
+   Compiling tungstenite v0.30.0
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling colorchoice v1.0.5
+   Compiling clap_lex v1.1.1
+   Compiling strsim v0.11.1
+   Compiling anstream v1.0.0
+   Compiling clap_builder v4.6.7
+   Compiling socket2 v0.6.5
+   Compiling toml v0.8.23
+   Compiling instant-distance v0.6.1
+   Compiling clap v4.6.7
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plot)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/body)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plan-lowering)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/network-realization)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/composite)
+   Compiling patchbay-workbench-host-contract v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/host-contract)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/commons)
+   Compiling patchbay-svg-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/svg-mask)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/model)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/bluetooth)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/planner)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/little-seismograph/fixture)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/observatory)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/midi)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/synth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/birth)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/face)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/conduitos/mask-offer)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/graph)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/tour)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/application)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/conduitos/make)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/avr/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/raspberry-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/esp32/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/network-r1)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/workspace)
+   Compiling conduit-patchbay-workbench-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/patchbay-workbench)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/model)
+   Compiling conduit-thermostat-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/runtime)
+   Compiling patchbay-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/patchbay-workbench)
+   Compiling conduit v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/products/conduit)
+    Finished `release` profile [optimized] target(s) in 4m 17s
+SEALED existing-computer Host releases in /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5630-host-release

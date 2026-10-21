@@ -1,0 +1,75 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/conduit-xtask-dispatch doctor linux-release`
+    Finished `dev` profile [unoptimized] target(s) in 0.27s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/xtask doctor linux-release`
+» [doctor.linux-release.aarch64-target] aarch64-unknown-linux-gnu Rust target
+  $ rustup target list --installed
+» [doctor.linux-release.native-build] native C/C++ build tools
+  $ cc --version
+» [doctor.linux-release.cmake] CMake
+  $ cmake --version
+» [doctor.linux-release.cross-gcc] aarch64 GNU C cross compiler
+  $ aarch64-linux-gnu-gcc --version
+» [doctor.linux-release.cross-gxx] aarch64 GNU C++ cross compiler
+  $ aarch64-linux-gnu-g++ --version
+» [doctor.linux-release.cross-libc] aarch64 cross libc development files
+  $ dpkg-query -W libc6-dev-arm64-cross
+» [doctor.linux-release.xvfb] Xvfb runner for packaged native journeys
+  $ xvfb-run --help
+Conduit doctor (linux-release)
+
+linux-release:
+  aarch64-unknown-linux-gnu Rust target ok
+    aarch64-unknown-linux-gnu
+    aarch64-unknown-linux-musl
+    aarch64-unknown-none
+    i686-unknown-linux-gnu
+    i686-unknown-uefi
+    loongarch64-unknown-none
+    riscv32imc-unknown-none-elf
+    riscv64gc-unknown-none-elf
+    thumbv6m-none-eabi
+    thumbv7em-none-eabihf
+    wasm32-unknown-unknown
+    x86_64-pc-windows-msvc
+    x86_64-unknown-linux-gnu
+    x86_64-unknown-none
+  native C/C++ build tools       ok
+    cc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+    Copyright (C) 2025 Free Software Foundation, Inc.
+    This is free software; see the source for copying conditions.  There is NO
+    warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  CMake                          ok
+    cmake version 4.2.3
+
+    CMake suite maintained and supported by Kitware (kitware.com/cmake).
+  aarch64 GNU C cross compiler   ok
+    aarch64-linux-gnu-gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+    Copyright (C) 2025 Free Software Foundation, Inc.
+    This is free software; see the source for copying conditions.  There is NO
+    warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  aarch64 GNU C++ cross compiler ok
+    aarch64-linux-gnu-g++ (Ubuntu 15.2.0-16ubuntu1) 15.2.0
+    Copyright (C) 2025 Free Software Foundation, Inc.
+    This is free software; see the source for copying conditions.  There is NO
+    warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  aarch64 cross libc development files ok
+    libc6-dev-arm64-cross	2.43-2ubuntu2cross1
+  Xvfb runner for packaged native journeys ok
+    Usage: xvfb-run [OPTION ...] COMMAND
+    Run COMMAND (usually an X client) in a virtual X server environment.
+    Options:
+    -a        --auto-servernum          try to get a free server number, starting at
+                                        --server-num
+    -e FILE   --error-file=FILE         file used to store xauth errors and Xvfb
+                                        output (default: /dev/null)
+    -f FILE   --auth-file=FILE          file used to store auth cookie
+                                        (default: ./.Xauthority)
+    -h        --help                    display this usage message and exit
+    -n NUM    --server-num=NUM          server number to use (default: 99)
+    -l        --listen-tcp              enable TCP port listening in the X server
+    -p PROTO  --xauth-protocol=PROTO    X authority protocol name to use
+                                        (default: xauth command's default)
+    -s ARGS   --server-args=ARGS        arguments (other than server number and
+                                        "-nolisten tcp") to pass to the Xvfb server
+                                        (default: "-screen 0 1280x1024x24")

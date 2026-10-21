@@ -1,0 +1,522 @@
+{
+  "schema": "conduit.proof/browser-todo-accessibility@1",
+  "owner_source_commit": "70a676274b7cae804cd524a3bfc5436d42aba8d2",
+  "browser_runtime_source_commit": "70a676274b7cae804cd524a3bfc5436d42aba8d2",
+  "handbook_ui_source_commit": "70a676274b7cae804cd524a3bfc5436d42aba8d2",
+  "handbook_ui_source_clean": true,
+  "handbook_package_digest": "sha256:b5989013fdc59c406db6f69cade7e574620586d3b0a232310a526af27407ef53",
+  "source_relation": "exact-source",
+  "stage": "before-add",
+  "body_id": "25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+  "face_id": "7130533a8d908a8851d7c13c51d505a51a74533cfd01027760a0a0e4f30276f8",
+  "face_revision": "8156638207689553575",
+  "show_id": "show/3b8ee3e78f61dbe0bb2c868b8495db36f2da992cab82085b555faa08b837e16a",
+  "route": {
+    "plan_id": "plan/remote-owner-mask/ccb996e84c3103ceacebe70c5530554b85c80b617ce631748ee54b1b5d423a9f",
+    "owner_host_id": "host/installed/295e776e8ff82da0325c508ccd51450af4b096405c3f01c1747c51b286afb1f7",
+    "owner_boot_id": "boot/installed/3a4d48ca6ac1ccc64e7f71b3cc264a33205e0aef11fb989aa07c1705aa552624",
+    "mask_host_id": "browser/111d6bb0-15db-444a-b2c3-2d1d100a80b4",
+    "mask_boot_id": "browser-boot/13765b4f-0fcd-4bf6-985b-9dc2e19585d4"
+  },
+  "canonical_face": {
+    "identity": "7130533a8d908a8851d7c13c51d505a51a74533cfd01027760a0a0e4f30276f8",
+    "revision": 8156638207689554000,
+    "basis": {
+      "body_id": "25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+      "wake_id": "efefd68fba919a823e22ddce21bd3679be3936c21eb25e7d4bbfa21479118e2d",
+      "source_document_id": null,
+      "checked_plot_id": null,
+      "expanded_plot_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "sign_ids": [
+        "354651515dc6a497abdc7a08b89894db16ef7a2213bafdea2cde334524faf64b",
+        "919b62a8100c9c6846284ce076737aace3f07ea2013499fd60d296f083f92866",
+        "b6e00b873784112e4368cf26ba2a1478fdf75d615852518f9d1aa37e33ab6308",
+        "c79aeba8128b2f88b600d289d6334d03e471c34fe2333ea52bab31772a7a1dfb"
+      ]
+    },
+    "interaction_context": {
+      "identity": "face/context/overview/focus/body",
+      "basis": [
+        {
+          "source": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+          "relationship": "Contains",
+          "target": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context"
+        }
+      ]
+    },
+    "subjects": [
+      {
+        "identity": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "role": "Body",
+        "name": "Groceries"
+      },
+      {
+        "identity": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "role": "Region",
+        "name": "Current overview context"
+      },
+      {
+        "identity": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "role": "Plan",
+        "name": "Current wake Plan body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b"
+      },
+      {
+        "identity": "play/body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7",
+        "role": "Play",
+        "name": "Active play body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7"
+      },
+      {
+        "identity": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "role": "Plot",
+        "name": "todo/checkpoint-once"
+      },
+      {
+        "identity": "contribution/foreground/0",
+        "role": "Plot",
+        "name": "Face contribution provenance"
+      },
+      {
+        "identity": "todo/list",
+        "role": "Collection",
+        "name": "Groceries"
+      },
+      {
+        "identity": "todo/status",
+        "role": "Status",
+        "name": "Progress"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "target": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "target": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "kind": "Contains"
+      },
+      {
+        "source": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "target": "play/body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7",
+        "kind": "Realizes"
+      },
+      {
+        "source": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "target": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "target": "contribution/foreground/0",
+        "kind": "Contains"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/list",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/status",
+        "kind": "Describes"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/status",
+        "kind": "Contains"
+      }
+    ],
+    "composition": [],
+    "properties": [
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "body-id",
+        "value": {
+          "Identity": "25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5"
+        }
+      },
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "lifecycle-state",
+        "value": {
+          "Text": "awake"
+        }
+      },
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "workload-revision",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "name": "operator-context",
+        "value": {
+          "Text": "overview"
+        }
+      },
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "name": "operator-focus",
+        "value": {
+          "Text": "body"
+        }
+      },
+      {
+        "subject": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "name": "plan-id",
+        "value": {
+          "Identity": "body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b"
+        }
+      },
+      {
+        "subject": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "name": "wake-plan-state",
+        "value": {
+          "Text": "Playing"
+        }
+      },
+      {
+        "subject": "play/body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7",
+        "name": "active-play-id",
+        "value": {
+          "Identity": "body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7"
+        }
+      },
+      {
+        "subject": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "f33b86d4e8335724c8e35930f7f53e2a277bd35adcc28d3058d642a92e44f8d9"
+        }
+      },
+      {
+        "subject": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4"
+        }
+      },
+      {
+        "subject": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "plan-id",
+        "value": {
+          "Identity": "body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "active-play-id",
+        "value": {
+          "Identity": "body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/0",
+        "value": {
+          "Identity": "todo.add"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/0",
+        "value": {
+          "Identity": "todo/list/todo-revision"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/1",
+        "value": {
+          "Identity": "todo/list/remaining-count"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/2",
+        "value": {
+          "Identity": "todo/list/completed-count"
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "todo-revision",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "remaining-count",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "completed-count",
+        "value": {
+          "Count": 0
+        }
+      }
+    ],
+    "text": [
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "text": "Groceries is awake with one resident plot."
+      },
+      {
+        "subject": "todo/status",
+        "text": "0 things left · 0 completed"
+      }
+    ],
+    "actions": [
+      {
+        "identity": "body/action/lull/0",
+        "intent": "conduit.intent/lull@1",
+        "target": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "Lull",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-overview/0",
+        "intent": "conduit.intent/open-body-overview@1",
+        "target": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "Open Body overview",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-library/0",
+        "intent": "conduit.intent/open-plot-library@1",
+        "target": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "name": "Open Plots library",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4/0",
+        "intent": "conduit.intent/open-resident-plot@1",
+        "target": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "name": "Open resident Plot",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-inspection/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4/0",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "name": "Open inspection",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "todo.add",
+        "intent": "todo/add@1",
+        "target": "todo/list",
+        "name": "add an item",
+        "arguments": [
+          {
+            "name": "text",
+            "value_name": "Item text",
+            "contract": {
+              "value_kind": "value/text",
+              "maximum_bytes": 72,
+              "constraints": [
+                {
+                  "ByteLength": {
+                    "minimum": 1,
+                    "maximum": 72
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      }
+    ],
+    "disclosures": [
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "level": "Primary"
+      },
+      {
+        "subject": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5/context",
+        "level": "Context"
+      },
+      {
+        "subject": "plan/body-plan/sha256:43efa6a10569ca2a40a3b236f0888a71947a0e703ef2ae8f10b36cad8935ab0b",
+        "level": "ExactProvenance"
+      },
+      {
+        "subject": "play/body-play/sha256:65f423ecc426e77e133143082cd7a1a1a753b9f717c59deb671ab18970dc65e7",
+        "level": "ExactProvenance"
+      },
+      {
+        "subject": "plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4",
+        "level": "Context"
+      },
+      {
+        "subject": "todo/list",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/status",
+        "level": "Primary"
+      }
+    ],
+    "temporal_references": [],
+    "temporal_facts": []
+  },
+  "styled": {
+    "subjects": [
+      {
+        "identity": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "role": "Body",
+        "name": "Groceries",
+        "values": [],
+        "text": [
+          "Groceries is awake with one resident plot."
+        ],
+        "properties": [
+          "body-id: 25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+          "lifecycle-state: awake",
+          "workload-revision: 0"
+        ]
+      },
+      {
+        "identity": "todo/list",
+        "role": "Collection",
+        "name": "Groceries",
+        "values": [],
+        "text": [],
+        "properties": [
+          "todo-revision: 0",
+          "remaining-count: 0",
+          "completed-count: 0"
+        ]
+      },
+      {
+        "identity": "todo/status",
+        "role": "Status",
+        "name": "Progress",
+        "values": [],
+        "text": [
+          "0 things left · 0 completed"
+        ],
+        "properties": []
+      }
+    ],
+    "controls": [
+      {
+        "action_id": "todo.add",
+        "target": "todo/list",
+        "name": "add an item",
+        "disabled": false,
+        "arguments": [
+          {
+            "name": "text",
+            "accessible_name": "Item text",
+            "minimum_bytes": 1,
+            "maximum_bytes": 72,
+            "native_required": true
+          }
+        ]
+      }
+    ],
+    "accessibility_tree": "- article:\n  - text: Collection\n  - heading \"Groceries\" [level=4]\n  - group:\n    - text: Exact facts\n    - list:\n      - listitem: \"todo-revision: 0\"\n      - listitem: \"remaining-count: 0\"\n      - listitem: \"completed-count: 0\"\n  - heading \"add an item\" [level=5]\n  - text: Item text\n  - textbox \"Item text\"\n  - button \"add an item\"\n  - text: Status\n  - heading \"Progress\" [level=4]\n  - paragraph: 0 things left · 0 completed\n  - group: Body\n  - group: Inspect other Face subjects\n  - group: How these parts relate"
+  },
+  "unstyled": {
+    "subjects": [
+      {
+        "identity": "body/25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+        "role": "Body",
+        "name": "Groceries",
+        "values": [],
+        "text": [
+          "Groceries is awake with one resident plot."
+        ],
+        "properties": [
+          "body-id: 25e2c13fa47dbec6fb57927b6dcd8c4c3a7d97c80ba49f76fe61d4b19300b6d5",
+          "lifecycle-state: awake",
+          "workload-revision: 0"
+        ]
+      },
+      {
+        "identity": "todo/list",
+        "role": "Collection",
+        "name": "Groceries",
+        "values": [],
+        "text": [],
+        "properties": [
+          "todo-revision: 0",
+          "remaining-count: 0",
+          "completed-count: 0"
+        ]
+      },
+      {
+        "identity": "todo/status",
+        "role": "Status",
+        "name": "Progress",
+        "values": [],
+        "text": [
+          "0 things left · 0 completed"
+        ],
+        "properties": []
+      }
+    ],
+    "controls": [
+      {
+        "action_id": "todo.add",
+        "target": "todo/list",
+        "name": "add an item",
+        "disabled": false,
+        "arguments": [
+          {
+            "name": "text",
+            "accessible_name": "Item text",
+            "minimum_bytes": 1,
+            "maximum_bytes": 72,
+            "native_required": true
+          }
+        ]
+      }
+    ],
+    "accessibility_tree": "- article:\n  - text: Collection\n  - heading \"Groceries\" [level=4]\n  - group:\n    - text: Exact facts\n    - list:\n      - listitem: \"todo-revision: 0\"\n      - listitem: \"remaining-count: 0\"\n      - listitem: \"completed-count: 0\"\n  - heading \"add an item\" [level=5]\n  - text: Item text\n  - textbox \"Item text\"\n  - button \"add an item\"\n  - text: Status\n  - heading \"Progress\" [level=4]\n  - paragraph: 0 things left · 0 completed\n  - group: Body\n  - group: Inspect other Face subjects\n  - group: How these parts relate"
+  },
+  "proof_class": "actual owner browser accessible semantics and unstyled native focus; no screen-reader enactment",
+  "owner_unchanged_by_inspection": true
+}

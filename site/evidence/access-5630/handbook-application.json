@@ -1,0 +1,812 @@
+{
+  "schema": "conduit.browser/application-package@1",
+  "application_id": "conduit.application/handbook",
+  "package_digest": "sha256:b5989013fdc59c406db6f69cade7e574620586d3b0a232310a526af27407ef53",
+  "state_compatibility": {
+    "identity": "conduit.application/handbook-state",
+    "version": 1
+  },
+  "host_implementations": [
+    "browser/dom-face@1",
+    "browser/dom@1",
+    "browser/indexeddb@1"
+  ],
+  "resources": [
+    {
+      "role": "application-shell",
+      "kind": "content",
+      "path": "index.html",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:a673dfa400d79b5c9089ab69a9c75fd0af44c509e76cea5a9006e41d0f316e77",
+      "dependencies": []
+    },
+    {
+      "role": "application-module",
+      "kind": "module",
+      "path": "application.mjs",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:816a1c8ae0c87cdf29e222b55692ba9155b4189b006979c07dc2d569dc4500f3",
+      "dependencies": [
+        {
+          "role": "owner-participation",
+          "specifier": "./owner-participation.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-participation",
+      "kind": "module",
+      "path": "owner-participation.mjs",
+      "maximum_bytes": 65536,
+      "sha256": "sha256:86aff5aee04712330088d2309f1e75d162ffe43e6e3c50a6fd8564bce82c2f8c",
+      "dependencies": [
+        {
+          "role": "owner-face-component",
+          "specifier": "./owner-face-component.mjs"
+        },
+        {
+          "role": "owner-face-reachability",
+          "specifier": "./owner-face-reachability.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-reachability",
+      "kind": "module",
+      "path": "owner-face-reachability.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:418372fe1fa5c63ec0653b27cfe8fa1cc82ccb56e1d148cf9aa3d826a8e7c78c",
+      "dependencies": []
+    },
+    {
+      "role": "owner-face-component",
+      "kind": "module",
+      "path": "owner-face-component.mjs",
+      "maximum_bytes": 65536,
+      "sha256": "sha256:9db0bebb9c0f7610f88b5d2a25ccfe5092c73453a0eb3ba02ffc9f3b23cf0865",
+      "dependencies": []
+    },
+    {
+      "role": "owner-face-look",
+      "kind": "style",
+      "path": "owner-face-look.css",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:9c6fe95ae475e75a07f1c5b9c9b37a4efd7e262cc5fbcc7d326ec476bffc27fb",
+      "dependencies": []
+    },
+    {
+      "role": "birth-specification",
+      "kind": "content",
+      "path": "birth.json",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:d2f55daafc5ad74ccac15e4a092a5cd2214a99efd5b98b1174c9c0cefcbd4ebd",
+      "dependencies": []
+    },
+    {
+      "role": "application-style",
+      "kind": "style",
+      "path": "application.css",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:dc81f169d406df8b1b219f1a5e3d1e6d76bff4633eef134b38408ed1c160a4a1",
+      "dependencies": []
+    },
+    {
+      "role": "theme",
+      "kind": "style",
+      "path": "conduit.css",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:0cff78df8df25933d5d576c38898dfe5c65e9d6da783145cac75c714ad418eb5",
+      "dependencies": []
+    },
+    {
+      "role": "site-style",
+      "kind": "style",
+      "path": "chrome.css",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:0f4d9ba82b720235ba4749712af1c54c2493b8ebbf69e6b1cd36418386296a0d",
+      "dependencies": []
+    },
+    {
+      "role": "site-navigation",
+      "kind": "content",
+      "path": "navigation.html",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:a2f22c33cbe816719f39a7a8136b393d7db0e9150fdcb347d1bbc4a496996e30",
+      "dependencies": []
+    },
+    {
+      "role": "tutorial-source",
+      "kind": "content",
+      "path": "plots/tour.conduit",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:1ab5357bd5be8b90112aec2a0ddcd512a3e45a845e9f50208dd5e03cdce3a4f7",
+      "dependencies": []
+    },
+    {
+      "role": "patchbay-source",
+      "kind": "content",
+      "path": "plots/patchbay.conduit",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:f59f25839ef8f9f42fd1933b51fd503ddcacf4ad83850e52e4b76032675d3164",
+      "dependencies": []
+    },
+    {
+      "role": "clock-source",
+      "kind": "content",
+      "path": "plots/clock.conduit",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:350ac438d6f9fdcd3bdeb72e1a9457a385f5d2fc1507c30de57b9d3143e2d2d0",
+      "dependencies": []
+    },
+    {
+      "role": "lantern-source",
+      "kind": "content",
+      "path": "plots/memory-lantern.conduit",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:4146cc57ad2aa397383d462e887170c07f0097ad0157488dfe92c96aa52f9bfd",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-hello-source",
+      "kind": "content",
+      "path": "plots/hello.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:941757d21f24acf16e46e856cb6378e3c3bdc0d8d1aca2b1ce18e5f2aa47c5b3",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-text-lab-source",
+      "kind": "content",
+      "path": "plots/text-lab.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:c5616eae42876e41cc156ec02b7f9604c6cc0305fe9102ef8d17c33be91cca85",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-scale-source",
+      "kind": "content",
+      "path": "plots/scale.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:013d15705ae29772a3023bd4a9c0e1937f0adb93bb5aa49728096264a283aab2",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-logic-source",
+      "kind": "content",
+      "path": "plots/logic.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:0c5baa9e2703e9a1d80b8f5722506fe4b47496de4901c4910e38ede45d1073ce",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-convert-pitch-source",
+      "kind": "content",
+      "path": "plots/convert-pitch.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-compare-distance-source",
+      "kind": "content",
+      "path": "plots/compare-distance.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:23aa239df940b02a9563de2f5058dca3c57faf11fb00b907383123a938cbfec9",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-temperature-change-source",
+      "kind": "content",
+      "path": "plots/temperature-change.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:db42db1262f41df1dd7bd13a99a41c2a2c4f5f1a07b0c19b56e36dd86a091adc",
+      "dependencies": []
+    },
+    {
+      "role": "lesson-inexact-conversion-source",
+      "kind": "content",
+      "path": "plots/inexact-conversion.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:61cc4b27a12599d3a5aa8a41f84f89d64998a152297427fdd09ad2052c440330",
+      "dependencies": []
+    },
+    {
+      "role": "thermostat-source",
+      "kind": "content",
+      "path": "plots/thermostat.conduit",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:65805d0f7f136438f344733b894f96af50d9a395d83e81b9cc373904fb91e9c4",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-0",
+      "kind": "content",
+      "path": "sdk/browser-sdk-continuity.mjs",
+      "maximum_bytes": 3368,
+      "sha256": "sha256:864f71f96304ffa9fc57c56085237d7547efffab6ff0bb843b589cf1b8b581f2",
+      "dependencies": [
+        {
+          "role": "sdk-34",
+          "specifier": "./host/assets/browser-body-continuity.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-1",
+      "kind": "content",
+      "path": "sdk/browser-sdk-events.mjs",
+      "maximum_bytes": 9585,
+      "sha256": "sha256:7932fdd1109e41ee0d3e891b6dd444cb2e7ea8cce66debe02e0c5b6e361f6802",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-2",
+      "kind": "content",
+      "path": "sdk/browser-sdk-face-actions.mjs",
+      "maximum_bytes": 3887,
+      "sha256": "sha256:79ce1a45379b5bc16d3aa1968a701c97f9335ebb7ec681bfe5ec11f2e25544c1",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-3",
+      "kind": "content",
+      "path": "sdk/browser-sdk-face.mjs",
+      "maximum_bytes": 4682,
+      "sha256": "sha256:4105034e123997dd8b7a43e154263d775c11eaf5459f4cfc64be5cd0639982ad",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-4",
+      "kind": "content",
+      "path": "sdk/browser-sdk-owner-show-state.mjs",
+      "maximum_bytes": 1416,
+      "sha256": "sha256:e16dab6d42c1f8d0beae7ae38a264159abe54249f769ac2f14009fc99e93fc5f",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-5",
+      "kind": "content",
+      "path": "sdk/browser-sdk-plots.mjs",
+      "maximum_bytes": 32933,
+      "sha256": "sha256:d9c09e68c26237b77f43344207545701b84a0db6a9645756ddbc29ab9050f27b",
+      "dependencies": [
+        {
+          "role": "sdk-1",
+          "specifier": "./browser-sdk-events.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-6",
+      "kind": "content",
+      "path": "sdk/browser-sdk-syntax.mjs",
+      "maximum_bytes": 321,
+      "sha256": "sha256:94ae3a428dfb00f5931762e88a4d7904ae0e8f7e949b3b162d174093fed3834e",
+      "dependencies": [
+        {
+          "role": "sdk-29",
+          "specifier": "./host/assets/application-syntax-face.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-7",
+      "kind": "content",
+      "path": "sdk/browser-sdk-wardrobe.mjs",
+      "maximum_bytes": 4201,
+      "sha256": "sha256:8e73e5b33fe383e4175abba87b1eaa599c5ac441453010eb3812012e9f42746d",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-8",
+      "kind": "content",
+      "path": "sdk/browser-sdk.d.ts",
+      "maximum_bytes": 16957,
+      "sha256": "sha256:c5626657425df5d8f8b24c518f5fbcf9a4df347420f7d168e469d1a50bdc059c",
+      "dependencies": []
+    },
+    {
+      "role": "browser-sdk",
+      "kind": "content",
+      "path": "sdk/browser-sdk.mjs",
+      "maximum_bytes": 45583,
+      "sha256": "sha256:ac4f9d3f768bd4b115e1c01961c537b163ed3eaee0bf2a6a652c170487d90227",
+      "dependencies": [
+        {
+          "role": "sdk-4",
+          "specifier": "./browser-sdk-owner-show-state.mjs"
+        },
+        {
+          "role": "sdk-6",
+          "specifier": "./browser-sdk-syntax.mjs"
+        },
+        {
+          "role": "sdk-0",
+          "specifier": "./browser-sdk-continuity.mjs"
+        },
+        {
+          "role": "sdk-2",
+          "specifier": "./browser-sdk-face-actions.mjs"
+        },
+        {
+          "role": "sdk-7",
+          "specifier": "./browser-sdk-wardrobe.mjs"
+        },
+        {
+          "role": "sdk-5",
+          "specifier": "./browser-sdk-plots.mjs"
+        },
+        {
+          "role": "sdk-35",
+          "specifier": "./host/assets/browser-body-host.mjs"
+        },
+        {
+          "role": "sdk-32",
+          "specifier": "./host/assets/browser-application-storage.mjs"
+        },
+        {
+          "role": "sdk-39",
+          "specifier": "./host/assets/browser-membership.js"
+        },
+        {
+          "role": "sdk-3",
+          "specifier": "./browser-sdk-face.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-10",
+      "kind": "content",
+      "path": "sdk/bundle/browser-boot-profile.mjs",
+      "maximum_bytes": 16337,
+      "sha256": "sha256:baaa6b1a3af63f34aea147dc79fad4c77862860860e3a2a98c57828a02bd9413",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-11",
+      "kind": "content",
+      "path": "sdk/bundle/browser-bundle-release.json",
+      "maximum_bytes": 3212,
+      "sha256": "sha256:cf19407d87db2522eeffef3be59319fa444cb0cf451e86c53ac89ad61754539d",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-12",
+      "kind": "content",
+      "path": "sdk/bundle/browser-host-bootstrap.mjs",
+      "maximum_bytes": 824,
+      "sha256": "sha256:5a34c6fab3c998e3dc5e3c95a51e72ba1d0784e0d8d234f389e68a6578f723e5",
+      "dependencies": [
+        {
+          "role": "sdk-14",
+          "specifier": "./browser-host-membership.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-13",
+      "kind": "content",
+      "path": "sdk/bundle/browser-host-identity.mjs",
+      "maximum_bytes": 4946,
+      "sha256": "sha256:0384dac899d90a84c0a7208184089fc134f0463f0fc58d35e3b0a3ae7866eb43",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-14",
+      "kind": "content",
+      "path": "sdk/bundle/browser-host-membership.mjs",
+      "maximum_bytes": 4863,
+      "sha256": "sha256:6466ba4bac99d4eef2d49b2ec607a906cc07afce1af1c587ddbf2b4bc6c874ce",
+      "dependencies": [
+        {
+          "role": "sdk-13",
+          "specifier": "./browser-host-identity.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-15",
+      "kind": "content",
+      "path": "sdk/bundle/browser-page.json",
+      "maximum_bytes": 4512,
+      "sha256": "sha256:839a983d988d5fe010be79bc3993b1c25191017ada423c0cdc3083fa6e978d6a",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-16",
+      "kind": "content",
+      "path": "sdk/bundle/browser-relay-line.mjs",
+      "maximum_bytes": 15604,
+      "sha256": "sha256:8f9c3e0188cc673e17275d2b1f47c80e8d7fd800c5393df1f97fc5ba9c7a7b9d",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-17",
+      "kind": "content",
+      "path": "sdk/bundle/browser-runtime-bridge.mjs",
+      "maximum_bytes": 25325,
+      "sha256": "sha256:722e2c027101bb5bed3d1a5b05cdbcfcf61001be6568436c2ea7af17987713c6",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-18",
+      "kind": "content",
+      "path": "sdk/bundle/browser-sdk-package.json",
+      "maximum_bytes": 3300,
+      "sha256": "sha256:42babfa63f07855f943297b22c92c99bdc8f34077804ee30cf39d75f847dda0f",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-19",
+      "kind": "content",
+      "path": "sdk/bundle/conduit-browser-image.json",
+      "maximum_bytes": 4002,
+      "sha256": "sha256:47e4f52c0ab2c7f88707493538ca2b5f49e5d7affe283c84497ffcb3687b82e2",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-20",
+      "kind": "content",
+      "path": "sdk/bundle/device-base.mjs",
+      "maximum_bytes": 15324,
+      "sha256": "sha256:9257f42f723df21e42a6bcc205fb6924b0f8d5645d1424bbb372c17d1c0cb8d3",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-21",
+      "kind": "content",
+      "path": "sdk/bundle/host.mjs",
+      "maximum_bytes": 4916,
+      "sha256": "sha256:7edd1509edb7ed429e72a62c109caf0d16b7d8f4de88097ae7ba3c674869bf35",
+      "dependencies": [
+        {
+          "role": "sdk-12",
+          "specifier": "./browser-host-bootstrap.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-22",
+      "kind": "content",
+      "path": "sdk/bundle/index.html",
+      "maximum_bytes": 5462,
+      "sha256": "sha256:3ffb176fe7ba2c9e9d2747ec7a95a1ac1256b520143965396042cbc9f8e0341d",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-23",
+      "kind": "content",
+      "path": "sdk/bundle/media-host.mjs",
+      "maximum_bytes": 7556,
+      "sha256": "sha256:366a7eb30243a947d32a973ce8508496d1974bddc22eb455d849ac94a9a3f173",
+      "dependencies": []
+    },
+    {
+      "role": "runtime",
+      "kind": "wasm",
+      "path": "sdk/bundle/runtime.wasm",
+      "maximum_bytes": 15639394,
+      "sha256": "sha256:84a04990e00e381003a402b413a75cee5e795eacafe3ff2e21e145b8616ba482",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-25",
+      "kind": "content",
+      "path": "sdk/bundle/usb-device-base.mjs",
+      "maximum_bytes": 15615,
+      "sha256": "sha256:a6564ddc75bce96878da828698d6e9517b16befa81c188b3e645969685f62bd7",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-26",
+      "kind": "content",
+      "path": "sdk/host/assets/application-face.mjs",
+      "maximum_bytes": 44141,
+      "sha256": "sha256:4526b249e66590d07fdee8c899885c394f09888afd58213a81a564cb831b8c2e",
+      "dependencies": [
+        {
+          "role": "sdk-27",
+          "specifier": "./application-graph-canvas.mjs"
+        },
+        {
+          "role": "sdk-28",
+          "specifier": "./application-look.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-27",
+      "kind": "content",
+      "path": "sdk/host/assets/application-graph-canvas.mjs",
+      "maximum_bytes": 8478,
+      "sha256": "sha256:64ed5ab3adf6db13869ae7ab2fb49efab700a4c6794b8385b1ce2a17602b7762",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-28",
+      "kind": "content",
+      "path": "sdk/host/assets/application-look.mjs",
+      "maximum_bytes": 17078,
+      "sha256": "sha256:9e69af38e91b72ecb2d6f4c9f03f9588620b2b0d9f223087ea2b833355462543",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-29",
+      "kind": "content",
+      "path": "sdk/host/assets/application-syntax-face.mjs",
+      "maximum_bytes": 6269,
+      "sha256": "sha256:6e6380b5e95a4ff4033e7f93ec7da710ea32cd8e9bcf86dfc68c16989a36ebef",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-30",
+      "kind": "content",
+      "path": "sdk/host/assets/body-webrtc-session.mjs",
+      "maximum_bytes": 19348,
+      "sha256": "sha256:6bf191074af7229401f39a53bc24e9a0044be0b5566a85bf2bc93d29b578da58",
+      "dependencies": [
+        {
+          "role": "sdk-47",
+          "specifier": "./webrtc-datachannel-line.mjs"
+        },
+        {
+          "role": "sdk-48",
+          "specifier": "./webrtc-session-runtime.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-31",
+      "kind": "content",
+      "path": "sdk/host/assets/body-webrtc-sessions.mjs",
+      "maximum_bytes": 10276,
+      "sha256": "sha256:c3897c6103ed2770b456cf9aa4fe55d5ccac841c01f9caa6816f942f4f2f5289",
+      "dependencies": [
+        {
+          "role": "sdk-30",
+          "specifier": "./body-webrtc-session.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-32",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-application-storage.mjs",
+      "maximum_bytes": 18918,
+      "sha256": "sha256:8754fe218a463fa22e433209e1bc9ab12a5049ecb595253b84dc02a56a2c694e",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-33",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-audio-cue.mjs",
+      "maximum_bytes": 4298,
+      "sha256": "sha256:107abea252796042aeef8678cb7de652314fc56959ef074d89679ac4c0258085",
+      "dependencies": [
+        {
+          "role": "sdk-42",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-34",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-body-continuity.mjs",
+      "maximum_bytes": 1228,
+      "sha256": "sha256:d7d576705fca7d44414de374bca4ef82057ed92e2e9e7cc0b0de3e5b0828cf36",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-35",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-body-host.mjs",
+      "maximum_bytes": 32679,
+      "sha256": "sha256:e63d8f90f9a518318574a68a27145cfb66913ece2b5c6c23f827c83ff2a43d82",
+      "dependencies": [
+        {
+          "role": "sdk-46",
+          "specifier": "./browser-text-editor.mjs"
+        },
+        {
+          "role": "sdk-33",
+          "specifier": "./browser-audio-cue.mjs"
+        },
+        {
+          "role": "sdk-41",
+          "specifier": "./browser-pcm-audio.mjs"
+        },
+        {
+          "role": "sdk-36",
+          "specifier": "./browser-body-input.mjs"
+        },
+        {
+          "role": "sdk-38",
+          "specifier": "./browser-human-input.mjs"
+        },
+        {
+          "role": "sdk-42",
+          "specifier": "./browser-plot-effects.mjs"
+        },
+        {
+          "role": "sdk-45",
+          "specifier": "./browser-saved-choice.mjs"
+        },
+        {
+          "role": "sdk-32",
+          "specifier": "./browser-application-storage.mjs"
+        },
+        {
+          "role": "sdk-43",
+          "specifier": "./browser-resource-storage.mjs"
+        },
+        {
+          "role": "sdk-40",
+          "specifier": "./browser-monotonic-timer.mjs"
+        },
+        {
+          "role": "sdk-26",
+          "specifier": "./application-face.mjs"
+        },
+        {
+          "role": "sdk-44",
+          "specifier": "./browser-runtime-bridge.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-36",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-body-input.mjs",
+      "maximum_bytes": 10465,
+      "sha256": "sha256:68abd39b1475aa0201292a97085ca9d67aeb491de0724432e1335d62dad49866",
+      "dependencies": [
+        {
+          "role": "sdk-38",
+          "specifier": "./browser-human-input.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-37",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-host-identity.mjs",
+      "maximum_bytes": 4946,
+      "sha256": "sha256:0384dac899d90a84c0a7208184089fc134f0463f0fc58d35e3b0a3ae7866eb43",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-38",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-human-input.mjs",
+      "maximum_bytes": 16996,
+      "sha256": "sha256:11d8958c4db400c109dca42f6ec3a80957873cf50d791d802297336a49e5ca78",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-39",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-membership.js",
+      "maximum_bytes": 52437,
+      "sha256": "sha256:e1c7b1eeb77a2c0de2d9cfb2dbfc8c0a599266b91e5d510397c4544023b15ba1",
+      "dependencies": [
+        {
+          "role": "sdk-31",
+          "specifier": "./body-webrtc-sessions.mjs"
+        },
+        {
+          "role": "sdk-37",
+          "specifier": "./browser-host-identity.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-40",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-monotonic-timer.mjs",
+      "maximum_bytes": 2869,
+      "sha256": "sha256:19f2f95b66d8587e0da7e6c51b7a8d7eee8dbf7416ed588ee9d7fd1a0db84001",
+      "dependencies": [
+        {
+          "role": "sdk-42",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-41",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-pcm-audio.mjs",
+      "maximum_bytes": 13031,
+      "sha256": "sha256:149f2aebaf25372c1b7a91d0ad917531dcfd0641dc88fa763eec784af9ace955",
+      "dependencies": [
+        {
+          "role": "sdk-42",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-42",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-plot-effects.mjs",
+      "maximum_bytes": 9145,
+      "sha256": "sha256:6c8b18f98e399315e9f6650b7ec268a3c263e45ddc96465de82dd9b8e8d64e13",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-43",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-resource-storage.mjs",
+      "maximum_bytes": 2926,
+      "sha256": "sha256:7bf7157800cc1e3ae0349077fde7f0fb13bfccceeca1e50fdd6af5ca75e8046f",
+      "dependencies": [
+        {
+          "role": "sdk-32",
+          "specifier": "./browser-application-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-44",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-runtime-bridge.mjs",
+      "maximum_bytes": 25325,
+      "sha256": "sha256:722e2c027101bb5bed3d1a5b05cdbcfcf61001be6568436c2ea7af17987713c6",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-45",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-saved-choice.mjs",
+      "maximum_bytes": 7068,
+      "sha256": "sha256:0605f36f2ddd071300d7f14eab3bcf8525b3796d1b2fbe6383fa92d98f058d4e",
+      "dependencies": [
+        {
+          "role": "sdk-26",
+          "specifier": "./application-face.mjs"
+        }
+      ]
+    },
+    {
+      "role": "sdk-46",
+      "kind": "content",
+      "path": "sdk/host/assets/browser-text-editor.mjs",
+      "maximum_bytes": 6097,
+      "sha256": "sha256:cda7d3f29491e1d789f5ea91d7ea26818fbb73b0d32acb48f30f824705a29d90",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-47",
+      "kind": "content",
+      "path": "sdk/host/assets/webrtc-datachannel-line.mjs",
+      "maximum_bytes": 8206,
+      "sha256": "sha256:2f6e6bc5644907abb8488509cb43b49463abe450bfe6c5cdb240ec8482a92213",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-48",
+      "kind": "content",
+      "path": "sdk/host/assets/webrtc-session-runtime.mjs",
+      "maximum_bytes": 6741,
+      "sha256": "sha256:dcd0a951d04f8929f972ca75c737a1971c6020c0a0b6c807b19dded2f0db3448",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-49",
+      "kind": "content",
+      "path": "sdk/package.json",
+      "maximum_bytes": 799,
+      "sha256": "sha256:c3ff13ed82468810a68f58aa428d3b35d99671c8442f90f681400e07ec831287",
+      "dependencies": []
+    },
+    {
+      "role": "sdk-50",
+      "kind": "content",
+      "path": "sdk/README.md",
+      "maximum_bytes": 18962,
+      "sha256": "sha256:0fa9d55e48455d1882e890b859ce80673898c453329dcd0f344081032ca547c0",
+      "dependencies": []
+    }
+  ]
+}

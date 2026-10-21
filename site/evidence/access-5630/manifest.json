@@ -1,0 +1,255 @@
+{
+  "schema": "conduit.proof/access-5630-public-evidence@1",
+  "capture_source_commit": "70a676274b7cae804cd524a3bfc5436d42aba8d2",
+  "scope": "Local actual installed Linux owner and pinned Chromium semantics; fixture source refusals retain their separate class. No protected CI, publication, screen-reader enactment, speaker or QEMU acceptance claimed.",
+  "files": [
+    {
+      "file": "accessibility-before-add.json",
+      "bytes": 17893,
+      "sha256": "sha256:3343939f6b620a20923b7ef8406664aa895cf5afdfcb309db6568ad0116b4370",
+      "source_artifact": "5630-live-accessibility/browser/accessibility-before-add.json",
+      "source_sha256": "sha256:3343939f6b620a20923b7ef8406664aa895cf5afdfcb309db6568ad0116b4370",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "accessibility-after-add.json",
+      "bytes": 19150,
+      "sha256": "sha256:7e21f42657c240c2b79b79f291a146d123a66a93ee49d48aa12c041623795237",
+      "source_artifact": "5630-live-accessibility/browser/accessibility-after-add.json",
+      "source_sha256": "sha256:7e21f42657c240c2b79b79f291a146d123a66a93ee49d48aa12c041623795237",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "add-1-mutation.json",
+      "bytes": 2718,
+      "sha256": "sha256:ea5353798e4aeefdbbf02e9facbbf0510c87c6bc4ef8d17bfab9d772a56f96d1",
+      "source_artifact": "5630-live-accessibility/browser/add-1-mutation.json",
+      "source_sha256": "sha256:ea5353798e4aeefdbbf02e9facbbf0510c87c6bc4ef8d17bfab9d772a56f96d1",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "add-2-mutation.json",
+      "bytes": 2719,
+      "sha256": "sha256:1815d0b768361a161c032aba7f61b5c714727099a226ce1cf580566cb9494046",
+      "source_artifact": "5630-live-accessibility/browser/add-2-mutation.json",
+      "source_sha256": "sha256:1815d0b768361a161c032aba7f61b5c714727099a226ce1cf580566cb9494046",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "adds.json",
+      "bytes": 83447,
+      "sha256": "sha256:4b7eeba25d6a01ab2bd69e0c563a7028078f2e8dd59f8f7385212a341dd3f2ea",
+      "source_artifact": "5630-live-accessibility/browser/adds.json",
+      "source_sha256": "sha256:4b7eeba25d6a01ab2bd69e0c563a7028078f2e8dd59f8f7385212a341dd3f2ea",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "receipt.json",
+      "bytes": 90201,
+      "sha256": "sha256:b1b9dd42a6bd08425dda26ed24e1fcd77be5b91dca3aeb3514f8f677814bc5db",
+      "source_artifact": "5630-live-accessibility/browser/receipt.json",
+      "source_sha256": "sha256:b1b9dd42a6bd08425dda26ed24e1fcd77be5b91dca3aeb3514f8f677814bc5db",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "adversarial-receipt.redacted.json",
+      "bytes": 146064,
+      "sha256": "sha256:f4606bb5d37856c07987ccf666403c1456bb554b5eabc8c30a2ad548bec7232f",
+      "source_artifact": "5630-live-accessibility/browser/adversarial-receipt.json",
+      "source_sha256": "sha256:4fdea5c7d21d36468b8f2be969e616a61a3e8b46a5c061745b9a3dbf93e6f3b3",
+      "byte_exact_copy": false,
+      "derivation": {
+        "removed_json_pointers": [
+          "/unchanged_owner_execution_receipt"
+        ],
+        "reason": "Contains private transport credential inside retained planned Line. The whole optional execution object is omitted; all 14 results and unchanged-owner Face remain unmodified as values. This is a public projection, not a byte-exact original receipt."
+      }
+    },
+    {
+      "file": "owner-before-start.raw.json",
+      "bytes": 4971,
+      "sha256": "sha256:6d6692534a8ab7050ce946ffd539a878b181ccb2d57c73dcd9b825a50fb51293",
+      "source_artifact": "5630-live-accessibility/before-face.stdout",
+      "source_sha256": "sha256:f588f46a856c55fe384eaa22064143cf9d055de356375bc17a17f8610d0c6855",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Exact UTF-8 byte slice of top-level face value; no JSON parse/reserialization of retained bytes. Unrelated Host offer catalogue is excluded. These owner snapshots bracket the workflow, not the intermediate accessible Shows.",
+        "byte_start": 54,
+        "byte_end_exclusive": 5025
+      }
+    },
+    {
+      "file": "owner-after-terminal-read.raw.json",
+      "bytes": 10492,
+      "sha256": "sha256:58212be638b12b64da5ddb30d4f238957e851966ed18cc7f2811a9c3b5f2c804",
+      "source_artifact": "5630-live-accessibility/after-face.stdout",
+      "source_sha256": "sha256:1f9f993f5af2a312358c4f38fd91da725cc29fc8fff4c382ed10e971014fa645",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Exact UTF-8 byte slice of top-level face value; no JSON parse/reserialization of retained bytes. Unrelated Host offer catalogue is excluded. These owner snapshots bracket the workflow, not the intermediate accessible Shows.",
+        "byte_start": 54,
+        "byte_end_exclusive": 10546
+      }
+    },
+    {
+      "file": "linux-release-seal.json",
+      "bytes": 878,
+      "sha256": "sha256:71cf2f86e8fac4a6aa52b1c81bcf49fd9a21119179cd21c3ca14c796effbdf2f",
+      "source_artifact": "5630-host-release/hosted-linux-x86_64.json",
+      "source_sha256": "sha256:71cf2f86e8fac4a6aa52b1c81bcf49fd9a21119179cd21c3ca14c796effbdf2f",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "browser-release-seal.json",
+      "bytes": 3212,
+      "sha256": "sha256:cf19407d87db2522eeffef3be59319fa444cb0cf451e86c53ac89ad61754539d",
+      "source_artifact": "5630-handbook/sdk/bundle/browser-bundle-release.json",
+      "source_sha256": "sha256:cf19407d87db2522eeffef3be59319fa444cb0cf451e86c53ac89ad61754539d",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "handbook-application.json",
+      "bytes": 24538,
+      "sha256": "sha256:a1eccce5645eb845e136a942ee3d7d518757f4273589244e763796e8e8ff7e45",
+      "source_artifact": "5630-handbook/application.application.json",
+      "source_sha256": "sha256:a1eccce5645eb845e136a942ee3d7d518757f4273589244e763796e8e8ff7e45",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "owner-exchange-producer.log",
+      "bytes": 14570,
+      "sha256": "sha256:a17246f35687552026a2a6b599cce4cec65b76cbafae1f908c72dc8a08897ee5",
+      "source_artifact": "5630-owner-exchange-producer.log",
+      "source_sha256": "sha256:52d066f1d2c6f9794cdc59be588ac01d67d338b35a8b9ba5531aac008ea22870",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Remove trailing whitespace and final empty lines only for patch hygiene; all command, compilation and result lines retained. Original raw log hash remains source_sha256."
+      }
+    },
+    {
+      "file": "browser-exchange-consumer.log",
+      "bytes": 469,
+      "sha256": "sha256:0ee2667350b5febada5baec40247ec43a81cad17ed5bd26a28df80df23c80385",
+      "source_artifact": "5630-browser-exchange-consumer.log",
+      "source_sha256": "sha256:2ff66f1d39be7241263c0717450f021c1bee7c6c3d9cc7331450b6bbfe51d7d2",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Remove trailing whitespace and final empty lines only for patch hygiene; all command, compilation and result lines retained. Original raw log hash remains source_sha256."
+      }
+    },
+    {
+      "file": "browser-component.log",
+      "bytes": 15612,
+      "sha256": "sha256:c7fe0fd804a837ad0568873d80c9c7176f19c2b95bff2613801b4ee317f53ee3",
+      "source_artifact": "5630-browser-component.log",
+      "source_sha256": "sha256:c7fe0fd804a837ad0568873d80c9c7176f19c2b95bff2613801b4ee317f53ee3",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "sdk-contracts.log",
+      "bytes": 3497,
+      "sha256": "sha256:21c8a97109771fddef300621d7c0c99e145894db0d5915e1389e8be0fbdafdd5",
+      "source_artifact": "5630-sdk-contracts.log",
+      "source_sha256": "sha256:21c8a97109771fddef300621d7c0c99e145894db0d5915e1389e8be0fbdafdd5",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "todo-component-slots.log",
+      "bytes": 5362,
+      "sha256": "sha256:86c91320f160518ab186562228753219440fc3328dac24aaa8bb81036404ab6e",
+      "source_artifact": "5630-todo-component-slots.log",
+      "source_sha256": "sha256:ef71f1d2bed080a6e12f35857846ef388433950111a49cb55cfdc11bab019044",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Remove trailing whitespace and final empty lines only for patch hygiene; all command, compilation and result lines retained. Original raw log hash remains source_sha256."
+      }
+    },
+    {
+      "file": "browser-projection-compile.log",
+      "bytes": 9651,
+      "sha256": "sha256:b86fbc7a0fe56fa93275cc88e57eb24edacea29630f0fa704b962df210d002c7",
+      "source_artifact": "5630-browser-projection-compile.log",
+      "source_sha256": "sha256:b86fbc7a0fe56fa93275cc88e57eb24edacea29630f0fa704b962df210d002c7",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "host-release.log",
+      "bytes": 40863,
+      "sha256": "sha256:02aa84e55d66dc1f14ba28c331dbac612d5855d1ff769149ed73d994269dc416",
+      "source_artifact": "5630-host-release.log",
+      "source_sha256": "sha256:02aa84e55d66dc1f14ba28c331dbac612d5855d1ff769149ed73d994269dc416",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "handbook.log",
+      "bytes": 30013,
+      "sha256": "sha256:76c1d80ad3eb093ae9644f92b6999c7277a66bbe292dc852c80e492479eb8692",
+      "source_artifact": "5630-handbook.log",
+      "source_sha256": "sha256:76c1d80ad3eb093ae9644f92b6999c7277a66bbe292dc852c80e492479eb8692",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "doctor-linux-release.log",
+      "bytes": 3903,
+      "sha256": "sha256:e5b972c635967d9822caeb771bd9e144d56d4dcaa0eb6a76bdb9e1c7b911ff18",
+      "source_artifact": "5630-doctor-linux-release.log",
+      "source_sha256": "sha256:3b0c67d24dbdc06a50a9250c2d5eeb9e6825375a189cee604fab10f4d52b5858",
+      "byte_exact_copy": false,
+      "derivation": {
+        "operation": "Remove trailing whitespace and final empty lines only for patch hygiene; all command, compilation and result lines retained. Original raw log hash remains source_sha256."
+      }
+    },
+    {
+      "file": "live-accessibility.log",
+      "bytes": 1800,
+      "sha256": "sha256:6eb8761cc8f2ba2bd6352289a7728df02f25239aa778942505681cdd21daaba5",
+      "source_artifact": "5630-live-accessibility.log",
+      "source_sha256": "sha256:6eb8761cc8f2ba2bd6352289a7728df02f25239aa778942505681cdd21daaba5",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "committed-todo-exchange.json",
+      "bytes": 92359,
+      "sha256": "sha256:3e5a66d69fdd247a85bedd97655f582798490c7d174994a834c78fb0c5ce7559",
+      "source_artifact": "5630-committed-todo-exchange.json",
+      "source_sha256": "sha256:3e5a66d69fdd247a85bedd97655f582798490c7d174994a834c78fb0c5ce7559",
+      "byte_exact_copy": true
+    },
+    {
+      "file": "browser-before.png",
+      "bytes": 90752,
+      "sha256": "sha256:d199b996b08604df22dca545c4df44ae9c2545f5e9b7070b05ef17353c2c26a9",
+      "source_artifact": "5630-live-accessibility/browser/browser-before.png",
+      "source_sha256": "sha256:d199b996b08604df22dca545c4df44ae9c2545f5e9b7070b05ef17353c2c26a9",
+      "byte_exact_copy": true,
+      "review": "Face-only screenshot visually inspected for credentials; no editing or cropping."
+    },
+    {
+      "file": "browser-add-1.png",
+      "bytes": 100975,
+      "sha256": "sha256:28ef72d6a65f24b62b5353851fd10476e7cd0ba5f5cfb283f587a0bc6f36bce9",
+      "source_artifact": "5630-live-accessibility/browser/browser-add-1.png",
+      "source_sha256": "sha256:28ef72d6a65f24b62b5353851fd10476e7cd0ba5f5cfb283f587a0bc6f36bce9",
+      "byte_exact_copy": true,
+      "review": "Face-only screenshot visually inspected for credentials; no editing or cropping."
+    },
+    {
+      "file": "browser-add-2.png",
+      "bytes": 114417,
+      "sha256": "sha256:dd56085b9848f10fe99403cafa4a0e68bfb488f294be4c590e4ebf56ed0a875b",
+      "source_artifact": "5630-live-accessibility/browser/browser-add-2.png",
+      "source_sha256": "sha256:dd56085b9848f10fe99403cafa4a0e68bfb488f294be4c590e4ebf56ed0a875b",
+      "byte_exact_copy": true,
+      "review": "Face-only screenshot visually inspected for credentials; no editing or cropping."
+    },
+    {
+      "file": "browser-after.png",
+      "bytes": 114417,
+      "sha256": "sha256:dd56085b9848f10fe99403cafa4a0e68bfb488f294be4c590e4ebf56ed0a875b",
+      "source_artifact": "5630-live-accessibility/browser/browser-after.png",
+      "source_sha256": "sha256:dd56085b9848f10fe99403cafa4a0e68bfb488f294be4c590e4ebf56ed0a875b",
+      "byte_exact_copy": true,
+      "review": "Face-only screenshot visually inspected for credentials; no editing or cropping."
+    }
+  ]
+}
