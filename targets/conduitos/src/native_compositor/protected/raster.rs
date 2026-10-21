@@ -173,87 +173,97 @@ impl NativeCompositor {
             self.fail();
             return Err(error);
         }
-        let session = self.scope()?;
-        let owner = self.owner()?.clone();
-        let rendered = {
-            let mut owner = owner
-                .try_borrow_mut()
-                .map_err(|_| NativeCompositorError::ServiceBusy)?;
-            owner.with_raster(bounds.width, bounds.height, |sessions, lease| {
-                use crate::display::PixelTarget;
-                let format = lease.format();
-                #[cfg(feature = "native-compositor")]
-                let receipt = crate::display::typography::render_scene_configured(
-                    lease,
-                    scene,
-                    |_, command| command.text_role().into(),
-                    expression
-                        .as_ref()
-                        .map_or(100, |e| e.expression.text_scale_percent),
-                    |role| super::super::paint::visual_paint(format, role, expression.as_ref()),
-                )?;
-                #[cfg(not(feature = "native-compositor"))]
-                let receipt = crate::display::render_scene(lease, scene)?;
-                // The full packed arena is finite; preparation copies at most
-                // MAX_COMPOSITOR_PIXELS unchanged pixels in bounded entries.
-                let mut prepared = false;
-                for _ in
-                    0..=(super::super::MAX_COMPOSITOR_PIXELS / conduitos_compositor_core::MAX_CHUNK)
-                {
-                    match response(
-                        sessions
-                            .request(
-                                session,
-                                Request::PrepareUpload {
-                                    pixels: conduitos_compositor_core::MAX_CHUNK as u32,
-                                },
-                            )
-                            .map_err(owner_error)?,
-                    )? {
-                        Response::Prepared(true) => {
-                            prepared = true;
-                            break;
-                        }
-                        Response::Prepared(false) => {}
-                        _ => return Err(NativeCompositorError::ServiceProtocol),
-                    }
-                }
-                if !prepared {
-                    return Err(NativeCompositorError::ServiceProtocol);
-                }
-                let mut offset = 0u32;
-                for chunk in lease.upload_chunks() {
-                    match response(
-                        sessions
-                            .upload_chunk(session, offset, chunk)
-                            .map_err(owner_error)?,
-                    )? {
-                        Response::Unit => {}
-                        _ => return Err(NativeCompositorError::ServiceProtocol),
-                    }
-                    offset = offset
-                        .checked_add(chunk.len() as u32)
-                        .ok_or(NativeCompositorError::InvalidBounds)?;
-                }
-                match response(
-                    sessions
-                        .request(session, Request::CommitUpload)
-                        .map_err(owner_error)?,
-                )? {
-                    Response::Unit => Ok(receipt),
-                    _ => Err(NativeCompositorError::ServiceProtocol),
-                }
-            })
-        };
-        let display = match rendered {
-            Ok(Ok(receipt)) => receipt,
-            Ok(Err(error)) => {
+        let session = match self.scope() {
+            Ok(session) => session,
+            Err(error) => {
                 self.fail();
                 return Err(error);
             }
+        };
+        let owner = match self.owner() {
+            Ok(owner) => owner.clone(),
             Err(error) => {
                 self.fail();
-                return Err(error.into());
+                return Err(error);
+            }
+        };
+        let rendered = (|| {
+            let mut owner = owner
+                .try_borrow_mut()
+                .map_err(|_| NativeCompositorError::ServiceBusy)?;
+            owner
+                .with_raster(bounds.width, bounds.height, |sessions, lease| {
+                    use crate::display::PixelTarget;
+                    let format = lease.format();
+                    #[cfg(feature = "native-compositor")]
+                    let receipt = crate::display::typography::render_scene_configured(
+                        lease,
+                        scene,
+                        |_, command| command.text_role().into(),
+                        expression
+                            .as_ref()
+                            .map_or(100, |e| e.expression.text_scale_percent),
+                        |role| super::super::paint::visual_paint(format, role, expression.as_ref()),
+                    )?;
+                    #[cfg(not(feature = "native-compositor"))]
+                    let receipt = crate::display::render_scene(lease, scene)?;
+                    // The full packed arena is finite; preparation copies at most
+                    // MAX_COMPOSITOR_PIXELS unchanged pixels in bounded entries.
+                    let mut prepared = false;
+                    for _ in 0..=(super::super::MAX_COMPOSITOR_PIXELS
+                        / conduitos_compositor_core::MAX_CHUNK)
+                    {
+                        match response(
+                            sessions
+                                .request(
+                                    session,
+                                    Request::PrepareUpload {
+                                        pixels: conduitos_compositor_core::MAX_CHUNK as u32,
+                                    },
+                                )
+                                .map_err(owner_error)?,
+                        )? {
+                            Response::Prepared(true) => {
+                                prepared = true;
+                                break;
+                            }
+                            Response::Prepared(false) => {}
+                            _ => return Err(NativeCompositorError::ServiceProtocol),
+                        }
+                    }
+                    if !prepared {
+                        return Err(NativeCompositorError::ServiceProtocol);
+                    }
+                    let mut offset = 0u32;
+                    for chunk in lease.upload_chunks() {
+                        match response(
+                            sessions
+                                .upload_chunk(session, offset, chunk)
+                                .map_err(owner_error)?,
+                        )? {
+                            Response::Unit => {}
+                            _ => return Err(NativeCompositorError::ServiceProtocol),
+                        }
+                        offset = offset
+                            .checked_add(chunk.len() as u32)
+                            .ok_or(NativeCompositorError::InvalidBounds)?;
+                    }
+                    match response(
+                        sessions
+                            .request(session, Request::CommitUpload)
+                            .map_err(owner_error)?,
+                    )? {
+                        Response::Unit => Ok(receipt),
+                        _ => Err(NativeCompositorError::ServiceProtocol),
+                    }
+                })
+                .map_err(NativeCompositorError::from)?
+        })();
+        let display = match rendered {
+            Ok(receipt) => receipt,
+            Err(error) => {
+                self.fail();
+                return Err(error);
             }
         };
         let surface = &mut self.surfaces[i];
