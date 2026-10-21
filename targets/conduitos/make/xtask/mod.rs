@@ -486,6 +486,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
+        ConduitosCommand::Workshop => live_media::workshop(opts, false),
+        ConduitosCommand::WorkshopBoot => live_media::workshop(opts, true),
         ConduitosCommand::LiveOwnerBoot(args) => owner_boot::execute(
             &args.spore,
             &args.candidate_id,
