@@ -1,7 +1,8 @@
 //! Finite round controller; this forwards exact Cords through the existing kernel.
 use crate::kernel_preparation::worker::{InitializedRegionWorker, WorkerError, WorkerReply};
 use conduit_kernel::{
-    scheduler::RemoteIngressOutcome, CanonicalValue, CordId, RemoteTerminalDisposition,
+    scheduler::{RemoteIngressOutcome, SchedulerStatus},
+    CanonicalValue, CordId, RemoteTerminalDisposition,
 };
 
 pub(super) struct Route {
@@ -26,6 +27,34 @@ pub enum RegionAdvance {
     Progress,
     /// One bounded sweep; this does not assert semantic completion.
     RoundComplete,
+}
+/// A completed sweep of kernel statuses, not a semantic completion Sign.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct RegionRoundState {
+    statuses: [Option<SchedulerStatus>; 4],
+    lanes: usize,
+    pub open_transfers: usize,
+    pub pressured_transfers: usize,
+}
+impl RegionRoundState {
+    /// Progress node IDs are dense worker-local ordinals, as in the underlying
+    /// fixed kernel. Retirement retains their original Plan node mapping.
+    pub fn lane_status(&self, lane: usize) -> Option<SchedulerStatus> {
+        if lane >= self.lanes {
+            return None;
+        }
+        self.statuses[lane]
+    }
+    pub fn lane_count(&self) -> usize {
+        self.lanes
+    }
+    /// Structural drain only; the Plan's semantic completion policy is separate.
+    pub fn is_drained(&self) -> bool {
+        self.open_transfers == 0
+            && self.statuses[..self.lanes]
+                .iter()
+                .all(|status| *status == Some(SchedulerStatus::Drained))
+    }
 }
 #[derive(Clone, Copy)]
 enum Phase {
@@ -52,9 +81,14 @@ pub(super) struct RegionController {
     sequence: u64,
     bytes: usize,
     failure: Option<WorkerError>,
+    statuses: [Option<SchedulerStatus>; 4],
+    open_transfers: usize,
+    pressured_transfers: usize,
+    last_round: Option<RegionRoundState>,
 }
 impl RegionController {
     pub(super) fn new(routes: Vec<Route>, transfer_bytes: usize) -> Self {
+        let open_transfers = routes.len();
         Self {
             routes,
             buffer: vec![0; transfer_bytes].into_boxed_slice(),
@@ -63,7 +97,14 @@ impl RegionController {
             sequence: 0,
             bytes: 0,
             failure: None,
+            statuses: [None; 4],
+            open_transfers,
+            pressured_transfers: 0,
+            last_round: None,
         }
+    }
+    pub(super) fn round_state(&self) -> Option<RegionRoundState> {
+        self.last_round
     }
     pub(super) fn failure(&self) -> Option<WorkerError> {
         self.failure
@@ -100,12 +141,19 @@ impl RegionController {
         workers: &mut [InitializedRegionWorker],
     ) -> Result<RegionAdvance, WorkerError> {
         use Phase::*;
+        if workers.len() > 4 {
+            return Err(WorkerError::InvalidLane);
+        }
         if workers.is_empty() {
             return Err(WorkerError::NotInstalled);
         }
         match self.phase {
             StepSend(lane) => {
                 workers[lane].step()?;
+                if lane == 0 {
+                    self.pressured_transfers = 0;
+                    self.statuses = [None; 4];
+                }
                 self.phase = if lane + 1 < workers.len() {
                     StepSend(lane + 1)
                 } else {
@@ -117,9 +165,10 @@ impl RegionController {
                 let Some(reply) = workers[lane].take_reply(&mut [])? else {
                     return Ok(RegionAdvance::Pending);
                 };
-                if !matches!(reply?, WorkerReply::Step(_)) {
+                let WorkerReply::Step(status) = reply? else {
                     return Err(WorkerError::UnexpectedReply);
-                }
+                };
+                self.statuses[lane] = Some(status);
                 self.phase = if lane + 1 < workers.len() {
                     StepWait(lane + 1)
                 } else {
@@ -130,6 +179,12 @@ impl RegionController {
             _ => {}
         }
         if self.route >= self.routes.len() {
+            self.last_round = Some(RegionRoundState {
+                statuses: self.statuses,
+                lanes: workers.len(),
+                open_transfers: self.open_transfers,
+                pressured_transfers: self.pressured_transfers,
+            });
             self.route = 0;
             self.phase = StepSend(0);
             return Ok(RegionAdvance::RoundComplete);
@@ -207,6 +262,7 @@ impl RegionController {
                     (AdmitWait, WorkerReply::Ingress(RemoteIngressOutcome::Full { sequence }))
                         if sequence == self.sequence =>
                     {
+                        self.pressured_transfers += 1;
                         self.next_route()
                     }
                     (AckWait, WorkerReply::Delivered) => self.next_route(),
@@ -224,6 +280,7 @@ impl RegionController {
                     }
                     (CloseWait, WorkerReply::Closed) => {
                         route.closed = true;
+                        self.open_transfers -= 1;
                         self.next_route();
                     }
                     _ => return Err(WorkerError::UnexpectedReply),

@@ -20,9 +20,9 @@ use pool_usage::PoolUsage;
 mod region_resources;
 mod service;
 pub use service::{
-    InitializedRegionService, RegionAdvance, RegionExecution, RegionServiceConfig,
-    RegionServiceRetirement, RegionWorkerCommand, RegionWorkerError, RegionWorkerEvidence,
-    RegionWorkerReply,
+    InitializedRegionService, RegionAdvance, RegionExecution, RegionRoundState,
+    RegionServiceConfig, RegionServiceRetirement, RegionWorkerCommand, RegionWorkerError,
+    RegionWorkerEvidence, RegionWorkerReply,
 };
 mod worker;
 

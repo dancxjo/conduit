@@ -7,7 +7,7 @@ use conduit_core::{
 mod activation;
 mod controller;
 mod execution;
-pub use controller::RegionAdvance;
+pub use controller::{RegionAdvance, RegionRoundState};
 pub use execution::RegionExecution;
 mod offers;
 mod preparation;
@@ -32,6 +32,7 @@ pub struct RegionWorkerEvidence {
 pub struct RegionServiceRetirement {
     pub active_play: Option<conduit_core::ActivePlayIdentity>,
     pub controller_error: Option<RegionWorkerError>,
+    pub last_round: Option<RegionRoundState>,
     pub plan: Option<conduit_core::Plan>,
     pub admission_observations: Vec<conduit_core::ResourceObservation>,
     pub workers: Vec<RegionWorkerEvidence>,

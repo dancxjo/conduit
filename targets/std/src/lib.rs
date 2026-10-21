@@ -178,7 +178,7 @@ pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
 pub use kernel_preparation::{
-    RegionAdvance, RegionExecution, InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
+    RegionAdvance, RegionRoundState, RegionExecution, InitializedRegionService, RegionServiceConfig, RegionServiceRetirement, RegionWorkerError,
     RegionWorkerEvidence, RegionWorkerCommand, RegionWorkerReply,
 };
 mod kernel_signal;

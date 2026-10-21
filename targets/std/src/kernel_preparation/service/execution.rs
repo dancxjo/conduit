@@ -51,14 +51,20 @@ impl RegionExecution<'_> {
     pub fn controller_backing_bytes(&self) -> usize {
         self.controller.backing_bytes()
     }
+    /// Last complete sweep; remains unchanged while the next sweep is pending.
+    pub fn round_state(&self) -> Option<RegionRoundState> {
+        self.controller.round_state()
+    }
     pub fn advance(&mut self) -> Result<RegionAdvance, RegionWorkerError> {
         self.controller
             .advance(&mut self.service.workers[..self.service.prepared_count])
     }
     pub fn shutdown(self) -> RegionServiceRetirement {
         let failure = self.controller.failure();
+        let last_round = self.controller.round_state();
         let mut retirement = self.service.shutdown();
         retirement.controller_error = failure;
+        retirement.last_round = last_round;
         retirement
     }
 }

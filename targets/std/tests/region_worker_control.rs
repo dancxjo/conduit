@@ -292,6 +292,7 @@ fn finite_controller_delivers_original_cord_and_keeps_backing_fixed() {
     let mut controller =
         controller::RegionController::new(vec![controller::Route::new(CordId(0), 0, 1)], 2);
     let backing = controller.backing_bytes();
+    assert_eq!(controller.round_state(), None);
     let until = Instant::now() + Duration::from_secs(5);
     let mut rounds = 0;
     while rounds < 4 {
@@ -303,6 +304,15 @@ fn finite_controller_delivers_original_cord_and_keeps_backing_fixed() {
         assert!(Instant::now() < until, "finite controller stalled");
     }
     assert_eq!(controller.backing_bytes(), backing);
+    let snapshot = controller.round_state().unwrap();
+    assert_eq!(snapshot.lane_count(), 2);
+    assert_eq!(snapshot.lane_status(2), None);
+    assert_eq!(snapshot.open_transfers, 0);
+    assert_eq!(snapshot.pressured_transfers, 0);
+    assert!(snapshot.lane_status(0).is_some());
+    assert!(snapshot.lane_status(1).is_some());
+    controller.advance(&mut workers).unwrap();
+    assert_eq!(controller.round_state(), Some(snapshot));
     let mut retired = workers.into_iter().map(|w| w.shutdown().unwrap());
     let source = retired.next().unwrap().kernel.unwrap();
     let sink = retired.next().unwrap().kernel.unwrap();
