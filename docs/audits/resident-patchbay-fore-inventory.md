@@ -108,3 +108,17 @@ required on this command stream: the existing read-only observation produces
 that first meaning. Owner-controlled publication and explicit replacement or
 retirement delimit each Show's interaction stream; no implicit retry crosses a
 replacement. Wiring, publication and consumer retirement remain unfinished.
+
+## Sealed ingress Plan and local lowering
+
+`PlannedPatchbayIngress::prepare` checks and expands the migration Source,
+selects from the supplied Host advertisement through the ordinary planner,
+validates the exact selected Back and lowers the sealed local fragment. It
+requires an already offered Back; it never inserts one into the advertisement.
+Its input Fore explicitly selects one ordered queue item and 8,192 bytes.
+Preparation checks the closing canonical type, exact local shape and absence of
+an external Line. The returned Plan/lowering retain identities and finite
+storage requirements; they do not allocate a running scheduler or reserve
+resources on behalf of the parent Body Play. Subsequent installation must use
+these exact tables and storage budgets, bind the current owner and acknowledge
+its real Show before enabling interaction.

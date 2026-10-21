@@ -582,3 +582,20 @@ focused preparation test passes; it checks authored Source expansion, canonical
 Mask-output correspondence, valid preparation and legacy/open/widened refusal.
 No actual Host Call was dispatched, owner route installed, storage reserved by
 this new primitive, Show acknowledged, platform proof or CI job run.
+
+## Plan the canonical ingress through the ordinary planner
+
+Added `PlannedPatchbayIngress`: checks/expands the new Source, selects only from
+an explicitly supplied Host advertisement, validates the exact Back and lowers
+the sealed Plan. The explicit input boundary is one closing canonical Flow,
+one slot and 8,192 bytes; no external Line or ambient legacy owner is selected.
+The result exposes immutable Plan/lowering/input facts for actual installation.
+It is not a running child Play or a parent resource reservation.
+
+Browser compilation passes. One focused CPU check passes (452 filtered out):
+sealed Plan verifies and retains supplied Host/Boot, lowering charges exactly
+one slot/8,192 payload bytes/one node/one Host Call, and absent or altered offers
+refuse. A local formatting syntax correction added parentheses around an enum
+struct literal before compilation. No CI, platform proof, image rebuild or
+broad test suite ran. Kernel storage installation and current owner/Show binding
+remain #6201 implementation work.

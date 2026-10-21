@@ -70,3 +70,24 @@ fn canonical_sink_matches_mask_output_and_refuses_legacy_or_widened_admission() 
     widened_call.host_calls[0].maximum_input_bytes += 1;
     assert!(prepare(&widened_call).is_err());
 }
+
+#[test]
+fn sealed_ingress_plan_has_exact_finite_local_fore_and_requires_offered_back() {
+    let mut host =
+        crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    assert!(PlannedPatchbayIngress::prepare(&host).is_err());
+    host.capabilities.push(offer());
+    let planned = PlannedPatchbayIngress::prepare(&host).unwrap();
+    assert!(conduit_core::verify_plan(planned.plan()));
+    assert_eq!(planned.plan().fragments[0].host_id, host.host_id);
+    assert_eq!(planned.plan().fragments[0].boot_id, host.boot_id);
+    assert_eq!(planned.input().item_capacity, 1);
+    assert_eq!(planned.input().byte_capacity, BYTES);
+    assert_eq!(planned.lowered().cord_value_bytes, BYTES);
+    assert_eq!(planned.lowered().cord_value_slots, 1);
+    assert_eq!(planned.lowered().host_calls.len(), 1);
+    assert_eq!(planned.lowered().nodes.len(), 1);
+    let mut wrong = host;
+    wrong.capabilities.last_mut().unwrap().host_calls[0].maximum_input_bytes -= 1;
+    assert!(PlannedPatchbayIngress::prepare(&wrong).is_err());
+}

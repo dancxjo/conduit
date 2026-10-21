@@ -54,3 +54,7 @@ pub fn prepare(
 #[cfg(test)]
 #[path = "patchbay_ingress_tests.rs"]
 mod tests;
+
+#[path = "patchbay_ingress_plan.rs"]
+mod plan;
+pub use plan::PlannedPatchbayIngress;
