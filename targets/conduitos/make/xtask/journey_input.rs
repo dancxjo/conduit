@@ -4,7 +4,7 @@ use std::{fs, os::unix::net::UnixStream, path::Path, process::Child, thread, tim
 
 use serde_json::Value;
 
-use super::{ConduitosError, hid_qmp, journey_records, qmp};
+use super::{hid_qmp, journey_records, qmp, ConduitosError};
 
 // The exhaustive x86 gate intentionally runs up to four proof VMs together.
 // Keep every observation finite, but allow a runnable guest one baseline
