@@ -1,0 +1,15 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "status": "failed-matrix-exceeded-admitted-refresh-budget",
+  "actual_observations": [
+    "compact-engineering",
+    "provisional-refused",
+    "spacious-editorial",
+    "minimum-scale-200"
+  ],
+  "refusal": "native-owner-refresh-unavailable",
+  "bound": 4,
+  "correction": "three separate fresh journeys: typography/editorial200, forced colors/restore, engineering200/restore; F5+F6+two changes each",
+  "capture_review": "Draft refusal changes status footer, so before/after pixels are correctly unequal. Follow-up proof appends b once after refused swap and visually verifies Draft: ab, then Escape. No pixel-equality claim.",
+  "timestamp": "2026-10-21T03:43:37Z"
+}

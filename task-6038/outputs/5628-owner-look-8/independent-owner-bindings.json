@@ -1,0 +1,132 @@
+[
+  {
+    "label": "compact-engineering",
+    "original_private_artifact_sha256": "1073e683eebdf4327a8fdc78661e2a1faa8b8d81268a94bd631f4174c8b50026",
+    "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "workload": {
+      "available": false,
+      "plan_id": null
+    },
+    "revision_binding": {
+      "source": "installed-owner-cli-local-face-snapshot",
+      "face_id": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "face_revision_decimal": "8153886390866787461",
+      "browser_numeric_revision_exact": false
+    },
+    "owner_plan_id": "plan/owner-face/d5d200705f2ba515c7d3482bd11bee68fcc8efc1c43ad3583c8d7690e3953a7b",
+    "show_id": "show/ba8c20ddcaa378923ea4d2de04377566cc13632b27030c540b5c31efb978531e",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "9acd66fcc88f4a595b651c6038f279e7c099c3cc78a09e1edf4e96d2d2845d97",
+        "expanded_plot_id": "54151a08a152c73d94dbce669828395d7ab13cf8dac825aafdf3465c4b5ec2af",
+        "source_document_id": "fa8062f024519a3e9d720b8cc172218b47aee3c7e57258eba853a1750790b253"
+      },
+      "plan_id": "plan/owner-face/d5d200705f2ba515c7d3482bd11bee68fcc8efc1c43ad3583c8d7690e3953a7b",
+      "route_id": "route/plan/remote-owner-mask/8149f5eabd3e5673b6decfd7b12b64beda0b0a5a1927e0c934c661ec8ee84ace"
+    }
+  },
+  {
+    "label": "provisional-refused",
+    "original_private_artifact_sha256": "1073e683eebdf4327a8fdc78661e2a1faa8b8d81268a94bd631f4174c8b50026",
+    "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "workload": {
+      "available": false,
+      "plan_id": null
+    },
+    "revision_binding": {
+      "source": "installed-owner-cli-local-face-snapshot",
+      "face_id": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "face_revision_decimal": "8153886390866787461",
+      "browser_numeric_revision_exact": false
+    },
+    "owner_plan_id": "plan/owner-face/d5d200705f2ba515c7d3482bd11bee68fcc8efc1c43ad3583c8d7690e3953a7b",
+    "show_id": "show/ba8c20ddcaa378923ea4d2de04377566cc13632b27030c540b5c31efb978531e",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "9acd66fcc88f4a595b651c6038f279e7c099c3cc78a09e1edf4e96d2d2845d97",
+        "expanded_plot_id": "54151a08a152c73d94dbce669828395d7ab13cf8dac825aafdf3465c4b5ec2af",
+        "source_document_id": "fa8062f024519a3e9d720b8cc172218b47aee3c7e57258eba853a1750790b253"
+      },
+      "plan_id": "plan/owner-face/d5d200705f2ba515c7d3482bd11bee68fcc8efc1c43ad3583c8d7690e3953a7b",
+      "route_id": "route/plan/remote-owner-mask/8149f5eabd3e5673b6decfd7b12b64beda0b0a5a1927e0c934c661ec8ee84ace"
+    }
+  },
+  {
+    "label": "spacious-editorial",
+    "original_private_artifact_sha256": "f5751c68f54356e06e4fcdb60f7d27d376e628e3d949188e3bfbb784a533a9a8",
+    "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "workload": {
+      "available": false,
+      "plan_id": null
+    },
+    "revision_binding": {
+      "source": "installed-owner-cli-local-face-snapshot",
+      "face_id": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "face_revision_decimal": "8153886390866787461",
+      "browser_numeric_revision_exact": false
+    },
+    "owner_plan_id": "plan/owner-face/118502ee8ca5576a482683728a30727b6fb7050d21a912e7d3f0629ad81119d1",
+    "show_id": "show/fb4c613c3279b1a7b860f67015f0cae7c30ba56b7fc4042e85f85be7c6ff0798",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "4719022bc31722abc7e0e292d1c0d044cbbeb16a07d249281c5c75e504a4b322",
+        "expanded_plot_id": "2b352d06ca03b2ef0d19494e58b066ac3d040fe3c277e2d92e6f37930667a81f",
+        "source_document_id": "fa8062f024519a3e9d720b8cc172218b47aee3c7e57258eba853a1750790b253"
+      },
+      "plan_id": "plan/owner-face/118502ee8ca5576a482683728a30727b6fb7050d21a912e7d3f0629ad81119d1",
+      "route_id": "route/plan/remote-owner-mask/c765d02fbe589f6015bac17f436bfa3eae44eaecf8dac99961cfcb24d1afb523"
+    }
+  },
+  {
+    "label": "minimum-scale-200",
+    "original_private_artifact_sha256": "54784424edb2d3ccabf1a18d147e81338bdebf646041a4d0ec2c8cbb85be9efa",
+    "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "workload": {
+      "available": false,
+      "plan_id": null
+    },
+    "revision_binding": {
+      "source": "installed-owner-cli-local-face-snapshot",
+      "face_id": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "face_revision_decimal": "8153886390866787461",
+      "browser_numeric_revision_exact": false
+    },
+    "owner_plan_id": "plan/owner-face/c029074a971008a9db02896f6aa49d4610e1470394ea07343783d9096ec7cf71",
+    "show_id": "show/0c288445b3e2a88e242fe4675a3b43eecfa214f84030de5143755ec9ee646391",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "4719022bc31722abc7e0e292d1c0d044cbbeb16a07d249281c5c75e504a4b322",
+        "expanded_plot_id": "2b352d06ca03b2ef0d19494e58b066ac3d040fe3c277e2d92e6f37930667a81f",
+        "source_document_id": "fa8062f024519a3e9d720b8cc172218b47aee3c7e57258eba853a1750790b253"
+      },
+      "plan_id": "plan/owner-face/c029074a971008a9db02896f6aa49d4610e1470394ea07343783d9096ec7cf71",
+      "route_id": "route/plan/remote-owner-mask/18a9f0be29a5e39f0bb45162708a09fee55eadf669eb893729948006c6abc5bc"
+    }
+  },
+  {
+    "label": "details",
+    "original_private_artifact_sha256": "54784424edb2d3ccabf1a18d147e81338bdebf646041a4d0ec2c8cbb85be9efa",
+    "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+    "workload": {
+      "available": false,
+      "plan_id": null
+    },
+    "revision_binding": {
+      "source": "installed-owner-cli-local-face-snapshot",
+      "face_id": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "face_revision_decimal": "8153886390866787461",
+      "browser_numeric_revision_exact": false
+    },
+    "owner_plan_id": "plan/owner-face/c029074a971008a9db02896f6aa49d4610e1470394ea07343783d9096ec7cf71",
+    "show_id": "show/0c288445b3e2a88e242fe4675a3b43eecfa214f84030de5143755ec9ee646391",
+    "selected": {
+      "mask_plot": {
+        "checked_plot_id": "4719022bc31722abc7e0e292d1c0d044cbbeb16a07d249281c5c75e504a4b322",
+        "expanded_plot_id": "2b352d06ca03b2ef0d19494e58b066ac3d040fe3c277e2d92e6f37930667a81f",
+        "source_document_id": "fa8062f024519a3e9d720b8cc172218b47aee3c7e57258eba853a1750790b253"
+      },
+      "plan_id": "plan/owner-face/c029074a971008a9db02896f6aa49d4610e1470394ea07343783d9096ec7cf71",
+      "route_id": "route/plan/remote-owner-mask/18a9f0be29a5e39f0bb45162708a09fee55eadf669eb893729948006c6abc5bc"
+    }
+  }
+]

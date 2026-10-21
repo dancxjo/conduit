@@ -1,0 +1,149 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "status": "local-source-bound-typography-journey-passed-with-explicit-glyph-fallback",
+  "matrix": "typography",
+  "refresh_budget": {
+    "limit": 4,
+    "requests": 4,
+    "meaning": "F5 activation, F6 baseline, two replacements"
+  },
+  "capture_review": "reviewed: compact Sans and editorial Serif titles; current gold focused argument; 200 percent readable continuation; Details argument contract; Draft: ab after refused swap and deliberate b append proves retained a",
+  "native_serial_sha256": "2ed918117a45f8ae8ce6e7892cd3a55acfc87ce386e54216d2a290b60f4cc9b8",
+  "private_controller_receipt_sha256": "4837f6333986f6bc79ef0382570a6938292a85bc05de478e3e4de20db5284027",
+  "captures": [
+    {
+      "file": "compact-engineering.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+      "png_sha256": "cb8de3c00f8082b0b913e5579480370f5ea92abacffc8d587152b39f002bae43",
+      "rgb_sha256": "bad942cb6bf151fbba54e82c3b120f0d700ff23e567d006c9061240bf2e84109"
+    },
+    {
+      "file": "details.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "cfe411ad7b09a348d719e68cfd13f39106c4bdbf623098bb53929577f30efc28",
+      "png_sha256": "d520a60f49ce48c05e4b87ad554f10edb001f86796361fd200089ab7fe711309",
+      "rgb_sha256": "cc45fcd6e1075db0a1ae3d7c11910bed24306f1aa3847fb020565d69b947fce7"
+    },
+    {
+      "file": "draft-after-refusal-append.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "bc6aff806e72d38c2909f3e4f5fdb54cea4cd6c5abd1e1df46b17824a5b4aeda",
+      "png_sha256": "9a2042137fec97e540de32ea27d303949c1a7a35c43af04368729c24c833b20f",
+      "rgb_sha256": "56b8d5ac820ce849cb97008c1a2da7a9bd64d86d0193170a982e1a0c0b93d457"
+    },
+    {
+      "file": "draft-after-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+      "png_sha256": "ff7f234174e77c514f105247d0c5bb19a692fa861344491061bff10351560f51",
+      "rgb_sha256": "84c5a59c1b1a08bc5be2f1215dc9adaf9c16de8c05c84418f3f2ca5baea73efd"
+    },
+    {
+      "file": "draft-before-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "2abfef2082c962ad093f18f5b2c154d604fc7d70fe1f7531860e9fb1979e61b0",
+      "png_sha256": "879edf91e0e6b16e656c8752a8bcf5e83dca620ea3e052e0448acbde2ee396ec",
+      "rgb_sha256": "fc4f595a535831ce28d5534f047f46dff9d6ed4e37dcba2764b23760a068aa41"
+    },
+    {
+      "file": "f5-acknowledged.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "98bd6c481848b7de2ce0db2620563332fb706a047dccc8ae77ea2e5c8b757204",
+      "png_sha256": "64833c2b09d9b023704e08c4218ee2c3f8a74ca077c8b8aa0a81c29edc5aabc3",
+      "rgb_sha256": "e205f9a7f1b8e7ff070cdf25b143bf82e0a5b885a207e68909f3a622aff7ff9b"
+    },
+    {
+      "file": "minimum-scale-200.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "a7cd66d04a1ee4ca8a5ddb0197332922123998be7b900d08d237d839365d15ac",
+      "png_sha256": "60146ec5754e9e6ac2d2822559c790cd6c6a427490ed04cc717ee197de41e45c",
+      "rgb_sha256": "c1d8e2e1ce4576c476fb7c5f1d2c15480eaaf0272c2dcf238324f68fd7da3816"
+    },
+    {
+      "file": "provisional-refused.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+      "png_sha256": "ff7f234174e77c514f105247d0c5bb19a692fa861344491061bff10351560f51",
+      "rgb_sha256": "84c5a59c1b1a08bc5be2f1215dc9adaf9c16de8c05c84418f3f2ca5baea73efd"
+    },
+    {
+      "file": "spacious-editorial.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "fc1e0e1d6f38c9927aa1f196e7ee02a630f8c57021aeac2db8017a4e09c8bc72",
+      "png_sha256": "6e297a10be307a093c7c64aaa5645b6e5ce852fb5de253c6c8462fe5c63c070d",
+      "rgb_sha256": "8fff0f6068f7217e2632de4c11d3a0ba734e3b28701f5852867e31fc6de782a0"
+    }
+  ],
+  "observations": [
+    {
+      "label": "compact-engineering",
+      "show": "show/ba8c20ddcaa378923ea4d2de04377566cc13632b27030c540b5c31efb978531e",
+      "face": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "revision": "8153886390866787461",
+      "capture": {
+        "file": "compact-engineering.ppm",
+        "sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "provisional-refused",
+      "show": "show/ba8c20ddcaa378923ea4d2de04377566cc13632b27030c540b5c31efb978531e",
+      "face": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "revision": "8153886390866787461",
+      "capture": {
+        "file": "provisional-refused.ppm",
+        "sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "spacious-editorial",
+      "show": "show/fb4c613c3279b1a7b860f67015f0cae7c30ba56b7fc4042e85f85be7c6ff0798",
+      "face": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "revision": "8153886390866787461",
+      "capture": {
+        "file": "spacious-editorial.ppm",
+        "sha256": "fc1e0e1d6f38c9927aa1f196e7ee02a630f8c57021aeac2db8017a4e09c8bc72",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "minimum-scale-200",
+      "show": "show/0c288445b3e2a88e242fe4675a3b43eecfa214f84030de5143755ec9ee646391",
+      "face": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "revision": "8153886390866787461",
+      "capture": {
+        "file": "minimum-scale-200.ppm",
+        "sha256": "a7cd66d04a1ee4ca8a5ddb0197332922123998be7b900d08d237d839365d15ac",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "details",
+      "show": "show/0c288445b3e2a88e242fe4675a3b43eecfa214f84030de5143755ec9ee646391",
+      "face": "774089a7be83538b7d5ded683ff4171392afc629a1f38b1f018804b82a1fac3f",
+      "revision": "8153886390866787461",
+      "capture": {
+        "file": "details.ppm",
+        "sha256": "cfe411ad7b09a348d719e68cfd13f39106c4bdbf623098bb53929577f30efc28",
+        "bytes": 3072016
+      }
+    }
+  ],
+  "boundaries": [
+    "No stable, physical or human claim",
+    "Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained"
+  ],
+  "known_glyph_boundary": "\u0174 (U+0174) visibly uses replacement glyph; complete Unicode text remains exact in owner/native Face. Latin accent glyphs and punctuation render. This is fallback evidence, not full Unicode glyph coverage."
+}

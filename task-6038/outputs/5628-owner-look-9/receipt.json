@@ -1,0 +1,148 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "status": "local-source-bound-forced-colors-and-restore-journey-passed",
+  "matrix": "forced-colors",
+  "refresh_budget": {
+    "limit": 4,
+    "requests": 4,
+    "meaning": "F5 activation, F6 baseline, two replacements"
+  },
+  "capture_review": "Reviewed actual forced black/white scene and restored Phosphor palette, current gold focused field retained; 4 refreshes only.",
+  "native_serial_sha256": "3074dd785a17cd98624af8561417ec6827b9e83df26bc9213eed042ba8639455",
+  "private_controller_receipt_sha256": "11b6d64c23963384b6879385e56015de9145d8801fdf04e46795867836bd5fda",
+  "captures": [
+    {
+      "file": "colors-restored.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+      "png_sha256": "cb8de3c00f8082b0b913e5579480370f5ea92abacffc8d587152b39f002bae43",
+      "rgb_sha256": "bad942cb6bf151fbba54e82c3b120f0d700ff23e567d006c9061240bf2e84109"
+    },
+    {
+      "file": "compact-engineering.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+      "png_sha256": "cb8de3c00f8082b0b913e5579480370f5ea92abacffc8d587152b39f002bae43",
+      "rgb_sha256": "bad942cb6bf151fbba54e82c3b120f0d700ff23e567d006c9061240bf2e84109"
+    },
+    {
+      "file": "details.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "d2870154199ac586567983825a574948f9947c453541142789edcff4fc4a4769",
+      "png_sha256": "77fd51e042d9cb3931c3396816c34130917ec8109b1193ec26093894fc80970d",
+      "rgb_sha256": "4de8aa1bc06ab6c8b561a9446d15039d9450cae77a1f2d2ca68a44de7269254f"
+    },
+    {
+      "file": "draft-after-refusal-append.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "bc6aff806e72d38c2909f3e4f5fdb54cea4cd6c5abd1e1df46b17824a5b4aeda",
+      "png_sha256": "9a2042137fec97e540de32ea27d303949c1a7a35c43af04368729c24c833b20f",
+      "rgb_sha256": "56b8d5ac820ce849cb97008c1a2da7a9bd64d86d0193170a982e1a0c0b93d457"
+    },
+    {
+      "file": "draft-after-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+      "png_sha256": "ff7f234174e77c514f105247d0c5bb19a692fa861344491061bff10351560f51",
+      "rgb_sha256": "84c5a59c1b1a08bc5be2f1215dc9adaf9c16de8c05c84418f3f2ca5baea73efd"
+    },
+    {
+      "file": "draft-before-refusal.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "2abfef2082c962ad093f18f5b2c154d604fc7d70fe1f7531860e9fb1979e61b0",
+      "png_sha256": "879edf91e0e6b16e656c8752a8bcf5e83dca620ea3e052e0448acbde2ee396ec",
+      "rgb_sha256": "fc4f595a535831ce28d5534f047f46dff9d6ed4e37dcba2764b23760a068aa41"
+    },
+    {
+      "file": "f5-acknowledged.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "98bd6c481848b7de2ce0db2620563332fb706a047dccc8ae77ea2e5c8b757204",
+      "png_sha256": "64833c2b09d9b023704e08c4218ee2c3f8a74ca077c8b8aa0a81c29edc5aabc3",
+      "rgb_sha256": "e205f9a7f1b8e7ff070cdf25b143bf82e0a5b885a207e68909f3a622aff7ff9b"
+    },
+    {
+      "file": "forced-colors.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "81b885993a21b132a06ae4db05a0d202d22df8f0146c952ee9d2e4017704034c",
+      "png_sha256": "3bb77b51150d4b2581508dea989b4e2f08d0e5daca22f5327a6c719d9dc29508",
+      "rgb_sha256": "f2bdc9e5a43a155dbe7bbc2183c4de7c4f5fd7fdd67c50b6e06613a8ee3b216c"
+    },
+    {
+      "file": "provisional-refused.png",
+      "width": 1280,
+      "height": 800,
+      "ppm_sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+      "png_sha256": "ff7f234174e77c514f105247d0c5bb19a692fa861344491061bff10351560f51",
+      "rgb_sha256": "84c5a59c1b1a08bc5be2f1215dc9adaf9c16de8c05c84418f3f2ca5baea73efd"
+    }
+  ],
+  "observations": [
+    {
+      "label": "compact-engineering",
+      "show": "show/bc833edb31706d6100ef668ba5b4ee721803fa8715a45356a853ebc3bf340754",
+      "face": "409c525eb75afe216ce516fe8b2491c30837fe2d0ef5a1259c08071017791930",
+      "revision": "5777762804835430422",
+      "capture": {
+        "file": "compact-engineering.ppm",
+        "sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "provisional-refused",
+      "show": "show/bc833edb31706d6100ef668ba5b4ee721803fa8715a45356a853ebc3bf340754",
+      "face": "409c525eb75afe216ce516fe8b2491c30837fe2d0ef5a1259c08071017791930",
+      "revision": "5777762804835430422",
+      "capture": {
+        "file": "provisional-refused.ppm",
+        "sha256": "f294e1a56e00be123aaa99c81bb2680086984957671199bd75d562d7e07a435f",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "forced-colors",
+      "show": "show/953e1dd899023e8ed864bcd4db8a8bd2a6f9bf772d1e5f1ce50a6c604b2e51c1",
+      "face": "409c525eb75afe216ce516fe8b2491c30837fe2d0ef5a1259c08071017791930",
+      "revision": "5777762804835430422",
+      "capture": {
+        "file": "forced-colors.ppm",
+        "sha256": "81b885993a21b132a06ae4db05a0d202d22df8f0146c952ee9d2e4017704034c",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "colors-restored",
+      "show": "show/f165b68ff23bedc3c8c3e4b7206023a9d4d2de30ae7d058a4085c1dc4290f810",
+      "face": "409c525eb75afe216ce516fe8b2491c30837fe2d0ef5a1259c08071017791930",
+      "revision": "5777762804835430422",
+      "capture": {
+        "file": "colors-restored.ppm",
+        "sha256": "441b246601b58db8c802beb142e21340e8047db0058a8c4c09e6060b20935734",
+        "bytes": 3072016
+      }
+    },
+    {
+      "label": "details",
+      "show": "show/f165b68ff23bedc3c8c3e4b7206023a9d4d2de30ae7d058a4085c1dc4290f810",
+      "face": "409c525eb75afe216ce516fe8b2491c30837fe2d0ef5a1259c08071017791930",
+      "revision": "5777762804835430422",
+      "capture": {
+        "file": "details.ppm",
+        "sha256": "d2870154199ac586567983825a574948f9947c453541142789edcff4fc4a4769",
+        "bytes": 3072016
+      }
+    }
+  ],
+  "boundaries": [
+    "No stable, physical or human claim",
+    "Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained"
+  ]
+}

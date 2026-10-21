@@ -1,7 +1,7 @@
 from pathlib import Path
 import json,os,subprocess,socket,hashlib,sys,time
 T=Path('/home/dancxjo/Documents/Codex/2026-10-19/goal-6038');W=T/'work/selected-look-reconciled';P=T/'work/5628-private-owner-paths.json';H='253dcb985eb8890ddf873d672d3a282f2366e6db'
-d=json.loads(P.read_text());attempt=d.get('attempt',3);assert isinstance(attempt,int) and 3<=attempt<=9;D=Path(d['directory']);assert D.stat().st_mode&0o077==0 and D.stat().st_uid==os.getuid()
+d=json.loads(P.read_text());attempt=d.get('attempt',3);assert isinstance(attempt,int) and 3<=attempt<=32;D=Path(d['directory']);assert D.stat().st_mode&0o077==0 and D.stat().st_uid==os.getuid()
 mode=sys.argv[1] if len(sys.argv)==2 else ''
 if mode=='--prepare':
  s=socket.socket();s.bind((d['owner_forward_ip'],0));port=s.getsockname()[1];s.close();d.update(owner_forward=f"{d['owner_forward_ip']}:{port}",invitation=str(D/f'invitation-{attempt}.json'),spore=str(D/f'spore-{attempt}.iso'),body_description=str(D/f'native-{attempt}.body.conduit'),provision_ready=str(D/f'provision-ready-{attempt}.json'));P.write_text(json.dumps(d,indent=2)+'\n');print('Private route paths prepared; no listener/invitation created')

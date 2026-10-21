@@ -247,7 +247,8 @@ class Session:
 
     def replacement(self, before, cursor, named):
         # Readiness checks only structure; substantive verifier errors propagate.
-        self.wait(lambda: all(any(p == kind for p, _ in self.rows()[cursor:]) for kind in (REAL, ACK, FOCUS)))
+        self.wait(lambda: any(p == REFUSE for p, _ in self.rows()[cursor:]) or all(any(p == kind for p, _ in self.rows()[cursor:]) for kind in (REAL, ACK, FOCUS)))
+        require(not any(p == REFUSE for p, _ in self.rows()[cursor:]), 'replacement explicitly refused')
         return verify_switch(before, self.rows()[cursor:], named)
 
     def capture(self, name):
