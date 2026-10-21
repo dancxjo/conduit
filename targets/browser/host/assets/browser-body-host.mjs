@@ -499,7 +499,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
               lastPatchbayRequest = key; // No automatic retry after handler uncertainty.
               let report;
               try {
-                report = await onPatchbayOwnerRequest(Object.freeze({ observation }));
+                report = await onPatchbayOwnerRequest(Object.freeze({ observation, signal }));
                 if (!['Completed', 'Rejected', 'Cancelled', 'Uncertain'].includes(report?.outcome)
                     || typeof report.evidenceId !== 'string' || !report.evidenceId.trim()
                     || new TextEncoder().encode(report.evidenceId).length > 256) throw new Error('Invalid Patchbay owner handler report');

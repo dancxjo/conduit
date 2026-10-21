@@ -160,7 +160,10 @@ report, not a durable history or proof that its effect happened. The actual
 Handbook can handle Edit by opening an admitted lesson's exact checked Source
 in its existing editor, preserving local drafts; Try remains the explicit
 checked commit. `body.wake({ onPatchbayOwnerRequest })` installs an optional
-owner handler, invoked once per request after its view is presented. Unsupported
+owner handler, invoked once per request after its view is presented. It receives
+the effect's cancellation signal; asynchronous owners must honor that signal
+before changing their UI. Handbook opens the editor synchronously and does not
+wait for preference storage or alter the saved lesson choice. Unsupported
 or unresolved targets are rejected; uncertainty is retained without retry.
 Mask-change handling and the canonical production consumer remain unfinished. The bridge has local CPU checks;
 WASM/browser enactment of this accessor remains unverified.

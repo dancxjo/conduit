@@ -773,3 +773,18 @@ retirement baseline passes. Five JS syntax checks pass. Full callback/DOM editor
 opening, browser packaging and real user interaction remain unenacted; no broad
 suite, CI, platform proof or image rebuild ran. Canonical product installation,
 Mask-change handling and remaining native proof remain unfinished.
+
+## Keep requested editor opening within its effect lifetime
+
+Review found that the Handbook Edit handler awaited preference storage before
+focusing the editor/reporting success. A slow write could resume those UI changes
+after the Play retired or the user selected another lesson. The Host now passes
+the actual effect AbortSignal to owner handlers; Handbook checks cancellation
+before UI mutation and opens requested Source synchronously. Opening a document
+preserves drafts but does not overwrite the user's saved lesson preference.
+Explicit lesson selection retains the existing awaited preference write.
+
+Two changed JavaScript modules pass syntax checks. No tests/builds/platform
+journey/CI/image rebuild ran for this focused lifecycle correction. Actual
+browser callback enactment, canonical production installation, Mask changes and
+remaining native acceptance are still unfinished.

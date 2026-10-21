@@ -214,9 +214,10 @@ export async function startApplication(application) {
     playFailure = null;
     thermostatFace = null; thermostatSequence = 0;
     surface.replaceChildren(); surfaces.clear();
-    play = await body.wake({ root: surface, onPatchbayOwnerRequest: async ({ observation }) => {
+    play = await body.wake({ root: surface, onPatchbayOwnerRequest: ({ observation, signal }) => {
       const revision = observation.pending_owner_request.application_revision;
       const evidenceId = `handbook/editor/${revision}`;
+      if (signal.aborted) return { outcome: 'Cancelled', evidenceId };
       let target;
       try {
         target = resolvePatchbayEditorTarget(observation, checked.plots);
@@ -234,7 +235,9 @@ export async function startApplication(application) {
       try {
         openingDrafts.set(selector.value, source.value);
         selector.value = target.plot.name;
-        await selectExample();
+        // Opening a requested document is immediate UI work. It neither waits
+        // for storage nor changes the user's saved lesson preference.
+        showExampleSource();
         source.focus();
         checkStatus.textContent = `Edit ${target.subject.name} in ${target.plot.name}. Changes remain drafts until you press Try.`;
         return { outcome: 'Completed', evidenceId };
@@ -289,7 +292,7 @@ export async function startApplication(application) {
       updateControls();
     }
   };
-  const selectExample = async () => {
+  const showExampleSource = () => {
     const entry = specification.plots.find(plot => plot.name === selector.value);
     // Retained edits take precedence; new packaged lessons remain selectable
     // in Bodies born before this application update. Installation is explicit.
@@ -300,7 +303,10 @@ export async function startApplication(application) {
     editor.render();
     root.querySelector('[data-lesson]').textContent = entry.lesson;
     checkStatus.textContent = 'Edit the source, then check and try it in your body.';
-    await application.storage.writeJson('selected-example', entry.name);
+  };
+  const selectExample = async () => {
+    showExampleSource();
+    await application.storage.writeJson('selected-example', selector.value);
   };
   try {
     host = await application.browser({ root: surface });

@@ -273,7 +273,7 @@ export class BrowserBody {
   wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
   }>) => Element | ShadowRoot;
-    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation }>) =>
+    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
       Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
       | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
   }): Promise<BrowserPlay>;
