@@ -32,6 +32,8 @@ mod document;
 mod expression;
 #[path = "native_face_scene/frame.rs"]
 mod frame;
+#[path = "native_face_scene/graph_reading.rs"]
+mod graph_reading;
 #[path = "native_face_scene/input.rs"]
 mod input;
 #[path = "native_face_scene/layout.rs"]
@@ -119,6 +121,7 @@ pub struct NativeFaceScene {
     showing_details: bool,
     showing_diagram: bool,
     input: input::InputState,
+    graph_reading: Option<graph_reading::GraphReading>,
     interaction_admitted: bool,
     local_notice: Option<String>,
 }
@@ -148,6 +151,7 @@ impl NativeFaceScene {
         Ok(Self {
             primary: layout::admit(primary, screen)?,
             details: layout::admit(details, screen)?,
+            graph_reading: graph_reading::GraphReading::prepare(&face)?,
             face,
             screen,
             text_scale_percent: 100,
@@ -240,6 +244,9 @@ impl NativeFaceScene {
     }
 
     pub fn show_details(&mut self, details: bool) {
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.showing_details = details;
         self.showing_diagram = false;
         // Preserve the exact control across reading views when it is present;
@@ -258,6 +265,9 @@ impl NativeFaceScene {
     /// exact Face; F3 never constructs a specimen graph to fill an empty view.
     pub fn show_diagram(&mut self, diagram: bool) {
         self.showing_diagram = diagram && self.has_diagram();
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = self.showing_diagram;
+        }
         self.page = 0;
         self.focus = None;
     }

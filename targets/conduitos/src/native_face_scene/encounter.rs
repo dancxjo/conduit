@@ -27,6 +27,7 @@ impl NativeFaceScene {
             self.focus = Some(control);
             self.page = page;
         }
+        self.graph_reading = previous.graph_reading;
         self.input = previous.input;
         self.local_notice = previous.local_notice;
         // The new layout must admit the retained draft/reading view before Show.

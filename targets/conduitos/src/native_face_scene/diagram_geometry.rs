@@ -3,7 +3,6 @@ use super::super::{LayoutRect, SPACE_XL, layout};
 
 pub(super) const GAP: u16 = 16;
 pub(super) const PORT_ROW: u16 = 27;
-pub(super) type GearHits<'a> = [Option<(LayoutRect, &'a str)>; 6];
 
 pub(super) struct DiagramGeometry {
     pub columns: usize,
