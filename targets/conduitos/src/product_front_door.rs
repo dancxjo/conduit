@@ -10,8 +10,8 @@ mod input_actions;
 mod platform;
 mod pointer_input;
 mod prebirth;
-mod startup;
 mod runtime;
+mod startup;
 pub use platform::run;
 mod tutorial;
 mod workspace_view_sign;
@@ -271,10 +271,8 @@ fn run_controller(
         let mut line_requested = false;
         let mut workspace_updates = workspace_input::PendingInput::default();
         let mut interact = |input| {
-            if matches!(
-                input,
-                ControllerInput::Key(_) | ControllerInput::Pointer(_)
-            ) && let Some(span) = first_input_wait.take()
+            if matches!(input, ControllerInput::Key(_) | ControllerInput::Pointer(_))
+                && let Some(span) = first_input_wait.take()
             {
                 span.finish();
             }

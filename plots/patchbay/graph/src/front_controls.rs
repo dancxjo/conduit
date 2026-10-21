@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    BOOL_INFO_ID, ConfigurationValue, InfoBool, KindId, QUANTITY_INFO_ID, Quantity, Unit,
+    ConfigurationValue, InfoBool, KindId, Quantity, Unit, BOOL_INFO_ID, QUANTITY_INFO_ID,
 };
 use conduit_human::{
     BoundKind, InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,

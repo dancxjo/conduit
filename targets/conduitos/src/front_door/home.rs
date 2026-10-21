@@ -43,6 +43,10 @@ impl Home {
         Ok(())
     }
 
+    fn is_live(&self) -> bool {
+        true
+    }
+
     fn model(&self) -> &HomeModel {
         &self.model
     }
@@ -162,7 +166,7 @@ impl FrontDoor {
     }
 
     pub fn home_open(&self) -> bool {
-        self.home.is_some()
+        self.home.as_ref().is_some_and(|home| home.is_live())
     }
 
     pub fn close_home(&mut self) -> Result<(), Error> {
@@ -174,12 +178,16 @@ impl FrontDoor {
     }
 
     pub fn home_view(&self) -> Option<HomeView> {
-        self.home.as_ref().map(|home| home.model().view())
+        self.home
+            .as_ref()
+            .filter(|home| home.is_live())
+            .map(|home| home.model().view())
     }
 
     pub fn home_selection(&self) -> Option<usize> {
         self.home
             .as_ref()
+            .filter(|home| home.is_live())
             .map(|home| home.model().selected_plot_index())
     }
 

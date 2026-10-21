@@ -75,7 +75,7 @@ impl Controller {
                     screen,
                     24,
                     y,
-                    &format!("{} {}{}", if focused { ">" } else { " " }, plot.title, ""),
+                    &format!("{} {}", if focused { ">" } else { " " }, plot.title),
                     GraphicsTextRole::Heading,
                     if focused {
                         GraphicsPaintRole::Accent

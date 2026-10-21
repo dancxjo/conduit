@@ -14,10 +14,10 @@ pub use controller::{RegionAdvance, RegionRoundState};
 pub use execution::RegionExecution;
 #[path = "service/offers.rs"]
 mod offers;
-#[path = "service/preparation.rs"]
-mod preparation;
 #[path = "service/planning.rs"]
 mod planning;
+#[path = "service/preparation.rs"]
+mod preparation;
 pub use activation::RegionWorkerCommand;
 pub use offers::RegionServiceConfig;
 pub use worker::WorkerError as RegionWorkerError;

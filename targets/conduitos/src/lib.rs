@@ -16,12 +16,6 @@ pub mod boot;
 pub mod bounded_host_calls;
 #[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
-#[cfg(all(
-    feature = "native-owner-network",
-    target_arch = "x86_64",
-    target_os = "none"
-))]
-pub(crate) mod protected_network;
 pub mod composition;
 #[cfg(test)]
 #[path = "protected_compositor/display_grant.rs"]
@@ -178,16 +172,22 @@ pub mod protected_compositor;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub mod protected_creche;
 pub mod protected_line_support;
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_network;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) mod protected_runtime;
-#[cfg(all(target_arch = "x86_64", target_os = "none"))]
-mod protected_workspace_mask;
 #[cfg(conduitos_protected_execution)]
 mod protected_timer;
 pub mod protected_wire_session;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected_workspace_mask;
 pub mod protection_domain;
 mod protocol_call_refusal;
 pub mod protocol_host_calls;
@@ -200,6 +200,12 @@ pub mod service_memory;
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
 
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_tls;
 pub mod protocol_artifact;
 pub mod protocol_play;
 pub mod protocol_source;
@@ -224,12 +230,6 @@ pub mod virtio_tcp;
 pub(crate) mod virtio_tcp_stream;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod virtio_tls;
-#[cfg(all(
-    feature = "native-owner-network",
-    target_arch = "x86_64",
-    target_os = "none"
-))]
-pub(crate) mod protected_tls;
 #[cfg(all(
     target_arch = "x86_64",
     any(feature = "virtio-net-proof", feature = "hosted-tools")
