@@ -90,6 +90,12 @@ unsafe extern "C" {
     ) -> *mut u8;
 }
 const FIXTURE: &[u8] = include_bytes!("../fixtures/startup.catz");
+// Retained input compatibility exists only in this fixture, never the protocol.
+#[derive(serde::Deserialize)]
+enum LegacyFixture {
+    Init { applications: [Option<Initial>; 4] },
+}
+
 fn on_caller<T>(operation: impl FnOnce() -> T) -> T {
     let active = ACTIVE.swap(false, Ordering::SeqCst);
     let value = operation();
@@ -97,7 +103,7 @@ fn on_caller<T>(operation: impl FnOnce() -> T) -> T {
     value
 }
 fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply {
-    let input = on_caller(|| data::encode(command).unwrap());
+    let input = on_caller(|| data::encode_command(command).unwrap());
     state
         .execute(
             Request::Begin {
@@ -138,7 +144,7 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
         };
         on_caller(|| output.extend_from_slice(&transfer[..bytes as usize]));
     }
-    on_caller(|| data::decode(&output).unwrap())
+    on_caller(|| data::decode_reply(&output).unwrap())
 }
 pub fn run() {
     // MAP_FIXED_NOREPLACE never overwrites a host mapping; fail rather than
@@ -154,10 +160,7 @@ pub fn run() {
         )
     };
     assert_eq!(mapped as usize, memory::METADATA);
-    let command: Command = data::decode(FIXTURE).unwrap();
-    let Command::Init { applications } = &command else {
-        panic!("Init fixture");
-    };
+    let LegacyFixture::Init { applications } = data::decode(FIXTURE).unwrap();
     let Some(Initial::Patchbay { targets, selected }) = &applications[0] else {
         panic!("Patchbay fixture");
     };
@@ -176,7 +179,57 @@ pub fn run() {
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
     STAGE.store(1, Ordering::Relaxed);
     assert!(matches!(
-        exchange(&mut state, &command, &mut transfer),
+        exchange(
+            &mut state,
+            &Command::PrepareInit {
+                manifest: data::InitManifest::from_initial(&applications),
+            },
+            &mut transfer
+        ),
+        Reply::Prepared
+    ));
+    for (slot, initial) in applications.iter().enumerate() {
+        match initial {
+            None => {}
+            Some(Initial::Patchbay { targets, .. }) => {
+                for (target, value) in targets.iter().enumerate() {
+                    if let Some(value) = value {
+                        let component = on_caller(|| Command::PrepareTarget {
+                            slot: slot as u8,
+                            target: target as u8,
+                            value: value.clone(),
+                        });
+                        assert!(matches!(
+                            exchange(&mut state, &component, &mut transfer),
+                            Reply::Prepared
+                        ));
+                    }
+                }
+            }
+            Some(Initial::Tutorial { evidence }) => {
+                let component = on_caller(|| Command::PrepareTutorial {
+                    slot: slot as u8,
+                    evidence: evidence.clone(),
+                });
+                assert!(matches!(
+                    exchange(&mut state, &component, &mut transfer),
+                    Reply::Prepared
+                ));
+            }
+            Some(Initial::Tour) => {
+                assert!(matches!(
+                    exchange(
+                        &mut state,
+                        &Command::PrepareTour { slot: slot as u8 },
+                        &mut transfer
+                    ),
+                    Reply::Prepared
+                ));
+            }
+        }
+    }
+    assert!(matches!(
+        exchange(&mut state, &Command::FinishInit, &mut transfer),
         Reply::Initialized
     ));
     report("after Init peak=", PEAK.load(Ordering::Relaxed));
@@ -241,8 +294,8 @@ pub fn run() {
     // A duplicate initialization after the full retained workset is terminal;
     // it cannot replace models or leave them usable after an Order refusal.
     let duplicate = on_caller(|| {
-        data::encode(&Command::Init {
-            applications: core::array::from_fn(|_| None),
+        data::encode_command(&Command::PrepareInit {
+            manifest: data::InitManifest { slots: [None; 4] },
         })
         .unwrap()
     });

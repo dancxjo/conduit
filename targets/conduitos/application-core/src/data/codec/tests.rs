@@ -112,8 +112,10 @@ fn malformed_compressed_commit_cannot_partially_initialize_models() {
     let mut invalid = encode(&"a".repeat(2 * MAX_BLOB)).unwrap();
     *invalid.last_mut().unwrap() ^= 1;
     assert_eq!(commit(&mut state, &invalid), Err(Refusal::Malformed));
-    let init = encode(&Command::Init {
-        applications: core::array::from_fn(|_| None),
+    let init = encode_command(&Command::PrepareInit {
+        manifest: crate::data::InitManifest {
+            slots: [None; crate::SLOTS],
+        },
     })
     .unwrap();
     assert_eq!(commit(&mut state, &init), Err(Refusal::Order));
@@ -149,8 +151,10 @@ fn nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values() {
 
 #[test]
 fn refused_uploads_are_terminal_and_never_expose_partial_models() {
-    let valid = encode(&Command::Init {
-        applications: core::array::from_fn(|_| None),
+    let valid = encode_command(&Command::PrepareInit {
+        manifest: crate::data::InitManifest {
+            slots: [None; crate::SLOTS],
+        },
     })
     .unwrap();
     for case in 0..6 {
@@ -218,7 +222,10 @@ fn refused_uploads_are_terminal_and_never_expose_partial_models() {
         assert!(result.is_err(), "case {case}");
         assert_eq!(commit(&mut state, &valid), Err(Refusal::Order));
         assert_eq!(
-            commit(&mut state, &encode(&Command::Graph { slot: 0 }).unwrap()),
+            commit(
+                &mut state,
+                &encode_command(&Command::Graph { slot: 0 }).unwrap()
+            ),
             Err(Refusal::Order)
         );
     }
@@ -237,8 +244,53 @@ fn hostile_json_depth_strings_and_counts_refuse_before_initialization() {
         let mut state = State::default();
         assert!(commit(&mut state, input.as_bytes()).is_err());
         assert_eq!(
-            commit(&mut state, &encode(&Command::Graph { slot: 0 }).unwrap()),
+            commit(
+                &mut state,
+                &encode_command(&Command::Graph { slot: 0 }).unwrap()
+            ),
             Err(Refusal::Order)
         );
+    }
+}
+
+#[test]
+fn reusable_workspace_preserves_exact_wire_and_graph_custody_bytes() {
+    let mut workspace = Workspace::new().unwrap();
+    for length in [0, MAX_BLOB - 2, MAX_BLOB, 3 * MAX_BLOB] {
+        let value = "x".repeat(length);
+        assert_eq!(workspace.encode(&value).unwrap(), encode(&value).unwrap());
+        assert_eq!(
+            workspace
+                .decode::<String>(&encode(&value).unwrap())
+                .unwrap(),
+            value
+        );
+    }
+    // Only this retained test fixture recognizes the retired aggregate shape.
+    #[derive(serde::Serialize, serde::Deserialize)]
+    enum Fixture {
+        Init {
+            applications: [Option<crate::data::Initial>; 4],
+        },
+    }
+    let original = include_bytes!("../../../tests/fixtures/startup.catz");
+    let fixture: Fixture = decode(original).unwrap();
+    assert_eq!(encode(&fixture).unwrap(), original);
+    assert_eq!(workspace.encode(&fixture).unwrap(), original);
+    let Fixture::Init { applications } = fixture;
+    let Some(crate::data::Initial::Patchbay { targets, .. }) = &applications[0] else {
+        panic!("fixture");
+    };
+    for target in targets.iter().flatten() {
+        let expected = crate::graph_facts::digest(&target.graph).unwrap();
+        let bytes = workspace.encode(&target.graph).unwrap();
+        assert_eq!(bytes, encode(&target.graph).unwrap());
+        assert_eq!(
+            conduit_core::semantic_digest("conduitos/graph-face-facts@1", &bytes),
+            expected
+        );
+    }
+    for malformed in [b"CAPZ\x01\0\0\0".as_slice(), b"[[[[", b"\"unterminated"] {
+        assert!(workspace.decode::<Command>(malformed).is_err());
     }
 }

@@ -1,3 +1,5 @@
+> Preparation: exact-sequence transport passes the local fixed-grant regression; source/image-bound native acceptance is still pending. Preserve the preceding [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
+
 # Canonical native application owner
 
 One Models owner contains at most four canonical resident Tutorial, Tour and
@@ -6,8 +8,16 @@ of Root; Tour and Patchbay call the existing portable application ports. Root
 provides already projected immutable Patchbay graphs, never a serialized planner.
 Existing Patchbay open and the projected-graph entrance use the same constructor.
 
-The closed command vocabulary is Init, Apply, Refresh, Select, Topology,
-CompleteTour, Graph and stateless ProjectTutorial. Only Apply may return an external-effect proposal. Views
+Initialization uses a fixed manifest followed by strictly ordered PrepareTarget,
+PrepareTutorial or PrepareTour components and FinishInit. At most 22 commands
+cover all four slots and their declared target positions. The previous aggregate
+Init command is not accepted. Prepared acknowledges private custody only; no
+model query, projection or effect proposal is admitted during staging. FinishInit
+moves existing controllers into Models only after complete coverage, valid
+selection and successful Initialized reply encoding.
+
+The remaining closed command vocabulary is Apply, Refresh, Select, Topology,
+CompleteTour, Graph and stateless ProjectGraph/ProjectTutorial. Only Apply may return an external-effect proposal. Views
 remain the existing 3072-byte ApplicationView encoding and events remain limited
 to 128 bytes. Chunked serialized DTOs are limited to 128 KiB; no Rust layout or
 pointer crosses the explicit versioned exchange protocol. Small DTOs retain raw
@@ -16,16 +26,24 @@ length capped at 1 MiB. A fixed output slice bounds compression; decompression
 requires exact declared length, complete stream consumption and checksum validity.
 No compressed size or decompressed length changes the private metadata grant.
 
+Private Command/Reply JSON has a separate `CAPSEQ1` envelope. Each array carries
+its exact element count, checked by an allocation-free syntax/count preflight
+before typed deserialization sees a reservation hint. Unknown sequence lengths,
+wrong versions and malformed extents refuse; there is no unframed fallback.
+Framing shares the existing decoded-byte ceiling and admitted workspace. Canonical
+graph serialization and graph-facts custody digests keep their existing encoding.
+
 Structured configuration custody validates values against the normalized schema
 without constructing an additional owned semantic value tree. Every transport
-refusal terminalizes the instance; Root quarantines it. Failed Init never installs
-Models before the reply is encoded. Private allocator exhaustion is latched and
+refusal terminalizes the instance; Root quarantines it. Failed preparation never installs
+Models before the final reply is encoded. Missing, duplicate, reordered and
+undeclared components terminalize the complete transaction. Private allocator exhaustion is latched and
 terminal, including infallible typed-deserialization allocations. The service
 reports Capacity only for its validated current request, then abandons its state.
 
 The Linux x86_64 `private_heap` package regression executes the production bitmap
 allocator in the exact 2 MiB metadata grant (24 KiB header, 32-byte units), including
-Init, retained biography, all selected graphs, replies and repeated replacement.
+staged initialization, retained biography, all selected graphs, replies and repeated replacement.
 This host allocator proof does not replace source/image-pinned native lifecycle
 acceptance. The fixture and its custody hashes are described under tests/fixtures.
 

@@ -1,7 +1,9 @@
 //! One owner of the unchanged canonical Tutorial, Tour and Patchbay controllers.
 use crate::{EVENT_BYTES, SLOTS, VIEW_BYTES, data::*, tutorial::Tutorial};
 use alloc::boxed::Box;
-use patchbay_application::{PatchbayApplicationPort, PatchbayCanvasDelivery, PatchbayMaskTopology};
+use patchbay_application::{PatchbayApplicationPort, PatchbayMaskTopology};
+mod builder;
+pub(crate) use builder::Builder;
 use patchbay_graph::PatchbayGraph;
 pub struct Patchbay {
     ports: [Option<Box<PatchbayApplicationPort>>; SLOTS],
@@ -17,42 +19,24 @@ pub struct Models {
 }
 impl Models {
     pub fn new(initial: [Option<Initial>; SLOTS]) -> Result<Self, Refusal> {
-        let mut applications = core::array::from_fn(|_| None);
+        // Direct host-fixture construction uses the same staged constructors;
+        // it is not an admitted aggregate command in the service protocol.
+        let mut builder = Builder::new(InitManifest::from_initial(&initial))?;
         for (slot, initial) in initial.into_iter().enumerate() {
-            applications[slot] = match initial {
-                None => None,
-                Some(Initial::Tutorial { evidence }) => {
-                    Some(Application::Tutorial(Tutorial::prepare(&evidence)?))
-                }
-                Some(Initial::Tour) => Some(Application::Tour(Box::new(
-                    conduit_tour_model::TourApplicationPort::canonical(),
-                ))),
-                Some(Initial::Patchbay { targets, selected }) => {
-                    let mut ports = core::array::from_fn(|_| None);
-                    for (index, target) in targets.into_iter().enumerate() {
-                        if let Some(target) = target {
-                            ports[index] = Some(Box::new(
-                                PatchbayApplicationPort::open_graph(
-                                    target.graph,
-                                    target.plan,
-                                    target.body,
-                                )
-                                .map_err(|_| Refusal::Application)?
-                                .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection),
-                            ));
+            match initial {
+                None => {}
+                Some(Initial::Tutorial { evidence }) => builder.tutorial(slot as u8, evidence)?,
+                Some(Initial::Tour) => builder.tour(slot as u8)?,
+                Some(Initial::Patchbay { targets, .. }) => {
+                    for (target, value) in targets.into_iter().enumerate() {
+                        if let Some(value) = value {
+                            builder.target(slot as u8, target as u8, value)?;
                         }
                     }
-                    if usize::from(selected) >= SLOTS || ports[usize::from(selected)].is_none() {
-                        return Err(Refusal::Bounds);
-                    }
-                    Some(Application::Patchbay(Patchbay {
-                        ports,
-                        selected: usize::from(selected),
-                    }))
                 }
-            };
+            }
         }
-        Ok(Self { applications })
+        builder.finish()
     }
     pub fn kind(&self, slot: usize) -> Option<Kind> {
         match self.applications.get(slot)?.as_ref()? {
@@ -185,7 +169,11 @@ impl Models {
     }
     pub fn execute(&mut self, command: Command) -> Result<Reply, Refusal> {
         match command {
-            Command::Init { .. }
+            Command::PrepareInit { .. }
+            | Command::PrepareTarget { .. }
+            | Command::PrepareTutorial { .. }
+            | Command::PrepareTour { .. }
+            | Command::FinishInit
             | Command::ProjectTutorial { .. }
             | Command::ProjectGraph { .. } => Err(Refusal::Order),
             Command::Apply { slot, input } => {
