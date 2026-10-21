@@ -3,7 +3,7 @@ use super::*;
 use alloc::{boxed::Box, vec::Vec};
 use conduit_core::{PortDirection, bind_active_play};
 use conduit_kernel::{
-    Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+    Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore,
     PortId, SignSink,
     scheduler::{
         FixedScheduler, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus, StepBack,
@@ -19,9 +19,9 @@ const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGNS: usize = 64;
 const REMOTE_SIGNS: u16 = 16;
 const WORK_STEPS: usize = 32;
-type Scheduler<const BYTES: usize> = FixedScheduler<
+type Scheduler = FixedScheduler<
     SnapshotForward,
-    FixedValueStore<2, BYTES>,
+    HostedValueStore,
     FixedSignLog<SIGNS>,
     1,
     2,
@@ -35,7 +35,7 @@ type Scheduler<const BYTES: usize> = FixedScheduler<
 
 pub struct PreparedFaceSnapshot<'a, const BYTES: usize = MAX_SNAPSHOT_BYTES> {
     owner: core::marker::PhantomData<&'a mut BoundedFaceSnapshotProducer<BYTES>>,
-    scheduler: Box<Scheduler<BYTES>>,
+    scheduler: Box<Scheduler>,
     input: LoweredForePort,
     output: LoweredForePort,
     bytes: Vec<u8>,
@@ -88,7 +88,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
             &fragment.boot_id,
             play_sequence,
         );
-        let receipt = FaceSnapshotReceipt {
+        let mut receipt = FaceSnapshotReceipt {
             observed_face_basis: basis.clone(),
             producer_plot: self.plot_identity(),
             producer_plan_id: self.plan.plan_id.clone(),
@@ -103,6 +103,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
             value_sha256: Sha256::digest(&bytes).into(),
             kernel_signs: 0,
             fore_endpoints: self.lowered.fore_ports.len() as u16,
+            collection_storage: None,
         };
         let boundary = |direction| {
             self.lowered
@@ -124,7 +125,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
                 .map_err(|_| FaceSnapshotRefusal::Shape)?;
         }
         routes.seal().map_err(|_| FaceSnapshotRefusal::Shape)?;
-        let values = FixedValueStore::<2, BYTES>::new((2 * BYTES) as u32)
+        let values = HostedValueStore::new(2, BYTES as u32, (2 * BYTES) as u32)
             .map_err(|_| FaceSnapshotRefusal::Capacity)?;
         let signs = FixedSignLog::<SIGNS>::new_with_remote_storage(
             (SIGNS * core::mem::size_of::<conduit_kernel::KernelEvent>()) as u32,
@@ -137,7 +138,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
         host_bindings
             .seal()
             .map_err(|_| FaceSnapshotRefusal::Shape)?;
-        let scheduler = Scheduler::<BYTES>::new_boxed_with_active_counts_and_host_calls(
+        let scheduler = Scheduler::new_boxed_with_active_counts_and_host_calls(
             1,
             2,
             [self.lowered.node_specs[0]],
@@ -151,6 +152,23 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
         .map_err(|_| FaceSnapshotRefusal::Kernel)?;
         let input = boundary(PortDirection::Input)?;
         let output = boundary(PortDirection::Output)?;
+        let observed = Vec::with_capacity(BYTES);
+        let (slots, payload) = scheduler.values().allocation_capacities();
+        if slots != 2 || payload != 2 * BYTES {
+            return Err(FaceSnapshotRefusal::Capacity);
+        }
+        if BYTES == COLLECTION_SNAPSHOT_BYTES {
+            receipt.collection_storage = Some(FaceSnapshotStorageBudget {
+                maximum_value_bytes: BYTES as u32,
+                value_slots: slots,
+                reserved_value_payload_bytes: payload,
+                reserved_value_storage_bytes: scheduler.values().reserved_storage_bytes(),
+                encoded_input_capacity: bytes.capacity(),
+                observed_output_capacity: observed.capacity(),
+                scheduler_inline_bytes: core::mem::size_of::<Scheduler>(),
+                prepared_inline_bytes: core::mem::size_of::<PreparedFaceSnapshot<'_, BYTES>>(),
+            });
+        }
         self.last_play_sequence = Some(play_sequence);
         Ok(PreparedFaceSnapshot {
             owner: core::marker::PhantomData,
@@ -158,7 +176,7 @@ impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
             input,
             output,
             bytes,
-            observed: Vec::with_capacity(BYTES),
+            observed,
             receipt,
             retired: false,
         })

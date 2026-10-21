@@ -67,6 +67,22 @@ pub struct FaceSnapshotReceipt {
     pub value_sha256: [u8; 32],
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection_storage: Option<FaceSnapshotStorageBudget>,
+}
+
+/// Actual reserved relay backing; excludes Face/Plan heaps and preparation
+/// serializer temporaries. This is an allocation ledger, not whole-product peak.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct FaceSnapshotStorageBudget {
+    pub maximum_value_bytes: u32,
+    pub value_slots: usize,
+    pub reserved_value_payload_bytes: usize,
+    pub reserved_value_storage_bytes: usize,
+    pub encoded_input_capacity: usize,
+    pub observed_output_capacity: usize,
+    pub scheduler_inline_bytes: usize,
+    pub prepared_inline_bytes: usize,
 }
 
 /// Publication is returned only after the actual output was delivered and its
