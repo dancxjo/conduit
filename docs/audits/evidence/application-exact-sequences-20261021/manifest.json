@@ -24,8 +24,16 @@
   "decodedCeiling": 1048576,
   "publicGraphCustodyEncoding": "unchanged; real fixture roundtrip checked",
   "files": {
-    "package.txt": "cf968670925d59ff9e6e1d0af97ce362873855f883974a3b695812865c20c599",
     "clippy.txt": "cd0f0f15e63db2fa613153805f6fb8690282aa7964503791a2065a7a5ae31ecd",
-    "negative-core-json-backend.txt": "2fd5276d4c7d7a0e902e0ab54d46c15a0c906806a9c02ce06c85748a8ec2368d"
+    "negative-core-json-backend.txt": "2fd5276d4c7d7a0e902e0ab54d46c15a0c906806a9c02ce06c85748a8ec2368d",
+    "package.txt.gz": "264e2f5ea275f722e523eb4e125f32b6369450a5f314ccbab662a73d84d173ae"
+  },
+  "encodedLogs": {
+    "package.txt.gz": {
+      "encoding": "gzip",
+      "uncompressedSha256": "cf968670925d59ff9e6e1d0af97ce362873855f883974a3b695812865c20c599",
+      "uncompressedBytes": 4988,
+      "reason": "Lossless raw Cargo stdout retains its final blank line without a text-patch whitespace violation."
+    }
   }
 }
