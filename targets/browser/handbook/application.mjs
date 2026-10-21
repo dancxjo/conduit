@@ -239,6 +239,9 @@ export async function startApplication(application) {
         // for storage nor changes the user's saved lesson preference.
         showExampleSource();
         source.focus();
+        if (target.sourceRange && source.value === target.plot.source) {
+          source.setSelectionRange(target.sourceRange.start, target.sourceRange.end);
+        }
         checkStatus.textContent = `Edit ${target.subject.name} in ${target.plot.name}. Changes remain drafts until you press Try.`;
         return { outcome: 'Completed', evidenceId };
       } catch (error) {

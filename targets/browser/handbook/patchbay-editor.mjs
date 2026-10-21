@@ -34,7 +34,7 @@ export function resolvePatchbayEditorTarget(observation, plots) {
     if (sourceName === null && names.length) sourceName = identity(names[0]);
     const backs = facts.filter(property => property.name === 'checked-back-id');
     // A composition edits its invocation; contents follow the checked Back.
-    if (current !== subject.identity && backs.length && !foundBack) {
+    if (subject.role !== 'Cord' && current !== subject.identity && backs.length && !foundBack) {
       if (backs.length !== 1) return fail('The containing checked Back is ambiguous.');
       const matches = plots.filter(candidate => candidate.checkedPlotId === identity(backs[0]));
       if (matches.length !== 1) return fail('The containing checked Back is absent from the Source inventory.');
@@ -46,8 +46,33 @@ export function resolvePatchbayEditorTarget(observation, plots) {
     if (recursive.length > 1 || (recursive.length && identity(recursive[0]) !== parents[0].source)) return fail('Recursive provenance differs from checked containment.');
     current = parents[0].source;
   }
-  if (subject.role === 'Cord' && !face.properties.some(property =>
-      property.subject === subject.identity && property.name === 'source-plot')) return fail('The Cord has no declaration provenance.');
+  if (subject.role === 'Cord') {
+    const facts = face.properties.filter(property => property.subject === subject.identity);
+    const exact = name => {
+      const values = facts.filter(property => property.name === name);
+      if (values.length !== 1) return fail('The Cord has no unique declaration provenance.');
+      return values[0].value;
+    };
+    if (exact('source-origin')?.Identity !== 'cord-stages') return fail('Generated or unproven Cord wiring cannot be edited directly.');
+    const checked = exact('checked-source-plot-id')?.Identity;
+    const document = exact('source-document-id')?.Identity;
+    const name = exact('source-plot')?.Identity;
+    const owners = plots.filter(candidate => candidate.checkedPlotId === checked
+      && candidate.sourceDocumentId === document && candidate.name === name);
+    if (owners.length !== 1) return fail('The Cord declaration is absent or ambiguous in the checked Source inventory.');
+    declaration = owners[0];
+    const start = exact('source-byte-start')?.Count, end = exact('source-byte-end')?.Count;
+    const bytes = new TextEncoder().encode(declaration.source);
+    if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end)
+        || start < 0 || end <= start || end > bytes.length) return fail('The Cord Source extent is invalid.');
+    let sourceRange;
+    try {
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      sourceRange = Object.freeze({ start: decoder.decode(bytes.subarray(0, start)).length,
+        end: decoder.decode(bytes.subarray(0, end)).length });
+    } catch { return fail('The Cord Source extent splits a Unicode character.'); }
+    return Object.freeze({ plot: declaration, subject, sourceRange });
+  }
   if (sourceName !== null && sourceName !== declaration.name) return fail('The Source declaration differs from the checked owner.');
   return Object.freeze({ plot: declaration, subject });
 }

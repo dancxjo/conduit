@@ -123,7 +123,18 @@ impl PatchbayGraph {
             {
                 return Err(PatchbayGraphError::CordContractMismatch);
             }
+            let mut origins = plot
+                .connection_provenance
+                .iter()
+                .filter(|row| row.connection == *connection);
+            let first = origins.next();
+            let source_origin = if origins.next().is_none() {
+                first.cloned()
+            } else {
+                None
+            };
             cords.push(PatchbayCord {
+                source_origin,
                 // Length-prefix endpoints so delimiters in semantic names cannot
                 // alias another tuple. Order in the expanded inventory is irrelevant.
                 identity: format!(
@@ -138,6 +149,8 @@ impl PatchbayGraph {
                 temporal: connection.temporal,
             });
         }
+        plot.validate_source_provenance()
+            .map_err(|_| PatchbayGraphError::InvalidSourceProvenance)?;
         Ok(Self {
             source_document_id: plot.source_document_id.clone(),
             checked_plot_id: plot.checked_plot_id.clone(),
@@ -219,6 +232,7 @@ impl PatchbayGraph {
                 .descriptor
                 .clone();
             graph.cords.push(PatchbayCord {
+                source_origin: None,
                 identity: format!("boundary/{source}->{sink}"),
                 source_port: source,
                 sink_port: sink,
@@ -241,6 +255,7 @@ impl PatchbayGraph {
                 .descriptor
                 .clone();
             graph.cords.push(PatchbayCord {
+                source_origin: None,
                 identity: format!("boundary/{source}->{sink}"),
                 source_port: source,
                 sink_port: sink,

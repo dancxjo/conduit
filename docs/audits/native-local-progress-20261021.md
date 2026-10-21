@@ -882,3 +882,33 @@ and the existing nested semantic-expression test expanded to check its generated
 connection origin. No full suite, workspace Clippy, CI, platform journey or
 artifact rebuild ran. Graph/Face propagation and editor use remain pending;
 #6202 and #6201 remain open.
+
+## Carry Cord origin through graph, shared Face and editor (#6202)
+
+PatchbayGraph now retains each uniquely matched exact expanded connection origin.
+It verifies the Source provenance digest/inventory through a narrow shared
+`validate_source_provenance` method. Corrupt mappings are an explicit graph error;
+ambiguous duplicate connection origins and boundary bindings have no proved
+editable origin. Existing graph and Face admission bounds are unchanged.
+
+The shared browser/native Face projector emits origin classification, Source
+document and checked Plot identities, Source Plot name, length-prefixed instance
+path and all six Source extent coordinates. A separate small module owns those
+facts; Mask geometry and Look remain downstream. Unknown boundary provenance is
+explicitly `unproven`, rather than inferred from endpoint containment.
+
+The Handbook resolver now requires the Cord's own exact document/checked Plot/name
+match in the admitted editor inventory, independently of its layout containment.
+It refuses generated internal wiring, absent or duplicate facts, stale identities,
+invalid extents and UTF-8 code-point splits. Valid byte extents become browser
+UTF-16 selection ranges. The editor selects that extent only if the displayed
+Source still equals the checked Source; existing drafts remain intact. The helper
+is 5779 bytes, within its existing 8192-byte application declaration.
+
+Graph and application compile checks pass. One focused graph-origin/corruption
+test and seven small resolver CPU tests pass; application JavaScript syntax passes.
+An initial resolver test removed the root document fact as well as the intended
+Cord fact; scoped the fixture mutation to the Cord and reran successfully. No CI,
+DOM journey, image/ZIP rebuild or stable acceptance is claimed. Face admission at
+larger graph sizes, boundary-origin propagation, remaining #6202 acceptance and
+canonical resident installation under #6201 remain open.

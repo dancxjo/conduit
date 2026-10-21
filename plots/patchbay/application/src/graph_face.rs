@@ -2,6 +2,8 @@
 //! Shared by Masks; geometry remains a realization decision.
 //! The caller validates and admits the completed Face before presentation.
 
+mod cord_source;
+
 use alloc::{format, string::String};
 use conduit_face::{
     FaceDisclosure, FaceDisclosureLevel, FaceProperty, FacePropertyValue, FaceRelationship,
@@ -288,6 +290,7 @@ pub fn append_named_cord(
         name: "temporal".into(),
         value: FacePropertyValue::Text(cord.temporal.as_str().into()),
     });
+    cord_source::append(content, &id, cord);
     for endpoint in [&cord.source_port, &cord.sink_port] {
         let target = format!("port/{endpoint}");
         if content

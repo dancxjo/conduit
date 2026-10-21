@@ -48,3 +48,25 @@ fn push(target: &mut String, value: &str) {
     target.push(':');
     target.push_str(value);
 }
+
+impl crate::ExpandedCanonicalPlot {
+    /// Check the retained Source mapping independently of graph realization.
+    pub fn validate_source_provenance(&self) -> Result<(), crate::CanonicalExpansionDiagnostic> {
+        if self.provenance_digest
+            != provenance_digest(
+                &self.source_document_id,
+                &self.provenance,
+                &self.connection_provenance,
+            )
+        {
+            return Err(crate::CanonicalExpansionDiagnostic::new(
+                "CND-FRM-049",
+                "expanded source provenance differs from its exact source document mapping".into(),
+            ));
+        }
+        super::connection_provenance::validate_connection_provenance(
+            &self.connections,
+            &self.connection_provenance,
+        )
+    }
+}

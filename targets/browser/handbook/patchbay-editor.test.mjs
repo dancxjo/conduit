@@ -76,10 +76,60 @@ test('nested Edit refuses unavailable or ambiguous Backs and inconsistent proven
   assert.throws(() => resolvePatchbayEditorTarget(cord.observation, [cord.plot, cord.back]), /Cord.*provenance/);
 });
 
-test('Cord editing requires declaration provenance even when containment reaches the root', () => {
-  const { plot, observation } = fixture();
-  observation.face.subjects[2].role = 'Cord';
-  assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]), /Cord.*provenance/);
-  observation.face.properties.push({ subject: 'port/lesson', name: 'source-plot', value: { Identity: 'lesson' } });
-  assert.equal(resolvePatchbayEditorTarget(observation, [plot]).plot, plot);
+function cordFixture() {
+  const value = fixture();
+  value.observation.face.subjects[2].role = 'Cord';
+  const subject = 'port/lesson';
+  const facts = [
+    ['source-origin', { Identity: 'cord-stages' }],
+    ['source-plot', { Identity: 'lesson' }],
+    ['checked-source-plot-id', { Identity: value.plot.checkedPlotId }],
+    ['source-document-id', { Identity: value.plot.sourceDocumentId }],
+    ['source-byte-start', { Count: 5 }], ['source-byte-end', { Count: 11 }],
+  ];
+  value.observation.face.properties.push(...facts.map(([name, value]) => ({ subject, name, value })));
+  return value;
+}
+
+test('Cord Edit requires exact declaration facts and selects its Source extent', () => {
+  const { plot, observation } = cordFixture();
+  const target = resolvePatchbayEditorTarget(observation, [plot]);
+  assert.equal(target.plot, plot);
+  assert.deepEqual(target.sourceRange, { start: 5, end: 11 });
+  for (const name of ['source-origin', 'checked-source-plot-id', 'source-document-id', 'source-byte-start']) {
+    const copy = structuredClone(observation);
+    copy.face.properties = copy.face.properties.filter(property => property.subject !== 'port/lesson' || property.name !== name);
+    assert.throws(() => resolvePatchbayEditorTarget(copy, [plot]), /provenance/);
+  }
+});
+
+test('Cord Edit refuses generated, stale, duplicate and invalid Source facts', () => {
+  for (const [name, value] of [
+    ['source-origin', { Identity: 'semantic-expression' }],
+    ['source-origin', { Identity: 'relational-operand' }],
+    ['source-document-id', { Identity: 'stale/document' }],
+    ['checked-source-plot-id', { Identity: 'stale/plot' }],
+    ['source-byte-end', { Count: 999 }],
+    ['source-byte-start', { Count: -1 }],
+  ]) {
+    const { plot, observation } = cordFixture();
+    observation.face.properties.find(property => property.subject === 'port/lesson' && property.name === name).value = value;
+    assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]), error => error.code === 'PatchbayEditRefused');
+  }
+  const { plot, observation } = cordFixture();
+  observation.face.properties.push(structuredClone(observation.face.properties.at(-1)));
+  assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]), /provenance/);
+});
+
+test('Cord Source byte extents preserve Unicode and reject split code points', () => {
+  const { plot, observation } = cordFixture();
+  const unicode = { ...plot, source: '// 🧭\nplot lesson {}' };
+  const start = new TextEncoder().encode('// 🧭\nplot ').length;
+  const property = name => observation.face.properties.find(property => property.subject === 'port/lesson' && property.name === name);
+  property('source-byte-start').value.Count = start;
+  property('source-byte-end').value.Count = start + 6;
+  const target = resolvePatchbayEditorTarget(observation, [unicode]);
+  assert.equal(unicode.source.slice(target.sourceRange.start, target.sourceRange.end), 'lesson');
+  property('source-byte-start').value.Count = 4;
+  assert.throws(() => resolvePatchbayEditorTarget(observation, [unicode]), /Unicode/);
 });

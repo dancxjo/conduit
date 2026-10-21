@@ -23,6 +23,7 @@ pub enum PatchbayGraphError {
     InvalidConfigurationContract,
     MissingCordEndpoint,
     CordContractMismatch,
+    InvalidSourceProvenance,
     StaleGraphBasis,
     UnknownSubject,
     NoValueContract,
@@ -42,6 +43,9 @@ impl core::fmt::Display for PatchbayGraphError {
             Self::MissingCordEndpoint => "Patchbay Cord does not name two admitted exact Ports",
             Self::CordContractMismatch => {
                 "Patchbay Cord Info or temporal contract differs from its exact Ports"
+            }
+            Self::InvalidSourceProvenance => {
+                "Patchbay Source provenance differs from its exact expanded graph"
             }
             Self::StaleGraphBasis => "Patchbay selection candidate names a stale expanded Plot",
             Self::UnknownSubject => "Patchbay inspector subject is not in the typed graph",
@@ -138,6 +142,8 @@ pub struct PatchbayGear {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayCord {
+    /// Absent for unproven boundary bindings or ambiguous connection origins.
+    pub source_origin: Option<conduit_plot::ExpandedConnectionProvenance>,
     pub identity: String,
     pub source_port: String,
     pub sink_port: String,
