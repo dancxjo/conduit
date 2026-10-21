@@ -86,3 +86,11 @@ JS module syntax checks pass. An optional Source check with the retained db1 CLI
 reports CND-FRM-053 on VisualExpressionInfo for both the existing todo-mask source
 and the extended required-item source. That baseline diagnostic does not establish
 native Host-specific admission; runtime/catalog acceptance remains deferred.
+
+The generic Source diagnostic was traced to missing component checking definitions
+in the ordinary Mask catalog, not excessive profile bounds. The catalog now
+registers the existing VisualExpressionInfo/ComponentRecipeInfo schemas and
+component kind, without any Host Back/offer/grant. A rebuilt local conduit CLI
+reports no diagnostics for both todo-mask.conduit and todo-required-item.conduit.
+A focused catalog regression was added but not run tonight. This resolves the
+Source-checking defect; installed-owner runtime fallback proof stays deferred.
