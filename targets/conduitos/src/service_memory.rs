@@ -15,6 +15,8 @@ pub enum ServiceProfile {
     Runtime,
     Application,
     Network,
+    OrdinaryRuntime,
+    Mask,
 }
 impl ServiceProfile {
     pub const fn layout(self) -> ServiceMemoryLayout {
@@ -25,6 +27,8 @@ impl ServiceProfile {
             Self::Runtime => ServiceMemoryLayout::runtime(),
             Self::Application => ServiceMemoryLayout::application(),
             Self::Network => ServiceMemoryLayout::network(),
+            Self::OrdinaryRuntime => ServiceMemoryLayout::ordinary_runtime(),
+            Self::Mask => ServiceMemoryLayout::mask(),
         }
     }
 }
@@ -124,6 +128,36 @@ impl ServiceMemoryLayout {
             ],
         )
     }
+    /// Text/Tour execution has its own lease while a native Body runtime is live.
+    pub const fn ordinary_runtime() -> Self {
+        Self::from_sizes(
+            ServiceProfile::OrdinaryRuntime,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                1024 * 1024,
+                1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
+    /// Retained workspace layout policy, independent of Body application lifetime.
+    pub const fn mask() -> Self {
+        Self::from_sizes(
+            ServiceProfile::Mask,
+            [
+                2 * 1024 * 1024,
+                PAGE_BYTES,
+                16 * 1024,
+                1024 * 1024,
+                1024 * 1024,
+                0,
+                0,
+            ],
+        )
+    }
     const fn controller(profile: ServiceProfile) -> Self {
         Self::from_sizes(
             profile,
@@ -177,7 +211,9 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Home
             | ServiceProfile::Runtime
             | ServiceProfile::Application
-            | ServiceProfile::Network => None,
+            | ServiceProfile::Network
+            | ServiceProfile::OrdinaryRuntime
+            | ServiceProfile::Mask => None,
         }
     }
     /// Peak replacement/upload storage, separately charged from retained pixels.
@@ -188,7 +224,9 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Home
             | ServiceProfile::Runtime
             | ServiceProfile::Application
-            | ServiceProfile::Network => None,
+            | ServiceProfile::Network
+            | ServiceProfile::OrdinaryRuntime
+            | ServiceProfile::Mask => None,
         }
     }
     pub const fn profile(self) -> ServiceProfile {
@@ -201,7 +239,9 @@ impl ServiceMemoryLayout {
             | ServiceProfile::Home
             | ServiceProfile::Runtime
             | ServiceProfile::Application
-            | ServiceProfile::Network => 5,
+            | ServiceProfile::Network
+            | ServiceProfile::OrdinaryRuntime
+            | ServiceProfile::Mask => 5,
         }
     }
     pub fn active_ranges(&self) -> &[MemoryRange] {
@@ -280,7 +320,9 @@ impl<'a> ServiceImage<'a> {
             | ServiceProfile::Home
             | ServiceProfile::Runtime
             | ServiceProfile::Application
-            | ServiceProfile::Network => Some(PrivateDataWindow {
+            | ServiceProfile::Network
+            | ServiceProfile::OrdinaryRuntime
+            | ServiceProfile::Mask => Some(PrivateDataWindow {
                 start: layout.metadata().start(),
                 bytes: PAGE_BYTES,
             }),

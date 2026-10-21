@@ -1,4 +1,4 @@
-//! Six independently claimed physical stores. No compositor arena duplication.
+//! Eight independently claimed physical stores. No compositor arena duplication.
 use crate::{
     protected_region::DomainRefusal,
     service_memory::{ServiceMemoryLayout, ServiceProfile},
@@ -18,6 +18,8 @@ const H: ServiceMemoryLayout = ServiceMemoryLayout::home();
 const R: ServiceMemoryLayout = ServiceMemoryLayout::runtime();
 const A: ServiceMemoryLayout = ServiceMemoryLayout::application();
 const N: ServiceMemoryLayout = ServiceMemoryLayout::network();
+const O: ServiceMemoryLayout = ServiceMemoryLayout::ordinary_runtime();
+const W: ServiceMemoryLayout = ServiceMemoryLayout::mask();
 const fn optional_bytes(range: Option<crate::service_memory::MemoryRange>) -> usize {
     match range {
         Some(range) => range.bytes() as usize,
@@ -100,6 +102,24 @@ type Network = Slot<
     0,
     0,
     { (N.end() as usize).div_ceil(2 * 1024 * 1024) },
+>;
+type OrdinaryRuntime = Slot<
+    { O.image().bytes() as usize },
+    { O.output().bytes() as usize },
+    { O.stack().bytes() as usize },
+    { O.metadata().bytes() as usize },
+    0,
+    0,
+    { (O.end() as usize).div_ceil(2 * 1024 * 1024) },
+>;
+type Mask = Slot<
+    { W.image().bytes() as usize },
+    { W.output().bytes() as usize },
+    { W.stack().bytes() as usize },
+    { W.metadata().bytes() as usize },
+    0,
+    0,
+    { (W.end() as usize).div_ceil(2 * 1024 * 1024) },
 >;
 impl<
     const I: usize,
@@ -189,12 +209,16 @@ static HOME: Pool<Home> = Pool(UnsafeCell::new(Home::empty()));
 static RUNTIME: Pool<Runtime> = Pool(UnsafeCell::new(Runtime::empty()));
 static APPLICATION: Pool<Application> = Pool(UnsafeCell::new(Application::empty()));
 static NETWORK: Pool<Network> = Pool(UnsafeCell::new(Network::empty()));
+static ORDINARY_RUNTIME: Pool<OrdinaryRuntime> = Pool(UnsafeCell::new(OrdinaryRuntime::empty()));
+static MASK: Pool<Mask> = Pool(UnsafeCell::new(Mask::empty()));
 static COMPOSITOR_OWNED: AtomicBool = AtomicBool::new(false);
 static DRAFT_OWNED: AtomicBool = AtomicBool::new(false);
 static HOME_OWNED: AtomicBool = AtomicBool::new(false);
 static RUNTIME_OWNED: AtomicBool = AtomicBool::new(false);
 static APPLICATION_OWNED: AtomicBool = AtomicBool::new(false);
 static NETWORK_OWNED: AtomicBool = AtomicBool::new(false);
+static ORDINARY_RUNTIME_OWNED: AtomicBool = AtomicBool::new(false);
+static MASK_OWNED: AtomicBool = AtomicBool::new(false);
 fn owned(profile: ServiceProfile) -> &'static AtomicBool {
     match profile {
         ServiceProfile::Compositor => &COMPOSITOR_OWNED,
@@ -203,6 +227,8 @@ fn owned(profile: ServiceProfile) -> &'static AtomicBool {
         ServiceProfile::Runtime => &RUNTIME_OWNED,
         ServiceProfile::Application => &APPLICATION_OWNED,
         ServiceProfile::Network => &NETWORK_OWNED,
+        ServiceProfile::OrdinaryRuntime => &ORDINARY_RUNTIME_OWNED,
+        ServiceProfile::Mask => &MASK_OWNED,
     }
 }
 pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
@@ -213,6 +239,8 @@ pub(super) const fn reserved(profile: ServiceProfile) -> u32 {
         ServiceProfile::Runtime => core::mem::size_of::<Runtime>() as u32,
         ServiceProfile::Application => core::mem::size_of::<Application>() as u32,
         ServiceProfile::Network => core::mem::size_of::<Network>() as u32,
+        ServiceProfile::OrdinaryRuntime => core::mem::size_of::<OrdinaryRuntime>() as u32,
+        ServiceProfile::Mask => core::mem::size_of::<Mask>() as u32,
     }
 }
 pub(super) struct Lease {
@@ -248,6 +276,8 @@ impl Lease {
                 ServiceProfile::Runtime => (&mut *RUNTIME.0.get()).view(),
                 ServiceProfile::Application => (&mut *APPLICATION.0.get()).view(),
                 ServiceProfile::Network => (&mut *NETWORK.0.get()).view(),
+                ServiceProfile::OrdinaryRuntime => (&mut *ORDINARY_RUNTIME.0.get()).view(),
+                ServiceProfile::Mask => (&mut *MASK.0.get()).view(),
             }
         }
     }
@@ -262,6 +292,8 @@ impl Lease {
                 ServiceProfile::Runtime => &(*RUNTIME.0.get()).output.0,
                 ServiceProfile::Application => &(*APPLICATION.0.get()).output.0,
                 ServiceProfile::Network => &(*NETWORK.0.get()).output.0,
+                ServiceProfile::OrdinaryRuntime => &(*ORDINARY_RUNTIME.0.get()).output.0,
+                ServiceProfile::Mask => &(*MASK.0.get()).output.0,
             }
         }
     }
@@ -279,6 +311,10 @@ impl Lease {
                     core::ptr::addr_of!((*APPLICATION.0.get()).trap.0) as u64
                 }
                 ServiceProfile::Network => core::ptr::addr_of!((*NETWORK.0.get()).trap.0) as u64,
+                ServiceProfile::OrdinaryRuntime => {
+                    core::ptr::addr_of!((*ORDINARY_RUNTIME.0.get()).trap.0) as u64
+                }
+                ServiceProfile::Mask => core::ptr::addr_of!((*MASK.0.get()).trap.0) as u64,
             }
         };
         base + 16384

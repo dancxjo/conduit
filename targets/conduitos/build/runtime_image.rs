@@ -17,8 +17,6 @@ pub fn generate() {
     }
     if env::var("CARGO_CFG_TARGET_ARCH").as_deref() != Ok("x86_64")
         || env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("none")
-        || (env::var_os("CARGO_FEATURE_NATIVE_COMPOSITOR").is_none()
-            && env::var_os("CARGO_FEATURE_ORDINARY_DOMAIN_PROOF").is_none())
     {
         return;
     }
@@ -56,6 +54,8 @@ pub fn generate() {
     // page as an initialized private RW/NX template. No writable image mapping.
     ServiceImage::for_profile(&bytes, ServiceProfile::Runtime)
         .expect("validate bounded runtime executable and private-data template");
+    ServiceImage::for_profile(&bytes, ServiceProfile::OrdinaryRuntime)
+        .expect("validate independent ordinary runtime image");
     fs::copy(source, output.join("runtime.elf")).expect("stage runtime executable");
     println!("cargo:rustc-cfg=conduitos_runtime_image");
 }
