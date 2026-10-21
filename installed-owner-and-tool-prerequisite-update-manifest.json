@@ -1,0 +1,70 @@
+{
+  "parent": "1b6b4bc382f82a5307439d224e33619098b0acb6",
+  "scope": "Selected Look CPU regression, private synthetic QMP adapter and virtual display preflight; no actual owner or guest proof",
+  "files": [
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 14027,
+      "sha256": "49d91035ffbed79414f4695f976699004d33bf332e07f737e0f3c2f319b213be",
+      "mode": "100644",
+      "blob": "72c9e7cb3d5f1616999bdae2bbbb62a9719dbfeb"
+    },
+    {
+      "source": "work/5628-binaryen-install.log",
+      "tree_path": "task-6038/work/5628-binaryen-install.log",
+      "bytes": 1144,
+      "sha256": "e0a588ff4c9736da21a5965ea440760bd9561f0799d6d45b1160e61fcbb5f2ca",
+      "mode": "100644",
+      "blob": "5199db3748f62acb8efe04b74954faa27e5bbc86"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/installation.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/installation.json",
+      "bytes": 440,
+      "sha256": "bd26a1ad08d521fa6865cc3f94ca65034fcb74056c980afa01997ba4e05ec9ab",
+      "mode": "100644",
+      "blob": "5ff6d7cddf75a0f8c38176c65b9368a8d158b5d6"
+    },
+    {
+      "source": "outputs/5628-owner-proof-prereqs/owner-started.json",
+      "tree_path": "task-6038/outputs/5628-owner-proof-prereqs/owner-started.json",
+      "bytes": 747,
+      "sha256": "3d96409bdbac02b33b7599c092e494bb9ed93473906b833a874d48cd53303453",
+      "mode": "100644",
+      "blob": "c0e7ca35839eb74805761e4f7e4267465e7b7b28"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/hosted-linux-x86_64.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/hosted-linux-x86_64.json",
+      "bytes": 878,
+      "sha256": "0e0662309d64fcf283d9245887fd38fb38b7319b378ad1cae94a8820243f1a52",
+      "mode": "100644",
+      "blob": "2bf545027d68071d1bfb1e1b61600c1ef7ff08de"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/owner-artifact-build-status.json",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/owner-artifact-build-status.json",
+      "bytes": 972,
+      "sha256": "915ef2f1cb64fb4c8b461ec31b7c0505a1bf1d31d9d0ec53f6fdd98c62f68143",
+      "mode": "100644",
+      "blob": "e4981e7d8d9f07d482ac36831fcc724d47bddef0"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/linux-release-build.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/linux-release-build.log",
+      "bytes": 37576,
+      "sha256": "15d28a4a26886053caae7b4f73e800c69dcdedf9442b15c34acfbd244e64f2ea",
+      "mode": "100644",
+      "blob": "a82649deb17a731af716827458b0a89f4f159b08"
+    },
+    {
+      "source": "outputs/5628-reconciled-253dcb985/handbook-build.log",
+      "tree_path": "task-6038/outputs/5628-reconciled-253dcb985/handbook-build.log",
+      "bytes": 782,
+      "sha256": "c45670b70c035faaf4f41fc7919ba1ea1f7763c0ef61f6a22683d915904535c1",
+      "mode": "100644",
+      "blob": "6e1666c2006357e3957eef38bd9557b87b7924a1"
+    }
+  ]
+}

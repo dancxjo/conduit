@@ -1,0 +1,21 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "installed_service_running": true,
+  "todo_initialized_through_supported_body_start": true,
+  "face_id": "4041fd9789a9efa3aa373707cc1e41e367fdde47436c85af9c5e0a32b5a57e0d",
+  "face_revision": 6577474094915678572,
+  "available_actions": [
+    "body/action/lull/0",
+    "body/action/open-overview/0",
+    "body/action/open-library/0",
+    "body/action/open-plot/93e85b61db75062fb6a96421f98be6bc3a38c317fab13d483ac17376a45929b4/0",
+    "todo.add"
+  ],
+  "whole_face_snapshot_bytes": 928896,
+  "whole_status_bytes": 940047,
+  "semantic_face_bytes": 9457,
+  "invitation_created": false,
+  "browser_started": false,
+  "guest_started": false,
+  "face_revision_decimal": "6577474094915678572"
+}

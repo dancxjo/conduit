@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch make body static --application targets/browser/handbook/handbook.application.template.json --handbook --output target/5628-handbook`
+    Finished `dev` profile [unoptimized] target(s) in 0.28s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask make body static --application targets/browser/handbook/handbook.application.template.json --handbook --output target/5628-handbook`
+xtask error: browser optimizer unavailable; install wasm-opt (Binaryen): No such file or directory (os error 2)
+xtask error: reviewed browser release build failed

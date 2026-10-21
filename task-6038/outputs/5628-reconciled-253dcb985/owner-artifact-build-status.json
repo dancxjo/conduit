@@ -1,0 +1,42 @@
+{
+  "source": "253dcb985eb8890ddf873d672d3a282f2366e6db",
+  "steps": [
+    {
+      "name": "linux-release",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "release",
+        "--platform",
+        "linux",
+        "--output",
+        "target/5628-linux-release"
+      ],
+      "exit_code": 0,
+      "seconds": 1275.0468935966492,
+      "log_sha256": "15d28a4a26886053caae7b4f73e800c69dcdedf9442b15c34acfbd244e64f2ea"
+    },
+    {
+      "name": "handbook",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "body",
+        "static",
+        "--application",
+        "targets/browser/handbook/handbook.application.template.json",
+        "--handbook",
+        "--output",
+        "target/5628-handbook"
+      ],
+      "exit_code": 1,
+      "seconds": 0.5693702697753906,
+      "log_sha256": "c45670b70c035faaf4f41fc7919ba1ea1f7763c0ef61f6a22683d915904535c1"
+    }
+  ]
+}

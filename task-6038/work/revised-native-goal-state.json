@@ -41,7 +41,7 @@
     "candidate_observed": "terminal_success20:21UTC",
     "merged": "72ab3b367c236653dff0b5726939e08de62390b9"
   },
-  "current_stage": "normal253QEMUJourneyPassed26Captures;OwnerArtifactsAndWorkspaceRunning",
+  "current_stage": "LinuxReleasePassedPrivateOwnerInstalledAndTodoStarted;HandbookRetryWithInstalledBinaryen;FullTestsRunning",
   "font_stage": {
     "pr": 6165,
     "head": "3860faa7e51d0ca8c85f244cbdf9b0101877981f",
@@ -279,6 +279,9 @@
     "current_dev": "54e8fe00908e46a6c49fb47532a2ac1477b6c385",
     "incoming_owner_selection": "ShiftF6density/ShiftF7palette;unmodifiedpresetsunchanged;readOnlyReconciliationAuditComplete;doNotMergeDuringFrozenProof",
     "workspace": "correspondence/fmt/full strict workspace Clippy passed; full tests compiling",
-    "owner_artifacts": "x86 executable copied;completeLinuxreleaseandHandbookstillbuilding;notinstalled"
+    "owner_artifacts": "Linuxreleasepassed0;firstHandbookfailedmissingwasm-opt;Binaryen133installed;supportedHandbookretry43004running",
+    "owner_service_session": 52651,
+    "owner_setup": "freshprivateinstalled253TodoBody initialized using body start;noinvitation/browser/guest",
+    "large_revision": "ownerrevision>2^53;privatebrowserhelper exactindependentownerdecimalbinding underreview"
   }
 }
