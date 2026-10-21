@@ -20,7 +20,8 @@ pub use execution::PreparedFaceSnapshot;
 /// Larger semantic Faces need a separately admitted storage profile.
 pub const MAX_SNAPSHOT_BYTES: usize = 48 * 1024;
 /// Explicit collection profile, separate from the existing default and route limits.
-pub const COLLECTION_SNAPSHOT_BYTES: usize = 256 * 1024;
+pub const COLLECTION_SNAPSHOT_BYTES: usize =
+    conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection.bytes() as usize;
 pub type NativeFaceSnapshotProducer = BoundedFaceSnapshotProducer<MAX_SNAPSHOT_BYTES>;
 pub type CollectionFaceSnapshotProducer = BoundedFaceSnapshotProducer<COLLECTION_SNAPSHOT_BYTES>;
 
