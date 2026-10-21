@@ -9,6 +9,8 @@ use crate::{
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{GearId, KindId, PortDescriptor};
 
+mod connection;
+use connection::connect;
 mod connection_contract;
 mod construction;
 pub use connection_contract::{validate_connection_contract, validate_front_contract};
