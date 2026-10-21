@@ -9,22 +9,23 @@ use exact_profile::validate_exact_profile;
 use crate::installed_std::state_storage_profile;
 use conduit_core::{
     resource_binding_satisfies, HostAdvertisement, Plan, PlanFragment, PlanId, ResourceBinding,
-    ResourceClassId, ResourceHealth, ResourceObservation, ResourcePoolId, SignId, PROTOCOL_VERSION,
+    ResourceHealth, ResourceObservation, SignId, PROTOCOL_VERSION,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment_for_profile, lower_plan_fragment_for_profile_from_plan,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct PoolUsage {
-    pool_id: ResourcePoolId,
-    class_id: ResourceClassId,
-    capacity_units: u32,
-    used_units: u32,
-}
+mod pool_usage;
+use pool_usage::PoolUsage;
+mod region_lanes;
 
 #[derive(Debug, Clone)]
 pub(super) struct KernelResourceLedger {
+    identity: (
+        conduit_core::HostId,
+        conduit_core::BootId,
+        conduit_core::OfferGeneration,
+    ),
     pools: Vec<PoolUsage>,
     instances: Vec<(conduit_core::CapabilityId, u16)>,
 }
@@ -48,21 +49,13 @@ impl KernelResourceLedger {
         }
         let mut pools = Vec::with_capacity(advertisement.resources.len());
         for offer in &advertisement.resources {
-            if offer.pool_id.as_str().is_empty()
-                || offer.class_id.as_str().is_empty()
-                || offer.capacity_units == 0
-                || pools
-                    .iter()
-                    .any(|pool: &PoolUsage| pool.pool_id == offer.pool_id)
+            if pools
+                .iter()
+                .any(|pool: &PoolUsage| pool.pool_id == offer.pool_id)
             {
-                return Err("kernel host resource offers are malformed".to_string());
+                return Err("kernel host resource offers are malformed".into());
             }
-            pools.push(PoolUsage {
-                pool_id: offer.pool_id.clone(),
-                class_id: offer.class_id.clone(),
-                capacity_units: offer.capacity_units,
-                used_units: 0,
-            });
+            pools.push(PoolUsage::new(offer)?);
         }
         let mut instances = Vec::with_capacity(advertisement.capabilities.len());
         for capability in &advertisement.capabilities {
@@ -74,7 +67,15 @@ impl KernelResourceLedger {
             }
             instances.push((capability.capability_id.clone(), 0));
         }
-        Ok(Self { pools, instances })
+        Ok(Self {
+            identity: (
+                advertisement.host_id.clone(),
+                advertisement.boot_id.clone(),
+                advertisement.offer_generation,
+            ),
+            pools,
+            instances,
+        })
     }
 
     pub(super) fn prepare_and_reserve(
@@ -139,29 +140,7 @@ impl KernelResourceLedger {
             .checked_add(1)
             .filter(|total| *total <= capability.limits.max_active_instances)
             .ok_or_else(|| "pool member active-instance capacity is unavailable".to_string())?;
-        for pool in &mut staged.pools {
-            let requested = requested_units(bindings, &pool.pool_id, &pool.class_id)?;
-            pool.used_units = pool
-                .used_units
-                .checked_add(requested)
-                .filter(|total| *total <= pool.capacity_units)
-                .ok_or_else(|| {
-                    format!(
-                        "pool member resource '{}' capacity is unavailable",
-                        pool.pool_id.as_str()
-                    )
-                })?;
-        }
-        if bindings.iter().any(|binding| {
-            !staged
-                .pools
-                .iter()
-                .any(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
-        }) {
-            return Err(
-                "pool member resource binding is absent from the initialized ledger".into(),
-            );
-        }
+        PoolUsage::reserve_all(&mut staged.pools, bindings)?;
         *self = staged;
         Ok(KernelResourceReservation {
             plan_id,
@@ -208,7 +187,7 @@ impl KernelResourceLedger {
             reservations.push(staged.reserve_partition(advertisement, fragment, *continuity)?);
         }
         for (live, admitted) in self.pools.iter_mut().zip(staged.pools) {
-            live.used_units = admitted.used_units;
+            live.copy_usage_from(&admitted);
         }
         for (live, admitted) in self.instances.iter_mut().zip(staged.instances) {
             live.1 = admitted.1;
@@ -244,7 +223,7 @@ impl KernelResourceLedger {
             reservations.push(staged.reserve_plan(advertisement, plan, fragment, *continuity)?);
         }
         for (live, admitted) in self.pools.iter_mut().zip(staged.pools) {
-            live.used_units = admitted.used_units;
+            live.copy_usage_from(&admitted);
         }
         for (live, admitted) in self.instances.iter_mut().zip(staged.instances) {
             live.1 = admitted.1;
@@ -347,36 +326,7 @@ impl KernelResourceLedger {
             bindings.push(semantic.clone());
         }
 
-        for pool in &self.pools {
-            let requested = requested_units(&bindings, &pool.pool_id, &pool.class_id)?;
-            let total = pool.used_units.checked_add(requested).ok_or_else(|| {
-                format!("resource pool '{}' usage overflowed", pool.pool_id.as_str())
-            })?;
-            if total > pool.capacity_units {
-                return Err(format!(
-                    "resource pool '{}' requires {} units above capacity {}",
-                    pool.pool_id.as_str(),
-                    total,
-                    pool.capacity_units
-                ));
-            }
-        }
-        for binding in &bindings {
-            if !self
-                .pools
-                .iter()
-                .any(|pool| pool.pool_id == binding.pool_id && pool.class_id == binding.class_id)
-            {
-                return Err(format!(
-                    "resource binding '{}' is not offered by this host",
-                    binding.pool_id.as_str()
-                ));
-            }
-        }
-        for pool in &mut self.pools {
-            let requested = requested_units(&bindings, &pool.pool_id, &pool.class_id)?;
-            pool.used_units += requested;
-        }
+        PoolUsage::reserve_all(&mut self.pools, &bindings)?;
         Ok(KernelResourceReservation {
             plan_id: fragment.plan_id.clone(),
             bindings,
@@ -395,16 +345,7 @@ impl KernelResourceLedger {
                 .checked_sub(*released)
                 .ok_or_else(|| "capability release exceeded its reservation".to_string())?;
         }
-        for pool in &mut self.pools {
-            let released = requested_units(&reservation.bindings, &pool.pool_id, &pool.class_id)?;
-            pool.used_units = pool.used_units.checked_sub(released).ok_or_else(|| {
-                format!(
-                    "plan '{}' release exceeded resource pool '{}' reservation",
-                    reservation.plan_id.as_str(),
-                    pool.pool_id.as_str(),
-                )
-            })?;
-        }
+        PoolUsage::release_all(&mut self.pools, &reservation.bindings)?;
         Ok(())
     }
 
@@ -458,21 +399,6 @@ impl KernelResourceLedger {
 #[cfg(test)]
 #[path = "kernel_partition_reservation_tests.rs"]
 mod partition_tests;
-
-fn requested_units(
-    bindings: &[ResourceBinding],
-    pool_id: &ResourcePoolId,
-    class_id: &ResourceClassId,
-) -> Result<u32, String> {
-    bindings
-        .iter()
-        .filter(|binding| &binding.pool_id == pool_id && &binding.class_id == class_id)
-        .try_fold(0_u32, |total, binding: &ResourceBinding| {
-            total
-                .checked_add(binding.units)
-                .ok_or_else(|| format!("resource pool '{}' usage overflowed", pool_id.as_str()))
-        })
-}
 
 #[cfg(test)]
 mod tests;

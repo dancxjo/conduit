@@ -24,12 +24,16 @@ pub enum LaneOfferError {
 /// its concrete ledger atomically before installing or starting execution.
 #[derive(Debug)]
 pub struct CheckedRegionLaneOffers<'prepared, 'host> {
+    plan_id: &'prepared conduit_core::PlanId,
     bindings: Vec<&'prepared ResourceBinding>,
     host: &'host HostAdvertisement,
     observations: &'host [ResourceObservation],
 }
 
 impl<'prepared, 'host> CheckedRegionLaneOffers<'prepared, 'host> {
+    pub fn plan_id(&self) -> &'prepared conduit_core::PlanId {
+        self.plan_id
+    }
     pub fn bindings(&self) -> &[&'prepared ResourceBinding] {
         &self.bindings
     }
@@ -159,6 +163,7 @@ impl PreparedExecutionRegions<'_> {
             }
         }
         Ok(CheckedRegionLaneOffers {
+            plan_id: &self.plan().plan_id,
             bindings,
             host,
             observations,
