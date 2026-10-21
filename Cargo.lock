@@ -2854,6 +2854,7 @@ dependencies = [
  "conduitos-application-core",
  "conduitos-compositor-core",
  "conduitos-creche-core",
+ "conduitos-network-core",
  "conduitos-runtime-core",
  "ed25519-dalek",
  "embedded-io 0.7.1",
@@ -2906,6 +2907,15 @@ dependencies = [
  "serde",
  "serde-json-core",
  "serde_json",
+]
+
+[[package]]
+name = "conduitos-network-core"
+version = "0.1.0"
+dependencies = [
+ "embedded-websocket",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
 ]
 
 [[package]]

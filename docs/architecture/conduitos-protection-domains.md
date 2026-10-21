@@ -638,7 +638,7 @@ request correlation, canonical scene decoding, exact viewport clips and finite
 Home-subject Face content before assembling the checked outer Face. Outer
 Face/Mask/Show acknowledgement and physical display admission remain in Root.
 
-The closed service pool has independent compositor, Draft, Home, Runtime and Application slots. Each image
+The closed service pool has independent compositor, Draft, Home, Runtime, Application and Network slots. Each image
 is bound to its profile; instance and request identities fence the bounded wire
 exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
 ceiling. A terminal transport failure quarantines and releases the owning slot.
@@ -710,8 +710,30 @@ Tutorial models. A live workset reuses its owner; a lulled Body or text-only
 workset uses an explicit transient lease. Failed live owners cannot silently
 retry through a cold lease. Read failures immediately fence cached views and
 actions, and the next mutable boundary retires sibling execution. Root retains
-the exact lifecycle action admission and effects, general Face/Mask and the
-remaining execution/network/device paths. Expanded runtime proof is deferred.
+the exact lifecycle action admission and effects. Reviewed graph-to-Face facts
+also project in the Application guest. Their scoped replies cannot carry
+actions or outer lifecycle basis; Root checks reviewed object membership and
+owner identity before merging through the existing outer Face constructor.
+General Face/Mask and remaining execution/network/device paths still require
+further migration. Expanded runtime proof is deferred.
+
+## Native WebSocket codec service in progress
+
+Native owner-network connections now host the existing bounded WebSocket codec
+in an independently owned Network guest. The production adapter retains its
+binary IO interface while canonical upgrade parsing, frame encoding, retained
+partial frames and message accumulation execute behind that boundary. Bulk
+bytes use a 16 KiB transfer window; the existing 1,024-byte handshake,
+32,768-byte frame and 32,754-byte payload ceilings remain finite.
+
+Root retains authenticated TLS/TCP streams, certificate and endpoint admission,
+cryptographic seed custody, deadlines, polling and actual writes. It checks exact
+instance/sequence replies, contiguous chunks, read capacity and positive bounded
+parser progress. Protocol and IO failures release the connection's guest; they
+do not silently restart it or fall back to a privileged codec. This moves a
+parser boundary, not TLS, a driver or DMA authority. The Network profile has a
+2 MiB image, 1 MiB stack and 1 MiB metadata ceiling. These are engineering bounds;
+current execution, timing, fragmentation and containment acceptance remain open.
 
 ## Deliberate limits
 
