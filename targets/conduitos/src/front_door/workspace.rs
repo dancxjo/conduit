@@ -81,10 +81,13 @@ impl FrontDoor {
             let graph_facts = journey
                 .foreground_patchbay_graph()
                 .map(|graph| {
+                    // The outer Face has the foreground Plot subject only;
+                    // other installed members are not already Face subjects.
                     let present = workspace
                         .plots
                         .iter()
-                        .any(|plot| plot.plot.checked_plot_id == graph.checked_plot_id);
+                        .find(|plot| plot.foreground)
+                        .is_some_and(|plot| plot.plot.checked_plot_id == graph.checked_plot_id);
                     journey
                         .graph_face_facts(graph, present)
                         .map_err(|_| Error::Face)
