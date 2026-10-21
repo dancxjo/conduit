@@ -1,0 +1,425 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "base": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "RUST_TEST_THREADS": "1"
+  },
+  "results": [
+    {
+      "name": "setup-ci",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "setup-ci"
+      ],
+      "status": 0,
+      "seconds": 1.0928990840911865,
+      "free_before": 63217635328
+    },
+    {
+      "name": "preflight",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa"
+      ],
+      "status": 0,
+      "seconds": 15.9725821018219,
+      "free_before": 63217618944
+    },
+    {
+      "name": "typography",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "display::typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 222.17087841033936,
+      "free_before": 63217549312
+    },
+    {
+      "name": "native-face",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "native_face",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 40.81772184371948,
+      "free_before": 63314837504
+    },
+    {
+      "name": "font-allocation",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--test",
+        "native_typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 27.053218364715576,
+      "free_before": 63314808832
+    },
+    {
+      "name": "headless-focused",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "xtask",
+        "--locked",
+        "--bin",
+        "xtask",
+        "headless",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 225.46528434753418,
+      "free_before": 63314784256
+    },
+    {
+      "name": "tour-focused",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--",
+        "--exact",
+        "tour_shell::lifecycle::tests::native_host_projection_keeps_full_identity_without_inventing_lines_or_membership",
+        "tour_shell::scene::content_tests::projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells",
+        "tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 90.9681441783905,
+      "free_before": 63312916480
+    },
+    {
+      "name": "xtask-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "xtask",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 61.27969765663147,
+      "free_before": 63312912384
+    },
+    {
+      "name": "native-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 59.577616930007935,
+      "free_before": 63312752640
+    },
+    {
+      "name": "fmt",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "xtask",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 2.366748571395874,
+      "free_before": 63312527360
+    },
+    {
+      "name": "normal-product-build",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "live",
+        "x86_64",
+        "--locked"
+      ],
+      "status": 0,
+      "seconds": 154.09517097473145,
+      "free_before": 63312527360
+    }
+  ],
+  "tree": "bfb6ce1758348d1876ac84686bc0c8999b90ae66",
+  "logs": {
+    "fmt.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "font-allocation.log": {
+      "bytes": 601,
+      "sha256": "7ec3776fb138c702367f26beac0b777e3e32bbb315b5ab2a874c8f82756b4a9f"
+    },
+    "headless-focused.log": {
+      "bytes": 9531,
+      "sha256": "c6b657ad6d9c7c9b17f0e2592e3515a0fa09d30841cb9f403f60e0a15aca51d4"
+    },
+    "native-face.log": {
+      "bytes": 13370,
+      "sha256": "68dac9f2cd0633b3f18032951ce497bf5e9b792b43b30c062c20e135ef414787"
+    },
+    "native-strict-clippy.log": {
+      "bytes": 7428,
+      "sha256": "1ffa004ed78417aa17cb611cdc39ef5f4c9eecd7f3950208c0af42406557128e"
+    },
+    "normal-product-build.log": {
+      "bytes": 14079,
+      "sha256": "345d01f39e50c3b366d4db2cc3c73716aa5ec7c0f1081a56e3917f5ceb8e8108"
+    },
+    "preflight.log": {
+      "bytes": 30885,
+      "sha256": "3c606364932431e30127fb03f1d2eac4691f78172ebda22fd1a8c75a6da57305"
+    },
+    "setup-ci.log": {
+      "bytes": 608,
+      "sha256": "3ad6cfcfbaeb862b8ad362823fb3d7a0190b9ab5fde0bba603644d06d2e2c083"
+    },
+    "tour-focused.log": {
+      "bytes": 1069,
+      "sha256": "7cd4b09726114bbf4265f3b8dacf047ddaa6826bd5c4c74d4b3e8d2623a1f846"
+    },
+    "typography.log": {
+      "bytes": 9795,
+      "sha256": "fb07906f21e980bab6d130b9899f36b29968742d577b42f62597f9c6466bad82"
+    },
+    "xtask-strict-clippy.log": {
+      "bytes": 8457,
+      "sha256": "784767018f4eb4fb4409cd8740ffcd7aa9117c17c5033d9f76b16c38d6f94f00"
+    }
+  },
+  "test_results": {
+    "headless-focused.log": [
+      "test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 579 filtered out; finished in 0.17s"
+    ],
+    "typography.log": [
+      "test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 1209 filtered out; finished in 0.24s"
+    ],
+    "font-allocation.log": [
+      "test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s"
+    ],
+    "native-face.log": [
+      "test result: ok. 113 passed; 0 failed; 0 ignored; 0 measured; 1116 filtered out; finished in 40.61s"
+    ],
+    "tour-focused.log": [
+      "test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 1226 filtered out; finished in 0.05s"
+    ]
+  },
+  "warnings": [],
+  "source_files": {
+    "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf": {
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51",
+      "bytes": 380132
+    },
+    "targets/conduitos/assets/fonts/dejavu/README.md": {
+      "sha256": "98b26e50b6b1764f2af980a5f393afd6902f86d8611348f2086ed8def16717bb",
+      "bytes": 4213
+    },
+    "targets/conduitos/assets/fonts/dejavu/native-ensemble.json": {
+      "sha256": "27741cd141affb92b521bbe9042bf39db8012d6058fe445cc8fd00779b0d75ea",
+      "bytes": 1944
+    },
+    "targets/conduitos/assets/graphical/README.md": {
+      "sha256": "77cf4a787ef952cc6d2d2a4b1d5989c5e4ef27351b5c4438b244d88349356dcc",
+      "bytes": 3526
+    },
+    "targets/conduitos/build/typography.rs": {
+      "sha256": "068e09fbac7dec490bf92891626799ac22f6f5b2adaab48e5d04593341582948",
+      "bytes": 6881
+    },
+    "targets/conduitos/make/xtask/build.rs": {
+      "sha256": "4e2c8c843773379fcc976eefc5e6ae23e40c55a381c914ebf612bf61913b7c7c",
+      "bytes": 19216
+    },
+    "targets/conduitos/make/xtask/build/aarch64_domain.rs": {
+      "sha256": "08df5067bf4595d5a2fa0e7e2914852328b6e01255b99d3e6a1997ef0210399e",
+      "bytes": 1136
+    },
+    "targets/conduitos/make/xtask/build/ia32_domain.rs": {
+      "sha256": "f18df1ba5a8290acb99bc122e96b27032fdd1b43639f224544cddfb3e1c7937f",
+      "bytes": 1120
+    },
+    "targets/conduitos/make/xtask/build/loongarch64_domain.rs": {
+      "sha256": "19407398cf546758579375dd766ec78f3326cd67bae556c27d19866a863c8644",
+      "bytes": 1156
+    },
+    "targets/conduitos/make/xtask/build/riscv64_domain.rs": {
+      "sha256": "9b8ffc5407ec3918949e218f92b230624bf42ac23cd998af0e2452437a4f41ec",
+      "bytes": 1137
+    },
+    "targets/conduitos/make/xtask/command.rs": {
+      "sha256": "f048bc7677edb4a264bc577ed2f783e49de9da083629e4f1f41a29ca51474921",
+      "bytes": 14210
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "bytes": 1055
+    },
+    "targets/conduitos/make/xtask/headless_profile/tests.rs": {
+      "sha256": "6906660443aa4f8c28d100ab6486181951aa45fe351a77a3f757ec5ad1343faa",
+      "bytes": 2416
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "bytes": 8021
+    },
+    "targets/conduitos/make/xtask/mod.rs": {
+      "sha256": "f955affac0ac17102f4973aff7d4b18d0b1b1627cc1471b152c55bbdf9cacede",
+      "bytes": 28048
+    },
+    "targets/conduitos/src/display/typography.rs": {
+      "sha256": "78c9dfbd3875eb33e1dd6cb00be760722686af2597df43cd72beea517d5bb964",
+      "bytes": 9376
+    },
+    "targets/conduitos/src/display/typography/ensemble_tests.rs": {
+      "sha256": "fbeba520c24e65a743769107ff2c20f1ad2be07102274bbe069c83caa5289bb1",
+      "bytes": 7108
+    },
+    "targets/conduitos/src/display/typography/ink.rs": {
+      "sha256": "cbcce0aa2b21b87a68e995c31b72ebc164a9212d063583f0416eeb184fde2b4e",
+      "bytes": 1851
+    },
+    "targets/conduitos/src/display/typography/layout.rs": {
+      "sha256": "2d561a6d78774d08c3fb448897687d6e74ac0501b9104e48bdb8e87032598618",
+      "bytes": 9298
+    },
+    "targets/conduitos/src/display/typography/raster.rs": {
+      "sha256": "c45a13800380a0bc7d95268164cc432c783b212979e19554f2f09279c5b036b4",
+      "bytes": 11054
+    },
+    "targets/conduitos/src/native_face_scene/chrome.rs": {
+      "sha256": "eeb6203e49b4c52814fe0a60e071ea888cfa19f88e3dc2b4ba0cfe8c8484fff3",
+      "bytes": 7890
+    },
+    "targets/conduitos/src/native_face_scene/document.rs": {
+      "sha256": "2faf4c329ab9fed2d917312540d4113c1d8e59e3472b8213cd6b1551e2db49f0",
+      "bytes": 14448
+    },
+    "targets/conduitos/src/native_face_scene/frame.rs": {
+      "sha256": "e1c78f9b9657822cd86a009c9189a0665cc6768d2031e2db119a7976b3a606e5",
+      "bytes": 7629
+    },
+    "targets/conduitos/src/native_face_scene/layout.rs": {
+      "sha256": "c73979f6663f3f0944e8d243d15588abb3aae60d3d3c5c9f63d60d5e4b9a5f44",
+      "bytes": 12449
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels.rs": {
+      "sha256": "9b3ec04a2376267537a6f1036451a1476fe91e0a12ea008cb886d5e029895215",
+      "bytes": 9292
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests.rs": {
+      "sha256": "b7dfb832ef856b87fd4768dc74b0212ea930a222779cef0d4ee231e9f0b98527",
+      "bytes": 11951
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche.rs": {
+      "sha256": "e270fd1bd891dc669ad4f270d8f0be2eca59d15729f37e870ca1a2b4e540fa20",
+      "bytes": 9032
+    },
+    "targets/conduitos/src/native_face_scene/layout/panels/tests/creche/font_details.rs": {
+      "sha256": "2c2b248cd0b93c86a7aadc97080dfc76822ef63aa086a52eba2482613259630c",
+      "bytes": 2859
+    },
+    "targets/conduitos/src/native_face_scene/ports/tests.rs": {
+      "sha256": "3a9b4bc70d441ff51c899ca10aaf5026daef5ff5135e4c8d198231f88ad1644c",
+      "bytes": 14255
+    },
+    "targets/conduitos/src/native_face_scene/text_editor.rs": {
+      "sha256": "975217d351a44473340b6e9555b0ceca3e9055b313ca5c8e9082ec042e3bd5f8",
+      "bytes": 8245
+    },
+    "targets/conduitos/src/tour_shell/scene_content_tests.rs": {
+      "sha256": "f2dd19a7b7f5f6e4cd6ac793a43de893ff03ec8b3f6d71cd9571994d0285aa09",
+      "bytes": 9215
+    },
+    "targets/conduitos/src/tour_workspace.rs": {
+      "sha256": "c53315577c5f6118c873006eef739c71cb729d482425f64e853a0718c162f51c",
+      "bytes": 11834
+    },
+    "targets/conduitos/src/tour_workspace/tests.rs": {
+      "sha256": "b4432219546bb7a2344a41025e579d26963cbc5be653b6c7ca341c605b098f0d",
+      "bytes": 6159
+    }
+  },
+  "boundaries": [
+    "Fresh exact-ffc focused owning checks and normal product build only; no guest proof yet.",
+    "Historical 3860 full workspace 52-step/10020-test proof remains separately pinned, not relabeled ffc.",
+    "Prepared ffc local Source is distinct from eventual merged-tree Candidate/Integration acceptance.",
+    "No source edits, fetch, push, Actions observations or headless build."
+  ]
+}

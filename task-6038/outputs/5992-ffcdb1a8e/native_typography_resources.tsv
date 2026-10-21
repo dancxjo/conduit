@@ -1,0 +1,6 @@
+profile	font	size	glyphs	fallbacks	coverage_bytes	ascent	line_height	left_ink	right_overhang
+0	DejaVuSans.ttf	14	990	0	95775	15	20	15	2
+1	DejaVuSans.ttf	16	990	0	122236	17	23	17	2
+2	DejaVuSans.ttf	20	990	0	184808	22	29	21	2
+3	DejaVuSerif.ttf	24	990	66	274804	26	34	25	4
+4	DejaVuSansMono.ttf	14	990	113	84028	15	20	15	8

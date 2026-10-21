@@ -1,0 +1,158 @@
+{
+  "parent": "abbafe42b17af16e273398ae82b149a0cbd917ee",
+  "scope": "Source-bound serial browser repair proof; raw logs retained locally and in Actions; aggregate still queued",
+  "files": [
+    {
+      "source": "outputs/5992-ffcdb1a8e/fmt.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/font-allocation.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/font-allocation.log",
+      "bytes": 601,
+      "sha256": "7ec3776fb138c702367f26beac0b777e3e32bbb315b5ab2a874c8f82756b4a9f",
+      "mode": "100644",
+      "blob": "d455d6e41267a946a7dd8a8b6c9d4e00c4bda2b6"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/headless-focused.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/headless-focused.log",
+      "bytes": 9531,
+      "sha256": "c6b657ad6d9c7c9b17f0e2592e3515a0fa09d30841cb9f403f60e0a15aca51d4",
+      "mode": "100644",
+      "blob": "8384b2d0dfa28667073b677aa6d040ad8226e588"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/local-checks.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/local-checks.json",
+      "bytes": 13288,
+      "sha256": "3d6e3212b2a4597c3eccbe42ee6a08bfccd41b20bb115b2405c9b303c258a0f2",
+      "mode": "100644",
+      "blob": "9bcce6011fea891d385ba232fdfec1b5651e2949"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/native-face.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/native-face.log",
+      "bytes": 13370,
+      "sha256": "68dac9f2cd0633b3f18032951ce497bf5e9b792b43b30c062c20e135ef414787",
+      "mode": "100644",
+      "blob": "37bc4b31440b3f398958e3e9558a2438dd0b1645"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/native-strict-clippy.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/native-strict-clippy.log",
+      "bytes": 7428,
+      "sha256": "1ffa004ed78417aa17cb611cdc39ef5f4c9eecd7f3950208c0af42406557128e",
+      "mode": "100644",
+      "blob": "238410b1d436e0c2e7a38f363982af5db1f0ab6b"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/native_typography_resources.tsv",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/native_typography_resources.tsv",
+      "bytes": 319,
+      "sha256": "b1cbb5dd8ca08682e9f5d2ef25e1169f9a1a1a69eb85971747c473b859e2dca5",
+      "mode": "100644",
+      "blob": "b591e1c9b95003ec5f0e242ad381ae278e4db010"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/normal-build-manifest.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/normal-build-manifest.json",
+      "bytes": 4270,
+      "sha256": "36c1dfa590818786a1be474de2e5d667f33ad443b52afb714553c80ce9e72320",
+      "mode": "100644",
+      "blob": "a939f36dac1fa8e6282da6553979e5625f9c0bad"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/normal-elf-size.txt",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/normal-elf-size.txt",
+      "bytes": 218,
+      "sha256": "c4b7ab605c9af1e3d650b880aa780aaeb2c8dcb1c94a5db5c4a8ecedbfcb98c5",
+      "mode": "100644",
+      "blob": "cf0db11c8ccd16b16804ee345a44673f0c921c08"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/normal-product-build.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/normal-product-build.log",
+      "bytes": 14079,
+      "sha256": "345d01f39e50c3b366d4db2cc3c73716aa5ec7c0f1081a56e3917f5ceb8e8108",
+      "mode": "100644",
+      "blob": "d45ef9492f45c481b1b41a24899def916681ce7d"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/preflight.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/preflight.log",
+      "bytes": 30885,
+      "sha256": "3c606364932431e30127fb03f1d2eac4691f78172ebda22fd1a8c75a6da57305",
+      "mode": "100644",
+      "blob": "9ad5690ecc73d376192a9859ea9bb6511f5c8e9d"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/product-resource-ledger.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/product-resource-ledger.json",
+      "bytes": 5592,
+      "sha256": "009eb55f76d49c627f58652beb76483cf8a1203aa479c37fcbebbd7d8ee653bd",
+      "mode": "100644",
+      "blob": "7dff05a4fac27cb734022c41dc957a642e67cb23"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/setup-ci.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/setup-ci.log",
+      "bytes": 608,
+      "sha256": "3ad6cfcfbaeb862b8ad362823fb3d7a0190b9ab5fde0bba603644d06d2e2c083",
+      "mode": "100644",
+      "blob": "f7ffa751688cfc4f97966f4392be3817b2344724"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/status.json",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/status.json",
+      "bytes": 4861,
+      "sha256": "30b7696eb54782ad08cff2fea798b67987cf8a6ee9d9e6b4e411479eaca0f8ed",
+      "mode": "100644",
+      "blob": "b370b9a07992c0939f7f788c29c04d30ae863481"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/tour-focused.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/tour-focused.log",
+      "bytes": 1069,
+      "sha256": "7cd4b09726114bbf4265f3b8dacf047ddaa6826bd5c4c74d4b3e8d2623a1f846",
+      "mode": "100644",
+      "blob": "922390b5d0cce01cdad05d09ce75e6633db7e82c"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/typography.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/typography.log",
+      "bytes": 9795,
+      "sha256": "fb07906f21e980bab6d130b9899f36b29968742d577b42f62597f9c6466bad82",
+      "mode": "100644",
+      "blob": "6cfdd25bb138e51c4438126d1e089e4bd4e87d38"
+    },
+    {
+      "source": "outputs/5992-ffcdb1a8e/xtask-strict-clippy.log",
+      "tree_path": "task-6038/outputs/5992-ffcdb1a8e/xtask-strict-clippy.log",
+      "bytes": 8457,
+      "sha256": "784767018f4eb4fb4409cd8740ffcd7aa9117c17c5033d9f76b16c38d6f94f00",
+      "mode": "100644",
+      "blob": "badff5065e189bc8f896d776bb89bd4115f1e4d4"
+    },
+    {
+      "source": "work/revised-native-goal-state.json",
+      "tree_path": "task-6038/work/revised-native-goal-state.json",
+      "bytes": 5373,
+      "sha256": "1f1eb8bd367e1b333bcb889e70e65539b54a2249d303b8a7247cc567ddd9baf3",
+      "mode": "100644",
+      "blob": "a0f6ca331bd1234d2b7760523f6cb141caa18f89"
+    },
+    {
+      "source": "work/5992-draft-pr-body.md",
+      "tree_path": "task-6038/work/5992-draft-pr-body.md",
+      "bytes": 4019,
+      "sha256": "16de1bb31854a201597474a8660b54b874e10c82e07e14687aad22e73edcaaf0",
+      "mode": "100644",
+      "blob": "6d8e25fc4674730f7094d8729516911a29e6d0d6"
+    }
+  ]
+}

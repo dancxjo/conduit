@@ -1,0 +1,220 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "base": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "RUST_TEST_THREADS": "1"
+  },
+  "results": [
+    {
+      "name": "setup-ci",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "setup-ci"
+      ],
+      "status": 0,
+      "seconds": 1.0928990840911865,
+      "free_before": 63217635328
+    },
+    {
+      "name": "preflight",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa"
+      ],
+      "status": 0,
+      "seconds": 15.9725821018219,
+      "free_before": 63217618944
+    },
+    {
+      "name": "typography",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "display::typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 222.17087841033936,
+      "free_before": 63217549312
+    },
+    {
+      "name": "native-face",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "native_face",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 40.81772184371948,
+      "free_before": 63314837504
+    },
+    {
+      "name": "font-allocation",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--test",
+        "native_typography",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 27.053218364715576,
+      "free_before": 63314808832
+    },
+    {
+      "name": "headless-focused",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "xtask",
+        "--locked",
+        "--bin",
+        "xtask",
+        "headless",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 225.46528434753418,
+      "free_before": 63314784256
+    },
+    {
+      "name": "tour-focused",
+      "args": [
+        "cargo",
+        "+stable",
+        "test",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--",
+        "--exact",
+        "tour_shell::lifecycle::tests::native_host_projection_keeps_full_identity_without_inventing_lines_or_membership",
+        "tour_shell::scene::content_tests::projected_host_status_uses_actual_label_geometry_or_refuses_unrenderable_cells",
+        "tour_workspace::tests::native_scene_manifests_every_shared_region_and_visible_focus",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "seconds": 90.9681441783905,
+      "free_before": 63312916480
+    },
+    {
+      "name": "xtask-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "xtask",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 61.27969765663147,
+      "free_before": 63312912384
+    },
+    {
+      "name": "native-strict-clippy",
+      "args": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "-p",
+        "conduitos",
+        "--locked",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "seconds": 59.577616930007935,
+      "free_before": 63312752640
+    },
+    {
+      "name": "fmt",
+      "args": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--package",
+        "xtask",
+        "--package",
+        "conduitos",
+        "--",
+        "--check"
+      ],
+      "status": 0,
+      "seconds": 2.366748571395874,
+      "free_before": 63312527360
+    },
+    {
+      "name": "normal-product-build",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "live",
+        "x86_64",
+        "--locked"
+      ],
+      "status": 0,
+      "seconds": 154.09517097473145,
+      "free_before": 63312527360
+    }
+  ]
+}

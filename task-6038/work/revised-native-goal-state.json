@@ -80,7 +80,10 @@
       "origin_verified": true,
       "delta": "33paths/fullbinarypatchIdentical3860",
       "proof": "none;buildsHeld",
-      "pr_head_unchanged": true
+      "pr_head_unchanged": true,
+      "checks": "preflight/fmt/strictClippy/20font113native2alloc7headless3TourPassed",
+      "normal_product": "built;7QEMUrunsActive",
+      "normal_iso": "a5acbdbe2aef0d83e9c5e2a8d992b099f62478f9e520c428ae863178ab58dd1a"
     }
   },
   "stable_through_stage06": {
@@ -104,9 +107,9 @@
     "local": "20focusedchecksPassed;actualChromiumpending",
     "candidate": 39510280635,
     "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
-    "current_dev": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
-    "current_dev_integration": 39517412250,
-    "current_dev_observed": "pendingAfterRepairMerge",
+    "current_dev": "7c36639a0a93d605164dbdea38c717b26dc2f345",
+    "current_dev_integration": 39518867803,
+    "current_dev_observed": "pending00:03UTC;ae13pendingIntegrationCoalescedCancelled",
     "merged": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
     "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
     "candidate_status": "terminal_success23:48UTC",
