@@ -1,0 +1,10 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "status": "passed",
+  "bound_files": 10,
+  "entry_and_all_forbidden_symbol_checks": true,
+  "all_three_source_fonts_absent": true,
+  "actual_serial_signs_equal_supported_proof": true,
+  "headless_audit_sha256": "815d812eda38ccac2d37be49256ba5ddc11ca1ffd5d453c01782031053c5dbe2",
+  "boundary": "Two real unsupported-startup boots; zero initialized graphical capabilities and zero boot-arena allocation. Not resident workload execution, graphical headless UI, physical/human/CI/stable evidence. Prior failures retained separately. Section/file sizes do not measure peak runtime memory."
+}

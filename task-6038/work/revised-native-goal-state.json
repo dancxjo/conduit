@@ -82,8 +82,11 @@
       "proof": "none;buildsHeld",
       "pr_head_unchanged": true,
       "checks": "preflight/fmt/strictClippy/20font113native2alloc7headless3TourPassed",
-      "normal_product": "built;7QEMUrunsActive",
-      "normal_iso": "a5acbdbe2aef0d83e9c5e2a8d992b099f62478f9e520c428ae863178ab58dd1a"
+      "normal_product": "all7QEMUrunsPassed22journeySteps",
+      "normal_iso": "a5acbdbe2aef0d83e9c5e2a8d992b099f62478f9e520c428ae863178ab58dd1a",
+      "headless": "supportedBuildExclusionsAnd2BootsPassed",
+      "overall_receipt_sha256": "95bf8928d13e8e485157411ca0ed22e0d77986503c838ba37a3c06574fee8b85",
+      "visual": "67PNGpixelsVerified;4RootReviewed;beforeAfterBound"
     }
   },
   "stable_through_stage06": {
@@ -107,9 +110,9 @@
     "local": "20focusedchecksPassed;actualChromiumpending",
     "candidate": 39510280635,
     "observed": "Candidate_browser_running/otherSelectedSuccess23:27UTC",
-    "current_dev": "7c36639a0a93d605164dbdea38c717b26dc2f345",
-    "current_dev_integration": 39518867803,
-    "current_dev_observed": "pending00:03UTC;ae13pendingIntegrationCoalescedCancelled",
+    "current_dev": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+    "current_dev_integration": 39519886483,
+    "current_dev_observed": "pending00:15UTC;7cPendingIntegrationCoalescedCancelled",
     "merged": "ae13d6f1af65fd70fa84c3849e598ea0b66c30aa",
     "merged_tree": "cadccf43b4c01a75db383793153667002b2f2093",
     "candidate_status": "terminal_success23:48UTC",

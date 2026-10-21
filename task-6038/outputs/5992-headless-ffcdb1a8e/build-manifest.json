@@ -1,0 +1,75 @@
+{
+  "schema": "conduit.host/target-build-manifest@3",
+  "artifact_role": "product-host",
+  "profile_id": "sha256:1ce15b181e243033995f418e5ce265e2c4d64f689ad605355b33b902331be82f",
+  "build_id": "build:sha256:4304e6622e0ee2bcd5854047a031b88c8f58775659e10570c8ea10637fd424d1",
+  "image_id": "image:sha256:75db59b58b028909d6b750363ba2976170fe4b4573d0bd1e345c6e16c1d1fccf",
+  "resolved_description_binding": "image:sha256:56bcbf99167567dcc18054f2f167a333d1c2734e9405d1c6bff5421d07ebb37f",
+  "source_identity": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools",
+  "target": "conduitos/x86_64/pc",
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "fe5c0f6e3c9ba657a34b1546f75ad617edaf41b3d87d71355d5098d02029bbf8"
+  },
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-x86_64.iso",
+    "sha256": "75db59b58b028909d6b750363ba2976170fe4b4573d0bd1e345c6e16c1d1fccf"
+  },
+  "boot_assets": {
+    "packager": "pinned-limine-hybrid-iso",
+    "limine_version": "12.5.2",
+    "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+    "architecture": "x86_64",
+    "machine": "q35",
+    "firmware": "OVMF_CODE.fd",
+    "boot_entry": "BOOTX64.EFI"
+  },
+  "resolved_build": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:1ce15b181e243033995f418e5ce265e2c4d64f689ad605355b33b902331be82f",
+    "source_configuration_id": "sha256:9a31125f3588aa00afa3abbe75ddfbe5214b97b3b66bc590e581faad2dabefe2",
+    "build_id": "build:sha256:4304e6622e0ee2bcd5854047a031b88c8f58775659e10570c8ea10637fd424d1",
+    "image_id": "image:sha256:56bcbf99167567dcc18054f2f167a333d1c2734e9405d1c6bff5421d07ebb37f",
+    "source_identity": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+    "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+    "output": "disk-image",
+    "implementation_packages": [],
+    "target": "conduitos/x86_64/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [],
+    "base_selections": [],
+    "drivers": [],
+    "driver_selections": [],
+    "lines": [],
+    "presenters": [],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 33554432,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {}
+  }
+}

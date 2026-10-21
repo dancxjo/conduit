@@ -1,0 +1,37 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "results": [
+    {
+      "name": "headless-build",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-ffcdb1a8e"
+      ],
+      "status": 0,
+      "seconds": 51.75207042694092,
+      "free_before": 63027195904
+    },
+    {
+      "name": "headless-proof",
+      "args": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "headless-proof",
+        "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5992-headless-ffcdb1a8e"
+      ],
+      "status": 0,
+      "seconds": 1.9492549896240234,
+      "free_before": 63019270144
+    }
+  ]
+}

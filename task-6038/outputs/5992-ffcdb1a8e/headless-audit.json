@@ -1,0 +1,156 @@
+{
+  "source": "ffcdb1a8ea7caaf9fbdaa4e077c8b04b620dd2b7",
+  "tree": "bfb6ce1758348d1876ac84686bc0c8999b90ae66",
+  "status": "supported headless build and proof passed",
+  "proof_class": "freestanding-emulator",
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-x86_64.iso",
+    "sha256": "75db59b58b028909d6b750363ba2976170fe4b4573d0bd1e345c6e16c1d1fccf"
+  },
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "fe5c0f6e3c9ba657a34b1546f75ad617edaf41b3d87d71355d5098d02029bbf8"
+  },
+  "artifact_role": "product-host",
+  "actual_boots": 2,
+  "expected_exit_code": 35,
+  "graphical_symbols_absent": true,
+  "excluded_font_assets": [
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSans.ttf",
+      "sha256": "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954"
+    },
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSansMono.ttf",
+      "sha256": "b4a6c3e4faab8773f4ff761d56451646409f29abedd68f05d38c2df667d3c582"
+    },
+    {
+      "asset": "targets/conduitos/assets/fonts/dejavu/DejaVuSerif.ttf",
+      "sha256": "42d1edeb7952f31b1f96d767ed7030b08a39e0c372b0071641518864e2bffb51"
+    }
+  ],
+  "runtime": {
+    "active_play_id": null,
+    "allocated_bytes": 0,
+    "body_id": null,
+    "boot_id": "d16010af576d4ad0c997545d3e612c81eb714e06e295c14248cdc38abd90a4f5",
+    "bounded": true,
+    "build_id": "build:sha256:4304e6622e0ee2bcd5854047a031b88c8f58775659e10570c8ea10637fd424d1",
+    "compiled_implementations": 30975,
+    "face_surface_bytes": 0,
+    "face_surface_slots": 0,
+    "facilities": 0,
+    "host_id": "63033a113534b5158b9dff12b682f8b889e217b3b73ca31803060bf8e2a85354",
+    "image_binding": "image:sha256:56bcbf99167567dcc18054f2f167a333d1c2734e9405d1c6bff5421d07ebb37f",
+    "initialized_capabilities": 0,
+    "offer_generation": null,
+    "plan_id": null,
+    "presenters": 0,
+    "profile_id": "sha256:1ce15b181e243033995f418e5ce265e2c4d64f689ad605355b33b902331be82f",
+    "reason": "headless-workload-entry-unavailable",
+    "runtime_arena_bytes": 33554432,
+    "runtime_arena_ceiling": 33554432,
+    "schema": "conduit.conduitos/headless-startup@1",
+    "status": "unsupported"
+  },
+  "fresh_host_and_boot_ids": true,
+  "outer_artifact_image_id": "image:sha256:75db59b58b028909d6b750363ba2976170fe4b4573d0bd1e345c6e16c1d1fccf",
+  "resolved_build_image_id": "image:sha256:56bcbf99167567dcc18054f2f167a333d1c2734e9405d1c6bff5421d07ebb37f",
+  "identity_boundary": "Outer artifact image_id identifies built artifact. Runtime image_binding equals resolved_build.image_id; these distinct identities must not be conflated.",
+  "elf_file_bytes": 10150000,
+  "image_file_bytes": 14422016,
+  "files": {
+    "outputs/5992-headless-ffcdb1a8e/build-manifest.json": {
+      "sha256": "f6c6bfd94f50e4aec624bbc8b7f60be55c7f09539778e377aeebfa6f3cde3226",
+      "bytes": 2959
+    },
+    "outputs/5992-headless-ffcdb1a8e/conduitos-kernel.elf": {
+      "sha256": "fe5c0f6e3c9ba657a34b1546f75ad617edaf41b3d87d71355d5098d02029bbf8",
+      "bytes": 10150000
+    },
+    "outputs/5992-headless-ffcdb1a8e/conduitos-x86_64.iso": {
+      "sha256": "75db59b58b028909d6b750363ba2976170fe4b4573d0bd1e345c6e16c1d1fccf",
+      "bytes": 14422016
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-boot-1-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-boot-1.log": {
+      "sha256": "e92a2baeb874885ac4fbca1304d598a0cdb568bff7a8954737d5933877fb6b34",
+      "bytes": 1120
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-boot-2-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-boot-2.log": {
+      "sha256": "948b0712dfc31fc2fafe4deb05a7a2476584680de08db7bc57905b00235e12c1",
+      "bytes": 1120
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-elf-symbols.txt": {
+      "sha256": "5a06a79595b390e813b171eec7596a2aec361f75b9e6c93fb3f5f9a5e548a6c8",
+      "bytes": 1606755
+    },
+    "outputs/5992-headless-ffcdb1a8e/headless-proof.json": {
+      "sha256": "f1d43bbcabf746d789b28b308e18c8825023abf570aa091cd74924ab709bbd09",
+      "bytes": 4898
+    },
+    "outputs/5992-headless-ffcdb1a8e/resolved-image.json": {
+      "sha256": "fa6f2cdb9deb03dc7a0ccda4463a6d5e9bca1edb46189dd3fc4c35ff56b12fd6",
+      "bytes": 2602
+    }
+  },
+  "logs": {
+    "headless-build.log": {
+      "sha256": "0cfac8070fd99f6e61d33c8fe66b2f3c962550a6e3f7adc6515d2b4b1bad4793",
+      "bytes": 4592
+    },
+    "headless-proof.log": {
+      "sha256": "4241a4a48b1b7429d92f5ace7bd516fa81237aba260ead99a7e629398dea77dd",
+      "bytes": 720
+    },
+    "headless-status.json": {
+      "sha256": "f73af828113fd6cc9e829ae19251ae7b41d2c625bbedc472246e8b37a55c834d",
+      "bytes": 890
+    }
+  },
+  "source_files": {
+    "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit": {
+      "sha256": "62a5532338e77e3ae33c331eaeef29f89ac6acaffbdbd268a3cc513dfb5318a5",
+      "bytes": 308
+    },
+    "targets/conduitos/make/xtask/headless_profile.rs": {
+      "sha256": "8e059879a2f630312d0c3085686a3e804d9085de61fab5387e90b7207acd8898",
+      "bytes": 1055
+    },
+    "targets/conduitos/make/xtask/headless_proof.rs": {
+      "sha256": "70991c6f65bbaa745a5c2a16b0d58e4848bd4058d5cb81a42e7fbd47fb170cb9",
+      "bytes": 8021
+    },
+    "targets/conduitos/make/xtask/headless_proof/validation.rs": {
+      "sha256": "efa716086766060ed6a9cced8247922a0336b3c9db47a765811a0e57effda43e",
+      "bytes": 6092
+    }
+  },
+  "warnings": [
+    {
+      "log": "headless-build.log",
+      "line": 23,
+      "text": "warning: unused variable: `identities`"
+    },
+    {
+      "log": "headless-build.log",
+      "line": 31,
+      "text": "warning: fields `pending` and `routed_request` are never read"
+    },
+    {
+      "log": "headless-build.log",
+      "line": 43,
+      "text": "warning: `conduitos` (bin \"conduitos\") generated 2 warnings (run `cargo fix --bin \"conduitos\" -p conduitos` to apply 1 suggestion)"
+    }
+  ],
+  "boundary": "Two real unsupported-startup boots; zero initialized graphical capabilities and zero boot-arena allocation. Not resident workload execution, graphical headless UI, physical/human/CI/stable evidence. Prior failures retained separately. Section/file sizes do not measure peak runtime memory."
+}
