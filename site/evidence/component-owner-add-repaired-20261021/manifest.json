@@ -1,0 +1,104 @@
+{
+  "capture_source": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "files": [
+    {
+      "path": "accessibility-after-add.json",
+      "bytes": 19185,
+      "sha256": "571a6c4538fd34764257adf8b866ed8572dfcfe2d948d66e6b8c893932c2fd12"
+    },
+    {
+      "path": "add-1-mutation.json",
+      "bytes": 2718,
+      "sha256": "09c8d2a2f7a985f2ec4a4fbf7e01d593e832f324e0b5446106280394104c3351"
+    },
+    {
+      "path": "add-2-mutation.json",
+      "bytes": 2719,
+      "sha256": "e4a88caefb1bf8455838c087d934aa52ba6032bd3c86eafa6fc2f1630e79b053"
+    },
+    {
+      "path": "adds.json",
+      "bytes": 298056,
+      "sha256": "d65c8c11ee1c3955a1ddaeeb6ce3180c371c0272495d76918e43d857a17bb839"
+    },
+    {
+      "path": "adversarial-public-summary.json",
+      "bytes": 146474,
+      "sha256": "c1e540ed0b737ae87faf239939e6616f637ba6737629990409bc4002b56f9365"
+    },
+    {
+      "path": "browser-add-1.png",
+      "bytes": 148388,
+      "sha256": "4e1527abb7aa5b2fa6fa2cd222bda6b9c7541d83804d5524b9c7fec30899ede5"
+    },
+    {
+      "path": "browser-add-2.png",
+      "bytes": 171962,
+      "sha256": "603697c547757288c992d2639e06915deb3ed1392a216e5e7c3426a1c694ca4c"
+    },
+    {
+      "path": "browser-after.png",
+      "bytes": 171962,
+      "sha256": "603697c547757288c992d2639e06915deb3ed1392a216e5e7c3426a1c694ca4c"
+    },
+    {
+      "path": "browser-before.png",
+      "bytes": 121413,
+      "sha256": "351ec82e34147ad9cf069e0f89e21d16631807f28eab5d5de6f1a94d9f2ba555"
+    },
+    {
+      "path": "browser-release-seal.json",
+      "bytes": 3212,
+      "sha256": "3d49460d54527ade19eedb080965bc421a4ad8192a5558e381389c65061b5816"
+    },
+    {
+      "path": "handbook-application.json",
+      "bytes": 24538,
+      "sha256": "df80603ca1b4b352570c849cbff66d4fd2d67a9d2d2644a2bce71ba6151e3ef0"
+    },
+    {
+      "path": "linux-release-seal.json",
+      "bytes": 878,
+      "sha256": "d007331c09923bb77901e7f33f47f0afd89478af4d919ce5ca87bc949c1b114a"
+    },
+    {
+      "path": "look-flat-compact.png",
+      "bytes": 88334,
+      "sha256": "a6fc9505dccb5259318d5c933539b21d5e3961afca4ad76cd07d3072a4218832"
+    },
+    {
+      "path": "look-flat-spacious.png",
+      "bytes": 100175,
+      "sha256": "4a35e6b4dcea2a1f062b1ddcc0747b3c2469c1d3157f914f7c55466729f6cc47"
+    },
+    {
+      "path": "look-grouped-spacious.png",
+      "bytes": 97489,
+      "sha256": "5022ea4df0f299b22c1c0ca4e1011becd383013bb8770cfd48e653d7d2d374cd"
+    },
+    {
+      "path": "look-large-text.png",
+      "bytes": 121413,
+      "sha256": "351ec82e34147ad9cf069e0f89e21d16631807f28eab5d5de6f1a94d9f2ba555"
+    },
+    {
+      "path": "look-observations.json",
+      "bytes": 430696,
+      "sha256": "5ccb143340420f55dc4f1728df0bc0e99b00748a61b567e0b0e3f7ea84068b76"
+    },
+    {
+      "path": "look-replacement-evidence.json",
+      "bytes": 113438,
+      "sha256": "902fae4194e851539bd1f1622b80e27a40872a8f13cad60f8fb9059f28145c79"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 327965,
+      "sha256": "da0378fb8990263f48fb85ec599e866a16494dbe02996c97acec12d34599df32"
+    }
+  ],
+  "excluded": [
+    "Original adversarial-receipt.json: contains credential-bearing Line bindings; public summary omits that field.",
+    "Private installation, control secrets, full HTML and service files."
+  ]
+}

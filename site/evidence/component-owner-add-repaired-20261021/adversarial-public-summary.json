@@ -1,0 +1,4317 @@
+{
+  "schema": "conduit.proof/browser-todo-arbitrary-action-refusal@2",
+  "owner_source_commit": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "browser_runtime_source_commit": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "handbook_ui_source_commit": "a2b2f631aa9c784608502ebab95b2f5cd72d52d7",
+  "handbook_ui_source_clean": true,
+  "handbook_package_digest": "sha256:12a06063977b1668b261c946a200faabf869b8c8dacc8e79b4ae0ac2f858443b",
+  "source_relation": "exact-source",
+  "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+  "browser_host_id": "browser/0c4a04cc-5955-4ffa-8c7f-2862e7e69544",
+  "browser_boot_id": "browser-boot/01bc4b58-40d2-4edf-b874-0308f75bca9f",
+  "show_id": "show/852fc8c6b4986fdb4f84db04408e1a2d20d32545bcbe84950d701ccedf099766",
+  "face_id": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+  "retired_show_id": "show/9c7d2fba1af2d8c783f710aaebfd95f019222d9f1daeb6057c15dab0c16debc6",
+  "complete": true,
+  "results": [
+    {
+      "case": "unknown-action",
+      "trusted": true,
+      "refused": true,
+      "message": "Choose one currently available Face action and its declared inputs.",
+      "code": "UnknownAction",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "wrong-target",
+      "trusted": true,
+      "refused": true,
+      "message": "Choose one currently available Face action and its declared inputs.",
+      "code": "WrongTarget",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "missing-argument",
+      "trusted": true,
+      "refused": true,
+      "message": "Choose one currently available Face action and its declared inputs.",
+      "code": "MissingArgument",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "unknown-argument",
+      "trusted": true,
+      "refused": true,
+      "message": "Face action input differs from its declared bound.",
+      "code": "UnknownArgument",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "duplicate-argument",
+      "trusted": true,
+      "refused": true,
+      "message": "Choose one currently available Face action and its declared inputs.",
+      "code": "DuplicateArgument",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "wrong-kind",
+      "trusted": true,
+      "refused": true,
+      "message": "Face action input differs from its declared bound.",
+      "code": "WrongValueKind",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "oversize",
+      "trusted": true,
+      "refused": true,
+      "message": "Face action input differs from its declared bound.",
+      "code": "OversizeValue",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "malformed-unicode",
+      "trusted": true,
+      "refused": true,
+      "message": "Face action input must be valid Unicode text.",
+      "code": "MalformedEncoding",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "retired-show",
+      "trusted": true,
+      "refused": true,
+      "message": "Current acknowledged owner Show is required for interaction.",
+      "code": "StaleShow",
+      "unchanged_owner_face": {
+        "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+        "revision": 3560740827112447500,
+        "basis": {
+          "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "wake_id": null,
+          "source_document_id": null,
+          "checked_plot_id": null,
+          "expanded_plot_id": null,
+          "plan_id": null,
+          "active_play_id": null,
+          "sign_ids": [
+            "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+            "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+            "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+            "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+            "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+            "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+            "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+            "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+            "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+          ]
+        },
+        "interaction_context": {
+          "identity": "face/context/overview/focus/body",
+          "basis": [
+            {
+              "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+              "relationship": "Contains",
+              "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+            }
+          ]
+        },
+        "subjects": [
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "role": "Body",
+            "name": "Groceries"
+          },
+          {
+            "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "role": "Region",
+            "name": "Current overview context"
+          },
+          {
+            "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "role": "Plot",
+            "name": "todo/checkpoint-restore"
+          },
+          {
+            "identity": "contribution/foreground/0",
+            "role": "Plot",
+            "name": "Face contribution provenance"
+          },
+          {
+            "identity": "todo/list",
+            "role": "Collection",
+            "name": "Groceries"
+          },
+          {
+            "identity": "todo/status",
+            "role": "Status",
+            "name": "Progress"
+          },
+          {
+            "identity": "todo/item/task-1",
+            "role": "Item",
+            "name": "Verify repaired component Add"
+          }
+        ],
+        "relationships": [
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "kind": "Contains"
+          },
+          {
+            "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "target": "contribution/foreground/0",
+            "kind": "Contains"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/list",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/status",
+            "kind": "Describes"
+          },
+          {
+            "source": "contribution/foreground/0",
+            "target": "todo/item/task-1",
+            "kind": "Describes"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/status",
+            "kind": "Contains"
+          },
+          {
+            "source": "todo/list",
+            "target": "todo/item/task-1",
+            "kind": "Contains"
+          }
+        ],
+        "composition": [],
+        "properties": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "body-id",
+            "value": {
+              "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "lifecycle-state",
+            "value": {
+              "Text": "lulled"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "workload-revision",
+            "value": {
+              "Count": 2
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-context",
+            "value": {
+              "Text": "overview"
+            }
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "name": "operator-focus",
+            "value": {
+              "Text": "body"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "source-document-id",
+            "value": {
+              "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "workload-membership",
+            "value": {
+              "Text": "resident"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "checked-plot-id",
+            "value": {
+              "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "plan-id",
+            "value": {
+              "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "active-play-id",
+            "value": {
+              "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/0",
+            "value": {
+              "Identity": "todo.add"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/1",
+            "value": {
+              "Identity": "todo.complete.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "action/2",
+            "value": {
+              "Identity": "todo.remove.task-1"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/0",
+            "value": {
+              "Identity": "todo/list/todo-revision"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/1",
+            "value": {
+              "Identity": "todo/list/remaining-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/2",
+            "value": {
+              "Identity": "todo/list/completed-count"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/3",
+            "value": {
+              "Identity": "todo/item/task-1/complete"
+            }
+          },
+          {
+            "subject": "contribution/foreground/0",
+            "name": "property/4",
+            "value": {
+              "Identity": "todo/item/task-1/order"
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "todo-revision",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "remaining-count",
+            "value": {
+              "Count": 1
+            }
+          },
+          {
+            "subject": "todo/list",
+            "name": "completed-count",
+            "value": {
+              "Count": 0
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "complete",
+            "value": {
+              "Flag": false
+            }
+          },
+          {
+            "subject": "todo/item/task-1",
+            "name": "order",
+            "value": {
+              "Count": 0
+            }
+          }
+        ],
+        "text": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "text": "Groceries is lulled with one resident plot."
+          },
+          {
+            "subject": "todo/status",
+            "text": "1 thing left \u00b7 0 completed"
+          }
+        ],
+        "actions": [
+          {
+            "identity": "body/action/wake/2",
+            "intent": "conduit.intent/wake@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Wake",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-overview/2",
+            "intent": "conduit.intent/open-body-overview@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Body overview",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-library/2",
+            "intent": "conduit.intent/open-plot-library@1",
+            "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "name": "Open Plots library",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-resident-plot@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open resident Plot",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+            "intent": "conduit.intent/open-inspection@1",
+            "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "name": "Open inspection",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": {
+              "Unavailable": {
+                "reason_code": "inspection-not-playing",
+                "explanation": "No admitted inspection contribution is currently playing."
+              }
+            }
+          },
+          {
+            "identity": "todo.add",
+            "intent": "todo/add@1",
+            "target": "todo/list",
+            "name": "add an item",
+            "arguments": [
+              {
+                "name": "text",
+                "value_name": "Item text",
+                "contract": {
+                  "value_kind": "value/text",
+                  "maximum_bytes": 72,
+                  "constraints": [
+                    {
+                      "ByteLength": {
+                        "minimum": 1,
+                        "maximum": 72
+                      }
+                    }
+                  ]
+                }
+              }
+            ],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.complete.task-1",
+            "intent": "todo/complete@1",
+            "target": "todo/item/task-1",
+            "name": "complete",
+            "arguments": [],
+            "disclosure": "CurrentAction",
+            "availability": "Available"
+          },
+          {
+            "identity": "todo.remove.task-1",
+            "intent": "todo/remove@1",
+            "target": "todo/item/task-1",
+            "name": "remove",
+            "arguments": [],
+            "disclosure": "SelectedDetail",
+            "availability": "Available"
+          }
+        ],
+        "disclosures": [
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+            "level": "Primary"
+          },
+          {
+            "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+            "level": "Context"
+          },
+          {
+            "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+            "level": "Context"
+          },
+          {
+            "subject": "todo/list",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/status",
+            "level": "Primary"
+          },
+          {
+            "subject": "todo/item/task-1",
+            "level": "Primary"
+          }
+        ],
+        "temporal_references": [],
+        "temporal_facts": []
+      },
+      "accepted_domain_mutations": 0,
+      "gate": "production-sdk-before-wasm"
+    },
+    {
+      "case": "focus-scroll",
+      "disposition": "MaskLocal",
+      "accepted_domain_mutations": 0
+    },
+    {
+      "case": "hidden-mandatory-action",
+      "disposition": "RendererActionInaccessible",
+      "show_acknowledged": false,
+      "accepted_domain_mutations": 0
+    },
+    {
+      "case": "restored-accessible-renderer",
+      "accepted_domain_mutations": 0
+    },
+    {
+      "case": "misleading-action-name",
+      "disposition": "RendererActionInaccessible",
+      "show_acknowledged": false,
+      "accepted_domain_mutations": 0
+    },
+    {
+      "case": "restored-source-action-name",
+      "accepted_domain_mutations": 0
+    }
+  ],
+  "current_show_acceptance": {
+    "show_id": "show/eb04d4ea57a37873228cc48fd31ac5b37e15f7a7d5233e271499518b42f51fd7",
+    "accepted_domain_mutations": 1,
+    "mutation_receipt": "add-2-mutation.json",
+    "interaction_id": "7c5c5b3fac5100f65b591a2fd27c99960e6d2ea74fc6ce28dacbdeff940e85ff",
+    "activation": "native-pointer-click",
+    "after_show_id": "show/47f3a3a24b76c33579212cd05cbc9bdb378aa8ba51bc7fb4ce582d19be81272c"
+  },
+  "unchanged_owner_face": {
+    "identity": "be6fe92629559d29d5af970bf0df43525a5b312f705f5a7d7adb2474bb59e41f",
+    "revision": 3560740827112447500,
+    "basis": {
+      "body_id": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+      "wake_id": null,
+      "source_document_id": null,
+      "checked_plot_id": null,
+      "expanded_plot_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "sign_ids": [
+        "16717b4a58e185cab549d5348309bcc35ae58ac3e60df043171080b3d2a5e7e8",
+        "1fabcb15abc73699234c31a054f1e92f4763c416c41f11191692ca091246731a",
+        "25bef78b71bb5ab30e82c8f4f22371b2780054725bdf114981a58aa7dbc78345",
+        "4504ab7fc85c6b61e59c825dbc9acd5b25f7f582a0b6232c2a23af47993113a7",
+        "59e7348947c9107cceaf0347541e9377daf2208e1de9bbcc03197732743dcdff",
+        "9e2cac6adb82e04ab24f450d043422adf684681b3ca3dcfda3f83606b10eae99",
+        "ae826081dd30868b2bb5511b6b2e3915341673e4d62bab0ed76e604cac84cffb",
+        "b05093b953b3954aaa0c1f7f1f51b7fe59351c91ea41b0223b32a8dc710dafe6",
+        "e1af5cd6c3e88071ba9fcdb98fd7c6e675673994bdcd57419063feb80404aad5"
+      ]
+    },
+    "interaction_context": {
+      "identity": "face/context/overview/focus/body",
+      "basis": [
+        {
+          "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+          "relationship": "Contains",
+          "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context"
+        }
+      ]
+    },
+    "subjects": [
+      {
+        "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "role": "Body",
+        "name": "Groceries"
+      },
+      {
+        "identity": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "role": "Region",
+        "name": "Current overview context"
+      },
+      {
+        "identity": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "role": "Plot",
+        "name": "todo/checkpoint-restore"
+      },
+      {
+        "identity": "contribution/foreground/0",
+        "role": "Plot",
+        "name": "Face contribution provenance"
+      },
+      {
+        "identity": "todo/list",
+        "role": "Collection",
+        "name": "Groceries"
+      },
+      {
+        "identity": "todo/status",
+        "role": "Status",
+        "name": "Progress"
+      },
+      {
+        "identity": "todo/item/task-1",
+        "role": "Item",
+        "name": "Verify repaired component Add"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "target": "contribution/foreground/0",
+        "kind": "Contains"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/list",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/status",
+        "kind": "Describes"
+      },
+      {
+        "source": "contribution/foreground/0",
+        "target": "todo/item/task-1",
+        "kind": "Describes"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/status",
+        "kind": "Contains"
+      },
+      {
+        "source": "todo/list",
+        "target": "todo/item/task-1",
+        "kind": "Contains"
+      }
+    ],
+    "composition": [],
+    "properties": [
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "body-id",
+        "value": {
+          "Identity": "4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546"
+        }
+      },
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "lifecycle-state",
+        "value": {
+          "Text": "lulled"
+        }
+      },
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "workload-revision",
+        "value": {
+          "Count": 2
+        }
+      },
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "name": "operator-context",
+        "value": {
+          "Text": "overview"
+        }
+      },
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "name": "operator-focus",
+        "value": {
+          "Text": "body"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "02bf242356a77abfae564a415297358651a3173c6a485a1e042acc3cd8a52e4a"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+        }
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "checked-plot-id",
+        "value": {
+          "Identity": "aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "plan-id",
+        "value": {
+          "Identity": "body-plan/sha256:4161c8693b8fda8e04d14857cb9a47b42349933eefe5bbcc83a38b5731cfd8b6"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "active-play-id",
+        "value": {
+          "Identity": "body-play/sha256:e9b8d235b8b20c26c3713f871c93aa19fbf0770b88f1d2fe8e2593fcb3f9da8c"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/0",
+        "value": {
+          "Identity": "todo.add"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/1",
+        "value": {
+          "Identity": "todo.complete.task-1"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "action/2",
+        "value": {
+          "Identity": "todo.remove.task-1"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/0",
+        "value": {
+          "Identity": "todo/list/todo-revision"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/1",
+        "value": {
+          "Identity": "todo/list/remaining-count"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/2",
+        "value": {
+          "Identity": "todo/list/completed-count"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/3",
+        "value": {
+          "Identity": "todo/item/task-1/complete"
+        }
+      },
+      {
+        "subject": "contribution/foreground/0",
+        "name": "property/4",
+        "value": {
+          "Identity": "todo/item/task-1/order"
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "todo-revision",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "remaining-count",
+        "value": {
+          "Count": 1
+        }
+      },
+      {
+        "subject": "todo/list",
+        "name": "completed-count",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "todo/item/task-1",
+        "name": "complete",
+        "value": {
+          "Flag": false
+        }
+      },
+      {
+        "subject": "todo/item/task-1",
+        "name": "order",
+        "value": {
+          "Count": 0
+        }
+      }
+    ],
+    "text": [
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "text": "Groceries is lulled with one resident plot."
+      },
+      {
+        "subject": "todo/status",
+        "text": "1 thing left \u00b7 0 completed"
+      }
+    ],
+    "actions": [
+      {
+        "identity": "body/action/wake/2",
+        "intent": "conduit.intent/wake@1",
+        "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "Wake",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-overview/2",
+        "intent": "conduit.intent/open-body-overview@1",
+        "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "Open Body overview",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-library/2",
+        "intent": "conduit.intent/open-plot-library@1",
+        "target": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "name": "Open Plots library",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+        "intent": "conduit.intent/open-resident-plot@1",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "Open resident Plot",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-inspection/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd/2",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "name": "Open inspection",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "todo.add",
+        "intent": "todo/add@1",
+        "target": "todo/list",
+        "name": "add an item",
+        "arguments": [
+          {
+            "name": "text",
+            "value_name": "Item text",
+            "contract": {
+              "value_kind": "value/text",
+              "maximum_bytes": 72,
+              "constraints": [
+                {
+                  "ByteLength": {
+                    "minimum": 1,
+                    "maximum": 72
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.complete.task-1",
+        "intent": "todo/complete@1",
+        "target": "todo/item/task-1",
+        "name": "complete",
+        "arguments": [],
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "todo.remove.task-1",
+        "intent": "todo/remove@1",
+        "target": "todo/item/task-1",
+        "name": "remove",
+        "arguments": [],
+        "disclosure": "SelectedDetail",
+        "availability": "Available"
+      }
+    ],
+    "disclosures": [
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546",
+        "level": "Primary"
+      },
+      {
+        "subject": "body/4df4ba34c02571b9dc53e40b5d7f09fd8cd62f1327e864db49214d0970968546/context",
+        "level": "Context"
+      },
+      {
+        "subject": "plot/aa791ff0c57a05347c335b6faf270759bce10b3e7d2c758d3e320ef20e4ebffd",
+        "level": "Context"
+      },
+      {
+        "subject": "todo/list",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/status",
+        "level": "Primary"
+      },
+      {
+        "subject": "todo/item/task-1",
+        "level": "Primary"
+      }
+    ],
+    "temporal_references": [],
+    "temporal_facts": []
+  },
+  "scope": "Trusted DOM clicks reach production SDK; each typed refusal precedes WASM/owner dispatch and preserves the actual owner snapshot.",
+  "omitted_execution_receipt": {
+    "reason": "Original includes credential-bearing selected Line bindings; retained privately. Every refusal comparison used the original unchanged execution bytes.",
+    "original_raw_file_sha256": "df4b4b2c8554c34de70508f62a0317227fbc7d247185ea862ef8a78fdbdf4fa8"
+  }
+}

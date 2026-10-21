@@ -1,0 +1,9 @@
+# Selected component Add repair: local browser acceptance
+
+Exact clean capture source: `a2b2f631aa9c784608502ebab95b2f5cd72d52d7`. Owner, browser runtime, Handbook UI and producer match. The supported `cargo +stable xtask prove todo-journey --look-replacement --fresh-body-source plots/todo/checkpoint-once.conduit` capture used a fresh idle `--no-start` installation, explicitly selected private checkpoint root, pinned Chromium, one worker and no action retry. Earlier setup guards stopped before Birth/action; their logs remain private.
+
+The original writer/reader defect is repaired by compact bounded custody-index storage. The original failed installation is untouched. Three configured component occurrences, 200% text and retired-Show SDK refusal pass. The ordinary selected-component Add commits one actual item. Generic native accessible reading of that identical canonical Face passes styled and unstyled, without an execution change. Nine trusted malformed/stale input cases refuse at the production SDK before WASM/owner dispatch, preserving the exact owner and execution. Hidden/misleading renderer controls fail Show preparation. One deliberate recovery Add then commits a second item; both mutation receipts retain independent write/read Plan, Play and terminal Sign identities. There are two accepted Adds, not one repeated action.
+
+The full adversarial receipt contains credential-bearing Line bindings and remains private; its public summary explicitly records that omission and the original raw-file hash. Other public files are byte-for-byte copies, indexed by manifest.
+
+This is local browser/installed-owner proof. Eight custody tests, 25 SDK tests and 30 Look-evidence tests passed separately. The producer reports publication incomplete. Current dev admission, Candidate/Integration and any applicable publication remain outstanding; this packet does not close #6209 or #5645 or establish native/physical acceptance.
