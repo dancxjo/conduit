@@ -66,10 +66,11 @@ impl NativeCompositor {
             self.scope()?;
             return Ok(SurfacePlacementReceipt::Unchanged);
         }
+        let replacement_pixels = pixels(bounds)?;
         let reserved = self
             .admitted_pixels
             .checked_sub(pixels(old)?)
-            .and_then(|n| n.checked_add(pixels(bounds).ok()?))
+            .and_then(|n| n.checked_add(replacement_pixels))
             .filter(|&n| n <= super::super::MAX_COMPOSITOR_PIXELS)
             .ok_or(NativeCompositorError::SurfaceCapacityExceeded)?;
         self.invalidate();

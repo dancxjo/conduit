@@ -94,9 +94,10 @@ impl NativeCompositor {
     pub const fn frame_sequence(&self) -> u64 {
         self.frame_sequence
     }
-    /// Accepted surface reservation, not resident Root raster allocation.
+    /// Resident retained pixels owned by this Root facade. The protected guest
+    /// owns its fixed pixel arenas; transient raster staging is leased separately.
     pub const fn allocated_pixels(&self) -> usize {
-        self.admitted_pixels
+        0
     }
     pub fn receipts(&self) -> impl Iterator<Item = &CompositionReceipt> {
         self.surfaces
