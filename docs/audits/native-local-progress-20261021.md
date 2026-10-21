@@ -158,3 +158,25 @@ source text/control identities and check disjoint bounds. Existing small test
 builders are shared. These new tests were neither compiled nor run tonight;
 only whitespace validation was performed. They are pending verification, not
 passing evidence or a replacement for the required source-pinned QEMU comparison.
+
+## Five-step goal audit (live observation)
+
+GitHub currently reports #6055 merged, and #5990/#5607/#5992 closed. The distinct
+#6158 continuation regression remains open. Its local implementation and pending
+regression specifications do not establish its required normal-product before/
+after evidence. Remaining native Look/fallback acceptance (#5628/#5629/#5608/
+#6190) and Patchbay navigation/cross-Mask/QEMU acceptance (#5516/#5518/#5519)
+remain open and intentionally deferred tonight.
+
+The #5358 parent also requires retirement of downstream PatchbayCanvas adapter
+paths. Source inspection distinguishes current canonical native graph display
+(`front_door/projection.rs` appends exact graph subjects) from native resident
+application text inspection (`native_workset/application_delivery.rs` explicitly
+selects TextInspection under its 3 KiB view admission). Browser Tour still exports
+a lowered ApplicationView with PatchbayCanvas, and resident Patchbay's default
+InlineGraph producer still serializes the canvas payload. Shared native graph
+navigation alone does not retire these consumers. A migration must preserve their
+actual actions, revision checks and admitted view bounds; deleting the vocabulary
+or increasing the native view budget is not a substitute. This remains an
+implementation obligation to inspect before claiming the entire Patchbay path
+complete, independently of tonight's deferred proof.
