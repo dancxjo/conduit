@@ -1,13 +1,13 @@
 {
   "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
-  "status": "passed-pending-independent-capture-review",
+  "status": "local-source-bound-density-journey-passed-with-explicit-glyph-fallback",
   "matrix": "axis-density",
   "refresh_budget": {
     "limit": 4,
     "requests": 4,
     "meaning": "F5 activation, F6 baseline, two replacements"
   },
-  "capture_review": "pending",
+  "capture_review": "All nine captures inspected: compact/restored geometry matches, spacious editorial title and larger controls continue to page2, gold argument focus retained, refusal footer visible, deliberate b append yields Draft: ab; Details states exact argument bounds. \u0174 replacement remains visible; no full Unicode glyph coverage claim.",
   "native_serial_sha256": "5b67069e2c9909b4c0b73ff552e4dfad47f881a81945022cf3ebcd47265369ec",
   "private_controller_receipt_sha256": "0109689edaa2699abc9b597075e8c88ade943db37e249ee855e0fbdc22646625",
   "captures": [
@@ -144,5 +144,6 @@
   "boundaries": [
     "No stable, physical or human claim",
     "Raw private logs/state/media/URLs omitted; public typed observations and independent owner bindings retained"
-  ]
+  ],
+  "known_glyph_boundary": "\u0174 U+0174 uses replacement glyph; exact complete Unicode Face retained."
 }

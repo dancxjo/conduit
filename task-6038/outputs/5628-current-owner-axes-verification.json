@@ -1,0 +1,27 @@
+{
+  "source": "db1f41fcc4fe2dea2fe9eaedf799855661542eab",
+  "journeys": [
+    {
+      "attempt": 11,
+      "matrix": "axis-density",
+      "png_file_crc_and_decoded_rgb_hashes": 9,
+      "equal_full_face_component_and_recipe": true,
+      "fresh_acknowledged_configured_shows": 3,
+      "independent_owner_reads": 5,
+      "refresh_budget": 4
+    },
+    {
+      "attempt": 12,
+      "matrix": "axis-palette",
+      "png_file_crc_and_decoded_rgb_hashes": 9,
+      "equal_full_face_component_and_recipe": true,
+      "fresh_acknowledged_configured_shows": 3,
+      "independent_owner_reads": 5,
+      "refresh_budget": 4
+    }
+  ],
+  "review": "Hash and binding verification only; visual review and glyph boundaries remain in each source-bound receipt",
+  "stable": false,
+  "physical": false,
+  "human": false
+}
