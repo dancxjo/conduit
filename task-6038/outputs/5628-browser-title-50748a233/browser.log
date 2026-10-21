@@ -1,0 +1,16 @@
+[WebServer] (node:2839116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 5 tests using 1 worker
+
+(node:2839127) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/5] [chromium] › proof/browser/owner-face-component.spec.mjs:14:1 › owner Face parts swap density while preserving controls and accessible actions
+[2/5] [chromium] › proof/browser/owner-face-component.spec.mjs:63:1 › configured groups preserve interleaved controls and user text scale
+[3/5] [chromium] › proof/browser/owner-face-component.spec.mjs:378:3 › current Face refresh preserves submit focus by semantic identity
+[4/5] [chromium] › proof/browser/owner-face-component.spec.mjs:378:3 › current Face refresh preserves argument focus by semantic identity
+[5/5] [chromium] › proof/browser/owner-face-component.spec.mjs:1337:1 › admitted typography changes title family independently of palette, density and actions
+  5 passed (5.3s)

@@ -1,0 +1,9 @@
+{
+  "source": "50748a2331e791764a75e09702f76dc5cb2a47c1",
+  "exit": 0,
+  "passed": 2,
+  "failed": 0,
+  "ignored": 0,
+  "proof_class": "hosted CPU preparation and production disposition; opaque route sentinel, no owner network/QEMU",
+  "log_sha256": "d4a466aa845e38412cb54cb494ada0653a59238cbffcc5febe7ccedfc5a20596"
+}

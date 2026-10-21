@@ -1,0 +1,27 @@
+{
+  "source": "58979c5094efa8d8a5711402e99a29eb1ad1dcad",
+  "tree": "c05729d2bee15924d02ebe6181907107a51bfe55",
+  "args": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "check",
+    "workspace",
+    "--locked"
+  ],
+  "status": 0,
+  "free_before": 279693672448,
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "RUST_TEST_THREADS": "1"
+  },
+  "seconds": 4032.471353292465,
+  "free_after": 232804376576
+}

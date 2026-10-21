@@ -1,0 +1,18 @@
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/semantics/face)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos/mask-offer)
+    Finished `test` profile [optimized] target(s) in 13.51s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduit_conduitos_mask_offer-3af6acbc17d4f5e9)
+
+running 3 tests
+test tests::owner_and_native_guest_plan_the_same_observed_surface_offer ... ok
+test configured::tests::creche_checked_roots_select_structure_independently_of_look ... ok
+test configured::tests::native_checked_component_two_looks_and_recipes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+   Doc-tests conduit_conduitos_mask_offer
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

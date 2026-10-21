@@ -1,0 +1,25 @@
+{
+  "source": "d402ec7490db3b13b202e5c398d7671f47950de8",
+  "checks": [
+    {
+      "name": "strict-clippy",
+      "exit": 101,
+      "log_sha256": "37d8c4bfb95b067736c96f582ea009b3d0db86711df645d6b47fa0f935308707"
+    },
+    {
+      "name": "pre-swap-test",
+      "exit": 101,
+      "log_sha256": "7467336d280d1bb3865d86e556ea485be27259d6b0a6a1ab4517759c7acfab07"
+    },
+    {
+      "name": "scene-tests",
+      "exit": 0,
+      "log_sha256": "6c7f115bf7e27332e012aecb725e5ed9d7b1cd368b7b4f8949edd002073fd91b"
+    },
+    {
+      "name": "mask-offer-tests",
+      "exit": 0,
+      "log_sha256": "6bc641ea6931621679ad7d6f30160599dacef5703bb50031db53f5e9aafe4420"
+    }
+  ]
+}

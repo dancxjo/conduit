@@ -1,0 +1,9 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 48.92s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 1 test
+error: test failed, to rerun pass `-p conduitos --lib`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef failed_pre_swap_preparation` (signal: 11, SIGSEGV: invalid memory reference)

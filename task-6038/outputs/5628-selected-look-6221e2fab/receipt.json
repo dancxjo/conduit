@@ -1,0 +1,20 @@
+{
+  "source": "6221e2fab35dd6fd2d0f4ee15ed7549f40800639",
+  "checks": [
+    {
+      "name": "selection-boundary",
+      "exit": 101,
+      "log_sha256": "b20ffee030344e94cce7c1dae012ed567bd400d72aba1e6e3ad45abf273b0f30"
+    },
+    {
+      "name": "scene-tests",
+      "exit": 0,
+      "log_sha256": "5eba82890a8ac30d00b2cdebc9248f0274c5a7894fd7e12d703de327c773e985"
+    },
+    {
+      "name": "strict-clippy",
+      "exit": 101,
+      "log_sha256": "bdb0051fcd3c8045af8dac22e9a12b2f1067c50c317d790193a77ee992c5d3e2"
+    }
+  ]
+}

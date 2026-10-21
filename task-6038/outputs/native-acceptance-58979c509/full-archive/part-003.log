@@ -1,0 +1,1368 @@
+test scheduler::scan_characterization::large_sparse_and_loaded_pressure_preserve_outputs_and_readiness ... ok
+test scheduler::scan_characterization::loaded_and_sparse_scan_counts_preserve_fairness_and_pressure ... ok
+test scheduler::scan_characterization::overhead_observation::allocator_probe_counts_real_storage_without_other_thread_noise ... ok
+test scheduler::scan_characterization::overhead_observation::value_observation_delegates_custody_and_counts_only_successful_copies ... ok
+test scheduler::scan_characterization::remote_many::ten_thousand_remote_targets_preserve_atomic_admission_and_terminal_lineage ... ok
+test scheduler::scan_characterization::sparse_large::two_ready_among_ten_thousand_preserve_fairness_pressure_and_ownership ... ok
+test scheduler::scan_characterization::terminal_completion::boxed_preparation_initializes_completion_count ... ok
+test scheduler::scan_characterization::terminal_completion::capture_completion_prefix ... ignored, manual optimized completion-prefix measurements
+test scheduler::scan_characterization::terminal_completion::completion_count_uses_active_prefix_and_does_not_double_retire ... ok
+test scheduler::scan_characterization::terminal_completion::completion_prefix_is_observed_after_progress_and_idle ... ok
+test scheduler::tests::a_back_cannot_evade_exposed_abnormal_truth_by_awaiting ... ok
+test scheduler::tests::a_back_observes_and_transduces_exact_abnormal_input_truth ... ok
+test scheduler::tests::a_cancellation_request_cannot_be_consumed_as_normal_completion ... ok
+test scheduler::tests::abnormal_finalization_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::abnormal_terminal_fanout_is_atomic_across_every_explicit_track ... ok
+test scheduler::tests::abnormal_track_transduces_semantic_terminal_without_manufacturing_back_failure ... ok
+test scheduler::tests::all_inputs_close_contract_consumes_early_close_and_completes_on_last_close ... ok
+test scheduler::tests::blocked_join_preserves_every_input_until_atomic_commit ... ok
+test scheduler::tests::cancellation_rejects_late_host_completion_and_releases_pending_input ... ok
+test scheduler::tests::cancellation_releases_queued_and_driver_owned_values_and_is_terminal ... ok
+test scheduler::tests::cancellation_request_remains_pending_until_typed_disposition_after_multiple_steps ... ok
+test scheduler::tests::coalescing_cords_supersede_the_newest_pending_item_without_growth ... ok
+test scheduler::tests::fanout_storage::refused_abnormal_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::fanout_storage::refused_normal_close_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::fanout_storage::refused_quiescence_fanout_reclaims_unpublished_references ... ok
+test scheduler::tests::generated_value_envelope::generated_output_semantic_envelope_precedes_full_storage ... ok
+test scheduler::tests::host_alias::consumed_reference_can_transfer_while_another_input_keeps_its_alias ... ok
+test scheduler::tests::host_alias::consumed_unit_reference_releases_each_alias_after_completion ... ok
+test scheduler::tests::host_alias::explicitly_pinned_reference_stays_queued_until_host_completion ... ok
+test scheduler::tests::host_alias::pinned_unit_reference_remains_valid_until_its_cord_is_consumed ... ok
+test scheduler::tests::host_alias::unconsumed_queued_reference_cannot_be_borrowed_for_host_work ... ok
+test scheduler::tests::host_cancellation::accepted_completion_wins_before_cancellation ... ok
+test scheduler::tests::host_cancellation::cancels_and_replaces_one_dispatched_request ... ok
+test scheduler::tests::host_cancellation::global_cancellation_clears_pending_occupancy_with_the_request_table ... ok
+test scheduler::tests::host_cancellation::hosted_and_fixed_vectors_match ... ok
+test scheduler::tests::host_cancellation::indexed_completion_admission_preserves_exact_refusals_with_a_large_table ... ok
+test scheduler::tests::host_cancellation::refuses_cancellation_until_the_exact_request_is_dispatched ... ok
+test scheduler::tests::host_cancellation::unrelated_ready_node_does_not_scan_a_large_live_host_table ... ok
+test scheduler::tests::host_cancellation_polling::cancellation_polling_skips_absent_settled_and_dispatched_obligations ... ok
+test scheduler::tests::host_cancellation_polling::rejecting_adapter_stops_after_last_undispatched_request_without_moving_cursor ... ok
+test scheduler::tests::host_cancellation_polling::sparse_reserved_host_adapter_polling_observation ... ok
+test scheduler::tests::host_index::distinct_nodes_keep_exact_slots_through_out_of_order_completion ... ok
+test scheduler::tests::host_output_bytes_are_borrowed_and_derived_output_uses_admitted_storage ... ok
+test scheduler::tests::host_slot_allocation::host_slot_fill_is_linear_and_out_of_order_replacement_keeps_first_free_order ... ok
+test scheduler::tests::host_slot_allocation::one_packed_call_among_many_nodes_preserves_adapter_order ... ok
+test scheduler::tests::host_value_occupancy::host_value_cleanup_skips_empty_reserved_tables ... ok
+test scheduler::tests::host_value_occupancy::wrapped_and_coalescing_queued_values_remain_owned ... ok
+test scheduler::tests::host_value_pending::pending_ownership_skips_unused_tail_without_skipping_holes_or_completion_outputs ... ok
+test scheduler::tests::hosted_and_fixed_cancellation_vectors_match ... ok
+test scheduler::tests::hosted_and_fixed_host_call_vectors_match ... ok
+test scheduler::tests::hosted_and_fixed_join_rollback_vectors_match ... ok
+test scheduler::tests::hosted_and_fixed_schedulers_have_matching_multi_value_vectors ... ok
+test scheduler::tests::hosted_executor_keeps_allocation_shape_after_play_start ... ok
+test scheduler::tests::local_coalescing::local_steps_coalesce_newest_values_and_preserve_blocked_fanout ... ok
+test scheduler::tests::multi_value_port_graph_handles_pressure_closure_and_uneven_consumers ... ok
+test scheduler::tests::non_flushing_all_inputs_close_contract_waits_for_the_last_close ... ok
+test scheduler::tests::normal_close_flush_is_finite_across_steps_and_output_pressure ... ok
+test scheduler::tests::normal_close_track_delivers_one_unit_value_and_never_payload ... ok
+test scheduler::tests::only_a_plan_bound_recovery_contract_resolves_projected_abnormal_truth ... ok
+test scheduler::tests::prepared_back_storage_emits_beyond_the_inline_derived_value_envelope ... ok
+test scheduler::tests::queue_ring_bounds::admitted_queue_arena_can_cross_the_u16_slot_address_boundary ... ok
+test scheduler::tests::queue_ring_bounds::large_wrapped_queue_preserves_order_and_coalescing_without_u16_addition ... ok
+test scheduler::tests::quiescence_track_fires_once_per_active_epoch_and_rearms_after_new_work ... ok
+test scheduler::tests::remote_cords_keep_values_owned_until_delivery_and_retry_full_without_growth ... ok
+test scheduler::tests::remote_delivery_sign_exhaustion_preserves_the_in_flight_value ... ok
+test scheduler::tests::remote_fanout::abnormal_closure_preserves_one_exact_terminal_on_every_branch ... ok
+test scheduler::tests::remote_fanout::empty_remote_fanout_preserves_admitted_coalescing_policy ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_is_admitted_with_item_room_and_pressured_when_slots_fill ... ok
+test scheduler::tests::remote_fanout::empty_remote_payload_obeys_item_pressure_without_allocating_or_partial_fanout ... ok
+test scheduler::tests::remote_fanout::exhausted_generations_refuse_remote_publication_without_state_changes ... ok
+test scheduler::tests::remote_fanout::exhausted_sign_sequence_refuses_fanout_before_payload_or_closure_mutation ... ok
+test scheduler::tests::remote_fanout::invalid_or_pressured_closure_leaves_every_ingress_branch_open ... ok
+test scheduler::tests::remote_fanout::pressured_remote_ingress_branch_refuses_atomic_payload_fanout_without_partial_delivery ... ok
+test scheduler::tests::remote_fanout::remote_fanout_pressure_cannot_hide_invalid_or_stale_sibling_targets ... ok
+test scheduler::tests::remote_fanout::remote_fanout_rejects_more_targets_than_admitted_cords_even_under_pressure ... ok
+test scheduler::tests::remote_fanout::remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing ... ok
+test scheduler::tests::remote_fanout::shared_remote_publication_uses_remaining_fresh_generation_slot ... ok
+test scheduler::tests::remote_ingress_sign_exhaustion_preserves_queue_sequence_and_open_state ... ok
+test scheduler::tests::remote_payload_terminal_retains_exact_abnormal_truth ... ok
+test scheduler::tests::scheduler_admits_correlates_and_wakes_host_calls ... ok
+test scheduler::tests::scheduler_never_reuses_a_retired_request_identity ... ok
+test scheduler::tests::scheduler_rejects_unbound_host_call_before_consumption_commit ... ok
+test scheduler::tests::semantic_value_bound_is_enforced_independently_of_queue_storage ... ok
+test scheduler::tests::simultaneous_terminals_use_each_inputs_exact_contract_in_port_order ... ok
+test scheduler::tests::terminal_failure_and_cancellation_never_emit_quiescence ... ok
+test scheduler::tests::terminal_sign_admission::abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit ... ok
+test scheduler::tests::terminal_sign_admission::oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry ... ok
+test scheduler::tests::terminal_sign_admission::remote_terminal_sign_pressure_refuses_before_step_commit ... ok
+test scheduler::tests::terminal_sign_admission::terminal_sign_sequence_reserves_both_value_and_remote_closure ... ok
+test scheduler::tests::unconnected_checked_terminal_is_semantic_truth_not_invalid_port_access ... ok
+test sign_retention::tests::fixed_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test sign_retention::tests::fixed_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::fixed_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::fixed_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::fixed_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::fixed_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::fixed_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::fixed_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test sign_retention::tests::hosted_byte_pressure_reclaims_transient_history_before_item_slots_fill ... ok
+test sign_retention::tests::hosted_gap_overflow_preserves_complete_history ... ok
+test sign_retention::tests::hosted_remote_and_sequence_failures_do_not_publish_retained_entries ... ok
+test sign_retention::tests::hosted_remote_byte_pressure_publishes_or_preserves_history_atomically ... ok
+test sign_retention::tests::hosted_remote_sequence_overflow_preserves_history_and_sidecar ... ok
+test sign_retention::tests::hosted_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch ... ok
+test sign_retention::tests::hosted_reservation_checks_event_sequence_before_publication ... ok
+test sign_retention::tests::hosted_retained_count_matches_history_through_eviction_and_refused_records ... ok
+test sign_retention::tests::maximum_reservation_uses_retained_count_without_narrowing_overflow ... ok
+test single_source::tests::exact_single_source_uses_the_shared_step_and_sign_contracts ... ok
+test state_delay::continuation_tests::cancellation_discards_candidate_without_renewing_or_relabeling_it ... ok
+test state_delay::continuation_tests::externally_driven_state_has_finite_storage_without_a_semantic_step_count ... ok
+test state_delay::continuation_tests::finite_transition_budget_still_exhausts_without_committing_candidate ... ok
+test state_delay::continuation_tests::generation_capacity_refuses_without_wrap_or_silent_reset ... ok
+test state_delay::tests::absent_and_multiple_candidates_have_finite_outcomes ... ok
+test state_delay::tests::cancellation_failure_and_reset_are_deterministic_and_observable ... ok
+test state_delay::tests::fixed_and_hosted_profiles_share_numeric_recurrence_semantics ... ok
+test state_delay::tests::same_primitive_expresses_parameter_updates ... ok
+test state_delay::transfer::tests::a_larger_profile_continues_committed_state_and_generation ... ok
+test state_delay::transfer::tests::destination_bounds_must_fit_the_concrete_profile ... ok
+test state_delay::transfer::tests::insufficient_capacity_returns_the_unchanged_source ... ok
+test state_delay::transfer::tests::pending_candidate_is_not_silently_dropped ... ok
+test state_delay::transfer::tests::transfer_does_not_renew_transition_or_identity_capacity ... ok
+test tests::admitted_sink_host_call_may_have_no_output_payload ... ok
+test tests::admitted_source_host_call_may_have_no_input_payload ... ok
+test tests::fixed_sign_evicts_transient_history_with_an_exact_gap_but_keeps_terminal_truth ... ok
+test tests::fixed_sign_has_independent_item_and_byte_budgets ... ok
+test tests::fixed_value_store_enforces_items_bytes_generation_and_fanout_references ... ok
+test tests::hosted_and_fixed_value_profiles_produce_the_same_storage_vector ... ok
+test tests::only_plan_admitted_host_calls_cross_the_boundary ... ok
+test tests::prebound_routes_never_broadcast_between_output_ports ... ok
+test tests::remote_sign_evicts_transient_history_but_preserves_remote_lifecycle_identity ... ok
+test tests::remote_sign_identity_requires_separate_admission_and_fails_atomically ... ok
+
+test result: ok. 205 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.14s
+
+     Running tests/active_prefix.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/active_prefix-9c048d548b51ceb9)
+
+running 3 tests
+test inactive_capacity_is_rejected_and_never_cancelled ... ok
+test one_scheduler_capacity_runs_two_different_active_shapes ... ok
+test sealed_tables_cannot_reference_inactive_nodes_or_cords ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/back_failure.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/back_failure-2fb26e146c3bce05)
+
+running 1 test
+test identical_detail_codes_do_not_erase_distinct_back_failures ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/body_evidence_and_faults.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/body_evidence_and_faults-ac7a5c03ce8d95fc)
+
+running 8 tests
+test cycles_and_excessive_direct_fan_in_refuse_before_mutation ... ok
+test fault_scope_isolated_degraded_replaced_and_stale_completion_refused ... ok
+test local_and_distributed_causal_chains_are_exact_not_temporal_guesses ... ok
+test metadata_lookup_lends_exact_identity_without_changing_graph_storage ... ok
+test oldest_edges_compact_deterministically_and_make_truncation_explicit ... ok
+test semantic_terminal_digest_resolves_to_exact_causal_evidence ... ok
+test terminal_correlation_never_guesses_after_ambiguity_or_compaction ... ok
+test trace_preserves_branching_and_merging_without_timestamp_inference ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compact_f32_allocations.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/compact_f32_allocations-80b602105fb3b92b)
+
+running 1 test
+test prepared_compact_publication_fanout_and_reuse_make_no_allocator_requests ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compact_f32_dag.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/compact_f32_dag-5f9bbf48e6cbaf31)
+
+running 15 tests
+test an_escaping_dispatch_boundary_retains_region_membership ... ok
+test cancellation_can_stop_between_independent_members_of_the_physical_order ... ok
+test canonical_escape_boundaries_and_overlapping_regions_cannot_be_erased ... ok
+test canonical_input_declarations_refuse_conflicts_internal_edges_and_invalid_ports_atomically ... ok
+test diamond_multi_input_and_atomic_fanout_preserve_every_logical_sign ... ok
+test explicit_external_canonical_input_preserves_exact_transactions_and_zero_play_allocations ... ok
+test failed_preflight_is_atomic_and_never_admits_unsupported_or_unprepared_storage ... ok
+test failure_frontier_and_cancellation_release_match_the_canonical_graph ... ok
+test mismatched_physical_width_or_logical_quota_refuses_before_any_binding ... ok
+test owned::cancellation_at_every_logical_frontier_releases_owned_and_canonical_values ... ok
+test owned::failed_fanout_acceptance_restores_the_exact_pending_producer_buffer ... ok
+test owned::owned_diamond_preserves_pressure_fanout_events_and_zero_play_allocations ... ok
+test owned::selected_owner_buffer_denial_refuses_without_copying_fallback ... ok
+test owned::sign_admission_failure_after_transfer_restores_the_pending_output ... ok
+test owner_checkpoint_stops_each_logical_frontier_inside_a_compact_region ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/debug_observation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/debug_observation-eb5ef1f126fd001b)
+
+running 7 tests
+test attach_detach_and_fault_observation_do_not_change_execution_result ... ok
+test exact_gear_breakpoint_suspends_real_execution_and_resume_is_one_shot ... ok
+test invalid_record_and_preview_budgets_refuse_before_attachment ... ok
+test pressure_overwrites_only_debug_history_and_exposes_the_exact_gap ... ok
+test production_scheduler_emits_exact_bounded_start_value_and_completion_observations ... ok
+test stale_and_distributed_breakpoints_refuse_before_execution_control ... ok
+test stale_unknown_malformed_and_nonmonotonic_inputs_refuse_without_replacing_history ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_region.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/execution_region-5b5bff07ee8f0402)
+
+running 5 tests
+test every_logical_checkpoint_can_suspend_then_cancel_or_resume ... ok
+test every_logical_failure_point_survives_grouping ... ok
+test execution_owner_can_stop_before_every_logical_gear_without_later_steps ... ok
+test invalid_overlapping_and_late_chains_refuse_before_mutation ... ok
+test logical_outputs_pressure_terminal_signs_and_allocation_match ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/execution_region_unavailable.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/execution_region_unavailable-393d2aee08be28db)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/heterogeneous_value_store.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/heterogeneous_value_store-dce4198268cecfd5)
+
+running 2 tests
+test heterogeneous_live_quota_and_shape_exhaustion_are_independent ... ok
+test heterogeneous_slots_preserve_large_slots_and_never_allocate_during_use ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/hosted_native_values.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/hosted_native_values-145545e730a26f58)
+
+running 1 test
+test hosted_native_sidecar_is_prepared_once_and_mixed_storage_never_grows ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_source.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/keyboard_source-0ba411aba8011bd9)
+
+running 3 tests
+test cancellation_and_host_input_failure_remain_distinct ... ok
+test full_key_cord_waits_under_pressure_without_dropping_or_overwriting ... ok
+test portable_vectors_cross_capacity_one_cord_and_close_exactly ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_prepared_session.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/native_prepared_session-669e79abec9b362c)
+
+running 1 test
+test native_bindings_and_value_generations_survive_eight_accepted_invocations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_region.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/native_region-ab3e36c409c5fbb3)
+
+running 8 tests
+test debugger_boundaries_refuse_native_binding_or_require_an_unfused_reprepare ... ok
+test disjoint_regions_cannot_over_admit_the_same_native_reservation ... ok
+test every_failure_retains_exact_source_frontier_and_cancel_releases_native_ownership ... ok
+test exhausted_sign_capacity_releases_staged_native_results_without_partial_commit ... ok
+test invalid_overlapping_and_late_native_bindings_refuse_without_changing_the_chain ... ok
+test native_binding_refuses_insufficient_reservation_before_changing_dispatch ... ok
+test native_regions_keep_every_logical_cancellation_checkpoint ... ok
+test pressure_outputs_all_signs_and_zero_allocations_match_without_canonical_intermediates ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/prepared_session_allocation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/prepared_session_allocation-560387774c7a7672)
+
+running 1 test
+test four_value_invocations_reuse_queues_and_store_without_boundary_or_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ready_selection_allocation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/ready_selection_allocation-fb809b95490222d6)
+
+running 1 test
+test thirty_two_ready_nodes_remain_fair_without_play_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scheduler_footprint.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/scheduler_footprint-fafed9518792aa04)
+
+running 1 test
+test observe_production_scheduler_footprint ... ignored, manual native production-layout observation; no size threshold
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_flow.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/shared_flow-b0a8af0ef02bfb13)
+
+running 4 tests
+test fan_preserves_per_branch_delivery_failure_and_cancellation ... ok
+test fan_rejects_duplicate_recipients_before_retaining_an_item ... ok
+test fan_retains_one_snapshot_and_value_until_every_addressed_branch_terminates ... ok
+test merge_is_bounded_ordered_and_preserves_exact_source_member_identity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/shared_pool-f0ee50aafe59abcc)
+
+running 4 tests
+test authority_realization_preparation_and_lifecycle_fail_independently ... ok
+test fan_snapshot_is_key_ordered_and_does_not_change_when_membership_changes ... ok
+test keyed_membership_is_finite_and_slot_reuse_rejects_stale_epochs ... ok
+test sign_exhaustion_never_partially_mutates_membership ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_cost_selection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/shared_pool_cost_selection-53987e87442f8d2d)
+
+running 3 tests
+test completion_policy_beats_capacity_reference_then_preserves_atomic_occupation_and_pinning ... ok
+test duplicate_cost_bounds_authority_and_evidence_refuse_before_occupation ... ok
+test mismatched_or_stale_costs_keep_distinct_refusals_and_use_capacity_fallback ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shared_pool_selection.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/shared_pool_selection-4b14df68f3213446)
+
+running 5 tests
+test every_resource_must_be_current_and_each_observation_sign_is_retained ... ok
+test healthy_but_occupied_capacity_is_not_provider_exhaustion ... ok
+test new_work_fills_two_sealed_realizations_without_replanning ... ok
+test provider_loss_is_not_replay_but_later_work_uses_the_sealed_alternative ... ok
+test stale_and_unsealed_truth_cannot_escape_the_plan_envelope ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_capacity_cost.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/sign_capacity_cost-ecabf6d2b454a0a2)
+
+running 2 tests
+test capacity_probe_preserves_empty_sparse_full_and_sticky_logs ... ok
+test observe_production_sign_capacity_cost ... ignored, manual Sign reservation cost capture; no timing threshold
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_query_extent.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/sign_query_extent-65eb2fe1b2d1b70b)
+
+running 2 tests
+test fixed_queries_use_occupied_prefix_through_eviction ... ok
+test hosted_queries_use_occupied_prefix_through_eviction ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sign_record_cost.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/sign_record_cost-d3e01b38b3ce023f)
+
+running 2 tests
+test observe_production_sign_record_cost ... ignored, manual optimized native Sign cost observations; no timing threshold
+test probe_preserves_exact_events_and_full_log_retention ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_continuation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/state_continuation-dd61a80e39181ec5)
+
+running 6 tests
+test a_larger_transition_allowance_executes_the_same_input_without_hiding_exhaustion ... ok
+test cancelling_a_pressured_update_retires_only_the_last_committed_state ... ok
+test derived_emission_capacity_is_checked_before_back_start ... ok
+test input_wait_continued_back_and_explicit_closure_are_distinct ... ok
+test output_pressure_does_not_drop_the_queued_next_state ... ok
+test retirement_refuses_input_wait_and_preserves_state_after_explicit_cancellation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state_prepared_output.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/state_prepared_output-cdc1b0fdeaed3cfc)
+
+running 3 tests
+test cancellation_during_pressure_retains_only_the_published_generation ... ok
+test large_initialization_updates_and_pressure_preserve_exact_committed_values ... ok
+test prepared_state_preserves_empty_and_actual_short_extent ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/static_merge.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/static_merge-be9f814479c3b1b1)
+
+running 2 tests
+test exact_static_sources_merge_in_kernel_order ... ok
+test unknown_source_reordering_and_pressure_fail_distinctly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_atomic_discard.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/step_atomic_discard-9cfbcfa27e1cd70a)
+
+running 4 tests
+test blocked_output_preserves_both_discards_until_atomic_commit ... ok
+test discard_overflow_is_a_step_protocol_refusal ... ok
+test duplicate_and_stale_discard_fail_before_partial_commit ... ok
+test two_distinct_values_discard_in_one_terminal_step ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_fuel.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/step_fuel-e63beb5b5d6fd861)
+
+running 3 tests
+test cancellation_is_observed_between_finite_steps ... ok
+test cooperative_continuations_consume_each_grant_and_remain_fair ... ok
+test exceeding_a_plan_owned_grant_is_atomic_and_observable ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/step_input_bytes.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/step_input_bytes-737a1d129fe09404)
+
+running 2 tests
+test fixed_and_hosted_stores_expose_the_same_exact_step_input_bytes ... ok
+test stale_identity_fails_before_a_step_payload_decision ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/value_generation.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/value_generation-d61933fd2d192b4f)
+
+running 2 tests
+test fixed_generations_retire_on_final_release_or_clear ... ok
+test hosted_generations_retire_on_final_release_or_clear ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/value_store_model.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/value_store_model-6bfa7443bb9a569a)
+
+running 2 tests
+test fixed_store_matches_full_scan_model_through_interleaved_lifecycles ... ok
+test hosted_uniform_and_mixed_stores_match_full_scan_lifecycle_model ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests conduit_kernel
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+» [check.system-continuity] Durable system continuity conformance
+  $ cargo test --locked -p conduit-system-continuity
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+   Compiling conduit-system-continuity v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/system-continuity)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+    Finished `test` profile [optimized] target(s) in 22.88s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/conduit_system_continuity-cefd556ac17d76fb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/continuity.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/continuity-b7c8b521a9a802f7)
+
+running 4 tests
+test compatible_front_does_not_inherit_assignment_grant_plan_or_play ... ok
+test exact_roles_bind_to_three_explicit_members_one_plan_and_distinct_plays ... ok
+test membership_availability_and_delegated_authority_fail_independently ... ok
+test reboot_acceptance_termination_replacement_and_replan_remain_distinct ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/delegated_reboot.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/delegated_reboot-3ea157b21256bb93)
+
+running 5 tests
+test authorized_reboot_separates_acceptance_line_loss_and_completed_proof ... ok
+test malformed_request_is_denied_with_machine_readable_sign ... ok
+test proof_window_expires_to_unknown_without_fabricating_transport_failure ... ok
+test same_semantics_with_a_different_name_is_compatible_but_grant_stays_exact ... ok
+test support_authority_reachability_boot_and_replay_fail_independently ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native_reboot_denial.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/native_reboot_denial-b61c440771bf32a3)
+
+running 2 tests
+test reboot_denial_is_native_semantic_info_with_stable_rust_serde ... ok
+test reboot_progress_and_line_loss_vocabulary_is_native_semantic_info ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/deps/ownership-07f19e2ed9e60ecd)
+
+running 1 test
+test semantic_owner_has_no_r1_composition_or_proof_dependency ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_system_continuity
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+» [check.no-std.kernel] Kernel no-default-features check
+  $ cargo check --locked -p conduit-kernel --no-default-features
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Finished `dev` profile [unoptimized] target(s) in 0.55s
+» [check.no-std.chat] Portable chat and messaging no-default-features check
+  $ cargo check --locked -p conduit-chat --no-default-features
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+    Finished `dev` profile [unoptimized] target(s) in 4.53s
+» [check.no-std.data] Structured-data semantics no-default-features check
+  $ cargo check --locked -p conduit-data --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.no-std.language] Language semantics no-default-features check
+  $ cargo check --locked -p conduit-language --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+» [check.no-std.signal] Signal no-default-features check
+  $ cargo check --locked -p conduit-signal --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+» [check.no-std.speech] Native speech fixed-storage no-default-features check
+  $ cargo check --locked -p conduit-speech --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+» [check.no-std.wire] Wire no-default-features check
+  $ cargo check --locked -p conduit-wire --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+» [check.no-std.semantic-catalog] semantic-catalog no-default-features check
+  $ cargo check --locked -p conduit-semantic-catalog --no-default-features
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+    Finished `dev` profile [unoptimized] target(s) in 3.66s
+» [check.no-std.face] Portable face no-default-features check
+  $ cargo check --locked -p conduit-face --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+» [check.no-std.extracted-domains] Extracted domains and resident Patchbay Plot no-default-features check
+  $ cargo check --locked -p conduit-human -p conduit-robotics -p conduit-web -p patchbay-control --no-default-features
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Finished `dev` profile [unoptimized] target(s) in 3.21s
+» [check.no-std.std-host] std-host no-default-features check
+  $ cargo check --locked -p conduit-std-host --no-default-features
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking rustls-webpki v0.103.15
+    Checking rustls v0.23.45
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/model)
+    Checking conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+    Checking ureq v3.4.2
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+    Checking conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+    Checking conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Checking conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+    Checking conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+    Checking conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+    Checking conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/todo/face)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+    Checking conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+    Checking conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+    Checking conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+    Finished `dev` profile [unoptimized] target(s) in 49.96s
+» [check.thumb.chat thumbv6m-none-eabi/contract-compile] Portable chat and messaging Thumb target check
+  $ cargo check --locked -p conduit-chat --target thumbv6m-none-eabi
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+    Finished `dev` profile [unoptimized] target(s) in 4.36s
+» [check.thumb.data thumbv6m-none-eabi/contract-compile] Structured-data semantics Thumb target check
+  $ cargo check --locked -p conduit-data --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.language thumbv6m-none-eabi/contract-compile] Language semantics Thumb target check
+  $ cargo check --locked -p conduit-language --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.system-continuity thumbv6m-none-eabi/contract-compile] Durable system continuity Thumb target check
+  $ cargo check --locked -p conduit-system-continuity --target thumbv6m-none-eabi
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/observatory)
+    Checking conduit-system-continuity v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/system-continuity)
+    Finished `dev` profile [unoptimized] target(s) in 2.24s
+» [check.thumb.extracted-domains thumbv6m-none-eabi/contract-compile] Extracted domains and resident Patchbay Plot Thumb target check
+  $ cargo check --locked -p conduit-human -p conduit-robotics -p conduit-web -p patchbay-control --no-default-features --target thumbv6m-none-eabi
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Finished `dev` profile [unoptimized] target(s) in 3.65s
+» [check.wasm.browser-runtime wasm32-unknown-unknown/contract-compile] Browser runtime WASM target check
+  $ cargo check --locked -p conduit-browser-runtime --target wasm32-unknown-unknown
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+    Checking conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/time)
+    Checking conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/composite)
+    Checking conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/data)
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/audio)
+    Checking conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/ai)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/little-seismograph/fixture)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/protocols/midi)
+    Checking conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/education)
+    Checking conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/speech)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/synth)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Checking conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/plot-library)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+    Checking conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/face)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/birth)
+    Checking conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/body-invitation)
+    Checking conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+    Checking conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tutorial)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/host)
+    Checking conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+    Checking conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/tongues)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/mask-offer)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/body)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/raspberry-pi/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/esp32/make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/avr/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/conduitos/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/orange-pi/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/make)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/tour)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+    Finished `dev` profile [unoptimized] target(s) in 1m 02s
+» [check.wasm.wire wasm32-unknown-unknown/contract-compile] Wire WASM session corpus check
+  $ cargo check --locked -p conduit-wire --target wasm32-unknown-unknown --test session_wire_corpus
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.kernel thumbv6m-none-eabi/contract-compile] Kernel thumb target check
+  $ cargo check --locked -p conduit-kernel --target thumbv6m-none-eabi
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+    Finished `dev` profile [unoptimized] target(s) in 0.54s
+» [check.thumb.create-oi thumbv6m-none-eabi/contract-compile] Create OI mechanism thumb target check
+  $ cargo check --locked -p conduit-create-oi --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.core thumbv6m-none-eabi/contract-compile] Core thumb target check
+  $ cargo check --locked -p conduit-core --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.body thumbv6m-none-eabi/contract-compile] Body lifecycle thumb target check
+  $ cargo check --locked -p conduit-body --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+» [check.thumb.observatory thumbv6m-none-eabi/contract-compile] Observatory thumb target check
+  $ cargo check --locked -p conduit-observatory --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.semantic-catalog thumbv6m-none-eabi/contract-compile] semantic-catalog thumb target check
+  $ cargo check --locked -p conduit-semantic-catalog --no-default-features --target thumbv6m-none-eabi
+    Checking conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+    Checking conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+    Checking conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+    Finished `dev` profile [unoptimized] target(s) in 4.10s
+» [check.thumb.face thumbv6m-none-eabi/contract-compile] Portable face Thumb target check
+  $ cargo check --locked -p conduit-face --no-default-features --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.pico-local.dry-run] Dry-run verify of Pico W receipts
+  $ cargo xtask --locked make pico verify --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked make pico verify --dry-run`
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/patchbay/workbench/model)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/tools/xtask)
+    Finished `dev` profile [unoptimized] target(s) in 34.56s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked make pico verify --dry-run`
+==> pico verify (dry-run)
+  serial port: <auto-discover conduit-pico-w-signal>
+» [check.std-pico-usb.dry-run] Dry-run verify of std-to-Pico USB-CDC remote session proof
+  $ cargo xtask --locked prove std-pico-usb --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove std-pico-usb --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.19s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove std-pico-usb --dry-run`
+==> prove std-pico-usb (dry-run)
+  firmware build: cargo check --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --target thumbv6m-none-eabi
+  flash candidate: RPI-RP2 mount copy
+  link port: <auto-discover CDC 0>
+  sign port: <auto-discover CDC 1>
+  interactive console: false
+  induced sink failure: false
+» [check.pico-wifi-bootstrap.dry-run] Dry-run verify of the USB-authorized Pico W Wi-Fi proof
+  $ cargo xtask --locked prove pico-wifi-bootstrap --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove pico-wifi-bootstrap --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove pico-wifi-bootstrap --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+==> prove pico-wifi-bootstrap (dry-run)
+  firmware mode: wifi-bootstrap
+  link port: <auto-discover CDC 0>
+  sign port: <auto-discover CDC 1>
+  SSID source: CONDUIT_TEST_WIFI_SSID
+  credential source: CONDUIT_TEST_WIFI_CREDENTIAL
+  secret values are never printed or serialized into the plan
+» [check.pico-appliance.dry-run] Dry-run verify of the physical Pico W AP/DHCP/DNS/HTTP Hello proof
+  $ cargo xtask --locked prove pico-appliance --client-interface wlan-proof-fixture --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove pico-appliance --client-interface wlan-proof-fixture --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.18s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove pico-appliance --client-interface wlan-proof-fixture --dry-run`
+==> Pico appliance physical proof (dry-run)
+  build exact --appliance-hello image and identity
+  flash exact UF2 through cargo xtask Pico workflow
+  sign port: <auto-discover exact Pico CDC 1>
+  client interface: wlan-proof-fixture
+  join open SSID: Conduit-Hello
+  require bounded DHCP, DNS, HTTP, and exact terminal Signs
+  safety: refuse an interface with an active connection
+  proof class: physical-local-hardware
+» [check.pico-appliance-hil.dry-run] Dry-run verify of the exact two-Pico AP/DHCP/DNS/HTTP Hello proof
+  $ cargo xtask --locked prove pico-appliance-hil --link-port appliance-link-fixture --sign-port appliance-sign-fixture --client-link-port client-link-fixture --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove pico-appliance-hil --link-port appliance-link-fixture --sign-port appliance-sign-fixture --client-link-port client-link-fixture --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.21s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove pico-appliance-hil --link-port appliance-link-fixture --sign-port appliance-sign-fixture --client-link-port client-link-fixture --dry-run`
+==> Two-Pico appliance physical proof (dry-run)
+  build and flash fixture-only HIL client image on Pico B
+  retain its distinct USB identity while the probe waits for CDC DTR
+  build and flash exact appliance image on Pico A
+  open both CDC 1 ports without changing host networking
+  Pico B proves open association, DHCP, DNS, and literal HTTP response
+  correlate Pico B receipt with Pico A exact terminal Signs
+  proof class: physical-local-hardware
+» [check.r1-new-plan-recovery-hil.dry-run] Dry-run verify of the physical R1 WebSocket-to-USB new-Plan proof
+  $ cargo xtask --locked prove r1-new-plan-recovery-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove r1-new-plan-recovery-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove r1-new-plan-recovery-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+==> prove r1-new-plan-recovery-hil (dry-run)
+  firmware mode: r1-control
+  link port: <auto-discover CDC 0>
+  sign port: <auto-discover CDC 1>
+  SSID source: CONDUIT_TEST_WIFI_SSID
+  credential source: CONDUIT_TEST_WIFI_CREDENTIAL
+  secret values are never printed or serialized into the plan
+» [check.r1-plan-c-continuation-hil.dry-run] Dry-run verify of the physical R1 same-Plan Line continuation proof
+  $ cargo xtask --locked prove r1-plan-c-continuation-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove r1-plan-c-continuation-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove r1-plan-c-continuation-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+==> prove r1-plan-c-continuation-hil (dry-run)
+  firmware mode: r1-control
+  link port: <auto-discover CDC 0>
+  sign port: <auto-discover CDC 1>
+  SSID source: CONDUIT_TEST_WIFI_SSID
+  credential source: CONDUIT_TEST_WIFI_CREDENTIAL
+  secret values are never printed or serialized into the plan
+» [check.r1-hil.dry-run] Dry-run verify of the combined one-Body physical R1 proof
+  $ cargo xtask --locked prove r1-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/conduit-xtask-dispatch --locked prove r1-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+    Finished `dev` profile [unoptimized] target(s) in 0.17s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-panels-host-target/debug/xtask --locked prove r1-hil --interactive --ssid-env CONDUIT_TEST_WIFI_SSID --credential-env CONDUIT_TEST_WIFI_CREDENTIAL --dry-run`
+==> prove r1-hil (dry-run)
+  firmware mode: r1-control
+  link port: <auto-discover CDC 0>
+  sign port: <auto-discover CDC 1>
+  SSID source: CONDUIT_TEST_WIFI_SSID
+  credential source: CONDUIT_TEST_WIFI_CREDENTIAL
+  secret values are never printed or serialized into the plan
+  stage 1: live three-peer Plan A to automatic USB Plan B recovery and Lull
+  operator action: restore real Wi-Fi/network availability
+  stage 2: same body later Wake runs Plan C continuation and Lull
+» [check.no-std.net] Network capability no-default-features check
+  $ cargo check --locked -p conduit-net --no-default-features
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+» [check.thumb.net thumbv6m-none-eabi/contract-compile] Network capability Thumb target check
+  $ cargo check --locked -p conduit-net --no-default-features --target thumbv6m-none-eabi
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+» [check.thumb.firmware-indicator-resource thumbv6m-none-eabi/contract-compile] Pico W acquired indicator peripheral Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --bin conduit-pico-w-signal --no-default-features --features indicator-resource --target thumbv6m-none-eabi
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/planner)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/kernel)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/plots/thermostat/model)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/architecture/plan-lowering)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/make/embedded-build)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/face)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/chat)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/catalog)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/alife-distributed)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/signal)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/proof/conformance/network-r1)
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: variable does not need to be mutable
+   --> src/main.rs:297:9
+    |
+297 |     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
+    |         ----^^^
+    |         |
+    |         help: remove this `mut`
+    |
+    = note: `#[warn(unused_mut)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `cdc`
+   --> src/main.rs:297:9
+    |
+297 |     let mut cdc = receipts::UsbCdc::new(sign_sender.sender);
+    |         ^^^^^^^ help: if this is intentional, prefix it with an underscore: `_cdc`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 8 warnings (run `cargo fix --bin "conduit-pico-w-signal" -p conduit-pico-w-signal` to apply 2 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 9.90s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-usb-midi-fixture thumbv6m-none-eabi/contract-compile] Pico W bounded breadboard USB-MIDI fixture Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --bin conduit-pico-w-midi-fixture --no-default-features --features usb-midi-fixture --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+    Finished `dev` profile [unoptimized] target(s) in 0.71s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware thumbv6m-none-eabi/contract-compile] Pico W default local composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 1 warning
+    Finished `dev` profile [unoptimized] target(s) in 0.83s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-minimal thumbv6m-none-eabi/contract-compile] Pico W minimal local composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features pico-local-minimal --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.82s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-usb-remote thumbv6m-none-eabi/contract-compile] Pico W USB remote sink composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features usb-remote --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.06s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-triple-remote thumbv6m-none-eabi/contract-compile] Pico W triple remote sink composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features triple-remote --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 7 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.05s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-wifi-bootstrap thumbv6m-none-eabi/contract-compile] Pico W USB-authorized Wi-Fi bootstrap composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features wifi-bootstrap --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: field `embedded_spore` is never read
+  --> src/body_admission.rs:30:5
+   |
+26 | pub(crate) struct PicoBodyAdmission {
+   |                   ----------------- field in this struct
+...
+30 |     embedded_spore: Option<conduit_body::PicoSpawnProvision<'static>>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `serve_spawn_request` is never used
+   --> src/body_admission.rs:126:25
+    |
+ 33 | impl PicoBodyAdmission {
+    | ---------------------- method in this implementation
+...
+126 |     pub(crate) async fn serve_spawn_request(
+    |                         ^^^^^^^^^^^^^^^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+    Finished `dev` profile [unoptimized] target(s) in 2.28s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-r1-control thumbv6m-none-eabi/contract-compile] Pico W R1 three-peer control composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features r1-control --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: field `embedded_spore` is never read
+  --> src/body_admission.rs:30:5
+   |
+26 | pub(crate) struct PicoBodyAdmission {
+   |                   ----------------- field in this struct
+...
+30 |     embedded_spore: Option<conduit_body::PicoSpawnProvision<'static>>,
+   |     ^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `serve_spawn_request` is never used
+   --> src/body_admission.rs:126:25
+    |
+ 33 | impl PicoBodyAdmission {
+    | ---------------------- method in this implementation
+...
+126 |     pub(crate) async fn serve_spawn_request(
+    |                         ^^^^^^^^^^^^^^^^^^^
+
+warning: method `boot` is never used
+  --> src/signal_execution_identity.rs:39:12
+   |
+21 | impl SignalExecutionIdentity {
+   | ---------------------------- method in this implementation
+...
+39 |     pub fn boot(self) -> BootIdentity {
+   |            ^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 3 warnings
+    Finished `dev` profile [unoptimized] target(s) in 2.30s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-appliance-hello thumbv6m-none-eabi/contract-compile] Pico W finite AP/DHCP/DNS/HTTP Hello composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features appliance-hello --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `code` is never used
+   --> src/radio.rs:110:18
+    |
+109 | impl NetworkRadioInitError {
+    | -------------------------- method in this implementation
+110 |     pub const fn code(&self) -> &'static str {
+    |                  ^^^^
+
+warning: associated function `new` is never used
+  --> src/receipts.rs:99:12
+   |
+98 | impl RuntimeTranscriptIdentity {
+   | ------------------------------ associated function in this implementation
+99 |     pub fn new(plan_id: &str, host_id: &str) -> Self {
+   |            ^^^
+
+warning: struct `BootIdentity` is never constructed
+   --> src/receipts.rs:160:12
+    |
+160 | pub struct BootIdentity {
+    |            ^^^^^^^^^^^^
+
+warning: struct `FaceReceiptIdentity` is never constructed
+   --> src/receipts.rs:173:12
+    |
+173 | pub struct FaceReceiptIdentity {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+   --> src/receipts.rs:210:18
+    |
+208 | impl UsbCdc {
+    | ----------- methods in this implementation
+209 |     /// Write the boot-scoped identity record for this generated firmware image.
+210 |     pub async fn write_boot_identity(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+253 |     pub async fn write_receipt(
+    |                  ^^^^^^^^^^^^^
+...
+306 |     pub async fn write_terminal(
+    |                  ^^^^^^^^^^^^^^
+
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.81s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-appliance-hil-client thumbv6m-none-eabi/contract-compile] Pico W fixture-only AP/DHCP/DNS/HTTP client probe Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features appliance-hil-client --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: method `code` is never used
+   --> src/radio.rs:110:18
+    |
+109 | impl NetworkRadioInitError {
+    | -------------------------- method in this implementation
+110 |     pub const fn code(&self) -> &'static str {
+    |                  ^^^^
+
+warning: associated function `new` is never used
+  --> src/receipts.rs:99:12
+   |
+98 | impl RuntimeTranscriptIdentity {
+   | ------------------------------ associated function in this implementation
+99 |     pub fn new(plan_id: &str, host_id: &str) -> Self {
+   |            ^^^
+
+warning: struct `BootIdentity` is never constructed
+   --> src/receipts.rs:160:12
+    |
+160 | pub struct BootIdentity {
+    |            ^^^^^^^^^^^^
+
+warning: struct `FaceReceiptIdentity` is never constructed
+   --> src/receipts.rs:173:12
+    |
+173 | pub struct FaceReceiptIdentity {
+    |            ^^^^^^^^^^^^^^^^^^^
+
+warning: methods `write_boot_identity`, `write_receipt`, and `write_terminal` are never used
+   --> src/receipts.rs:210:18
+    |
+208 | impl UsbCdc {
+    | ----------- methods in this implementation
+209 |     /// Write the boot-scoped identity record for this generated firmware image.
+210 |     pub async fn write_boot_identity(
+    |                  ^^^^^^^^^^^^^^^^^^^
+...
+253 |     pub async fn write_receipt(
+    |                  ^^^^^^^^^^^^^
+...
+306 |     pub async fn write_terminal(
+    |                  ^^^^^^^^^^^^^^
+
+warning: type alias `RemoteResult` is never used
+ --> src/remote_error.rs:7:10
+  |
+7 | pub type RemoteResult<T> = Result<T, RemoteError>;
+  |          ^^^^^^^^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 12 warnings
+    Finished `dev` profile [unoptimized] target(s) in 0.71s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`
+» [check.thumb.firmware-bluetooth-line thumbv6m-none-eabi/contract-compile] Pico W finite BLE GATT Line composition Thumb check
+  $ cargo check --locked --manifest-path targets/rp2040/firmware/pico-w-signal/Cargo.toml --no-default-features --features bluetooth-line --target thumbv6m-none-eabi
+   Compiling conduit-pico-w-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-typography/targets/rp2040/firmware/pico-w-signal)
+warning: constant `FLASH_BOOTSTRAP_ADDRESS` is never used
+ --> src/embedded_spore.rs:7:7
+  |
+7 | const FLASH_BOOTSTRAP_ADDRESS: usize = 0x101f_f000;
+  |       ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `FLASH_BOOTSTRAP_BYTES` is never used
+ --> src/embedded_spore.rs:8:7
+  |
+8 | const FLASH_BOOTSTRAP_BYTES: usize = 4_096;
+  |       ^^^^^^^^^^^^^^^^^^^^^
+
+warning: constant `MAGIC` is never used
+ --> src/embedded_spore.rs:9:7
+  |
+9 | const MAGIC: &[u8; 16] = b"CONDUIT_SPORE@1\0";
+  |       ^^^^^
+
+warning: constant `HEADER_BYTES` is never used
+  --> src/embedded_spore.rs:10:7
+   |
+10 | const HEADER_BYTES: usize = MAGIC.len() + 4;
+   |       ^^^^^^^^^^^^
+
+warning: function `load` is never used
+  --> src/embedded_spore.rs:12:15
+   |
+12 | pub(crate) fn load() -> Option<PicoSpawnProvision<'static>> {
+   |               ^^^^
+
+warning: function `parse` is never used
+  --> src/embedded_spore.rs:25:4
+   |
+25 | fn parse(bytes: &'static [u8]) -> Option<PicoSpawnProvision<'static>> {
+   |    ^^^^^
+
+warning: `conduit-pico-w-signal` (bin "conduit-pico-w-signal") generated 6 warnings
+    Finished `dev` profile [unoptimized] target(s) in 1.09s
+warning: the following packages contain code that will be rejected by a future version of Rust: proc-macro-error2 v2.0.1
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 1`

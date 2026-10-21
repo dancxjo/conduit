@@ -1,0 +1,22 @@
+    Checking conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos)
+error: items after a test module
+   --> targets/conduitos/src/display/rounded.rs:51:1
+    |
+ 51 |   mod tests {
+    |   ^^^^^^^^^
+...
+117 | / pub(super) fn render_smooth(
+118 | |     target: &mut impl super::RetainedPixelTarget,
+119 | |     bounds: LayoutRect,
+120 | |     clip: LayoutRect,
+...   |
+123 | |     receipt: &mut DisplayReceipt,
+124 | | ) -> Result<(), DisplayError> {
+    | |_____________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#items_after_test_module
+    = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+    = help: move the items to before the test module was defined
+
+error: could not compile `conduitos` (lib test) due to 1 previous error

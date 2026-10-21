@@ -1,0 +1,70 @@
+{
+  "source": "50748a2331e791764a75e09702f76dc5cb2a47c1",
+  "tracked_status": "",
+  "command": [
+    "node",
+    "proof/browser/node_modules/@playwright/test/cli.js",
+    "test",
+    "--config",
+    "proof/browser/playwright.config.mjs",
+    "--project=chromium",
+    "--workers=1",
+    "--retries=0",
+    "--output=/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/outputs/5628-browser-title-50748a233/artifacts",
+    "owner-face-component.spec.mjs",
+    "--grep",
+    "admitted typography|Face parts swap density|configured groups preserve|current Face refresh preserves"
+  ],
+  "environment": {
+    "CI": "1",
+    "CONDUIT_BROWSER_HOST_PORT": "44187",
+    "CONDUIT_BROWSER_PROOF_SHARD": "5628-title-50748a233"
+  },
+  "playwright": "1.62.0",
+  "chromium_revision": "1234",
+  "chromium_version": "151.0.7922.34",
+  "exit": 0,
+  "passed": 5,
+  "failed": 0,
+  "retries": 0,
+  "workers": 1,
+  "proof_class": "pinned Chromium renderer fixtures only; no provisioned owner/browser/QEMU claim",
+  "artifacts": [
+    {
+      "path": "browser.log",
+      "bytes": 1150,
+      "sha256": "28f70999912fe532f4e3fbc46b6bd431514451caabbf61e07654769866318344"
+    },
+    {
+      "path": "artifacts/.last-run.json",
+      "bytes": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    }
+  ],
+  "source_and_pinned_input_hashes": [
+    {
+      "path": "proof/browser/playwright.config.mjs",
+      "sha256": "be27be3774533568653484b7f3a0216aafd63bbb7999a238754e31bf8742f4e9"
+    },
+    {
+      "path": "proof/browser/package.json",
+      "sha256": "339c584ec1f1f5a2746565a76a917a99fa1073b135b87ee8e9cbae2488491168"
+    },
+    {
+      "path": "proof/browser/package-lock.json",
+      "sha256": "0c3338e18c96ed9ca136d20b7e9256fe3cf5f5ef72e4319b79e9e880636dfffc"
+    },
+    {
+      "path": "proof/browser/owner-face-component.spec.mjs",
+      "sha256": "d06fc1103dadbb174fdb069088a15af49304de156e87252527f029067915fda9"
+    },
+    {
+      "path": "proof/browser/node_modules/@playwright/test/package.json",
+      "sha256": "351697e1ef6a68a63557ffedf1992955a2d8979b11e0bf9f175820956951c65b"
+    },
+    {
+      "path": "proof/browser/node_modules/playwright-core/browsers.json",
+      "sha256": "f306eed529599b1eaf2f8a85db9de2b23e1a3fe36c2b66434b7c9434fb627a99"
+    }
+  ]
+}

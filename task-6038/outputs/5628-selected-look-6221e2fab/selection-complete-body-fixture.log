@@ -1,0 +1,10 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-look/targets/conduitos)
+    Finished `test` profile [optimized] target(s) in 53.71s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/selected-typography-host-target/debug/deps/conduitos-9bf31814da61c6ef)
+
+running 2 tests
+test product_front_door::face_arrival::selection::tests::local_selection_disposition_preserves_pending_mask_and_opaque_route ... ok
+test product_front_door::face_arrival::selection::tests::failed_pre_swap_preparation_preserves_show_preferences_and_publication ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 1237 filtered out; finished in 0.07s
+
