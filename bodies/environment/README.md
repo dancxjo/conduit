@@ -409,3 +409,42 @@ IndexedDB implementation permits 64 physical records per application, so the
 Recorder integration still needs finite chunks within those physical bounds,
 exact sample and provenance admission, transactional commit, deduplication and
 explicit gaps across reconnects. No larger storage offer is claimed here.
+
+The installed browser storage boundary is narrower than the IndexedDB primitive:
+`resource/publish-json-snapshot` admits immutable JSON snapshots, at most 4096
+content bytes, under an exact Resource generation, residence and authority. The
+browser adapter checks the pending Host, Boot, Play, placement and request before
+calling `publishBytes`. `writeBytes` exists as a storage primitive but is not a
+selected recorder Host Call; calling it from a recorder page would bypass the
+existing execution boundary.
+
+The recorder must therefore publish finite sealed chunks through that existing
+snapshot Fore. Its semantic records retain quantities and explicit sensor
+outcomes; the selected quantity Forms are representation material inside the
+JSON envelope. The envelope must bind both Form identities, the exact semantic
+contract and actual producer Host/Boot/Plan/Play provenance. Boot-relative times
+must remain distinct from browser receipt time and wall-clock estimates.
+
+The following are implementation obligations, not installed capabilities:
+
+- Admit chunk content within 4096 bytes including metadata and JSON encoding;
+  reserve sample buffers and encoding storage before Play.
+- Keep buffered samples distinct from committed samples. A failed, cancelled or
+  quota-refused publication cannot advance the committed cursor or acknowledge
+  durable acceptance to the producer.
+- Publish each selected generation once. A partial flush consumes a chunk slot;
+  do not hide updates, retry, eviction or a growing generation count in the adapter.
+- Budget at most the actual admitted physical record count, currently bounded
+  above by 64 per application. Sixty-four samples per chunk can retain 4096
+  samples only when the planned flush pattern and other application records fit.
+- Reconnect under new actual presence and authority while reading retained
+  generations by their exact references. Retained records do not restore a Boot,
+  membership, a live Line or a grant.
+- Validate finite chunk contents before use; distinguish identical replay,
+  conflicting sequence reuse, out-of-order delivery, sequence gaps, producer
+  reboot and reversed boot-relative time. Never fill missing history with the
+  most recent valid temperature.
+
+The current 4096-slot Host request is still a construction request and must be
+reconciled with the concrete chunk realization before live recorder admission.
+The compact quantity codec alone supplies neither chunk commit nor recovery.
