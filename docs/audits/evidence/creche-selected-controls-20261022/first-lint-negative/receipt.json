@@ -1,0 +1,30 @@
+{
+  "schema": "local-focused-validation-negative@1",
+  "source_commit": "4b15b7e80bad139297b87e6096722e4051781750",
+  "stable_source_commit": "4b15b7e80bad139297b87e6096722e4051781750",
+  "source_clean": true,
+  "stable_clean": true,
+  "remote_ref": "4b15b7e80bad139297b87e6096722e4051781750\trefs/heads/prep/6158-bounded-control-captures",
+  "tests_passed": 20,
+  "failed_stage": "strict all-target xtask Clippy",
+  "exit_code": 101,
+  "cause": "clippy::int_plus_one in navigation.rs:236 test capture-budget arithmetic",
+  "format_stage": "unstarted after first failure",
+  "qemu": "unstarted",
+  "env": {
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUST_MIN_STACK": "unset"
+  },
+  "hashes": {
+    "6158-4b15b7e80-controls.log": "58e54c736fce0691e6a8ce53025ea61abd4b18722c49554af22006bee1c1c82f",
+    "6158-4b15b7e80-metadata.log": "1b705959e18c540ba547af94cd1fa132cdad64750fcb037b659e827134d549a0",
+    "6158-4b15b7e80-viewport.log": "e46c4d06212308afd75c07dcb6b85932e3406941abfc2b2cedd9c0ec94f99bc3",
+    "6158-4b15b7e80-artifacts.log": "4e5482c4489228095a0810d68ece99da90a01830e90d09a3f60ec20fa63b9fac",
+    "6158-4b15b7e80-pointer.log": "f2f68a0594553317c119c9b2b3620592354249224de88979cb552153a86fc0a2",
+    "6158-4b15b7e80-clippy.log": "0ab533bac312740dac57c2510d231a7f42ad85339c33cbf54f77e4d3ea15c9c5",
+    "6158-4b15b7e80-check-sequence.json": "b929da72df2574aa1545e87d560734d082f3caf5b125e61efbf87c5f01bed661"
+  }
+}

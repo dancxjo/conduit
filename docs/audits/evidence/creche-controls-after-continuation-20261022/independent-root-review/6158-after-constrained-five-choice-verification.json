@@ -1,0 +1,71 @@
+{
+  "status": "verified",
+  "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+  "packet": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-controls-640x480-preserved",
+  "viewport": "640x480",
+  "acknowledged_faces_checked": 7,
+  "plot_choices": 5,
+  "selected_available": 4,
+  "unavailable": "Hello, world.",
+  "unavailable_reason": {
+    "Unavailable": {
+      "explanation": "native-body-plot-unavailable",
+      "reason_code": "birth/unavailable"
+    }
+  },
+  "source_actions_unchanged": true,
+  "original_controls_verification": {
+    "status": "verified",
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "packet": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-controls-640x480-preserved",
+    "viewport": "640x480",
+    "original_files_rehashed": 31,
+    "png_names": [
+      "journey-frames/front-door-ready.png",
+      "journey-frames/creche-controls-ready.png",
+      "journey-frames/creche-controls-primary-1.png",
+      "journey-frames/creche-controls-primary-2.png",
+      "journey-frames/creche-controls-primary-3.png",
+      "journey-frames/creche-controls-details-1.png",
+      "journey-frames/creche-controls-details-11.png",
+      "journey-frames/creche-controls-details-21.png",
+      "journey-frames/creche-controls-probe-name.png",
+      "journey-frames/creche-naming-welsh.png",
+      "journey-frames/creche-naming-pointer-focused.png",
+      "journey-frames/creche-naming-tradition-restored.png",
+      "journey-frames/creche-naming-exact-name-restored.png"
+    ],
+    "unsampled_pages_no_pixel_claim": {
+      "primary": [],
+      "details": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ]
+    },
+    "serial_prefixes_verified": 13,
+    "selected_recipe_records": 2,
+    "source_changes": 4,
+    "available_controls": 12,
+    "kernel_sha256": "beee0a7c13399e39ba74c2dc304a6adace92749898671ea69c040945f6b8143d",
+    "image_sha256": "13a26e4f529a3943ca691c8816f155e031b02ca0cbb768e0a3bf30ca56726ee1",
+    "logical_image_binding": "image:sha256:d3bef311118538be2a6950ff35e4ffadfaf33b48b7750fb7b7bb5f3ecf08547d",
+    "scope": "Original documentary custody and explicit two-selection chain; no initial recipe restoration, unsampled pixels, row wording, physical/human evidence or full6158 acceptance. No independent recomputation of canonical Face digest; seals are hashes, not signatures."
+  },
+  "scope": "Original five-choice Source inventory and action/selection constancy across acknowledged Faces, plus sealed controls checks. No independent Face digest recomputation or full issue acceptance."
+}

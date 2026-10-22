@@ -1,0 +1,239 @@
+{
+  "source_commit": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-bounded-captures",
+  "source_clean_before": true,
+  "RUST_MIN_STACK": "unset",
+  "jobs": 4,
+  "steps": [
+    {
+      "name": "controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "creche_controls"
+      ],
+      "exit_code": 0,
+      "sha256": "83043877716a04616ec7f746801cc0bf8442059a8c3b4ff296c832c6c4499118",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-controls.log",
+      "bytes": 6992,
+      "expected_tests": 7,
+      "actual_tests": 7
+    },
+    {
+      "name": "pointer",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "creche_pointer"
+      ],
+      "exit_code": 0,
+      "sha256": "face33976ba1c08ba87e1dbd35315ba1e626427798d17428c2bfb7ce8ecf7960",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-pointer.log",
+      "bytes": 3578,
+      "expected_tests": 4,
+      "actual_tests": 4
+    },
+    {
+      "name": "viewport",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "proof_viewport"
+      ],
+      "exit_code": 0,
+      "sha256": "7c3a7a6a28413f67c84305366288d49eecb01393d7d9a7169b7dc80d6b5efbcb",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-viewport.log",
+      "bytes": 3320,
+      "expected_tests": 3,
+      "actual_tests": 3
+    },
+    {
+      "name": "artifacts",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "qemu_artifacts"
+      ],
+      "exit_code": 0,
+      "sha256": "eca1eaa6f67c27029bd215ad59da5f7a6582232a27b570fd5bc24a47b5331eef",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-artifacts.log",
+      "bytes": 3601,
+      "expected_tests": 5,
+      "actual_tests": 5
+    },
+    {
+      "name": "metadata",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "viewport_rejects_appliance_stale_source_or_wrong_image_metadata"
+      ],
+      "exit_code": 0,
+      "sha256": "21f465307b91bf4778bdd4598306f5246efbe2fb36928d44d02e8bf5f2273157",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-metadata.log",
+      "bytes": 3164,
+      "expected_tests": 1,
+      "actual_tests": 1
+    },
+    {
+      "name": "naming-acceptance",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "naming_acceptance_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "707930c0bd6e161647725adfacda96201d000b40516669e578d6ecbbf031bd97",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-naming-acceptance.log",
+      "bytes": 187798,
+      "expected_tests": 2,
+      "actual_tests": 2
+    },
+    {
+      "name": "field-clusters",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::field_cluster_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "79cf24f1e424fef3cf7e871ff0cb6cc5bee2fade9bfee6540796f7164380cb1e",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-field-clusters.log",
+      "bytes": 1123,
+      "expected_tests": 6,
+      "actual_tests": 6
+    },
+    {
+      "name": "actual-creche",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::panels::tests::creche::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-actual-creche.log",
+      "bytes": 4165,
+      "expected_tests": 4,
+      "actual_tests": 4
+    },
+    {
+      "name": "creche-navigation",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::creche_navigation_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "7e251559f95e2246a1c16c542b867a2b41d287f803601641856c028debf97efc",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-creche-navigation.log",
+      "bytes": 967,
+      "expected_tests": 5,
+      "actual_tests": 5
+    },
+    {
+      "name": "xtask-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "sha256": "3f640b69121563d30caa2730c60200d231b1b771769e921495e6a7768dbb13f3",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-xtask-clippy.log",
+      "bytes": 14280
+    },
+    {
+      "name": "conduitos-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "sha256": "91ae60a24436dca593a0e9dfe465687fd454b417be836409f4c345fe2bd5083e",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-conduitos-clippy.log",
+      "bytes": 15232
+    }
+  ],
+  "qemu": "unstarted",
+  "status": "failed",
+  "source_clean_after": true,
+  "source_head_after": "5ded31d6172e2b1ad75bb5f404ceb698db35546c"
+}

@@ -1,0 +1,15 @@
+{
+  "source_commit": "47e361d7c11105b40dc8e70aae4a0ec9a77d6fa7",
+  "requested_viewport": "1280x800",
+  "exit_code": -15,
+  "seconds": 143.78877684596227,
+  "source_clean_after": true,
+  "source_unchanged": true,
+  "hashes": {
+    "context.json": "6f172c037172510d87323c5be8fd06e4a93dc946eb976e8efa664648af3030f4",
+    "make-record.rs": "60f01ed053e821aba2221366ccd8913701390590ecccb54358eef15399f8e423",
+    "owner-cancellation.json": "cd092715d75355f361e3a9da4999dddc9762f8f4591eb96612d2e02a6478c509",
+    "supported-command.log": "a7a379e417d1aafdd5457456b9adb7f27a4393ed2083cf4d0d4cf8a116ddf16c"
+  },
+  "verified_frames": []
+}

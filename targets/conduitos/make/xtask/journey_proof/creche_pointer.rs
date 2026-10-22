@@ -7,7 +7,9 @@ use serde_json::Value;
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
 mod evidence;
+mod field;
 pub(super) use evidence::receipt;
+pub(super) use field::focus_argument;
 
 const ACTION: &str = "creche.plot.3";
 const POINTER: &str = "CONDUIT_NATIVE_POINTER ";
@@ -22,20 +24,20 @@ pub(super) fn exercise(
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
     creche_choices::navigate_to(serial, child, stream, reader, ACTION, None, false)?;
-    let focus = focus(serial)?;
+    let focus = focus(serial, (ACTION, None))?;
     if focus["hit_bounds"].is_null() {
         return Err(refusal("fourth checked Plot has no current frame hit"));
     }
     artifacts.capture(stream, reader, "creche-fourth-checked", true)?;
     // Calibrate physical report units independently on each axis. These are
     // motion only; no semantic action is sent or retried.
-    let x = calibrate(serial, child, stream, reader, true)?;
-    let y = calibrate(serial, child, stream, reader, false)?;
+    let x = calibrate(serial, child, stream, reader, true, (ACTION, None))?;
+    let y = calibrate(serial, child, stream, reader, false, (ACTION, None))?;
     for (expected, held, name) in [
         (false, true, "creche-pointer-three-selected"),
         (true, false, "creche-pointer-four-restored"),
     ] {
-        move_to_hit(serial, child, stream, reader, (x, y), false)?;
+        move_to_hit(serial, child, stream, reader, (x, y), false, (ACTION, None))?;
         gesture(
             serial,
             child,
@@ -90,7 +92,7 @@ fn physical(record: Value) -> Result<Value, ConduitosError> {
     sequence(&record)?;
     Ok(record)
 }
-fn focus(serial: &Path) -> Result<Value, ConduitosError> {
+fn focus(serial: &Path, target: (&str, Option<&str>)) -> Result<Value, ConduitosError> {
     let observations = records(serial, FOCUS)?;
     let focus = observations
         .last()
@@ -100,8 +102,8 @@ fn focus(serial: &Path) -> Result<Value, ConduitosError> {
         .last()
         .ok_or_else(|| refusal("missing acknowledged pointer target Face"))?;
     if focus["schema"] != "conduit.creche-focus/v1"
-        || focus["action_id"] != ACTION
-        || !focus["argument_name"].is_null()
+        || focus["action_id"] != target.0
+        || focus["argument_name"] != serde_json::json!(target.1)
         || focus["face_id"] != face["face"]["identity"]
         || focus["face_revision"] != face["face"]["revision"]
         || focus["show_id"] != face["show"]["show_id"]
@@ -154,6 +156,7 @@ fn calibrate(
     stream: &mut UnixStream,
     reader: &mut qmp::Reader,
     horizontal: bool,
+    target: (&str, Option<&str>),
 ) -> Result<i64, ConduitosError> {
     let prior = last_sequence(serial)?;
     journey_input::relative_motion(
@@ -167,7 +170,7 @@ fn calibrate(
     let sample = wait_sample(serial, child, prior, |sample| {
         sample[axis].as_i64().is_some_and(|delta| delta > 0)
     })?;
-    bind(&sample, &focus(serial)?)?;
+    bind(&sample, &focus(serial, target)?)?;
     if sample["primary_pressed"] != false || sample["press_edge"] != false {
         return Err(refusal(
             "pointer calibration unexpectedly pressed a control",
@@ -219,6 +222,7 @@ fn within_hit(sample: &Value, focus: &Value) -> Result<bool, ConduitosError> {
     Ok(px >= x && px < x + width && py >= y && py < y + height)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn move_by(
     serial: &Path,
     child: &mut Child,
@@ -227,6 +231,7 @@ fn move_by(
     scale: (i64, i64),
     delta: (i64, i64),
     pressed: bool,
+    target: (&str, Option<&str>),
 ) -> Result<Value, ConduitosError> {
     let samples = records(serial, POINTER)?;
     let prior = samples
@@ -241,12 +246,13 @@ fn move_by(
             && sample["position_y"] == y
             && sample["primary_pressed"] == pressed
     })?;
-    bind(&sample, &focus(serial)?)?;
+    bind(&sample, &focus(serial, target)?)?;
     if sample["press_edge"] != false {
         return Err(refusal("motion unexpectedly became a new physical press"));
     }
     Ok(sample)
 }
+#[allow(clippy::too_many_arguments)]
 fn move_to_hit(
     serial: &Path,
     child: &mut Child,
@@ -254,8 +260,9 @@ fn move_to_hit(
     reader: &mut qmp::Reader,
     scale: (i64, i64),
     pressed: bool,
+    target: (&str, Option<&str>),
 ) -> Result<(), ConduitosError> {
-    let focus = focus(serial)?;
+    let focus = focus(serial, target)?;
     let (x, y, width, height, display_width, display_height) = rectangle(&focus)?;
     // Four bounded motion reports suffice for the full normalized span with
     // the observed boot-pointer scale. An unsuitable scale refuses explicitly.
@@ -280,7 +287,7 @@ fn move_to_hit(
         if delta == (0, 0) {
             break;
         }
-        move_by(serial, child, stream, reader, scale, delta, pressed)?;
+        move_by(serial, child, stream, reader, scale, delta, pressed, target)?;
     }
     Err(refusal(
         "actual pointer did not reach current hit within the finite motion bound",
@@ -338,13 +345,22 @@ fn gesture(
             if held {
                 // First observe the still-held cursor under the fresh Show,
                 // then move onto its current hit without releasing the button.
-                move_by(serial, child, stream, reader, scale, (1, 0), true)?;
-                move_to_hit(serial, child, stream, reader, scale, true)?;
+                move_by(
+                    serial,
+                    child,
+                    stream,
+                    reader,
+                    scale,
+                    (1, 0),
+                    true,
+                    (ACTION, None),
+                )?;
+                move_to_hit(serial, child, stream, reader, scale, true, (ACTION, None))?;
                 let sample = records(serial, POINTER)?
                     .last()
                     .cloned()
                     .ok_or_else(|| refusal("held cursor observation absent"))?;
-                if !within_hit(&sample, &focus(serial)?)?
+                if !within_hit(&sample, &focus(serial, (ACTION, None))?)?
                     || sample["press_edge"] != false
                     || records(serial, CHANGE)?.len() != before + 1
                 {
@@ -365,7 +381,7 @@ fn gesture(
             let sample = wait_sample(serial, child, after?, |sample| {
                 sample["primary_pressed"] == false
             })?;
-            bind(&sample, &focus(serial)?)?;
+            bind(&sample, &focus(serial, (ACTION, None))?)?;
             if sample["press_edge"] != false {
                 return Err(refusal("release became an activation"));
             }
