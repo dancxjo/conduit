@@ -1,4 +1,16 @@
 //! Explicit profile and wire-boundary conformance; no native platform claim.
+extern crate std;
+
+fn on_host_stack(body: impl FnOnce() + Send + 'static) {
+    // Debug Runtime/Owner construction copies exceed the harness default stack.
+    // This hosted-only allowance says nothing about the native 1 MiB stack.
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(body)
+        .unwrap()
+        .join()
+        .unwrap();
+}
 use crate::{
     admission::{Admission, BackKind},
     runtime::Runtime,
@@ -57,68 +69,124 @@ fn ingress(sequence: u64, bytes: u32) -> Request {
 }
 #[test]
 fn face_profile_admits_exact_8192_fore_value_and_keeps_pressure_sequence_typed() {
-    let mut runtime = Runtime::default();
-    initialize(&mut runtime, true, 8192);
-    let mut bytes = [0x65; 8193];
-    assert!(runtime.execute(ingress(0, 8193), &mut bytes).is_err());
-    assert!(
+    on_host_stack(|| {
+        let mut runtime = Runtime::default();
+        initialize(&mut runtime, true, 8192);
+        let mut bytes = [0x65; 8193];
+        assert!(runtime.execute(ingress(0, 8193), &mut bytes).is_err());
+        assert!(
+            runtime
+                .execute(
+                    Request::AdmitRemote {
+                        endpoint: RemoteEndpointId(1),
+                        cord: CordId(0),
+                        sequence: 0,
+                        bytes: 8192
+                    },
+                    &mut bytes
+                )
+                .is_err()
+        );
+        assert_eq!(
+            runtime.execute(ingress(0, 8192), &mut bytes).unwrap(),
+            Response::RemoteAdmission(RemoteIngressOutcome::Accepted { sequence: 0 })
+        );
+        assert!(runtime.execute(ingress(0, 8192), &mut bytes).is_err());
+        assert_eq!(
+            runtime.execute(ingress(1, 8192), &mut bytes).unwrap(),
+            Response::RemoteAdmission(RemoteIngressOutcome::Full { sequence: 1 })
+        );
+        let request = (0..16)
+            .find_map(|_| {
+                runtime.execute(Request::Step, &mut bytes).unwrap();
+                match runtime.execute(Request::Next, &mut bytes).unwrap() {
+                    Response::Next(Some(request)) => Some(request),
+                    _ => None,
+                }
+            })
+            .expect("bounded Face sink yields exact Host Call");
+        assert_eq!(request.input.value.byte_len, 8192);
+        assert_eq!(&bytes[..8192], &[0x65; 8192]);
+        // Full did not advance sequence1; after the queued value reaches its Host
+        // Call, this exact next sequence remains admissible into the finite queue.
+        assert_eq!(
+            runtime.execute(ingress(1, 8192), &mut bytes).unwrap(),
+            Response::RemoteAdmission(RemoteIngressOutcome::Accepted { sequence: 1 })
+        );
         runtime
             .execute(
-                Request::AdmitRemote {
-                    endpoint: RemoteEndpointId(1),
-                    cord: CordId(0),
-                    sequence: 0,
-                    bytes: 8192
+                Request::Complete {
+                    node: request.node,
+                    request: request.request,
+                    outcome: HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
                 },
-                &mut bytes
+                &mut bytes,
             )
-            .is_err()
-    );
-    assert_eq!(
-        runtime.execute(ingress(0, 8192), &mut bytes).unwrap(),
-        Response::RemoteAdmission(RemoteIngressOutcome::Accepted { sequence: 0 })
-    );
-    assert!(runtime.execute(ingress(0, 8192), &mut bytes).is_err());
-    assert_eq!(
-        runtime.execute(ingress(1, 8192), &mut bytes).unwrap(),
-        Response::RemoteAdmission(RemoteIngressOutcome::Full { sequence: 1 })
-    );
-    let request = (0..16)
-        .find_map(|_| {
-            runtime.execute(Request::Step, &mut bytes).unwrap();
-            match runtime.execute(Request::Next, &mut bytes).unwrap() {
-                Response::Next(Some(request)) => Some(request),
-                _ => None,
+            .unwrap();
+        // Sequence1 is already queued. Successfully dispatch more than ten inputs
+        // on this one endpoint: retained remote Sign events must not be capped at
+        // the number of possible Cords/endpoints. Storage remains fixed throughout.
+        for sequence in 1..=12 {
+            if sequence > 1 {
+                assert_eq!(
+                    runtime
+                        .execute(ingress(sequence, 8192), &mut bytes)
+                        .unwrap(),
+                    Response::RemoteAdmission(RemoteIngressOutcome::Accepted { sequence })
+                );
             }
-        })
-        .expect("bounded Face sink yields exact Host Call");
-    assert_eq!(request.input.value.byte_len, 8192);
-    assert_eq!(&bytes[..8192], &[0x65; 8192]);
-    // Full did not advance sequence1; after the queued value reaches its Host
-    // Call, this exact next sequence remains admissible into the finite queue.
-    assert_eq!(
-        runtime.execute(ingress(1, 8192), &mut bytes).unwrap(),
-        Response::RemoteAdmission(RemoteIngressOutcome::Accepted { sequence: 1 })
-    );
-    runtime.execute(Request::Cancel, &mut bytes).unwrap();
+            let pending = (0..16)
+                .find_map(|_| {
+                    runtime.execute(Request::Step, &mut bytes).unwrap();
+                    match runtime.execute(Request::Next, &mut bytes).unwrap() {
+                        Response::Next(Some(request)) => Some(request),
+                        _ => None,
+                    }
+                })
+                .expect("each admitted input reaches the exact pending Face Host Call");
+            assert_eq!(pending.request, RequestId(sequence as u32));
+            assert_eq!(pending.input.value.byte_len, 8192);
+            runtime
+                .execute(
+                    Request::Complete {
+                        node: pending.node,
+                        request: pending.request,
+                        outcome: HostCallOutcome {
+                            disposition: HostCallDisposition::Completed,
+                            output: None,
+                            failure: None,
+                        },
+                    },
+                    &mut bytes,
+                )
+                .unwrap();
+        }
+        runtime.execute(Request::Cancel, &mut bytes).unwrap();
+    });
 }
 #[test]
 fn legacy_profile_keeps_3072_and_refuses_new_ingress_before_mutation() {
-    assert_eq!(VALUE_BYTES, 3072);
-    let mut runtime = Runtime::default();
-    initialize(&mut runtime, false, 3072);
-    let mut bytes = [0; 8192];
-    assert!(runtime.execute(ingress(0, 8), &mut bytes).is_err());
-    assert!(
-        runtime
-            .execute(Request::Store { bytes: 3073 }, &mut bytes)
-            .is_err()
-    );
-    assert!(matches!(
-        runtime.execute(Request::Store { bytes: 3072 }, &mut bytes),
-        Ok(Response::Stored(_))
-    ));
-    runtime.execute(Request::Cancel, &mut bytes).unwrap();
+    on_host_stack(|| {
+        assert_eq!(VALUE_BYTES, 3072);
+        let mut runtime = Runtime::default();
+        initialize(&mut runtime, false, 3072);
+        let mut bytes = [0; 8192];
+        assert!(runtime.execute(ingress(0, 8), &mut bytes).is_err());
+        assert!(
+            runtime
+                .execute(Request::Store { bytes: 3073 }, &mut bytes)
+                .is_err()
+        );
+        assert!(matches!(
+            runtime.execute(Request::Store { bytes: 3072 }, &mut bytes),
+            Ok(Response::Stored(_))
+        ));
+        runtime.execute(Request::Cancel, &mut bytes).unwrap();
+    });
 }
 #[test]
 fn face_admission_refuses_oversized_contracts_and_remote_egress() {
