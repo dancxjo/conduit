@@ -807,3 +807,7 @@ an IOMMU, DMA containment, mutually isolated kernel drivers/providers, physical
 hardware execution, SMP or an unsupported backend. Receipts report
 `dma_isolation:false` and `driver_isolation:false`. Each architecture earns its
 own mechanism-level evidence; none inherits another target's proof by analogy.
+
+### Merged-baseline backend fixture refresh (2026-10-22 UTC)
+
+Clean Source `cf1ee8acd38dc180ad040d24d83d52bda1abcf6e`, containing normally merged baseline `84dac6d02`, passed the supported ordinary-domain proof again on actual x86_64 CPL3: 26 hostile service-memory entries, fresh-instance restart boundary samples zero, and the guest/hostile-broker/copy-recovery compositor fixtures. Nineteen focused CPU controls, strict hosted Clippy and full formatting also pass. The [new exact-image packet](../audits/evidence/service-memory-current-20261021/current-cf1ee8acd/README.md) retains actual ELF/ISO hashes, raw/compressed logs, four bound receipts and all limitations; the earlier positive and negative packets remain unchanged. This is backend fixture evidence only. Production compositor integration, physical scanout, DMA/driver containment, other architectures and semantic Show acknowledgement remain separate obligations; current Candidate/Integration/publication gates remain pending.

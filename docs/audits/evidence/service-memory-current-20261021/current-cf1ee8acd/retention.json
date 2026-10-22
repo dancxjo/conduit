@@ -1,0 +1,69 @@
+{
+  "source_commit": "cf1ee8acd38dc180ad040d24d83d52bda1abcf6e",
+  "command": "cargo +stable xtask make conduitos ordinary-domain-proof --locked",
+  "command_exit_code": 0,
+  "proof_class": "freestanding-emulator",
+  "fixture": true,
+  "files": [
+    {
+      "path": "build-proof.log",
+      "bytes": 161831,
+      "sha256": "1fbe0a5a532a08ee487a9b6cc63f4edc46479c3355d893ebcb8ac829ba230745"
+    },
+    {
+      "path": "build.json",
+      "bytes": 335,
+      "sha256": "f590e57f8bb69dfdd6d87a53771cfb6456885f64eae2999f70e8d739c43383f8"
+    },
+    {
+      "path": "compositor-copy-recovery-fixture-proof.json",
+      "bytes": 1630,
+      "sha256": "9bf70a04cd7035bdd6a5e483577ea683b3c67d8d30daee8064efd9c1f535a190"
+    },
+    {
+      "path": "compositor-guest-fixture-proof.json",
+      "bytes": 1546,
+      "sha256": "ea82bd2510f64cdefad5c0d7151787ee6d5ca44982bf9f69250f07d76e9e7dda"
+    },
+    {
+      "path": "compositor-hostile-broker-fixture-proof.json",
+      "bytes": 2423,
+      "sha256": "6886be90af180322de86749748278156d75d2a3c0d94457cc4efce564f8afa05"
+    },
+    {
+      "path": "conduitos",
+      "bytes": 61208120,
+      "sha256": "014ffd02b9f8288c751227c5344d0ea5fe469cb891d13be6e9268712df29be9a"
+    },
+    {
+      "path": "conduitos.iso",
+      "bytes": 65474560,
+      "sha256": "b12182a84045d10c4ab812869979894be61a203f4b537ab83e0b4c06f31ca097"
+    },
+    {
+      "path": "image.json",
+      "bytes": 351,
+      "sha256": "86c1e65c2f9da72d726570be795b4b42105875284bf086ce2c0133ba4a4c4812"
+    },
+    {
+      "path": "ordinary-domain-proof.log",
+      "bytes": 28789,
+      "sha256": "c984d961332652ba57c751a96e1809d0fe9386b6e80ddceadcc70a9e2de3a3d4"
+    },
+    {
+      "path": "privilege-inventory-014ffd02b9f8288c751227c5344d0ea5fe469cb891d13be6e9268712df29be9a-architecture-proof-appliance.json",
+      "bytes": 63879,
+      "sha256": "78f2e68669be9381e83d8675438f5fec8c772a7ad10737ea699d9dd755505f5c"
+    },
+    {
+      "path": "privilege-inventory-014ffd02b9f8288c751227c5344d0ea5fe469cb891d13be6e9268712df29be9a-architecture-proof-appliance.map",
+      "bytes": 6761240,
+      "sha256": "d0eb8cdd0074d4cbeef1fad290b27a8ce5ec748dfe9932adaac6027794aaf0fc"
+    },
+    {
+      "path": "service-memory-fixture-proof.json",
+      "bytes": 1169,
+      "sha256": "30d82144e9be2fc6f59330d0722205c25e7e1294288a4c6ee2808b91618789ec"
+    }
+  ]
+}
