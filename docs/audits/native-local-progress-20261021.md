@@ -1431,3 +1431,18 @@ editor in a partition refuses rather than aliasing its single private state slot
 Canonical document gears are recognized by the existing protected-region planning
 and preparation selection, without advertising an unfinished state/editor Back.
 The final freestanding x86_64 library check passes; no new test/proof campaign.
+
+The checkpoint was synchronized with current `dev` (including #6220); the
+post-sync freestanding native-compositor library check passed in 34.23 seconds.
+The numeric Runtime document Back now prepares the canonical revision-zero empty
+document before Play and emits it before any edit Host Call. Genuine edits reuse
+the existing transform, bounded values, cancellation, and request sequence; the
+initial publication does not consume request zero. Wire discriminant 6 is
+additive; old receivers refuse it rather than reinterpret a legacy variant.
+
+Two focused numeric regressions pass: initialized publication followed by an
+actual admitted Host input, and wire identity round-trip. Initial fixture failures
+were corrected (explicit pressure policy and fuel, and an admitted Host input
+rather than unbudgeted remote ingress). No production remote Sign capacity was
+added: native editor interaction admission still needs an explicit bounded path.
+These checks prove kernel composition only, not guest execution or editor usability.
