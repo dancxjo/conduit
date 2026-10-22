@@ -1559,3 +1559,32 @@ without conflicts. The post-sync freestanding native-compositor library check
 passed at `1ae49e2bc` in 7.56 seconds. The newly linked Runtime's three documented
 local stack reservations were inspected again and remain unchanged; this is
 partial static evidence, not complete peak-stack or guest-execution proof.
+
+### Canonical Patchbay publication custody on the retained native owner
+
+The selected native retained actor now projects a canonical `FaceFragment`,
+retains the complete acknowledged Face/MaskShow, and consumes a typed
+`FaceInteraction` against that evidence once. This reuses its existing graph,
+selection and application revision. It adds no alternate Patchbay actor.
+Rejected replacements revoke old publication authority; consumed Show sequences
+cannot be republished. Typed semantic refusals preserve the actor and revision.
+The service preflights the exact possible proposal reply before mutation.
+
+Root independently retains the actual receipt and checks returned Edit/Mask
+proposals against the genuine input and its selected graph/topology. Transport
+uncertainty quarantines the service. A successfully published canonical slot
+cannot subsequently accept the legacy event path. Legacy 3 KiB views and the
+separate 8 KiB canonical input bound are unchanged; no aggregate heap or peak
+native stack fit is claimed.
+
+The focused application-core check passed three matching tests (query/codec,
+typed refusal categories and existing exact graph-reply custody). The first
+native Mask integration test correctly refused `PlayNotCurrent`: its initial
+test setup supplied a born Body without an actual current playing Wake. This is
+negative evidence, not an accepted interaction receipt; the test must bind real
+lifecycle evidence rather than weakening Face validation.
+
+This is owner/publication infrastructure for #6201 and #5994. The installed
+native Source still selects `native-retained.conduit`; canonical Fore selection,
+ordinary native publication/input dispatch and adapter retirement remain open.
+No QEMU/browser campaign, CI acceptance, release or parent closure is claimed.
