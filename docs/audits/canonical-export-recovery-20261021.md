@@ -41,3 +41,7 @@ Three separate production-library configurations also compiled successfully from
 ## Acceptance boundary
 
 This is hosted CPU test, strict lint and formatting evidence. It does not establish native execution, physical execution, installed parser currentness, Language policy acceptance, or Host admission authority. Historical held Language-model evidence is not relabelled as proof of this generic recovery. #6062's publication dependency, required current-base CI, exact-head acceptance, reviewed merge and the parent's shared Integration/publication batch remain delivery gates. No new PR or CI run was started while the existing Candidate and prerequisite acceptance remain outstanding; #6063 remains open.
+
+## Accepted-baseline refresh (2026-10-22 UTC)
+
+Clean source `9cd8a6c07d20447fcfe56220a999b9b56b943b8d` merges accepted baseline `84dac6d02fc48078b22a8e33744d1b1039fcff77` without changing the adapter, AI bridge or suite implementation. The supported `cargo +stable xtask check canonical-export` passed again: six generic cases, fourteen categorical cases and both strict Clippy checks. [Exact-source receipt](evidence/canonical-export-20261022/6063-merged-source-check.json) and [original log](evidence/canonical-export-20261022/6063-84dac-canonical-export-check.log.gz) retain exit 0 and SHA-256 custody; gzip was independently round-tripped. Earlier positive and negative packets are unchanged. This documentation successor is not relabelled as the executed source; Candidate, merged Integration and applicable publication gates remain pending.
