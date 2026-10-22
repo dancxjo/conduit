@@ -8,6 +8,7 @@ mod play;
 mod preparation;
 mod text_state;
 mod document_state;
+mod editor_delivery;
 mod tutorial_application;
 
 pub use application_delivery::NativeApplicationRequest;

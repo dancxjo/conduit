@@ -14,6 +14,7 @@ pub enum BackKind {
     Face,
     Application,
     Document,
+    Editor,
 }
 
 pub struct Admission {
@@ -97,6 +98,7 @@ impl Admission {
                 BackKind::Document => {
                     PlannedBack::Document(DocumentBack::new(values.store(&[0; 8])?))
                 }
+                BackKind::Editor => PlannedBack::Editor(StreamTransformBack::new(false)),
                 BackKind::Face => PlannedBack::Face(FaceBack {
                     pending: None,
                     next: 0,
