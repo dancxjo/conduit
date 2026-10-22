@@ -25,6 +25,11 @@ pub(crate) enum BirthTransition {
 }
 
 impl DurableHostRuntime {
+    /// Prepare the inert service-owned encounter before publishing Host readiness.
+    pub(crate) fn prepare_birth_encounter(&mut self, root: &Path) -> Result<(), String> {
+        self.birth_face(root).map(|_| ())
+    }
+
     pub(super) fn birth_face(
         &mut self,
         root: &Path,
