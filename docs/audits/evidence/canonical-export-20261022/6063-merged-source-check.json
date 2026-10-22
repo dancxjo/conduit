@@ -1,0 +1,11 @@
+{
+  "source_commit": "9cd8a6c07d20447fcfe56220a999b9b56b943b8d",
+  "base_commit": "84dac6d02fc48078b22a8e33744d1b1039fcff77",
+  "command": "cargo +stable xtask check canonical-export",
+  "exit_code": 0,
+  "log_sha256": "25f729cdd27a050694dd4f91c82740aba41d80384d1553b8906d9a599fba8c33",
+  "generic_cases": 6,
+  "categorical_cases": 14,
+  "strict_clippy": "supported Composite and AI library/channel checks passed",
+  "scope": "current merged-source local acceptance; Candidate/Integration/publication pending"
+}

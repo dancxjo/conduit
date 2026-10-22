@@ -321,7 +321,7 @@ pub(super) fn patchbay_partition_selector(
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| {
-            placement.kind_id.as_str() == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND
+            placement.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND
         })
         .ok_or(())?;
     Ok(BodyFaceSelector {

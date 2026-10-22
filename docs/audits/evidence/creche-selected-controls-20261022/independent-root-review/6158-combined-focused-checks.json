@@ -1,0 +1,11 @@
+{
+  "status": "independently-verified",
+  "source": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "sealed_files_rehashed": 14,
+  "raw_command_logs": 12,
+  "passed_tests": 37,
+  "strict_xtask": "passed",
+  "strict_conduitos": "passed",
+  "format": "passed",
+  "scope": "Combined focusedhost/CPU proof; QEMU unstarted"
+}

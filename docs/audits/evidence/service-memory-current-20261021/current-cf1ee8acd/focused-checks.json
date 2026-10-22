@@ -1,0 +1,44 @@
+{
+  "source_commit": "cf1ee8acd38dc180ad040d24d83d52bda1abcf6e",
+  "status": "focused checks complete; supported domain proof running separately",
+  "ordinary_plan_cases": 12,
+  "morse_cases": 2,
+  "memory_layout_cases": 5,
+  "checks": [
+    {
+      "name": "ordinary-plan-tests",
+      "exit_code": 0,
+      "log": "work/6181-cf1-ordinary-plan-tests.log",
+      "bytes": 11280,
+      "sha256": "5662eddc3e982874459613888236a37e6d9e5dc2216f509e11667aed75adcfcb"
+    },
+    {
+      "name": "morse-tests",
+      "exit_code": 0,
+      "log": "work/6181-cf1-morse-tests.log",
+      "bytes": 579,
+      "sha256": "7d22ec036789c63618baec1535914f17b46ff0b7f73f73807c77e0581efbfd5c"
+    },
+    {
+      "name": "memory-tests",
+      "exit_code": 0,
+      "log": "work/6181-cf1-memory-tests.log",
+      "bytes": 830,
+      "sha256": "fc59fbf547921bc1024c420eedc867aea3f4e06e059398255db49ed99482b4d0"
+    },
+    {
+      "name": "clippy",
+      "exit_code": 0,
+      "log": "work/6181-cf1-clippy.log",
+      "bytes": 810,
+      "sha256": "bf4934b92bfd0dee02736e851a0a5af451214d5646be4f0606af4347cc90b0ab"
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "log": "work/6181-cf1-format.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

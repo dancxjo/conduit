@@ -17,6 +17,7 @@ mod boundary;
 mod bounded_activation;
 mod bounded_fold_activation;
 mod bounded_scan_activation;
+mod canonical_export;
 mod child;
 mod region_kernel;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};

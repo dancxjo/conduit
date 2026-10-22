@@ -1,0 +1,18 @@
+{
+  "source": "08a8352297ec35a18138b5e02e958cce5331d395",
+  "status": "supported ordinary-domain-proof exited0",
+  "files": {
+    "compositor-guest-fixture-proof.json": "66ae9a904bc36d304880a94f2394808bf26e95266c0cfe4abca84f0d65af2610",
+    "conduitos.iso": "66e5ea74e21cd4bee96c24af36d7b6540c0fe6f540fbe8c10f1a26e30fe5778d",
+    "compositor-hostile-broker-fixture-proof.json": "e7fc023642181f87c929e436d47816a6169c158d0c695bc8be4f561d9df414e6",
+    "build-proof.log": "b3a8341cc653eb0b2cd32d3048ab22904b25d897fe60e81ba82fc06e2bd469a5",
+    "privilege-inventory-53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98-architecture-proof-appliance.json": "30690cbbf3ad042e1178cfc3830d1236fc98f0b1199479158ab7d7ba617445b2",
+    "service-memory-fixture-proof.json": "7887869cb58cb79ac87b98235d29d6f3851093d7c9c0f8815e6d8a6f575d7a26",
+    "privilege-inventory-53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98-architecture-proof-appliance.map": "a9ab968b9ca6ef355804ba874c4d64a1cab02ceb4b195fd6f61bf39816e4f0dc",
+    "conduitos": "53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98",
+    "compositor-copy-recovery-fixture-proof.json": "54cb9a39701c1f966832f28be78e9affef942cd08a2bbe541189a8493177a72b",
+    "build.json": "4313562a2756ee1a834f14aa75194ad63b4f10c278b5ceb28bf38362de0982b4",
+    "image.json": "10dc76a76772548e46025643fe3a456743d7505200b15d60910e90feba7a2c68",
+    "ordinary-domain-proof.log": "303d070ef744eb75db14e24e25067005cc3f331621fba8f68e0c95dd9eec2c0a"
+  }
+}

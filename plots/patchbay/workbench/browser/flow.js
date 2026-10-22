@@ -235,6 +235,8 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
       selectionGroup,
     },
   }));
+  const drawnCords = edges.filter((edge) => !edge.hidden).length;
+  const omittedCords = projected.cordCount - drawnCords;
   const liveSummary = (snapshot.debugger?.activities || [])
     .slice(-8)
     .map((activity) => `${activity.subject}: ${activity.latest_kind}${activity.latest_value ? ` ${activity.latest_value.summary}` : ""}`)
@@ -304,6 +306,8 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     e(Flow.Background, { gap: 24, size: 1 }),
     e(Flow.Controls, { position: "bottom-right", showInteractive: false }),
     ),
+    omittedCords > 0 && e("p", { className: "flow-geometry-notice", role: "status" },
+      `${drawnCords}/${projected.cordCount} projected Cords drawn · ${omittedCords} omitted from diagram. Exact Face facts remain available.`),
     e("p", { className: "debugger-live-region", "aria-live": "polite", "aria-atomic": "true" }, liveSummary),
   );
 }

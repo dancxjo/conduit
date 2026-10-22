@@ -32,12 +32,7 @@ impl ExpandedCanonicalPlot {
                 "expanded plot identity differs from its canonical primitive graph".into(),
             ));
         }
-        if self.provenance_digest != provenance_digest(&self.source_document_id, &self.provenance) {
-            return Err(CanonicalExpansionDiagnostic::new(
-                "CND-FRM-049",
-                "expanded source provenance differs from its exact source document mapping".into(),
-            ));
-        }
+        self.validate_source_provenance()?;
         if self
             .realization_backs
             .windows(2)
@@ -454,25 +449,6 @@ fn hex(bytes: &[u8]) -> String {
         encoded.push(char::from(DIGITS[usize::from(byte & 0x0f)]));
     }
     encoded
-}
-
-pub(super) fn provenance_digest(
-    source_document_id: &conduit_core::SourceDocumentId,
-    provenance: &[ExpandedGearProvenance],
-) -> String {
-    let mut canonical = String::from("canonical-expansion-provenance");
-    push(&mut canonical, source_document_id.as_str());
-    for row in provenance {
-        push(&mut canonical, &row.gear_id);
-        push(&mut canonical, &row.plot_path.join("/"));
-        push(&mut canonical, &row.source_plot);
-        push(&mut canonical, &row.source_gear);
-        push(&mut canonical, &row.source_span.start.to_string());
-        push(&mut canonical, &row.source_span.end.to_string());
-        push(&mut canonical, &row.source_span.line.to_string());
-        push(&mut canonical, &row.source_span.column.to_string());
-    }
-    hash_string(&canonical)
 }
 
 fn push(target: &mut String, value: &str) {

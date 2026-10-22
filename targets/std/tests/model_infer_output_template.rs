@@ -36,6 +36,9 @@ impl ModelComputeAdapter for FaultTemplate {
     fn offer(&self) -> &ModelComputeOffer {
         self.inner.offer()
     }
+    fn runtime_identity(&self) -> &conduit_ai::ModelComputeRuntimeIdentity {
+        self.inner.runtime_identity()
+    }
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         self.inner.load(identity, bytes)
     }

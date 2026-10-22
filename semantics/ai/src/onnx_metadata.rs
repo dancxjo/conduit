@@ -9,7 +9,7 @@ use conduit_data::TensorElement;
 use sha2::{Digest, Sha256};
 
 pub const MAXIMUM_ONNX_BYTES: usize = 16 * 1024 * 1024;
-const MAXIMUM_FIELDS: usize = 65_536;
+pub const MAXIMUM_ONNX_FIELDS: usize = 65_536;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OnnxMetadataRefusal {
@@ -204,10 +204,8 @@ fn port(bytes: &[u8]) -> Result<OnnxPort, Refusal> {
         }
         Ok(())
     })?;
-    // Existing Data TensorValue requires rank >= 1; never silently reshape scalars.
-    if dimensions.is_empty() {
-        return Err(Refusal::Unsupported);
-    }
+    // An explicitly present empty shape is a scalar. The shape Option above
+    // still refuses absent/unknown shapes rather than coercing them to rank zero.
     Ok(OnnxPort {
         name: name.ok_or(Refusal::MissingField)?,
         element: element.ok_or(Refusal::MissingField)?,
@@ -231,11 +229,60 @@ fn dtype(value: u64) -> Result<TensorElement, Refusal> {
     })
 }
 
+/// Exact operator inventory for the existing attribute-free metadata profile.
+/// This is evidence for an explicit Back profile, not execution admission.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct OnnxOperator {
+    pub domain: String,
+    pub name: String,
+}
+
+pub fn inspect_onnx_operators(
+    bytes: &[u8],
+    expected_sha256: [u8; 32],
+) -> Result<Vec<OnnxOperator>, OnnxMetadataRefusal> {
+    // Reuse every existing envelope, extent and nested-resource refusal.
+    inspect_onnx(bytes, expected_sha256)?;
+    let mut graph = None;
+    visit(bytes, |field, value| {
+        if field == 7 {
+            set(&mut graph, raw(value)?)?;
+        }
+        Ok(())
+    })?;
+    let mut operators = Vec::new();
+    visit(graph.ok_or(Refusal::MissingField)?, |field, value| {
+        if field != 1 {
+            return Ok(());
+        }
+        let mut name = None;
+        let mut domain = None;
+        visit(raw(value)?, |f, v| {
+            match f {
+                4 => set(&mut name, text(v, false)?)?,
+                7 => set(&mut domain, text(v, true)?)?,
+                _ => {}
+            }
+            Ok(())
+        })?;
+        let operator = OnnxOperator {
+            domain: domain.unwrap_or_default(),
+            name: name.ok_or(Refusal::MissingField)?,
+        };
+        if !operators.contains(&operator) {
+            operators.push(operator);
+        }
+        Ok(())
+    })?;
+    operators.sort();
+    Ok(operators)
+}
+
 fn visit<'a>(
     bytes: &'a [u8],
     mut f: impl FnMut(u32, Value<'a>) -> Result<(), Refusal>,
 ) -> Result<(), Refusal> {
-    let mut fields = Fields::new(bytes, MAXIMUM_FIELDS);
+    let mut fields = Fields::new(bytes, MAXIMUM_ONNX_FIELDS);
     while let Some((field, value)) = fields.next().map_err(|_| Refusal::Malformed)? {
         f(field, value)?;
     }

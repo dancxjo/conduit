@@ -1,0 +1,23 @@
+{
+  "source": "f30633a9d",
+  "exit": 1,
+  "result": "ordinary guest and hostile gates progressed; morse-product-prepare refusal; not complete proof",
+  "files": {
+    "privilege-inventory-c45a6f8fec566b0a9d7f2859265b7619cdb17cf3681ef6309ca03697f26ba2ae-product-host.map": "f3413e6a5f1016d474e7120eede6d1950098a85299beebc940fe0391f80fc16c",
+    "privilege-inventory-ccfa38b31af5e2a76c97f81db77d9f5b8af2050dd6d55c98a449d13c97c83c94-architecture-proof-appliance.json": "9b2238a189c809365600552a71926b999b13da821078e740ce3af9f4a5bc9f5b",
+    "privilege-inventory-943065a048c024af89e447ce9ab77e1a931c5d3039cdf2464bd27a20f8206b7a-architecture-proof-appliance.map": "e7eac9fdbb0ef6bd8a0429be11fee113b0b2eeb5760d4eeb3bc11d29dc397044",
+    "conduitos.iso": "8057855fd4e9ef6e226b1b864214ad4467fff6fe87893679b46001559953820f",
+    "privilege-inventory-ccfa38b31af5e2a76c97f81db77d9f5b8af2050dd6d55c98a449d13c97c83c94-architecture-proof-appliance.map": "201d44dbba3f4cb16e655fd655651eb213a1b7fbe59968ab0b8e1611c12b3a2b",
+    "build-proof.log": "867ab95fd4626ae18af52ab0499c5199fdfa819371145ee18d64f780aff69ae0",
+    "privilege-inventory-c85c9b156a8c8e913705ef8f9756a2015f1cddb25116750024d1fb3addbaa3d1-architecture-proof-appliance.json": "1fb3fe047ce202239b7b7314b8d3eb4e95ad7c06cd425ee54d23249cdb87508c",
+    "privilege-inventory-943065a048c024af89e447ce9ab77e1a931c5d3039cdf2464bd27a20f8206b7a-architecture-proof-appliance.json": "951af0e95c7a76db17cd6fd39f0f79209a6fd63cd08d280e30e65ede88e6eba6",
+    "privilege-inventory-57eb89d0f16990de8f624a3ff58901f0dcfe726d9172c859a914d31a41a0ad0c-architecture-proof-appliance.map": "9f924f3545e08a1858c35bf0bc8879fd9e52b97c30993e80d8eeb07ee69f2eac",
+    "conduitos": "57eb89d0f16990de8f624a3ff58901f0dcfe726d9172c859a914d31a41a0ad0c",
+    "build.json": "d65e1c6cb6d6829bf8b07c9579c3700dde7353f70e2121531d067ea8536c0b4d",
+    "privilege-inventory-57eb89d0f16990de8f624a3ff58901f0dcfe726d9172c859a914d31a41a0ad0c-architecture-proof-appliance.json": "8f8ba8f8ada33ff0bb262f8314953544e9a0f157eb0395f8ee61608f3d0413fa",
+    "privilege-inventory-c45a6f8fec566b0a9d7f2859265b7619cdb17cf3681ef6309ca03697f26ba2ae-product-host.json": "02bd042da188a1938215289785d80c0456839ce8dc02ba594a8267526ebb0065",
+    "image.json": "c6fba7d5e750adfe81d82a1fea36166eac20e0470f30fa01f8f17696b824c6e0",
+    "privilege-inventory-c85c9b156a8c8e913705ef8f9756a2015f1cddb25116750024d1fb3addbaa3d1-architecture-proof-appliance.map": "49d9b805fc3b7121c1cb5af63f742d222e9f4ad0e73941bb8b01c0f0465930bf",
+    "ordinary-domain-proof.log": "0ff469b3a2e826b5c028eb6c504cc5c7ee4f69becbb64153222af35a2fa889a1"
+  }
+}

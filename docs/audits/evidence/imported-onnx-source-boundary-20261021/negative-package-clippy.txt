@@ -1,0 +1,112 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/assigned-plan)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/protected-line)
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/emergency-keyword-spotter)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/core)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/plan-lowering)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/network-realization)
+    Checking conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/model)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/composite)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/runtime)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/human)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/alife)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/robotics)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/wire)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/plot-library)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/tutorial)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/finance)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/bluetooth)
+    Checking conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/model)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/data)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/little-seismograph/fixture)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/audio)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/ai)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/architecture/observatory)
+    Checking conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/thermostat/face)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/birth)
+    Checking conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/todo/face)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/protocols/midi)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/synth)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/alife-distributed)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/speech)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/semantics/catalog)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/host)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/graph)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/tour)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/signal)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/proof/conformance/network-r1)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/conduitos/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/orange-pi/make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/avr/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/rp2040/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/esp32/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/raspberry-pi/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/body)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/mask-offer)
+    Checking conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/make/workspace)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std)
+error: manual implementation of `.is_multiple_of()`
+  --> targets/std/src/kernel_preparation/service/offers.rs:25:16
+   |
+25 |             || self.stack_bytes % 4096 != 0
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!self.stack_bytes.is_multiple_of(4096)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#manual_is_multiple_of
+   = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: large size difference between variants
+  --> targets/std/src/kernel_preparation/worker.rs:45:1
+   |
+45 | / enum Command {
+46 | |     Install(PreparedRegionKernel),
+   | |     ----------------------------- the largest variant contains at least 720 bytes
+47 | |     Start,
+48 | |     Step,
+...  |
+55 | |     CloseAbnormal(CordId, CanonicalValue),
+   | |     ------------------------------------- the second-largest variant contains at least 103 bytes
+56 | |     Cancel,
+57 | | }
+   | |_^ the entire enum is at least 720 bytes
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#large_enum_variant
+   = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+   |
+46 -     Install(PreparedRegionKernel),
+46 +     Install(Box<PreparedRegionKernel>),
+   |
+
+error: manual implementation of `.is_multiple_of()`
+  --> targets/std/src/kernel_preparation/worker.rs:87:16
+   |
+87 |             || stack_bytes % 4096 != 0
+   |                ^^^^^^^^^^^^^^^^^^^^^^^ help: replace with: `!stack_bytes.is_multiple_of(4096)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#manual_is_multiple_of
+
+error: could not compile `conduit-std-host` (lib) due to 3 previous errors

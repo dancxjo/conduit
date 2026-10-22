@@ -13,6 +13,8 @@ pub enum BackKind {
     Edit,
     Face,
     Application,
+    Document,
+    Editor,
 }
 
 pub struct Admission {
@@ -72,7 +74,44 @@ impl Admission {
         Ok(())
     }
     pub fn build(self) -> Result<Scheduler, SchedulerError> {
-        let mut values = FixedValueStore::<10, VALUE_BYTES>::new(24_576)?;
+        self.build_profile::<VALUE_BYTES>(0)
+    }
+    /// Explicit Face profile; legacy callers retain their original value bound.
+    pub fn build_face(self) -> Result<FaceScheduler, SchedulerError> {
+        self.validate_face()?;
+        // Remote Sign slots retain admitted input EVENTS, not endpoint slots.
+        // FixedSignLog already physically contains SIGN_ITEMS remote entries;
+        // admit their exact finite storage, with no replenishment after pressure.
+        self.build_profile::<FACE_VALUE_BYTES>(SIGN_ITEMS as u16)
+    }
+    pub fn validate_face(&self) -> Result<(), SchedulerError> {
+        if self.active_nodes == 0
+            || usize::from(self.active_nodes) > NODES
+            || usize::from(self.active_cords) > CORDS
+        {
+            return Err(SchedulerError::InvalidActiveCapacity);
+        }
+        for binding in self.bindings.iter().flatten() {
+            if binding.maximum_input_bytes > FACE_VALUE_BYTES as u32
+                || binding.maximum_output_bytes > FACE_VALUE_BYTES as u32
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
+        for cord in self.cords.iter().take(usize::from(self.active_cords)) {
+            if cord.maximum_value_bytes > FACE_VALUE_BYTES as u32
+                || !matches!(cord.sink, CordEndpoint::Local { .. })
+            {
+                return Err(SchedulerError::InvalidPlan);
+            }
+        }
+        Ok(())
+    }
+    fn build_profile<const VALUE: usize>(
+        self,
+        remote_sign_items: u16,
+    ) -> Result<NativeScheduler<VALUE>, SchedulerError> {
+        let mut values = FixedValueStore::<10, VALUE>::new(24_576)?;
         let empty = values.store(&[])?;
         let mut drivers = [PlannedBack::Upper(StreamTransformBack::new(false)); NODES];
         for (index, kind) in self
@@ -93,6 +132,10 @@ impl Admission {
                 BackKind::Edit => {
                     PlannedBack::TextEdit(StreamTransformBack::initially_empty(values.store(&[])?))
                 }
+                BackKind::Document => {
+                    PlannedBack::Document(DocumentBack::new(values.store(&[0; 8])?))
+                }
+                BackKind::Editor => PlannedBack::Editor(StreamTransformBack::new(false)),
                 BackKind::Face => PlannedBack::Face(FaceBack {
                     pending: None,
                     next: 0,
@@ -138,10 +181,12 @@ impl Admission {
             }
         }
         bindings.seal()?;
-        let signs = FixedSignLog::<SIGN_ITEMS>::new(
+        let signs = FixedSignLog::<SIGN_ITEMS>::new_with_remote_storage(
             (SIGN_ITEMS * core::mem::size_of::<KernelEvent>()) as u32,
+            remote_sign_items,
+            remote_sign_storage_bytes(remote_sign_items).ok_or(SchedulerError::InvalidPlan)?,
         )?;
-        Scheduler::new_with_active_counts_and_host_calls(
+        NativeScheduler::<VALUE>::new_with_active_counts_and_host_calls(
             usize::from(self.active_nodes),
             usize::from(self.active_cords),
             self.nodes,

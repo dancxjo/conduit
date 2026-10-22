@@ -1,0 +1,29 @@
+{
+  "source_commit": "f79d280e7c56f8bd5dd108b6102e84816026b782",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6063-canonical-export",
+  "source_clean_before": true,
+  "steps": [
+    {
+      "name": "canonical-export",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "canonical-export"
+      ],
+      "exit_code": 0,
+      "seconds": 350.7428331479896,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6063-f79d-canonical-export.log",
+      "bytes": 30052,
+      "sha256": "09d6cbcc07c8fe22538130840215a1c0a0009c5a8eb36248d0a1d496c7e47741",
+      "expected_passed_tests": 20,
+      "actual_passed_tests": 20,
+      "count_verified": true
+    }
+  ],
+  "scope": "hosted checks only; no QEMU, CI or acceptance claim",
+  "source_clean_after": true,
+  "source_head_after": "f79d280e7c56f8bd5dd108b6102e84816026b782",
+  "status": "passed"
+}

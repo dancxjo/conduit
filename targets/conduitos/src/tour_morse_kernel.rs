@@ -12,6 +12,9 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
 
+#[cfg(any(test, all(target_arch = "x86_64", target_os = "none")))]
+pub(crate) mod contract;
+
 const MAX_NODES: usize = 5;
 const MAX_CORDS: usize = 4;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;

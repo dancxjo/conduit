@@ -229,6 +229,13 @@ impl State {
                         initialized = Some(self.preparing.take().ok_or(Refusal::Order)?.finish()?);
                         Reply::Initialized
                     }
+                    Command::PatchbayConsume { slot, input } => self
+                        .models
+                        .as_mut()
+                        .ok_or(Refusal::Order)?
+                        .patchbay_consume_preflight(slot, &input, |reply| {
+                            workspace.preflight_canonical_reply(reply, &self.outgoing)
+                        })?,
                     command => self
                         .models
                         .as_mut()

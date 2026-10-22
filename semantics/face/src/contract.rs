@@ -448,5 +448,6 @@ pub fn install_mask_mechanism_catalog(
             .insert_kind(kind)
             .map_err(|error| alloc::format!("install Mask mechanism profile: {error:?}"))?;
     }
+    crate::mask_catalog::install_component_mask_catalog(startup, profiles)?;
     Ok(())
 }

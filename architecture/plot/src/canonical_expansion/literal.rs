@@ -16,7 +16,7 @@ pub(super) fn expand_literal(
     realization_backs: &mut Vec<conduit_core::PlotBack>,
     depth: usize,
     gears: &mut Vec<CheckedGear>,
-    connections: &mut Vec<CheckedConnection>,
+    connections: &mut ConnectionInventory,
     shared_pools: &mut Vec<ExpandedSharedPool>,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,

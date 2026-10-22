@@ -1,0 +1,41 @@
+diff --git a/targets/conduitos/src/native_face_scene/naming_acceptance_tests.rs b/targets/conduitos/src/native_face_scene/naming_acceptance_tests.rs
+index 1cd347cdf..b0e8c6d98 100644
+--- a/targets/conduitos/src/native_face_scene/naming_acceptance_tests.rs
++++ b/targets/conduitos/src/native_face_scene/naming_acceptance_tests.rs
+@@ -6,13 +6,17 @@ use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
+ use conduit_face::*;
+ 
+ fn actual_face() -> Face {
+-    let (_, offer) = crate::native_workset::tests::fixture();
+     let choices = crate::native_workset::candidate_inventory()
+         .into_iter()
+         .map(|plot| {
+-            let refusal = crate::native_workset::eligibility(plot, &offer)
+-                .err()
+-                .map(|error| error.as_str().into());
++            // Mirror open_creche_reviewed's installed-membership guard, not
++            // Host eligibility or execution admission for this CPU specimen.
++            let refusal =
++                (!crate::native_workset::profile().installed().contains(&plot)).then(|| {
++                    crate::native_workset::WorksetRefusal::UnknownPlot
++                        .as_str()
++                        .into()
++                });
+             BirthPlotChoice {
+                 title: plot.title().into(),
+                 search_text: plot.source().into(),
+diff --git a/targets/conduitos/tests/native_face_scene.rs b/targets/conduitos/tests/native_face_scene.rs
+index 91c138833..8adbd6fa1 100644
+--- a/targets/conduitos/tests/native_face_scene.rs
++++ b/targets/conduitos/tests/native_face_scene.rs
+@@ -2,7 +2,9 @@
+ extern crate alloc;
+ use conduitos::{display, front_door};
+ mod native_workset {
+-    pub use conduitos::native_workset::{profile, resident};
++    pub use conduitos::native_workset::{
++        NativePlot, WorksetRefusal, candidate_inventory, profile, resident,
++    };
+ }
+ #[path = "../src/native_face_scene.rs"]
+ mod native_face_scene;

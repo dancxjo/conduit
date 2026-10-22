@@ -88,7 +88,7 @@ export function manifestBrowserText(output, effect) {
 }
 
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  faceRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -107,6 +107,12 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const maximumPlacements = machinery?.limits?.maximum_gears;
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
+  const patchbayOwners = new Set(proposal.plan.plots.filter(part =>
+    part.plan.fragments.some(fragment => fragment.placements.some(placement =>
+      placement.kind_id === 'patchbay/accept-interaction' ||
+      (placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
+        entry.key === 'application' && entry.value?.Text === 'patchbay')))))
+    .map(part => part.plot.checked_plot_id));
   const placements = [];
   const placementPlots = new Map();
   const matchedExternal = new Set();
@@ -130,6 +136,31 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       placements.push(placement);
     }
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
+  }
+  const maskTopologies = proposal.plan.mask_topologies ?? [];
+  if (!Array.isArray(maskTopologies) || maskTopologies.length > 16) throw new Error('browser Mask topology bound exceeded');
+  const canonicalPatchbayOwners = new Set(maskTopologies
+    .filter(topology => topology.face?.source_placement_id == null && patchbayOwners.has(topology.face?.plot?.checked_plot_id))
+    .map(topology => topology.face.plot.checked_plot_id));
+  for (const topology of maskTopologies) {
+    if (canonicalPatchbayOwners.has(topology.face?.plot?.checked_plot_id) && typeof onPatchbayPublication !== 'function') {
+      throw new Error('canonical Patchbay requires a selected browser Face renderer');
+    }
+    if (!Array.isArray(topology.chains) || topology.chains.length > 8) throw new Error('browser Mask chain bound exceeded');
+    // Only the first route is initially active; standby routes require replacement admission.
+    for (const chain of topology.chains.slice(0, 1)) {
+      if (chain.plan?.fragments?.length !== 1) throw new Error('browser Mask requires one exact local fragment');
+      const fragment = chain.plan.fragments[0];
+      if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
+        throw new Error('browser Mask differs from the current Host');
+      }
+      for (const placement of fragment.placements) {
+        if (placementPlots.has(placement.placement_id)) throw new Error('duplicate browser Body placement identity');
+        placementPlots.set(placement.placement_id, topology.face?.plot?.checked_plot_id);
+        placements.push(placement);
+        if (placements.length > maximumPlacements) throw new Error('browser Body placement bound exceeded');
+      }
+    }
   }
   if (matchedExternal.size !== external.size) throw new Error("external Body Plot is absent from the proposal");
   if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
@@ -227,6 +258,26 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (signal.aborted) abort();
     });
   };
+  const reportPatchbayDisposition = (message, { refreshLegacy = true } = {}) => {
+    assertCurrent();
+    const channel = applicationChannels.get(message.owner_checked_plot_id);
+    const refresh = refreshLegacy && message.outcome !== 'Uncertain' && channel?.manifestation;
+    if (refresh && !channel.waiter && (channel.queue.length >= 8 || channel.bytes + 1 > 131072)) {
+      throw new Error('browser application observation queue pressure');
+    }
+    const observation = bridge.patchbayRequestDisposition(message);
+    if (refresh && observation.pending_owner_request === null) {
+      // Existing legacy empty observation requests a new view through the
+      // admitted event/state/view path. It never retries the owner request.
+      const bytes = new Uint8Array([0]);
+      if (channel.waiter) {
+        const waiter = channel.waiter; channel.waiter = null; waiter.resolve(bytes);
+      } else { channel.queue.push(bytes); channel.bytes += bytes.length; }
+    }
+    return observation;
+  };
+  let lastPatchbayRequest = null;
+
   // The single WASM owner leases this local preparation slot. Its bounded
   // template storage is initialized by ordinary kernel preparation before Play.
   const templateSlots = new Set();
@@ -304,6 +355,47 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const assertCurrent = () => {
     if (closed || !outputRoot.isConnected || !inputTarget.isConnected ||
         elements.some(element => !element.isConnected)) throw new Error("browser Body resources lost");
+  };
+  const dispatchPatchbayOwnerRequest = async (observation, signal, output, refreshLegacy = true) => {
+    assertCurrent();
+    if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
+        || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay owner request differs from this Body Play');
+    const pending = observation.pending_owner_request;
+    if (!pending || typeof onPatchbayOwnerRequest !== 'function' || !patchbayOwners.has(observation.owner_checked_plot_id)) return observation;
+    const revision = pending.application_revision;
+    const key = `${observation.owner_checked_plot_id}/${revision}`;
+    if (lastPatchbayRequest === key) return observation;
+    lastPatchbayRequest = key; // Never retry an uncertain or concurrently in-flight effect.
+    let report;
+    try {
+      report = await onPatchbayOwnerRequest(Object.freeze({ observation, signal }));
+      if (!['Completed', 'Rejected', 'Cancelled', 'Uncertain'].includes(report?.outcome)
+          || typeof report.evidenceId !== 'string' || !report.evidenceId.trim()
+          || new TextEncoder().encode(report.evidenceId).length > 256) throw new Error('Invalid Patchbay owner handler report');
+    } catch (error) {
+      if (output) output.dataset.ownerRequestRefusal = String(error?.message ?? error).slice(0, 256);
+      report = { outcome: 'Uncertain', evidenceId: `browser/patchbay-handler-uncertain/${revision}` };
+    }
+    if (closed) return observation;
+    return reportPatchbayDisposition({
+      body_id: started.play.body_id, body_plan_id: started.play.plan_id,
+      active_play_id: started.play.active_play_id, owner_checked_plot_id: observation.owner_checked_plot_id,
+      application_revision: revision, outcome: report.outcome, evidence_id: report.evidenceId,
+    }, { refreshLegacy });
+  };
+  let presentedPatchbayShow = null;
+  const presentPatchbayPublication = async (observation, signal) => {
+    if (!observation.publication || typeof onPatchbayPublication !== 'function') return false;
+    if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
+        || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay publication differs from this Body Play');
+    const effect = observation.publication.effect;
+    if (presentedPatchbayShow === effect.show_id) return true;
+    const maskRoot = slots.get(effect.placement_id);
+    if (!maskRoot?.isConnected) throw new Error('Patchbay Mask slot is unavailable');
+    presentedPatchbayShow = effect.show_id; // No automatic retry after renderer uncertainty.
+    await onPatchbayPublication(Object.freeze({ observation, root: maskRoot, signal }));
+    assertCurrent();
+    return true;
   };
   const observations = () => {
     assertCurrent();
@@ -443,6 +535,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       }
       const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
       if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
+        if (canonicalPatchbayOwners.has(effect.checked_plot_id)) {
+          // Startup presents the prepared publication independently. This old
+          // view output can neither replace it nor re-acknowledge its Show.
+          return;
+        }
         const channel = applicationChannel(effect.checked_plot_id);
         let applicationSurface = output;
         if (typeof dataLabel === "string") {
@@ -463,6 +560,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           choiceScope: effect.active_play_id,
           onEvent: event => publishApplicationEvent(effect.checked_plot_id, event),
         });
+        if (patchbayOwners.has(effect.checked_plot_id)) {
+          await dispatchPatchbayOwnerRequest(bridge.patchbayObservation(), signal, output);
+        }
       } else if (typeof effect.text === "string") {
         manifestBrowserText(output, effect);
       }
@@ -538,14 +638,32 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     run() {
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
-      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
-        signal: dispatchController.signal, isCurrent: () => !closed, admittedInput })
+      completion = (async () => {
+        if (canonicalPatchbayOwners.size) {
+          const observation = bridge.patchbayObservation();
+          if (!canonicalPatchbayOwners.has(observation.owner_checked_plot_id)
+              || !await presentPatchbayPublication(observation, dispatchController.signal)) {
+            throw new Error('captured canonical Patchbay publication is unavailable');
+          }
+        }
+        return drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
+          signal: dispatchController.signal, isCurrent: () => !closed, admittedInput });
+      })()
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
           return receipt ?? terminal;
         });
       return completion;
     },
+    patchbayObservation() { assertCurrent(); return bridge.patchbayObservation(); },
+    acknowledgePatchbayFace(message) { assertCurrent(); return bridge.patchbayAcknowledge(message); },
+    async submitPatchbayInteraction(message) {
+      assertCurrent();
+      const observation = bridge.patchbayInteract(message);
+      return dispatchPatchbayOwnerRequest(observation, dispatchController.signal, null, false);
+    },
+    refreshPatchbayFace(message) { assertCurrent(); return bridge.patchbayRefresh(message); },
+    patchbayRequestDisposition(message) { return reportPatchbayDisposition(message); },
     thermostatFace() { assertCurrent(); return bridge.thermostatFace(); },
     acknowledgeThermostatFace(acknowledgement) { assertCurrent(); return bridge.thermostatAcknowledge(acknowledgement); },
     submitThermostatInteraction(interaction) {

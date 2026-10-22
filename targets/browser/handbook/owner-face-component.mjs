@@ -2,7 +2,8 @@
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
 // owns only native controls and appearance.
 const encoder = new TextEncoder();
-const argumentValidity = (value, maximum) => !value.isWellFormed() ? 'Use valid Unicode text.'
+const argumentValidity = (value, maximum, minimum = 0) => !value.isWellFormed() ? 'Use valid Unicode text.'
+  : encoder.encode(value).length < minimum ? `Use at least ${minimum} UTF-8 bytes.`
   : encoder.encode(value).length > maximum ? `Use at most ${maximum} UTF-8 bytes.` : '';
 const exactChoiceLabel = value => JSON.stringify(value).replace(/[\s\u007f]/gu,
   character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
@@ -114,12 +115,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#layoutObserver?.disconnect();
     const component = view.component;
     const expression = component?.expression?.expression;
-    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentFallback', 'componentColumns']) delete this.dataset[key];
+    for (const key of ['componentExpression', 'componentDensity', 'componentPalette', 'componentTypography', 'componentFallback', 'componentColumns']) delete this.dataset[key];
     for (const key of ['--face-columns', '--face-gutter', '--face-text-scale']) this.style.removeProperty(key);
     if (component && expression) {
       this.dataset.componentExpression = expression.identity;
       this.dataset.componentDensity = expression.density;
       this.dataset.componentPalette = expression.palette;
+      this.dataset.componentTypography = expression.typography;
       this.dataset.componentFallback = component.fallback ?? '';
       this.style.setProperty('--face-text-scale', String(expression.text_scale_percent / 100));
       this.style.setProperty('--face-gutter', `${component.gutter}px`);
@@ -170,7 +172,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         });
       for (const argument of supported ? action.arguments : []) {
         if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
-          || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {
+          || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096
+          || !Number.isSafeInteger(argument.minimum_bytes ?? 0)
+          || (argument.minimum_bytes ?? 0) < 0 || (argument.minimum_bytes ?? 0) > argument.maximum_bytes) {
           supported = false;
           continue;
         }
@@ -196,8 +200,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text') {
           input = document.createElement('input');
           input.type = 'text'; input.maxLength = argument.maximum_bytes;
+          input.required = (argument.minimum_bytes ?? 0) > 0;
           input.addEventListener('input', () => input.setCustomValidity(
-            argumentValidity(input.value, argument.maximum_bytes)));
+            argumentValidity(input.value, argument.maximum_bytes, argument.minimum_bytes ?? 0)));
         } else {
           supported = false;
           continue;
@@ -239,7 +244,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
           }
-          input.setCustomValidity(argumentValidity(input.value, argument.maximum_bytes));
+          input.setCustomValidity(argumentValidity(input.value, argument.maximum_bytes, argument.minimum_bytes ?? 0));
           if (!input.checkValidity()) return;
         }
         this.#dispatched = true;
@@ -255,7 +260,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
-      node.append(faceNode('h4', subject.name));
+      const heading = faceNode('h4', subject.name);
+      heading.dataset.textPurpose = ['Document', 'Body', 'Host'].includes(subject.role) ? 'Title' : 'Heading';
+      node.append(heading);
       for (const text of subject.text) node.append(faceNode('p', text));
       if (subject.values?.length) {
         const values = document.createElement('dl');

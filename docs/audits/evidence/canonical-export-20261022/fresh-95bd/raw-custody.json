@@ -1,0 +1,9 @@
+{
+  "source_commit": "95bd7a776ebe67a597a69dc88b758196b86ce3fa",
+  "file": "6063-95bd-canonical-export.log.gz",
+  "raw_bytes": 24004,
+  "raw_sha256": "016740526f480c54f588dd7d020b9c470e0f9951304062086a4e2c2f3d1e41cd",
+  "gzip_bytes": 2500,
+  "gzip_sha256": "ffad29846bdc124d9abe0d68c71d7850f29beb80d372ae1a9124b66c3477924d",
+  "decompressed_byte_equal_original": true
+}

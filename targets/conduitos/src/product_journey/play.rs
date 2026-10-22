@@ -74,6 +74,11 @@ impl ProductJourney {
         if self.status != JourneyStatus::QuiescentAwaitingInput {
             return Ok(false);
         }
+        if self.application_request.is_some() {
+            return Err(JourneyError::Play(
+                native_workset::PlayRefusal::InputPressure,
+            ));
+        }
         let next_count = self
             .input_count
             .checked_add(1)
@@ -105,18 +110,7 @@ impl ProductJourney {
         )));
         self.input_count = next_count;
         self.advance()?;
-        if application_request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
-            let patchbay = native_workset::resident(native_workset::NativePlot::Patchbay)
-                .map_err(JourneyError::Workset)?;
-            self.select_plot(&patchbay, self.revision)?;
-        } else if application_request.is_some() {
-            if self.application_request.is_some() {
-                return Err(JourneyError::Play(
-                    native_workset::PlayRefusal::InputPressure,
-                ));
-            }
-            self.application_request = application_request;
-        }
+        self.retain_application_request(application_request)?;
         Ok(true)
     }
 
@@ -254,6 +248,7 @@ impl ProductJourney {
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.application_request = None;
+        self.patchbay_request_authorization = None;
         self.input_owners = input_owners;
         self.kernel = Some(kernel);
         self.status = JourneyStatus::Planned;
@@ -346,7 +341,7 @@ impl ProductJourney {
         offer: &HostOffer<'_>,
         build_id: &str,
     ) -> Result<(), JourneyError> {
-        let (basis_plan_id, mode) = match request {
+        let (basis_plan_id, mode) = match &request {
             patchbay_application::PatchbayApplicationRequest::ChangeMasks {
                 body_plan_id,
                 mode,
@@ -354,9 +349,23 @@ impl ProductJourney {
             _ => return Err(JourneyError::WrongTarget),
         };
         if self.status != JourneyStatus::QuiescentAwaitingInput
-            || self.current_plan().map(|plan| &plan.plan_id) != Some(&basis_plan_id)
+            || self.current_plan().map(|plan| &plan.plan_id) != Some(basis_plan_id)
         {
             return Err(JourneyError::StaleFace);
+        }
+        let expected =
+            super::patchbay::request_digest(&request).map(|digest| (digest, self.revision));
+        let issued = self.patchbay_request_authorization.take();
+        if issued.is_some() {
+            self.application_request = None;
+        }
+        if expected.is_none()
+            || issued != expected
+            || self.host_id.as_str() != crate::identity::hex(&identities.host)
+            || self.boot_id.as_str() != crate::identity::hex(&identities.boot)
+            || self.plots[self.foreground_index()] != Some(native_workset::NativePlot::Patchbay)
+        {
+            return Err(JourneyError::WrongTarget);
         }
         self.revision
             .checked_add(1)
@@ -365,7 +374,7 @@ impl ProductJourney {
             .mask_control
             .clone()
             .ok_or(JourneyError::InvalidTransition)?;
-        control.request(mode).map_err(|_| JourneyError::Kernel)?;
+        control.request(*mode).map_err(|_| JourneyError::Kernel)?;
         // The sole Play is retired before replacement preparation or start.
         // Any subsequent refusal leaves an explicit Lulled Body.
         self.retire_realization()?;
@@ -390,6 +399,7 @@ impl ProductJourney {
         };
         self.kernel = None;
         self.application_request = None;
+        self.patchbay_request_authorization = None;
         if self.current_wake().is_some() {
             self.session
                 .as_mut()

@@ -31,13 +31,23 @@ pub(crate) fn local_view(
     show: &MaskShow,
     play: &conduit_core::ActivePlayIdentity,
 ) -> FaceView {
+    local_view_admitted(body_id, face, show, play, true)
+}
+
+pub(crate) fn local_view_admitted(
+    body_id: &BodyId,
+    face: &Face,
+    show: &MaskShow,
+    play: &conduit_core::ActivePlayIdentity,
+    admitted: bool,
+) -> FaceView {
     project_view(
         body_id,
         face,
         &show.planned_mask,
         play,
         show,
-        show.show.lifecycle == ManifestationLifecycle::Available,
+        admitted && show.show.lifecycle == ManifestationLifecycle::Available,
         None,
     )
 }
@@ -191,6 +201,16 @@ fn project_view(
                             value_name: argument.value_name.clone(),
                             value_kind: argument.contract.value_kind.as_str().into(),
                             maximum_bytes: argument.contract.maximum_bytes,
+                            minimum_bytes: argument
+                                .contract
+                                .constraints
+                                .iter()
+                                .filter_map(|constraint| match constraint {
+                                    ValueConstraint::ByteLength { minimum, .. } => Some(*minimum),
+                                    _ => None,
+                                })
+                                .max()
+                                .unwrap_or(0),
                             choices: argument
                                 .contract
                                 .constraints

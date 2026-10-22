@@ -399,3 +399,99 @@ fn palette_and_scale_change_force_full_raster_under_new_exact_receipt() {
     );
     assert_ne!(compositor.surfaces[0].buffer.pixels, original);
 }
+
+#[cfg(feature = "native-compositor")]
+#[test]
+fn typography_alone_invalidates_retained_raster_without_changing_paint_or_scale() {
+    use conduit_core::HostBaseId;
+    use conduit_face::{
+        VisualExpression, VisualTypography, VisualUserConstraints, admit_visual_expression,
+    };
+    let (face, plan, main, _, mut compositor) = fixture::fixture(1);
+    let extent = rect(0, 0, 96, 64);
+    compositor.place_surface(fixture::MAIN, extent, 0).unwrap();
+    let mut scene = GraphicsScene::empty();
+    scene
+        .push(
+            GraphicsCommand::rect(extent, extent, Paint::Background, GraphicsShapeStyle::Fill)
+                .unwrap(),
+        )
+        .unwrap();
+    scene
+        .push(
+            GraphicsCommand::text(rect(4, 4, 80, 48), extent, Paint::Foreground, "WiJ")
+                .unwrap()
+                .with_text_role(conduit_face::GraphicsTextRole::Title)
+                .unwrap(),
+        )
+        .unwrap();
+    let constraints = VisualUserConstraints {
+        forced_colors: false,
+        reduced_motion: false,
+        minimum_text_scale_percent: 100,
+        maximum_supported_text_scale_percent: 200,
+    };
+    compositor.surfaces[0].visual_expression =
+        Some(admit_visual_expression(Ok(VisualExpression::phosphor()), constraints).unwrap());
+    let base = HostBaseId::from(fixture::BASE);
+    compositor
+        .update_surface(&face, &main, &plan, fixture::MAIN, &base, &scene)
+        .unwrap();
+    let original = compositor.surfaces[0].buffer.pixels.clone();
+    assert!(original.iter().any(|pixel| *pixel != original[0]));
+    let mut expression = VisualExpression::phosphor();
+    expression.typography = VisualTypography::Engineering;
+    compositor.surfaces[0].visual_expression = Some(
+        admit_visual_expression(
+            Ok(expression),
+            VisualUserConstraints {
+                forced_colors: false,
+                reduced_motion: false,
+                minimum_text_scale_percent: 100,
+                maximum_supported_text_scale_percent: 200,
+            },
+        )
+        .unwrap(),
+    );
+    let (next_face, next_plan, next_main, _, _) = fixture::fixture(2);
+    let receipt = compositor
+        .update_surface(
+            &next_face,
+            &next_main,
+            &next_plan,
+            fixture::MAIN,
+            &base,
+            &scene,
+        )
+        .unwrap();
+    assert_eq!(
+        usize::from(receipt.display.commands),
+        scene.commands().len()
+    );
+    assert_eq!(
+        receipt
+            .visual_expression
+            .as_ref()
+            .unwrap()
+            .expression
+            .typography,
+        VisualTypography::Engineering
+    );
+    let engineering = &compositor.surfaces[0].buffer.pixels;
+    assert!(engineering.iter().any(|pixel| *pixel != engineering[0]));
+    assert_ne!(*engineering, original);
+    let (_, _, _, _, mut fresh) = fixture::fixture(2);
+    fresh.place_surface(fixture::MAIN, extent, 0).unwrap();
+    fresh.surfaces[0].visual_expression = compositor.surfaces[0].visual_expression.clone();
+    fresh
+        .update_surface(
+            &next_face,
+            &next_main,
+            &next_plan,
+            fixture::MAIN,
+            &base,
+            &scene,
+        )
+        .unwrap();
+    assert_eq!(*engineering, fresh.surfaces[0].buffer.pixels);
+}

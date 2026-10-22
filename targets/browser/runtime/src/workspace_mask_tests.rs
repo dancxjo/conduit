@@ -1,3 +1,6 @@
+#[path = "workspace_mask_tests/preparation.rs"]
+mod preparation;
+
 use super::*;
 use conduit_body::{
     AuthenticatedHostObservation, BodyBiographyEvidence, BodyLifecycleSession, BodyMembership,

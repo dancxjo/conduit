@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.audit/canonical-viewport-seal@1",
+  "status": "verified",
+  "source": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "viewport": "1280x800",
+  "packet": "work/6158-74-canonical-1280x800-preserved",
+  "original_files_rehashed": 63,
+  "pngs_verified": 24,
+  "focus_extent_records": 20,
+  "artifact_role": "product-host",
+  "image_sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+  "kernel_sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+  "scope": "Canonical ProductHost emulator journey, actual Mask extent and QMP pixels; headless asset checks only, no naming/all-page/before-after/physical acceptance"
+}

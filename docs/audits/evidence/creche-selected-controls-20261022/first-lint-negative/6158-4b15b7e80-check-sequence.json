@@ -1,0 +1,75 @@
+[
+  {
+    "name": "pointer",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "xtask",
+      "creche_pointer"
+    ],
+    "exit_code": 0,
+    "log": "../6158-4b15b7e80-pointer.log"
+  },
+  {
+    "name": "viewport",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "xtask",
+      "proof_viewport"
+    ],
+    "exit_code": 0,
+    "log": "../6158-4b15b7e80-viewport.log"
+  },
+  {
+    "name": "artifacts",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "xtask",
+      "qemu_artifacts"
+    ],
+    "exit_code": 0,
+    "log": "../6158-4b15b7e80-artifacts.log"
+  },
+  {
+    "name": "metadata",
+    "command": [
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "-p",
+      "xtask",
+      "viewport_rejects_appliance_stale_source_or_wrong_image_metadata"
+    ],
+    "exit_code": 0,
+    "log": "../6158-4b15b7e80-metadata.log"
+  },
+  {
+    "name": "clippy",
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "-p",
+      "xtask",
+      "--all-targets",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 101,
+    "log": "../6158-4b15b7e80-clippy.log"
+  }
+]

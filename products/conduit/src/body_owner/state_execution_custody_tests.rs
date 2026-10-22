@@ -238,3 +238,29 @@ fn oversized_or_inconsistent_terminal_transaction_refuses_without_replacing_curr
     );
     fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn compact_receipt_remains_readable_when_pretty_storage_exceeds_index_bound() {
+    let (root, bio) = fixture();
+    let mut large = receipt(&bio, 1);
+    large["output"] = json!(vec![0u8; 40_000]);
+    assert!(serde_json::to_vec(&large).unwrap().len() < 128 * 1024);
+    assert!(serde_json::to_vec_pretty(&large).unwrap().len() > 192 * 1024);
+    retain(&root, &bio, Some(&large), None).unwrap();
+    assert!(
+        fs::metadata(root.join("body/owner-execution.json"))
+            .unwrap()
+            .len()
+            <= 192 * 1024
+    );
+    assert_eq!(execution(&root).unwrap(), Some(large.clone()));
+    require_execution_capacity(&root).unwrap();
+    recover(&root).unwrap();
+    retain(&root, &bio, None, None).unwrap();
+    assert_eq!(execution(&root).unwrap(), Some(large.clone()));
+    assert_eq!(
+        execution_history(&root).unwrap()["receipts"],
+        json!([large])
+    );
+    fs::remove_dir_all(root).unwrap();
+}

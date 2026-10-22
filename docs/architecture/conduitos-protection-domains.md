@@ -561,10 +561,13 @@ staging visibility, 26 hostile entries, Root/sibling survival, guard and W/X
 refusal, port/MMIO refusal, loop preemption and restart. Zeroing observations are
 boundary samples plus whole-slot charged clearing, not an empirical readback of
 every private byte. The receipt binds the actual appliance ELF and serial hash,
-records the explicit 128 MiB QEMU fixture profile, and reports
+records the explicit 256 MiB QEMU fixture profile, and reports
 `production_compositor:false`, `driver_isolation:false`, `dma_isolation:false`.
-The earlier 64 MiB guest refused its runtime arena before any protected entry;
-this fixture profile does not define a graphical product minimum.
+The earlier 64 MiB guest and the current nine-service appliance at 128 MiB
+refused their runtime arena before any protected entry. The same current image
+at 256 MiB passes boot; subsequent kernel/service acceptance remains a separate
+requirement. This fixture profile does not define a graphical product minimum
+or enlarge a service memory grant.
 
 This is infrastructure for [#6177](https://github.com/dancxjo/conduit/issues/6177).
 It does not move the production retained compositor, grant scanout authority,
@@ -804,3 +807,7 @@ an IOMMU, DMA containment, mutually isolated kernel drivers/providers, physical
 hardware execution, SMP or an unsupported backend. Receipts report
 `dma_isolation:false` and `driver_isolation:false`. Each architecture earns its
 own mechanism-level evidence; none inherits another target's proof by analogy.
+
+### Merged-baseline backend fixture refresh (2026-10-22 UTC)
+
+Clean Source `cf1ee8acd38dc180ad040d24d83d52bda1abcf6e`, containing normally merged baseline `84dac6d02`, passed the supported ordinary-domain proof again on actual x86_64 CPL3: 26 hostile service-memory entries, fresh-instance restart boundary samples zero, and the guest/hostile-broker/copy-recovery compositor fixtures. Nineteen focused CPU controls, strict hosted Clippy and full formatting also pass. The [new exact-image packet](../audits/evidence/service-memory-current-20261021/current-cf1ee8acd/README.md) retains actual ELF/ISO hashes, raw/compressed logs, four bound receipts and all limitations; the earlier positive and negative packets remain unchanged. This is backend fixture evidence only. Production compositor integration, physical scanout, DMA/driver containment, other architectures and semantic Show acknowledgement remain separate obligations; current Candidate/Integration/publication gates remain pending.

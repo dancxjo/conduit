@@ -56,6 +56,9 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
     fn offer(&self) -> &ModelComputeOffer {
         &self.offer
     }
+    fn runtime_identity(&self) -> &conduit_ai::ModelComputeRuntimeIdentity {
+        self.adapter.runtime()
+    }
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         // Host preparation already verified and loaded the content-bound snapshot.
         // This boundary cannot reinterpret a different artifact or admit fewer bytes.

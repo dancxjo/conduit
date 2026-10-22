@@ -3,7 +3,7 @@ use crate::{frame::TextFrame, gate};
 use conduit_human::{KeyEvent, PreparedKeymap};
 #[allow(dead_code)] // The shared owner also implements the separately admitted Submit mode.
 #[path = "../../../semantics/catalog/src/text_state/retained.rs"]
-mod retained;
+pub(super) mod retained;
 use retained::{RetainedText, TextStateMode, TextStateRefusal};
 struct State {
     keymap: PreparedKeymap,
@@ -134,5 +134,13 @@ pub unsafe fn edit_chain(frame: &mut TextFrame) -> ! {
             Err(TextStateRefusal::InvalidCapacity) => 3,
         };
     }
+    gate::finish(frame.status)
+}
+
+/// Canonical read/replacement uses the same private retained owner as physical
+/// input. Root receives a snapshot, never a second mutable document owner.
+pub unsafe fn document(frame: &mut TextFrame) -> ! {
+    let state = unsafe { &mut *STATE };
+    frame.status = crate::document::execute(frame, state.editor.as_mut(), &mut state.text);
     gate::finish(frame.status)
 }

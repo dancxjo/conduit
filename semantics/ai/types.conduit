@@ -153,7 +153,7 @@ type ModelAxisConstraint = {
 }
 
 type ModelTensorElements = sequence TensorElement in 1..=8
-type ModelTensorAxes = sequence ModelAxisConstraint in 1..=8
+type ModelTensorAxes = sequence ModelAxisConstraint in 0..=8
 
 type ModelTensorConstraint = {
     elements: ModelTensorElements

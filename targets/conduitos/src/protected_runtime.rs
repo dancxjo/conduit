@@ -1,6 +1,7 @@
 //! Root Host Call broker for the independently owned canonical scheduler.
 //! Root keeps only reviewed effect grants, pending calls and transient boundary
 //! bytes. Scheduler, ready/cord/value/sign state belong to the Runtime guest.
+mod face;
 mod ledger;
 mod morse;
 mod text;
@@ -18,9 +19,11 @@ use conduitos_runtime_core::{
     wire::{self, Envelope, Request, Response},
     *,
 };
-use ledger::Ledger;
+use ledger::{CustodyLedger, Ledger};
 
-pub(crate) struct Scheduler {
+pub(crate) type Scheduler = Broker<VALUE_BYTES>;
+pub(crate) type FaceScheduler = Broker<FACE_VALUE_BYTES>;
+pub(crate) struct Broker<const BYTES: usize> {
     domain: Option<ServiceDomain>,
     instance: u64,
     sequence: u64,
@@ -37,16 +40,36 @@ pub(crate) struct Scheduler {
     pending: [Option<HostCallRequest>; NODES],
     last_request: [Option<RequestId>; NODES],
     issued: [bool; NODES],
-    ledger: Ledger,
+    ledger: CustodyLedger<BYTES>,
     input: Option<ValueRef>,
-    input_bytes: [u8; VALUE_BYTES],
+    input_bytes: [u8; BYTES],
     staged: Option<ValueRef>,
-    staged_bytes: [u8; VALUE_BYTES],
+    staged_bytes: [u8; BYTES],
     gap: Option<SignRetentionGap>,
+}
+// Supplemental proof diagnostics retain the original error and never grant an
+// operation or change admission. Each event is one finite enum Debug value.
+fn diagnose<T, E: core::fmt::Debug>(stage: &'static str, result: Result<T, E>) -> Result<T, E> {
+    #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+    if let Err(error) = &result {
+        crate::arch::early_write(
+            alloc::format!("CONDUIT_RUNTIME_DIAGNOSTIC {stage} {error:?}\n").as_bytes(),
+        );
+    }
+    let _ = stage;
+    result
 }
 impl Scheduler {
     pub fn new(admission: Admission) -> Result<Self, SchedulerError> {
-        let ledger = Ledger::new(&admission)?;
+        Self::prepare(admission, false)
+    }
+}
+impl<const BYTES: usize> Broker<BYTES> {
+    fn prepare(admission: Admission, face: bool) -> Result<Self, SchedulerError> {
+        if (face && BYTES != FACE_VALUE_BYTES) || (!face && BYTES != VALUE_BYTES) {
+            return Err(SchedulerError::InvalidPlan);
+        }
+        let ledger = CustodyLedger::new(&admission)?;
         #[cfg(conduitos_runtime_image)]
         let bytes: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/runtime.elf"));
         #[cfg(not(conduitos_runtime_image))]
@@ -66,7 +89,7 @@ impl Scheduler {
             sequence: 1,
             error: None,
             active: usize::from(admission.active_nodes),
-            value_bytes: VALUE_BYTES,
+            value_bytes: BYTES,
             value_slots: 10,
             text_mode: false,
             sign_limit: SIGN_ITEMS as u16,
@@ -83,15 +106,21 @@ impl Scheduler {
             issued: [false; NODES],
             ledger,
             input: None,
-            input_bytes: [0; VALUE_BYTES],
+            input_bytes: [0; BYTES],
             staged: None,
-            staged_bytes: [0; VALUE_BYTES],
+            staged_bytes: [0; BYTES],
             gap: None,
         };
-        if result.request(Request::Init {
-            bytes: length as u32,
-        })? != Response::Ready
-        {
+        let init = if face {
+            Request::InitFace {
+                bytes: length as u32,
+            }
+        } else {
+            Request::Init {
+                bytes: length as u32,
+            }
+        };
+        if result.request(init)? != Response::Ready {
             return result.fail(SchedulerError::InvalidPlan);
         }
         Ok(result)
@@ -144,7 +173,13 @@ impl Scheduler {
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange)
             .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
-        if domain.enter(1).map_err(|_| SchedulerError::Cancelled)? != DomainReturn::Yielded {
+        let returned =
+            diagnose("guest-entry", domain.enter(1)).map_err(|_| SchedulerError::Cancelled)?;
+        if returned != DomainReturn::Yielded {
+            #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+            crate::arch::early_write(
+                alloc::format!("CONDUIT_RUNTIME_DIAGNOSTIC guest-return {returned:?}\n").as_bytes(),
+            );
             return Err(SchedulerError::Cancelled);
         }
         let exchange = domain.exchange().map_err(|_| SchedulerError::Cancelled)?;
@@ -373,7 +408,7 @@ impl Scheduler {
         self.gap
     }
 }
-impl Drop for Scheduler {
+impl<const BYTES: usize> Drop for Broker<BYTES> {
     fn drop(&mut self) {
         self.quarantine();
     }

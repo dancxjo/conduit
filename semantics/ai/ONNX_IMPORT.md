@@ -36,8 +36,9 @@ depth is fixed by the supported schema paths. All preparation allocations are
 bounded by these limits. There is no Play implementation in this component.
 
 The initial profile accepts dense i8/u8/i16/u16/i32/u32/i64/u64/f32/f64 tensor
-ports. Scalar rank zero, unknown dimensions, zero dimensions, string/bool/half
-tensors, optional/sequence/map/sparse/opaque port types, node attributes,
+ports. An explicitly declared empty shape is a rank-zero scalar: exactly one
+element, zero axes and exactly its dtype width. An absent shape remains unknown
+and refuses. Unknown dimensions, zero dimensions, string/bool/half tensors, optional/sequence/map/sparse/opaque port types, node attributes,
 multi-device node configurations, sparse initializers, training graphs and
 local functions refuse. Every top-level initializer is inspected for external
 storage. Attributes and other nested graph/tensor carriers refuse entirely so
@@ -53,33 +54,50 @@ sidecars translate those names to checkpoint-local graph names. Canonical Native
 encoding retains the bundle order and is subject to Core's 262,144-byte encoded
 value bound, independently of the model file byte bound.
 
-The development `model/infer` Fore uses this carrier in both directions and a
-required typed semantic `ModelSignature` startup parameter. The owner catalog
-imports checked Source refinement metadata. A compiler regression additionally
-checks those refinements on explicit concrete startup expressions, including
-shape-only aliases. A tiny non-speech authored Source checks and expands to one
-opaque model Gear. It contains no provider, artifact path or device selection.
-Normal planner candidate admission now matches the exact typed semantic
-signature property. Planning fixtures select the matching Back/artifact,
-refuse missing or stale properties and verify the sealed Plan. These fixtures
-execute no inference. The catalog is not yet installed in the stock Host
-catalog; genuine model compute/resource admission and an execution Back remain
-unfinished.
+The `model/infer` Fore uses this carrier in both directions and a required typed
+semantic `ModelSignature` startup parameter. The ordinary catalog and planner
+match the signature and admitted execution properties. Checked Source contains
+no provider, artifact path or device selection. The former single-tensor
+invocation surface has been migrated to canonical named bundles.
 
-`ModelComputeRequirement` now declares a finite dtype set, and an offer must
-support every required input/output dtype. Existing callers use this field;
-the invocation payload still needs migration from its old single tensor onto
-the canonical named bundle before ordinary model execution is delivered.
+`PreparedModelInfer::prepare_imported` retains imported model custody. An exact
+Back profile binds the checkpoint, graph/signature/sidecar identities, runtime,
+artifact and execution profile, IR/opset ranges and supported operator names.
+Admission occurs before provider loading. Operator names alone do not establish
+arbitrary graph semantics: the initial reference fixture Backs accept only their
+exact checked graph identities. Produced replies retain the admitted runtime.
 
-Focused native tests cover metadata and sidecar binding, wrong identities,
-counts, names, rank, dtype, static dimensions, malformed wire data and external
-data refusal. The main imported fixture contains one Add node and four locally
-authored inline bias values; these tests inspect its metadata without executing
-it. Separate symbolic-shape fixtures test only metadata. None is an inference
-proof.
+The selected Plan contains a bounded native inspection property with the real
+model Gear's semantic-to-graph port correspondence and selected checkpoint/Back
+identities. Its reader checks the selected realization. This is inspectable
+Plan data; a rendered Patchbay presentation is not established by these tests.
 
-Issue #5691 remains unfinished: exact Source → Plan → Play evidence is still
-required. Genuine model-compute Back
-selection is tracked in #5692, canonical named tensor invocation migration and
-numerical multi-input/output execution in #5693, and actual ORT realization in
-#5220. No current helper result establishes those capabilities.
+The imported Add/Sub fixture executes multiple named inputs/outputs through
+checked Source, Plan and the production kernel. A separate imported Identity
+fixture executes bounded symbolic widths one, two, then one, with exact output
+bundles and unchanged kernel value capacity; width three refuses. Wrong graph,
+sidecar, signature, operator/opset profile, runtime, shape and memory cases are
+covered at their owning boundaries. The supported model-inference suite passes
+57 tests across 21 targets at executable source
+`996cefe6e85c2991f51a773cfcad5b2494d21bd4`.
+
+This is held, unmerged preparation for #5219. Its original portable scope still
+needs acceptance of the rank-zero scalar prerequisite, optional/model-defined inputs
+and a numeric finite-only policy when required downstream. Approved external
+file admission and rendered Patchbay inspection also remain unsupported here.
+The initial profile refuses external tensor references without opening files.
+Actual ORT realization remains separate #5220; fixture execution does not prove
+ORT execution, current-source CI/Integration, publication or whole #5219 closure.
+
+
+The #6210 rank-zero prerequisite extends the existing Tensor/ModelSignature
+contracts and expands their finite axis bounds to 0..=8. A scalar's empty shape
+has an empty product of one element; it is distinct from rank one of length one.
+The raw tensor codec, canonical Native bundle and borrowed view check the same
+exact dtype width. Checked-in I64 and F32 Identity graphs and authored Source
+exercise the ordinary imported preparation and selected Plan inspection in
+`model_infer_onnx_scalar`; focused scalar storage and refusal cases accompany
+those fixtures. The supported model-inference suite passed 68 tests across 24 targets at clean
+Source `9cacd3ca8d8ae486112ba81d1f35b692c25505f1`; the source-bound receipt is in
+`docs/audits/evidence/rank-zero-imported-model-20261021`. CI/Integration/merge
+remain delivery gates.

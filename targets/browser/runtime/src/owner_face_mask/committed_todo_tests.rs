@@ -78,6 +78,32 @@ fn checked_browser_mask_consumes_actual_committed_todo_exchange() {
             .filter(|subject| subject.role == "Item")
             .collect::<Vec<_>>();
         assert_eq!(items.len(), 3);
+        let add = face
+            .actions
+            .iter()
+            .find(|action| action.identity == "todo.add")
+            .unwrap();
+        let rendered_add = view
+            .actions
+            .iter()
+            .find(|action| action.identity == add.identity)
+            .unwrap();
+        assert_eq!(rendered_add.arguments.len(), add.arguments.len());
+        for (actual, source) in rendered_add.arguments.iter().zip(&add.arguments) {
+            let minimum = source
+                .contract
+                .constraints
+                .iter()
+                .filter_map(|constraint| match constraint {
+                    ValueConstraint::ByteLength { minimum, .. } => Some(*minimum),
+                    _ => None,
+                })
+                .max()
+                .unwrap_or(0);
+            assert_eq!(actual.minimum_bytes, minimum);
+            assert_eq!(actual.maximum_bytes, source.contract.maximum_bytes);
+            assert!(minimum > 0, "the real Todo Add requires nonempty text");
+        }
         for name in ["Milk", "Eggs", "Bread"] {
             assert!(items.iter().any(|item| item.name == name));
         }

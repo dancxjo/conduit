@@ -1,0 +1,11 @@
+{
+  "source": "06e36ea8001db55264208fc41ac22d18cf9a7427",
+  "suite": "cargo +stable xtask check canonical-export",
+  "exit": 1,
+  "generic_tests_passed": 6,
+  "existing_custody_tests_passed": 12,
+  "new_AI_tests_failed": 2,
+  "failure_stage": "fixturecanonicalPlanconstruction:inputForevaluecontractdoesnotmatchselectedBack",
+  "strict_steps": "notreached",
+  "raw_log_sha256": "21219c7b64eb69c56c060f7d0d722dd7ffbe53ffde9cbea6cacbe9aab73137ce"
+}
