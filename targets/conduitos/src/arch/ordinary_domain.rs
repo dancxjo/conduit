@@ -7,10 +7,11 @@ use crate::{
     domain_image::DomainImage,
     protected_region::{DomainBackend, DomainCost, DomainFault, DomainRefusal, DomainReturn},
 };
+#[path = "ordinary_domain/document.rs"]
+mod document;
 #[path = "../../domain/frame.rs"]
 mod frame;
 #[path = "ordinary_domain/document.rs"]
-mod document;
 #[path = "ordinary_domain/morse.rs"]
 mod morse;
 #[path = "ordinary_domain/timer.rs"]
