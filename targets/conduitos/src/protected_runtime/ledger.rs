@@ -178,6 +178,7 @@ impl<const BYTES: usize> CustodyLedger<BYTES> {
         }
         Ok(result)
     }
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     pub fn new_text(
         admission: &conduitos_runtime_core::text::Admission,
     ) -> Result<Self, SchedulerError> {
@@ -197,6 +198,7 @@ impl<const BYTES: usize> CustodyLedger<BYTES> {
         ledger.publish(admission.literal_node.0 as usize, None, literal)?;
         Ok(ledger)
     }
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     pub fn new_morse(
         admission: &conduitos_runtime_core::morse::Admission,
     ) -> Result<Self, SchedulerError> {
