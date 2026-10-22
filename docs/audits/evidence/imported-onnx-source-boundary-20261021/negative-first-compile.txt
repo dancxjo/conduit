@@ -1,0 +1,47 @@
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/conduit-xtask-dispatch check model-inference`
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std)
+   Compiling conduit-patchbay-workbench v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/plots/patchbay/workbench/model)
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/tools/xtask)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 36.44s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/xtask check model-inference`
+» [model.named-inference] Admit immutable model signatures and execute the prepared named-tensor profile through Source, Plan and the production kernel
+  $ cargo test --locked -p conduit-core --test exact_realization_property -p conduit-planner --test model_signature_realization -p conduit-data --test named_tensor_view --test tensor_view_axis -p conduit-ai --test native_model_signature_vocabulary --test onnx_metadata --test imported_onnx --test onnx_tensor_io --test model_infer_fore --test model_tensor_io --test prepared_model_tensor_io -p conduit-std-host --test model_compute_host --test model_infer_plot --test model_infer_onnx --test model_infer_onnx_dynamic --test model_infer_terminals --test model_infer_output_template --test model_infer_allocation --test model_infer_variable_inputs -- --nocapture
+   Compiling ring v0.17.14
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/browser/runtime)
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling rcgen v0.14.10
+   Compiling ureq v3.4.2
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/access-5630/targets/std)
+error[E0382]: use of moved value: `expected`
+   --> targets/std/tests/model_infer_onnx_dynamic.rs:65:32
+    |
+ 38 |         let expected = input(width);
+    |             -------- move occurs because `expected` has type `NamedTensorBundle`, which does not implement the `Copy` trait
+...
+ 46 |                     bytes: expected.encode().unwrap(),
+    |                                     -------- `expected` moved due to this method call
+...
+ 65 |         assert_eq!(outputs.0, [expected]);
+    |                                ^^^^^^^^ value used here after move
+    |
+note: `encode` takes ownership of the receiver `self`, which moves `expected`
+   --> architecture/plot/src/rust_binding/value.rs:139:15
+    |
+139 |     fn encode(self) -> Result<Vec<u8>, NativeBindingRefusal> {
+    |               ^^^^
+help: you can `clone` the value and consume it, but this might not be your desired behavior
+    |
+ 46 |                     bytes: expected.clone().encode().unwrap(),
+    |                                    ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `conduit-std-host` (test "model_infer_onnx_dynamic") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+xtask error: step 'model.named-inference' failed (exit status: 101): cargo test --locked -p conduit-core --test exact_realization_property -p conduit-planner --test model_signature_realization -p conduit-data --test named_tensor_view --test tensor_view_axis -p conduit-ai --test native_model_signature_vocabulary --test onnx_metadata --test imported_onnx --test onnx_tensor_io --test model_infer_fore --test model_tensor_io --test prepared_model_tensor_io -p conduit-std-host --test model_compute_host --test model_infer_plot --test model_infer_onnx --test model_infer_onnx_dynamic --test model_infer_terminals --test model_infer_output_template --test model_infer_allocation --test model_infer_variable_inputs -- --nocapture

@@ -8,7 +8,7 @@ use conduit_composite::{
     KernelOperationRegistry,
 };
 use conduit_kernel::scheduler::RemoteIngressOutcome;
-use conduit_plot::CheckedPlot;
+use conduit_plot::{CheckedPlot, CheckedSyntaxDocument, ProfileCatalog};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CategoricalChannelRefusal {
@@ -100,6 +100,37 @@ impl<L> PreparedCategoricalChannel<L> {
             cap.implementation.artifact_id.clone(),
             plot,
             &cap.capability_id,
+            definition.internal_plan.clone(),
+            definition.failure_translation,
+        )
+        .map_err(|_| Definition)?;
+        if rebuilt != definition {
+            return Err(Definition);
+        }
+        Self::prepare_verified(definition, profile, capacity)
+    }
+    /// Rebuild the canonical Source export before admitting numerical custody.
+    /// This binds Source/Plan/Fore; it does not grant Language policy authority.
+    pub fn prepare_canonical(
+        document: &CheckedSyntaxDocument,
+        entry: &str,
+        catalog: &ProfileCatalog,
+        definition: KernelCompositeDefinition,
+        profile: Arc<PreparedCategoricalStep>,
+        capacity: usize,
+    ) -> Result<Self, CategoricalChannelRefusal> {
+        use CategoricalChannelRefusal::Definition;
+        let cap = &definition.external_capability;
+        let rebuilt = KernelCompositeDefinition::from_canonical_export(
+            definition.host_id.clone(),
+            definition.boot_id.clone(),
+            definition.offer_generation,
+            definition.profile.clone(),
+            cap.implementation.implementation_id.clone(),
+            cap.implementation.artifact_id.clone(),
+            document,
+            entry,
+            catalog,
             definition.internal_plan.clone(),
             definition.failure_translation,
         )

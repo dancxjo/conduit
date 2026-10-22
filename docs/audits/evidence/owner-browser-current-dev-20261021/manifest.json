@@ -1,0 +1,35 @@
+{
+  "source": "fd4e38472fd58bbcc50555562d56cfe89f1fbb5a",
+  "base": "2406348223b17a83ceae5c709b87882a802598b7",
+  "source_files": 13,
+  "source_equivalence": "Every changed source blob equals earlier local-browser-proof source4ff62494ef26bfc2ad94f88315fac693ec209990; historical capture is not relabeled.",
+  "checks": "JSsyntax and Rustformat all13files, owning manifests edition2021",
+  "logs": [
+    {
+      "file": "owner-face.log.gz",
+      "command": "cargo +stable test --locked -p conduit-browser-runtime --lib owner_face_mask:: -- --test-threads=1",
+      "passed": 16,
+      "failed": 0,
+      "ignored": 2,
+      "raw_sha256": "82bfcfc71fcecd2f1bb4b99ce6482fce766400cb847412351484be08efa9e10e"
+    },
+    {
+      "file": "look-evidence.log.gz",
+      "command": "node --test proof/browser/look-replacement-evidence.test.mjs",
+      "passed": 30,
+      "failed": 0,
+      "ignored": 0,
+      "raw_sha256": "b2caadab1f91e19dda4a822b8069323d2b6caef1d1b11a5ff9f521ba3137765e"
+    }
+  ],
+  "manual_tests_not_executed": [
+    "actual committed Todo checkpoint exchange",
+    "original-frame validated Parsec records"
+  ],
+  "pending": [
+    "Fresh current-source committed-owner/browser capture",
+    "Required current-base CI/Integration/merge",
+    "Full issue6209 and5630 closure"
+  ],
+  "new_browser_or_native_runs": 0
+}

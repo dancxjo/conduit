@@ -1,0 +1,60 @@
+# Canonical checked export recovery
+
+Recovery scope for [#6063](https://github.com/dancxjo/conduit/issues/6063), prepared from `dev` `3672758cf3f8bbaec01dab14476882433d31621f`. This is one generic adapter recovery, not a campaign checkpoint merge or completion of #4907. No PR or CI run was started during recovery. The shared build cache remained with its integration owner, who performed both source-bound trials recorded below.
+
+## Reused implementation and queue semantics
+
+`architecture/composite/src/canonical_export.rs` recovers the adapter from `c9cdfefee80fe5bce30c458b72ee0f6937f6e813`. The numerical `prepare_canonical` bridge is recovered into the current AI channel without replacing its already-present invocation custody and allocation-free refusal handling from the earlier `3ce4b81d3` work. No Language fixtures or dependencies are introduced into generic Composite or AI proof.
+
+The adapter re-expands the supplied checked document and entry. It requires exact Source document, checked Plot and expanded Plot identities, completion/realization facts, declared Gear meaning, unique placement identity, ordered Cord endpoints and tracks, selected port/typed-contract correspondence, and every independent exported payload Fore. A fresh Plan digest alone does not supply this correspondence.
+
+Untested predecessor `1f0030152` added an internal source-maximum-versus-Cord-capacity rejection during preparation. Independent inspection disproved that premise: existing lowering explicitly takes `min(semantic_bound, byte_capacity)`, including its 256-byte typed / 64-byte queue regression. The recovery successor removes that extra restriction. A valid narrower queue is an exact admitted Plan fact, not a Source forgery or a promise to carry every value allowed by the broader semantic contract.
+
+Passing regressions retain a valid 255-byte internal Cord with a 256-byte source contract, inspect its lowered maximum of 255 bytes, assert the actual copy driver's `OutputBlocked` refusal and absent output for 256 bytes, and execute 255 bytes successfully in a fresh runtime. They do not substitute `SemanticValueBoundExceeded` observed at another kernel boundary. Legitimate one-item/two-item allowances also remain exact Plan facts, while zero or out-of-selected-ceiling queues refuse. The recovered initial adapter profile additionally requires each exported Fore queue to fit its full typed maximum. A narrower Fore Plan can be valid under Core's admitted-minimum semantics and still be unsupported by this initial adapter; this profile restriction is not a universal Canon law or evidence of forgery. Internal Cord narrowing retains the existing admitted-minimum semantics.
+
+The initial adapter explicitly refuses startup/resource/abnormal Fores, duplicate or fanned-out exported Fores, non-payload tracks, selected boundary Lines, unsupported pressure policy, multiple fragments, activations/preparations, shared pools, retained state, execution fusion/regions, resource ports and non-payload/resource/abnormal internal Cords. The ordinary kernel preparation still owns its fixed scheduler/resource limits. No fragmentation, fallback queue, identity rewriting, raw execution entrance, or Host-admission/currentness claim is added.
+
+## Executed proof surface
+
+`architecture/composite/tests/canonical_export.rs` owns a generic checked Source with two byte-copy primitives, one real internal Cord, independently sealed typed input/output Fores and 256-byte selected bounds. Its positive execution uses the full admitted 256-byte payload through `KernelCompositeHost`, retaining exact output bytes, ACK sequence, Play identities and Signs. It does not use a parser model or a Language policy fixture.
+
+Passing negative cases cover foreign Source, all three Plan identities, missing/extra Fores, zero/out-of-selected-ceiling queue bounds, the initial exported-Fore profile limit, typed contracts, tracks, Gear identity/meaning/configuration, missing/extra Cords and wrong endpoints. Counters require integrity-valid Fore/graph counterexamples rather than counting only stale seals or core integrity failures. Separate cases cover unsupported queue/abnormal profiles and checked input-Fore fanout.
+
+The passing AI regression independently constructs canonical checked Source from the installed generic small categorical profile and exercises `prepare_canonical → submit → step → output ACK` through exact finite Fores. It checks moved request custody, exact canonical input/output, Plan/Play correlation, remote lifecycle Signs, held receipt pressure, and foreign Source/misbound-definition refusal. No parser policy or currentness authority is introduced.
+
+The supported entrance is `cargo +stable xtask check canonical-export`: generic behavioral tests, the existing categorical custody integration target including both new canonical-channel cases, focused strict Composite test lint and strict AI library/channel-test lint with the numerical operation-owner feature. No Language dependency is needed for this check.
+
+## First supported trial and fixture correction
+
+The integration owner ran `cargo +stable xtask check canonical-export` at exact source `06e36ea8001db55264208fc41ac22d18cf9a7427`. The command exited **1**: all six generic export tests and twelve existing categorical custody tests passed, but both new AI canonical cases failed during fixture Plan construction because the input Fore value contract did not match the selected Back. Strict steps were not reached. The original raw-log SHA-256 is `21219c7b64eb69c56c060f7d0d722dd7ffbe53ffde9cbea6cacbe9aab73137ce`; the [original failed log](evidence/canonical-export-20261022/6063-canonical-export-06e36-failed.log.gz) and [trial receipt](evidence/canonical-export-20261022/6063-canonical-export-first-trial.json) retain that negative evidence. No failed case is counted as passing.
+
+The correction changes only the AI test fixture: its Source now declares explicit input/output byte bounds computed from the actual prepared structured types. Additional assertions compare each authored Fore contract with the corresponding selected Back contract before planning. Named type aliases establish Kind identity; they do not supply those omitted explicit bounds. This follows the held canonical helper's approach without weakening the planner, adapter, runtime or contracts. The corrected successor was tested separately as recorded below; the earlier `06e36ea8` trial is not relabelled. Untested predecessor `1f0030152b4a2f0eafe066c4267ef4ec2b92d2c0` remains recoverable and is not positive execution evidence.
+
+## Corrected exact-source result
+
+Clean executable source **`12af867766057f58fc1a80db820b85496cc944dd`** passed `cargo +stable xtask check canonical-export` with exit **0**: **six generic export tests and fourteen AI custody tests passed**, with zero failures or ignores. Both the focused strict Composite test lint and strict AI library/channel-test lint passed. The source's full workspace format check passed. The [positive receipt](evidence/canonical-export-20261022/6063-canonical-export-positive-proof.json) and [original supported-check log](evidence/canonical-export-20261022/6063-canonical-export-corrected-check.log.gz) preserve the tested identity and scope. This evidence/documentation successor does not claim that its own new commit was executed.
+
+Three separate production-library configurations also compiled successfully from the same exact clean source, without fixture/dev test support: Composite `--lib --no-default-features`, AI `--lib --no-default-features`, and AI `--lib --no-default-features --features kernel-operation-owners`. The [original compatibility receipt](evidence/canonical-export-20261022/6063-production-library-checks.json) retains each complete command, exit code, raw-log byte count and hash. These are hosted compilation compatibility checks, not native runtime execution or additional behavioral tests.
+
+[SHA256SUMS](evidence/canonical-export-20261022/SHA256SUMS) covers every packaged file except itself. [Raw-log hashes](evidence/canonical-export-20261022/raw-log-sha256.json) retain original byte lengths and uncompressed SHA-256 values; all seven gzip streams were independently decompressed and compared byte-for-byte with their inputs. The corrected [format log](evidence/canonical-export-20261022/6063-corrected-workspace-format-check.log.gz) is empty, as expected for the passing check; its success and source identity are recorded in the positive receipt. A separate original empty preparation-format log is retained with its exact source explicitly unrecorded, not used to infer another exact-source success.
+
+## Acceptance boundary
+
+This is hosted CPU test, strict lint and formatting evidence. It does not establish native execution, physical execution, installed parser currentness, Language policy acceptance, or Host admission authority. Historical held Language-model evidence is not relabelled as proof of this generic recovery. #6062's publication dependency, required current-base CI, exact-head acceptance, reviewed merge and the parent's shared Integration/publication batch remain delivery gates. No new PR or CI run was started while the existing Candidate and prerequisite acceptance remain outstanding; #6063 remains open.
+
+## Accepted-baseline refresh (2026-10-22 UTC)
+
+Clean source `9cd8a6c07d20447fcfe56220a999b9b56b943b8d` merges accepted baseline `84dac6d02fc48078b22a8e33744d1b1039fcff77` without changing the adapter, AI bridge or suite implementation. The supported `cargo +stable xtask check canonical-export` passed again: six generic cases, fourteen categorical cases and both strict Clippy checks. [Exact-source receipt](evidence/canonical-export-20261022/6063-merged-source-check.json) and [original log](evidence/canonical-export-20261022/6063-84dac-canonical-export-check.log.gz) retain exit 0 and SHA-256 custody; gzip was independently round-tripped. Earlier positive and negative packets are unchanged. This documentation successor is not relabelled as the executed source; Candidate, merged Integration and applicable publication gates remain pending.
+
+## Refreshed combined-dev validation
+
+Clean `f79d280e7c56f8bd5dd108b6102e84816026b782` includes reviewed dev
+`f3e582ce98ede25394a392de4ed06e0b6b086133`. The supported canonical-export
+check passes all six generic and fourteen categorical controls and both strict
+Clippy steps. [Exact command, raw log and receipt](evidence/canonical-export-20261022/fresh-f79d/README.md).
+This is fresh focused hosted proof; Candidate and required delivery gates
+remain pending. Older Source-bound positive and negative evidence is unchanged.
+
+## Fresh accepted-descendant check
+
+Clean source `95bd7a776ebe67a597a69dc88b758196b86ce3fa` passed the supported canonical-export check again: six generic and fourteen AI custody tests plus both strict suite steps, exit0. [Exact-source packet](evidence/canonical-export-20261022/fresh-95bd/README.md) retains the original lossless log, command/environment/count/source receipt and hashes. No fresh formatting or no-default-library check is claimed. Earlier positive and negative evidence remains unchanged; this docs-only successor is not the executed source.

@@ -23,12 +23,16 @@ enum Fault {
 }
 struct FaultCompute {
     offer: ModelComputeOffer,
+    runtime: conduit_ai::ModelComputeRuntimeIdentity,
     fault: Fault,
     calls: Arc<AtomicUsize>,
 }
 impl ModelComputeAdapter for FaultCompute {
     fn offer(&self) -> &ModelComputeOffer {
         &self.offer
+    }
+    fn runtime_identity(&self) -> &conduit_ai::ModelComputeRuntimeIdentity {
+        &self.runtime
     }
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         assert_ne!(identity, [0; 32]);
@@ -71,6 +75,7 @@ fn source_kernel_preserves_shape_cancel_provider_loss_and_reported_timeout() {
             host_plan(include_str!("fixtures/model-linear.conduit"), |signature| {
                 let adapter = FaultCompute {
                     offer: offer(),
+                    runtime: runtime("fixture/fault-injection"),
                     fault,
                     calls: retained_calls,
                 };
