@@ -2,9 +2,36 @@
 import '../handbook/owner-face-component.mjs';
 
 async function responseBytes(response) {
-  if (!response.ok) throw new Error(`Body owner refused (${response.status}): ${await response.text()}`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.length < 1 || bytes.length > 2 * 1024 * 1024) throw new Error('Body owner response exceeds its bound');
+  const maximum = 2 * 1024 * 1024;
+  if (!response.body?.getReader) {
+    if (!response.ok && response.body === null) throw new Error(`Body owner refused (${response.status})`);
+    throw new Error('Body owner response exceeds its bound');
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let length = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!ArrayBuffer.isView(value) || value.BYTES_PER_ELEMENT !== 1 || value.byteLength > maximum - length) {
+        throw new Error('Body owner response exceeds its bound');
+      }
+      if (!value.byteLength) continue;
+      length += value.byteLength;
+      chunks.push(value);
+    }
+  } catch (error) {
+    try { await reader.cancel(); } catch {}
+    throw error;
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(length);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
+  if (!response.ok) {
+    throw new Error(`Body owner refused (${response.status}): ${new TextDecoder().decode(bytes.subarray(0, 256))}`);
+  }
+  if (!length) throw new Error('Body owner response exceeds its bound');
   return bytes;
 }
 export async function showBodyFace({ coordinator, root, bridge, play, current, transport = fetch }) {
