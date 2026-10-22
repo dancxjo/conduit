@@ -18,7 +18,9 @@ export function checkedPatchbayFaceArguments(acknowledged, view, actionId, targe
     refuse('UnsupportedAction', 'This action has no resident Patchbay return route.');
   }
   // FaceInteraction arguments cross the canonical ABI as UTF-8 byte sequences.
-  return checked.map(({ name, value }) => ({ name, value: Array.from(encoder.encode(value)) }));
+  return checked.map(({ name, value }) => ({ name,
+    value_kind: action.arguments.find(argument => argument.name === name).value_kind,
+    value: Array.from(encoder.encode(value)) }));
 }
 
 export function checkedAcknowledgedOwnerFaceArguments(acknowledged, view, actionId, target, supplied) {

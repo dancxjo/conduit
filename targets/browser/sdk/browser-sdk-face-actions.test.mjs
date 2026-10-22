@@ -145,8 +145,8 @@ test('resident Patchbay arguments preserve exact Unicode as canonical ABI bytes'
     actions: [{ identity: 'edit', target: 'plot/exact', availability: 'available',
       intent: 'patchbay/edit-subject@1', arguments: [{ name: 'subject', value_kind: 'value/text',
         maximum_bytes: 14, choices: [value] }] }] };
-  const supplied = [{ name: 'subject', value }];
+  const supplied = [{ name: 'subject', value, value_kind: 'forged/kind' }];
   assert.deepEqual(checkedPatchbayFaceArguments(view, view, 'edit', 'plot/exact', supplied),
-    [{ name: 'subject', value: [103, 101, 97, 114, 47, 99, 97, 102, 195, 169, 47, 206, 187] }]);
-  assert.deepEqual(supplied, [{ name: 'subject', value }]);
+    [{ name: 'subject', value_kind: 'value/text', value: [103, 101, 97, 114, 47, 99, 97, 102, 195, 169, 47, 206, 187] }]);
+  assert.deepEqual(supplied, [{ name: 'subject', value, value_kind: 'forged/kind' }]);
 });
