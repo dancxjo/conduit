@@ -1,0 +1,10 @@
+{
+  "source_commit": "45e36bd43562c51ceb620c9fc7775d9e65cf1a8a",
+  "binary_sha256": "8668be028836ee1750b09a09dc05c7d39e544b331c929725941482864ab86165",
+  "corrected_caller_reservation_bytes": 43592,
+  "unchanged_encounter_reservation_bytes": 53368,
+  "unchanged_listening_reservation_bytes": 35560,
+  "diagnostic_failure_caller_reservation_bytes": 60696,
+  "caller_reduction_vs_diagnostic_bytes": 17104,
+  "boundary": "Actual prologue reservations, not full nested peak. Box still has stack temporaries. Exact test passes default stack, no product/stack/grant change."
+}

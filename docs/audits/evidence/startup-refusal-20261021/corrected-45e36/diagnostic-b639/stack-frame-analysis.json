@@ -1,0 +1,25 @@
+{
+  "source_commit": "b639d2e76c5b8a23d34878d587ee974d162833f0",
+  "binary_sha256": "7c69b50934bbc210211a29c92937f4cf542ceefc37fd53c4680a0a25ba9369d0",
+  "frames": {
+    "replaced_show_diagnostic": {
+      "start": "0x2677370",
+      "reservation_bytes": 60696
+    },
+    "encounter": {
+      "start": "0x2674a70",
+      "reservation_bytes": 53368
+    },
+    "listening": {
+      "start": "0x267f850",
+      "reservation_bytes": 35560
+    },
+    "passing_forged_show_control": {
+      "start": "0x2678210",
+      "reservation_bytes": 38136
+    }
+  },
+  "caller_frame_difference_bytes": 22560,
+  "diagnostic_last_marker": "before-encounter",
+  "boundary": "Actual compiled prologue stack reservations, not full nested call peak. Overflow occurs during encounter invocation; neither re-presentation nor stale/owner assertions are reached. The same encounter passes in the smaller forged-show caller."
+}
