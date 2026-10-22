@@ -121,6 +121,23 @@ impl TutorialScope {
 // Keep the admitted finite payload inline in the shared application wire.
 #[allow(clippy::large_enum_variant)]
 pub enum Command {
+    PatchbayFragment {
+        slot: u8,
+        body: conduit_body::BodyId,
+        basis: conduit_face::FaceContributionBasis,
+        actions_admitted: bool,
+    },
+    PatchbayPublish {
+        slot: u8,
+        body: conduit_body::BodyId,
+        basis: conduit_face::FaceContributionBasis,
+        face: conduit_face::Face,
+        show: conduit_face::MaskShow,
+    },
+    PatchbayConsume {
+        slot: u8,
+        input: Vec<u8>,
+    },
     PrepareGraphProjection {
         graph: PatchbayGraph,
         scope: crate::graph_facts::Scope,
@@ -187,6 +204,30 @@ pub struct Snapshot {
 }
 #[derive(Serialize, Deserialize)]
 pub enum Reply {
+    PatchbayFragment {
+        slot: u8,
+        target: u8,
+        revision: u32,
+        fragment: conduit_face::FaceFragment,
+    },
+    PatchbayPublished {
+        slot: u8,
+        target: u8,
+        revision: u32,
+    },
+    PatchbayConsumed {
+        slot: u8,
+        target: u8,
+        revision: u32,
+        proposal: Option<Proposal>,
+        refusal: Option<CanonicalRefusal>,
+    },
+    PatchbayRefused {
+        slot: u8,
+        target: u8,
+        revision: u32,
+        refusal: CanonicalRefusal,
+    },
     GraphFacts {
         contribution: crate::graph_facts::Contribution,
     },
@@ -207,6 +248,35 @@ pub enum Reply {
         graph: Option<PatchbayGraph>,
     },
 }
+/// Semantic outcomes preserve the retained actor; transport failures stay Refusal.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum CanonicalDomainRefusal {
+    Graph,
+    Event,
+    UnknownAction,
+    NoSubject,
+    RevisionExhausted,
+    EmptyActivePlots,
+    TooManyActivePlots,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum CanonicalRefusal {
+    Bounds,
+    Capacity,
+    InvalidFace,
+    UnacknowledgedShow,
+    WrongOwner,
+    StaleState,
+    InvalidContribution,
+    NoPublication,
+    ShowConsumed,
+    InvalidInteraction(conduit_face::FaceInteractionRefusal),
+    InvalidActionContract,
+    UnknownAction,
+    UnknownSubject,
+    Projection,
+    Domain(CanonicalDomainRefusal),
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Refusal {
     Bounds,
@@ -216,7 +286,7 @@ pub enum Refusal {
     Application,
 }
 mod codec;
-pub(crate) use codec::Packing as GraphPacking;
+pub(crate) use codec::{Packing as GraphPacking, preflight_canonical_fixture};
 mod transport_codec;
 pub use codec::{
     GRAPH_PACK_BYTES, MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode,
