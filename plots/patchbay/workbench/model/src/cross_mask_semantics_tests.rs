@@ -11,6 +11,16 @@ fn source_derived_patchbay_keeps_gear_port_cord_meaning_in_nonvisual_readers() {
     .unwrap()
     .0;
     face.validate().unwrap();
+    // Explicit mechanical export of the production projection; ordinary runs
+    // always retain exact equality with the shared checked-in specimen below.
+    if let Some(path) = std::env::var_os("CONDUIT_CROSS_MASK_PATCHBAY_EXCHANGE") {
+        let path = std::path::PathBuf::from(path);
+        assert!(
+            path.is_absolute(),
+            "Patchbay exchange requires an absolute path"
+        );
+        std::fs::write(path, serde_json::to_vec_pretty(&face).unwrap()).unwrap();
+    }
     let specimen: conduit_face::Face = serde_json::from_str(include_str!(
         "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
