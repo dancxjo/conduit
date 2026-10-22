@@ -1484,3 +1484,32 @@ passed. The first cold test compilation built dependencies, then subsequent
 focused runs reused them. No QEMU, CI, ISO/ZIP, physical or human proof follows
 from these checks. Native Patchbay request-to-Source authorization is the next
 handoff; persistence and explicit Save/reopen remain #6192 work.
+
+### Native Patchbay Source handoff (#6201)
+
+`EditCurrent` now reaches the already-admitted canonical editor. The current
+owner must first issue the exact request; a fixed-size digest and owner revision
+retain its one-use authorization without another heap-owned request or document.
+Graph membership alone grants nothing. Forged, replayed and stale requests refuse.
+The handoff checks current Host/Boot/offer, Body Plan/Play, exact resident Source,
+checked/expanded identities, unique subject and editor availability. It loads the
+exact fitting Source via the existing pending editor Host Call, verifies the
+owner-returned revision and bytes, records the actual result, then selects that
+resident editor. Existing drafts and oversized Source refuse visibly. Fatal
+execution errors retire the realization; no resident Source or running Plan is
+silently replaced.
+
+The receipt preserves Source/subject/Plan/Play provenance. Available compiler
+spans are checked as UTF-8 bytes and converted to Unicode scalar coordinates.
+`selection_enacted` is explicitly false: metadata does not claim native cursor
+selection/highlighting. The current physical editor remains append/newline/
+backspace, within 256 bytes. Explicit Save/reopen, Source publication/replanning,
+and complete cursor editing are not claimed.
+
+Ten resident journey checks passed including the actual owner-action handoff;
+the focused handoff regression also passed after one-use authorization was added,
+covering fabricated, replayed, stale and dirty-draft attempts with unchanged
+Plan/Play identity. The integrated freestanding x86_64 native-compositor library
+check passed at `2948f2491`. No new QEMU/CI or release acceptance is claimed.
+The browser canonical root-Fore migration remains retained; native Patchbay's
+legacy event/view Fore migration and platform enactment are still #6201 gaps.
