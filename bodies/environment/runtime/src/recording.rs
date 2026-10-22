@@ -4,8 +4,10 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+mod reader;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
+pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
 #[allow(dead_code)]
 mod forms {
     include!(concat!(env!("OUT_DIR"), "/recording-forms.rs"));

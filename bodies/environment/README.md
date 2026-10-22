@@ -472,7 +472,7 @@ first entry makes no claim about history before recording began. Full chunks
 refuse further new samples. Seal creates stable JSON bytes and forbids mutation;
 append and seal allocate nothing after preparation. No API labels a chunk as
 committed, chooses a Resource generation, writes IndexedDB, retries or retires
-content. A validated reader, cross-chunk recovery, actual publication completion,
+content. Cross-chunk recovery, actual publication completion,
 finite generation admission and the producer Line remain integration work.
 
 The ESP32 display now has an attended physical diagnostic under
@@ -503,3 +503,19 @@ covers captured bytes → Source validation → quantities → Face → Fahrenhe
 → verified digit/dot mapping → Source-encoded TM1637 packets, with no recurring
 allocation. The Root still has to invoke the exact admitted physical Host Call;
 this pure encoder is not permission to drive pins or an installed Body.
+
+`PreparedRecordingReader` now validates the exact canonical chunk representation
+against a caller-supplied expected Host/Boot/Plan/Play, observation Type and all
+three Form identities. It refuses malformed or oversized content, unknown status
+bits, failure entries with quantity payloads, duplicate/reversed sequences and
+reversed producer time. Refusal preserves the previously loaded chunk. Reading
+reconstitutes canonical Temperature and relative-humidity quantities, with local
+gaps explicit, without allocation after preparation. It grants no storage
+authority, authenticates no producer and makes no cross-chunk continuity claim.
+The existing Resource read completion must establish the selected snapshot's
+authority and generation before supplying these bytes.
+
+Run the focused chunk encoding/recovery proof with
+`cargo xtask prove environment recording`. It includes full 64-entry recovery,
+refusal without partial replacement, context/Form substitution and zero-allocation
+reconstruction of exact canonical quantities.
