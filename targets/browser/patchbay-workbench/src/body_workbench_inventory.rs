@@ -27,6 +27,7 @@ mod tests {
     use super::*;
     use conduit_body::{BodyState, BodyWorkset, ResidentPlot};
     use conduit_core::{CheckedPlotId, SourceDocumentId};
+    use conduit_face::FaceActionAvailability;
 
     fn reviewed(name: &str) -> BrowserReviewedPlot {
         BrowserReviewedPlot {

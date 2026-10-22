@@ -446,7 +446,7 @@ mod tests {
             match foreign {
                 0 => wrong.host_id = "host/foreign".into(),
                 1 => wrong.boot_id = "boot/foreign".into(),
-                _ => wrong.offer_generation += 1,
+                _ => wrong.offer_generation.0 += 1,
             }
             assert!(server
                 .apply_body_host_planning_offer(&serde_json::to_vec(&wrong).unwrap())
