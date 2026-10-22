@@ -293,11 +293,10 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             let hint = if width < 640 {
                 "F2/F3"
             } else {
-                "Alt+arrows inspect · F2/F3"
+                "F2 all facts · F3 return"
             };
-            let noun = if width < 640 { "cords shown" } else { "cords" };
             let notice = format!(
-                "{shown}/{total} {noun} · {} omitted · {hint}",
+                "{shown}/{total} cords shown · {} omitted · {hint}",
                 total - shown
             );
             assert!(
@@ -305,7 +304,8 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                     .scene
                     .commands()
                     .iter()
-                    .any(|c| c.payload().ends_with(&notice))
+                    .any(|c| c.payload().ends_with(&notice)
+                        && (width < 640 || c.payload().contains("Tab subjects")))
             );
             scene.turn_page(true);
         }

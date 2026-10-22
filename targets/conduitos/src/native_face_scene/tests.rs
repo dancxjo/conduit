@@ -485,10 +485,26 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
     )
     .unwrap();
     let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
-    assert!(scene.primary.iter().any(|row| {
-        row.text
-            .contains("Interval in milliseconds · Choose 1000, 2000, 250, 500")
-    }));
+    let primary = scene
+        .primary
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(primary.contains("Interval in milliseconds · Left/Right choose"));
+    let details = scene
+        .details
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(details.contains("one of the canonical values"));
+    for value in ["1000", "2000", "250", "500"] {
+        assert!(
+            details.contains(&alloc::format!("{value:?}")),
+            "Details lost choice {value}"
+        );
+    }
     let show = fixture::show(&current);
     let interaction = scene
         .interaction(
@@ -514,7 +530,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         kind_id(UTF8_TEXT_VALUE_KIND),
         2,
         vec![ValueConstraint::CanonicalMembership {
-            members: (0u8..9).map(|value| vec![b'0' + value]).collect(),
+            members: (0u8..33).map(|value| vec![b'0' + value]).collect(),
             negated: false,
         }],
     )
@@ -530,6 +546,8 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         current.disclosures,
     )
     .unwrap();
+    // The native finite chooser admits 32 choices; larger contracts retain
+    // exact Details and the typed-entry path rather than dropping alternatives.
     let crowded_scene = NativeFaceScene::prepare(crowded, 640, 480).unwrap();
     assert!(
         crowded_scene
@@ -537,6 +555,20 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
             .iter()
             .any(|row| row.text.contains("Enter a value"))
     );
+    let details = crowded_scene
+        .details
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(details.contains("one of the canonical values"));
+    for value in 0u8..33 {
+        let value = alloc::string::String::from_utf8(vec![b'0' + value]).unwrap();
+        assert!(
+            details.contains(&alloc::format!("{value:?}")),
+            "Details lost overflow choice {value}"
+        );
+    }
 }
 
 #[test]
