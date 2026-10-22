@@ -1985,3 +1985,9 @@ Retained sync943ce816a preserves selected typography in the geometry-fit check a
 Merged #6246 on dev71312da7b; exact tested/merged trees match. Supported `cargo xtask make conduitos graph-correspondence` executes one opt-in three-variant native/Node-browser/linear conformance test and refuses zero-test success. Ten browser projection checks pass. #5518’s scoped criteria are checked and closed; #5994 step14 is updated. See patchbay-cross-mask-correspondence-20261022.md for the explicit description-versus-platform boundary.
 
 Retained branch merged without conflicts; the exact conformance case passes with pending selected typography present. CLI registrations are single and the fixture/oracle code matches delivered dev. #5519/QEMU, remaining Looks/accessibility and parent product acceptance remain open. CI deliberately skipped tonight.
+
+## Selected typography v2 delivered (22 October, #6247 / #6248)
+
+#6247 repaired the premature RequiredItem wire exposure from #6243; focused product CLI compilation passed. #6248 then delivered the complete typed Look/visual-expression v2, native/browser consumers, exact recipe wire conversions and source-backed required-item component. Dev558c54930 has the exact tested tree.303 Face cases (two existing spoken-fixture ignores),8 browser wire cases,4 selected native cases,2 explicit owner replacement cases and product CLI/freestanding native compilation pass. Six profiles use1020311 coverage bytes under the unchanged4MiB bound.
+
+Retained synchronization changed documentation/evidence only; all selected typography/Face/native consumer source matches delivered dev. No duplicate test run was needed. #5628/#5629/#6190 and remaining #5994 product requirements stay open for fresh source-bound live evidence; historical captures are not relabelled. CI and new browser/QEMU/image/ZIP campaigns deliberately skipped tonight. See selected-typography-v2-delivery-20261022.md.
