@@ -272,3 +272,14 @@ cargo xtask prove environment publication
 This checks Source expansion and publication commit, refusal, closure and
 cancellation behavior, including zero allocation in Play. Firmware installation,
 Body membership and the browser recorder remain separate integration work.
+
+The host proof also measures preparation heap separately from Play. On the
+64-bit test host, the 15-node appliance used a 277,176-byte peak during ordinary
+planning and 35,247 bytes during lowering, excluding the already-live Source
+and Host descriptions. Independent clones peaked at 121,391 bytes for the
+expanded graph, 64,879 bytes for the Host advertisement, and 141,115 bytes for
+the Plan. These are diagnostic observations, not MCU admission bounds; clone
+capacities and pointer widths differ. They favor preparing the rich Plan on a
+host and admitting its exact bounded native projection on the MCU. Such an
+installation still requires current initialized offers, Boot identity, authority
+and resident layout checks; these measurements do not establish that path.
