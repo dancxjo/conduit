@@ -16,7 +16,7 @@ pub enum Request {
         bytes: u32,
     },
     Commit,
-    /// Validate a fully written target command before its typed Commit entry.
+    /// Validate a fully written large command before its typed Commit entry.
     Preflight,
     /// Ordered phases of an immutable retained Graph reply.
     GraphSerialize,

@@ -128,3 +128,46 @@ fn staged_borrowed_graph_reply_preserves_real_graph_custody_with_finite_progress
         "real graph fixture must exercise incremental compression"
     );
 }
+
+#[test]
+fn real_projection_preflight_preserves_compressed_graph_and_scope_custody() {
+    #[derive(serde::Deserialize)]
+    enum Fixture {
+        Init {
+            applications: [Option<Initial>; crate::SLOTS],
+        },
+    }
+    let Fixture::Init { applications } =
+        decode(include_bytes!("../../../tests/fixtures/startup.catz")).unwrap();
+    let Some(Initial::Patchbay { targets, .. }) = &applications[0] else {
+        panic!("fixture")
+    };
+    let mut workspace = Workspace::new().unwrap();
+    let mut compressed = false;
+    for target in targets.iter().flatten() {
+        let scope = crate::graph_facts::Scope::new(
+            "host/preflight".into(),
+            "boot/preflight".into(),
+            "body/preflight".into(),
+            1,
+            &target.graph,
+            false,
+        )
+        .unwrap();
+        let command = Command::PrepareGraphProjection {
+            graph: target.graph.clone(),
+            scope,
+        };
+        let input = encode_command(&command).unwrap();
+        compressed |= input.starts_with(MAGIC);
+        let length = workspace.preflight_command(&input).unwrap();
+        // Commit consumes the frozen decoded bytes, without a second inflate
+        // or framing pass and without accepting a separately supplied payload.
+        let returned = workspace.decode_preflighted_command(length).unwrap();
+        assert_eq!(encode(&returned).unwrap(), encode(&command).unwrap());
+    }
+    assert!(
+        compressed,
+        "real graph projection must exercise compressed preparation"
+    );
+}

@@ -124,7 +124,10 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
             )
             .unwrap();
     }
-    if matches!(command, Command::PrepareTarget { .. }) {
+    if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
         assert_eq!(
             state.execute(Request::Preflight, transfer),
             Ok(Response::Ready)

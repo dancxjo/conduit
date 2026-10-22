@@ -160,10 +160,29 @@ impl Service {
             })?;
             offset += chunk.len() as u32;
         }
-        if matches!(command, Command::PrepareTarget { .. }) {
+        let projection = matches!(command, Command::PrepareGraphProjection { .. });
+        if projection {
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION preflight begin\n");
+        }
+        if matches!(
+            command,
+            Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+        ) {
+            // Separate immutable decompression/framing from typed graph decode.
+            // Preflight freezes the same bytes consumed by the following Commit.
             self.request(Request::Preflight)?;
         }
+        if projection {
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION preflight complete\n");
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION prepare begin\n");
+        }
         let committed = self.request(Request::Commit)?;
+        if projection {
+            if !matches!(committed, Response::Blob { .. }) {
+                return Err(Refusal::Malformed);
+            }
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION prepare complete\n");
+        }
         let response = if matches!(command, Command::Graph { .. }) {
             if committed != Response::Ready {
                 return Err(Refusal::Malformed);

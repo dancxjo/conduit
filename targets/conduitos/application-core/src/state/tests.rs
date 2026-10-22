@@ -25,7 +25,10 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
             &mut transfer,
         )?;
     }
-    if matches!(command, Command::PrepareTarget { .. }) {
+    if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
         assert_eq!(
             state.execute(Request::Preflight, &mut transfer)?,
             Response::Ready
