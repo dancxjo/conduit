@@ -71,22 +71,33 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["recording"] {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/runtime/Cargo.toml",
-                    "--test",
-                    "recording_chunks",
-                    "--test",
-                    "recording_recovery",
-                ])
-                .env("CARGO_TARGET_DIR", root.join("target/environment-runtime")),
-        );
+    if arguments == ["recording"] || arguments == ["http"] {
+        let http = arguments == ["http"];
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(&root)
+            .args([
+                "test",
+                "--locked",
+                "--manifest-path",
+                if http {
+                    "bodies/environment/http/Cargo.toml"
+                } else {
+                    "bodies/environment/runtime/Cargo.toml"
+                },
+            ])
+            .env(
+                "CARGO_TARGET_DIR",
+                root.join(if http {
+                    "bodies/environment/http/target"
+                } else {
+                    "target/environment-runtime"
+                }),
+            );
+        if !http {
+            command.args(["--test", "recording_chunks", "--test", "recording_recovery"]);
+        }
+        return execute(&mut command);
     }
     if arguments == ["display-esp32"]
         || arguments == ["pulse-esp32"]
@@ -374,7 +385,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, recording, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

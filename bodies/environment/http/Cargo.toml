@@ -7,6 +7,7 @@ publish = false
 [workspace]
 
 [dependencies]
+embassy-sync = "=0.8.0"
 conduit-net = { path = "../../../semantics/net" }
 zeroize = { version = "=1.9.0", default-features = false }
 conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }

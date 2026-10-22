@@ -187,6 +187,7 @@ dependencies = [
  "conduit-net",
  "conduit-seven-segment-mask",
  "critical-section",
+ "embassy-sync 0.8.0",
  "heapless 0.8.0",
  "zeroize",
 ]

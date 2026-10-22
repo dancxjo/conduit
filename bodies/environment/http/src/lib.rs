@@ -1,6 +1,7 @@
 #![no_std]
 //! A prepared semantic Face and its bounded HTTP Mask; no second sampler.
 extern crate alloc;
+pub mod service_control;
 use alloc::boxed::Box;
 use conduit_environment_face::PreparedObservationFace;
 use conduit_face::FaceBasis;
@@ -31,13 +32,19 @@ pub fn initialize(basis: FaceBasis) {
     });
 }
 pub fn set_ap_ready() {
+    set_ap_state(true);
+}
+pub fn set_ap_unavailable() {
+    set_ap_state(false);
+}
+fn set_ap_state(ready: bool) {
     critical_section::with(|cs| {
         PUBLICATION
             .borrow(cs)
             .borrow_mut()
             .as_deref_mut()
             .unwrap()
-            .ap_ready = true
+            .ap_ready = ready
     });
 }
 pub fn ap_ready() -> bool {

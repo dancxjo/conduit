@@ -564,3 +564,14 @@ Embassy `mdns` flag resolves names as a client; it does not by itself install a
 host responder. The bounded no-alloc responder in
 [edge-mdns](https://docs.rs/edge-mdns/0.8.0/edge_mdns/) is under evaluation;
 no dependency or availability claim is implied by that investigation.
+
+The HTTP service-control mailbox now admits one control handle and a finite
+command count. Acknowledgements are correlated with their actual command;
+cancelled starts can be superseded, and old acknowledgements cannot complete a
+new stop. The ESP32 socket task reports readiness only after DHCP binding and
+both HTTP listeners, and retirement only after dropping all socket/request
+futures. Restart and failure clear the local AP-ready observation. Startup now
+awaits that acknowledgement instead of sleeping for an assumed startup interval.
+`cargo xtask prove environment http` checks the HTTP/input/control contracts;
+ESP32 and Pico cross-checks pass. These source/CPU proofs do not yet establish a
+physical stop/restore cycle or connect the page to an admitted control Play.

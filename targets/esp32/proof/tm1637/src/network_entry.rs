@@ -17,7 +17,11 @@ async fn main(spawner: Spawner) {
     let mut live = crate::live::Live::prepare();
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let _controller = crate::network::start(spawner, p.WIFI, seed);
-    Timer::after(Duration::from_millis(100)).await;
+    let mut services = crate::services::control();
+    services
+        .request(conduit_environment_http::service_control::ServiceMode::Running)
+        .await
+        .unwrap();
     conduit_environment_http::set_ap_ready();
     esp_println::println!(
         "AP Conduit-Climate http://192.168.4.1/ heap free={}",

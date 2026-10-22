@@ -8,10 +8,6 @@ static RESOURCES: StaticCell<StackResources<4>> = StaticCell::new();
 async fn runner(mut runner: embassy_net::Runner<'static, esp_radio::wifi::Interface<'static>>) {
     runner.run().await
 }
-#[embassy_executor::task]
-async fn services(stack: embassy_net::Stack<'static>) {
-    crate::http_ap::serve(stack).await;
-}
 pub fn start(
     spawner: Spawner,
     wifi: esp_hal::peripherals::WIFI<'static>,
@@ -43,6 +39,6 @@ pub fn start(
         seed,
     );
     spawner.spawn(runner(net_runner).unwrap());
-    spawner.spawn(services(stack).unwrap());
+    spawner.spawn(crate::services::run(stack).unwrap());
     controller
 }

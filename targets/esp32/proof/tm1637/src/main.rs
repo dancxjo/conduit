@@ -10,6 +10,8 @@ use esp_hal::{delay::Delay, main};
 mod network;
 #[cfg(feature = "ap")]
 mod network_entry;
+#[cfg(feature = "ap")]
+mod services;
 // Reuse the existing allocation-free appliance service bench and DHCP grammar.
 #[cfg(feature = "ap")]
 #[path = "../../../../rp2040/proof/dht11/src/http_ap.rs"]
