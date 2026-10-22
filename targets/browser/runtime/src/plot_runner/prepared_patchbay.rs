@@ -6,7 +6,12 @@ pub(super) struct PreparedPatchbay {
     pending: Option<PendingRequest>,
     last_disposition: Option<LastDisposition>,
     last_input_refusal: Option<u32>,
-    canonical_input_only: bool,
+    input_mode: InputMode,
+}
+enum InputMode {
+    Legacy,
+    CanonicalMask,
+    CanonicalFore,
 }
 struct PendingRequest {
     revision: u32,
@@ -23,7 +28,7 @@ impl PreparedPatchbay {
             pending: None,
             last_disposition: None,
             last_input_refusal: None,
-            canonical_input_only: false,
+            input_mode: InputMode::Legacy,
         }
     }
 
@@ -47,11 +52,20 @@ impl PreparedPatchbay {
 
     /// Selected during preparation from the exact captured resident Mask selector.
     pub(super) fn require_canonical_input(&mut self) {
-        self.canonical_input_only = true;
+        self.input_mode = InputMode::CanonicalMask;
+    }
+
+    /// The installed FaceInteraction Fore has no ApplicationView output, even
+    /// for an empty poll. Legacy Source fixtures may still initialize their
+    /// declared view output when paired with a canonical Mask.
+    pub(super) fn select_canonical_fore(&mut self) {
+        self.input_mode = InputMode::CanonicalFore;
     }
 
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
-        if self.canonical_input_only && !input.is_empty() {
+        if matches!(self.input_mode, InputMode::CanonicalFore)
+            || (matches!(self.input_mode, InputMode::CanonicalMask) && !input.is_empty())
+        {
             return Err("patchbay-canonical-interaction-required".into());
         }
         if let Some(pending) = &self.pending {

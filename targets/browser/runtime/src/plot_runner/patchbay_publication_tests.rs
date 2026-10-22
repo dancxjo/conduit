@@ -300,7 +300,11 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         "patchbay-canonical-interaction-required"
     );
     assert_eq!(owner.port.revision(), revision);
-    assert!(owner.execute(&[]).is_ok());
+    assert_eq!(
+        owner.execute(&[]).unwrap_err(),
+        "patchbay-canonical-interaction-required"
+    );
+    assert_eq!(owner.port.revision(), revision);
     assert!(session.scheduler.has_patchbay_fore(owner_node));
     let before = session.patchbay_observation().unwrap();
     assert_eq!(before["publication"]["interaction_admitted"], false);
@@ -364,12 +368,11 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     else {
         panic!("owner")
     };
-    let observation = ApplicationView::decode(&owner.execute(&[]).unwrap()).unwrap();
-    assert!(observation
-        .nodes
-        .iter()
-        .all(|node| node.component != ApplicationComponent::PatchbayCanvas));
     let revision = owner.port.revision();
+    assert_eq!(
+        owner.execute(&[]).unwrap_err(),
+        "patchbay-canonical-interaction-required"
+    );
     assert!(owner.execute(&[255]).is_err());
     assert_eq!(owner.port.revision(), revision);
 

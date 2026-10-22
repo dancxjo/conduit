@@ -55,7 +55,9 @@ pub(super) fn prepare(
         port
     };
     let mut prepared = PreparedPatchbay::new(port);
-    if canonical {
+    if placement.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND {
+        prepared.select_canonical_fore();
+    } else if canonical {
         prepared.require_canonical_input();
     }
     Ok(prepared)

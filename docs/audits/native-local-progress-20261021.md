@@ -1768,3 +1768,27 @@ fit, native stack fit, protected-service/QEMU execution, browser enactment or
 release acceptance. Two dev-only fixture dependencies were added; no production
 heap, queue, transfer, value or stack limit grew. No CI/platform campaign ran.
 #6201 and #5994 remain open for their original acceptance.
+
+### 2026-10-22: retire browser legacy polls for the canonical resident Fore
+
+Preparation now distinguishes the actual FaceInteraction Fore from a legacy
+Source paired with a canonical Mask. The installed canonical Fore refuses every
+legacy application call, including empty polls: it declares no ApplicationView
+output and must not generate one through the retained adapter. Both pre-effect
+and post-effect refusal leave the actual owner revision unchanged. The existing
+Face publication and typed resident ingress remain the only production path.
+Legacy Source fixtures still initialize their declared view output, while their
+canonical Mask prevents legacy mutation; unrelated legacy applications remain
+unchanged. This selection comes from the exact planned Kind, not UI labels.
+
+The focused publication regressions cover the actual main Source/Fore and the
+explicit legacy fixture separately. Validation result is recorded below. No
+platform/CI campaign or parent acceptance is implied.
+
+The actual `plot_runner::engine::publication_tests::` module passes all three
+focused hosted regressions (3.56 seconds): installed canonical resident ingress,
+legacy fixture publication, and unreserved initial Mask refusal. The initial
+filename-based filter selected zero tests and is excluded from behavioral
+evidence; selecting the actual module corrected that observation. The installed
+resident test also passed individually. No browser/guest execution is claimed.
+Current dev remains 624baf562; the working branch includes it unchanged.
