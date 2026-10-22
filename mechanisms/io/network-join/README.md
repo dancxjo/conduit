@@ -31,3 +31,16 @@ cannot clear that obligation. Cleanup readiness never
 mints a new attachment. The composition root still needs to connect the actual
 ESP32 adapter, initialize/project offers, issue capabilities and drive the
 credential and attachment Host Calls under the ordinary Body lifecycle.
+
+`installation::ReadyNetworkJoinBase` retains the real initialized provider while
+Root advertises its exact Base, implementation and station resource. Its unsafe
+constructor requires independent native initialization and memory/work admission;
+a descriptor or a successful probe cannot establish readiness. Projection checks
+the current Host/Boot and refuses duplicates without mutating the advertisement.
+Root must retain the owner and withdraw availability before disposing of it.
+
+Binding consumes this owner. Rich Plans must retain its actual artifact, Base,
+profile and resource generation. Constrained assignments are checked against
+native identity supplied by the retained owner rather than by the incoming bytes.
+The common opaque-capability checks still apply. These are CPU conformance proofs;
+the firmware composition root does not yet install or advertise this network Base.

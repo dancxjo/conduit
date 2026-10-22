@@ -24,6 +24,29 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
     scope.operation_contract_id = conduit_net::NETWORK_JOIN_HOST_CALL.into();
     scope.maximum_parameter_bytes = conduit_net::MAXIMUM_JOIN_INPUT_BYTES;
     scope.maximum_result_bytes = conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES;
+    scope.capability_id = conduit_network_join_call::installation::JOIN_CAPABILITY.into();
+    let effects = core::cell::Cell::new(0);
+    // SAFETY: CPU fixture only; no hardware or initialized radio is claimed.
+    let ready_base = unsafe {
+        conduit_network_join_call::installation::ReadyNetworkJoinBase::new(
+            conduit_network_join_call::installation::NetworkNativeIdentity {
+                host: scope.host_id.clone(),
+                boot: scope.boot_id.clone(),
+                base: "base/join".into(),
+                instance: scope.base_instance_id.clone(),
+                provider_generation: scope.base_provider_generation,
+                resource: scope.resource_pool_id.clone(),
+                resource_generation: scope.resource_generation_id.clone(),
+                envelope: scope.envelope_id.clone(),
+                artifact: "artifact/join/fixture".into(),
+                implementation: scope.implementation_id.clone(),
+                base_implementation: "base/join/fixture@1".into(),
+            },
+            9,
+            Provider(&effects),
+        )
+    }
+    .unwrap();
     let (mut fragment, _, _, placement) = fixture::selected(
         &scope,
         &kind,
@@ -35,6 +58,9 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
     let gear = &mut fragment.placements[0];
     gear.host_calls[0].target_kind = Some(subject.clone());
     gear.resources[0].class_id = conduit_net::WIFI_STATION_RESOURCE_CLASS.into();
+    gear.execution_profile_id = conduit_net::NETWORK_JOIN_EXECUTION_PROFILE.into();
+    gear.base.as_mut().unwrap().mechanism_family =
+        conduit_network_join_call::installation::JOIN_BASE_KIND.into();
     let identity = c::PlotIdentity {
         source_document_id: fragment.source_document_id.clone(),
         checked_plot_id: fragment.checked_plot_id.clone(),
@@ -85,12 +111,12 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
         resource_bytes: 1,
     };
     let native = || AssignedNativeIdentity {
-        capability: "cap/join",
-        execution_profile: "conduitos/cooperative-bounded-step@1",
+        capability: conduit_network_join_call::installation::JOIN_CAPABILITY,
+        execution_profile: conduit_net::NETWORK_JOIN_EXECUTION_PROFILE,
         artifact: "artifact/join/fixture",
         base: "base/join",
         base_implementation: "base/join/fixture@1",
-        mechanism: "machine/radio-attachment",
+        mechanism: conduit_network_join_call::installation::JOIN_BASE_KIND,
         authority: conduit_net::NETWORK_CONFIG_AUTHORITY,
         resource_class: conduit_net::WIFI_STATION_RESOURCE_CLASS,
     };
@@ -199,20 +225,8 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
         Ok(lowered.nodes[0].node)
     );
     let contract = conduit_network_join_call::PreparedJoinContract::prepare();
-    let effects = core::cell::Cell::new(0);
-    let (owner, allocation) = allocation_probe::observe(|| unsafe {
-        conduit_network_join_call::NetworkJoinHostCall::bind_assigned(
-            table,
-            handle,
-            claim,
-            Provider(&effects),
-            9,
-            conduit_network_join_call::AssignedJoinSelection {
-                contract: &contract,
-                native: native(),
-                plan: selected(),
-            },
-        )
+    let (owner, allocation) = allocation_probe::observe(|| {
+        ready_base.bind_assigned(table, handle, claim, &contract, selected())
     });
     let mut owner = owner.unwrap();
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));

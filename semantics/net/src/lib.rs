@@ -78,6 +78,7 @@ pub use application_catalog::*;
 
 pub const WIFI_STATION_RESOURCE_CLASS: &str = "conduit.resource/network/wifi-station@1";
 pub const NETWORK_JOIN_OPERATION: &str = "network/join";
+pub const NETWORK_JOIN_EXECUTION_PROFILE: &str = "conduit.network/join-base@1";
 pub const NETWORK_CREDENTIALS_OPERATION: &str = "network/credentials";
 pub const NETWORK_ATTACHMENT_SIGN_OPERATION: &str = "network/attachment-sign";
 pub const NETWORK_JOIN_CONTRACT_REVISION: &str = "conduit.network/join@1";
@@ -111,7 +112,7 @@ pub fn network_join_offer(
         network_join_contract(),
         Back {
             capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/join-base@1"),
+            execution_profile_id: ExecutionProfileId::from(NETWORK_JOIN_EXECUTION_PROFILE),
             implementation_id,
             artifact_id,
             host_calls: vec![HostCallRequirement {
