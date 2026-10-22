@@ -1,0 +1,3 @@
+# Source50fcc strict-lint refusal
+
+Clean `50fcc74e8b8872f9d7afd49df9482a4d98782916` passed all nine supported privilege-inventory tests (zero failed/ignored), then strict xtask all-target Clippy exited101: `items_after_test_module` in `privilege_inventory.rs:125`. Format, normal graphical build and both artifact verifier invocations were unstarted. No VM was used. The run stopped without retry. Lossless compressed raw logs and exact commands/elapsed results are retained; manifest.json records compressed and original byte hashes. The successor only moves the existing test module after production helpers, preserving every body.

@@ -1,0 +1,27 @@
+{
+  "6176-50fcc-strict-clippy.log.gz": {
+    "sha256": "67dd6677f6ea6fe1a979890a3ea138e80e0f4623cc176e1e18283ca5af56ddc6",
+    "original_sha256": "4eecb2ca3ff61ae7334bccaf1b6fa067449e9e67d5a9b13f492f98373f469265",
+    "original_bytes": 15611
+  },
+  "6176-50fcc-checks.json": {
+    "sha256": "7796b9e70773155e664b3802b5068f172140723f9cb6bf6ce4bee00baf87b608",
+    "original_sha256": "7796b9e70773155e664b3802b5068f172140723f9cb6bf6ce4bee00baf87b608",
+    "original_bytes": 914
+  },
+  "6176-50fcc-focused-tests.log.gz": {
+    "sha256": "8f42cfe6a2b888ad26ed13a355180167194c2abd87aa0568169b3684ace2416f",
+    "original_sha256": "f6c814d48072097ec65e6d67ae9a02fc450faf2b73e1d85bf378fc31a49c3fa7",
+    "original_bytes": 17669
+  },
+  "retention.json": {
+    "sha256": "3cac03970664f89fa8e50b36aa42aa75d2883666391b0fa59927cf8343c416c9",
+    "original_sha256": "3cac03970664f89fa8e50b36aa42aa75d2883666391b0fa59927cf8343c416c9",
+    "original_bytes": 899
+  },
+  "6176-run-50-checks.py.gz": {
+    "sha256": "174e94f087605fbd00292f8b1b64e72bc1e546d76a9f7edcabb2a8fed763d91d",
+    "original_sha256": "a54eb9ca8a20f1d4d001d0df9b8f77eacf58a8cb3043d55e0d6d34556f353498",
+    "original_bytes": 1924
+  }
+}

@@ -121,51 +121,6 @@ fn inventory_name(record: &BuildRecord) -> String {
     format!("privilege-inventory-{}-{role}.json", record.elf_sha256)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn final_link_map_survives_evidence_root_replacement_and_space_in_paths() {
-        let mut paths = Paths::new(super::super::super::ConduitosArch::X86_64).unwrap();
-        paths.cargo_target = PathBuf::from("/tmp/compiled artifacts");
-        let mut first = Command::new("cargo");
-        let map = configure_link_map(&mut first, &paths, "x86_64-unknown-none", "conduitos");
-        let args: Vec<_> = first.get_args().collect();
-        assert_eq!(args.len(), 3);
-        assert_eq!(
-            args[2],
-            "link-arg=-Map=/tmp/compiled artifacts/x86_64-unknown-none/release/conduitos.map"
-        );
-        paths.target = PathBuf::from("/tmp/new proof output");
-        let mut second = Command::new("cargo");
-        assert_eq!(
-            map,
-            configure_link_map(&mut second, &paths, "x86_64-unknown-none", "conduitos")
-        );
-    }
-
-    #[test]
-    fn replacement_artifacts_and_roles_cannot_share_an_inventory_name() {
-        let mut record = BuildRecord {
-            schema: "conduit.conduitos.build/v2",
-            artifact_role: ArtifactRole::ProductHost,
-            base_commit: "source".into(),
-            architecture: "x86_64",
-            rust_target: "x86_64-unknown-none",
-            limine_crate: "0.5.0",
-            elf_sha256: "a".repeat(64),
-        };
-        let product = inventory_name(&record);
-        record.artifact_role = ArtifactRole::ArchitectureProofAppliance;
-        let appliance = inventory_name(&record);
-        assert_ne!(product, appliance);
-        record.elf_sha256 = "b".repeat(64);
-        assert_ne!(appliance, inventory_name(&record));
-        assert!(!product.contains('/'));
-    }
-}
-
 fn digest(bytes: &[u8]) -> String {
     format!("{:x}", Sha256::digest(bytes))
 }
@@ -221,4 +176,49 @@ fn dependency_closure(
             .ok_or_else(|| invalid("non-UTF-8 source root".into()))?,
         "<source>",
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn final_link_map_survives_evidence_root_replacement_and_space_in_paths() {
+        let mut paths = Paths::new(super::super::super::ConduitosArch::X86_64).unwrap();
+        paths.cargo_target = PathBuf::from("/tmp/compiled artifacts");
+        let mut first = Command::new("cargo");
+        let map = configure_link_map(&mut first, &paths, "x86_64-unknown-none", "conduitos");
+        let args: Vec<_> = first.get_args().collect();
+        assert_eq!(args.len(), 3);
+        assert_eq!(
+            args[2],
+            "link-arg=-Map=/tmp/compiled artifacts/x86_64-unknown-none/release/conduitos.map"
+        );
+        paths.target = PathBuf::from("/tmp/new proof output");
+        let mut second = Command::new("cargo");
+        assert_eq!(
+            map,
+            configure_link_map(&mut second, &paths, "x86_64-unknown-none", "conduitos")
+        );
+    }
+
+    #[test]
+    fn replacement_artifacts_and_roles_cannot_share_an_inventory_name() {
+        let mut record = BuildRecord {
+            schema: "conduit.conduitos.build/v2",
+            artifact_role: ArtifactRole::ProductHost,
+            base_commit: "source".into(),
+            architecture: "x86_64",
+            rust_target: "x86_64-unknown-none",
+            limine_crate: "0.5.0",
+            elf_sha256: "a".repeat(64),
+        };
+        let product = inventory_name(&record);
+        record.artifact_role = ArtifactRole::ArchitectureProofAppliance;
+        let appliance = inventory_name(&record);
+        assert_ne!(product, appliance);
+        record.elf_sha256 = "b".repeat(64);
+        assert_ne!(appliance, inventory_name(&record));
+        assert!(!product.contains('/'));
+    }
 }
