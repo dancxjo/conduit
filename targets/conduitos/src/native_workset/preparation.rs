@@ -280,10 +280,13 @@ mod tests {
             )
             .unwrap();
             let cold =
-                conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile).unwrap();
+                conduit_plot::expand_canonical_plot_for_authoring(&checked, plot.name(), &profile)
+                    .unwrap();
             let first = prepared.expanded(plot).unwrap();
             let second = prepared.expanded(plot).unwrap();
-            assert_eq!(first.expanded, cold);
+            // Compare the full cold meaning, including Patchbay's admitted
+            // resident return Fore, rather than imposing a closed root.
+            assert_eq!(*first, cold);
             assert!(Arc::ptr_eq(&first, &second));
         }
         let count = super::super::NATIVE_CANDIDATE_CAPACITY;

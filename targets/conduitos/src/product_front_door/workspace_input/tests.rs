@@ -96,6 +96,8 @@ fn tab_and_captured_release_preserve_two_plot_state_and_the_same_play() {
     );
     let selected = journey.projection();
     assert_ne!(selected.checked_plot_id, before.checked_plot_id);
+    // The revisioned document publishes its empty Current at initialization.
+    assert_eq!(selected.result.as_deref(), Some(""));
     assert_eq!(
         select(key(43, KeyTransition::Released), &mut journey),
         Ok(Some(false))
@@ -108,7 +110,7 @@ fn tab_and_captured_release_preserve_two_plot_state_and_the_same_play() {
     .unwrap();
     assert!(!journey.owns_key_release(release));
     assert_eq!(journey.projection().input_count, 2);
-    assert!(journey.projection().result.is_none());
+    assert_eq!(journey.projection().result, selected.result);
     for _ in 1..native_workset::NATIVE_PLOT_CAPACITY {
         select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
     }

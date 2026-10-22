@@ -162,7 +162,7 @@ fn cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages() {
                 .iter()
                 .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
                 .count();
-            let noun = if width < 640 { "cords shown" } else { "cords" };
+            let noun = "cords shown";
             assert!(frame.scene.commands().iter().any(|c| {
                 c.payload()
                     .contains(&format!("{shown}/4 {noun} · {} omitted", 4 - shown))

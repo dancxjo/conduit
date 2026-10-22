@@ -487,7 +487,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
     let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
     assert!(scene.primary.iter().any(|row| {
         row.text
-            .contains("Interval in milliseconds · Choose 1000, 2000, 250, 500")
+            .contains("Interval in milliseconds · Left/Right choose")
     }));
     let show = fixture::show(&current);
     let interaction = scene
@@ -514,7 +514,9 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         kind_id(UTF8_TEXT_VALUE_KIND),
         2,
         vec![ValueConstraint::CanonicalMembership {
-            members: (0u8..9).map(|value| vec![b'0' + value]).collect(),
+            members: (0u8..33)
+                .map(|value| value.to_string().into_bytes())
+                .collect(),
             negated: false,
         }],
     )

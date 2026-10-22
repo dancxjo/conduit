@@ -128,6 +128,8 @@ fn held_release_after_selection_is_observed_without_repainting_the_new_plot() {
         .service(&mut door, &journey, &mut presenter, &mut display, true)
         .unwrap();
     select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
+    let selected = journey.projection();
+    assert_eq!(selected.result.as_deref(), Some(""));
     refresh(&mut door, &journey, &mut presenter, &mut display).unwrap();
     let frames = presenter.compositor_frame_sequence();
     let writes = display.writes;
@@ -141,7 +143,7 @@ fn held_release_after_selection_is_observed_without_repainting_the_new_plot() {
             .is_some()
     );
     assert_eq!(journey.projection().input_count, 2);
-    assert!(journey.projection().result.is_none());
+    assert_eq!(journey.projection().result, selected.result);
     assert!(!journey.owns_key_release(key(4, KeyTransition::Released)));
     assert_eq!(display.writes, writes);
     assert_eq!(presenter.compositor_frame_sequence(), frames);
