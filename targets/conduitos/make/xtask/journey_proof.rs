@@ -296,14 +296,12 @@ fn execute_with_viewport(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
 
-        journey_input::key_pair(&mut qmp, &mut reader, "f2", "journey-open-face")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_WORKSPACE_FACE shown",
-            "journey-face-timeout",
+        // Canonical Patchbay enters its checked Face as part of selection.
+        face_correspondence::current_patchbay_show(
+            &fs::read_to_string(&serial_path).map_err(io_error)?,
+            &latest_workspace_view(&serial_path)?,
         )?;
-        artifacts.capture(&mut qmp, &mut reader, "patchbay-face", true)?;
+        artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
             timing_interactions::reading_pages(
                 &serial_path,

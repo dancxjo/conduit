@@ -14,6 +14,26 @@ const BIRTH_PREFIX: &str = "CONDUIT_NATIVE_BIRTH ";
 mod birth_evidence;
 const MAX_RECORDS: usize = 256;
 
+pub(super) fn current_patchbay_show(serial: &str, workspace: &Value) -> Result<(), ConduitosError> {
+    let emitted = records(serial, FACE_PREFIX)?;
+    let record = emitted
+        .last()
+        .ok_or_else(|| refusal("missing current Patchbay Face"))?;
+    let face: Face =
+        serde_json::from_value(record["face"].clone()).map_err(|e| refusal(e.to_string()))?;
+    let show: conduit_face::MaskShow =
+        serde_json::from_value(record["show"].clone()).map_err(|e| refusal(e.to_string()))?;
+    face.validate().map_err(|e| refusal(e.to_string()))?;
+    show.validate(&face).map_err(|e| refusal(e.to_string()))?;
+    if workspace["application"] != "patchbay"
+        || workspace["face_id"] != json!(face.identity)
+        || show.lifecycle != conduit_face::ManifestationLifecycle::Available
+    {
+        return Err(refusal("Patchbay lacks its current available Face Show"));
+    }
+    validate_receipt_order(serial)
+}
+
 pub(super) fn records(serial: &str, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
     let mut records = Vec::new();
     for line in serial
