@@ -200,7 +200,7 @@ fn read_tensor(value: View<'_>) -> Result<NamedTensorView<'_>, NamedTensorViewRe
     };
     let dimensions_view = field(value, "dimensions")?;
     let rank = dimensions_view.collection_length().map_err(encoding)? as usize;
-    if !(1..=8).contains(&rank) {
+    if rank > crate::MAXIMUM_TENSOR_RANK {
         return Err(NamedTensorViewRefusal::Tensor(
             TensorRefusal::RankOutOfBounds,
         ));
