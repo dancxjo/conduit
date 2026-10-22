@@ -17,6 +17,8 @@ async fn main(spawner: Spawner) {
     let mut live = crate::live::Live::prepare();
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let _controller = crate::network::start(spawner, p.WIFI, seed);
+    let boot = crate::boot::ObservedBoot::observe().expect("radio entropy must be initialized");
+    boot.print();
     let mut services = crate::services::control();
     services
         .request(conduit_environment_http::service_control::ServiceMode::Running)

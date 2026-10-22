@@ -78,3 +78,13 @@ bookkeeping; the earlier flash-resident loop consistently produced shifted
 checksum failures in this larger image. Raw failures remain retained evidence.
 The verified AP build and its cross-target Clippy check passed. This short test
 does not establish overnight endurance or native lifecycle admission.
+
+The AP bench also reports a boot observation after radio entropy initializes:
+a stable eFuse-derived hardware label and a fresh 128-bit TRNG boot nonce.
+It refuses observation if the real entropy source is unavailable. This diagnostic
+record grants no Host offer or Body installation authority, and leaves the image
+attestation field empty; the host retains the flashed artifact digest separately.
+Two physical boots on 22 October retained the hardware label and produced distinct
+boot nonces. Both resumed valid sensor readings and acknowledged display writes;
+HTTP after the second boot returned fresh 68.36°F and 53% RH. Startup waited for
+actual DHCP and HTTP socket readiness. Service stop/restore remains unproved.

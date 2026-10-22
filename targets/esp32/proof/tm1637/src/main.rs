@@ -7,6 +7,8 @@ use esp_backtrace as _;
 #[cfg(not(feature = "ap"))]
 use esp_hal::{delay::Delay, main};
 #[cfg(feature = "ap")]
+mod boot;
+#[cfg(feature = "ap")]
 mod network;
 #[cfg(feature = "ap")]
 mod network_entry;
