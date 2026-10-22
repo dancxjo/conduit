@@ -337,7 +337,7 @@ cargo xtask prove environment network
 ```
 
 This establishes Source checking and zero-allocation private input transfer,
-not an installed credentials offer, a rendered setup page, or a radio transition.
+not an installed credentials offer, HTTP route, or radio transition.
 The mailbox grants no authority. Root must plan and admit the existing network
 operations against its actual initialized radio and current Boot, bound both
 association and address configuration, and restore the AP on failure or link
@@ -376,3 +376,15 @@ headers to 512 bytes, refuses ambiguous length or transfer framing, secret-beari
 query routes and pipelining, and erases its raw bytes on consumption, refusal or
 Drop. Root must still bound the connection lifetime. This is request framing for
 the setup page, not an installed HTTP route or permission to change radio mode.
+
+The setup Look renders a bounded POST form with the selected implementation's
+credential limits. A `PendingNetworkResponse` exclusively borrows the mailbox
+while its accepted response is written. Dropping it on a failed write, timeout
+or cancellation cancels the submission; `response_flushed` releases it exactly
+once to the independently admitted credentials call. Rendering and cancellation
+proofs allocate nothing. Root still needs to install the route and invoke the
+actual admitted transition service; rendering a page does not install that service.
+
+The connected ESP32 ROM reports revision 3.0, a 40 MHz crystal and 4 MB flash.
+This identifies the current hardware without changing the separate reviewed
+HW-463 sample descriptor or claiming initialized sensor/radio providers.

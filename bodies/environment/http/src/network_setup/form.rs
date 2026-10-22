@@ -9,6 +9,17 @@ pub struct NetworkSetupLimits {
     pub minimum_credential_bytes: usize,
     pub maximum_credential_bytes: usize,
 }
+impl NetworkSetupLimits {
+    pub(super) fn validate(self) -> Result<(), NetworkSetupRefusal> {
+        if self.minimum_credential_bytes == 0
+            || self.minimum_credential_bytes > self.maximum_credential_bytes
+            || self.maximum_credential_bytes > MAXIMUM_CREDENTIAL_BYTES
+        {
+            return Err(NetworkSetupRefusal::InvalidLimits);
+        }
+        Ok(())
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum NetworkSetupRefusal {
     InvalidLimits,
@@ -39,12 +50,7 @@ impl NetworkSetupInput {
     /// HTTP layer must separately bound framing, body length and request lifetime.
     pub fn from_form(body: &[u8], limits: NetworkSetupLimits) -> Result<Self, NetworkSetupRefusal> {
         use NetworkSetupRefusal as E;
-        if limits.minimum_credential_bytes == 0
-            || limits.minimum_credential_bytes > limits.maximum_credential_bytes
-            || limits.maximum_credential_bytes > MAXIMUM_CREDENTIAL_BYTES
-        {
-            return Err(E::InvalidLimits);
-        }
+        limits.validate()?;
         if body.len() > 3 * (MAXIMUM_SSID_BYTES + limits.maximum_credential_bytes) + 15 {
             return Err(E::TooLarge);
         }

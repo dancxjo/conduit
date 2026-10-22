@@ -208,3 +208,70 @@ fn network_http_refuses_ambiguous_framing_and_secret_query_routes() {
     let mut request = NetworkRequestBuffer::default();
     assert_eq!(request.append(&[b'x'; 1025]), Err(E::TooLarge));
 }
+
+#[test]
+fn network_response_cancellation_discards_input_and_flush_releases_exactly_one_request() {
+    let mut mailbox = NetworkSetupMailbox::new(2);
+    let mut output = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let ((), allocation) = allocation_probe::observe(|| {
+        {
+            let response = PendingNetworkResponse::prepare(&mut mailbox, input()).unwrap();
+            let bytes = response.response();
+            assert!(bytes.starts_with("HTTP/1.1 202 Accepted\r\n"));
+            assert!(!bytes.contains("sample&value+"));
+            let (headers, body) = bytes.split_once("\r\n\r\n").unwrap();
+            assert_eq!(
+                headers
+                    .lines()
+                    .find_map(|line| line.strip_prefix("Content-Length: "))
+                    .unwrap()
+                    .parse::<usize>()
+                    .unwrap(),
+                body.len()
+            );
+            // Simulate a cancelled write: Drop must not release credentials.
+        }
+        assert!(!mailbox.has_acknowledged());
+        assert_eq!(
+            mailbox.take_acknowledged(&mut output),
+            Err(NetworkSetupRefusal::NoSubmission)
+        );
+        let response = PendingNetworkResponse::prepare(&mut mailbox, input()).unwrap();
+        response.response_flushed().unwrap();
+        assert!(mailbox.has_acknowledged());
+        let length = mailbox.take_acknowledged(&mut output).unwrap();
+        let request = conduit_net::decode_network_join_request(&output[..length]).unwrap();
+        assert_eq!(request.ssid, b"Test LAN");
+        assert_eq!(request.credential, b"sample&value+");
+        assert_eq!(
+            mailbox.take_acknowledged(&mut output),
+            Err(NetworkSetupRefusal::NoSubmission)
+        );
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+}
+
+#[test]
+fn network_page_uses_selected_credential_bounds_and_posts_without_a_query() {
+    let (page, allocation) = allocation_probe::observe(|| network_setup_page(limits()).unwrap());
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    assert!(page.contains("method=post action=/network"));
+    assert!(page.contains("type=password name=password required minlength=8 maxlength=63"));
+    let (headers, body) = page.split_once("\r\n\r\n").unwrap();
+    assert_eq!(
+        headers
+            .lines()
+            .find_map(|line| line.strip_prefix("Content-Length: "))
+            .unwrap()
+            .parse::<usize>()
+            .unwrap(),
+        body.len()
+    );
+    assert_eq!(
+        network_setup_page(NetworkSetupLimits {
+            minimum_credential_bytes: 0,
+            maximum_credential_bytes: 63
+        }),
+        Err(NetworkSetupRefusal::InvalidLimits)
+    );
+}
