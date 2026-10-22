@@ -149,6 +149,8 @@ pub(super) fn enter_context_with_budget(
     let result = unsafe {
         conduitos_ordinary_enter(context.entry, context.stack, context.frame, context.cr3)
     };
+    #[cfg(feature = "ordinary-domain-proof")]
+    crate::ordinary_domain_proof::observe_transition_return(result.value, result.origin);
     drop(budget);
     ACTIVE.store(false, Ordering::Release);
     #[cfg(feature = "ordinary-domain-proof")]

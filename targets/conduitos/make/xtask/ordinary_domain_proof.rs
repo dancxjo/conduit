@@ -7,7 +7,7 @@ use std::{
 
 use crate::cli::GlobalOpts;
 
-use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
+use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
 
 mod compositor;
 mod compositor_hostile;
@@ -129,6 +129,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         return Err(ConduitosError::refusal(
             "ordinary-domain-proof-effect-absent",
             "the ordinary text result was not independently observed",
+        ));
+    }
+    if !transcript.lines().any(|line| {
+        line == "CONDUIT_X87_NM_CONTROL vector=7 origin=1 terminal=true root-sibling-survived=true"
+    }) {
+        return Err(ConduitosError::refusal(
+            "ordinary-domain-x87-nm-control-absent",
+            "requires actual x87 #NM vector, terminal refusal and Root/sibling survival",
         ));
     }
     if !transcript.lines().any(|line| line == "CONDUIT_DOMAIN_NEGATIVES root-memory capability-memory sibling-memory root-entry mmio ports cli loop direction-flag fp syscall sysenter divide breakpoint single-step rdtsc code-write data-execute") {
