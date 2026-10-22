@@ -236,16 +236,25 @@ pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, Condu
     )
 }
 
-pub(super) fn execute_native_latency(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+pub(super) fn execute_native_latency(
+    opts: &GlobalOpts,
+    mode: super::native_latency::CacheMode,
+) -> Result<BuildRecord, ConduitosError> {
     let manifest = resolve_embedded_profile(
         ConduitosArch::X86_64,
         include_str!("../../profiles/conduitos-native.host.conduit"),
     )?;
-    execute_profile_for_role(
+    let features = match mode {
+        super::native_latency::CacheMode::Retained => &["native-latency-observation"][..],
+        super::native_latency::CacheMode::ZeroRetention => {
+            &["native-latency-observation", "native-cache-zero-retention"][..]
+        }
+    };
+    execute_profile_with_features(
         &manifest,
         ArtifactRole::ArchitectureProofAppliance,
         opts,
-        true,
+        features,
     )
 }
 
