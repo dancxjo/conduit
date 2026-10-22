@@ -71,8 +71,13 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["display-esp32"] {
-        let package = root.join("targets/esp32/proof/tm1637");
+    if arguments == ["display-esp32"] || arguments == ["pulse-esp32"] {
+        let pulse = arguments == ["pulse-esp32"];
+        let package = root.join(if pulse {
+            "targets/esp32/pulse-capture"
+        } else {
+            "targets/esp32/proof/tm1637"
+        });
         let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
             package.join("rust-toolchain.toml"),
         )?)?;
@@ -81,13 +86,20 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
             .and_then(|v| v.get("channel"))
             .and_then(toml::Value::as_str)
             .ok_or("display diagnostic has no pinned toolchain")?;
-        return execute(
-            Command::new("cargo")
-                .current_dir(&package)
-                .arg(format!("+{channel}"))
-                .args(["build", "--locked", "--release"])
-                .env("CARGO_TARGET_DIR", root.join("target/environment-esp32")),
-        );
+        let mut command = Command::new("cargo");
+        command
+            .current_dir(&package)
+            .arg(format!("+{channel}"))
+            .args([
+                if pulse { "check" } else { "build" },
+                "--locked",
+                "--release",
+            ])
+            .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"));
+        if pulse {
+            command.args(["--features", "host-call"]);
+        }
+        return execute(&mut command);
     }
     if arguments == ["display-target"] {
         return execute(
@@ -330,7 +342,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
