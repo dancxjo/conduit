@@ -2,7 +2,7 @@
 //! CountingDisplay is CPU enactment, not installed/QEMU/physical proof.
 use super::{CountingDisplay, fixture};
 use alloc::{borrow::ToOwned, vec};
-use conduit_body::{Body, BodyWorkset, ResidentPlot};
+use conduit_body::{Body, BodyBiographyEvidence, BodyMembership, BodyPlayIdentity, BodyWorkset};
 use conduit_face::{
     BodyFace, FaceContext, FaceContribution, FaceContributionBasis, FaceContributionRole,
     FaceFocus, FaceInteraction, FaceInteractionArgument, ManifestationLifecycle,
@@ -15,36 +15,67 @@ use patchbay_application::PatchbayApplicationRequest;
 
 #[test]
 fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republication() {
-    #[derive(serde::Deserialize)]
-    enum Fixture {
-        Init {
-            applications: [Option<Initial>; conduitos_application_core::SLOTS],
-        },
-    }
-    let Fixture::Init { applications } = data::decode(include_bytes!(
-        "../../application-core/tests/fixtures/startup.catz"
-    ))
-    .unwrap();
+    // Use the actual native planner, kernel start, and lifecycle transitions.
+    // The owner under test remains Models; no invented live Plan/Play witness.
+    let native = crate::native_workset::inventory();
     let owner =
         crate::native_workset::resident(crate::native_workset::NativePlot::Patchbay).unwrap();
-    let mut residents = vec![owner.clone()];
-    if let Some(Initial::Patchbay { targets, .. }) = &applications[0] {
-        for target in targets.iter().flatten() {
-            let resident = ResidentPlot::new(
-                target.graph.source_document_id.clone(),
-                target.graph.checked_plot_id.clone(),
-            );
-            if !residents.contains(&resident) {
-                residents.push(resident);
-            }
-        }
-    }
-    let body = Body::born_with_plots(
-        BodyWorkset::from_plots(residents).unwrap(),
+    let born = Body::born_with_plots(
+        BodyWorkset::from_plots(
+            native
+                .into_iter()
+                .map(|plot| crate::native_workset::resident(plot).unwrap()),
+        )
+        .unwrap(),
         1,
-        "sign/canonical-patchbay-test".into(),
+        "sign/canonical-patchbay-born".into(),
     )
     .unwrap();
+    let membership = BodyMembership::new(born.body_id.clone()).unwrap();
+    let mut evidence =
+        BodyBiographyEvidence::born(born.clone(), membership, "Test Body".into()).unwrap();
+    let (body, wake) = born.wake(2, "sign/canonical-patchbay-wake".into()).unwrap();
+    evidence.append_wake(body.clone(), wake.clone(), 2).unwrap();
+    let (ids, offer) = crate::native_workset::tests::fixture();
+    let prepared = crate::native_workset::prepare(&wake, &ids, &offer, "build").unwrap();
+    let active = BodyPlayIdentity::bind(prepared.plan(), 3);
+    let mut play =
+        crate::native_workset::NativeWorksetPlay::prepare_with_biography(&prepared, &evidence)
+            .unwrap();
+    play.start_for(prepared.plan(), &active).unwrap();
+    let wake = wake
+        .body_plan_ready(prepared.plan(), "sign/canonical-patchbay-plan".into())
+        .unwrap()
+        .body_play_started(
+            prepared.plan(),
+            &active,
+            "sign/canonical-patchbay-play".into(),
+        )
+        .unwrap();
+    let target = prepared
+        .plan()
+        .plots
+        .iter()
+        .find(|plot| plot.plot != owner)
+        .unwrap();
+    let expanded =
+        crate::native_workset::checked(crate::native_workset::resolve(&target.plot).unwrap())
+            .unwrap();
+    let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded).unwrap();
+    let mut applications = core::array::from_fn(|_| None);
+    applications[0] = Some(Initial::Patchbay {
+        targets: [
+            Some(data::Target {
+                graph,
+                plan: target.plan.plan_id.clone(),
+                body: prepared.plan().plan_id.clone(),
+            }),
+            None,
+            None,
+            None,
+        ],
+        selected: 0,
+    });
     let mut models = Models::new(applications).unwrap();
     let graph = match models.execute(data::Command::Graph { slot: 0 }).unwrap() {
         Reply::Graph { graph: Some(graph) } => graph,
@@ -53,8 +84,8 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
     let subject = graph.subject_identities().next().unwrap().to_owned();
     let basis = FaceContributionBasis {
         checked_plot_id: owner.checked_plot_id.clone(),
-        plan_id: "plan/canonical-patchbay-test".into(),
-        active_play_id: "play/canonical-patchbay-test".into(),
+        plan_id: prepared.plan().plan_id.clone(),
+        active_play_id: active.active_play_id.clone(),
         required_interaction_context: None,
     };
     let (before_revision, fragment) = match models
@@ -68,7 +99,7 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
     };
     let face = BodyFace::project(
         &body,
-        None,
+        Some(&wake),
         7,
         FaceContext::ResidentPlot(owner.checked_plot_id.clone()),
         FaceFocus::Contribution {
@@ -109,10 +140,18 @@ fn acknowledged_native_show_admits_actual_owner_edit_once_and_rejects_republicat
         1,
     )
     .unwrap();
-    assert!(
-        matches!(models.patchbay_publish(0,body.body_id.clone(),basis.clone(),face.clone(),show.clone()).unwrap(),
-        Reply::PatchbayPublished {revision,..} if revision==before_revision)
-    );
+    let publish = data::Command::PatchbayPublish {
+        slot: 0,
+        body: body.body_id.clone(),
+        basis: basis.clone(),
+        face: face.clone(),
+        show: show.clone(),
+    };
+    let encoded = data::encode_command(&publish).unwrap();
+    let mut workspace = data::Workspace::new().unwrap();
+    let decoded = workspace.decode_command(&encoded).unwrap();
+    assert!(matches!(models.execute(decoded).unwrap(),
+        Reply::PatchbayPublished { revision, .. } if revision == before_revision));
     // Traverse the actual native Mask interaction validation before the typed
     // owner call; the actor is never fed a legacy ApplicationEvent conversion.
     let delivered = mask.submit(input).unwrap();
