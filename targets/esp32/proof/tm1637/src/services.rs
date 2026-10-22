@@ -48,6 +48,25 @@ pub async fn run(stack: Stack<'static>) {
         }
     }
 }
-pub fn control() -> ServiceControl<'static> {
-    MAILBOX.claim_control(32).unwrap()
+/// The composition root retains this unique handle across mode changes.
+/// Cancelling an operation leaves the task owned; the next generation supersedes
+/// its pending command. Completion is based on actual socket-task evidence.
+pub struct Owner(ServiceControl<'static>);
+impl conduit_esp32_network_switch::AccessPointServices for Owner {
+    async fn withdraw(&mut self) -> Result<(), conduit_net::StationFailure> {
+        conduit_environment_http::set_ap_unavailable();
+        self.0
+            .request(ServiceMode::Stopped)
+            .await
+            .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
+    }
+    async fn restore(&mut self) -> Result<(), conduit_net::StationFailure> {
+        self.0
+            .request(ServiceMode::Running)
+            .await
+            .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
+    }
+}
+pub fn control() -> Owner {
+    Owner(MAILBOX.claim_control(32).unwrap())
 }

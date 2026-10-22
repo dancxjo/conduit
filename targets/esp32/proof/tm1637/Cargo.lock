@@ -204,6 +204,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-esp32-network-switch"
+version = "0.1.0"
+dependencies = [
+ "conduit-net",
+ "embassy-net",
+ "embassy-time",
+ "esp-hal",
+ "esp-radio",
+]
+
+[[package]]
 name = "conduit-esp32-pulse-capture"
 version = "0.1.0"
 dependencies = [
@@ -218,8 +229,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-environment-http",
  "conduit-environment-runtime",
+ "conduit-esp32-network-switch",
  "conduit-esp32-pulse-capture",
  "conduit-face",
+ "conduit-net",
  "conduit-pulse-capture",
  "conduit-rp2040-network-realization",
  "conduit-seven-segment-mask",

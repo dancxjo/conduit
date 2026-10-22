@@ -1,4 +1,5 @@
 //! Composition root for the attended radio/sensor/display integration bench.
+use conduit_esp32_network_switch::AccessPointServices;
 use embassy_executor::Spawner;
 use embassy_time::{Duration, Timer};
 use esp_hal::{
@@ -20,10 +21,7 @@ async fn main(spawner: Spawner) {
     let boot = crate::boot::ObservedBoot::observe().expect("radio entropy must be initialized");
     boot.print();
     let mut services = crate::services::control();
-    services
-        .request(conduit_environment_http::service_control::ServiceMode::Running)
-        .await
-        .unwrap();
+    services.restore().await.unwrap();
     conduit_environment_http::set_ap_ready();
     esp_println::println!(
         "AP Conduit-Climate http://192.168.4.1/ heap free={}",

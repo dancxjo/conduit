@@ -39,7 +39,13 @@ clear station addressing, restore AP addressing, observe AP link-up and await
 actual DHCP/HTTP service readiness. A failed cleanup remains unavailable; there
 is no implicit retry, new authority or fabricated success.
 
-A real installation still needs service cancellation/acknowledgement, the private
-page mailbox connected through admitted `network/credentials` and `network/join`
+The attended AP bench now supplies a concrete `AccessPointServices` owner backed
+by its actual socket task. Withdrawal awaits socket/request retirement; restoration
+awaits DHCP and both HTTP listeners. The unique control handle and finite command
+generations survive cancellation; obsolete acknowledgements cannot satisfy a new
+request. This bridge is compiled into the AP bench, whose startup uses restoration.
+Physical station withdrawal/restoration is still unproved.
+
+A real installation still needs the private page mailbox connected through admitted `network/credentials` and `network/join`
 Host Calls, current Body lifecycle, actual station-service ownership, and physical
 success/failure/link-loss proof. No placeholder service implementation is shipped.
