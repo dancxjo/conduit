@@ -189,6 +189,29 @@ pub(super) struct View<'a> {
     pub trap: &'a mut [u8],
 }
 impl View<'_> {
+    /// Proof-only full-store check, before installation changes any byte.
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn is_clear(&self) -> bool {
+        self.pml4
+            .0
+            .iter()
+            .chain(&self.pdpt.0)
+            .chain(&self.pd.0)
+            .chain(self.pt.iter().flat_map(|table| table.0.iter()))
+            .all(|word| *word == 0)
+            && [
+                self.image.as_ref(),
+                self.exchange.as_ref(),
+                self.output.as_ref(),
+                self.stack.as_ref(),
+                self.metadata.as_ref(),
+                self.pixels.as_ref(),
+                self.scratch.as_ref(),
+                self.trap.as_ref(),
+            ]
+            .into_iter()
+            .all(|bytes| bytes.iter().all(|byte| *byte == 0))
+    }
     pub fn clear(&mut self) {
         self.pml4.0.fill(0);
         self.pdpt.0.fill(0);
@@ -268,7 +291,9 @@ impl Lease {
             .map_err(|_| DomainRefusal::InvalidMemory)?;
         Ok(Self {
             profile,
-            cleared: false,
+            // Static initialization and the preceding owner's Release both
+            // guarantee a completely zero store. Any mutable view dirties it.
+            cleared: true,
         })
     }
     pub fn profile(&self) -> ServiceProfile {

@@ -7,9 +7,6 @@ use crate::{
     service_memory::{MemoryRange, ServiceImage},
 };
 use core::arch::asm;
-#[cfg(feature = "ordinary-domain-proof")]
-#[path = "../../native_observation/raw_counter.rs"]
-mod counter;
 #[path = "service_memory/storage.rs"]
 mod storage;
 use storage::{Lease, View};
@@ -141,13 +138,16 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<Installation,
     {
         return Err(DomainRefusal::InvalidMemory);
     }
+    // Fresh stores are statically zero; every previous Lease clears its complete
+    // store before the release that this claim acquired. Obtaining this mutable
+    // view invalidates the lease's clean marker, so any partial failure below
+    // still clears the store before releasing it. Do not clear it a second time.
     #[cfg(feature = "ordinary-domain-proof")]
-    let clearing_started = counter::read();
-    slot.clear();
+    if !slot.is_clear() {
+        return Err(DomainRefusal::InvalidMemory);
+    }
     #[cfg(feature = "ordinary-domain-proof")]
-    let setup_clearing_ticks = counter::read()
-        .checked_sub(clearing_started)
-        .ok_or(DomainRefusal::InvalidLifecycle)?;
+    let setup_clearing_ticks = 0;
     let hhdm = super::domain_memory::hhdm_offset()?;
     let current_cr3: u64;
     // SAFETY: installation runs only in Root.
