@@ -48,6 +48,9 @@ mod tests {
         let local = crate::installed_browser::advertisement(host, boot);
         let execution = crate::installed_browser::execution_capability_ids();
         assert_eq!(execution.len(), local.capabilities.len());
+        assert_eq!(execution.len(), 124);
+        assert_eq!(advertised.capabilities.len(), 140);
+        assert!(execution.contains(&"browser/patchbay-accept-interaction@1".into()));
         let component = super::super::dom_mask::configured_offer();
         assert!(advertised.capabilities.contains(&component));
         assert!(
@@ -101,10 +104,20 @@ mod tests {
             freshness_sequence: 1,
             encoded_bytes: u32::try_from(bytes.len() + 1024).unwrap(),
         };
-        inventory.observe(observation).unwrap();
+        inventory.observe(observation.clone()).unwrap();
         assert_eq!(
             inventory.candidates[0].observation.advertisement,
             advertised
+        );
+        let mut excessive = observation;
+        excessive.observation_sign_id = conduit_core::SignId::from("sign/membership-over-bound");
+        excessive
+            .advertisement
+            .capabilities
+            .push(advertised.capabilities[0].clone());
+        assert_eq!(
+            inventory.observe(excessive),
+            Err(conduit_body::CandidateRefusal::MalformedAdvertisement)
         );
     }
 }

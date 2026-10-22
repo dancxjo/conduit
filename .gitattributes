@@ -17,4 +17,4 @@ targets/conduitos/plots/usb/evidence/**/*.log whitespace=-trailing-space,-blank-
 # Native baseline serial captures preserve firmware CRLF bytes as evidence.
 docs/audits/evidence/native-baseline-recovery-20261021/**/serial.log whitespace=cr-at-eol
 docs/audits/evidence/native-baseline-recovery-20261021/journey-serial.log whitespace=cr-at-eol
-docs/audits/evidence/native-proof-resume-20261022/x86_64/journey-serial.log whitespace=cr-at-eol
+docs/audits/evidence/native-proof-resume-20261022/**/journey-serial.log whitespace=cr-at-eol

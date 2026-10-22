@@ -1,0 +1,26 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/conduit-xtask-dispatch check plots bundle-workspace-catalog --output /tmp/conduit-canonical-patchbay-workspace-catalog.json`
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib) generated 1 warning
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/tools/xtask)
+warning: function `latest_workspace_view` is never used
+   --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/journey_proof.rs:539:4
+    |
+539 | fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    |    ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `xtask` (bin "xtask") generated 1 warning
+    Finished `dev` profile [unoptimized] target(s) in 19.48s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/xtask check plots bundle-workspace-catalog --output /tmp/conduit-canonical-patchbay-workspace-catalog.json`

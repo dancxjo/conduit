@@ -38,6 +38,14 @@ pub(super) fn catalogs(
     conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
+    let patchbay = patchbay_application::patchbay_interaction_contract();
+    startup.insert(conduit_plot::KindSignature {
+        kind: patchbay.kind_id.as_str().into(),
+        startup_parameters: Vec::new(),
+    })?;
+    profile
+        .insert_kind(patchbay.into())
+        .map_err(|error| error.to_string())?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_saved_choice_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;

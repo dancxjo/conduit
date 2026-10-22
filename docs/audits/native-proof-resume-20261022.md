@@ -51,6 +51,38 @@ An intermediate retained image was correctly refused after its driver source
 changed. The successful packet follows a fresh exact-source build; that refusal
 was not bypassed. Earlier failed attempts are not counted as successful proof.
 
+## Narrow controls and browser admission follow-up
+
+Clean source `f04edf3459a50a784b42d4d0c650742d3a151aa5` passed
+`cargo +stable xtask make conduitos creche-controls-proof --viewport 640x480`.
+Its separate packet retains 13 manifest-listed PNGs, independently verified
+through PNG bytes, dimensions and decoded RGBA hashes. Twelve current controls
+were traversed in both directions, all three primary pages and 21 Details pages
+were observed, and pointer focus, naming/tradition edits and exact name
+restoration passed. Four checked Plots and an explicitly unavailable fifth
+inventory item are visible. The three primary page captures were inspected.
+Unsampled Details pages have receipt evidence, not pixel claims. The receipt
+explicitly leaves initial fallback and missing-provider proof unearned.
+
+The first installed-owner/browser attempt at that source refused membership
+before Todo seeding or native actions. The existing focused conformance test
+reproduced 140 actual offers (681620 encoded bytes) against the stale limit 139.
+The canonical Patchbay ingress accounts for one offer and one executor. Its
+finite membership envelope is now 140, and the separate SDK executor envelope
+is 124. The 2 MiB advertisement byte bound is unchanged. The test checks the
+actual 124/140 inventories and refusal of a 141st offer; the SDK still rejects
+an executor beyond its exact envelope.
+
+The workspace catalog producer separately failed on the new authored
+`patchbay/accept-interaction` Kind. It now imports that existing application's
+owned contract, including its empty startup signature. The supported producer
+passes and retains the exact installed Patchbay Source and required Kind.
+No parallel signature or actor contract was invented. Six SDK bound cases pass.
+
+One unreferenced screenshot left in the output directory by a failed attempt
+was excluded from the public wide packet and preserved in the local campaign
+output. Every retained successful PNG belongs to its packet's own manifest.
+
 ## Remaining acceptance
 
 This packet does not close #5994, #5608, #5519 or #6201. Still required are the
