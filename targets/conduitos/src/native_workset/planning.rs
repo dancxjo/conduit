@@ -126,7 +126,9 @@ pub(crate) fn prepare_exact(
                 .any(|p| {
                     matches!(
                         p.kind_id.as_str(),
-                        conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+                        conduit_text::TEXT_UPPER_KIND
+                            | conduit_semantic_catalog::TEXT_EDIT_KIND
+                            | conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
                     )
                 });
             if protected {
@@ -151,6 +153,20 @@ pub(crate) fn prepare_exact(
 
 fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, WorksetRefusal> {
     let fragment = plot.plan.fragments.first().ok_or(WorksetRefusal::Plan)?;
+    if let Some(placement) = fragment.placements.iter().find(|placement| {
+        placement.implementation_id.as_str() == super::patchbay_ingress::IMPLEMENTATION
+    }) {
+        let [fore] = fragment.fore_ports.as_slice() else {
+            return Err(WorksetRefusal::Plan);
+        };
+        return Ok(AdmittedPlotInput {
+            plot: plot.plot.clone(),
+            kind_id: placement.kind_id.clone(),
+            placement_id: placement.placement_id.clone(),
+            port_id: fore.gear_port_id.clone(),
+            value_kind: fore.value_kind.clone(),
+        });
+    }
     let placement = fragment
         .placements
         .iter()
@@ -159,6 +175,7 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
                 placement.kind_id.as_str(),
                 conduit_semantic_catalog::KEYBOARD_KIND
                     | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+                    | conduit_semantic_catalog::FACE_EDITOR_KIND
             )
         })
         .ok_or(WorksetRefusal::Capability)?;
@@ -174,7 +191,10 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
         == conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
         && connection.source_port_id.as_str() == conduit_semantic_catalog::APPLICATION_EVENT_PORT
         && connection.value_kind.as_str() == conduit_face::APPLICATION_EVENT_INFO_ID;
-    if !keyboard && !application {
+    let editor = placement.kind_id.as_str() == conduit_semantic_catalog::FACE_EDITOR_KIND
+        && connection.source_port_id.as_str() == "edit"
+        && connection.value_kind.as_str() == conduit_semantic_catalog::TEXT_EDIT_VALUE_KIND;
+    if !keyboard && !application && !editor {
         return Err(WorksetRefusal::Plan);
     }
     Ok(AdmittedPlotInput {
@@ -250,7 +270,16 @@ fn host_inner(
         .push(super::text_state::offer(build_id));
     advertisement
         .capabilities
+        .push(super::document_state::offer(build_id));
+    advertisement
+        .capabilities
+        .push(super::editor_delivery::offer(build_id));
+    advertisement
+        .capabilities
         .extend(super::application_delivery::offers(build_id));
+    advertisement
+        .capabilities
+        .push(super::patchbay_ingress::offer(build_id));
     Ok((advertisement, keyboard))
 }
 
@@ -273,7 +302,16 @@ fn plan_plots_inner(
 ) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
     let mut plots = Vec::with_capacity(identities.len());
     for identity in identities {
-        let expanded = catalog::checked(catalog::resolve(identity)?)?;
+        let authored =
+            super::preparation::with_authoring(catalog::resolve(identity)?, Clone::clone)?;
+        if !authored.input_bindings.is_empty() {
+            plots.push(BodyPlotPlan {
+                plot: identity.clone(),
+                plan: super::patchbay_ingress::plan(&authored, advertisement)?,
+            });
+            continue;
+        }
+        let expanded = authored.expanded;
         let hosts = core::slice::from_ref(advertisement);
         let placements =
             default_expanded_placements(&expanded, hosts).map_err(|_| WorksetRefusal::Plan)?;
@@ -322,12 +360,14 @@ fn plan_plots_inner(
             &limits,
         )
         .map_err(|_| WorksetRefusal::Plan)?;
-        // The connected keyboard chain stays one region; Root delivers input
-        // and admits face while its pure implementations run protected.
+        // Retained text and its connected input/presentation chain stay in the
+        // selected region. Document ownership does not imply a serial grant.
         let plan = if plan.fragments[0].placements.iter().any(|placement| {
             matches!(
                 placement.kind_id.as_str(),
-                conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+                conduit_text::TEXT_UPPER_KIND
+                    | conduit_semantic_catalog::TEXT_EDIT_KIND
+                    | conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
             )
         }) {
             crate::execution_region::seal_execution_region(plan, advertisement, fixed)
