@@ -2,6 +2,7 @@
 // The owner and Handbook package are supplied by the caller; this driver never
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
+import { captureTodoAccessibility, withTodoStylesDisabled } from './todo-owner-accessibility.mjs';
 import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
 import { inspectTodoRealization, activateTodoAdd } from './todo-owner-realization.mjs';
 import { spawnSync } from 'node:child_process';
@@ -188,6 +189,8 @@ try {
   assert.equal(before.body_id, bodyId);
   assert.equal(before.show_state, 'available');
   const realization = await inspectTodoRealization({page,view:before,face,state});
+  const accessibleBefore = scenario === 'first-add'
+    ? await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'before-add' }) : null;
   if (scenario === 'look-replacement') {
     const observations = [];
     for (const [look, recipe] of [['compact', 'flat'], ['spacious', 'flat'], ['spacious', 'grouped']]) {
@@ -245,15 +248,15 @@ try {
           }
         }, { view: retired, action });
         assert.equal(refusal.refused, true, 'old Show interaction must be refused');
-        assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/,
-          'retirement proof must reach the WASM Show gate rather than fail argument validation');
+        assert.equal(refusal.code, 'StaleShow',
+          'the production SDK must reject the retired acknowledged Show before WASM dispatch');
         const ownerAfterRefusal = face();
         assert.deepEqual(ownerAfterRefusal.face, currentOwner.face,
           'retired Show refusal must preserve the entire canonical owner Face');
         assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id),
           occurrence.view.show_id, 'refusal must preserve the replacement Show');
         retirement = { retired_show_id: retired.show_id,
-          current_show_id: occurrence.view.show_id, refusal,
+          current_show_id: occurrence.view.show_id, refusal, refusalLayer: 'sdk-before-wasm',
           owner_before: currentOwner, owner_after: ownerAfterRefusal };
       }
       observations.push({ look, recipe, ...occurrence, owner: currentOwner, screenshot, retirement });
@@ -297,8 +300,8 @@ try {
     const replacementEvidence = { before: occurrenceEvidence(observations[0]),
       after: occurrenceEvidence(observations[1]), retirement: {
         attemptedShowId: retired.retired_show_id, currentShowId: retired.current_show_id,
-        refusedBeforeSourceAdmission: retired.refusal.refused &&
-          retired.refusal.message === 'owner Face interaction refused (-5)',
+        refusedBeforeSourceAdmission: retired.refusal.refused && retired.refusal.code === 'StaleShow',
+        refusalCode: retired.refusal.code, refusalLayer: retired.refusalLayer,
         ownerBefore: ownerEvidence(retired.owner_before), ownerAfter: ownerEvidence(retired.owner_after),
         faceBefore: exactFace(retired.owner_before), faceAfter: exactFace(retired.owner_after),
       } };
@@ -381,13 +384,14 @@ try {
   const adds = [];
   let after = retainedDom
     ? await page.evaluate(() => globalThis.__conduitOwnerParticipation.face()) : before;
-  const performAdd = async text => {
+  const performAdd = async (text, unstyled = false) => {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
     assert.equal(priorOwner.face.identity, prior.face_id);
     const exactPrior = { ...prior, face_revision_decimal: priorOwner.face_revision_decimal };
     const add = page.locator('[data-owner-action="todo.add"]');
-    const activation = await activateTodoAdd({page,form:add,text,realization,scenario});
+    const activate = () => activateTodoAdd({page,form:add,text,realization,scenario});
+    const activation = unstyled ? await withTodoStylesDisabled(page, activate) : await activate();
     await page.waitForFunction(({ revision, name }) => {
       const current = globalThis.__conduitOwnerParticipation.face();
       return current?.face_revision !== revision && current?.subjects.some(subject => subject.name === name)
@@ -403,12 +407,19 @@ try {
       bodyId, exactPrior, ownerAfterAdd, 'todo.add');
     const screenshot = `browser-add-${adds.length + 1}.png`;
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
-    adds.push({ action_id: 'todo.add', text, activation, before: exactPrior, after, owner: ownerAfterAdd,
+    adds.push({ action_id: 'todo.add', text, activation, stylesheet_disabled_during_activation: unstyled, before: exactPrior, after, owner: ownerAfterAdd,
       mutation, screenshot });
     await writeFile(path.join(output, 'adds.json'), `${JSON.stringify(adds, null, 2)}\n`);
     return adds.at(-1);
   };
-  for (const text of texts) await performAdd(text);
+  for (const text of texts) await performAdd(text, Boolean(accessibleBefore));
+  if (accessibleBefore || scenario === 'look-replacement') {
+    const accessibleAfter = await captureTodoAccessibility({ page, face, state, output, sourceRecord, stage: 'after-add' });
+    const priorAccessible = accessibleBefore ?? before;
+    assert.equal(accessibleAfter.body_id, priorAccessible.body_id);
+    assert.notEqual(accessibleAfter.face_revision, priorAccessible.face_revision);
+    assert.notEqual(accessibleAfter.show_id, priorAccessible.show_id);
+  }
   let crossMask = null;
   const speechBeforeCompletion = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken-before-complete'),
@@ -516,7 +527,7 @@ try {
       owner_after: ownerAfter, browser_after: after, terminal_input: 'terminal-complete.input',
       terminal_stdout: 'terminal-complete.stdout', terminal_stderr: 'terminal-complete.stderr' };
   }
-  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+  if (scenario === 'first-add' || scenario === 'look-replacement') await captureArbitraryTodoRefusals({
     page, face, output, sourceRecord, bodyId, identity, retiredView: before, state,
     acceptCurrent: () => performAdd('Verify recovered current Show'),
   });
@@ -552,6 +563,15 @@ try {
   if (page) {
     diagnostics.push(page.screenshot({ path: path.join(output, 'browser-failed.png') }));
     diagnostics.push(page.content().then(html => writeFile(path.join(output, 'browser-failed.html'), html)));
+    // Preserve the existing outcome text as well as the Face: a refreshed,
+    // disabled Face alone cannot distinguish owner refusal from a lost reply.
+    // This only observes the failed encounter; it never submits or refreshes.
+    diagnostics.push(page.evaluate(() => ({
+      action_result: document.querySelector('[data-owner-action-result]')?.textContent ?? null,
+      action_refused: document.querySelector('[data-owner-action-result]')?.dataset.refused ?? null,
+      face_status: document.querySelector('[data-owner-face-status]')?.textContent ?? null,
+      participation_status: document.querySelector('[data-owner-status]')?.textContent ?? null,
+    })).then(status => writeFile(path.join(output, 'browser-failed-status.json'), `${JSON.stringify(status, null, 2)}\n`)));
     diagnostics.push(page.evaluate(() => globalThis.__conduitOwnerParticipation?.face())
       .then(view => writeFile(path.join(output, 'browser-failed-face.json'), `${JSON.stringify(view, null, 2)}\n`)));
   }

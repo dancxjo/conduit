@@ -67,7 +67,30 @@ pub struct TodoJourneyArgs {
     /// Capture actual owner Todo Faces at 0, 1, 3 and 20 remaining items.
     #[arg(long, conflicts_with_all = ["cross_mask_actions", "direct_speech"])]
     pub count_matrix: bool,
+    /// Prove the existing compact/spacious and flat/grouped browser component selections before Add.
+    #[arg(long, requires = "fresh_body_source", conflicts_with_all = ["cross_mask_actions", "count_matrix", "direct_speech"])]
+    pub look_replacement: bool,
     /// Capture acknowledged direct opening and remaining-item WAVs through the selected artifact route.
     #[arg(long, requires = "cross_mask_actions")]
     pub direct_speech: bool,
 }
+
+impl TodoJourneyArgs {
+    pub(crate) fn browser_scenario(&self) -> &'static str {
+        if self.count_matrix {
+            "count-matrix"
+        } else if self.direct_speech {
+            "cross-mask-speech"
+        } else if self.cross_mask_actions {
+            "cross-mask"
+        } else if self.look_replacement {
+            "look-replacement"
+        } else {
+            "first-add"
+        }
+    }
+}
+
+#[cfg(test)]
+#[path = "prove/todo_journey_tests.rs"]
+mod todo_journey_tests;

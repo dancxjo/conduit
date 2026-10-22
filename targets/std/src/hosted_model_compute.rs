@@ -46,6 +46,8 @@ pub enum ModelComputeAdapterTerminal<'a> {
 /// device handles remain behind implementations of this trait.
 pub trait ModelComputeAdapter {
     fn offer(&self) -> &ModelComputeOffer;
+    /// Identity of the actual prepared provider session, before model loading.
+    fn runtime_identity(&self) -> &ModelComputeRuntimeIdentity;
     fn load(
         &mut self,
         artifact_identity: [u8; 32],
@@ -178,6 +180,9 @@ impl ModelComputeAdapter for ReferenceModelComputeAdapter {
     fn offer(&self) -> &ModelComputeOffer {
         &self.offer
     }
+    fn runtime_identity(&self) -> &ModelComputeRuntimeIdentity {
+        self.session.runtime()
+    }
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         load(&mut self.session, identity, bytes)
     }
@@ -229,6 +234,9 @@ impl ModelComputeAdapter for ReferenceModelComputeAdapter {
 impl ModelComputeAdapter for LinearF32ModelAdapter {
     fn offer(&self) -> &ModelComputeOffer {
         &self.offer
+    }
+    fn runtime_identity(&self) -> &ModelComputeRuntimeIdentity {
+        self.session.runtime()
     }
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         load(&mut self.session, identity, bytes)

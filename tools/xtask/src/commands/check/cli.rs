@@ -56,6 +56,8 @@ pub enum CheckSuite {
     SpeechIpa,
     /// Prove finite categorical request custody, kernel ACKs and retained Sign capacity.
     CategoricalRuntime,
+    /// Bind exact canonical checked Source exports to sealed generic kernel Fores.
+    CanonicalExport,
     /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
     ModelInference,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.

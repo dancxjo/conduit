@@ -1,0 +1,91 @@
+{
+  "source_commit": "cf1ee8acd38dc180ad040d24d83d52bda1abcf6e",
+  "status": "complete",
+  "checks": [
+    {
+      "name": "morse-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "tour_morse_kernel::contract::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5133774979913142,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6181-cf1-morse-tests.log"
+    },
+    {
+      "name": "memory-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "service_memory::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 0.21419324100133963,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6181-cf1-memory-tests.log"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 17.880260478006676,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6181-cf1-clippy.log"
+    },
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 9.969648397003766,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6181-cf1-format.log"
+    },
+    {
+      "name": "ordinary-domain-proof",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "ordinary-domain-proof",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 1119.9873509960016,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6181-cf1-ordinary-domain-proof.log"
+    }
+  ]
+}
