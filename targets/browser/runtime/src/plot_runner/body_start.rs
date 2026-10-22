@@ -116,7 +116,7 @@ pub(super) fn prepare(
     if fragments.is_empty() {
         return Err("Body Play requires at least one locally managed Plot".into());
     }
-    let mut host = crate::installed_browser::advertisement(
+    let mut host = crate::installed_browser::membership_advertisement(
         request.local_host_id.clone(),
         request.local_boot_id.clone(),
     );
@@ -205,7 +205,14 @@ pub(super) fn prepare(
     }
     let mut requests = Vec::new();
     let mut instances = BTreeMap::<conduit_core::CapabilityId, usize>::new();
-    for fragment in &fragments {
+    for fragment in fragments.iter().chain(
+        request
+            .plan
+            .mask_topologies
+            .iter()
+            .flat_map(|topology| topology.chains.iter().take(1))
+            .flat_map(|chain| &chain.plan.fragments),
+    ) {
         if fragment.host_id != host.host_id
             || fragment.boot_id != host.boot_id
             || fragment.offer_generation != host.offer_generation

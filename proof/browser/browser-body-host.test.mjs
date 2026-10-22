@@ -413,3 +413,21 @@ test("canonical Patchbay input dispatches one owner effect without replaying a l
     assert.equal(calls, 1);
   } finally { owner.close(); }
 });
+
+test("Body acquisition reserves captured Mask slots and refuses shared placement identities", () => {
+  const f = fixture();
+  const maskPlacement = { placement_id: "mask-placement", gear_id: "mask-renderer",
+    resources: [{ pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1 }] };
+  f.proposal.plan.mask_topologies = [{ face: { plot: { checked_plot_id: "checked/patchbay" } },
+    chains: [{ plan: { fragments: [{ host_id: "host", boot_id: "boot", offer_generation: 1,
+      placements: [maskPlacement] }] } }] }];
+  const owner = acquireBrowserBodyHost(f);
+  try {
+    assert.equal(owner.observations().find(pool => pool.pool_id === "browser/face").unreserved_units, 2);
+    assert.equal(f.outputRoot.children.length, 2);
+  } finally { owner.close(); }
+  const duplicate = fixture();
+  duplicate.proposal.plan.mask_topologies = structuredClone(f.proposal.plan.mask_topologies);
+  duplicate.proposal.plan.mask_topologies[0].chains[0].plan.fragments[0].placements[0].placement_id = "placement-0";
+  assert.throws(() => acquireBrowserBodyHost(duplicate), /duplicate browser Body placement/);
+});

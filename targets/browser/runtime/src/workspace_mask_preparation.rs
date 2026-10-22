@@ -87,6 +87,18 @@ impl BrowserMaskRuntime {
             plan::ALTERNATE_MASK_SOURCE,
             "browser-graphical-alternate",
         )?;
+        if body_plan.mask_topologies.iter().any(|topology| {
+            topology
+                .chains
+                .iter()
+                .any(|chain| chain.plan.plan_id == planned.plan.plan_id)
+                && topology
+                    .chains
+                    .first()
+                    .is_none_or(|chain| chain.plan.plan_id != planned.plan.plan_id)
+        }) {
+            return Err("initial browser Mask route differs from its admitted first chain".into());
+        }
         Self::prepare_admitted_route(
             body_id,
             face,

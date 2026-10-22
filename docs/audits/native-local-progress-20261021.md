@@ -1185,3 +1185,31 @@ that submits concurrent canonical requests and verifies one handler invocation
 and one disposition. JavaScript syntax and diff whitespace checks pass. This is
 Host callback dispatch, not evidence that production canonical rendering/route
 selection or native Editor/Mask-change fulfillment is complete.
+
+### Production proposal and initial Mask resource admission
+
+Workspace proposal now selects the two existing browser Mask recipes for each
+local retained Patchbay resident from the current exact Host/Boot offer, before
+sealing the authoritative Body Plan. Ordinary worksets get no added topology.
+Missing offers refuse instead of using a synthesized offer or modifying a Play.
+The shared selector also drives the existing canonical publication CPU fixture.
+
+Browser Host acquisition includes captured initial Mask placements in its bounded
+placement inventory and reserves their face slots. Rust Body start validates and
+admits those initial placements in the same resource batch as workload
+placements, through the installed membership advertisement. The standby chain is
+not another active instance; a replacement needs its own admission. Preparation
+rejects a chain order that would activate a different route than the one reserved.
+
+An intermediate focused run correctly refused when both alternatives were
+counted against the one-active-instance Back limit; corrected initial-only
+admission rather than widening that limit. The canonical selection/Edit/refresh
+CPU case then passed. The 22 Body Host CPU tests pass, including exact Mask slot
+acquisition and duplicate placement refusal. Final initial-route refusal checks
+are recorded in the issue checkpoint. This enables preparation through the normal
+proposal path; actual DOM rendering/acknowledgement and legacy adapter retirement
+remain unfinished. No browser/QEMU/CI campaign or release media rebuild ran.
+
+Final focused Rust result: all ten `resident_` tests pass, including canonical
+selection/Edit/refresh and rejection of a reversed initial Mask route. These are
+CPU conformance checks; there is no new DOM or native product enactment claim.

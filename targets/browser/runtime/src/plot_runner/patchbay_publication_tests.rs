@@ -256,44 +256,17 @@ fn seal_publication_masks(request: &mut body_start::BodyStartRequest) {
         request.local_host_id.clone(),
         request.local_boot_id.clone(),
     );
-    let masks = [
-        (
-            crate::workspace_mask::plan::MASK_SOURCE,
-            "browser-graphical",
-        ),
-        (
-            crate::workspace_mask::plan::ALTERNATE_MASK_SOURCE,
-            "browser-graphical-alternate",
-        ),
-    ];
-    let chains = masks
-        .into_iter()
-        .map(|(source, name)| {
-            let planned = crate::workspace_mask::plan::planned_mask(&host, source, name).unwrap();
-            conduit_body::BodyMaskChainPlan {
-                stage_placement_ids: planned
-                    .plan
-                    .fragments
-                    .iter()
-                    .flat_map(|fragment| &fragment.placements)
-                    .map(|placement| placement.placement_id.clone())
-                    .collect(),
-                plan: planned.plan,
-            }
-        })
-        .collect();
-    request.plan = conduit_body::BodyPlan::seal_with_masks(
-        &request.wake,
-        request.plan.plots.clone(),
-        vec![conduit_body::BodyMaskTopology {
-            face: conduit_body::BodyFaceSelector {
-                plot: Some(request.plan.plots[0].plot.clone()),
-                source_placement_id: None,
-            },
-            chains,
-        }],
+    let masks = crate::workspace_runtime::patchbay_planning::masks(
+        &request.plan.plots,
+        &[host],
+        &request.local_host_id,
+        &request.local_boot_id,
     )
     .unwrap();
+    assert_eq!(masks.len(), 1);
+    request.plan =
+        conduit_body::BodyPlan::seal_with_masks(&request.wake, request.plan.plots.clone(), masks)
+            .unwrap();
 }
 
 #[test]
@@ -453,4 +426,21 @@ fn publication_target(session: &TourSession) -> super::super::patchbay_commands:
         face_id: effect.face_id.clone(),
         face_revision: effect.face_revision,
     }
+}
+
+#[test]
+fn resident_publication_refuses_an_unreserved_initial_mask_route() {
+    let source = include_str!("../../../../../plots/patchbay/main.conduit");
+    let mut request = body_start::tests::request_from_sources(&[source]);
+    request.source = source.into();
+    seal_publication_masks(&mut request);
+    let mut masks = request.plan.mask_topologies.clone();
+    masks[0].chains.reverse();
+    request.plan =
+        conduit_body::BodyPlan::seal_with_masks(&request.wake, request.plan.plots.clone(), masks)
+            .unwrap();
+    let error = body_start::prepare(request)
+        .err()
+        .expect("reversed initial route must refuse");
+    assert!(format!("{error:?}").contains("initial browser Mask route differs"));
 }

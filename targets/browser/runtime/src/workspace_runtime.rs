@@ -13,6 +13,8 @@ mod refusal;
 use refusal::Refusal;
 #[path = "workspace_workset.rs"]
 mod workset;
+#[path = "workspace_patchbay_planning.rs"]
+pub(crate) mod patchbay_planning;
 use workset::WorksetEdit;
 
 const HOST_OFFERS_BYTES: usize =
@@ -737,8 +739,11 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                         browser_audio: browser_audio_authority,
                     },
                 )?;
+                let masks = HOST_OFFERS.with(|offers| patchbay_planning::masks(
+                    &plots, offers.borrow().hosts(), &host_id, &boot_id,
+                )).map_err(|message| Refusal::new("PatchbayMaskPlan", message))?;
                 let realization = candidate
-                    .propose(plots, &host_id, &boot_id)
+                    .propose_with_masks(plots, masks, &host_id, &boot_id)
                     .map_err(debug)?;
                 let bytes = encode(&serde_json::json!({
                     "schema": "conduit.body/execution-proposal@1",

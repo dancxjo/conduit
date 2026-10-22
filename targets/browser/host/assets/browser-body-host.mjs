@@ -131,6 +131,25 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (placements.length > maximumPlacements) throw new Error("browser Body placement bound exceeded");
   }
+  const maskTopologies = proposal.plan.mask_topologies ?? [];
+  if (!Array.isArray(maskTopologies) || maskTopologies.length > 16) throw new Error('browser Mask topology bound exceeded');
+  for (const topology of maskTopologies) {
+    if (!Array.isArray(topology.chains) || topology.chains.length > 8) throw new Error('browser Mask chain bound exceeded');
+    // Only the first route is initially active; standby routes require replacement admission.
+    for (const chain of topology.chains.slice(0, 1)) {
+      if (chain.plan?.fragments?.length !== 1) throw new Error('browser Mask requires one exact local fragment');
+      const fragment = chain.plan.fragments[0];
+      if (fragment.host_id !== hostId || fragment.boot_id !== bootId || fragment.offer_generation !== 1) {
+        throw new Error('browser Mask differs from the current Host');
+      }
+      for (const placement of fragment.placements) {
+        if (placementPlots.has(placement.placement_id)) throw new Error('duplicate browser Body placement identity');
+        placementPlots.set(placement.placement_id, topology.face?.plot?.checked_plot_id);
+        placements.push(placement);
+        if (placements.length > maximumPlacements) throw new Error('browser Body placement bound exceeded');
+      }
+    }
+  }
   if (matchedExternal.size !== external.size) throw new Error("external Body Plot is absent from the proposal");
   if (!placements.length) throw new Error("browser Body requires at least one locally managed Plot");
   const demand = new Map();
