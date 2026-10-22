@@ -86,8 +86,8 @@ output. Every retained successful PNG belongs to its packet's own manifest.
 ## Remaining acceptance
 
 This packet does not close #5994, #5608, #5519 or #6201. Still required are the
-live installed-owner Look/fallback scenarios (#5628/#5629/#6190), constrained
-viewport and distinct failure/provider/resource cases, larger graph continuation
+remaining Look accessibility/override cases (#5629), distinct failure/provider/
+resource cases, larger graph continuation
 and remaining browser/native interaction acceptance. The captured selected
 graph has three Cords; it does not prove more-than-twelve-link continuation.
 Current required CI remains separate from this local emulator result. No
@@ -194,3 +194,30 @@ later component selection. Otherwise the final selection would submit the
 pre-action Face despite the fresh displayed Show. No local state is invented;
 the retained value comes from the authenticated owner response. Live fallback
 completion is still pending the fresh-source run.
+
+## Reachable installed-owner fallback proof earned
+
+Clean source `ec45ce210f1c49177c46a0d1ce06be5c5a7759aa` passed
+`make conduitos live-owner-todo-action-proof --required-item-fallback` using its
+matching installed owner, Chromium package and private x86_64 spore. The
+[public packet](evidence/native-proof-resume-20261022/owner-fallback/) retains
+the complete receipt, independent initial owner Face/required-item checkpoint,
+build identity and four manifest-listed original PNGs. All byte lengths/hashes,
+dimensions and independently decoded RGBA hashes pass. The reached fallback
+capture was visually inspected.
+
+The ordinary checked component was selected explicitly, then the required-item
+recipe. Real native Tab/Enter completed `todo.complete.task-1`. Removing that
+offered action caused the reachable `SlotAction` recipe refusal and generic
+fallback over the fresh owner Face. The next actual Complete action for task-2
+succeeded through that fallback. A final ordinary flat component rendered the
+identical final Face and expression with a fresh acknowledged Show. Exactly
+two native mutations are retained; authoritative status is `1 thing left · 2
+completed`. The selected fork changed and the original checkpoint residence's
+complete inventory and inode/device identity stayed unchanged.
+
+The former interaction rejects as `StaleFace` under deterministic canonical
+admission against the observed live Face/Show. The receipt explicitly records
+`installed_replay_enacted:false`; no stale action was injected or replayed
+against the installed owner. Local emulator execution is not physical/human
+proof, universal accessibility certification or required CI acceptance.

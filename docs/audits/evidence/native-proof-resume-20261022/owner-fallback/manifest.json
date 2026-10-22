@@ -1,0 +1,67 @@
+{
+  "source_commit": "ec45ce210f1c49177c46a0d1ce06be5c5a7759aa",
+  "proof_class": "live-local-qmp-installed-owner-isolated-checkpoint-fork",
+  "status": "passed",
+  "checkpoints": [
+    {
+      "frame": {
+        "checkpoint": "required-item-selected",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "d71f09455a118a809b0312bde34969f366709072ef452b3262ecdde39b883e6c",
+        "png": "required-item-selected.png",
+        "png_bytes": 119999,
+        "png_sha256": "b50ead1f086666bf9d89ca282e8d351fc6423e9d9c8f09d8e86be6046d9a5627",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "required-item-fallback",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "32a2effb0ad3fe5da3282c4f8a087a4189f777fd3ec46945d25a7dd0be8b7900",
+        "png": "required-item-fallback.png",
+        "png_bytes": 120076,
+        "png_sha256": "f2f338b250a2c8fdc9fb1300e80a369dc27bc88b9d0c82dada0c6551e8bbe0ab",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "required-item-remaining-action",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "8cc8bc297295d469091df12a9120750078702317c9d9f6b02729458041548164",
+        "png": "required-item-remaining-action.png",
+        "png_bytes": 119136,
+        "png_sha256": "ae381649bbffb0183d454d6e62248af9d5fc2f640133dbd5ca463c18933c0aa6",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "required-item-same-face-flat",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "05bb2c215752f316b34ab202bfea9db3d303e8ac7ad1dbe2b25a717ffa7d752f",
+        "png": "required-item-same-face-flat.png",
+        "png_bytes": 117631,
+        "png_sha256": "23dd7ddf5c6c2f99dbfce151780babfcca69a08e7384497e705d0df03058dd6c",
+        "width": 1280
+      }
+    }
+  ],
+  "private_material_excluded": [
+    "invitation",
+    "route private key",
+    "spore ISO",
+    "raw joined serial",
+    "owner state"
+  ],
+  "installed_stale_replay_enacted": false
+}
