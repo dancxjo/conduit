@@ -293,7 +293,7 @@ open. This successful emulator run is not physical/human or CI acceptance.
 ## Chromium exposes a Birth admission prerequisite
 
 The same clean source seals the browser release and stages Workspace, Handbook
-and a second static application. Pinned Chromium 1.62.0, one worker and zero
+and a second static application. Pinned Playwright 1.62.0 Chromium project, one worker and zero
 retries runs the two affected production scenarios. Both fail before the new
 Patchbay assertions. Handbook reports `CND-FRM-033`: its installed canonical
 Patchbay has an exact runtime FaceInteraction input, but Crèche review still
@@ -389,3 +389,34 @@ exact inventory identity, and agreement of every strictly typed Identity fact.
 Repeated matching composition evidence is accepted; conflicts, missing facts,
 wrong variants and invalid inventories still refuse before editor effects.
 Eight focused resolver cases pass. Successful Handbook enactment remains owed.
+
+## Production browser Patchbay enactment earned
+
+The [browser packet](evidence/native-proof-resume-20261022/browser-patchbay/)
+retains both passing production scenarios over sealed product source
+`219f07da6314abe550b8f05bb54c290630bfb72b`:
+
+- Workspace's actual canonical Inspect and typed Edit pass on that source. The
+  unhandled Edit remains pending; Body, Plan, Play and installed workset do not
+  change. Its enclosing original batch also contains a different failed
+  Handbook case; the packet preserves that mixed-batch status.
+- Handbook's full scenario passes with test source
+  `5a0ac1dcbee8b390985cd08349fbde3c9d2ad895`: exact typed Edit opens the matching
+  checked Source, focuses the editor and preserves Plan/Play. Changing the
+  clock Source and pressing Try replaces its checked identity, Plan and Play
+  without duplicating its workset entry. Lull/Wake, reload, independent second
+  application, reset and browser restart then pass.
+
+Only the test file differs between those two sources. The final reruns reuse
+unchanged sealed product bytes; they do not imply a new runtime build. Each
+scenario uses the pinned Chromium project, one worker and zero retries. All
+four original Handbook PNGs pass byte SHA256, chunk CRC, dimensions and stdlib
+PNG decoding; decoded RGBA hashes and a read-only verifier are retained.
+Successful JSON request/owner receipts are extracted from the actual Playwright
+reports. Private browser profiles and failed traces remain local.
+
+The earlier caption and exclusive-choice browser regressions also passed as
+separate renderer conformance. These results do not close #6201: native
+cross-Plot selection and successful fresh-editor handoff remain open, as do
+required combined-head CI/merge, larger graph continuation and the live Look
+focus/override matrix. Parent #5994 remains open.
