@@ -431,3 +431,7 @@ mod encounter;
 #[cfg(test)]
 #[path = "native_face_scene/selected_typography_tests.rs"]
 mod selected_typography_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/naming_acceptance_tests.rs"]
+mod naming_acceptance_tests;

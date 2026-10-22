@@ -1,0 +1,12 @@
+{
+  "status": "negative-verified",
+  "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+  "original_files_rehashed": 13,
+  "focused_tests_passed": 37,
+  "xtask_strict": "passed",
+  "conduitos_all_targets_strict_exit": 101,
+  "format": "unstarted",
+  "qemu": "unstarted",
+  "cause": "native_face_scene integration test facade omits candidate_inventory/eligibility/NativePlot/WorksetRefusal and has no private native_workset::tests::fixture",
+  "scope": "Original focused/strict failure and test-count custody; not current success or guest evidence."
+}

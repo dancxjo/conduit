@@ -1851,3 +1851,25 @@ entrance and source-pinned evidence. This branch must be reviewed as that slice,
 without absorbing the separate 300-file native-local recovery branch. The
 existing branch is preserved unchanged; no new PR/CI or product-image work was
 started. This audit does not close #6158 or replace its remaining acceptance.
+
+### 2026-10-22: pagination evidence delivered and #6158 closed
+
+Focused PR6233 merged the preserved controls/harness/evidence slice into dev
+at e4562e028. Its tree exactly equals the locally tested delivery1a74b6348.
+The requirement review is `6158-delivery-review-20261022.md`; #6158 is closed.
+Current dev already contained #6205's allocator repair. The original proof
+branch remains unchanged and this larger native-local branch was not absorbed.
+Candidate was deliberately skipped per the user's instruction; dev automation
+created pending Integration39745007534. No manual workflow or QEMU/image run
+was dispatched, and that pending run is not accepted evidence.
+
+This native-local branch now includes delivered dev. The one module-list
+conflict retains both selected-typography and incoming naming tests. The first
+post-merge check reported missing Patchbay exports that exist in this checkout
+after reusing the target cache across worktrees. Refreshing timestamps of the
+243 changed source/manifests, without changing their bytes or deleting artifacts,
+made the unchanged combined source compile and both naming cases pass. Retained
+negative/positive logs are under `evidence/native-local-post-6158-20261022/`.
+This records the observed cache invalidation repair, not a new product semantic
+change or substitute for protected native/guest acceptance. Patchbay and the
+remaining #5994 route remain open.

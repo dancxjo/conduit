@@ -1,0 +1,22 @@
+{
+  "source_commit": "eb77aad03dae3654709e8004f617d48550e95a9d",
+  "status": "passed",
+  "source_clean_after": true,
+  "tests_passed": 19,
+  "strict_native_all_targets": "passed",
+  "workspace_format": "passed",
+  "unchanged_host_evidence_source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+  "unchanged_host_evidence": "20 host tests and strict xtask passed there; not relabelled as eb77 execution",
+  "qemu": "unstarted",
+  "hashes": {
+    "6158-eb77aad03-creche-navigation.log": "f20b5bf551c764caf3d722d6ff98661ba4e1fc8a70e281cc20afce6f32e0cd53",
+    "6158-eb77aad03-conduitos-clippy.log": "911a80c298a1b3857ad98aabc4575388a1128234b655433866c48bbce5d16a6b",
+    "6158-eb77aad03-integration-naming.log": "d7373a801f97a57ec02703be9b96e78a01f065a6b7738e4600141a59c8e95aee",
+    "6158-eb77aad03-naming-acceptance.log": "358bc23c9f78b0d51d1fa51c32f650011c19d22c19cdeee8e1d849e81f2f61d7",
+    "6158-eb77aad03-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "6158-eb77aad03-field-clusters.log": "16396c54d2fb424358ffc1a6649896194886dc3f5906dd930443e5d6b8251cc4",
+    "6158-eb77aad03-actual-creche.log": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+    "6158-eb77aad03-validation.json": "bc7c3f6176e86151900b19a8efa7c7fd8399c4e4ce2249eb3de897929d93aa51",
+    "6158-eb77aad03-validation.py": "53203017a080dfab3b7ebd293602ffb41919dc4fe028b7c3a21895ee27462bca"
+  }
+}

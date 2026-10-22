@@ -1,0 +1,108 @@
+{
+  "source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "scope": "two independent current ProductHost emulator results, not matched historical before/after; initial names differ; sampled pixels only; no full6158 closure",
+  "runs": [
+    {
+      "viewport": "1280x800",
+      "packet": "work/6158-8c3ecb0d7-controls-1280x800-preserved",
+      "exit_code": 0,
+      "captures": 12,
+      "primary_pages": 2,
+      "details_pages": 8,
+      "available_controls": 12,
+      "source_changes": 4,
+      "selected_recipe_records": 2,
+      "observed_original_name": [
+        67,
+        105,
+        119,
+        97,
+        110,
+        32,
+        68,
+        105,
+        121,
+        97,
+        114,
+        98,
+        101,
+        107,
+        105,
+        114,
+        195,
+        174
+      ],
+      "final_probe_name": [
+        78,
+        97,
+        109,
+        105,
+        110,
+        103,
+        32,
+        112,
+        114,
+        111,
+        111,
+        102
+      ],
+      "verifier_exit_code": 0,
+      "hashes": {
+        "work/6158-8c3ecb0d7-controls-1280x800-preserved/seal.json": "7db1c9a4509145e85f8f98c252511fc606fa3325a886557dae8f3c53219b0cd8",
+        "work/6158-8c3ecb0d7-controls-wide-verification.json": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+        "work/6158-8c3ecb0d7-controls-wide-verifier-first.log": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777"
+      }
+    },
+    {
+      "viewport": "640x480",
+      "packet": "work/6158-8c3ecb0d7-controls-640x480-preserved",
+      "exit_code": 0,
+      "captures": 13,
+      "primary_pages": 3,
+      "details_pages": 21,
+      "available_controls": 12,
+      "source_changes": 4,
+      "selected_recipe_records": 2,
+      "observed_original_name": [
+        74,
+        97,
+        110,
+        101,
+        116,
+        32,
+        76,
+        101,
+        101,
+        32,
+        74,
+        101,
+        110,
+        107,
+        105,
+        110,
+        115
+      ],
+      "final_probe_name": [
+        78,
+        97,
+        109,
+        105,
+        110,
+        103,
+        32,
+        112,
+        114,
+        111,
+        111,
+        102
+      ],
+      "verifier_exit_code": 0,
+      "hashes": {
+        "work/6158-8c3ecb0d7-controls-640x480-preserved/seal.json": "c8a235b549737abfea9d00121f099da93907976a901abd9f13962dc7b3976712",
+        "work/6158-8c3ecb0d7-controls-constrained-verification.json": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+        "work/6158-8c3ecb0d7-controls-constrained-verifier-first.log": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d"
+      }
+    }
+  ],
+  "source_clean_after": true
+}
