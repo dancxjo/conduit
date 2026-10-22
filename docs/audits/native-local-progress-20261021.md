@@ -1890,3 +1890,19 @@ byte and adds the root Fore mapping refusal case. All three origin cases pass
 again on the combined native-local branch; the retained local log is under
 `evidence/native-local-origin-sync-20261022/`. No production semantic conflict
 or additional runtime/Mask truth was introduced by the synchronization.
+
+### 2026-10-22: portable Patchbay owner/Face slice reaches dev
+
+PR6235 delivered the shared graph/Face projection and typed retained-owner
+contract at dev1e727f833; its tree equals locally testedaf5cc4cef. Twelve focused
+cases and both owning-package all-target checks pass. Production callers and
+Source remain on their existing routes until their exact Mask/Fore migration;
+no Host effect or platform acceptance follows from this portable API delivery.
+The scoped audit is `patchbay-portable-owner-delivery-20261022.md`.
+
+This native-local branch includes delivered dev. The one add/add conflict was
+verified to contain only the edition-specific ordering of a single import;
+all other file bytes match. All five typed owner/refusal cases pass again after
+resolution. The log is retained under `evidence/native-local-portable-sync-20261022/`.
+CI was deliberately skipped; #6201/#5994 remain open. No browser/QEMU/image or
+private-service-fit campaign ran. The larger recovery branch remains separate.

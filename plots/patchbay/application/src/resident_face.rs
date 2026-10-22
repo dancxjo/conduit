@@ -7,7 +7,7 @@ use conduit_face::{
     FaceText,
 };
 
-use super::{PatchbayActivePlotState, PatchbayApplicationPort, graph_face};
+use super::{graph_face, PatchbayActivePlotState, PatchbayApplicationPort};
 
 impl PatchbayApplicationPort {
     /// Prepare read-only resident meaning before any input. The caller supplies
