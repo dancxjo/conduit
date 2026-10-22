@@ -273,6 +273,7 @@ export class BrowserBody {
   wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
   }>) => Element | ShadowRoot;
+    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal }>) => void | Promise<void>;
     onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
       Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
       | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
@@ -374,7 +375,7 @@ export interface PatchbayObservation {
   readonly publication?: null | Readonly<Record<string, unknown>>;
   readonly mask_show: null;
   readonly interaction_admitted: false;
-  readonly reason_code: "patchbay-canonical-ingress-not-admitted";
+  readonly reason_code: "patchbay-canonical-ingress-not-admitted" | "patchbay-canonical-publication-observed-separately";
 }
 
 /** Exact Rust Mask envelopes; preparation and an actual rendered Show remain required. */
@@ -403,6 +404,8 @@ export class BrowserPlay {
   patchbayObservation(): PatchbayObservation;
   acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
   submitPatchbayInteraction(message: PatchbayInteraction): Promise<PatchbayObservation>;
+  submitPatchbayFaceAction(options: { view: Readonly<Record<string, unknown>>; actionId: string;
+    target: string; arguments?: readonly unknown[]; sequence: number }): Promise<PatchbayObservation>;
   refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;
   reportPatchbayRequestDisposition(options: {
     observation: PatchbayObservation;

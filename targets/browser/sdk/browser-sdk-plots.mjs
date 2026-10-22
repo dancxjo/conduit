@@ -212,7 +212,7 @@ export class BrowserBody {
   /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */
   wake(options = {}) { return this.#operate(() => this.#wake(options)); }
 
-  async #wake({ root = this.#root, faceRootFor, onPatchbayOwnerRequest } = {}) {
+  async #wake({ root = this.#root, faceRootFor, onPatchbayOwnerRequest, onPatchbayPublication } = {}) {
     if (this.#play) throw sdkRefusal("Body.wake", { code: "PlayAlreadyActive", message: "Body already has an active Play" }, this.#identities());
     await this.#openWorkspace();
     const proposalResult = this.#bridge.workspaceRequest({
@@ -227,7 +227,7 @@ export class BrowserBody {
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         storage: this.#storage,
-        inputTarget: root, outputRoot: root, faceRootFor, onPatchbayOwnerRequest,
+        inputTarget: root, outputRoot: root, faceRootFor, onPatchbayOwnerRequest, onPatchbayPublication,
         foregroundPlot: () => {
           const current = this.#bridge.workspaceRequest({ action: "Current" });
           if (current.status < 0) throw sdkRefusal("Body.foreground", current.outputJson, this.#identities());

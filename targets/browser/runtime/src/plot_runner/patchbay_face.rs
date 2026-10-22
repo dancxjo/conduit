@@ -142,6 +142,7 @@ impl TourSession {
             } else { "patchbay-canonical-ingress-not-admitted" },
             "publication": self.patchbay_publication.as_ref().map(|prepared| serde_json::json!({
                 "effect": prepared.effect, "observation": prepared.publication.observation(),
+                "view": prepared.publication.face_view(interaction_ready),
                 "interaction_admitted": interaction_ready,
                 "dispatch": prepared.dispatch_observation(),
             })),

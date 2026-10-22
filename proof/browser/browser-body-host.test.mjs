@@ -431,3 +431,42 @@ test("Body acquisition reserves captured Mask slots and refuses shared placement
   duplicate.proposal.plan.mask_topologies[0].chains[0].plan.fragments[0].placements[0].placement_id = "placement-0";
   assert.throws(() => acquireBrowserBodyHost(duplicate), /duplicate browser Body placement/);
 });
+
+test("selected Patchbay renderer receives the admitted Mask root instead of an inline canvas", async () => {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: "checked/patchbay" };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: "application/retained", configuration: [{ key: "application", value: { Text: "patchbay" } }],
+  });
+  f.proposal.plan.mask_topologies = [{ face: { plot: part.plot }, chains: [{ plan: { fragments: [{
+    host_id: "host", boot_id: "boot", offer_generation: 1, placements: [{
+      placement_id: "mask-slot", gear_id: "mask", resources: [{
+        pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1,
+      }],
+    }],
+  }] } }] }];
+  const start = f.api.conduit_browser_body_start;
+  f.api.conduit_browser_body_start = length => {
+    start(length);
+    f.output({ schema: "conduit.browser/body-started@1", play: {
+      active_play_id: "play", plan_id: "body-plan", wake_id: "wake", body_id: "body",
+    }, progress: { effect_kind: "manifestation", host_id: "host", boot_id: "boot",
+      active_play_id: "play", plan_id: "partition", placement_id: "placement-0", request_sequence: 0,
+      checked_plot_id: "checked/patchbay", face_kind: "face/application-view", application_view: [255],
+    } });
+    return 0;
+  };
+  f.api.conduit_browser_patchbay_observation = () => {
+    f.output({ schema: "conduit.browser/patchbay-observation@1", body_plan_id: "body-plan",
+      active_play_id: "play", owner_checked_plot_id: "checked/patchbay", face: { basis: { body_id: "body" } },
+      mask_show: null, interaction_admitted: false, publication: { effect: { placement_id: "mask-slot" } },
+    }); return 0;
+  };
+  let rendered = 0;
+  const owner = acquireBrowserBodyHost({ ...f, onPatchbayPublication: ({ root, signal }) => {
+    rendered++; assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);
+  } });
+  try { owner.start(1); await owner.run(); assert.equal(rendered, 1); }
+  finally { owner.close(); }
+});

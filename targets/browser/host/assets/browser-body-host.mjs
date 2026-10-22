@@ -88,7 +88,7 @@ export function manifestBrowserText(output, effect) {
 }
 
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -265,7 +265,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     return observation;
   };
   let lastPatchbayRequest = null;
-  const patchbayOwners = new Set((typeof onPatchbayOwnerRequest === 'function' ? proposal.plan.plots : []).filter(part =>
+  const patchbayOwners = new Set(proposal.plan.plots.filter(part =>
     part.plan.fragments.some(fragment => fragment.placements.some(placement =>
       placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
         entry.key === 'application' && entry.value?.Text === 'patchbay'))))
@@ -513,6 +513,18 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       }
       const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
       if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
+        if (typeof onPatchbayPublication === 'function' && patchbayOwners.has(effect.checked_plot_id)) {
+          const observation = bridge.patchbayObservation();
+          if (observation.publication && observation.owner_checked_plot_id === effect.checked_plot_id) {
+            if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
+                || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay publication differs from this Body Play');
+            const maskRoot = slots.get(observation.publication.effect.placement_id);
+            if (!maskRoot?.isConnected) throw new Error('Patchbay Mask slot is unavailable');
+            await onPatchbayPublication(Object.freeze({ observation, root: maskRoot, signal }));
+            assertCurrent();
+            return;
+          }
+        }
         const channel = applicationChannel(effect.checked_plot_id);
         let applicationSurface = output;
         if (typeof dataLabel === "string") {

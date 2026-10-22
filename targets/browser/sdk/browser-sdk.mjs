@@ -408,7 +408,7 @@ export class BrowserBodyParticipation {
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
   prepare({ proposal, inputTarget, outputRoot, foregroundPlot, faceRootFor,
-    onApplicationEvent, onPatchbayOwnerRequest, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
+    onApplicationEvent, onPatchbayOwnerRequest, onPatchbayPublication, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential
         || proposal?.plan?.body_id !== credential.body_id) {
@@ -425,7 +425,7 @@ export class BrowserBodyParticipation {
       foregroundPlot,
       faceRootFor,
       onApplicationEvent,
-      onPatchbayOwnerRequest,
+      onPatchbayOwnerRequest, onPatchbayPublication,
       onTutorialPresenterRequest,
       externallyManagedPlanIds,
     });
@@ -514,6 +514,20 @@ export class BrowserPlay {
   acknowledgePatchbayFace(message) {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
     return this.#checkedPatchbayObservation(this.#adapter.acknowledgePatchbayFace(message));
+  }
+  async submitPatchbayFaceAction({ view, actionId, target, arguments: actionArguments = [], sequence }) {
+    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+    const current = this.patchbayObservation().publication?.view;
+    if (!current || current.interactions_admitted !== true || current.show_state !== 'available'
+        || current.body_id !== this.#started.play.body_id
+        || view?.show_id !== current.show_id || view?.face_id !== current.face_id
+        || view?.face_revision !== current.face_revision) throw new Error('Current acknowledged Patchbay Show is required');
+    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
+    const action = current.actions.find(candidate => candidate.identity === actionId && candidate.target === target);
+    if (!action || action.availability !== 'available') throw new Error('Patchbay action is unavailable');
+    const checked = checkedAcknowledgedOwnerFaceArguments(current, view, actionId, target, actionArguments);
+    return this.submitPatchbayInteraction({ show_id: current.show_id, face_id: current.face_id,
+      face_revision: Number(current.face_revision), action_id: actionId, target, arguments: checked, sequence });
   }
   async submitPatchbayInteraction(message) {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');

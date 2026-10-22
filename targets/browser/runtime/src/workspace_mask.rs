@@ -265,6 +265,16 @@ impl BrowserMaskRuntime {
         self.scheduler.values().reserved_storage_bytes()
     }
 
+    pub(crate) fn face_view(&self, admitted: bool) -> crate::owner_face_mask::FaceView {
+        crate::owner_face_mask::view::local_view_admitted(
+            &self.body_plan.body_id,
+            &self.face,
+            &self.show,
+            &self.play,
+            admitted,
+        )
+    }
+
     pub fn observation(&self) -> BrowserMaskObservation {
         let _ = self.routes.plan_id();
         BrowserMaskObservation {

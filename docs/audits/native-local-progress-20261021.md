@@ -1213,3 +1213,30 @@ remain unfinished. No browser/QEMU/CI campaign or release media rebuild ran.
 Final focused Rust result: all ten `resident_` tests pass, including canonical
 selection/Edit/refresh and rejection of a reversed initial Mask route. These are
 CPU conformance checks; there is no new DOM or native product enactment claim.
+
+### Selected canonical browser rendering
+
+Canonical Patchbay publication now includes the existing normalized owner-Face
+view, projected directly from the retained Mask Face/Show. Its interaction gate
+also includes the owner's current revision and publication turn; an available
+but consumed/stale Show cannot regain admission merely by rendering it.
+
+The Host can select `onPatchbayPublication` for a prepared resident. It supplies
+the already acquired initial Mask slot and fences that resident's legacy inline
+canvas consumption. Handbook selects this path and uses the existing
+`conduit-owner-face` component. Prepared content is rendered before exact Show
+acknowledgement; hidden or disconnected components are not acknowledged. Typed
+input reuses the SDK's checked acknowledged-Face argument projection, invokes the
+existing owner-effect handler, explicitly refreshes the closing publication and
+renders/acknowledges its successor. A refusal re-reads current Rust truth without
+replaying the input. Callers without a selected canonical renderer keep fallback.
+
+All 23 Body Host CPU tests pass, including a new selected-renderer case that
+receives the exact admitted Mask root while invalid legacy canvas bytes are never
+decoded. The focused Rust selection/Edit/refresh test passes with normalized view
+checks before acknowledgement, after acknowledgement and after Show consumption.
+JavaScript syntax and diff whitespace checks pass. An intermediate duplicate
+parameter from option forwarding was caught by syntax checking and corrected.
+No browser/QEMU/CI campaign or packaged artifact rebuild ran. Actual browser
+DOM enactment, complete memory admission, native effects and full Source/legacy
+adapter retirement remain open; this is source implementation plus CPU evidence.

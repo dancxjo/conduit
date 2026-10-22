@@ -57,6 +57,10 @@ impl PatchbayPublication {
         })
     }
 
+    pub(crate) fn face_view(&self, admitted: bool) -> crate::owner_face_mask::FaceView {
+        self.mask.face_view(admitted && self.can_submit())
+    }
+
     pub fn observation(&self) -> BrowserMaskObservation {
         self.mask.observation()
     }

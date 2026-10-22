@@ -278,6 +278,11 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     let (mut session, _) = body_start::prepare(request).unwrap();
     let before = session.patchbay_observation().unwrap();
     assert_eq!(before["publication"]["interaction_admitted"], false);
+    assert_eq!(before["publication"]["view"]["show_state"], "prepared");
+    assert_eq!(
+        before["publication"]["view"]["interactions_admitted"],
+        false
+    );
     let prepared = session.patchbay_publication.as_ref().unwrap();
     let effect = prepared.effect.clone();
     let face = prepared.publication.observation().face;
@@ -311,6 +316,11 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     assert!(session.patchbay_acknowledge(stale).is_err());
     let available = session.patchbay_acknowledge(acknowledgement()).unwrap();
     assert_eq!(available["publication"]["interaction_admitted"], true);
+    assert_eq!(available["publication"]["view"]["show_state"], "available");
+    assert_eq!(
+        available["publication"]["view"]["interactions_admitted"],
+        true
+    );
     let accepted = session.patchbay_interact(input()).unwrap();
     assert_eq!(accepted["publication"]["dispatch"]["owner_accepted"], true);
     assert_eq!(
@@ -318,6 +328,10 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         true
     );
     assert_eq!(accepted["publication"]["interaction_admitted"], false);
+    assert_eq!(
+        accepted["publication"]["view"]["interactions_admitted"],
+        false
+    );
     assert_eq!(
         accepted["face"]["revision"].as_u64(),
         before["face"]["revision"]
