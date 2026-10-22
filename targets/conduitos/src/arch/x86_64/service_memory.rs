@@ -189,7 +189,7 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<Installation,
     }
     if let Some(data) = image.private_data() {
         // The ELF template initializes private metadata, never executable image
-        // storage. The complete slot was zeroed above, including the BSS tail.
+        // storage. The inherited clean slot includes the zeroed BSS tail.
         if !matches!(
             image.profile(),
             crate::service_memory::ServiceProfile::Draft

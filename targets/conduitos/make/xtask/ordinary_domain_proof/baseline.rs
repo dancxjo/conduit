@@ -1,6 +1,6 @@
 //! Strict fixed-matrix reader; raw observations are retained without speed claims.
 use super::super::ConduitosError;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 const HEADER: &str = "CONDUIT_SERVICE_BASELINE ";
 const SAMPLE: &str = "CONDUIT_SERVICE_SAMPLE ";
 const COMPONENT: &str = "CONDUIT_SERVICE_SETUP_COMPONENT ";
@@ -97,7 +97,7 @@ pub(super) fn validate(text: &str) -> Result<Value, ConduitosError> {
     let components = validate_components(text, &header, &rows)?;
     Ok(
         json!({"header":header,"samples":rows,"setup_components":components,
-        "setup_component_scope":"slot clearing only, including counter-read overhead; linked to the exact instance/setup observation; no independent trap/CR3/register/interrupt attribution",
+        "setup_component_scope":"@1 measures slot clearing including counter reads; @2 records an omitted clear with zero sentinel and a full zero-state scan included in outer setup; exact instance/setup correspondence; no independent trap/CR3/register/interrupt attribution",
         "scope":"whole ServiceDomain entry including budget/context setup, guest work, interrupts and automatic fault quarantine; request includes frame clearing; response includes length/status check and copied-byte observation; 256B is only this fixture's maximum",
         "remaining":"larger transfer-window/staged IPC sweep, assembly component attribution, demonstrated optimization, before/after isolation equivalence and responsive journey comparison"}),
     )
@@ -122,14 +122,34 @@ fn validate_components(
     if declared == 0 {
         return Ok(components);
     }
+    let schema = &components[0]["schema"];
+    if components
+        .iter()
+        .any(|component| &component["schema"] != schema)
+    {
+        return Err(refusal());
+    }
     let setups = rows
         .iter()
         .filter(|row| row["mode"] == 0 || row["trial"] == 0);
     for (component, row) in components.iter().zip(setups) {
-        if component["schema"] != "conduit.conduitos/service-setup-component@1"
+        let valid_profile = match component["schema"].as_str() {
+            Some("conduit.conduitos/service-setup-component@1") => {
+                component["counter_overhead_included"] == true
+                    && component.get("clearing_performed").is_none()
+                    && component.get("zero_state_scan_in_setup").is_none()
+            }
+            Some("conduit.conduitos/service-setup-component@2") => {
+                component["clearing"].as_u64() == Some(0)
+                    && component["clearing_performed"] == false
+                    && component["counter_overhead_included"] == false
+                    && component["zero_state_scan_in_setup"] == true
+            }
+            _ => false,
+        };
+        if !valid_profile
             || component["units"] != "raw-tsc"
             || component["component"] != "slot-zeroing"
-            || component["counter_overhead_included"] != true
             || component["instance"] != row["instance"]
             || component["setup"] != row["setup"]
             || component["clearing"]
@@ -215,6 +235,74 @@ mod tests {
             ));
         }
         text
+    }
+    #[test]
+    fn elided_clear_requires_exact_versioned_profile() {
+        let baseline = component_transcript();
+        let mut text = String::new();
+        for line in baseline.lines() {
+            if let Some(raw) = line.strip_prefix(COMPONENT) {
+                let mut value: Value = serde_json::from_str(raw).unwrap();
+                value["schema"] = json!("conduit.conduitos/service-setup-component@2");
+                value["setup"] = json!(10);
+                value["clearing_performed"] = json!(false);
+                value["counter_overhead_included"] = json!(false);
+                value["zero_state_scan_in_setup"] = json!(true);
+                text.push_str(&format!("{COMPONENT}{value}\n"));
+            } else if let Some(raw) = line.strip_prefix(SAMPLE) {
+                let mut value: Value = serde_json::from_str(raw).unwrap();
+                if value["mode"] == 0 || value["trial"] == 0 {
+                    value["setup"] = json!(10);
+                }
+                text.push_str(&format!("{SAMPLE}{value}\n"));
+            } else {
+                text.push_str(line);
+                text.push('\n');
+            }
+        }
+        assert!(validate(&baseline).is_ok());
+        assert!(validate(&text).is_ok());
+        let mut mixed = String::new();
+        let mut changed = false;
+        for line in text.lines() {
+            if !changed && let Some(raw) = line.strip_prefix(COMPONENT) {
+                let mut value: Value = serde_json::from_str(raw).unwrap();
+                value["schema"] = json!("conduit.conduitos/service-setup-component@1");
+                value["counter_overhead_included"] = json!(true);
+                value.as_object_mut().unwrap().remove("clearing_performed");
+                value
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("zero_state_scan_in_setup");
+                mixed.push_str(&format!("{COMPONENT}{value}\n"));
+                changed = true;
+            } else {
+                mixed.push_str(line);
+                mixed.push('\n');
+            }
+        }
+        assert!(changed);
+        assert!(validate(&mixed).is_err());
+        for (from, to) in [
+            ("\"clearing\":0", "\"clearing\":1"),
+            (
+                "\"clearing_performed\":false",
+                "\"clearing_performed\":true",
+            ),
+            (
+                "\"counter_overhead_included\":false",
+                "\"counter_overhead_included\":true",
+            ),
+            (
+                "\"zero_state_scan_in_setup\":true",
+                "\"zero_state_scan_in_setup\":false",
+            ),
+            ("service-setup-component@2", "service-setup-component@3"),
+            ("\"clearing_performed\":false,", ""),
+        ] {
+            assert_ne!(text.replace(from, to), text, "mutation must apply: {from}");
+            assert!(validate(&text.replace(from, to)).is_err(), "{from}");
+        }
     }
     #[test]
     fn declared_components_require_exact_complete_instance_correspondence() {

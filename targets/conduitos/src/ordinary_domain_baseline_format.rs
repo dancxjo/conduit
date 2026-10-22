@@ -36,10 +36,13 @@ pub(crate) fn header(
 }
 
 pub(crate) fn setup_component(row: Sample) -> Result<FixedText, fmt::Error> {
+    if row.setup_clearing != 0 {
+        return Err(fmt::Error);
+    }
     let mut output = FixedText::new();
     writeln!(
         output,
-        "CONDUIT_SERVICE_SETUP_COMPONENT {{\"schema\":\"conduit.conduitos/service-setup-component@1\",\"units\":\"raw-tsc\",\"component\":\"slot-zeroing\",\"instance\":{},\"setup\":{},\"clearing\":{},\"counter_overhead_included\":true}}",
+        "CONDUIT_SERVICE_SETUP_COMPONENT {{\"schema\":\"conduit.conduitos/service-setup-component@2\",\"units\":\"raw-tsc\",\"component\":\"slot-zeroing\",\"instance\":{},\"setup\":{},\"clearing\":{},\"counter_overhead_included\":false,\"clearing_performed\":false,\"zero_state_scan_in_setup\":true}}",
         row.instance, row.setup, row.setup_clearing
     )?;
     Ok(output)
@@ -128,18 +131,31 @@ mod tests {
     }
 
     #[test]
-    fn component_preserves_its_exact_instance_and_raw_overhead_boundary() {
+    fn component_preserves_exact_instance_and_explicit_elision_boundary() {
         let record = setup_component(Sample {
             instance: u64::MAX,
             setup: u64::MAX,
-            setup_clearing: u64::MAX,
+            setup_clearing: 0,
             ..Sample::default()
         })
         .unwrap();
         let value = json(&record, "CONDUIT_SERVICE_SETUP_COMPONENT ");
         assert_eq!(value["instance"], u64::MAX);
-        assert_eq!(value["clearing"], u64::MAX);
-        assert_eq!(value["counter_overhead_included"], true);
+        assert_eq!(value["clearing"], 0);
+        assert_eq!(
+            value["schema"],
+            "conduit.conduitos/service-setup-component@2"
+        );
+        assert_eq!(value["counter_overhead_included"], false);
+        assert_eq!(value["clearing_performed"], false);
+        assert_eq!(value["zero_state_scan_in_setup"], true);
+        assert!(
+            setup_component(Sample {
+                setup_clearing: 1,
+                ..Sample::default()
+            })
+            .is_err()
+        );
         assert_eq!(value["units"], "raw-tsc");
         assert_eq!(value["component"], "slot-zeroing");
     }
