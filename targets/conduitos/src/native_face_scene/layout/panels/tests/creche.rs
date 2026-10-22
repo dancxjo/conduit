@@ -168,7 +168,12 @@ fn actual_zero_body_creche_places_body_and_plot_groups_in_one_band() {
             .subject_index
             .is_some_and(|subject| right_subjects.contains(&subject))
         {
-            assert!(row.bounds.x >= search.bounds.x);
+            if row.page == search.page {
+                assert!(row.bounds.x >= search.bounds.x);
+            } else {
+                assert_eq!(row.bounds.x, name.bounds.x);
+                assert!(row.bounds.width > search.bounds.width);
+            }
         }
     }
     assert_disjoint(&scene.primary);
