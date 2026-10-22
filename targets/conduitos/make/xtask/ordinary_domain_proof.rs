@@ -15,6 +15,7 @@ mod compositor_hostile;
 mod compositor_recovery;
 mod cr3;
 mod service_memory;
+mod staged;
 mod state;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
@@ -117,6 +118,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let service_baseline = baseline::validate(&transcript)?;
     let cr3_observations = cr3::validate(&transcript, &service_baseline)?;
     let state_observations = state::validate(&transcript, &service_baseline)?;
+    let staged_ipc = staged::validate(&transcript)?;
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
@@ -327,6 +329,26 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     .map_err(|error| {
         ConduitosError::refusal("service-root-state-write-failed", error.to_string())
     })?;
+    let staged_receipt = serde_json::json!({
+        "schema":"conduit.conduitos/service-staged-ipc-evidence@1",
+        "proof_class":"freestanding-emulator", "fixture":true,
+        "source_commit":source, "build":build,
+        "machine":baseline_receipt["machine"],
+        "counter_profile":baseline_receipt["observations"]["header"],
+        "iso_sha256":baseline_receipt["iso_sha256"],
+        "entry_observation_instrumentation":{"cr3":true,"register_push_pop":true,
+            "user_irq_handler":true,"per_object_snapshot_collection":true,"overhead_subtracted":false},
+        "entry_scope":"Whole ServiceDomain::enter plus guest work includes transition counter instrumentation and consumed snapshots; not comparable to the separate uninstrumented staged variant as a speedup",
+        "transcript_sha256":super::report::sha256_file(&serial_path)?,
+        "observations":staged_ipc
+    });
+    fs::write(
+        paths.target.join("service-staged-ipc-proof.json"),
+        serde_json::to_vec_pretty(&staged_receipt).map_err(|e| {
+            ConduitosError::refusal("service-staged-receipt-invalid", e.to_string())
+        })?,
+    )
+    .map_err(|e| ConduitosError::refusal("service-staged-write-failed", e.to_string()))?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
