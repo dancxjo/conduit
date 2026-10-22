@@ -764,8 +764,8 @@ fn run_controller(
                                 b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-presenters-replanned\n",
                             );
                         }
-                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
-                            patchbay_edit::refuse_unadmitted_editor(&mut front_door, &journey)?;
+                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(request)) => {
+                            patchbay_edit::open_source_editor(&mut front_door, &mut journey, request, identities)?;
                         }
                         Some(crate::native_workset::NativeApplicationRequest::OpenPatchbay) => {
                             return Err("resident-patchbay-request-not-routed");
