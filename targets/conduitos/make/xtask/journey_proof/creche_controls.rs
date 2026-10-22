@@ -128,21 +128,37 @@ pub(super) fn exercise(
         custody::validate_world(metadata, &boot, checkpoint, source, image)?;
     }
     custody::component(&final_state.record)?;
-    let proof = json!({"schema":"conduit.conduitos/creche-controls-proof@1","status":"passed","proof_class":"freestanding-emulator",
-        "source_commit":source,"image_sha256":image,"host_id":boot["host_id"],"boot_id":boot["boot_id"],
-        "profile_id":boot["profile_id"],"build_id":boot["build_id"],"logical_image_binding":boot["image_binding"],
-        "final_image_id":metadata["target_build_manifest"]["image_id"],"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
-        "route":"acknowledged component presenter and checked Mask Plot Source; exact initial recipe and visual-fallback configuration are not serialized",
-        "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
-        "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
-        "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
-        "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
+    let parts = [
+        json!({"schema":"conduit.conduitos/creche-controls-proof@1","status":"passed","proof_class":"freestanding-emulator",
+            "source_commit":source,"image_sha256":image,"host_id":boot["host_id"],"boot_id":boot["boot_id"],
+            "profile_id":boot["profile_id"],"build_id":boot["build_id"],"logical_image_binding":boot["image_binding"],
+            "final_image_id":metadata["target_build_manifest"]["image_id"],"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
+        }),
+        json!({
+            "route":"acknowledged component presenter and checked Mask Plot Source; exact initial recipe and visual-fallback configuration are not serialized",
+            "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
+            "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
+        }),
+        json!({
+            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
+            "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
+        }),
+        json!({
         "observations":run.observations,"captures":run.captures,"capture_limit":27,"screenshots":"journey-frames/manifest.json",
         "capture_custody":"original QMP PNG and complete serial-prefix offsets/hashes via existing Artifacts",
         "rendered_rows_and_lane_wording":"unsupported: product focus receipt exposes hit/page/display bounds, not rendered row commands/text/lane mapping",
         "details_view_state":"F2 command and subsequent focus/page observations retained; no separate product Details-mode flag exists",
         "component_realization_records":rows(&text(run.serial)?,"CONDUIT_NATIVE_COMPONENT_REALIZATION ")?,
-        "historical_renderer_reproduced":false,"fallback_proof":"unsupported: this entrance does not independently admit a fallback profile or infer renderer route from image chrome","physical_evidence":false,"human_enactment":false,"full_6158_acceptance":false});
+        "historical_renderer_reproduced":false,"fallback_proof":"unsupported: this entrance does not independently admit a fallback profile or infer renderer route from image chrome","physical_evidence":false,"human_enactment":false,"full_6158_acceptance":false}),
+    ];
+    // Keep the same flat schema without increasing the crate macro limit.
+    let mut fields = serde_json::Map::new();
+    for part in parts {
+        if let Value::Object(part) = part {
+            fields.extend(part);
+        }
+    }
+    let proof = Value::Object(fields);
     fs::write(
         destination.join("creche-controls-proof.json"),
         serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
