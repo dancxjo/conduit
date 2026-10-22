@@ -103,6 +103,7 @@ pub(super) fn run() {
             let (mut domain, setup) = install(&image);
             let mut row = sample(&mut domain, 0, case, trial);
             row.setup = setup;
+            row.setup_clearing = domain.setup_clearing_ticks();
             row.teardown = quarantine(&mut domain);
             rows[next] = row;
             next += 1;
@@ -112,6 +113,7 @@ pub(super) fn run() {
             let mut row = sample(&mut domain, 1, case, trial);
             if trial == 0 {
                 row.setup = setup;
+                row.setup_clearing = domain.setup_clearing_ticks();
             }
             if trial == TRIALS - 1 {
                 row.teardown = quarantine(&mut domain);
@@ -124,6 +126,7 @@ pub(super) fn run() {
         let (mut domain, setup) = install(&image);
         let mut row = sample(&mut domain, 0, case, 0);
         row.setup = setup;
+        row.setup_clearing = domain.setup_clearing_ticks();
         // Fault entry already includes automatic quarantine. This is only the
         // subsequent idempotent call; do not subtract it from entry time.
         row.teardown = quarantine(&mut domain);
@@ -144,5 +147,10 @@ pub(super) fn run() {
     for row in rows {
         let serial = format::sample(row).unwrap_or_else(|_| super::refuse("baseline-serial"));
         arch::early_write(serial.as_bytes());
+        if row.mode == 0 || row.trial == 0 {
+            let serial = format::setup_component(row)
+                .unwrap_or_else(|_| super::refuse("baseline-component-serial"));
+            arch::early_write(serial.as_bytes());
+        }
     }
 }

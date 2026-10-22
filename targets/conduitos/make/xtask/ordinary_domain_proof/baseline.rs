@@ -3,10 +3,11 @@ use super::super::ConduitosError;
 use serde_json::{json, Value};
 const HEADER: &str = "CONDUIT_SERVICE_BASELINE ";
 const SAMPLE: &str = "CONDUIT_SERVICE_SAMPLE ";
+const COMPONENT: &str = "CONDUIT_SERVICE_SETUP_COMPONENT ";
 fn refusal() -> ConduitosError {
     ConduitosError::refusal(
         "service-baseline-invalid",
-        "requires one exact raw-TSC fixture matrix, not calibrated or component timing",
+        "requires one exact raw-TSC fixture matrix and any declared setup observations; no calibrated or assembly-component claim",
     )
 }
 fn complete_lines(text: &str) -> impl Iterator<Item = &str> {
@@ -93,9 +94,52 @@ pub(super) fn validate(text: &str) -> Result<Value, ConduitosError> {
         }
         previous_instance = instance;
     }
-    Ok(json!({"header":header,"samples":rows,
+    let components = validate_components(text, &header, &rows)?;
+    Ok(
+        json!({"header":header,"samples":rows,"setup_components":components,
+        "setup_component_scope":"slot clearing only, including counter-read overhead; linked to the exact instance/setup observation; no independent trap/CR3/register/interrupt attribution",
         "scope":"whole ServiceDomain entry including budget/context setup, guest work, interrupts and automatic fault quarantine; request includes frame clearing; response includes length/status check and copied-byte observation; 256B is only this fixture's maximum",
-        "remaining":"larger transfer-window/staged IPC sweep, assembly component attribution, demonstrated optimization, before/after isolation equivalence and responsive journey comparison"}))
+        "remaining":"larger transfer-window/staged IPC sweep, assembly component attribution, demonstrated optimization, before/after isolation equivalence and responsive journey comparison"}),
+    )
+}
+fn validate_components(
+    text: &str,
+    header: &Value,
+    rows: &[Value],
+) -> Result<Vec<Value>, ConduitosError> {
+    let declared = match header.get("setup_component_records") {
+        None => 0,
+        Some(value) if value.as_u64() == Some(14) => 14,
+        Some(_) => return Err(refusal()),
+    };
+    let components = complete_lines(text)
+        .filter_map(|line| line.strip_prefix(COMPONENT))
+        .map(|line| serde_json::from_str::<Value>(line).map_err(|_| refusal()))
+        .collect::<Result<Vec<_>, _>>()?;
+    if components.len() != declared {
+        return Err(refusal());
+    }
+    if declared == 0 {
+        return Ok(components);
+    }
+    let setups = rows
+        .iter()
+        .filter(|row| row["mode"] == 0 || row["trial"] == 0);
+    for (component, row) in components.iter().zip(setups) {
+        if component["schema"] != "conduit.conduitos/service-setup-component@1"
+            || component["units"] != "raw-tsc"
+            || component["component"] != "slot-zeroing"
+            || component["counter_overhead_included"] != true
+            || component["instance"] != row["instance"]
+            || component["setup"] != row["setup"]
+            || component["clearing"]
+                .as_u64()
+                .is_none_or(|ticks| row["setup"].as_u64().is_none_or(|setup| ticks > setup))
+        {
+            return Err(refusal());
+        }
+    }
+    Ok(components)
 }
 #[cfg(test)]
 mod tests {
@@ -146,5 +190,82 @@ mod tests {
         let partial = format!("{text}{SAMPLE}{{\"case\":4");
         assert!(validate(&partial).is_ok());
         assert!(validate(&format!("{partial}\n")).is_err());
+    }
+    fn component_transcript() -> String {
+        let mut text = transcript().replace(
+            "\"records\":20",
+            "\"records\":20,\"setup_component_records\":14",
+        );
+        let rows = validate(&transcript()).unwrap()["samples"]
+            .as_array()
+            .unwrap()
+            .clone();
+        for row in rows
+            .iter()
+            .filter(|row| row["mode"] == 0 || row["trial"] == 0)
+        {
+            text.push_str(&format!(
+                "{COMPONENT}{}\n",
+                json!({
+                    "schema":"conduit.conduitos/service-setup-component@1",
+                    "units":"raw-tsc","component":"slot-zeroing",
+                    "instance":row["instance"],"setup":row["setup"],
+                    "clearing":0,"counter_overhead_included":true
+                })
+            ));
+        }
+        text
+    }
+    #[test]
+    fn declared_components_require_exact_complete_instance_correspondence() {
+        let text = component_transcript();
+        assert_eq!(
+            validate(&text).unwrap()["setup_components"]
+                .as_array()
+                .unwrap()
+                .len(),
+            14
+        );
+        for (from, to) in [
+            ("\"clearing\":0", "\"clearing\":1"),
+            (
+                "\"counter_overhead_included\":true",
+                "\"counter_overhead_included\":false",
+            ),
+            (
+                "\"setup_component_records\":14",
+                "\"setup_component_records\":13",
+            ),
+        ] {
+            assert!(validate(&text.replace(from, to)).is_err(), "{from}");
+        }
+        let foreign = text
+            .lines()
+            .map(|line| {
+                if line.starts_with(COMPONENT) {
+                    line.replace("\"instance\":14", "\"instance\":13")
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n";
+        assert_ne!(foreign, text);
+        assert!(validate(&foreign).is_err());
+        assert!(validate(text.strip_suffix('\n').unwrap()).is_err());
+        let missing = text
+            .lines()
+            .filter(|line| !line.starts_with(COMPONENT))
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n";
+        assert!(validate(&missing).is_err());
+        let extra = text
+            .lines()
+            .find(|line| line.starts_with(COMPONENT))
+            .unwrap();
+        assert!(validate(&format!("{text}{extra}\n")).is_err());
+        assert!(validate(&text.replace(",\"setup_component_records\":14", "")).is_err());
     }
 }

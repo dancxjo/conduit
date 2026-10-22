@@ -47,6 +47,12 @@ impl ServiceDomain {
     pub fn profile(&self) -> ServiceProfile {
         self.space.profile()
     }
+    /// Raw proof-only clearing interval, including its counter-read overhead.
+    /// This does not attribute entry/trap/CR3 costs or claim calibrated time.
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn setup_clearing_ticks(&self) -> u64 {
+        self.space.setup_clearing_ticks()
+    }
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         self.space.exchange()
     }

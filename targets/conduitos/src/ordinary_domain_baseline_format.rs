@@ -12,6 +12,7 @@ pub(crate) struct Sample {
     pub trial: usize,
     pub instance: u64,
     pub setup: u64,
+    pub setup_clearing: u64,
     pub request: u64,
     pub entry: u64,
     pub response: u64,
@@ -28,8 +29,18 @@ pub(crate) fn header(
     let mut output = FixedText::new();
     writeln!(
         output,
-        "CONDUIT_SERVICE_BASELINE {{\"schema\":\"conduit.conduitos/service-baseline@1\",\"units\":\"raw-tsc\",\"calibrated\":false,\"component_attribution\":false,\"fixture_capacity\":256,\"records\":{RECORDS},\"cpuid1_eax\":{},\"cpuid1_ecx\":{},\"cpuid1_edx\":{},\"invariant_tsc\":{},\"counter_pair_ticks\":[{},{},{}]}}",
+        "CONDUIT_SERVICE_BASELINE {{\"schema\":\"conduit.conduitos/service-baseline@1\",\"units\":\"raw-tsc\",\"calibrated\":false,\"component_attribution\":false,\"setup_component_records\":14,\"fixture_capacity\":256,\"records\":{RECORDS},\"cpuid1_eax\":{},\"cpuid1_ecx\":{},\"cpuid1_edx\":{},\"invariant_tsc\":{},\"counter_pair_ticks\":[{},{},{}]}}",
         cpu[0], cpu[1], cpu[2], invariant_tsc, overhead[0], overhead[1], overhead[2]
+    )?;
+    Ok(output)
+}
+
+pub(crate) fn setup_component(row: Sample) -> Result<FixedText, fmt::Error> {
+    let mut output = FixedText::new();
+    writeln!(
+        output,
+        "CONDUIT_SERVICE_SETUP_COMPONENT {{\"schema\":\"conduit.conduitos/service-setup-component@1\",\"units\":\"raw-tsc\",\"component\":\"slot-zeroing\",\"instance\":{},\"setup\":{},\"clearing\":{},\"counter_overhead_included\":true}}",
+        row.instance, row.setup, row.setup_clearing
     )?;
     Ok(output)
 }
@@ -91,6 +102,7 @@ mod tests {
             trial: usize::MAX,
             instance: u64::MAX,
             setup: u64::MAX,
+            setup_clearing: u64::MAX,
             request: u64::MAX,
             entry: u64::MAX,
             response: u64::MAX,
@@ -113,5 +125,22 @@ mod tests {
         ] {
             assert_eq!(value[field].as_u64(), Some(u64::MAX), "{field}");
         }
+    }
+
+    #[test]
+    fn component_preserves_its_exact_instance_and_raw_overhead_boundary() {
+        let record = setup_component(Sample {
+            instance: u64::MAX,
+            setup: u64::MAX,
+            setup_clearing: u64::MAX,
+            ..Sample::default()
+        })
+        .unwrap();
+        let value = json(&record, "CONDUIT_SERVICE_SETUP_COMPONENT ");
+        assert_eq!(value["instance"], u64::MAX);
+        assert_eq!(value["clearing"], u64::MAX);
+        assert_eq!(value["counter_overhead_included"], true);
+        assert_eq!(value["units"], "raw-tsc");
+        assert_eq!(value["component"], "slot-zeroing");
     }
 }

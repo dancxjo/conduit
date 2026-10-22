@@ -7,6 +7,9 @@ use crate::{
     service_memory::{MemoryRange, ServiceImage},
 };
 use core::arch::asm;
+#[cfg(feature = "ordinary-domain-proof")]
+#[path = "../../native_observation/raw_counter.rs"]
+mod counter;
 #[path = "service_memory/storage.rs"]
 mod storage;
 use storage::{Lease, View};
@@ -18,6 +21,14 @@ pub(super) struct AddressSpace {
     entry: u64,
     cleared: bool,
     lease: Lease,
+    #[cfg(feature = "ordinary-domain-proof")]
+    setup_clearing_ticks: u64,
+}
+struct Installation {
+    cr3: u64,
+    entry: u64,
+    #[cfg(feature = "ordinary-domain-proof")]
+    setup_clearing_ticks: u64,
 }
 impl AddressSpace {
     /// Compatibility charge for the unchanged compositor profile only.
@@ -31,13 +42,19 @@ impl AddressSpace {
     }
     pub fn install(image: &ServiceImage<'_>) -> Result<Self, DomainRefusal> {
         let mut lease = Lease::claim(image.profile())?;
-        let (cr3, entry) = install(lease.view(), image)?;
+        let installed = install(lease.view(), image)?;
         Ok(Self {
-            cr3,
-            entry,
+            cr3: installed.cr3,
+            entry: installed.entry,
             cleared: false,
             lease,
+            #[cfg(feature = "ordinary-domain-proof")]
+            setup_clearing_ticks: installed.setup_clearing_ticks,
         })
+    }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn setup_clearing_ticks(&self) -> u64 {
+        self.setup_clearing_ticks
     }
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         if self.cleared {
@@ -94,7 +111,7 @@ impl Drop for AddressSpace {
     }
 }
 
-fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), DomainRefusal> {
+fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<Installation, DomainRefusal> {
     let layout = image.profile().layout();
     let expected = [
         layout.image().bytes(),
@@ -124,7 +141,13 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
     {
         return Err(DomainRefusal::InvalidMemory);
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    let clearing_started = counter::read();
     slot.clear();
+    #[cfg(feature = "ordinary-domain-proof")]
+    let setup_clearing_ticks = counter::read()
+        .checked_sub(clearing_started)
+        .ok_or(DomainRefusal::InvalidLifecycle)?;
     let hhdm = super::domain_memory::hhdm_offset()?;
     let current_cr3: u64;
     // SAFETY: installation runs only in Root.
@@ -203,7 +226,12 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
             map_private(&mut slot, range, base)?;
         }
     }
-    Ok((physical(&*slot.pml4)?, image.image().entry))
+    Ok(Installation {
+        cr3: physical(&*slot.pml4)?,
+        entry: image.image().entry,
+        #[cfg(feature = "ordinary-domain-proof")]
+        setup_clearing_ticks,
+    })
 }
 fn optional_physical(bytes: &[u8]) -> Result<u64, DomainRefusal> {
     if bytes.is_empty() {
