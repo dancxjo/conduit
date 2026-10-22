@@ -105,3 +105,9 @@ within the unchanged 1 MiB native stack. Unoptimized hosted Runtime tests need
 an explicitly larger test thread stack; that is not a native stack change or a
 substitute for native enactment. Native canonical Patchbay integration and
 platform acceptance remain incomplete.
+
+The Face profile reserves 1024 remote lifecycle Sign events in the existing
+`FixedSignLog<1024>` backing, not ten endpoint records. Mandatory retained history
+still eventually refuses at finite Sign pressure; there is no hidden eviction or
+replenishment. A focused regression dispatches thirteen inputs on one endpoint,
+so the number of cords cannot accidentally become a ten-interaction session cap.

@@ -1513,3 +1513,43 @@ Plan/Play identity. The integrated freestanding x86_64 native-compositor library
 check passed at `2948f2491`. No new QEMU/CI or release acceptance is claimed.
 The browser canonical root-Fore migration remains retained; native Patchbay's
 legacy event/view Fore migration and platform enactment are still #6201 gaps.
+
+### Protected Runtime custody and canonical ingress prerequisites (#6201)
+
+The native boundary audit found a real gap beyond hosted editor execution:
+Root's loan ledger seeded the legacy empty Edit output but did not seed the new
+Document Back's eight-byte initialized snapshot. The ledger now grants exactly
+that Root-known snapshot once on reviewed output routes. Genuine successor
+Editor/Document values use existing exact completion loans. Two focused
+specifications use real numeric kernel requests; a third covers canonical Fore
+custody, wrong routes/bytes, duplicate sequences, pressure, revocation and the
+absence of additional grants. All three passed. Compilation alone had not proved
+this protected boundary; no QEMU enactment is retroactively claimed.
+
+Canonical interactions require an explicit 8192-byte value specialization; the
+legacy native value envelope remains 3072 bytes. The new Runtime Face profile
+uses the same kernel and fixed 14 nodes/10 cords/10 value slots, with the same
+24,576-byte aggregate native value budget. It has distinct InitFace/tag10 and
+AdmitRemote/tag11 commands and typed Accepted/Full responses. Root uses a
+separately sized broker and exact Fore custody receipts. Full stays live pressure
+without advancing sequence or recording a loan; uncertain transport outcomes
+quarantine rather than silently replay. Legacy/text/Morse ingress is refused.
+
+This is a prepared migration prerequisite, not selection of a canonical native
+Patchbay Back. The existing 3 KiB event/view route stays until its real owner,
+Face publication, acknowledged Show return, authored Fore planning and finite
+resource reservations all move together. A selecting offer must charge the actual
+Face broker/service storage; the larger per-value type is not a global allowance.
+
+The Face profile reserves 1024 mandatory remote Sign events in its existing
+fixed backing; cord count is not an interaction count. The first ten-record
+budget was corrected after inspecting the kernel's retained-event law. History
+still has a finite terminal capacity; it is never silently replenished. Four
+focused Runtime checks pass, including thirteen dispatched inputs on one
+endpoint, exact 8192-byte ingress, typed Full/sequence behavior, wire refusal and
+unchanged legacy storage. The hosted Runtime test harness uses an explicit
+8 MiB thread because unoptimized copies overflowed its default test stack;
+this does not change or prove the native 1 MiB stack. The linked native local
+frame reservations are documented in the Runtime service README, with complete
+peak stack/timing explicitly unproven. The integrated freestanding library
+check passes; no QEMU, CI or release campaign was run.
