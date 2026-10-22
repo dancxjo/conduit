@@ -74,10 +74,14 @@ pub enum PreparedNativeProgress {
 /// Private witness borrows the exact retained bytes and checked Native metadata.
 /// It cannot cast a different schema or construct a generated Rust value.
 pub struct AdmittedNativeCanonical<'a> {
+    document: &'a CheckedSyntaxDocument,
     native: &'a CheckedNativeType,
     bytes: &'a [u8],
 }
 impl AdmittedNativeCanonical<'_> {
+    pub fn source_document(&self) -> &CheckedSyntaxDocument {
+        self.document
+    }
     pub fn native_type(&self) -> &CheckedNativeType {
         self.native
     }
@@ -306,6 +310,7 @@ impl<'d> PreparedNativeAdmission<'d> {
             return Err(PreparedNativeRefusal::State);
         }
         Ok(AdmittedNativeCanonical {
+            document: self.document,
             native: self.native,
             bytes: &self.input,
         })

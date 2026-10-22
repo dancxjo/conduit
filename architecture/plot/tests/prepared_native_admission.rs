@@ -81,6 +81,7 @@ fn nested_native_laws_and_contracts_are_required_without_runtime_allocation() {
         admission.begin(&valid).unwrap();
         complete(&mut admission).unwrap();
         let proof = admission.admitted().unwrap();
+        assert!(core::ptr::eq(proof.source_document(), &d));
         assert_eq!(proof.canonical_bytes(), valid);
         assert_eq!(&proof.native_type().identity, identity);
     });

@@ -96,7 +96,7 @@ fn exact_core_optional_none_skips_and_some_executes_nested_native_law_without_gr
 }
 #[test]
 fn optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_metadata() {
-    let mut doc = document();
+    let doc = document();
     let legitimate = option(&doc);
     let StructuredInfoTypeShape::Variant { cases, .. } = legitimate.shape() else {
         panic!()
@@ -124,11 +124,11 @@ fn optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_met
     )
     .unwrap();
     for (index, unsupported) in [foreign, wrong_none, unknown].into_iter().enumerate() {
-        // An explicitly adversarial preparation profile: the root metadata is
-        // complete; only an unsupported child schema is unowned. Do not let a
-        // duplicate root metadata conflict mask the child recognition check.
+        // Explicit trusted import configuration gives the root a retained
+        // owner. Only the unsupported child schema remains unowned. This tests
+        // closure completeness, not hostile-code confinement of StartupCatalog.
         let identity = kind_id(&format!("profile/holder/{index}"));
-        doc.native_types.push(CheckedNativeType {
+        let imported = CheckedNativeType {
             name: format!("profile-holder-{index}"),
             identity: identity.clone(),
             value_type: StructuredInfoType::record(
@@ -138,7 +138,13 @@ fn optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_met
             .unwrap(),
             value_contracts: vec![],
             invariants: vec![],
-        });
+        };
+        let mut startup = StartupCatalog::new();
+        startup
+            .insert_checked_native_type(imported.name.clone(), &imported)
+            .unwrap();
+        let doc = check_syntax_document(&parse_syntax_document(""), &startup).unwrap();
+        assert!(doc.native_types.is_empty());
         assert!(matches!(
             PreparedNativeAdmission::new(&doc, &identity, bounds()),
             Err(PreparedNativeRefusal::MissingNativeMetadata)

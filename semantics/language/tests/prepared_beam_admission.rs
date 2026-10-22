@@ -146,11 +146,7 @@ fn change(raw: &mut [u8], slot: &str, name: &str, index: Option<u16>, number: u6
     raw[offset..offset + 8].copy_from_slice(&number.to_le_bytes());
 }
 fn checked_source() -> CheckedSyntaxDocument {
-    let source = parse_syntax_document(language_semantic_source());
-    assert_eq!(
-        source.source_document_id().as_str(),
-        parser_commitment::COMMITMENT_SOURCE_ID
-    );
+    let source = parse_syntax_document(&parser_selection_io::language_source());
     let mut startup = StartupCatalog::new();
     startup
         .insert_value_kind_alias("ResourceRef", kind_id(RESOURCE_REFERENCE_INFO_ID))
@@ -187,7 +183,7 @@ fn actual_initial_beam_field_composition_preserves_all_four_nested_native_law_sc
     .unwrap();
     let initial =
         LanguageParserScorerBeam::new(seed, inactive.clone(), inactive.clone(), inactive).unwrap();
-    let raw = initial.encode().unwrap();
+    let raw = initial.clone().encode().unwrap();
     let expected = raw.clone();
     let document = checked_source();
     let native = document
