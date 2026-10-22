@@ -35,3 +35,22 @@ formatting and whitespace checks pass. Fresh clean-Source supported proof is pen
 packets keep their separate proof classes. Physical/human evidence, runtime
 provider disconnection, scene-pressure fallback, combined-head CI and normal
 merge remain separately required where owned.
+
+## Supported clean-Source QEMU result
+
+Source `31c22d2ed` passes the supported command above with outer exit **0**.
+The [original supported packet](evidence/native-missing-graphics-qemu-20261022/)
+retains the exact product manifest, typed receipt, serial/stderr, build log and
+focused validator log. Source identity, product-host role, image hash and serial
+hash were independently checked after the guest exited. The exact actual
+refusal is `display-absent`, with native display-setup started/refused and guest
+exit 35. Face/Show publications, scanout frames and source changes all remain
+zero. These are normal product bytes booted with a genuinely absent graphics
+device; there is no fixture flag or faulting PixelTarget.
+
+The actual no-provider case is a typed terminal startup refusal before Show,
+not an automatically selected alternate interface. No screenshot is possible
+without graphics. Previously accepted live input/source actions and the
+fault-fixture recovery packet retain their distinct scope. Runtime hot-unplug,
+physical/human evidence, scene pressure, combined-head CI and normal merge
+remain open. No bound changed and no additional Actions campaign was queued.
