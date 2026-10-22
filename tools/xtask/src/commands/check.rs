@@ -18,6 +18,8 @@ mod expression_baseline;
 mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
+#[path = "../suites/native_source_laws.rs"]
+mod native_source_laws;
 #[path = "../suites/parser_scorer.rs"]
 mod parser_scorer;
 #[path = "../suites/physical_values.rs"]
@@ -93,6 +95,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::Sim => run_suite(SIM_READINESS_STEPS, &root, opts),
         CheckSuite::KernelTakeover => run_suite(KERNEL_TAKEOVER_STEPS, &root, opts),
         CheckSuite::PlanningS2 => run_suite(PLANNING_S2_STEPS, &root, opts),
+        CheckSuite::NativeSourceLaws => run_suite(native_source_laws::STEPS, &root, opts),
         CheckSuite::PlotS3 => run_suite(PLOT_S3_STEPS, &root, opts),
         CheckSuite::ExpressionBaseline => run_suite(expression_baseline::STEPS, &root, opts),
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),

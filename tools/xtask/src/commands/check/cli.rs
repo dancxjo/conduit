@@ -40,6 +40,8 @@ pub enum CheckSuite {
     KernelTakeover,
     PlanningS2,
     PlotS3,
+    /// Admit exact checked Native laws over bounded actual canonical occurrences.
+    NativeSourceLaws,
     /// Report native expression baselines and execute portable-WASM scalar parity.
     ExpressionBaseline,
     Observatory,
