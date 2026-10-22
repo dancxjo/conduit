@@ -39,8 +39,10 @@ fn installed_mask_preparation_preserves_admitted_body_plan_and_refuses_missing_r
         9,
     )
     .unwrap();
-    assert!(installed.reserved_value_storage_bytes() >= 3 * MASK_BYTES as usize);
-    assert!(installed.reserved_value_storage_bytes() < 4 * MASK_BYTES as usize);
+    // This fixture admits four queued input Faces plus the active Face, Show
+    // and interaction. The remaining reservation is per-slot metadata.
+    assert!(installed.reserved_value_storage_bytes() >= 7 * MASK_BYTES as usize);
+    assert!(installed.reserved_value_storage_bytes() < 8 * MASK_BYTES as usize);
     assert_eq!(installed.observation().body_plan, admitted);
     assert_eq!(installed.observation().face, face);
     assert_eq!(

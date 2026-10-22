@@ -9,6 +9,7 @@ name = "xtask"
 path = "src/main.rs"
 
 [dependencies]
+patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-audio = { path = "../../semantics/audio" }
 conduit-host-avr-make = { path = "../../targets/avr/make" }
 conduit-host-esp32-make = { path = "../../targets/esp32/make" }
