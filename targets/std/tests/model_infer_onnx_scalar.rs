@@ -133,7 +133,7 @@ fn wrong_scalar_rank_dtype_element_storage_and_bundle_count_never_invoke_provide
                         TensorElement::I32
                     };
                 }
-                2 | 3 | 4 => {
+                2..=4 => {
                     let width = element.byte_width() as usize;
                     let length = match case {
                         2 => 2 * width,
