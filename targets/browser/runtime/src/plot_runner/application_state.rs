@@ -287,6 +287,10 @@ fn run_resident_stage(
     }
 }
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "the scheduler already boxes each prepared application; boxing Patchbay again adds an allocation"
+)]
 pub(super) enum PreparedApplication {
     Tutorial(conduit_face::ApplicationView),
     Tour(Box<TourApplicationPort>),

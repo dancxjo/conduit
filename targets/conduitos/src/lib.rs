@@ -185,6 +185,10 @@ pub mod protected_relay_support;
 pub(crate) mod protected_runtime;
 // Exercise the Root loan boundary on hosted CPUs without installing a service.
 #[cfg(test)]
+#[allow(
+    dead_code,
+    reason = "hosted loan-boundary tests omit bare-metal text and Morse constructors"
+)]
 #[path = "protected_runtime/ledger.rs"]
 mod protected_runtime_ledger_tests;
 #[cfg(conduitos_protected_execution)]

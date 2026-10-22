@@ -9,9 +9,11 @@ use super::contract::{
     TIME_EVERY_KIND,
 };
 use conduit_core::{PlannedGear, PortDirection};
+use conduit_kernel::ValueStorage;
+#[cfg(test)]
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef,
 };
 
 pub(super) static TICK_FACTORY: BackFactory = BackFactory {

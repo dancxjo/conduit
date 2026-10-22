@@ -104,6 +104,14 @@ fn selection_modifiers(event: KeyEvent) -> Option<bool> {
         .then_some(shift_only)
 }
 
+pub(super) fn record_refusal(reason: &str) {
+    crate::arch::early_write(
+        b"CONDUIT_NATIVE_COMPONENT_SELECTION {\"status\":\"refused\",\"code\":\"",
+    );
+    crate::arch::early_write(reason.as_bytes());
+    crate::arch::early_write(b"\"}\n");
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,12 +142,4 @@ mod tests {
             }
         }
     }
-}
-
-pub(super) fn record_refusal(reason: &str) {
-    crate::arch::early_write(
-        b"CONDUIT_NATIVE_COMPONENT_SELECTION {\"status\":\"refused\",\"code\":\"",
-    );
-    crate::arch::early_write(reason.as_bytes());
-    crate::arch::early_write(b"\"}\n");
 }
