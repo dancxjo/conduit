@@ -362,3 +362,16 @@ Face argument caption as the input/select's accessible label. Radio option
 labels retain their distinct option names. Four surface/resource checks pass;
 the current-caption browser case now checks exact labels before/after selection
 and caption replacement. Actual fixture and production reruns remain required.
+
+On clean `1492e20fd`, Chromium passes the exact-caption and exclusive-choice
+regression cases. Both production scenarios reach offered Edit, then fail
+before owner effects: the shared SDK sent text strings where the canonical
+`FaceArgument` wire requires UTF-8 byte arrays and the declared value Kind.
+Inspect has no arguments and therefore did not expose this mismatch. Both
+traces retain the exact deserialization refusal; the fourth negative batch is
+preserved at `/tmp/conduit-patchbay-browser-failed-1492-20261022`.
+The correction encodes only already checked DOM arguments at the shared wire
+boundary; raw typed interactions remain unchanged. Twelve focused argument and
+adapter tests pass, including non-ASCII bytes and malformed/forged/pre-ACK
+no-effect cases. Sequence review found no reset-to-one defect; it is unchanged.
+A new production Chromium result remains owed.

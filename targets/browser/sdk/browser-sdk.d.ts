@@ -408,6 +408,7 @@ export class BrowserPlay {
   patchbayObservation(): PatchbayObservation;
   acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
   submitPatchbayInteraction(message: PatchbayInteraction): Promise<PatchbayObservation>;
+  /** Checks DOM text arguments against the current Face and encodes their declared UTF-8 wire values. */
   submitPatchbayFaceAction(options: { view: Readonly<Record<string, unknown>>; actionId: string;
     target: string; arguments?: readonly unknown[]; sequence: number }): Promise<PatchbayObservation>;
   refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;

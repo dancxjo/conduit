@@ -44,7 +44,10 @@ export function createPatchbayPlay({ adapter, identity, isCurrent }) {
       if (!action || action.availability !== 'available') throw new Error('Patchbay action is unavailable');
       const checked = checkedPatchbayFaceArguments(current, view, actionId, target, actionArguments);
       return facade.submitPatchbayInteraction({ show_id: current.show_id, face_id: current.face_id,
-        face_revision: Number(current.face_revision), action_id: actionId, target, arguments: checked, sequence });
+        face_revision: Number(current.face_revision), action_id: actionId, target,
+        arguments: checked.map(argument => ({ name: argument.name,
+          value_kind: action.arguments.find(declaration => declaration.name === argument.name).value_kind,
+          value: Array.from(encoder.encode(argument.value)) })), sequence });
     },
     async submitPatchbayInteraction(message) {
       requireCurrent();

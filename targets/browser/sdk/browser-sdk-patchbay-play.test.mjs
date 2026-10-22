@@ -32,7 +32,7 @@ test('shared facade forwards exact current typed action and rereads runtime trut
     arguments: [{ name: 'subject', value: 'gear/current' }], sequence: 1 });
   const message = f.calls.find(call => call[0] === 'interact')[1];
   assert.deepEqual(message, { show_id: 'show', face_id: 'face', face_revision: 7,
-    action_id: 'edit', target: 'plot', arguments: [{ name: 'subject', value: 'gear/current' }], sequence: 1 });
+    action_id: 'edit', target: 'plot', arguments: [{ name: 'subject', value_kind: 'value/text', value: Array.from(new TextEncoder().encode('gear/current')) }], sequence: 1 });
   const next = { ...f.observation, publication: { view: { ...f.view, show_id: 'replacement' } } };
   f.replace(next);
   assert.equal(f.play.patchbayObservation(), next);
@@ -79,4 +79,27 @@ test('acknowledgement, refresh and owner disposition keep exact pending request 
   assert.throws(() => f.play.reportPatchbayRequestDisposition({
     observation:{...prior, pending_owner_request:{...prior.pending_owner_request, application_revision:1}},
     outcome:'Completed', evidenceId:'editor/1'}), /exact pending/);
+});
+
+
+test('checked DOM text becomes exact declared UTF8 wire bytes and raw wire input is preserved', async () => {
+  const f = fixture();
+  const value = 'gear/Crème雪';
+  f.view.actions[0].arguments[0].choices = [value];
+  await f.play.submitPatchbayFaceAction({ view: f.view, actionId: 'edit', target: 'plot',
+    arguments: [{ name: 'subject', value }], sequence: 2 });
+  const wire = f.calls.find(call => call[0] === 'interact')[1];
+  assert.deepEqual(wire.arguments, [{ name: 'subject', value_kind: 'value/text',
+    value: [103, 101, 97, 114, 47, 67, 114, 195, 168, 109, 101, 233, 155, 170] }]);
+  await f.play.submitPatchbayInteraction(wire);
+  assert.equal(f.calls.filter(call => call[0] === 'interact')[1][1], wire,
+    'already typed raw byte envelope is not encoded again');
+  const effects = f.calls.filter(call => call[0] === 'interact').length;
+  await assert.rejects(f.play.submitPatchbayFaceAction({ view: f.view, actionId: 'edit', target: 'plot',
+    arguments: [{ name: 'subject', value: '\ud800' }], sequence: 3 }), { code: 'MalformedEncoding' });
+  assert.equal(f.calls.filter(call => call[0] === 'interact').length, effects);
+  f.view.show_state = 'prepared';
+  await assert.rejects(f.play.submitPatchbayFaceAction({ view: f.view, actionId: 'edit', target: 'plot',
+    arguments: [{ name: 'subject', value }], sequence: 3 }), /acknowledged/);
+  assert.equal(f.calls.filter(call => call[0] === 'interact').length, effects);
 });
