@@ -41,16 +41,17 @@ test("external Body executor accepts semantic editing within its exact finite en
   const installed = Array.from({ length: 116 }, (_, index) => `capability/installed-${index}`);
   installed.push("browser-thermostat-combine-v1", "browser/thermostat-scan@1",
     "browser/kernel-saved-choice@1", "browser/webaudio-continuous-pcm@1",
-    "browser/kernel-text-edit-document@1", "browser/dom-text-editor@1");
+    "browser/kernel-text-edit-document@1", "browser/dom-text-editor@1",
+    "browser/patchbay-accept-interaction@1");
   const disclosure = { schema: "conduit.browser/body-capabilities@1", capability_ids: installed };
   const accepted = checkedBrowserExecutionCapabilities(disclosure);
   assert.deepEqual(accepted, installed);
   assert(Object.isFrozen(accepted));
   assert.notEqual(accepted, installed);
   assert.equal(checkedBrowserExecutionCapabilities({ ...disclosure,
-    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 123);
+    capability_ids: [...installed, "capability/final-admitted-slot"] }).length, 124);
   for (const invalid of [
-    { ...disclosure, capability_ids: [...installed, "capability/123", "capability/124"] },
+    { ...disclosure, capability_ids: [...installed, "capability/124", "capability/125"] },
     { ...disclosure, schema: "wrong" },
     { ...disclosure, capability_ids: {} },
     ...[null, "", "x".repeat(257)].map(identity => ({ ...disclosure,

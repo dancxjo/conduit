@@ -1,0 +1,27 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/conduit-xtask-dispatch make host verify target/conduitos/live/x86_64-pc --journey`
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib) generated 1 warning
+warning: function `latest_workspace_view` is never used
+   --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/journey_proof.rs:539:4
+    |
+539 | fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    |    ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `xtask` (bin "xtask") generated 1 warning
+    Finished `dev` profile [unoptimized] target(s) in 0.21s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/xtask make host verify target/conduitos/live/x86_64-pc --journey`
+ConduitOS Face journey proof: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/journey-proof.json
+VERIFIED image:sha256:c349193ab054d2be614c3a04ee6902a9229926bb3fbc1f0c0a288a4b857d6e35

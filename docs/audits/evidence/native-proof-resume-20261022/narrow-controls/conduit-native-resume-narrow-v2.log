@@ -1,0 +1,646 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.20s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/conduit-xtask-dispatch make conduitos creche-controls-proof --viewport 640x480`
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib) generated 1 warning
+   Compiling xtask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/tools/xtask)
+warning: function `latest_workspace_view` is never used
+   --> tools/xtask/src/commands/../../../../targets/conduitos/make/xtask/journey_proof.rs:539:4
+    |
+539 | fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    |    ^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `xtask` (bin "xtask") generated 1 warning
+    Finished `dev` profile [unoptimized] target(s) in 15.10s
+     Running `/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/xtask make conduitos creche-controls-proof --viewport 640x480`
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: associated function `prepare` is never used
+  --> targets/conduitos/src/front_door/commons.rs:17:19
+   |
+16 | impl Commons {
+   | ------------ associated function in this implementation
+17 |     pub(crate) fn prepare() -> Result<Self, Error> {
+   |                   ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+
+warning: method `cost` is never used
+  --> targets/conduitos/src/protected_compositor.rs:80:19
+   |
+42 | impl CompositorService {
+   | ---------------------- method in this implementation
+...
+80 |     pub(crate) fn cost(&self) -> crate::protected_region::DomainCost {
+   |                   ^^^^
+
+warning: fields `host`, `boot`, `generation`, `base`, and `format` are never read
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:14:5
+   |
+13 | pub(crate) struct DisplayGrant {
+   |                   ------------ fields in this struct
+14 |     host: HostId,
+   |     ^^^^
+15 |     boot: BootId,
+   |     ^^^^
+16 |     generation: OfferGeneration,
+   |     ^^^^^^^^^^
+17 |     base: HostBaseId,
+   |     ^^^^
+18 |     format: DisplayFormat,
+   |     ^^^^^^
+   |
+   = note: `DisplayGrant` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: associated items `new`, `matches`, `format_matches`, and `extent` are never used
+  --> targets/conduitos/src/protected_compositor/display_grant.rs:25:19
+   |
+21 | impl DisplayGrant {
+   | ----------------- associated items in this implementation
+...
+25 |     pub(crate) fn new(
+   |                   ^^^
+...
+45 |     pub(crate) fn matches(
+   |                   ^^^^^^^
+...
+58 |     pub(crate) fn format_matches(&self, format: DisplayFormat) -> bool {
+   |                   ^^^^^^^^^^^^^^
+...
+62 |     pub(crate) fn extent(&self) -> (u16, u16) {
+   |                   ^^^^^^
+
+warning: constant `STAGING_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:14:18
+   |
+14 | pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
+   |                  ^^^^^^^^^^^^^
+
+warning: constant `SERVICE_RESERVED_BYTES` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:15:18
+   |
+15 | pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^
+
+warning: enum `PreparationError` is never used
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:20:17
+   |
+20 | pub(crate) enum PreparationError {
+   |                 ^^^^^^^^^^^^^^^^
+
+warning: fields `sessions`, `staging`, `report`, and `grant` are never read
+  --> targets/conduitos/src/protected_compositor/display_owner.rs:41:16
+   |
+38 | pub(crate) struct DisplayOwner {
+   |                   ------------ fields in this struct
+...
+41 |     pub(crate) sessions: SessionOwner<CompositorService>,
+   |                ^^^^^^^^
+42 |     staging: Vec<u32>,
+   |     ^^^^^^^
+43 |     report: PreparationReport,
+   |     ^^^^^^
+44 |     grant: SharedDisplayGrant,
+   |     ^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/display_owner.rs:52:19
+    |
+ 47 | impl DisplayOwner {
+    | ----------------- associated items in this implementation
+...
+ 52 |     pub(crate) fn prepare(grant: DisplayGrant) -> Result<SharedDisplayOwner, PreparationError> {
+    |                   ^^^^^^^
+...
+ 64 |     pub(crate) fn prepare_shared(
+    |                   ^^^^^^^^^^^^^^
+...
+ 98 |     pub(crate) fn matches_scope(
+    |                   ^^^^^^^^^^^^^
+...
+108 |     pub(crate) fn format_matches(&self, format: crate::display::DisplayFormat) -> bool {
+    |                   ^^^^^^^^^^^^^^
+...
+115 |     pub(crate) fn quarantine(&mut self) {
+    |                   ^^^^^^^^^^
+...
+121 |     pub(crate) fn service_cost(&self) -> DomainCost {
+    |                   ^^^^^^^^^^^^
+...
+125 |     pub(crate) fn preparation_report(&self) -> PreparationReport {
+    |                   ^^^^^^^^^^^^^^^^^^
+...
+134 |     pub(crate) fn with_raster<R>(
+    |                   ^^^^^^^^^^^
+
+warning: constant `STAGING_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:6:11
+  |
+6 | pub const STAGING_PIXELS: usize = 2_097_152;
+  |           ^^^^^^^^^^^^^^
+
+warning: constant `UPLOAD_CHUNK_PIXELS` is never used
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:7:11
+  |
+7 | pub const UPLOAD_CHUNK_PIXELS: usize = 16_384;
+  |           ^^^^^^^^^^^^^^^^^^^
+
+warning: struct `RasterStaging` is never constructed
+ --> targets/conduitos/src/protected_compositor/raster_staging.rs:9:12
+  |
+9 | pub struct RasterStaging<'a> {
+  |            ^^^^^^^^^^^^^
+
+warning: associated items `admit` and `lease` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:14:12
+   |
+12 | impl<'a> RasterStaging<'a> {
+   | -------------------------- associated items in this implementation
+13 |     /// Validate capacity before touching the caller's buffer. No allocation.
+14 |     pub fn admit(pixels: &'a mut [u32]) -> Result<Self, DisplayError> {
+   |            ^^^^^
+...
+25 |     pub fn lease(&mut self, width: u16, height: u16) -> Result<RasterLease<'_>, DisplayError> {
+   |            ^^^^^
+
+warning: struct `RasterLease` is never constructed
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:53:12
+   |
+53 | pub struct RasterLease<'a> {
+   |            ^^^^^^^^^^^
+
+warning: methods `upload_chunks` and `index` are never used
+  --> targets/conduitos/src/protected_compositor/raster_staging.rs:66:12
+   |
+57 | impl RasterLease<'_> {
+   | -------------------- methods in this implementation
+...
+66 |     pub fn upload_chunks(&self) -> impl ExactSizeIterator<Item = &[u32]> {
+   |            ^^^^^^^^^^^^^
+...
+69 |     fn index(&self, x: u32, y: u32) -> Result<usize, DisplayError> {
+   |        ^^^^^
+
+warning: methods `instance`, `request`, `upload`, `visit_frame`, and `quarantine` are never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:10:8
+   |
+ 8 | pub(crate) trait Transport {
+   |                  --------- methods in this trait
+ 9 |     type Error;
+10 |     fn instance(&self) -> u64;
+   |        ^^^^^^^^
+11 |     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
+   |        ^^^^^^^
+12 |     fn upload(&mut self, offset: u32, pixels: &[u32]) -> Result<Response, Self::Error>;
+   |        ^^^^^^
+13 |     fn visit_frame<R>(
+   |        ^^^^^^^^^^^
+...
+19 |     fn quarantine(&mut self);
+   |        ^^^^^^^^^^
+
+warning: struct `Activation` is never constructed
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:28:19
+   |
+28 | pub(crate) struct Activation {
+   |                   ^^^^^^^^^^
+
+warning: enum `OwnerError` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:34:17
+   |
+34 | pub(crate) enum OwnerError<E> {
+   |                 ^^^^^^^^^^
+
+warning: multiple fields are never read
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:46:5
+   |
+45 | pub(crate) struct SessionOwner<T: Transport> {
+   |                   ------------ fields in this struct
+46 |     transport: T,
+   |     ^^^^^^^^^
+47 |     instance: u64,
+   |     ^^^^^^^^
+48 |     namespace: u64,
+   |     ^^^^^^^^^
+49 |     active: Option<SessionId>,
+   |     ^^^^^^
+50 |     handles: [Option<Handle>; MAX_SURFACES],
+   |     ^^^^^^^
+51 |     generations: [u64; MAX_SURFACES],
+   |     ^^^^^^^^^^^
+52 |     terminated: bool,
+   |     ^^^^^^^^^^
+
+warning: multiple associated items are never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:55:12
+    |
+ 54 | impl<T: Transport> SessionOwner<T> {
+    | ---------------------------------- associated items in this implementation
+ 55 |     pub fn new(mut transport: T) -> Result<Self, OwnerError<T::Error>> {
+    |            ^^^
+...
+ 71 |     pub fn active_session(&self) -> Option<SessionId> {
+    |            ^^^^^^^^^^^^^^
+...
+ 74 |     pub fn service_instance(&self) -> u64 {
+    |            ^^^^^^^^^^^^^^^^
+...
+ 83 |     pub fn activate(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^
+...
+145 |     pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+    |            ^^^^^^^^^^^^^^^^^^
+...
+154 |     pub fn quarantine(&mut self) {
+    |            ^^^^^^^^^^
+...
+162 |     pub fn is_terminated(&self) -> bool {
+    |            ^^^^^^^^^^^^^
+...
+165 |     pub fn is_active(&self, session: SessionId) -> bool {
+    |            ^^^^^^^^^
+...
+168 |     fn session(&self, session: SessionId) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+177 |     fn handle(&self, handle: Handle) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^
+...
+189 |     fn command(&self, session: SessionId, request: Request) -> Result<(), OwnerError<T::Error>> {
+    |        ^^^^^^^
+...
+205 |     fn response(
+    |        ^^^^^^^^
+...
+255 |     pub fn request(
+    |            ^^^^^^^
+...
+269 |     pub fn upload_chunk(
+    |            ^^^^^^^^^^^^
+...
+287 |     pub fn with_frame_step<R>(
+    |            ^^^^^^^^^^^^^^^
+
+warning: function `mapped_coverage` is never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:319:4
+    |
+319 | fn mapped_coverage(handles: &[Option<Handle>; MAX_SURFACES], span: FrameSpan) -> bool {
+    |    ^^^^^^^^^^^^^^^
+
+warning: method `service_cost` is never used
+   --> targets/conduitos/src/protected_compositor/session_owner.rs:355:19
+    |
+354 | impl SessionOwner<super::CompositorService> {
+    | ------------------------------------------- method in this implementation
+355 |     pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
+    |                   ^^^^^^^^^^^^
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: field `display_owner` is never read
+  --> targets/conduitos/src/native_surface_provider.rs:14:16
+   |
+ 9 | pub struct NativeSurfaceProvider {
+   |            --------------------- field in this struct
+...
+14 |     pub(crate) display_owner:
+   |                ^^^^^^^^^^^^^
+   |
+   = note: `NativeSurfaceProvider` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 46 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/targets/conduitos)
+warning: unused import: `ProtectedDocument`
+  --> targets/conduitos/src/text_protection.rs:14:27
+   |
+14 | pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
+   |                           ^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused imports: `FaceBack`, `IndicatorBack`, `LiteralBack`, `LiteralState`, `MorseBack`, `TourMorseBack`, and `UpperBack`
+ --> targets/conduitos/src/tour_morse_kernel.rs:4:25
+  |
+4 |     text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
+  |                         ^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^
+5 |     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
+  |                        ^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused imports: `FixedHostCallBindings`, `FixedRoutes`, `FixedScheduler`, `FixedSignLog`, `FixedValueStore`, `KernelEvent`, and `ValueStorage`
+  --> targets/conduitos/src/tour_morse_kernel.rs:9:22
+   |
+ 9 |     BoundedValueRef, FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore,
+   |                      ^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                           ^^^^^^^^^^^                              ^^^^^^^^^^^^
+11 |     scheduler::{FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus},
+   |                 ^^^^^^^^^^^^^^
+
+warning: unused import: `SignSink`
+  --> targets/conduitos/src/tour_morse_kernel.rs:10:64
+   |
+10 |     HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef, ValueStorage,
+   |                                                                ^^^^^^^^
+
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `active_session` is never used
+  --> targets/conduitos/src/protected_compositor/session_owner.rs:71:12
+   |
+54 | impl<T: Transport> SessionOwner<T> {
+   | ---------------------------------- method in this implementation
+...
+71 |     pub fn active_session(&self) -> Option<SessionId> {
+   |            ^^^^^^^^^^^^^^
+
+warning: method `record_result` is never used
+   --> targets/conduitos/src/protected_creche/home.rs:124:19
+    |
+ 14 | impl Home {
+    | --------- method in this implementation
+...
+124 |     pub(crate) fn record_result(
+    |                   ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:28:7
+   |
+28 | const QUEUE_SLOTS: usize = 2;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:29:7
+   |
+29 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:30:7
+   |
+30 | const ROUTE_TARGETS: usize = 2;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:31:7
+   |
+31 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:32:7
+   |
+32 | const PENDING_REQUESTS: usize = 3;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:33:7
+   |
+33 | const VALUE_SLOTS: usize = 6;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:34:7
+   |
+34 | const VALUE_BYTES: usize = (conduit_text::MAX_TEXT_BYTES as usize) * 3;
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/text_planned_kernel.rs:35:7
+   |
+35 | const SIGN_CAPACITY: usize = 64;
+   |       ^^^^^^^^^^^^^
+
+warning: method `read_document` is never used
+  --> targets/conduitos/src/text_protection/document.rs:26:12
+   |
+25 | impl<I: TextOwner> ProtectedText<I> {
+   | ----------------------------------- method in this implementation
+26 |     pub fn read_document(&mut self) -> Result<ProtectedDocument, ProtectedDocumentError> {
+   |            ^^^^^^^^^^^^^
+
+warning: constant `QUEUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:21:7
+   |
+21 | const QUEUE_SLOTS: usize = 4;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:22:7
+   |
+22 | const ROUTE_SLOTS: usize = MAX_NODES * PORTS;
+   |       ^^^^^^^^^^^
+
+warning: constant `ROUTE_TARGETS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:23:7
+   |
+23 | const ROUTE_TARGETS: usize = 4;
+   |       ^^^^^^^^^^^^^
+
+warning: constant `HOST_BINDING_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:24:7
+   |
+24 | const HOST_BINDING_SLOTS: usize = MAX_NODES * MAX_NODES;
+   |       ^^^^^^^^^^^^^^^^^^
+
+warning: constant `PENDING_REQUESTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:25:7
+   |
+25 | const PENDING_REQUESTS: usize = 4;
+   |       ^^^^^^^^^^^^^^^^
+
+warning: constant `VALUE_SLOTS` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:26:7
+   |
+26 | const VALUE_SLOTS: usize = 12;
+   |       ^^^^^^^^^^^
+
+warning: constant `VALUE_BYTES` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:27:7
+   |
+27 | const VALUE_BYTES: usize =
+   |       ^^^^^^^^^^^
+
+warning: constant `SIGN_CAPACITY` is never used
+  --> targets/conduitos/src/tour_morse_kernel.rs:29:7
+   |
+29 | const SIGN_CAPACITY: usize = 96;
+   |       ^^^^^^^^^^^^^
+
+warning: `conduitos` (lib) generated 24 warnings (run `cargo fix --lib -p conduitos` to apply 3 suggestions)
+    Finished `release` profile [optimized] target(s) in 42.97s
+ConduitOS ELF: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/conduitos
+ConduitOS image: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/conduitos.iso
+ConduitOS live media: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso
+Host type: conduitos/x86_64/pc
+manifest: /home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/live/x86_64-pc/build-manifest.json

@@ -8,6 +8,7 @@ mod creche_pointer;
 mod face_correspondence;
 mod face_input;
 mod failure_stack;
+mod graph_reading;
 mod keyboard_domain;
 mod look_selection;
 mod timing_interactions;
@@ -296,14 +297,11 @@ fn execute_with_viewport(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
 
-        journey_input::key_pair(&mut qmp, &mut reader, "f2", "journey-open-face")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_WORKSPACE_FACE shown",
-            "journey-face-timeout",
+        // Canonical Patchbay enters its checked Face as part of selection.
+        face_correspondence::current_patchbay_show(
+            &fs::read_to_string(&serial_path).map_err(io_error)?,
         )?;
-        artifacts.capture(&mut qmp, &mut reader, "patchbay-face", true)?;
+        artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
             timing_interactions::reading_pages(
                 &serial_path,
@@ -313,41 +311,13 @@ fn execute_with_viewport(
                 &mut artifacts,
             )?;
         }
-        let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
-        journey_input::key_pair(&mut qmp, &mut reader, "f3", "journey-open-diagram")?;
-        hid_qmp::wait_for_stage_count(
+        graph_reading::exercise(
             &serial_path,
             &mut child,
-            "CONDUIT_WORKSPACE_VIEW ",
-            before + 1,
-            "journey-diagram-timeout",
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
         )?;
-        artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
-
-        let inspected_view = latest_workspace_view(&serial_path)?;
-        for (key, frame) in [
-            ("1", "patchbay-gear-details"),
-            ("f3", "patchbay-diagram-returned"),
-        ] {
-            let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
-            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-gear-inspection")?;
-            hid_qmp::wait_for_stage_count(
-                &serial_path,
-                &mut child,
-                "CONDUIT_WORKSPACE_VIEW ",
-                before + 1,
-                "journey-gear-inspection-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
-            let current = latest_workspace_view(&serial_path)?;
-            for field in ["face_id", "body_id", "view_sha256", "status"] {
-                if inspected_view[field].as_str().is_none()
-                    || current[field] != inspected_view[field]
-                {
-                    return Err(refusal(format!("Gear inspection changed owner {field}")));
-                }
-            }
-        }
 
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
@@ -369,9 +339,9 @@ fn execute_with_viewport(
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
         let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
-        // Initial empty Current manifests the caret before input: one extra
-        // Face Host Call and its two protected domain entries.
-        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 29, 7)?;
+        // One initialization and six revisioned edits use the document-only
+        // region. Native Mask presentation grants it no serial Base gate.
+        let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 7, 0)?;
         if keyboard_cost["domain_id"] == editor_cost["domain_id"]
             || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
         {
@@ -526,7 +496,7 @@ fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, Conduito
     }
     for marker in [
         "CONDUIT_HOME_CHECKPOINT plot-opened patchbay",
-        "CONDUIT_WORKSPACE_FACE shown",
+        "CONDUIT_NATIVE_READING ",
         "CONDUIT_WORKSPACE_VIEW ",
     ] {
         if !serial.contains(marker) {

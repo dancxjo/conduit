@@ -208,7 +208,7 @@ fn fields(
         || expression["accessibility_overrides"]
             != json!({"forced_colors":false,"reduced_motion":true,"text_scale":false})
         || expression["expression"]
-            != json!({"version":1,"density":choice.density,"palette":"phosphor","text_scale_percent":choice.scale,"identity":choice.identity,"motion":"none"})
+            != json!({"version":2,"typography":"editorial","density":choice.density,"palette":"phosphor","text_scale_percent":choice.scale,"identity":choice.identity,"motion":"none"})
         || r["render"]["commands"]
             .as_u64()
             .is_none_or(|n| n == 0 || n > conduit_face::MAX_GRAPHICS_COMMANDS as u64)
