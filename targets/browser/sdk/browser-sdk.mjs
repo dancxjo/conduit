@@ -1,7 +1,7 @@
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
-import { checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedAcknowledgedOwnerFaceArguments, checkedPatchbayFaceArguments } from "./browser-sdk-face-actions.mjs";
 import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
@@ -525,7 +525,7 @@ export class BrowserPlay {
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
     const action = current.actions.find(candidate => candidate.identity === actionId && candidate.target === target);
     if (!action || action.availability !== 'available') throw new Error('Patchbay action is unavailable');
-    const checked = checkedAcknowledgedOwnerFaceArguments(current, view, actionId, target, actionArguments);
+    const checked = checkedPatchbayFaceArguments(current, view, actionId, target, actionArguments);
     return this.submitPatchbayInteraction({ show_id: current.show_id, face_id: current.face_id,
       face_revision: Number(current.face_revision), action_id: actionId, target, arguments: checked, sequence });
   }

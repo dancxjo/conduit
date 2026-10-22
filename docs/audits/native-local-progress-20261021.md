@@ -1240,3 +1240,21 @@ parameter from option forwarding was caught by syntax checking and corrected.
 No browser/QEMU/CI campaign or packaged artifact rebuild ran. Actual browser
 DOM enactment, complete memory admission, native effects and full Source/legacy
 adapter retirement remain open; this is source implementation plus CPU evidence.
+
+### Route-specific actions and honest native Edit refusal
+
+Handbook's canonical Patchbay renderer now marks only the three resident command
+intents as supported. Body lifecycle or other contributors' actions remain
+inspectable but cannot be submitted via this ingress. The SDK enforces the same
+restriction from the current acknowledged Rust projection, never from a
+caller-supplied replacement action. All seven Face-argument CPU tests pass,
+including forged-intent and stale-Show refusal; JavaScript syntax and diff
+whitespace checks pass.
+
+Native Edit previously consumed its request and emitted only a checkpoint. It now
+observes the current journey and records `native-source-editor-not-admitted` as a
+FrontDoor action refusal, then uses the ordinary refresh to show it. Observation
+precedes the refusal so a journey revision change cannot immediately clear it.
+The helper is separate from the large controller; no keyboard sample, Source
+mutation or editor success is invented. This corrects refusal behavior, not the
+unfinished native Source editor; full document/editor admission remains required.

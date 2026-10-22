@@ -149,6 +149,9 @@ export async function startApplication(application) {
       component = document.createElement('conduit-owner-face');
       maskRoot.replaceChildren(component);
     }
+    const supportsAction = action => [
+      'patchbay/select-plot@1', 'patchbay/edit-subject@1', 'patchbay/change-masks@1',
+    ].includes(action.intent);
     const invoke = async ({ view, action, arguments: actionArguments }) => {
       component.disabled = true;
       try {
@@ -165,12 +168,12 @@ export async function startApplication(application) {
         checkStatus.textContent = `${error.code ?? 'PatchbayRefused'}: ${error.message}`;
         // Restore only the current Rust observation; never replay the action.
         if (play === active && !signal.aborted) {
-          component.show(active.patchbayObservation().publication.view, { invoke });
+          component.show(active.patchbayObservation().publication.view, { invoke, supportsAction });
           component.disabled = false;
         }
       }
     };
-    component.show(publication.view, { invoke });
+    component.show(publication.view, { invoke, supportsAction });
     if (publication.view.show_state === 'prepared') {
       // A retained but hidden resident is not an acknowledged presentation.
       if (!component.checkVisibility({ visibilityProperty: true })) return;
@@ -180,7 +183,7 @@ export async function startApplication(application) {
         manifestation_id: effect.manifestation_id, mask_plan_id: effect.mask_plan_id,
         active_play_id: effect.mask_play.active_play_id, placement_id: effect.placement_id,
         face_id: effect.face_id, face_revision: effect.face_revision });
-      component.show(shown.publication.view, { invoke });
+      component.show(shown.publication.view, { invoke, supportsAction });
     }
     component.disabled = false;
   };

@@ -22,6 +22,7 @@ mod journey_sign;
 mod native_action_evidence;
 mod owner_action_evidence;
 mod owner_selection;
+mod patchbay_edit;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh_with_face as refresh;
@@ -764,9 +765,7 @@ fn run_controller(
                             );
                         }
                         Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
-                            arch::early_write(
-                                b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested\n",
-                            );
+                            patchbay_edit::refuse_unadmitted_editor(&mut front_door, &journey)?;
                         }
                         Some(crate::native_workset::NativeApplicationRequest::OpenPatchbay) => {
                             return Err("resident-patchbay-request-not-routed");
