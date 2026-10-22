@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.audit/rank-zero-current-dev@1",
+  "executable_source": "aa197a741498c68d92b46ee6272a17a778191379",
+  "source_clean_for_supported_suite": true,
+  "base_dev": "f3e582ce98ede25394a392de4ed06e0b6b086133",
+  "command": "cargo +stable xtask check model-inference",
+  "exit_code": 0,
+  "passed": 70,
+  "test_targets": 24,
+  "failed": 0,
+  "ignored": 0,
+  "proof_class": "local-hosted-fixture-source-plan-play",
+  "not_established": [
+    "Candidate or Integration",
+    "merge or issue closure",
+    "actual ORT execution",
+    "parent 5219 completion"
+  ],
+  "environment": {
+    "target": "task-owned /tmp/conduit-bitmap-target",
+    "jobs": 2,
+    "incremental": 0,
+    "dev_debug": 0,
+    "test_debug": 0
+  },
+  "logs": [
+    {
+      "file": "model-inference.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "1470968f63e5e5f06eb6b84b6d111861a7fdea26895b5839528bde8fd4dc73d0",
+      "gzip_sha256": "20a918adb624be6fc22ff37c8d2deb4043c6ae0eeffc8a6aed0ee59f27257d86"
+    },
+    {
+      "file": "negative-private-validation.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "b0da0432ba4040a4ee045ed364d895de3eab31e5f40b1632e66d6e71e498bf1f",
+      "gzip_sha256": "db7268fa98b8e905db64704411e451b20d459e41246d4441e3123464d3147693"
+    },
+    {
+      "file": "negative-cross-worktree-cache.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "e3ad16f29c5bc4bbdd949788be48b49e66348f244f8b8d7262a0475c78426951",
+      "gzip_sha256": "aa2f3cf24ce9ed7fbfc14ed6b08b0d893f52caa46cb6fde497aaa48e8c02ff4c"
+    }
+  ],
+  "negative_notes": [
+    "Initial new scalar-only offer test attempted private requirement.validate; corrected to public offer.admits before passing suite.",
+    "Sibling-worktree shared Cargo cache retained prerequisite tensor objects across relative dep paths; package-native clean of conduit-data/conduit-ai/conduit-std-host forced rebuild. Actual clean-source suite then passed without product changes."
+  ]
+}
