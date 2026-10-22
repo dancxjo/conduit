@@ -25,13 +25,39 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
             &mut transfer,
         )?;
     }
-    if matches!(command, Command::PrepareTarget { .. }) {
+    if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
         assert_eq!(
             state.execute(Request::Preflight, &mut transfer)?,
             Response::Ready
         );
     }
-    let Response::Blob { bytes } = state.execute(Request::Commit, &mut transfer)? else {
+    let mut response = state.execute(Request::Commit, &mut transfer)?;
+    if matches!(command, Command::Graph { .. }) {
+        assert_eq!(response, Response::Ready);
+        assert_eq!(
+            state.execute(Request::GraphSerialize, &mut transfer)?,
+            Response::Ready
+        );
+        assert_eq!(
+            state.execute(Request::GraphValidate, &mut transfer)?,
+            Response::Ready
+        );
+        for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
+            response = state.execute(
+                Request::GraphPack {
+                    offset: offset as u32,
+                },
+                &mut transfer,
+            )?;
+            if matches!(response, Response::Blob { .. }) {
+                break;
+            }
+        }
+    }
+    let Response::Blob { bytes } = response else {
         return Err(Refusal::Malformed);
     };
     let mut output = Vec::new();
@@ -55,6 +81,7 @@ fn terminal(state: &mut State) {
     assert!(state.preparing.is_none());
     assert!(state.projection.is_none());
     assert!(state.pending_target.is_none());
+    assert!(state.graph_reply.is_none());
     assert!(state.refused);
     assert!(matches!(
         call(state, &Command::FinishInit),
@@ -197,6 +224,7 @@ fn exact_target_coverage_and_selected_position_survive_staging() {
             Ok(Reply::Prepared)
         ));
         assert!(state.pending_target.is_none());
+        assert!(state.graph_reply.is_none());
     }
     call(&mut state, &Command::FinishInit).unwrap();
     assert_eq!(
@@ -325,6 +353,7 @@ fn projection_during_staging_and_repeat_finish_are_terminal() {
     terminal(&mut state);
 }
 
+mod graph_reply;
 mod projection;
 
 #[test]
@@ -356,6 +385,7 @@ fn target_is_private_until_matching_finish_and_interleaving_is_terminal() {
         Ok(Reply::Prepared)
     ));
     assert!(state.pending_target.is_none());
+    assert!(state.graph_reply.is_none());
     assert!(matches!(
         call(&mut state, &Command::FinishInit),
         Ok(Reply::Initialized)

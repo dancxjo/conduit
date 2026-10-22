@@ -9,10 +9,15 @@ import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs';
 import { validateNativePointerReceipt } from './conduitos-pointer-receipt.mjs';
+import { validateNativeLookReceipt } from './conduitos-look-receipt.mjs';
 
 const STEPS = Object.freeze([
   step('front-door-ready', 'Arrive at Commons', 'Commons Hub is open before any Body exists.', 'The zero-Body Hub offers entry to the Birth encounter.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
   step('creche-ready', 'Enter Crèche', 'The user enters Crèche from Commons Hub.', 'A name field and locally available Plots await an explicit Birth.', 'No Body exists yet.', 'Enter', false),
+  step('creche-editorial-compact', 'Select compact editorial expression', 'Crèche retains the same Face under compact editorial expression.', 'The user presses F7.', 'A fresh locally acknowledged Show preserves the checked component, recipe and zero-Body Face; no Body action occurs.', 'F7'),
+  step('creche-editorial-spacious', 'Select spacious editorial expression', 'The same Face uses spacious density and 125% text scale.', 'The user presses F6.', 'The presentation changes while source meaning and actions remain identical.', 'F6'),
+  step('creche-engineering-spacious', 'Select spacious phosphor expression', 'The same spacious Face selects the phosphor palette.', 'The user presses F7.', 'The source-bound expression changes without a Body effect or a different component recipe.', 'F7'),
+  step('creche-engineering-compact', 'Select compact phosphor expression', 'Crèche returns to compact density and 100% text scale under phosphor.', 'The user presses F6.', 'A fresh Show returns to the initial Mask plan while preserving the same Face and checked component.', 'F6'),
   step('creche-three-selected', 'Change a checked Plot', 'Three starting Plots are selected.', 'The user focuses the first Plot and presses Space.', 'The current typed Boolean action is accepted by Birth and a fresh Show displays its new value.', 'Tab to Plot · Space'),
   step('creche-four-restored', 'Restore the Plot', 'All four starting Plots are selected again.', 'The user presses Enter on the same checked source action.', 'A new current Show supplies the restored selection before Birth.', 'Enter'),
   step('creche-fourth-checked', 'Reach the fourth checked Plot', 'The fourth named checkbox is checked on its disclosed page.', 'The user follows keyboard focus to the fourth Plot.', 'The same checked Source inventory remains reachable across pages.', 'Tab to the fourth Plot'),
@@ -79,6 +84,7 @@ if (serial.length < 64 || serial.length > 16 * 1024 * 1024
   || !serial.includes(proof.boot_id) || !serial.includes(proof.body_id)) {
   throw new Error('ConduitOS journey serial transcript does not match the captured Body and Boot');
 }
+validateNativeLookReceipt(proof, manifest, serial);
 
 const pairedBytes = await readFile(path.join(evidenceRoot, '..', 'native-shell-paired-linear.json'));
 if (pairedBytes.length > 32 * 1024 * 1024) throw new Error('ConduitOS paired evidence exceeds its retained bound');

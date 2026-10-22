@@ -8,9 +8,12 @@ import test from 'node:test';
 import { deflateSync } from 'node:zlib';
 import { sealTarget } from '../../tools/ci/pipeline/receipts.mjs';
 import { pointerFixture } from './conduitos-pointer-fixture.mjs';
+import { lookFixture } from './conduitos-look-fixture.mjs';
 
 const names = [
-  'front-door-ready', 'creche-ready', 'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
+  'front-door-ready', 'creche-ready',
+  'creche-editorial-compact', 'creche-editorial-spacious', 'creche-engineering-spacious', 'creche-engineering-compact',
+  'creche-three-selected', 'creche-four-restored', 'creche-fourth-checked', 'creche-pointer-three-selected', 'creche-pointer-four-restored', 'body-playing', 'wake-refused',
   'protected-keyboard-canvas', 'protected-memory-lantern',
   'home', 'patchbay-workspace', 'patchbay-face', 'patchbay-diagram',
   'patchbay-gear-details', 'patchbay-diagram-returned', 'body-stopped', 'home-returned', 'patchbay-reentered',
@@ -105,7 +108,7 @@ test('Pages composition refuses a transcript from another Body before writing pa
   }
 });
 
-for (const checkpoint of ['creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
+for (const checkpoint of ['creche-editorial-compact', 'creche-editorial-spacious', 'creche-engineering-spacious', 'creche-engineering-compact', 'creche-three-selected', 'creche-four-restored', 'wake-refused', 'home-returned', 'patchbay-reentered', 'protected-keyboard-canvas', 'protected-memory-lantern',
   'patchbay-gear-details', 'patchbay-diagram-returned']) {
   test(`Pages composition refuses a journey missing ${checkpoint}`, () => {
     const fixture = makeFixture();
@@ -146,12 +149,14 @@ function makeFixture() {
   mkdirSync(path.join(site, 'journeys'), { recursive: true });
   writeFileSync(path.join(site, 'journeys/index.html'), '<!-- conduit-conduitos-journey-card@1 -->');
   writeFileSync(path.join(site, 'site-publication.json'), JSON.stringify({ sourceCommit: commit }));
+  const look = lookFixture({ commit, image, host, boot });
   const checkpoints = names.map((checkpoint, index) => {
     const bytes = png(index);
     writeFileSync(path.join(evidence, `${checkpoint}.png`), bytes);
     return {
       checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused'].includes(checkpoint), health_refusal: null,
-      guest_boot_record: { boot_id: boot },
+      ...(look.manifest.checkpoints.find(entry => entry.checkpoint === checkpoint) ?? {}),
+      guest_boot_record: { boot_id: boot, host_id: host, build_id: 'build', image_binding: 'image', profile_id: 'profile' },
       frame: {
         checkpoint, width: 1280, height: 800, pixel_format: 'RGBA8',
         non_background_pixels: 1000, png: `${checkpoint}.png`,
@@ -165,12 +170,19 @@ function makeFixture() {
     checkpoints,
   }));
   const paired = pairedFixture();
+  const lookPairs = look.faces.map(native => ({ native, linear: {
+    proof_class: 'deterministic-semantic-reconstruction', face_id: native.face.identity,
+    face_revision: native.face.revision, actions: native.face.actions, basis: native.face.basis,
+    context: native.face.interaction_context, lines: ['Look fixture'], acknowledged_show: null, input_enactment: false,
+  } }));
+  paired.paired_faces.unshift(...lookPairs);
   writeFileSync(path.join(root, 'evidence/journey-proof.json'), JSON.stringify({
     schema: 'conduit.conduitos/face-journey-proof@1', source_commit: commit,
     proof_class: 'freestanding-emulator', image_sha256: image,
     screenshots: 'journey-frames/manifest.json', boot_id: boot, body_id: body, host_id: host,
     paired_reconstruction: 'native-shell-paired-linear.json',
     committed_edit_receipt: 'memory-lantern-native-edit.json', pointer_actions: paired.pointer,
+    build_id: 'build', image_id: 'image', profile_id: 'profile', look_selection: look.proof.look_selection,
   }));
   const record = { boot_id: boot, body_id: body, host_id: host, plan_id: 'plan/editor',
     active_play_id: 'play/editor', checked_plot_id: 'checked/editor',
@@ -182,8 +194,8 @@ function makeFixture() {
   }));
   writeFileSync(path.join(root, 'evidence/native-shell-paired-linear.json'), JSON.stringify(paired));
   writeFileSync(path.join(root, 'evidence/journey-serial.log'),
-    `CONDUIT_PRODUCT_JOURNEY ${JSON.stringify(record)}\n`
-    + paired.paired_faces.map(pair => `CONDUIT_NATIVE_FACE ${JSON.stringify(pair.native)}\n`).join('')
+    look.serial.toString('utf8') + `CONDUIT_PRODUCT_JOURNEY ${JSON.stringify(record)}\n`
+    + paired.paired_faces.slice(lookPairs.length).map(pair => `CONDUIT_NATIVE_FACE ${JSON.stringify(pair.native)}\n`).join('')
     + `CONDUIT_NATIVE_BIRTH ${JSON.stringify(paired.birth)}\n`
     + paired.actions.map(action => `CONDUIT_NATIVE_ACTION ${JSON.stringify(action)}\n`).join('')
     + pointerFixture().serial);
