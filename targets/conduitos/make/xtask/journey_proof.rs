@@ -11,6 +11,7 @@ mod failure_stack;
 mod graph_reading;
 mod keyboard_domain;
 mod look_selection;
+mod patchbay_actions;
 mod timing_interactions;
 
 use std::{
@@ -183,7 +184,7 @@ fn execute_with_viewport(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(if observe { 32 } else { 27 })?
+    .with_capture_limit(if observe { 32 } else { 30 })?
     .with_viewport(viewport)?;
     let mut child = command
         .spawn()
@@ -319,6 +320,18 @@ fn execute_with_viewport(
             &mut artifacts,
         )?;
 
+        let patchbay_actions = if observe {
+            json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
+        } else {
+            patchbay_actions::exercise(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?
+        };
+
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
@@ -367,6 +380,7 @@ fn execute_with_viewport(
             "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","commons-hub","commons-workshop","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "look_selection":look_selection,
+            "patchbay_actions":patchbay_actions,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,

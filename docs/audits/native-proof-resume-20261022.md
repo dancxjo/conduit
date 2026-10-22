@@ -221,3 +221,29 @@ admission against the observed live Face/Show. The receipt explicitly records
 `installed_replay_enacted:false`; no stale action was injected or replayed
 against the installed owner. Local emulator execution is not physical/human
 proof, universal accessibility certification or required CI acceptance.
+
+## Current shared Patchbay specimen and enactment preparation
+
+The strict portable Text Host producer comparison exposed an outdated shared
+Patchbay Face specimen. A mechanical export refresh retains every previous
+property key and adds current Port/Cord identity, temporal and exact Source
+provenance (317 properties, formerly 289). The mandatory equality remains.
+Producer equality passes; the two browser Patchbay projection/refusal checks
+and the domain-corpus terminal Show/cancellation check pass.
+
+The native scene sweep executed 113 passing cases, three failures and one
+existing ignored case. The three failures were stale notice/choice expectations:
+current graph navigation advertises Tab and complete Facts; finite choices use
+Left/Right through the existing 32-choice bound. Each corrected contract passes
+individually, including exact shown/omitted Cord counts and complete Details
+for all 33 alternatives beyond that bound. No product limit changed. The full
+sweep was not repeated; the original failure log is retained locally.
+
+The ordinary QEMU journey is being extended with actual offered Patchbay
+selection, an explicit refusal to overwrite its retained café draft, and an
+admitted Mask transition. Focus traversal follows the guest's actual reading
+receipts under the current Face/Show, rather than an inferred local focus.
+The browser resident proof now uses canonical typed actions and verifies the
+Workspace retains an unhandled Edit request without changing its Plan/Play.
+These harness changes compile/syntax-check locally; actual enactment and
+successful fresh-editor handoff remain separate gates until new receipts land.

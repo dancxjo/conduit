@@ -215,6 +215,20 @@ pub(super) fn reading(
     {
         let scene = mask.scene().ok_or("reading-observation-scene-absent")?;
         let show = mask.show().ok_or("reading-observation-show-absent")?;
+        let control = scene
+            .focused()
+            .map(|control| {
+                scene
+                    .resolve(&show.face_id, show.face_revision, control)
+                    .map(|(action, argument)| {
+                        (
+                            action.identity.as_str(),
+                            argument.map(|value| value.name.as_str()),
+                        )
+                    })
+                    .map_err(|_| "reading-observation-control-stale")
+            })
+            .transpose()?;
         emit(
             b"CONDUIT_NATIVE_READING ",
             &json!({
@@ -222,6 +236,8 @@ pub(super) fn reading(
                 "previous_page":previous_page,"page":scene.page(),"pages":scene.pages(),
                 "diagram":scene.showing_diagram(),"details":scene.showing_details(),
                 "graph_focus":scene.graph_navigation().and_then(|(_, cursor)| cursor.focus.as_deref()),
+                "action_id":control.map(|value| value.0),
+                "argument_name":control.and_then(|value| value.1),
                 "face_id":show.face_id,"face_revision":show.face_revision,
                 "show_id":show.show_id,"manifestation_id":show.show.manifestation_id,
                 "host_id":show.show.host_id,"boot_id":show.show.boot_id,
