@@ -1,0 +1,107 @@
+{
+  "schema": "conduit.host/target-build-manifest@3",
+  "artifact_role": "product-host",
+  "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+  "build_id": "build:sha256:917981e330e1149e970a56abeed89abf52c49904dd942a2217a58f18cf0d4f24",
+  "image_id": "image:sha256:b24083001dffe707ece0e6fc14a248f017e14006f8515a3c2423d928eee3c658",
+  "resolved_description_binding": "image:sha256:65c50f826b1e587c3bbb3021766a1d5c8ac3689392bef27cbf992c61ac36864f",
+  "source_identity": "f84297730828ecc3f4b480a1b7dcd53f62bf87d1",
+  "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools",
+  "target": "conduitos/ia32/pc",
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "b8875f5557f2aa11f8d4f210eff01ce2a83bf77dc51a6f68a96cc38df1b90ef5"
+  },
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-ia32.iso",
+    "sha256": "b24083001dffe707ece0e6fc14a248f017e14006f8515a3c2423d928eee3c658"
+  },
+  "boot_assets": {
+    "packager": "pinned-limine-hybrid-iso",
+    "limine_version": "12.5.2",
+    "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+    "architecture": "ia32",
+    "machine": "pc",
+    "firmware": "OVMF_IA32_CODE.fd",
+    "boot_entry": "BOOTIA32.EFI"
+  },
+  "resolved_build": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:4dd91ce955c54948b36ed1406be523401fc7be7b78e8b43c2d44915911aae0a6",
+    "source_configuration_id": "sha256:633f1110377402fb07dcfd31a0c75a121d860920baa4efbfbc740e1398071037",
+    "build_id": "build:sha256:917981e330e1149e970a56abeed89abf52c49904dd942a2217a58f18cf0d4f24",
+    "image_id": "image:sha256:65c50f826b1e587c3bbb3021766a1d5c8ac3689392bef27cbf992c61ac36864f",
+    "source_identity": "f84297730828ecc3f4b480a1b7dcd53f62bf87d1",
+    "toolchain_identity": "rustc:stable+i686-unknown-linux-gnu-object+rust-lld-elf_i386+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-ia32@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-ia32@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/ia32-debugcon@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/ia32/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/ia32-debugcon-text",
+        "driver": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/ia32-debugcon@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/ia32-linear-debugcon@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 33554432,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/ia32-debugcon-text": [
+        "base:conduitos/ia32-debugcon-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ]
+    }
+  }
+}

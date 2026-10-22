@@ -1,0 +1,13 @@
+{
+  "status": "verified",
+  "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+  "original_files_rehashed": 9,
+  "affected_cpu_tests": 17,
+  "integration_naming_tests": 2,
+  "native_strict_all_targets": "passed",
+  "workspace_format": "passed",
+  "host_tests_and_xtask_strict_reused_from": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+  "earlier_failure": "6158-5ded31d61-negative-root-verification.json",
+  "qemu": "unstarted",
+  "scope": "Focused local proof at explicitly distinct sources; original first failure preserved. No CI/guest/fullissue claim."
+}

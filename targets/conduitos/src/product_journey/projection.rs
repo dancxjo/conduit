@@ -15,10 +15,9 @@ impl ProductJourney {
                     .iter()
                     .find(|plot| &plot.plot == resident)
                     .is_some_and(|plot| {
-                        [
-                            conduit_semantic_catalog::KEYBOARD_KIND,
-                            conduit_semantic_catalog::KEYMAP_KIND,
-                            conduit_semantic_catalog::TEXT_EDIT_KIND,
+                        let canonical = [
+                            conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND,
+                            conduit_semantic_catalog::FACE_EDITOR_KIND,
                         ]
                         .iter()
                         .all(|kind| {
@@ -27,7 +26,21 @@ impl ProductJourney {
                                 .iter()
                                 .flat_map(|fragment| &fragment.placements)
                                 .any(|placement| placement.kind_id.as_str() == *kind)
-                        })
+                        });
+                        canonical
+                            || [
+                                conduit_semantic_catalog::KEYBOARD_KIND,
+                                conduit_semantic_catalog::KEYMAP_KIND,
+                                conduit_semantic_catalog::TEXT_EDIT_KIND,
+                            ]
+                            .iter()
+                            .all(|kind| {
+                                plot.plan
+                                    .fragments
+                                    .iter()
+                                    .flat_map(|fragment| &fragment.placements)
+                                    .any(|placement| placement.kind_id.as_str() == *kind)
+                            })
                     })
             })
     }
@@ -45,7 +58,11 @@ impl ProductJourney {
             .iter()
             .flat_map(|fragment| &fragment.placements)
             .find(|placement| {
-                placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
+                matches!(
+                    placement.kind_id.as_str(),
+                    conduit_semantic_catalog::TEXT_FACE_KIND
+                        | conduit_semantic_catalog::FACE_EDITOR_KIND
+                )
             })?;
         conduit_core::face_data_label(&placement.configuration).ok()
     }

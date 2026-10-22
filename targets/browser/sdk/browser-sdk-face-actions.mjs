@@ -9,6 +9,17 @@ const refuse = (code, message) => {
   throw error;
 };
 
+// This ingress realizes only the resident Patchbay command Fore. Body lifecycle
+// and other contributors' actions retain their own admitted return routes.
+export function checkedPatchbayFaceArguments(acknowledged, view, actionId, target, supplied) {
+  const checked = checkedAcknowledgedOwnerFaceArguments(acknowledged, view, actionId, target, supplied);
+  const action = acknowledged.actions.find(candidate => candidate.identity === actionId);
+  if (!['patchbay/select-plot@1', 'patchbay/edit-subject@1', 'patchbay/change-masks@1'].includes(action.intent)) {
+    refuse('UnsupportedAction', 'This action has no resident Patchbay return route.');
+  }
+  return checked;
+}
+
 export function checkedAcknowledgedOwnerFaceArguments(acknowledged, view, actionId, target, supplied) {
   if (acknowledged?.show_state !== 'available' || acknowledged.interactions_admitted !== true
     || view?.show_state !== 'available' || view.interactions_admitted !== true

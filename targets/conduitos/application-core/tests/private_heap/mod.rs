@@ -1,3 +1,5 @@
+mod canonical;
+mod initialize;
 use conduitos_application_core::{
     data::{self, Command, Initial, Reply},
     memory,
@@ -236,71 +238,7 @@ pub fn run() {
     let mut state = State::default();
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
     STAGE.store(1, Ordering::Relaxed);
-    assert!(matches!(
-        exchange(
-            &mut state,
-            &Command::PrepareInit {
-                manifest: data::InitManifest::from_initial(&applications),
-            },
-            &mut transfer
-        ),
-        Reply::Prepared
-    ));
-    for (slot, initial) in applications.iter().enumerate() {
-        match initial {
-            None => {}
-            Some(Initial::Patchbay { targets, .. }) => {
-                for (target, value) in targets.iter().enumerate() {
-                    if let Some(value) = value {
-                        let component = on_caller(|| Command::PrepareTarget {
-                            slot: slot as u8,
-                            target: target as u8,
-                            value: value.clone(),
-                        });
-                        assert!(matches!(
-                            exchange(&mut state, &component, &mut transfer),
-                            Reply::Prepared
-                        ));
-                        assert!(matches!(
-                            exchange(
-                                &mut state,
-                                &Command::FinishTarget {
-                                    slot: slot as u8,
-                                    target: target as u8,
-                                },
-                                &mut transfer,
-                            ),
-                            Reply::Prepared
-                        ));
-                    }
-                }
-            }
-            Some(Initial::Tutorial { evidence }) => {
-                let component = on_caller(|| Command::PrepareTutorial {
-                    slot: slot as u8,
-                    evidence: evidence.clone(),
-                });
-                assert!(matches!(
-                    exchange(&mut state, &component, &mut transfer),
-                    Reply::Prepared
-                ));
-            }
-            Some(Initial::Tour) => {
-                assert!(matches!(
-                    exchange(
-                        &mut state,
-                        &Command::PrepareTour { slot: slot as u8 },
-                        &mut transfer
-                    ),
-                    Reply::Prepared
-                ));
-            }
-        }
-    }
-    assert!(matches!(
-        exchange(&mut state, &Command::FinishInit, &mut transfer),
-        Reply::Initialized
-    ));
+    initialize::initialize(&mut state, &applications, &mut transfer);
     report("after Init peak=", PEAK.load(Ordering::Relaxed));
     STAGE.store(2, Ordering::Relaxed);
     let init_peak = PEAK.load(Ordering::Relaxed);
@@ -415,6 +353,12 @@ pub fn run() {
         Err(data::Refusal::Order)
     );
     drop(state);
+    assert_eq!(LIVE.load(Ordering::Relaxed), 0);
+    let graph_peak = PEAK.load(Ordering::Relaxed);
+    PEAK.store(0, Ordering::Relaxed);
+    canonical::run(&applications, &mut transfer);
+    let canonical_peak = PEAK.load(Ordering::Relaxed);
+    let combined_peak = graph_peak.max(canonical_peak);
     assert!(!unsafe { private_heap::exhausted() });
     ACTIVE.store(false, Ordering::SeqCst);
     assert_eq!(LIVE.load(Ordering::Relaxed), 0);
@@ -425,10 +369,11 @@ pub fn run() {
     assert!(unsafe { private_heap::exhausted() });
     assert!(unsafe { PrivateHeap.alloc(Layout::new::<u8>()) }.is_null());
     println!(
-        "PASS exact bitmap grant={} Init peak={} repeated large Graph/ProjectGraph peak={} rounded-live-headroom={}",
+        "PASS exact bitmap grant={} Init peak={} Graph/ProjectGraph peak={} canonical peak={} combined rounded-live-headroom={}",
         memory::HEAP_BYTES,
         init_peak,
-        PEAK.load(Ordering::Relaxed),
-        memory::HEAP_BYTES - PEAK.load(Ordering::Relaxed)
+        graph_peak,
+        canonical_peak,
+        memory::HEAP_BYTES - combined_peak
     );
 }

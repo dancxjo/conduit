@@ -18,7 +18,7 @@ pub(super) fn expand_instance_inner(
     let scoped_environment = bind_pool_environment(plot, environment, path)?;
     let environment = &scoped_environment;
     let mut gears = Vec::new();
-    let mut connections = Vec::new();
+    let mut connections = ConnectionInventory::default();
     let mut shared_pools = expanded_pool_declarations(plot, path);
     let mut provenance = Vec::new();
     let mut activations = Vec::new();
@@ -57,6 +57,7 @@ pub(super) fn expand_instance_inner(
     let mut outputs = BTreeMap::new();
     let mut anonymous_counts = BTreeMap::<String, usize>::new();
     for cord in &plot.cords {
+        let connection_start = connections.len();
         let mut pending = Vec::with_capacity(cord.stages.len());
         for cord_stage in &cord.stages {
             pending.push(match cord_stage {
@@ -117,6 +118,8 @@ pub(super) fn expand_instance_inner(
                             connect(
                                 source.clone(),
                                 StageSink::Internal(sink.clone()),
+                                crate::ExpandedConnectionOrigin::RelationalOperand,
+                                cord.source_span,
                                 &mut connections,
                                 &mut inputs,
                                 &mut outputs,
@@ -267,12 +270,15 @@ pub(super) fn expand_instance_inner(
                 connect(
                     source.clone(),
                     sink,
+                    crate::ExpandedConnectionOrigin::CordStages,
+                    cord.source_span,
                     &mut connections,
                     &mut inputs,
                     &mut outputs,
                 )?;
             }
         }
+        connections.attribute_since(connection_start, plot, path, cord.source_span);
     }
     validate_front_bindings(plot, &inputs, &outputs)?;
     qualified_front::validate(plot, &inputs, &outputs, &gears)?;

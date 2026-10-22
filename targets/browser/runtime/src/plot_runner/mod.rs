@@ -10,7 +10,15 @@ mod gallery;
 mod host_abi;
 mod host_outcomes;
 mod multihost;
+#[cfg(feature = "creche-surface")]
+mod patchbay_commands;
+#[cfg(feature = "creche-surface")]
+mod patchbay_disposition;
+#[cfg(feature = "creche-surface")]
+mod patchbay_face;
 mod pool_member_client_abi;
+#[cfg(feature = "creche-surface")]
+mod prepared_patchbay;
 mod protocol;
 mod remote_execution;
 mod session_cancellation;
@@ -39,6 +47,10 @@ use std::collections::BTreeMap;
 
 struct TourSession {
     thermostat_face: Option<Box<thermostat_face::ThermostatFace>>,
+    #[cfg(feature = "creche-surface")]
+    patchbay_face: Option<Box<patchbay_face::PatchbayObservation>>,
+    #[cfg(feature = "creche-surface")]
+    patchbay_publication: Option<engine::application::PreparedPatchbayPublication>,
     /// Logical resource reservations retained for the lifetime of a body Play.
     _resource_admissions: Option<conduit_core::ResourceAdmissionOwner>,
     cancellation: Option<conduit_kernel::scheduler::HostCallCancellation>,
@@ -237,6 +249,10 @@ impl TourSession {
             terminal_sign_sequence: 0,
             latest_face: None,
             thermostat_face: None,
+            #[cfg(feature = "creche-surface")]
+            patchbay_face: None,
+            #[cfg(feature = "creche-surface")]
+            patchbay_publication: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
             realization,

@@ -587,3 +587,28 @@ test('recovery refuses retained admission/evidence identity disagreement before 
 test('Plot source refuses unpaired surrogates before any native source operation', () => {
   for (const source of ['\ud800', '\udfff']) assert.throws(() => new BrowserPlot(source, {}), /scalar Unicode/);
 });
+
+test('Wake binds the exact Play before its first renderer callback dispatches', async () => {
+  const proposal = { wake: { wake_sequence: 1 }, plan: { plots: [{ plot: { checked_plot_id: 'checked' } }] } };
+  const snapshot = bodySnapshot(0);
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: 'body/1' } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: { body_id: 'body/1' } }),
+    workspaceRequest: request => ({ status: 0, outputJson: request.action === 'Propose' ? proposal : snapshot }),
+  };
+  let renderer, callbackPlay;
+  const expected = { state: 'playing', dispatch() { renderer({}); return Promise.resolve(); } };
+  const body = await birthBrowserBody({ bridge, host: 'host/1', boot: 'boot/1', root: { isConnected: true },
+    membership: { advertisement: () => ({}) }, name: 'Clock',
+    plots: [{ schema: 'conduit.browser/checked-plot@1', name: 'clock', source, documentSource: source,
+      sourceDocumentId: 'sha256:source', checkedPlotId: 'sha256:checked' }], sequence: () => 1,
+    acquireBodyHost(options) {
+      renderer = options.onPatchbayPublication;
+      return { observations: () => [], start: () => ({ play: {}, wake_at_start: {} }), close() {} };
+    }, createPlay: () => expected,
+  });
+  const actual = await body.wake({ onPatchbayPublication: request => { callbackPlay = request.play; } });
+  assert.equal(actual, expected);
+  assert.equal(callbackPlay, expected);
+});

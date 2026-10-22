@@ -81,9 +81,11 @@ impl NativePreparation {
                 &mut observer,
             )
             .map_err(|_| WorksetRefusal::Catalog)?;
-        // Preserve the closed-root law of expand_canonical_plot. The general
-        // authoring cache also supports open Fores, which this entrance does not.
-        if !expanded.input_bindings.is_empty() || !expanded.output_bindings.is_empty() {
+        // Only Patchbay has an explicitly admitted resident return Fore. Other
+        // installed roots stay closed; every output boundary remains unsupported.
+        if !expanded.output_bindings.is_empty()
+            || (!expanded.input_bindings.is_empty() && plot != NativePlot::Patchbay)
+        {
             return Err(WorksetRefusal::Catalog);
         }
         Ok(expanded)
@@ -129,6 +131,7 @@ fn catalogs() -> Result<(StartupCatalog, ProfileCatalog), WorksetRefusal> {
         .map_err(|_| WorksetRefusal::Catalog)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)
         .map_err(|_| WorksetRefusal::Catalog)?;
+    super::patchbay_ingress::install_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
 
@@ -158,6 +161,13 @@ pub(super) fn with_plot<T>(
     plot: NativePlot,
     visit: impl FnOnce(&ExpandedCanonicalPlot) -> T,
 ) -> Result<T, WorksetRefusal> {
+    with_authoring(plot, |authored| visit(&authored.expanded))
+}
+
+pub(super) fn with_authoring<T>(
+    plot: NativePlot,
+    visit: impl FnOnce(&ExpandedAuthoringPlot) -> T,
+) -> Result<T, WorksetRefusal> {
     let _timing =
         crate::native_observation::Interval::begin(crate::native_observation::Stage::PlotBuild);
     Progress::result(Phase::PlotBuild, plot.name(), || {
@@ -169,7 +179,7 @@ pub(super) fn with_plot<T>(
             .is_err()
         {
             let expanded = NativePreparation::new()?.observed(plot, true)?;
-            return Ok(visit(&expanded.expanded));
+            return Ok(visit(&expanded));
         }
         let _guard = Guard(&PREPARATION.locked);
         // SAFETY: the guard exclusively owns value, including initialization, until
@@ -182,7 +192,7 @@ pub(super) fn with_plot<T>(
             .as_mut()
             .expect("initialized above")
             .observed(plot, false)?;
-        Ok(visit(&expanded.expanded))
+        Ok(visit(&expanded))
     })
 }
 

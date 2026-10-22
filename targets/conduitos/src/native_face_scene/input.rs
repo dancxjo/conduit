@@ -29,37 +29,17 @@ pub(super) struct InputState {
     pub(super) submitted: bool,
 }
 
+#[path = "input/preview.rs"]
+mod preview;
+
 impl InputState {
-    pub fn preview(
-        &self,
-        focus: Option<FaceControl>,
-        chrome: &super::chrome::Chrome,
-        scale: u16,
-    ) -> Result<Option<String>, FaceSceneError> {
-        let Some(control) = focus else {
-            return Ok(None);
-        };
-        if self.action != Some(control.action) {
-            return Ok(None);
-        }
-        let Some(bytes) = control
-            .argument
-            .and_then(|argument| self.values.get(argument))
-            .and_then(Option::as_ref)
-        else {
-            return Ok(None);
-        };
-        let value = match bytes.as_slice() {
-            [0] => "false",
-            [1] => "true",
-            _ => match core::str::from_utf8(bytes) {
-                Ok(value) => value,
-                Err(_) => return Ok(None),
-            },
-        };
-        chrome.draft_preview(value, scale).map(Some)
+    pub(super) fn has_pending_input(&self) -> bool {
+        self.action.is_some() || self.submitted
     }
 }
+
+#[path = "input/command_draft.rs"]
+mod command_draft;
 
 impl NativeFaceScene {
     /// Resolve a named navigation request against this fresh Face, not an old
@@ -99,6 +79,9 @@ impl NativeFaceScene {
             .or_else(|| self.details.iter().find(|row| row.control == Some(control)))
             .ok_or(FaceSceneError::UnknownControl)?
             .page;
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.showing_details = primary.is_none();
         self.showing_diagram = false;
         self.focus = Some(control);
@@ -106,47 +89,10 @@ impl NativeFaceScene {
         Ok(())
     }
 
-    /// Read one exact graph subject through the existing complete Details reader.
-    /// This changes Mask-local reading position, never an action or owner state.
-    pub fn inspect_subject(
-        &mut self,
-        face_id: &FaceContentId,
-        revision: u64,
-        identity: &str,
-    ) -> Result<(), FaceSceneError> {
-        if face_id != &self.face.identity || revision != self.face.revision {
-            return Err(FaceSceneError::StaleFace);
-        }
-        let subject = self
-            .face
-            .subjects
-            .iter()
-            .position(|subject| {
-                subject.identity == identity
-                    && matches!(
-                        subject.role,
-                        conduit_face::FaceRole::Gear
-                            | conduit_face::FaceRole::Port
-                            | conduit_face::FaceRole::Cord
-                    )
-            })
-            .ok_or(FaceSceneError::UnknownControl)?;
-        let page = self
-            .details
-            .iter()
-            .find(|row| row.subject_index == Some(subject))
-            .ok_or(FaceSceneError::DocumentBound)?
-            .page;
-        self.show_details(true);
-        self.inspected_subject = Some(subject);
-        self.page = page;
-        Ok(())
-    }
-
     /// Pointer coordinates use the exact currently displayed page. Clicking a
     /// field focuses it; clicking an argument-free action submits it. Dirty
-    /// replacement input commits before changing focus, returning a fresh-focus
-    /// request instead of applying a second action under the old Show.
+    /// field replacement commits before changing focus. Command-argument drafts
+    /// cancel on leaving their action; they require explicit submission.
     pub fn pointer(
         &mut self,
         x: i16,
@@ -156,9 +102,10 @@ impl NativeFaceScene {
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
         if self.showing_diagram {
-            if let Some(identity) =
-                diagram::hit_test(&self.face, self.screen, self.page, x, y)?.map(String::from)
-            {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected = hits.hit_test(x, y).map(String::from);
+            if let Some(identity) = selected {
                 self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
                 return Ok(FaceSceneInput::Changed);
             }
@@ -168,19 +115,27 @@ impl NativeFaceScene {
             return Ok(FaceSceneInput::Unchanged);
         }
         let control = self.frame()?.hit_test(x, y).map(|hit| hit.control);
+        let cancelled = self.discard_command_draft_for(control);
         let Some(control) = control else {
-            return if self.input.action.is_some() {
+            return if self.commit_on_navigation() {
                 self.commit(show, sequence, None)
             } else {
-                Ok(FaceSceneInput::Unchanged)
+                Ok(if cancelled {
+                    FaceSceneInput::Changed
+                } else {
+                    FaceSceneInput::Unchanged
+                })
             };
         };
-        if self.input.action.is_some()
+        if self.commit_on_navigation()
             && self.focus != Some(control)
             && !(self.input.action == Some(control.action)
                 && self.input.values.iter().any(Option::is_none))
         {
             return self.commit(show, sequence, Some(self.focus_request(control)));
+        }
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
         }
         self.focus = Some(control);
         if super::boolean_choice::applies(&self.face, control) && self.input.action.is_none() {
@@ -200,8 +155,8 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
-        if self.inspect_key(event)? {
-            return Ok(FaceSceneInput::Changed);
+        if let Some(result) = self.graph_key(event)? {
+            return Ok(result);
         }
         if !self.interaction_admitted {
             if event.transition() != KeyTransition::Pressed {
@@ -234,7 +189,7 @@ impl NativeFaceScene {
                     let next = self
                         .focus_next(forward)
                         .map(|control| self.focus_request(control));
-                    if self.input.action.is_some()
+                    if self.commit_on_navigation()
                         && !(self
                             .focus
                             .is_some_and(|control| self.input.action == Some(control.action))
@@ -244,13 +199,15 @@ impl NativeFaceScene {
                         self.page = old_page;
                         return self.commit(show, sequence, next);
                     }
+                    self.discard_command_draft_for(self.focus);
                     self.input.keymap.reset();
                     return Ok(FaceSceneInput::Changed);
                 }
                 59 | 60 | 75 | 78 => {
-                    if self.input.action.is_some() {
+                    if self.commit_on_navigation() {
                         return self.commit(show, sequence, None);
                     }
+                    self.discard_command_draft_for(None);
                     if event.usage() == 59 {
                         self.show_details(self.showing_diagram || !self.showing_details);
                     } else if event.usage() == 60 {

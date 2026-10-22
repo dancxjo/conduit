@@ -1,0 +1,107 @@
+{
+  "schema": "conduit.host/target-build-manifest@3",
+  "artifact_role": "product-host",
+  "profile_id": "sha256:a33dd03e0934ee8041fa2e0b1134a019afd6648a2180ea41e7fcd9cc0b1adc69",
+  "build_id": "build:sha256:199681e878d75e1264c917d7097b07c1f1282e13d71d9b8a044db19814854ed3",
+  "image_id": "image:sha256:afa7efc49251aceaa5f5deb8f199e2b054dcad1cb028ddf34413ec2b99323eb7",
+  "resolved_description_binding": "image:sha256:5f5f95eddebff16ff7d8c774be55d05d253092bbc492b49c68c93d12530c7438",
+  "source_identity": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "toolchain_identity": "rustc:stable+loongarch64-unknown-none+llvm-tools",
+  "target": "conduitos/loongarch64/virt",
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "2395044c9877a3f982be0a87aee4a3ed354d28e40eda913f9b0760fa3555b388"
+  },
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-loongarch64.iso",
+    "sha256": "afa7efc49251aceaa5f5deb8f199e2b054dcad1cb028ddf34413ec2b99323eb7"
+  },
+  "boot_assets": {
+    "packager": "pinned-limine-hybrid-iso",
+    "limine_version": "12.5.2",
+    "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+    "architecture": "loongarch64",
+    "machine": "virt",
+    "firmware": "EDK2 QEMU_EFI.fd",
+    "boot_entry": "BOOTLOONGARCH64.EFI"
+  },
+  "resolved_build": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:a33dd03e0934ee8041fa2e0b1134a019afd6648a2180ea41e7fcd9cc0b1adc69",
+    "source_configuration_id": "sha256:77bba0c7b79ab2e062d02928e4d8f44b7ac4f4b0e16d4b108d2b903122a25c30",
+    "build_id": "build:sha256:199681e878d75e1264c917d7097b07c1f1282e13d71d9b8a044db19814854ed3",
+    "image_id": "image:sha256:5f5f95eddebff16ff7d8c774be55d05d253092bbc492b49c68c93d12530c7438",
+    "source_identity": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+    "toolchain_identity": "rustc:stable+loongarch64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-loongarch64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-loongarch64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/loongarch64-uart@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/loongarch64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/loongarch64-uart-text",
+        "driver": "conduitos/loongarch64-uart@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/loongarch64-uart@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/loongarch64-linear-uart@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 33554432,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/loongarch64-uart-text": [
+        "base:conduitos/loongarch64-uart-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ]
+    }
+  }
+}

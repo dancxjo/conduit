@@ -1,0 +1,37 @@
+{
+  "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-layout-acceptance-tests",
+  "source_clean_before": true,
+  "steps": [
+    {
+      "name": "naming-acceptance",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "naming_acceptance_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 199.51631349296076,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-9900-naming-acceptance.log",
+      "bytes": 178766,
+      "sha256": "c0cb7102e7ff3b5db7905bbec9db4e115d2dc16546bb084937729803ab2e32ea",
+      "expected_passed_tests": 2,
+      "actual_passed_tests": 2,
+      "count_verified": true
+    }
+  ],
+  "scope": "hosted checks only; no QEMU, CI or acceptance claim",
+  "source_clean_after": true,
+  "source_head_after": "9900ecde5bc38df782caf8e321267295b4ec642a",
+  "status": "passed"
+}

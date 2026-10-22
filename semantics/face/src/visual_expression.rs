@@ -5,7 +5,7 @@
 use alloc::string::{String, ToString};
 use serde::{Deserialize, Serialize};
 
-pub const VISUAL_EXPRESSION_VERSION: u16 = 1;
+pub const VISUAL_EXPRESSION_VERSION: u16 = 2;
 pub const MAX_VISUAL_EXPRESSION_ID_BYTES: usize = 128;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,6 +27,14 @@ pub enum VisualMotion {
     Restrained,
 }
 
+/// Finite typographic character; exact fonts remain admitted Host resources.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum VisualTypography {
+    Editorial,
+    Engineering,
+}
+
 /// Closed expression fields: no selector, action, ordering or input authority.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -37,6 +45,7 @@ pub struct VisualExpression {
     pub palette: VisualPalette,
     pub text_scale_percent: u16,
     pub motion: VisualMotion,
+    pub typography: VisualTypography,
 }
 impl VisualExpression {
     pub fn phosphor() -> Self {
@@ -47,6 +56,7 @@ impl VisualExpression {
             palette: VisualPalette::Phosphor,
             text_scale_percent: 100,
             motion: VisualMotion::None,
+            typography: VisualTypography::Editorial,
         }
     }
     pub fn validate(&self) -> Result<(), VisualExpressionRefusal> {

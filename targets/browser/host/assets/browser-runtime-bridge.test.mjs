@@ -504,3 +504,76 @@ for (const field of ['disposition','detail']) test(`effect refusal rejects non-u
     bridge.browserPlotRefuseEffect('play/1','placement/1',1,field === 'disposition' ? value : 1,field === 'detail' ? value : 0),/u32/);
   assert.equal(calls,0);
 });
+
+test('Patchbay observation reads bounded output without submitting input or inventing a Show', () => {
+  const api = runtime();
+  const observation = {
+    schema: 'conduit.browser/patchbay-observation@1',
+    body_plan_id: 'body-plan/current', active_play_id: 'play/current',
+    face: { basis: { body_id: 'body/current' } },
+    mask_show: null, interaction_admitted: false,
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(observation));
+  let calls = 0;
+  api.conduit_browser_plot_output_ptr = () => 4096;
+  api.conduit_browser_plot_output_len = () => bytes.length;
+  api.conduit_browser_patchbay_observation = (...args) => {
+    assert.deepEqual(args, []);
+    calls += 1;
+    api.memory.grow(1);
+    new Uint8Array(api.memory.buffer, 4096, bytes.length).set(bytes);
+    return 1;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay observation fixture' });
+  assert.deepEqual(bridge.patchbayObservation(), observation);
+  assert.equal(calls, 1);
+});
+
+test('Patchbay observation preserves refusal and rejects claimed interaction authority', () => {
+  for (const [status, output, expected] of [
+    [-1, { message: 'exact resident Patchbay owner is not prepared', code: 'OwnerAbsent' }, /exact resident/],
+    [1, { schema: 'conduit.browser/patchbay-observation@1', mask_show: {}, interaction_admitted: true }, /Malformed read-only/],
+    [1, { schema: 'foreign/observation@1', mask_show: null, interaction_admitted: false }, /Malformed read-only/],
+  ]) {
+    const api = runtime();
+    const bytes = new TextEncoder().encode(JSON.stringify(output));
+    api.conduit_browser_plot_output_ptr = () => 4096;
+    api.conduit_browser_plot_output_len = () => bytes.length;
+    api.conduit_browser_patchbay_observation = () => {
+      new Uint8Array(api.memory.buffer, 4096, bytes.length).set(bytes);
+      return status;
+    };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay observation fixture' });
+    assert.throws(() => bridge.patchbayObservation(), expected);
+  }
+});
+
+test('Patchbay disposition forwards exact scope, bounds input and retires bytes on refusal', () => {
+  const api = runtime({ inputPointer: 256, inputCapacity: 4096 });
+  api.conduit_tour_input_ptr = () => 256;
+  api.conduit_tour_input_capacity = () => 4096;
+  let outputLength = 0, calls = 0, refused = false;
+  api.conduit_browser_plot_output_ptr = () => 8192;
+  api.conduit_browser_plot_output_len = () => outputLength;
+  const message = { body_id: 'body/current', body_plan_id: 'plan/current', active_play_id: 'play/current',
+    owner_checked_plot_id: 'checked/owner', application_revision: 7, outcome: 'Uncertain', evidence_id: 'host/café' };
+  api.conduit_browser_patchbay_request_disposition = length => {
+    calls += 1;
+    assert.deepEqual(JSON.parse(new TextDecoder().decode(new Uint8Array(api.memory.buffer, 256, length))), message);
+    api.memory.grow(1);
+    const output = refused ? { message: 'stale owner Play', code: 'StaleOwner' }
+      : { schema: 'conduit.browser/patchbay-observation@1', mask_show: null, interaction_admitted: false,
+        last_owner_disposition: message };
+    const bytes = new TextEncoder().encode(JSON.stringify(output));
+    new Uint8Array(api.memory.buffer, 8192, bytes.length).set(bytes); outputLength = bytes.length;
+    return refused ? -1 : 1;
+  };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'Patchbay disposition fixture' });
+  assert.deepEqual(bridge.patchbayRequestDisposition(message).last_owner_disposition, message);
+  assert(new Uint8Array(api.memory.buffer, 256, new TextEncoder().encode(JSON.stringify(message)).length).every(byte => byte === 0));
+  refused = true;
+  assert.throws(() => bridge.patchbayRequestDisposition(message), error => error.code === 'StaleOwner');
+  assert(new Uint8Array(api.memory.buffer, 256, new TextEncoder().encode(JSON.stringify(message)).length).every(byte => byte === 0));
+  assert.throws(() => bridge.patchbayRequestDisposition({ ...message, evidence_id: 'x'.repeat(4096) }), /input bound/);
+  assert.equal(calls, 2);
+});

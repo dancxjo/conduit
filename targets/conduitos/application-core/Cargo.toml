@@ -19,3 +19,7 @@ miniz_oxide = { version = "0.8.9", default-features = false, features = ["with-a
 [[test]]
 name = "private_heap"
 harness = false
+
+[dev-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-planner = { path = "../../../architecture/planner" }

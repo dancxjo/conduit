@@ -63,6 +63,17 @@ mod todo_action_command_tests {
         ];
         assert!(Cli::try_parse_from(args).is_ok());
         assert!(Cli::try_parse_from(&args[..args.len() - 2]).is_err());
+        let mut fallback = args.to_vec();
+        fallback.extend(["--fallback-action-id", "todo.complete.task-2"]);
+        assert!(Cli::try_parse_from(&fallback).is_err());
+        fallback.extend([
+            "--required-item-fallback",
+            "--fallback-tab-count",
+            "2",
+            "--fallback-status",
+            "1 thing left",
+        ]);
+        assert!(Cli::try_parse_from(&fallback).is_ok());
     }
 }
 
@@ -129,11 +140,13 @@ pub(super) enum ConduitosCommand {
     /// Prove the normal IMAGE zero-body front door and long-lived interaction.
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
-    JourneyProof,
+    JourneyProof(proof_viewport::JourneyArgs),
+    /// Exercise current Crèche naming and controls on the canonical live image.
+    CrecheControlsProof(proof_viewport::JourneyArgs),
     /// Observe instrumented graphical startup and the real native journey.
     NativeLatencyProof(native_latency::NativeLatencyArgs),
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.
-    GraphicalProfileProof,
+    GraphicalProfileProof(proof_viewport::JourneyArgs),
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.
@@ -146,6 +159,8 @@ pub(super) enum ConduitosCommand {
     TimingProfile,
     /// Compare bounded compositor spans with the per-pixel reference on memory scanout.
     CompositorPerformance,
+    /// Compare exact Patchbay truth through native, Node browser and linear descriptions.
+    GraphCorrespondence,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
