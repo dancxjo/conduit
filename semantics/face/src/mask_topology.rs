@@ -122,6 +122,33 @@ impl MaskTopologyAdmission {
     }
 }
 
+impl crate::Manifestation {
+    /// Validate an exact terminal of a sealed ordinary Mask topology. Legacy
+    /// renderers retain their stricter named contract; typed Mask terminals
+    /// additionally require the Face/Show/interaction admission above.
+    pub fn validate_against_mask_topology<'a>(
+        &self,
+        face: &crate::Face,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, crate::ManifestationError> {
+        let placement = self.validate_against_mask_plot(face, plan)?;
+        if placement.kind_id.as_str() == RENDERER_KIND {
+            return self.validate_against(face, plan);
+        }
+        let admission = MaskTopologyAdmission::from_plan(plan)
+            .map_err(|_| crate::ManifestationError::InvalidPlan)?;
+        if !admission.chains.iter().any(|chain| {
+            chain
+                .stages
+                .last()
+                .is_some_and(|terminal| terminal.placement_id == self.placement_id)
+        }) {
+            return Err(crate::ManifestationError::WrongRendererContract);
+        }
+        Ok(placement)
+    }
+}
+
 fn walk(
     placement: &PlannedGear,
     placements: &BTreeMap<PlacementId, &PlannedGear>,

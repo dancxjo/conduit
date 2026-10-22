@@ -34,6 +34,60 @@ fn actual_typed_mask_plan_projects_its_show_terminal_and_rejects_unsealed_ports(
     assert_eq!(stages[0].host_id, host().host_id);
     assert_eq!(stages[0].input_kind.as_str(), FACE_VALUE_KIND);
     assert_eq!(stages[0].output_kind.as_str(), SHOW_VALUE_KIND);
+    // CPU identity fixture only; no DOM or physical acknowledgement is earned.
+    let face = conduit_face::Face::new(
+        1,
+        conduit_face::FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![conduit_face::FaceSubject {
+            identity: "document/typed-mask".into(),
+            role: conduit_face::FaceRole::Document,
+            name: "Typed Mask".into(),
+        }],
+        vec![],
+        vec![],
+        vec![],
+    )
+    .unwrap();
+    let terminal = planned.show_placement();
+    let play = conduit_core::bind_active_play(
+        &planned.plan.plan_id,
+        &terminal.host_id,
+        &terminal.boot_id,
+        1,
+    );
+    let show = conduit_face::MaskShow::prepared(
+        &planned,
+        &face,
+        play,
+        face.subjects[0].identity.clone(),
+        "fixture/document".into(),
+        "sign/fixture/prepared".into(),
+    )
+    .unwrap();
+    // The old renderer API continues to refuse this ordinary Mask Back.
+    assert!(show.show.validate_against(&face, &planned.plan).is_err());
+    assert_eq!(
+        show.show
+            .validate_against_mask_topology(&face, &planned.plan)
+            .unwrap()
+            .placement_id,
+        terminal.placement_id
+    );
+    let mut foreign = show.show.clone();
+    foreign.boot_id = "boot/foreign".into();
+    assert_eq!(
+        foreign.validate_against_mask_topology(&face, &planned.plan),
+        Err(conduit_face::ManifestationError::StaleIdentity)
+    );
     let mut unsealed = planned.plan.clone();
     unsealed.fragments[0].placements[0].outputs[0].temporal = PortTemporal::Value;
     assert_eq!(

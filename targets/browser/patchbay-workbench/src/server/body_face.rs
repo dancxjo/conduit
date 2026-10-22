@@ -156,11 +156,12 @@ impl PatchbayHtmlServer {
             .map_err(|_| refuse("BodyFaceMaskNotAcknowledged"))?;
         let topology = control
             .project_current(self.body_planning.as_ref().unwrap(), &claim.play)
-            .map_err(|_| refuse("BodyFaceTopologyInvalid"))?;
+            .map_err(|error| refuse(&format!("BodyFaceTopologyInvalid: {error:?}")))?;
         let mut snapshot = self.snapshot.clone();
         snapshot.mask_topology = Some(
-            patchbay_application::project_mask_topology(control.face(), &topology)
-                .map_err(|_| refuse("BodyFaceTopologyInvalid"))?,
+            patchbay_application::project_mask_topology(control.face(), &topology).map_err(
+                |error| refuse(&format!("BodyFaceTopologyProjectionInvalid: {error:?}")),
+            )?,
         );
         let encoded = snapshot.encode()?;
         self.mask_control = Some(control);
