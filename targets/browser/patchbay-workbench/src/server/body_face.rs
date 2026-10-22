@@ -56,6 +56,40 @@ impl PatchbayHtmlServer {
                     && claim.play.plan_id == planning.current_plan().plan_id
             })
             .ok_or_else(|| refuse("BodyFaceCurrentStartedClaimAbsent"))?;
+        if planning.wake().lifecycle != conduit_body::WakeLifecycle::Playing
+            || snapshot.unavailable_proposal_sign_id.is_some()
+        {
+            return Err(refuse("BodyFaceCurrentPlanUnavailable"));
+        }
+        let evidence = self
+            .body_workload
+            .as_ref()
+            .ok_or_else(|| refuse("BodyWorkloadAbsent"))?
+            .evidence();
+        let current = evidence
+            .membership
+            .parts
+            .iter()
+            .filter(|part| part.state == conduit_body::MembershipState::Admitted)
+            .filter_map(|part| part.current.as_ref())
+            .find(|current| current.host_id == claim.host_id && current.boot_id == claim.boot_id)
+            .ok_or_else(|| refuse("BodyFaceCurrentHostAbsent"))?;
+        let topologies = &planning.current_plan().mask_topologies;
+        if topologies.len() != 1
+            || topologies[0].face.plot.is_some()
+            || topologies[0].chains.len() != 1
+            || topologies[0].chains[0]
+                .plan
+                .fragments
+                .iter()
+                .any(|fragment| {
+                    fragment.host_id != current.host_id
+                        || fragment.boot_id != current.boot_id
+                        || fragment.offer_generation != current.offer_generation
+                })
+        {
+            return Err(refuse("BodyFaceCurrentMaskHostMismatch"));
+        }
         Ok(claim.clone())
     }
     pub(super) fn body_face_publication(&self) -> Result<Vec<u8>, ServerError> {
