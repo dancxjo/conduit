@@ -162,13 +162,25 @@ fn exercise_plot(
         let revision = current["revision"]
             .as_u64()
             .ok_or_else(|| refusal("missing revision"))?;
-        journey_input::key_pair(stream, reader, "tab", selection_label)?;
-        journey_input::wait_for_record(
-            serial,
-            child,
-            "journey-plot-selection-timeout",
-            &selection,
-            |text| selection_observed(text, revision, plot.title()),
+        journey_input::held_key(
+            |down| {
+                super::super::hid_qmp::send_named_keys(
+                    stream,
+                    reader,
+                    &["tab"],
+                    down,
+                    selection_label,
+                )
+            },
+            || {
+                journey_input::wait_for_record(
+                    serial,
+                    child,
+                    "journey-plot-selection-timeout",
+                    &selection,
+                    |text| selection_observed(text, revision, plot.title()),
+                )
+            },
         )?;
     }
     let selected = latest(serial)?;
