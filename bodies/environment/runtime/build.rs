@@ -15,6 +15,29 @@ fn main() {
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "dht11-decode",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .unwrap()
+    .expanded;
+    assert_eq!(expanded.gears.len(), 1);
+    fs::write(out.join("dht11-source-identity.rs"), format!(
+        "pub const SOURCE_DOCUMENT_ID: &str = {:?};\npub const CHECKED_PLOT_ID: &str = {:?};\npub const EXPANDED_PLOT_ID: &str = {:?};\n",
+        expanded.source_document_id.as_str(), expanded.checked_plot_id.as_str(), expanded.expanded_plot_id.as_str(),
+    )).unwrap();
+    let program_configuration = &expanded.gears[0].configuration[0].value;
+    let conduit_core::ConfigurationValue::Text(encoded) = program_configuration else {
+        panic!("checked DHT11 expression program");
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    fs::write(
+        out.join("dht11-decode.program"),
+        program.canonical_bytes().unwrap(),
+    )
+    .unwrap();
+
     for (name, file) in [
         ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),

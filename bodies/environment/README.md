@@ -481,3 +481,15 @@ The ESP32 display now has an attended physical diagnostic under
 segments, `1234` and the `67.6F` fixture were acknowledged; the user confirmed
 both digits and the point after 7. This establishes that physical display path,
 not an installed seven-segment Mask/Host Call or a real temperature display.
+
+`PreparedSourceFrameDecoder` now turns a complete frame into canonical results
+by executing the actual checked `dht11-decode` expression and existing observation
+quantity Forms. It contains no native checksum, sign, range or decimal decoder.
+All storage is prepared once; frame conversion and the resulting Face/Mask path
+allocate nothing. Source document, checked Plot and expanded Plot identities are
+generated from that same compilation, without inventing Plan/Play or Body/Wake.
+The physical initial frame `[106,0,40,4,151]` is unavailable(checksum); subsequent
+`[53,0,20,2,75]` frames yield 20.2 degrees Celsius and 53 percent relative humidity.
+The Fahrenheit Look renders those quantities as `68.4F` in the host proof. The
+ESP32 cross-check passes; the currently flashed fixture still shows test patterns
+until the live Source/Face/display application is integrated.

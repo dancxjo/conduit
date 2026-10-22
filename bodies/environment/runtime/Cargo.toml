@@ -20,6 +20,7 @@ conduit-plot = { path = "../../../architecture/plot" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
 
 [build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
