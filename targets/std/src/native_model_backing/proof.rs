@@ -116,6 +116,21 @@ pub fn prove_from_environment() -> Result<(), NativeBackingRefusal> {
     ) {
         return Err(NativeBackingRefusal::Protocol);
     }
+    let insufficient_fixed = NativeBackingGrant {
+        maximum_fixed_mapping_bytes: 1,
+        ..grant
+    };
+    if !matches!(
+        PreparedNativeModel::prepare(
+            &executable,
+            profile.clone(),
+            insufficient_fixed,
+            resource.clone()
+        ),
+        Err(NativeBackingRefusal::InsufficientBacking { .. })
+    ) {
+        return Err(NativeBackingRefusal::Protocol);
+    }
     let mut pressure = PreparedNativeModel::prepare(&executable, profile.clone(), grant, resource)?;
     for n in 0..101 {
         pressure.infer_f32(n as f32)?;
@@ -125,7 +140,7 @@ pub fn prove_from_environment() -> Result<(), NativeBackingRefusal> {
     }
     println!(
         "{}",
-        serde_json::json!({"proof":"native-model-backing","profile":super::profile::PROFILE,"exact_cpu_outputs":1000,"insufficient_grant_before_ready":true,"maps_unchanged_after_1000":true,"canonical_model_descriptor":descriptor,"canonical_model_bytes":77,"pressure_without_output":true,"ledger":ledger,"worker_sha256":super::worker::file_digest(&executable)?,"runtime_sha256":profile.runtime_sha256,"model_sha256":super::profile::MODEL_SHA256,"not_established":["ordinary Source/Plan/Play adapter","full session retirement/cancellation","physical residency"]})
+        serde_json::json!({"proof":"native-model-backing","profile":super::profile::PROFILE,"exact_cpu_outputs":1000,"insufficient_grant_before_ready":true,"insufficient_fixed_mapping_grant_before_ready":true,"maps_unchanged_after_1000":true,"canonical_model_descriptor":descriptor,"canonical_model_bytes":77,"pressure_without_output":true,"ledger":ledger,"worker_sha256":super::worker::file_digest(&executable)?,"runtime_sha256":profile.runtime_sha256,"model_sha256":super::profile::MODEL_SHA256,"not_established":["ordinary Source/Plan/Play adapter","full session retirement/cancellation","physical residency"]})
     );
     Ok(())
 }
