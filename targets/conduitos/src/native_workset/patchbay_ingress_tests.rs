@@ -45,9 +45,16 @@ fn canonical_patchbay_fore_uses_actual_combined_native_indices() {
     assert!(admitted.node.0 > 0);
     assert!(admitted.input.cord.0 > 0);
     assert_eq!(admitted.node, parts.partitions[1].nodes[0].node);
-    assert_eq!(admitted.plan_id, canonical.plan_id);
     assert_eq!(admitted.input.byte_capacity, BYTES);
     assert_eq!(admitted.input.item_capacity, 1);
+    // Admission checks the exact fragment Plan identity before retaining ingress.
+    let mut foreign_plan = parts.partitions[1].clone();
+    foreign_plan.identity.plan_id = parts.partitions[0].identity.plan_id.clone();
+    assert_ne!(
+        foreign_plan.identity.plan_id,
+        parts.partitions[1].identity.plan_id
+    );
+    assert!(admit(&canonical, &foreign_plan).is_err());
     // A foreign numeric sink cannot be smuggled in with an authentic Plan.
     let mut foreign = parts;
     foreign.partitions[1].cords[0].spec.sink = conduit_kernel::CordEndpoint::Local {
