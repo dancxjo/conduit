@@ -1,5 +1,22 @@
 //! Source-bound process observation around the ordinary graphical journey.
 mod breakdown;
+mod cache;
+
+#[derive(clap::ValueEnum, Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(super) enum CacheMode {
+    #[default]
+    Retained,
+    ZeroRetention,
+}
+impl CacheMode {
+    pub(super) fn as_str(self) -> &'static str {
+        match self {
+            Self::Retained => "retained",
+            Self::ZeroRetention => "zero-retention",
+        }
+    }
+}
+
 use super::{image, profile::Paths, report::git_head, ConduitosArch, ConduitosError};
 use crate::cli::GlobalOpts;
 use serde_json::json;
@@ -10,6 +27,9 @@ pub struct NativeLatencyArgs {
     /// Fresh QEMU processes over one exact built image. No retry on failure.
     #[arg(long, default_value_t = 3, value_parser = clap::value_parser!(u8).range(1..=8))]
     pub trials: u8,
+    /// Observation-only Source retention control; catalogs and workload stay identical.
+    #[arg(long, value_enum, default_value_t = CacheMode::Retained)]
+    pub(super) cache_mode: CacheMode,
 }
 
 pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -42,12 +62,13 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
     let mut context = json!({"schema":"conduit.conduitos/native-process-timing@1",
         "status":"running","proof_class":"freestanding-emulator","source_commit":source,
         "rustc":rustc,"qemu":qemu,"clock":"std::time::Instant","units":"nanoseconds",
-        "admitted_trials":args.trials,
+        "admitted_trials":args.trials,"cache_mode":args.cache_mode.as_str(),
+        "cache_control_scope":"Only canonical Source check/expansion retention changes. Both arms reuse identical installed catalogs; this does not measure catalog-installation reuse versus historical code.",
         "protocol":"Build one image, then run the same bounded journey in fresh QEMU processes without retries. First process and later processes are separate observations; compiler and host OS caches are uncontrolled. Preparation includes supported image build. Journey includes emulator startup, inputs, receipt polling, frame capture and teardown. Total wall time excludes xtask compilation and final receipt serialization. Preserve failed attempts; no cold-machine, calibrated speedup, or physical latency claim."
     });
     write(&family.join("manifest.json"), &context)?;
     let result = (|| {
-        let built = image::execute_native_latency(opts)?;
+        let built = image::execute_native_latency(opts, args.cache_mode)?;
         context["image_sha256"] = built.iso_sha256.clone().into();
         context["build_and_image_ns"] = json!(started.elapsed().as_nanos());
         for trial in 0..args.trials {
@@ -80,6 +101,12 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
             let progress =
                 super::native_progress::parse(&serial, &identity.host_id, &identity.boot_id)?;
             super::native_progress::require_product_phases(&progress)?;
+            let cache = cache::parse(
+                &serial,
+                args.cache_mode,
+                &identity.host_id,
+                &identity.boot_id,
+            )?;
             if trials
                 .iter()
                 .any(|prior: &serde_json::Value| prior["boot_id"] == identity.boot_id)
@@ -97,7 +124,8 @@ pub(super) fn execute(args: &NativeLatencyArgs, opts: &GlobalOpts) -> Result<(),
                 "phase":if trial == 0 { "first-process" } else { "repeated-fresh-process" },
                 "profile_id":identity.profile_id,"build_id":identity.build_id,
                 "host_id":identity.host_id,"boot_id":identity.boot_id,"journey_ns":journey_ns,
-                "guest":guest,"breakdown":breakdown,"progress":progress,
+                "guest":guest,"breakdown":breakdown,"progress":progress,"cache":cache,
+                "cache_mode":args.cache_mode.as_str(),"source_commit":source,"image_sha256":built.iso_sha256,
                 "frame_manifest":"journey-frames/manifest.json",
                 "typing_observations":"journey-typing-timing.json","reading_observations":"journey-reading-timing.json"});
             write(&output.join("timing.json"), &record)?;
@@ -171,6 +199,39 @@ fn tool_version(tool: &str, arguments: &[&str]) -> Result<String, ConduitosError
 mod tests {
     use crate::cli::Cli;
     use clap::Parser;
+    #[test]
+    fn cache_control_is_explicit_finite_and_observation_only() {
+        for mode in ["retained", "zero-retention"] {
+            assert!(Cli::try_parse_from([
+                "xtask",
+                "make",
+                "conduitos",
+                "native-latency-proof",
+                "--cache-mode",
+                mode
+            ])
+            .is_ok());
+        }
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "native-latency-proof",
+            "--cache-mode",
+            "disabled"
+        ])
+        .is_err());
+        assert!(Cli::try_parse_from([
+            "xtask",
+            "make",
+            "conduitos",
+            "graphical-profile-proof",
+            "--cache-mode",
+            "zero-retention"
+        ])
+        .is_err());
+    }
+
     #[test]
     fn repetition_admission_refuses_zero_and_unbounded_families() {
         for count in ["1", "3", "8"] {
