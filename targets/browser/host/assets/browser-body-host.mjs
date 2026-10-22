@@ -138,8 +138,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   }
   const maskTopologies = proposal.plan.mask_topologies ?? [];
   if (!Array.isArray(maskTopologies) || maskTopologies.length > 16) throw new Error('browser Mask topology bound exceeded');
+  const canonicalPatchbayOwners = new Set(maskTopologies
+    .filter(topology => topology.face?.source_placement_id == null && patchbayOwners.has(topology.face?.plot?.checked_plot_id))
+    .map(topology => topology.face.plot.checked_plot_id));
   for (const topology of maskTopologies) {
-    if (patchbayOwners.has(topology.face?.plot?.checked_plot_id) && typeof onPatchbayPublication !== 'function') {
+    if (canonicalPatchbayOwners.has(topology.face?.plot?.checked_plot_id) && typeof onPatchbayPublication !== 'function') {
       throw new Error('canonical Patchbay requires a selected browser Face renderer');
     }
     if (!Array.isArray(topology.chains) || topology.chains.length > 8) throw new Error('browser Mask chain bound exceeded');
@@ -379,6 +382,20 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       application_revision: revision, outcome: report.outcome, evidence_id: report.evidenceId,
     }, { refreshLegacy });
   };
+  let presentedPatchbayShow = null;
+  const presentPatchbayPublication = async (observation, signal) => {
+    if (!observation.publication || typeof onPatchbayPublication !== 'function') return false;
+    if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
+        || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay publication differs from this Body Play');
+    const effect = observation.publication.effect;
+    if (presentedPatchbayShow === effect.show_id) return true;
+    const maskRoot = slots.get(effect.placement_id);
+    if (!maskRoot?.isConnected) throw new Error('Patchbay Mask slot is unavailable');
+    presentedPatchbayShow = effect.show_id; // No automatic retry after renderer uncertainty.
+    await onPatchbayPublication(Object.freeze({ observation, root: maskRoot, signal }));
+    assertCurrent();
+    return true;
+  };
   const observations = () => {
     assertCurrent();
     if (startAccepted) throw new Error("browser Body resources are reserved by its play");
@@ -517,17 +534,10 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       }
       const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
       if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
-        if (typeof onPatchbayPublication === 'function' && patchbayOwners.has(effect.checked_plot_id)) {
-          const observation = bridge.patchbayObservation();
-          if (observation.publication && observation.owner_checked_plot_id === effect.checked_plot_id) {
-            if (observation.body_plan_id !== started.play.plan_id || observation.active_play_id !== started.play.active_play_id
-                || observation.face?.basis?.body_id !== started.play.body_id) throw new Error('Patchbay publication differs from this Body Play');
-            const maskRoot = slots.get(observation.publication.effect.placement_id);
-            if (!maskRoot?.isConnected) throw new Error('Patchbay Mask slot is unavailable');
-            await onPatchbayPublication(Object.freeze({ observation, root: maskRoot, signal }));
-            assertCurrent();
-            return;
-          }
+        if (canonicalPatchbayOwners.has(effect.checked_plot_id)) {
+          // Startup presents the prepared publication independently. This old
+          // view output can neither replace it nor re-acknowledge its Show.
+          return;
         }
         const channel = applicationChannel(effect.checked_plot_id);
         let applicationSurface = output;
@@ -627,8 +637,17 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     run() {
       assertCurrent();
       if (!started || completion) throw new Error("browser Body must be started exactly once before dispatch");
-      completion = drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
-        signal: dispatchController.signal, isCurrent: () => !closed, admittedInput })
+      completion = (async () => {
+        if (canonicalPatchbayOwners.size) {
+          const observation = bridge.patchbayObservation();
+          if (!canonicalPatchbayOwners.has(observation.owner_checked_plot_id)
+              || !await presentPatchbayPublication(observation, dispatchController.signal)) {
+            throw new Error('captured canonical Patchbay publication is unavailable');
+          }
+        }
+        return drainBrowserEffects({ api, initialProgress: started.progress, readOutput: () => readOutput(bridge), perform, bridge,
+          signal: dispatchController.signal, isCurrent: () => !closed, admittedInput });
+      })()
         .then(receipt => {
           if (receipt?.schema === "conduit.tour/manifestation-receipt@3") terminal = receipt;
           return receipt ?? terminal;

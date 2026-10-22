@@ -1324,3 +1324,21 @@ component/CSS bytes and local distribution imports. Syntax/whitespace checks
 pass. This is CPU/packaging-fixture evidence, not actual browser enactment. Native
 Source editing, complete admission, bootstrap retirement and platform evidence
 remain open; no CI/QEMU/browser campaign or release archive update ran.
+
+### Canonical presentation no longer waits for legacy output
+
+Host dispatch now presents the already prepared canonical Patchbay publication
+before draining ordinary effects. Exact captured resident selectors, current
+Body/Plan/Play and the acquired Mask slot determine that path. A captured route
+with no matching publication refuses; a renderer failure is not automatically
+retried. Subsequent application-view output for that canonical resident is
+ignored and cannot replace or re-acknowledge the Show. Legacy proposals without
+a canonical selector retain their prior startup and rendering behavior.
+
+All 24 Body Host CPU tests pass. The selected-renderer case runs both with an
+invalid inline-canvas payload and with no legacy manifestation at all; both
+render exactly once into the admitted Mask root. A separate legacy case forbids
+canonical observation and still dispatches normally. Syntax/whitespace checks
+pass. This removes the presentation dependency on bootstrap traffic; the old
+Source event/view participants still exist and require typed Fore migration.
+No browser/QEMU/CI campaign, artifact rebuild or platform enactment claim.

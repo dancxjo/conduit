@@ -432,7 +432,8 @@ test("Body acquisition reserves captured Mask slots and refuses shared placement
   assert.throws(() => acquireBrowserBodyHost(duplicate), /duplicate browser Body placement/);
 });
 
-test("selected Patchbay renderer receives the admitted Mask root instead of an inline canvas", async () => {
+test("selected Patchbay rendering starts without legacy output and ignores an inline canvas", async () => {
+  for (const legacyOutput of [true, false]) {
   const f = fixture();
   const part = f.proposal.plan.plots[0];
   part.plot = { checked_plot_id: "checked/patchbay" };
@@ -451,16 +452,16 @@ test("selected Patchbay renderer receives the admitted Mask root instead of an i
     start(length);
     f.output({ schema: "conduit.browser/body-started@1", play: {
       active_play_id: "play", plan_id: "body-plan", wake_id: "wake", body_id: "body",
-    }, progress: { effect_kind: "manifestation", host_id: "host", boot_id: "boot",
+    }, progress: legacyOutput ? { effect_kind: "manifestation", host_id: "host", boot_id: "boot",
       active_play_id: "play", plan_id: "partition", placement_id: "placement-0", request_sequence: 0,
       checked_plot_id: "checked/patchbay", face_kind: "face/application-view", application_view: [255],
-    } });
+    } : { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" } });
     return 0;
   };
   f.api.conduit_browser_patchbay_observation = () => {
     f.output({ schema: "conduit.browser/patchbay-observation@1", body_plan_id: "body-plan",
       active_play_id: "play", owner_checked_plot_id: "checked/patchbay", face: { basis: { body_id: "body" } },
-      mask_show: null, interaction_admitted: false, publication: { effect: { placement_id: "mask-slot" } },
+      mask_show: null, interaction_admitted: false, publication: { effect: { placement_id: "mask-slot", show_id: "canonical-show" } },
     }); return 0;
   };
   assert.throws(() => acquireBrowserBodyHost(f), /canonical Patchbay requires a selected browser Face renderer/);
@@ -471,5 +472,20 @@ test("selected Patchbay renderer receives the admitted Mask root instead of an i
     rendered++; assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);
   } });
   try { owner.start(1); await owner.run(); assert.equal(rendered, 1); }
+  finally { owner.close(); }
+  }
+});
+
+
+test('legacy Patchbay proposals do not require a canonical startup observation', async () => {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: 'checked/patchbay' };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: 'application/retained', configuration: [{ key: 'application', value: { Text: 'patchbay' } }],
+  });
+  f.api.conduit_browser_patchbay_observation = () => { throw new Error('not a canonical route'); };
+  const owner = acquireBrowserBodyHost(f);
+  try { owner.start(1); await owner.run(); assert.equal(f.outputRoot.children[0].textContent, 'Greeting: hello'); }
   finally { owner.close(); }
 });
