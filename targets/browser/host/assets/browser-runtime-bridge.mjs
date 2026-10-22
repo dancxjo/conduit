@@ -216,7 +216,35 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       minimum: 1, label: 'Patchbay request input',
     }, invoke, { retireInput: true });
   };
+  const bodyFace = (name, message, prepare = false) => {
+    let bytes;
+    if (message instanceof Uint8Array) bytes = message;
+    else if (message !== undefined) {
+      if (typeof message.face_revision !== 'string' || !/^(0|[1-9][0-9]*)$/.test(message.face_revision)
+          || BigInt(message.face_revision) > 0xffff_ffff_ffff_ffffn) throw new Error('Body Face revision must be exact u64 decimal');
+      const encoded = JSON.stringify({ ...message, face_revision: '__exact_body_face_revision__' });
+      bytes = encoder.encode(encoded.replace('"__exact_body_face_revision__"', message.face_revision));
+    }
+    const invoke = length => {
+      const status = message === undefined ? call(name) : call(name, length);
+      const output = readBytes(api, { pointerExport: 'conduit_browser_plot_output_ptr',
+        lengthExport: 'conduit_browser_plot_output_len', minimum: 1, maximum: PLOT_OUTPUT_MAX, label: 'Body Face output' });
+      const value = JSON.parse(decoder.decode(output));
+      if (status < 0) throw Object.assign(new Error(value.message ?? 'Body Face request refused'), { evidence: value });
+      if (value.schema !== 'conduit.browser/body-face-observation@1') throw new Error('Invalid Body Face observation');
+      return Object.freeze({ value, bytes: output });
+    };
+    return message === undefined ? invoke() : withInput(api, bytes, {
+      pointerExport: prepare ? 'conduit_browser_body_input_ptr' : 'conduit_tour_input_ptr',
+      capacityExport: prepare ? 'conduit_browser_body_input_capacity' : 'conduit_tour_input_capacity',
+      minimum: 1, label: 'Body Face input',
+    }, invoke, { retireInput: true });
+  };
   return Object.freeze({
+    bodyFacePrepare: bytes => bodyFace('conduit_browser_body_face_prepare', bytes, true),
+    bodyFaceAcknowledge: message => bodyFace('conduit_browser_body_face_acknowledge', message),
+    bodyFaceInteract: message => bodyFace('conduit_browser_body_face_interact', message),
+    bodyFaceObservation: () => bodyFace('conduit_browser_body_face_observation'),
     abi: ABI,
     encodeJson: (value) => encoder.encode(JSON.stringify(value)),
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),

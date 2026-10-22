@@ -261,29 +261,3 @@ fn visible_checked_candidate_does_not_widen_installed_workset_authority() {
         Err(WorksetRefusal::UnknownPlot)
     ));
 }
-
-#[test]
-fn canonical_document_editor_is_an_exact_supported_protected_region() {
-    let (ids, offer) = fixture();
-    let wake = wake(&[NativePlot::MemoryLantern]);
-    let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    let fragment = &prepared.plan.plots[0].plan.fragments[0];
-    let [region] = fragment.execution_regions.as_slice() else {
-        panic!("the canonical document loop must have one region");
-    };
-    assert!(crate::execution_region::supported_protected_shape(
-        fragment,
-        &region.admitted_placements
-    ));
-    let mut unsupported = fragment.clone();
-    unsupported.placements[0].kind_id = "test/unsupported-editor-operation".into();
-    assert!(!crate::execution_region::supported_protected_shape(
-        &unsupported,
-        &region.admitted_placements
-    ));
-    let mut extra = region.admitted_placements.clone();
-    extra.push("test/extra-placement".into());
-    assert!(!crate::execution_region::supported_protected_shape(
-        fragment, &extra
-    ));
-}

@@ -3,6 +3,8 @@
 pub(crate) mod abi;
 mod application_state;
 mod audio;
+#[cfg(feature = "creche-surface")]
+mod body_face_publication;
 mod body_start;
 mod compact_patchbay;
 mod engine;
@@ -47,6 +49,8 @@ use std::collections::BTreeMap;
 
 struct TourSession {
     thermostat_face: Option<Box<thermostat_face::ThermostatFace>>,
+    #[cfg(feature = "creche-surface")]
+    body_face_publication: Option<Box<body_face_publication::BodyFaceContext>>,
     #[cfg(feature = "creche-surface")]
     patchbay_face: Option<Box<patchbay_face::PatchbayObservation>>,
     #[cfg(feature = "creche-surface")]
@@ -250,6 +254,8 @@ impl TourSession {
             latest_face: None,
             thermostat_face: None,
             #[cfg(feature = "creche-surface")]
+            body_face_publication: None,
+            #[cfg(feature = "creche-surface")]
             patchbay_face: None,
             #[cfg(feature = "creche-surface")]
             patchbay_publication: None,
@@ -288,9 +294,17 @@ impl TourSession {
     }
 
     fn cancel(mut self) -> Result<TourReceipt, String> {
-        self.scheduler
+        // Attempt both cancellations even if a companion refuses retirement;
+        // uncertainty must not yield a successful parent terminal receipt.
+        #[cfg(feature = "creche-surface")]
+        let companion = self.retire_body_face();
+        let parent = self
+            .scheduler
             .cancel()
-            .map_err(|error| format!("{error:?}"))?;
+            .map_err(|error| format!("{error:?}"));
+        #[cfg(feature = "creche-surface")]
+        companion?;
+        parent?;
         let sign = bind_sign(
             &self.host_id,
             &self.boot_id,

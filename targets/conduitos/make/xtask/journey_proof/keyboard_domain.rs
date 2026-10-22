@@ -8,7 +8,7 @@ use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 fn refusal(detail: impl Into<String>) -> ConduitosError {
     ConduitosError::refusal("journey-keyboard-domain", detail)
 }
-pub(super) fn latest(serial: &Path) -> Result<Value, ConduitosError> {
+fn latest(serial: &Path) -> Result<Value, ConduitosError> {
     let bytes = fs::read(serial).map_err(|error| refusal(error.to_string()))?;
     journey_records::decode(journey_input::complete_records(&bytes)?)?
         .pop()
@@ -150,9 +150,6 @@ fn exercise_plot(
         conduitos::native_workset::resident(plot).map_err(|error| refusal(format!("{error:?}")))?;
     let initial = latest(serial)?;
     if initial["checked_plot_id"] != expected.checked_plot_id.as_str() {
-        // An active editor Mask owns its keyboard input. Return through the
-        // ordinary Home surface and select the exact resident Source there;
-        // Tab is not a cross-Plot control while that Mask is active.
         let before = super::stage_count(serial, "CONDUIT_HOME_CHECKPOINT returned")?;
         journey_input::held_key(
             |down| {
@@ -161,7 +158,7 @@ fn exercise_plot(
                     reader,
                     &["esc"],
                     down,
-                    "journey-select-plot-home",
+                    "journey-open-plot-picker",
                 )
             },
             || {
@@ -170,23 +167,20 @@ fn exercise_plot(
                     child,
                     "CONDUIT_HOME_CHECKPOINT returned",
                     before + 1,
-                    "journey-select-plot-home-timeout",
+                    "journey-open-picker-timeout",
                 )
             },
         )?;
-        let revision = initial["revision"]
-            .as_u64()
-            .ok_or_else(|| refusal("missing revision"))?;
         journey_input::open_hub_plot(stream, reader, serial, child, plot)?;
-        let bytes = fs::read(serial).map_err(|error| refusal(error.to_string()))?;
+        let text = fs::read_to_string(serial).map_err(|error| refusal(error.to_string()))?;
         if !selection_observed(
-            journey_input::complete_records(&bytes)?,
-            revision,
+            &text,
+            initial["revision"]
+                .as_u64()
+                .ok_or_else(|| refusal("missing revision"))?,
             plot.title(),
         )? {
-            return Err(refusal(
-                "Plot picker did not produce a fresh selection record",
-            ));
+            return Err(refusal("Home selection lacks a current journey receipt"));
         }
     }
     let selected = latest(serial)?;
@@ -319,7 +313,7 @@ pub(super) fn validate_cost(
         || cost["driver_isolation"] != false
     {
         return Err(refusal(
-            "Body domain did not execute and retire its exact bounded text workload",
+            "Body domain did not execute and retire its bounded keyboard effect",
         ));
     }
     Ok(cost)
@@ -354,12 +348,6 @@ mod tests {
             );
         }
         assert!(validate_cost(&line(&cost), &identity, 5, 1).is_err());
-        let mut document = cost.clone();
-        document["entries"] = json!(7);
-        document["base_gate_transitions"] = json!(0);
-        validate_cost(&line(&document), &identity, 7, 0).unwrap();
-        document["base_gate_transitions"] = json!(1);
-        assert!(validate_cost(&line(&document), &identity, 7, 0).is_err());
     }
 
     fn terminal_sign() -> String {

@@ -31,6 +31,9 @@ fn exact_subject_reading_retains_endpoint_facts_after_repeated_selection() {
             .inspect_subject(&face.identity, face.revision, &subject.identity)
             .unwrap();
         let bundle = scene.graph_projection().unwrap();
+        let (navigation, cursor) = scene.graph_navigation().unwrap();
+        assert_eq!(navigation, &bundle.navigation);
+        assert_eq!(cursor, &bundle.cursor);
         assert_eq!(
             bundle.cursor.focus.as_deref(),
             Some(subject.identity.as_str())

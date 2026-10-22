@@ -1,0 +1,66 @@
+{
+  "tested_source": "357fc81424dd513cda74b42f4817ab89d231c37e",
+  "source_clean_before": true,
+  "source_clean_after": true,
+  "source_unchanged": true,
+  "command": [
+    "node",
+    "--test",
+    "proof/browser/workspace-resource-bounds.test.mjs",
+    "proof/browser/shared-face-style-package.test.mjs"
+  ],
+  "exit_code": 0,
+  "tests": 4,
+  "passed": 4,
+  "failed": 0,
+  "node_version": "v25.9.0",
+  "resource_role": "browser-body-host",
+  "resource_bytes": 40187,
+  "resource_sha256": "9a253937044133229222e2a94eac4d8571cc00119d2fa5a1aef9efe4e1365b1c",
+  "old_role_maximum": 32768,
+  "new_role_maximum": 49152,
+  "total_declared_before": 22368256,
+  "total_declared_after": 22384640,
+  "resource_count": 85,
+  "unchanged_loader_limits": {
+    "resources": 96,
+    "nonruntime_resource_bytes": 16777216,
+    "runtime_bytes": 20971520,
+    "total_bytes": 33554432,
+    "manifest_bytes": 49152
+  },
+  "original_negative": {
+    "candidate": 39787413371,
+    "browser_job": 119855037627,
+    "tested_preview": "2329fab856690fdd00b34ae1a9a7a68bc1f04fa0",
+    "published_head": "1dfd0ec64593663a8876624741a531b107029ce2"
+  },
+  "artifacts": [
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-1dfd-browser-failure.log",
+      "raw_bytes": 473439,
+      "raw_sha256": "a328288f2f002bb3b0e99b8613bbf618506ec6364982e5948b66fcd058fe7b13",
+      "stored": "6252-1dfd-browser-failure.log.gz",
+      "stored_sha256": "11f44d1ea29fc473d1838bfce0f201263967d7b746184e6f0928c0a958574f05"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-resource-bound-tests.log",
+      "raw_bytes": 411,
+      "raw_sha256": "dda29acdd8e932fa1823e403a2f95adb9b5f13293f66c969e5b0cfd8f8193a32",
+      "stored": "6252-resource-bound-tests.log.gz",
+      "stored_sha256": "f206a21eb5a0c74babe68770e9c2179f8ed1dae4bce3e79100c1f43b0b0b5738"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-357fc814-resource-package-tests.log",
+      "raw_bytes": 523,
+      "raw_sha256": "e9acf92b6acc3092ff5589272994873b1cf0bcf4da1d2d9cc3a2c215c65fc01b",
+      "stored": "6252-357fc814-resource-package-tests.log.gz",
+      "stored_sha256": "511728a997d9e221e38d099b17c7adfb5c511eff402ed8861bda26fe2f835ab1"
+    }
+  ],
+  "limits": [
+    "Actual shipped module and dependency-closure producer proof; not a complete staged application/browser execution",
+    "No Cargo/full browser stager/CI/QEMU executed",
+    "Original hosted negative and first working-tree Node pass are distinct from final clean committed-source four-case proof"
+  ]
+}

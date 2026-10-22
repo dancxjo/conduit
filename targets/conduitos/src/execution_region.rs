@@ -224,10 +224,13 @@ fn resource_total(
         .ok_or(PreparationError::PlanRejected)
 }
 
-pub(crate) fn supported_protected_shape(
+fn build_region(
+    region_id: &str,
+    admitted_placements: Vec<PlacementId>,
+    lane_offer: &conduit_core::ResourceOffer,
+    lane_base_identity: alloc::string::String,
     fragment: &PlanFragment,
-    admitted_placements: &[PlacementId],
-) -> bool {
+) -> Result<ExecutionRegion, PreparationError> {
     let exact_kinds = |kinds: &[&str]| {
         admitted_placements.len() == kinds.len()
             && kinds.iter().all(|kind| {
@@ -259,10 +262,6 @@ pub(crate) fn supported_protected_shape(
             conduit_semantic_catalog::TEXT_FACE_KIND,
         ])
     });
-    let document_editor = exact_kinds(&[
-        conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND,
-        conduit_semantic_catalog::FACE_EDITOR_KIND,
-    ]);
     let tour_morse = exact_kinds(&[
         conduit_text::TEXT_LITERAL_KIND,
         conduit_text::TEXT_UPPER_KIND,
@@ -275,19 +274,13 @@ pub(crate) fn supported_protected_shape(
         conduit_semantic_catalog::STATE_COUNT_KIND,
         conduit_semantic_catalog::COUNT_FACE_KIND,
     ]);
-    ordinary_text || keyboard_text || document_editor || tour_morse || tour_timer
-}
-
-fn build_region(
-    region_id: &str,
-    admitted_placements: Vec<PlacementId>,
-    lane_offer: &conduit_core::ResourceOffer,
-    lane_base_identity: alloc::string::String,
-    fragment: &PlanFragment,
-) -> Result<ExecutionRegion, PreparationError> {
+    let document_editor = exact_kinds(&[
+        conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND,
+        conduit_semantic_catalog::FACE_EDITOR_KIND,
+    ]);
     let protected = cfg!(conduitos_protected_execution)
         && matches!(region_id, "region/0" | "region/text")
-        && supported_protected_shape(fragment, &admitted_placements);
+        && (ordinary_text || keyboard_text || document_editor || tour_morse || tour_timer);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))

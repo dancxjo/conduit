@@ -8,9 +8,9 @@ mod creche_pointer;
 mod face_correspondence;
 mod face_input;
 mod failure_stack;
+mod graph_reading;
 mod keyboard_domain;
 mod look_selection;
-mod mask_inspection;
 mod timing_interactions;
 
 use std::{
@@ -295,10 +295,12 @@ fn execute_with_viewport(
             &mut child,
             conduitos::native_workset::NativePlot::Patchbay,
         )?;
-        let patchbay_face =
-            mask_inspection::current(&serial_path, &keyboard_domain::latest(&serial_path)?)?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
-        // The ordinary Plot picker already presents the selected universal Face.
+
+        // Canonical Patchbay enters its checked Face as part of selection.
+        face_correspondence::current_patchbay_show(
+            &fs::read_to_string(&serial_path).map_err(io_error)?,
+        )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
             timing_interactions::reading_pages(
@@ -309,13 +311,12 @@ fn execute_with_viewport(
                 &mut artifacts,
             )?;
         }
-        mask_inspection::exercise(
+        graph_reading::exercise(
             &serial_path,
             &mut child,
             &mut qmp,
             &mut reader,
             &mut artifacts,
-            &patchbay_face,
         )?;
 
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
@@ -338,8 +339,8 @@ fn execute_with_viewport(
         let records = journey_records::decode(&serial)?;
         let identity = validate(&records, &serial)?;
         let keyboard_cost = keyboard_domain::validate_cost(&serial, &keyboard_identity, 5, 1)?;
-        // Canonical document ownership performs one protected reset and six
-        // edit transactions. Its visual Mask has no serial Base scope.
+        // One initialization and six revisioned edits use the document-only
+        // region. Native Mask presentation grants it no serial Base gate.
         let editor_cost = keyboard_domain::validate_cost(&serial, &editor_identity, 7, 0)?;
         if keyboard_cost["domain_id"] == editor_cost["domain_id"]
             || keyboard_cost["partition_plan_id"] == editor_cost["partition_plan_id"]
@@ -495,8 +496,8 @@ fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, Conduito
     }
     for marker in [
         "CONDUIT_HOME_CHECKPOINT plot-opened patchbay",
-        "CONDUIT_NATIVE_FACE ",
         "CONDUIT_NATIVE_READING ",
+        "CONDUIT_WORKSPACE_VIEW ",
     ] {
         if !serial.contains(marker) {
             return Err(refusal(format!("missing guest Face checkpoint {marker}")));

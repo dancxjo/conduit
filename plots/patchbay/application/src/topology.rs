@@ -166,7 +166,7 @@ impl MaskTopology {
                 })
                 .ok_or(MaskTopologyRefusal::UnavailableMask)?;
             manifestation
-                .validate_against(face, &selected_chain.plan)
+                .validate_against_mask_topology(face, &selected_chain.plan)
                 .map_err(|_| MaskTopologyRefusal::SupersededBodyTruth)?;
             chains.push(chain_from_admission(chain_index, admitted, manifestation));
         }

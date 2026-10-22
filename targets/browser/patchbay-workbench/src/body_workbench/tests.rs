@@ -3,6 +3,7 @@ use conduit_body::{
     Body, BodyBiographyEvidence, BodyGraduationChoice, BodyGraduationEvidence, BodyMembership,
 };
 use conduit_core::SignId;
+use conduit_face::FaceRole;
 
 fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
     let basis = &snapshot.face.basis;

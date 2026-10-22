@@ -290,23 +290,12 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                 .iter()
                 .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
                 .count();
-            let hint = if width < 640 {
-                "F2/F3"
-            } else {
-                "Alt+arrows inspect · F2/F3"
-            };
-            let noun = if width < 640 { "cords shown" } else { "cords" };
-            let notice = format!(
-                "{shown}/{total} {noun} · {} omitted · {hint}",
-                total - shown
-            );
-            assert!(
-                frame
-                    .scene
-                    .commands()
-                    .iter()
-                    .any(|c| c.payload().ends_with(&notice))
-            );
+            let notice = format!("{shown}/{total} cords shown · {} omitted", total - shown);
+            assert!(frame.scene.commands().iter().any(|c| {
+                c.payload().contains(&notice)
+                    && c.payload().contains("F2")
+                    && c.payload().contains("F3")
+            }));
             scene.turn_page(true);
         }
         scene.show_details(true);
