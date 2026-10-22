@@ -224,72 +224,10 @@ struct LiveOwnerBootArgs {
     qmp_socket: Option<PathBuf>,
 }
 
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerActionProofArgs {
-    /// Private ISO produced by `make body provision-conduitos` for a live owner.
-    #[arg(long)]
-    spore: PathBuf,
-    /// Exact routed candidate ID contained in that ISO.
-    #[arg(long)]
-    candidate_id: String,
-    /// Explicit private IPv4 TLS owner listener to receive QEMU guestfwd traffic.
-    #[arg(long)]
-    owner_forward: std::net::SocketAddr,
-    /// Existing empty private directory for QMP, receipts, and before/after PNGs.
-    #[arg(long)]
-    output_dir: PathBuf,
-    /// Pause at both Face checkpoints for a live browser participant.
-    #[arg(long)]
-    coordinate: bool,
-}
-
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerTodoFaceProofArgs {
-    #[command(flatten)]
-    route: LiveOwnerActionProofArgs,
-    /// Exercise four independently selected native Looks through the owner route.
-    #[arg(long)]
-    look_selection: bool,
-    /// Body expected in the exact installed Owner admission receipt.
-    #[arg(long)]
-    expected_body_id: String,
-    /// Installed product executable that owns this Body.
-    #[arg(long)]
-    owner_conduit_bin: PathBuf,
-    /// Installed state directory for an independent current Face read.
-    #[arg(long)]
-    owner_state_dir: PathBuf,
-    /// Expected number of Todo item subjects in the current Face.
-    #[arg(long)]
-    expected_item_count: usize,
-    /// Expected human-facing progress text in the current Todo Face.
-    #[arg(long)]
-    expected_status: String,
-}
-
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerTodoActionProofArgs {
-    #[command(flatten)]
-    face: LiveOwnerTodoFaceProofArgs,
-    /// Exact installed checkpoint directory of a disposable, isolated fork.
-    #[arg(long)]
-    isolated_checkpoint_root: PathBuf,
-    /// Exact selected checkpoint version from the installed Owner selection.
-    #[arg(long)]
-    selected_checkpoint_version_hex: String,
-    /// Original checkpoint directory to inventory before and after the action.
-    #[arg(long)]
-    protected_checkpoint_root: PathBuf,
-    /// Exact available Todo action to require in the Owner Face and serial receipt.
-    #[arg(long)]
-    expected_action_id: String,
-    /// Bounded Tab presses to reach that action through the native Mask.
-    #[arg(long)]
-    tab_count: u8,
-    /// Expected human progress text after the Owner accepts the action.
-    #[arg(long)]
-    expected_after_status: String,
-}
+mod owner_proof_args;
+use owner_proof_args::{
+    LiveOwnerActionProofArgs, LiveOwnerTodoActionProofArgs, LiveOwnerTodoFaceProofArgs,
+};
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 enum ConduitosDemoArch {
