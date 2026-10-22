@@ -11,3 +11,7 @@ Per-page diagnostics retain actual row subject/control/text/bounds/panel geometr
 ## Execution boundary
 
 No Cargo command, compilation, test, QEMU run or cache write has been performed for this preparation. Standalone rustfmt and git whitespace checks only. A baseline failure is a retained regression result, not permission to weaken assertions. After explicit cache handoff, run the `naming_acceptance_tests` filter with the same hosted-tools/native-compositor profile used by the existing native scene suite and one test thread, retaining `--nocapture` output. Run existing field-cluster, actual Crèche and naming-navigation controls alongside it on the final combined source. Source-pinned normal configured before/after PNGs and visual grouping/continuation review remain separate requirements. Generic CPU preparation is not normal fallback execution. This branch does not close #6158.
+
+## Executed successors
+
+Source `9900ecde5bc38df782caf8e321267295b4ec642a` passed all17focused controls, then failed first strict Clippy on a nested-if lint; formatting was unstarted. Equivalent test-only let-chain successor `ad089dab112f9efa935a229dc34cc65137c536a3` passed all17 again plus strict all-target hosted Clippy and full workspace formatting. The [permanent packet](evidence/naming-layout-20261022/README.md) retains original logs/receipts/runners, the first negative, exact finite costs and both independently extracted source identities. All704 CPU row/cost records per source match. No guest, owner-patch improvement or full issue closure claim follows.
