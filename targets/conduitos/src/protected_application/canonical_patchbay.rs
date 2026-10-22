@@ -1,7 +1,10 @@
 //! Root custody of actual acknowledged evidence, never another Patchbay actor.
 use super::*;
+#[path = "canonical_selection.rs"]
+mod selection;
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis, FaceFragment, FaceInteraction, MaskShow};
+use selection::selection_target;
 
 pub(super) struct Publication {
     body: BodyId,
@@ -311,23 +314,4 @@ fn admit_proposal(
     } else {
         Err(Refusal::Malformed)
     }
-}
-
-/// Canonical actor indices enumerate the prepared inventory, retaining sparse
-/// native target slots. A label or a service-returned index grants no selection.
-fn selection_target(graphs: &[Option<Box<PatchbayGraph>>; SLOTS], action: &str) -> Option<usize> {
-    let suffix = action.strip_prefix(patchbay_application::SELECT_PLOT_ACTION_PREFIX)?;
-    if suffix.is_empty()
-        || (suffix.len() > 1 && suffix.starts_with('0'))
-        || !suffix.bytes().all(|byte| byte.is_ascii_digit())
-    {
-        return None;
-    }
-    let index: usize = suffix.parse().ok()?;
-    graphs
-        .iter()
-        .enumerate()
-        .filter(|(_, graph)| graph.is_some())
-        .nth(index)
-        .map(|(target, _)| target)
 }
