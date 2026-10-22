@@ -1,5 +1,6 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
 mod authority;
+mod canonical_patchbay;
 mod graph_facts;
 pub(crate) use graph_facts::project_graph;
 mod projection;
@@ -22,6 +23,9 @@ pub(crate) struct Owner {
     graphs: [[Option<Box<PatchbayGraph>>; SLOTS]; SLOTS],
     selected: [u8; SLOTS],
     topology: Option<Box<PatchbayMaskTopology>>,
+    publications: [Option<Box<canonical_patchbay::Publication>>; SLOTS],
+    publication_sequences: [Option<u64>; SLOTS],
+    canonical_slots: [bool; SLOTS],
 }
 impl Owner {
     pub fn new(initial: [Option<Initial>; SLOTS]) -> Result<Self, Refusal> {
@@ -34,6 +38,9 @@ impl Owner {
             graphs: core::array::from_fn(|_| core::array::from_fn(|_| None)),
             selected: [0; SLOTS],
             topology: None,
+            publications: core::array::from_fn(|_| None),
+            publication_sequences: [None; SLOTS],
+            canonical_slots: [false; SLOTS],
         };
         for (slot, initial) in initial.iter().enumerate() {
             if let Some(Initial::Patchbay { targets, selected }) = initial {
@@ -128,6 +135,9 @@ impl Owner {
             .iter_mut()
             .for_each(|targets| targets.fill_with(|| None));
         self.topology = None;
+        self.publications.fill_with(|| None);
+        self.publication_sequences.fill(None);
+        self.canonical_slots.fill(false);
     }
     fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         if self.failed.get() {
@@ -159,6 +169,7 @@ impl Owner {
         authority::validate_context(kind, &view, &snapshot.context).map_err(|_| Refusal::Malformed)
     }
     fn commit_updated(&mut self, reply: Reply) -> Result<(), Refusal> {
+        self.publications.fill_with(|| None);
         let result = (|| {
             let Reply::Updated { snapshots } = reply else {
                 return Err(Refusal::Malformed);
@@ -188,6 +199,10 @@ impl Owner {
         slot: usize,
         input: &[u8],
     ) -> Result<(Snapshot, Option<Proposal>), Refusal> {
+        if self.canonical_slots.get(slot).copied().unwrap_or(false) {
+            // Legacy events cannot race an acknowledged canonical publication.
+            return Err(Refusal::Order);
+        }
         if input.len() > EVENT_BYTES {
             return Err(Refusal::Bounds);
         }

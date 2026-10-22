@@ -25,7 +25,12 @@ fn basis() -> FaceContributionBasis {
 fn canonical_query_serializes_actual_fragment_and_refusal_preserves_actor_revision() {
     let mut models = models();
     let first = models
-        .patchbay_fragment(0, "body/native".into(), basis(), true)
+        .patchbay_fragment(
+            0,
+            serde_json::from_str("\"body/native\"").unwrap(),
+            basis(),
+            true,
+        )
         .unwrap();
     let (revision, expected) = match &first {
         Reply::PatchbayFragment {
@@ -48,7 +53,12 @@ fn canonical_query_serializes_actual_fragment_and_refusal_preserves_actor_revisi
         }
     ));
     match models
-        .patchbay_fragment(0, "body/native".into(), basis(), true)
+        .patchbay_fragment(
+            0,
+            serde_json::from_str("\"body/native\"").unwrap(),
+            basis(),
+            true,
+        )
         .unwrap()
     {
         Reply::PatchbayFragment {
