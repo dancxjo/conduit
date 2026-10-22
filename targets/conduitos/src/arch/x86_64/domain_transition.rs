@@ -6,6 +6,13 @@ use core::{
     sync::atomic::{AtomicBool, Ordering},
 };
 
+#[cfg(feature = "ordinary-domain-proof")]
+mod cr3_observation;
+#[cfg(feature = "ordinary-domain-proof")]
+pub(super) fn take_cr3_observation() -> Option<[u64; 4]> {
+    cr3_observation::take()
+}
+
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 #[repr(C)]
 pub(super) struct TransitionReturn {
@@ -178,6 +185,7 @@ extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64) -> u64 {
 
 global_asm!(
     include_str!("domain_transition/entry_return.S"),
+    proof_cr3 = const cfg!(feature = "ordinary-domain-proof") as u8,
     user_data = const gdt::USER_DATA_SELECTOR,
     user_code = const gdt::USER_CODE_SELECTOR,
 );

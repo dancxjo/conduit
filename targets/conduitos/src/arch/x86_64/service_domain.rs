@@ -14,6 +14,8 @@ pub struct ServiceDomain {
     instance: u64,
     cost: DomainCost,
     quarantined: bool,
+    #[cfg(feature = "ordinary-domain-proof")]
+    cr3_observation: Option<[u64; 4]>,
 }
 impl ServiceDomain {
     pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
@@ -31,6 +33,8 @@ impl ServiceDomain {
             space,
             instance,
             quarantined: false,
+            #[cfg(feature = "ordinary-domain-proof")]
+            cr3_observation: None,
             cost: DomainCost {
                 reserved_bytes,
                 root_metadata_bytes: core::mem::size_of::<Self>() as u32,
@@ -53,6 +57,11 @@ impl ServiceDomain {
     pub fn setup_clearing_ticks(&self) -> u64 {
         self.space.setup_clearing_ticks()
     }
+    /// Consumes only this object's most recent protected-entry observation.
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn take_cr3_observation(&mut self) -> Option<[u64; 4]> {
+        self.cr3_observation.take()
+    }
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         self.space.exchange()
     }
@@ -70,6 +79,10 @@ impl DomainBackend for ServiceDomain {
         // This backend admits exactly one protected entry per call. The shared
         // RTC mechanism bounds elapsed execution; it does not count semantic
         // compositor operations. The protocol separately bounds each command.
+        #[cfg(feature = "ordinary-domain-proof")]
+        {
+            self.cr3_observation = None;
+        }
         if self.quarantined || maximum_work != 1 {
             return Err(DomainRefusal::InvalidLifecycle);
         }
@@ -85,6 +98,10 @@ impl DomainBackend for ServiceDomain {
             | ServiceProfile::Tls => super::domain_budget::EntryBudget::Draft,
         };
         let result = domain_transition::enter_context_with_budget(self.space.context()?, budget)?;
+        #[cfg(feature = "ordinary-domain-proof")]
+        {
+            self.cr3_observation = domain_transition::take_cr3_observation();
+        }
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;

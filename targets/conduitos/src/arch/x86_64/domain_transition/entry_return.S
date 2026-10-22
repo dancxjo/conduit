@@ -1,3 +1,26 @@
+    // This instrumentation exists only in the ordinary-domain proof appliance.
+    // Both controls retain the same serialized read/reconstruction envelope.
+    .if {proof_cr3}
+    .macro proof_read
+    lfence
+    rdtsc
+    lfence
+    shl rdx, 32
+    or rax, rdx
+    .endm
+    .macro proof_control offset
+    proof_read
+    mov r10, rax
+    proof_read
+    mov [rip + conduitos_cr3_observation + \offset], r10
+    mov [rip + conduitos_cr3_observation + \offset + 8], rax
+    .endm
+    .bss
+    .balign 8
+    .global conduitos_cr3_observation
+conduitos_cr3_observation:
+    .quad 0, 0, 0, 0, 0, 0, 0, 0, 0
+    .endif
 
     .bss
     .balign 8
@@ -23,7 +46,21 @@ conduitos_ordinary_enter:
     mov [rip + conduitos_ordinary_root_rsp], rsp
     mov rax, cr3
     mov [rip + conduitos_ordinary_root_cr3], rax
+    .if {proof_cr3}
+    mov qword ptr [rip + conduitos_cr3_observation], 0
+    // RDX is the admitted frame pointer; RDTSC destroys EDX.
+    mov r11, rdx
+    proof_control 8
+    proof_read
+    mov r10, rax
     mov cr3, rcx
+    proof_read
+    mov [rip + conduitos_cr3_observation + 24], r10
+    mov [rip + conduitos_cr3_observation + 32], rax
+    mov rdx, r11
+    .else
+    mov cr3, rcx
+    .endif
     mov r12, rdi
     mov r13, rsi
     mov r14, rdx
@@ -272,7 +309,21 @@ conduitos_ordinary_return:
     mov rcx, [rip + conduitos_ordinary_root_cr0]
     mov cr0, rcx
     mov rcx, [rip + conduitos_ordinary_root_cr3]
+    .if {proof_cr3}
+    // Exact return value/origin remain in R8/R9 through all counter reads.
+    proof_control 40
+    proof_read
+    mov r10, rax
     mov cr3, rcx
+    proof_read
+    mov [rip + conduitos_cr3_observation + 56], r10
+    mov [rip + conduitos_cr3_observation + 64], rax
+    mov qword ptr [rip + conduitos_cr3_observation], 1
+    mov rax, r8
+    mov rdx, r9
+    .else
+    mov cr3, rcx
+    .endif
     mov rsp, [rip + conduitos_ordinary_root_rsp]
     pop r15
     pop r14

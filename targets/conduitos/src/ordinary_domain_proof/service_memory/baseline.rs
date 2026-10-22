@@ -1,6 +1,6 @@
 //! Fixed proof-appliance baseline, not calibrated time or a product benchmark.
-use super::{IMAGE, exchange, installed, request};
-use crate::ordinary_domain_baseline_format::{self as format, RECORDS, Sample, TRIALS};
+use super::{exchange, installed, request, IMAGE};
+use crate::ordinary_domain_baseline_format::{self as format, Sample, RECORDS, TRIALS};
 use crate::{
     arch,
     protected_region::{DomainBackend, DomainFault, DomainReturn},
@@ -8,6 +8,7 @@ use crate::{
 };
 #[path = "../../native_observation/raw_counter.rs"]
 mod counter;
+mod cr3_format;
 
 fn elapsed(start: u64) -> u64 {
     counter::read()
@@ -24,7 +25,12 @@ fn quarantine(domain: &mut arch::ServiceDomain) -> u64 {
     domain.quarantine();
     elapsed(start)
 }
-fn sample(domain: &mut arch::ServiceDomain, mode: u8, case: u8, trial: usize) -> Sample {
+fn sample(
+    domain: &mut arch::ServiceDomain,
+    mode: u8,
+    case: u8,
+    trial: usize,
+) -> (Sample, [u64; 4]) {
     let payload = [b'a'; super::frame::TEXT_CAPACITY];
     let length = match case {
         0 | 3 | 4 => 0,
@@ -58,6 +64,9 @@ fn sample(domain: &mut arch::ServiceDomain, mode: u8, case: u8, trial: usize) ->
     if result != Ok(expected) {
         super::refuse("baseline-return");
     }
+    let cr3 = domain
+        .take_cr3_observation()
+        .unwrap_or_else(|| super::refuse("baseline-cr3-missing-or-regressed"));
     let after = domain.cost();
     let mut response = 0;
     if case < 3 {
@@ -76,22 +85,26 @@ fn sample(domain: &mut arch::ServiceDomain, mode: u8, case: u8, trial: usize) ->
     } else if domain.exchange().is_ok() || domain.enter(1).is_ok() {
         super::refuse("baseline-fault-not-terminal");
     }
-    Sample {
-        mode,
-        case,
-        trial,
-        instance: domain.instance(),
-        request: request_ticks,
-        entry,
-        response,
-        interrupts: after.interrupt_entries - before.interrupt_entries,
-        preemptions: after.preemptions - before.preemptions,
-        ..Sample::default()
-    }
+    (
+        Sample {
+            mode,
+            case,
+            trial,
+            instance: domain.instance(),
+            request: request_ticks,
+            entry,
+            response,
+            interrupts: after.interrupt_entries - before.interrupt_entries,
+            preemptions: after.preemptions - before.preemptions,
+            ..Sample::default()
+        },
+        cr3,
+    )
 }
 pub(super) fn run() {
     let image = ServiceImage::compositor(IMAGE).unwrap_or_else(|_| super::refuse("baseline-image"));
     let mut rows = [Sample::default(); RECORDS];
+    let mut cr3_rows = [[0u64; 4]; RECORDS];
     let mut next = 0;
     let mut overhead = [0u64; TRIALS];
     for value in &mut overhead {
@@ -101,16 +114,17 @@ pub(super) fn run() {
     for case in 0..3 {
         for trial in 0..TRIALS {
             let (mut domain, setup) = install(&image);
-            let mut row = sample(&mut domain, 0, case, trial);
+            let (mut row, cr3) = sample(&mut domain, 0, case, trial);
             row.setup = setup;
             row.setup_clearing = domain.setup_clearing_ticks();
             row.teardown = quarantine(&mut domain);
+            cr3_rows[next] = cr3;
             rows[next] = row;
             next += 1;
         }
         let (mut domain, setup) = install(&image);
         for trial in 0..TRIALS {
-            let mut row = sample(&mut domain, 1, case, trial);
+            let (mut row, cr3) = sample(&mut domain, 1, case, trial);
             if trial == 0 {
                 row.setup = setup;
                 row.setup_clearing = domain.setup_clearing_ticks();
@@ -118,18 +132,20 @@ pub(super) fn run() {
             if trial == TRIALS - 1 {
                 row.teardown = quarantine(&mut domain);
             }
+            cr3_rows[next] = cr3;
             rows[next] = row;
             next += 1;
         }
     }
     for case in 3..5 {
         let (mut domain, setup) = install(&image);
-        let mut row = sample(&mut domain, 0, case, 0);
+        let (mut row, cr3) = sample(&mut domain, 0, case, 0);
         row.setup = setup;
         row.setup_clearing = domain.setup_clearing_ticks();
         // Fault entry already includes automatic quarantine. This is only the
         // subsequent idempotent call; do not subtract it from entry time.
         row.teardown = quarantine(&mut domain);
+        cr3_rows[next] = cr3;
         rows[next] = row;
         next += 1;
     }
@@ -144,8 +160,11 @@ pub(super) fn run() {
     let serial = format::header([basic.eax, basic.ecx, basic.edx], invariant, overhead)
         .unwrap_or_else(|_| super::refuse("baseline-serial"));
     arch::early_write(serial.as_bytes());
-    for row in rows {
+    for (row, cr3) in rows.into_iter().zip(cr3_rows) {
         let serial = format::sample(row).unwrap_or_else(|_| super::refuse("baseline-serial"));
+        arch::early_write(serial.as_bytes());
+        let serial =
+            cr3_format::sample(row, cr3).unwrap_or_else(|_| super::refuse("baseline-cr3-serial"));
         arch::early_write(serial.as_bytes());
         if row.mode == 0 || row.trial == 0 {
             let serial = format::setup_component(row)
