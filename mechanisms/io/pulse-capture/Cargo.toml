@@ -1,0 +1,24 @@
+[package]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot", optional = true }
+
+conduit-kernel = { path = "../../../architecture/kernel", optional = true }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
+
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+
+[dev-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+
+[features]
+plot-catalog = ["dep:conduit-plot"]
+host-call = ["dep:conduit-kernel", "dep:conduit-plan-lowering"]

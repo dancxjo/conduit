@@ -1,0 +1,16 @@
+# Resource needs are finite requests, not claims of installed providers.
+# Physical Source-decoder preparation peaked at 79,004 bytes on the Pico.
+# The 96 KiB preparation ceiling still needs complete-Plan admission.
+# Only USB is currently registered in the RP2040 make package. GPIO pulse
+# capture, monotonic time and the AP/browser Line still need installed Backs.
+host pico-w-environment {
+  schema = 1
+  target = {architecture: "thumbv6m", machine: "pico-w", board: "pico-w"}
+  base = {kind: "serial/text", implementation: "pico/usb-cdc@1"}
+  need = {id: "environment/sensor-data-gp2", class: "gpio/open-drain", slots: 1, bytes: 64}
+  need = {id: "environment/sampling-clock", class: "clock/monotonic", slots: 1, bytes: 64}
+  need = {id: "environment/recent-observations", class: "storage/bounded-ram", slots: 1024, bytes: 32768}
+  need = {id: "environment/browser-line", class: "network/access-point", slots: 1, bytes: 16384}
+  need = {id: "environment/display", class: "face/seven-segment", slots: 1, bytes: 64}
+  limits = {static_memory_bytes: 131072, heap_arena_bytes: 98304, queue_items: 128, buffered_bytes: 65536, active_instances: 32, operation_slots: 32, timer_slots: 16, line_sessions: 4, evidence_items: 128}
+}

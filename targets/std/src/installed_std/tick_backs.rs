@@ -11,8 +11,7 @@ use super::contract::{
 use conduit_core::{PlannedGear, PortDirection};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
-    BoundedValueRef, CanonicalValue, Failure, FailureCode, HostCallDisposition, HostCallId, PortId,
-    RequestId, ValueRef, ValueStorage,
+    BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
 
 pub(super) static TICK_FACTORY: BackFactory = BackFactory {
@@ -27,126 +26,7 @@ pub(super) static EVERY_FACTORY: BackFactory = BackFactory {
     prepare: prepare_every,
 };
 
-pub(super) struct TickBack {
-    values: Vec<ValueRef>,
-    waits: Vec<ValueRef>,
-    next: usize,
-    pending: Option<RequestId>,
-    recurring: bool,
-    sequence: u64,
-    cancelled: bool,
-}
-
-impl<const PORTS: usize> StepBack<PORTS> for TickBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if self.cancelled {
-            return StepOutcome::Fail(tick_failure(FailureCode::Cancelled, 2));
-        }
-        if let Some((request, outcome)) = io.host_completion() {
-            if self.pending != Some(request)
-                || outcome.disposition != HostCallDisposition::Completed
-                || outcome.output.is_some()
-                || outcome.failure.is_some()
-            {
-                return StepOutcome::Fail(tick_failure(FailureCode::InvalidLifecycle, 2));
-            }
-            if !io.output_ready(PortId(0)) {
-                return StepOutcome::Await;
-            }
-            let output = if self.recurring {
-                let Some(next_sequence) = self.sequence.checked_add(1) else {
-                    return StepOutcome::Fail(tick_failure(
-                        FailureCode::IdentityCapacityExhausted,
-                        1,
-                    ));
-                };
-                if u32::try_from(next_sequence).is_err() {
-                    return StepOutcome::Fail(tick_failure(
-                        FailureCode::IdentityCapacityExhausted,
-                        1,
-                    ));
-                }
-                self.sequence = next_sequence;
-                None
-            } else {
-                let Some(value) = self.values.get(self.next).copied() else {
-                    return StepOutcome::Fail(tick_failure(FailureCode::InvalidLifecycle, 1));
-                };
-                self.next += 1;
-                Some(value)
-            };
-            io.consume_host_completion()
-                .expect("observed Tick wait completion");
-            if let Some(value) = output {
-                io.send(PortId(0), value).expect("ready Tick output");
-            } else {
-                io.send_canonical(
-                    PortId(0),
-                    CanonicalValue::new(&encode_tick(self.sequence - 1))
-                        .expect("Tick fits derived-value bound"),
-                )
-                .expect("ready recurring Tick output");
-            }
-            self.pending = None;
-            return if self.request_wait_step(io) {
-                StepOutcome::Progress
-            } else if self.recurring {
-                StepOutcome::Fail(tick_failure(FailureCode::IdentityCapacityExhausted, 1))
-            } else {
-                StepOutcome::Complete
-            };
-        }
-        if self.pending.is_none() {
-            return if self.request_wait_step(io) {
-                StepOutcome::Progress
-            } else {
-                StepOutcome::Complete
-            };
-        }
-        StepOutcome::Await
-    }
-
-    fn cancel(&mut self) {
-        self.pending = None;
-        self.cancelled = true;
-    }
-}
-
-impl TickBack {
-    fn request_wait_step<const PORTS: usize>(&mut self, io: &mut StepIo<PORTS>) -> bool {
-        let index = if self.recurring { 0 } else { self.next };
-        let Some(wait) = self.waits.get(index).copied() else {
-            return false;
-        };
-        let request = if self.recurring {
-            let Ok(request) = u32::try_from(self.sequence) else {
-                return false;
-            };
-            RequestId(request)
-        } else {
-            let Ok(request) = u32::try_from(self.next) else {
-                return false;
-            };
-            RequestId(request)
-        };
-        let input = BoundedValueRef::new(wait, TICK_ENCODED_LEN)
-            .expect("wait duration is exactly eight bytes");
-        io.request_host_call(request, HostCallId(0), input)
-            .expect("single Tick wait Host Call");
-        self.pending = Some(request);
-        true
-    }
-}
-
-fn tick_failure(code: FailureCode, detail: u16) -> Failure {
-    Failure { code, detail }
-}
-
-impl TickBack {
-    pub(super) fn allocation_capacity(&self) -> usize {
-        self.values.capacity() + self.waits.capacity()
-    }
-}
+pub(super) use conduit_time::TickBack;
 
 fn tick_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_tick_placement(placement)?;
@@ -215,15 +95,7 @@ fn prepare_every(
     let wait = values
         .store(&configuration.period_ms.to_le_bytes())
         .map_err(|error| format!("store recurring tick wait: {error:?}"))?;
-    Ok(InstalledBack::Tick(TickBack {
-        values: Vec::new(),
-        waits: vec![wait],
-        next: 0,
-        pending: None,
-        recurring: true,
-        sequence: 0,
-        cancelled: false,
-    }))
+    Ok(InstalledBack::Tick(TickBack::recurring(wait)))
 }
 
 fn prepare_tick_values(
@@ -246,15 +118,9 @@ fn prepare_tick_values(
                 .map_err(|error| format!("store tick wait: {error:?}"))?,
         );
     }
-    Ok(InstalledBack::Tick(TickBack {
-        values: ticks,
-        waits,
-        next: 0,
-        pending: None,
-        recurring: false,
-        sequence: 0,
-        cancelled: false,
-    }))
+    Ok(InstalledBack::Tick(
+        TickBack::finite(ticks, waits).expect("prepared finite ticks"),
+    ))
 }
 
 fn validate_tick_placement(placement: &PlannedGear) -> Result<(), String> {
@@ -405,15 +271,7 @@ mod tests {
 
     #[test]
     fn cancelled_tick_rejects_a_late_timer_completion() {
-        let mut operation = TickBack {
-            values: vec![value(0)],
-            waits: vec![value(1)],
-            next: 0,
-            pending: None,
-            recurring: false,
-            sequence: 0,
-            cancelled: false,
-        };
+        let mut operation = TickBack::finite(vec![value(0)], vec![value(1)]).unwrap();
         let mut io = StepIo::test_frame([None], [false], [Some(TICK_ENCODED_LEN)], None, 8);
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
@@ -450,15 +308,7 @@ mod tests {
     #[test]
     fn recurring_every_rearms_fixed_storage_past_tick_four() {
         let wait = value(0);
-        let mut operation = TickBack {
-            values: Vec::new(),
-            waits: vec![wait],
-            next: 0,
-            pending: None,
-            recurring: true,
-            sequence: 0,
-            cancelled: false,
-        };
+        let mut operation = TickBack::recurring(wait);
         let mut io = StepIo::test_frame([None], [false], [Some(TICK_ENCODED_LEN)], None, 8);
         assert_eq!(
             operation.step(&mut io, &StepInputBytes::test_frame([None], None)),

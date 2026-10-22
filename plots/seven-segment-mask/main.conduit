@@ -1,0 +1,18 @@
+# An ordinary Mask-role Plot. The selected renderer owns the admitted finite
+# Look and seven-segment Show payload; this Source selects no controller or pin.
+plot seven-segment (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    spread: face/tee("Environmental Face")
+    render: face/renderer("Environmental display")
+    human: face/interaction("Display interaction")
+
+    face >> spread.source
+    spread.face >> render.face
+    spread.face >> human.face
+    render.show >> human.show
+    render.show >> show
+    human.interaction >> interaction
+}

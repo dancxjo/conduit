@@ -9,6 +9,7 @@ pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeCon
 mod generate;
 mod generate_conversion;
 mod generate_direct;
+mod generate_forms;
 mod generate_invariant;
 #[cfg(test)]
 mod generate_layout_tests;
@@ -45,6 +46,7 @@ pub use value::{
 pub enum NativeFormRefusal {
     WrongLength { actual: usize },
     InvalidTag { actual: u8 },
+    ReservedBits { actual: u8 },
 }
 
 mod external_binding_validation;

@@ -3,7 +3,9 @@
 use super::Parser;
 use crate::prelude::*;
 use crate::surface_lex::{is_name, is_operation};
-use crate::syntax::{TypeFormMappingSyntax, TypeFormStorageSyntax, TypeFormSyntax};
+use crate::syntax::{
+    QuantityFormSyntax, TypeFormMappingSyntax, TypeFormStorageSyntax, TypeFormSyntax,
+};
 use crate::{PlotError, Span};
 
 pub(super) fn parse_type_form(
@@ -20,11 +22,32 @@ pub(super) fn parse_type_form(
     let (value_type, storage) = realization
         .split_once(" as ")
         .ok_or_else(|| parser.invalid_statement(header, start))?;
+    let quantity = if let Some((integer, details)) = storage.split_once('(') {
+        if !matches!(integer, "i16le" | "u16le") {
+            return Err(parser.invalid_statement(header, start));
+        }
+        let details = details
+            .strip_suffix(')')
+            .ok_or_else(|| parser.invalid_statement(header, start))?;
+        let (unit, exponent) = details
+            .split_once(',')
+            .ok_or_else(|| parser.invalid_statement(header, start))?;
+        Some(QuantityFormSyntax {
+            unit: parser.spanned_at(unit.trim(), header, start),
+            exponent: exponent
+                .trim()
+                .parse()
+                .map_err(|_| parser.invalid_statement(header, start))?,
+        })
+    } else {
+        None
+    };
     let first_discriminant = match storage.strip_prefix("u8 from ") {
         Some(value) => value
             .parse::<u8>()
             .map_err(|_| parser.invalid_statement(header, start))?,
-        None if storage == "u8" => 0,
+        None if matches!(storage, "u8" | "u8 bits") => 0,
+        None if quantity.is_some() => 0,
         None => return Err(parser.invalid_statement(header, start)),
     };
     if !is_operation(name) || !is_name(value_type) {
@@ -59,7 +82,16 @@ pub(super) fn parse_type_form(
     Ok(TypeFormSyntax {
         name,
         value_type,
-        storage: TypeFormStorageSyntax::U8,
+        storage: if storage == "u8 bits" {
+            TypeFormStorageSyntax::U8Bits
+        } else if storage.starts_with("i16le(") {
+            TypeFormStorageSyntax::I16Le
+        } else if storage.starts_with("u16le(") {
+            TypeFormStorageSyntax::U16Le
+        } else {
+            TypeFormStorageSyntax::U8
+        },
+        quantity,
         first_discriminant,
         mappings,
         span: parser.span(start, end.start + end.text.len()),

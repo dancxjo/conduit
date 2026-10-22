@@ -26,6 +26,7 @@ pub struct TypeFormSyntax {
     pub name: SpannedText,
     pub value_type: SpannedText,
     pub storage: TypeFormStorageSyntax,
+    pub quantity: Option<QuantityFormSyntax>,
     /// First iota discriminant. Defaults to zero.
     pub first_discriminant: u8,
     /// Empty means semantic variant order. Otherwise this is iota order.
@@ -36,6 +37,15 @@ pub struct TypeFormSyntax {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TypeFormStorageSyntax {
     U8,
+    U8Bits,
+    I16Le,
+    U16Le,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuantityFormSyntax {
+    pub unit: SpannedText,
+    pub exponent: i16,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,0 +1,40 @@
+# Five received octets, most-significant bit first within each octet.
+# A short capture retains its actual length; unused storage is not a sample.
+# GPIO, pulse capture, clocks, cadence and attachment belong to the selected Host.
+type Dht11Capture = {
+    length: U8
+    wire: collection U8 = 5
+}
+type Dht11Observation = {
+    temperature: Temperature
+    humidity: Ratio
+}
+# Repr choices: the Type remains Temperature or Ratio in every representation.
+form device/dht11-temperature = Temperature as i16le(°C, -1)
+form device/dht11-humidity = Ratio as u16le(%, -1)
+type Dht11DecodedFrame = {
+    temperature: I128
+    humidity: I128
+}
+type Dht11Failure =
+    short-frame U8
+    | malformed-length U8
+    | checksum
+    | invalid-payload
+type Dht11Result =
+    observation Dht11Observation
+    | unavailable Dht11Failure
+
+# The checksum uses the low eight bits of the sum, not checked U8 addition.
+# Decimal nibbles are tenths. Bit 7 of the temperature's fractional octet is
+# the negative flag; its integral component follows the DHT11 negative encoding.
+# Reserved bits, invalid decimal digits, and readings outside the extended
+# DHT11 measurement range refuse rather than producing numeric observations.
+type Dht11DecodedResult =
+    frame Dht11DecodedFrame
+    | unavailable Dht11Failure
+
+plot dht11-decode (
+    capture: Dht11Capture...| >> result: Dht11DecodedResult...|
+) = (.length < 5 ? unavailable(short-frame(.length)) : .length > 5 ? unavailable(malformed-length(.length)) : ((value/u64(.wire.0) + value/u64(.wire.1) + value/u64(.wire.2) + value/u64(.wire.3)) & 255) != value/u64(.wire.4) ? unavailable(checksum(empty)) : (.wire.1 > 9 || (.wire.3 & 112) != 0 || (.wire.3 & 15) > 9 || .wire.0 < 5 || .wire.0 > 95 || (.wire.0 == 95 && .wire.1 != 0) || ((.wire.3 & 128) == 0 && (.wire.2 > 60 || (.wire.2 == 60 && (.wire.3 & 15) != 0))) || ((.wire.3 & 128) != 0 && .wire.2 > 19)) ? unavailable(invalid-payload(empty)) : frame({ temperature: ((.wire.3 & 128) != 0 ? -10 - value/i128(.wire.2) * 10 : value/i128(.wire.2) * 10) + value/i128(.wire.3 & 15), humidity: value/i128(.wire.0) * 10 + value/i128(.wire.1) }))
+

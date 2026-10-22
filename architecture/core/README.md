@@ -27,7 +27,7 @@ depends on semantic, application, target, or proof packages.
 | `implementation.rs` | universal architecture | Exact implementation and realization offers, distinct from availability and active instances. |
 | `interop.rs` | universal architecture | Exact directional bridge identity, bounded mapping, reflection fencing, and machine-readable refusal without granting sibling authority. |
 | `activation_contract.rs` | universal architecture | Exact bounded each, select, and fold coordinator contracts, including finite total item bounds and terminal laws. |
-| `plan_fingerprint.rs` | universal architecture | Canonical fragment and plan commitment encoding; preserves immutable realization identity. |
+| `plan_fingerprint.rs` and children | universal architecture | Canonical fragment and plan commitment encoding; incremental fragment hashing preserves immutable realization identity. |
 | `plan_realization.rs` | universal architecture | Exact reusable back identity retained in an expanded plot and plan. |
 | `planned_activation.rs` | universal architecture | Exact bounded activation of one recursively verified selected Plan, including owner, Value fronts, finite pressure, effect multiplicity, terminal and cancellation laws, and per-activation Sign storage. |
 | `planned_gear.rs` | universal architecture | Checked named-field construction and minimum identity validation for one fully selected Gear in a Plan. |
@@ -60,6 +60,7 @@ depends on semantic, application, target, or proof packages.
 | `ieee_float.rs` | generic value mechanism | Exact IEEE-754 binary32/binary64 bit identity, canonical little-endian encoding, finite classification, and total ordering without target-native equality drift. |
 | `kind_effects.rs` | universal architecture | Reviewed semantic effect facts used to admit pure Kind calls without inferring behavior from names. |
 | `retry_evidence.rs` | universal architecture | Finite provider-owned retained evidence for one exact semantic operation, prior realization, and retry law; proves eligibility without inventing a retry loop or treating Step failure as semantic terminal truth. |
+| `quantity_form.rs` | generic value mechanism | Exact finite decimal quantity representations; validates family, role, unit, scale and range without defining display policy. |
 | `quantity.rs` and children | generic value mechanism | One canonical bounded decimal Quantity codec carrying its full Unit descriptor, exact literals, physical comparison and rational conversion. |
 | `physical_definition.rs` and children | generic value mechanism | Self-contained immutable family, dimension, role and Unit capsules admitted from authoritative Conduitese definitions; bounded exact scalar and explicit prefix policies. |
 | `quantity_suffix.rs` | generic value mechanism | Borrowed source evidence checked against the embedded Unit descriptor, with generated built-in convenience resolution. |

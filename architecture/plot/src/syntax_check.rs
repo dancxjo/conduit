@@ -78,8 +78,12 @@ pub(crate) fn check_document(
     glyph_notation_scope.require_used(&used)?;
     let (native_types, checked_catalog) =
         crate::native_type::check_native_types_borrowed(&document.types, &aliased_catalog)?;
-    let type_forms =
-        crate::type_form::check_type_forms(&document.type_forms, &document.types, &native_types)?;
+    let type_forms = crate::type_form::check_type_forms(
+        &document.type_forms,
+        &document.types,
+        &native_types,
+        &checked_catalog,
+    )?;
     let catalog = &checked_catalog;
     let lexical_plots = lexical_plots::lower(&document.plots)?;
     let unresolved_plot_signatures = plot_signatures(&lexical_plots)?;

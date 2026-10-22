@@ -154,45 +154,10 @@ pub struct CheckedSyntaxDocument {
     pub(crate) exact_initial_info: BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 }
 
-/// One checked compatibility Form, distinct from semantic Type identity.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedTypeForm {
-    pub name: String,
-    pub compatibility_id: String,
-    pub value_type_name: String,
-    pub value_type: conduit_core::KindId,
-    pub storage: CheckedTypeFormStorage,
-    /// Exact iota order, either derived from Type order or explicitly authored.
-    pub mappings: Vec<CheckedTypeFormMapping>,
-    pub invalid_refusal: CheckedTypeFormRefusal,
-    pub exact_bytes: u16,
-    pub maximum_bytes: u16,
-    pub maximum_decode_steps: u16,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckedTypeFormStorage {
-    U8,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CheckedTypeFormRefusal {
-    InvalidTag,
-}
-
-impl CheckedTypeFormRefusal {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::InvalidTag => "invalid_tag",
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CheckedTypeFormMapping {
-    pub variant: String,
-    pub discriminant: u8,
-}
+mod type_form;
+pub use type_form::{
+    CheckedTypeForm, CheckedTypeFormMapping, CheckedTypeFormRefusal, CheckedTypeFormStorage,
+};
 
 /// One checked source-owned semantic Type and its exact finite representation.
 #[derive(Debug, Clone, PartialEq, Eq)]

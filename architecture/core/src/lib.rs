@@ -42,6 +42,7 @@ mod preparation;
 mod primitive_info;
 mod quantity;
 mod quantity_configuration;
+mod quantity_form;
 pub use physical_definition::*;
 mod dimension;
 mod quantity_suffix;
@@ -126,6 +127,7 @@ pub use preparation::*;
 pub use primitive_info::*;
 pub use quantity::*;
 pub use quantity_configuration::*;
+pub use quantity_form::*;
 
 pub use dimension::*;
 pub use quantity_suffix::*;

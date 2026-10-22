@@ -7,11 +7,14 @@ use crate::syntax::{TypeDefinitionSyntax, TypeFormStorageSyntax, TypeFormSyntax,
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{kind_id, StructuredInfoTypeShape};
 use sha2::{Digest, Sha256};
+mod boolean_bits;
+mod quantity;
 
 pub(crate) fn check_type_forms(
     declarations: &[TypeFormSyntax],
     type_declarations: &[TypeSyntax],
     native_types: &[CheckedNativeType],
+    catalog: &crate::StartupCatalog,
 ) -> Result<Vec<CheckedTypeForm>, SyntaxCheckDiagnostic> {
     let types = native_types
         .iter()
@@ -29,6 +32,10 @@ pub(crate) fn check_type_forms(
                 ),
             ));
         }
+        if declaration.quantity.is_some() {
+            checked.push(quantity::check(declaration, catalog)?);
+            continue;
+        }
         let value_type = types
             .get(declaration.value_type.text.as_str())
             .ok_or_else(|| {
@@ -41,6 +48,10 @@ pub(crate) fn check_type_forms(
                     ),
                 )
             })?;
+        if declaration.storage == TypeFormStorageSyntax::U8Bits {
+            checked.push(boolean_bits::check(declaration, value_type)?);
+            continue;
+        }
         let cases = match value_type.value_type.shape() {
             StructuredInfoTypeShape::Variant { cases, .. } => cases,
             _ => {
@@ -134,6 +145,12 @@ pub(crate) fn check_type_forms(
             .collect::<Result<Vec<_>, SyntaxCheckDiagnostic>>()?;
         let storage = match declaration.storage {
             TypeFormStorageSyntax::U8 => CheckedTypeFormStorage::U8,
+            _ => {
+                return Err(diagnostic(
+                    declaration.span,
+                    "quantity storage requires a quantity Form".into(),
+                ))
+            }
         };
         let maximum_decode_steps = u16::try_from(mappings.len() + 1)
             .map_err(|_| diagnostic(declaration.span, "form decode work exceeds bounds".into()))?;

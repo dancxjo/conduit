@@ -1,0 +1,20 @@
+# Command meaning belongs to Source. Selected open-drain GPIO supplies edges,
+# ACK observation, electrical ownership and finite timeouts, outside this Plot.
+type Tm1637Frame = {
+    registers: collection U8 = 6
+    brightness: U8
+    enabled: Boolean
+}
+type Tm1637Packet = {
+    length: U8
+    wire: collection U8 = 7
+}
+type Tm1637Packets = {
+    packets: collection Tm1637Packet = 3
+}
+type Tm1637PacketResult =
+    packets Tm1637Packets
+    | invalid-brightness
+plot tm1637-packets (
+    frame: Tm1637Frame >> result: Tm1637PacketResult
+) = (.brightness > 7 ? invalid-brightness(empty) : packets({ packets: [{ length: 1, wire: [64, 0, 0, 0, 0, 0, 0] }, { length: 7, wire: [192, .registers.0, .registers.1, .registers.2, .registers.3, .registers.4, .registers.5] }, { length: 1, wire: [(.enabled ? 136 : 128) | .brightness, 0, 0, 0, 0, 0, 0] }] }))

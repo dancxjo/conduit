@@ -1,0 +1,12 @@
+[package]
+name = "conduit-rp2040-tm1637"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-tm1637-wire = { path = "../../../mechanisms/io/tm1637" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["rp2040", "critical-section-impl", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }

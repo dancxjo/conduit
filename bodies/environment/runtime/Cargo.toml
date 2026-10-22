@@ -1,0 +1,34 @@
+[package]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel" }
+conduit-plot = { path = "../../../architecture/plot" }
+conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["kernel-step"] }
+
+[build-dependencies]
+conduit-plot = { path = "../../../architecture/plot" }
+
+[dev-dependencies]
+conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
+conduit-environment-face = { path = "../face" }
+conduit-face = { path = "../../../semantics/face", default-features = false }
+conduit-seven-segment-mask = { path = "../../../plots/seven-segment-mask" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
+conduit-planner = { path = "../../../architecture/planner" }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-embedded-build = { path = "../../../make/embedded-build" }
+
+# Match the workspace's Source-generator profile: these are preparation tools.
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.test.build-override]
+opt-level = 1
