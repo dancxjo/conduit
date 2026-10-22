@@ -490,3 +490,7 @@ mod encounter;
 #[cfg(test)]
 #[path = "native_face_scene/naming_acceptance_tests.rs"]
 mod naming_acceptance_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/cross_mask_graph_tests.rs"]
+mod cross_mask_graph_tests;
