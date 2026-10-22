@@ -1819,3 +1819,35 @@ keyboard-choice and typed Edit handoffs, admitted Fore indices and complete
 Face graph preservation. Compilation passed after the final source change;
 no platform proof or CI jobs ran. A prior five-test focused run also passed,
 but the final seventeen-test run owns this source's reported behavior.
+
+### 2026-10-22: delivery audit against actual dev and retained pagination proof
+
+Direct comparison with dev624baf562 establishes that #6205 already delivered
+sole-region/full-width continuation, empty-lane collapse and wider retry to dev.
+The remaining panel-file difference on this recovery branch is selected
+Typography plumbing. Do not duplicate the pagination repair in another PR.
+PR6205 is merged at a2300af6e with Candidate quick/admission, all five native
+target checks, complete and candidate successful (unit intentionally skipped).
+On a separate clean checkout of exact dev624baf562, all three continuation tests
+pass: sole populated region stays full-width, naming help/action/value move as
+one cluster, and unfit narrow rows retry wider while unfit full-width rows refuse.
+No source modification or new guest run was needed for that result.
+
+The remaining #6158 record is more advanced than earlier checkpoint wording
+suggests. Origin branch `prep/6158-bounded-control-captures`, exact tip4435c5386,
+retains source/image-bound before and after controls packets. The after packet
+names executed Source eb77aad03 at1280x800 and640x480; its documentation preserves
+25 original PNGs, all primary/Details page receipts, complete finite-cost and
+negative evidence. The issue's existing detailed review is comment6334065259.
+These are existing records, not executions performed or independently reverified
+in this delivery audit. Unknown original attachment Source identity remains
+explicit; reproduced before/after and guest/CPU specimens retain distinct IDs.
+
+The proof/test branch is not merged or represented by an open PR. Its delta is
+23 non-packet paths (19 target files, four audit documents), plus retained packet
+files. The product layout repair is already in dev; the outstanding delivery
+slice is the viewport/controls xtask harness, naming acceptance tests, documented
+entrance and source-pinned evidence. This branch must be reviewed as that slice,
+without absorbing the separate 300-file native-local recovery branch. The
+existing branch is preserved unchanged; no new PR/CI or product-image work was
+started. This audit does not close #6158 or replace its remaining acceptance.
