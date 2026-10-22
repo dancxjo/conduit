@@ -139,54 +139,6 @@ export async function startApplication(application) {
   let thermostatSequence = 0;
   let thermostatFace = null;
   const surfaces = new Map();
-  let patchbaySequence = 0;
-  const renderPatchbay = async ({ observation, root: maskRoot, signal }) => {
-    const active = play;
-    const publication = observation.publication;
-    if (!active || !publication || signal.aborted || !maskRoot.isConnected) throw new Error('Patchbay presentation is no longer current');
-    let component = maskRoot.querySelector('conduit-owner-face');
-    if (!component) {
-      component = document.createElement('conduit-owner-face');
-      maskRoot.replaceChildren(component);
-    }
-    const supportsAction = action => [
-      'patchbay/select-plot@1', 'patchbay/edit-subject@1', 'patchbay/change-masks@1',
-    ].includes(action.intent);
-    const invoke = async ({ view, action, arguments: actionArguments }) => {
-      component.disabled = true;
-      try {
-        const accepted = await active.submitPatchbayFaceAction({ view, actionId: action.identity,
-          target: action.target, arguments: actionArguments, sequence: ++patchbaySequence });
-        if (play !== active || signal.aborted) return;
-        const effect = accepted.publication.effect;
-        const next = active.refreshPatchbayFace({ body_plan_id: accepted.body_plan_id,
-          active_play_id: accepted.active_play_id, show_id: effect.show_id,
-          face_id: effect.face_id, face_revision: effect.face_revision });
-        await renderPatchbay({ observation: next, root: maskRoot, signal });
-        await current();
-      } catch (error) {
-        checkStatus.textContent = `${error.code ?? 'PatchbayRefused'}: ${error.message}`;
-        // Restore only the current Rust observation; never replay the action.
-        if (play === active && !signal.aborted) {
-          component.show(active.patchbayObservation().publication.view, { invoke, supportsAction });
-          component.disabled = false;
-        }
-      }
-    };
-    component.show(publication.view, { invoke, supportsAction });
-    if (publication.view.show_state === 'prepared') {
-      // A retained but hidden resident is not an acknowledged presentation.
-      if (!component.checkVisibility({ visibilityProperty: true })) return;
-      if (play !== active || signal.aborted || !component.isConnected) throw new Error('Patchbay DOM was removed before acknowledgement');
-      const effect = publication.effect;
-      const shown = active.acknowledgePatchbayFace({ show_id: effect.show_id,
-        manifestation_id: effect.manifestation_id, mask_plan_id: effect.mask_plan_id,
-        active_play_id: effect.mask_play.active_play_id, placement_id: effect.placement_id,
-        face_id: effect.face_id, face_revision: effect.face_revision });
-      component.show(shown.publication.view, { invoke, supportsAction });
-    }
-    component.disabled = false;
-  };
   const renderThermostat = async face => {
     const active = play;
     await readTruth();
@@ -262,7 +214,7 @@ export async function startApplication(application) {
     playFailure = null;
     thermostatFace = null; thermostatSequence = 0;
     surface.replaceChildren(); surfaces.clear();
-    play = await body.wake({ root: surface, onPatchbayPublication: renderPatchbay, onPatchbayOwnerRequest: ({ observation, signal }) => {
+    play = await body.wake({ root: surface, onPatchbayOwnerRequest: ({ observation, signal }) => {
       const revision = observation.pending_owner_request.application_revision;
       const evidenceId = `handbook/editor/${revision}`;
       if (signal.aborted) return { outcome: 'Cancelled', evidenceId };

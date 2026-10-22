@@ -155,6 +155,10 @@ export class BrowserBodyParticipation {
     proposal: Readonly<Record<string, unknown>>;
     inputTarget: Element;
     outputRoot: Element;
+    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal; play: BrowserPlay }>) => void | Promise<void>;
+    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
+      Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
+      | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
     externallyManagedPlanIds?: readonly string[];
   }): BrowserBodyPreparation;
   close(): number;
@@ -273,7 +277,7 @@ export class BrowserBody {
   wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
   }>) => Element | ShadowRoot;
-    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal }>) => void | Promise<void>;
+    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal; play: BrowserPlay }>) => void | Promise<void>;
     onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
       Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
       | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;

@@ -1,3 +1,4 @@
+import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
@@ -414,6 +415,8 @@ export class BrowserBodyParticipation {
         || proposal?.plan?.body_id !== credential.body_id) {
       throw new Error("current external Body participation does not match the proposal");
     }
+    const preparation = { proposal, owner: null, play: null };
+    const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: preparation.play });
     const owner = acquireBrowserBodyHost({
       api: this.#state.host.api,
       hostId: this.hostId,
@@ -425,11 +428,12 @@ export class BrowserBodyParticipation {
       foregroundPlot,
       faceRootFor,
       onApplicationEvent,
-      onPatchbayOwnerRequest, onPatchbayPublication,
+      onPatchbayOwnerRequest, onPatchbayPublication: renderPatchbay,
       onTutorialPresenterRequest,
       externallyManagedPlanIds,
     });
-    return new BrowserBodyPreparation(BROWSER_PREPARATION_KEY, { owner, proposal });
+    preparation.owner = owner;
+    return new BrowserBodyPreparation(BROWSER_PREPARATION_KEY, preparation);
   }
 }
 
@@ -472,9 +476,10 @@ export class BrowserBodyPreparation {
       this.#state.owner.close();
       throw new Error("external Body runtime started a different Play identity");
     }
+    const play = new BrowserPlay(BROWSER_HOST_KEY, { started, adapter: this.#state.owner });
+    this.#state.play = play;
     return Object.freeze({
-      wakeAtStart: Object.freeze(structuredClone(started.wake_at_start)),
-      play: new BrowserPlay(BROWSER_HOST_KEY, { started, adapter: this.#state.owner }),
+      wakeAtStart: Object.freeze(structuredClone(started.wake_at_start)), play,
     });
   }
 

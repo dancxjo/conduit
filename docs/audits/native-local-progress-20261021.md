@@ -1293,3 +1293,34 @@ checking no PatchbayCanvas after selection, unchanged revision on legacy input,
 and normal canonical Show admission. Syntax/whitespace checks pass. Source/Fore
 bootstrap retirement, generic renderer defaults, native editor effects, complete
 memory admission and platform enactment remain open. No platform/CI campaign ran.
+
+### Reusable SDK canonical renderer and bound startup
+
+Canonical Patchbay now has an SDK default renderer for both ordinary Wake and
+external Body preparation. It reuses the existing owner-Face component rather
+than creating another widget implementation. Handbook's duplicated presentation
+orchestration is removed. SDK packaging copies the canonical component and Look
+stylesheet byte-for-byte and rewrites only the repository-relative import; no
+runtime image or published artifact was rebuilt for this checkpoint.
+
+Wake now binds the exact BrowserPlay before dispatching its first renderer
+callback. External preparation binds the same way before exposing its Play.
+Callbacks receive that Play directly, removing the application-variable race
+where dispatch could start before `await body.wake()` assigned its result.
+Custom renderers remain selectable. Low-level Host acquisition still requires a
+selected renderer; ordinary SDK callers now get the reusable default automatically.
+
+The default retains exact visible-DOM acknowledgement, checked typed input,
+explicit successor refresh and no effect replay. Hidden retained Shows receive
+one ResizeObserver visibility wake; it re-reads Rust truth and stops before
+presentation, or disconnects on cancellation. It does not perform an action or
+retry uncertain effects. Refusals display current truth in the admitted surface.
+
+Validation: all SDK Plot tests pass including the first-dispatch Play-binding
+regression; five default-renderer CPU tests pass, including visible/hidden Show
+acknowledgement, refusal without replay, visibility wake and cancellation. The
+23 Host and seven argument tests pass. The packaging fixture verifies identical
+component/CSS bytes and local distribution imports. Syntax/whitespace checks
+pass. This is CPU/packaging-fixture evidence, not actual browser enactment. Native
+Source editing, complete admission, bootstrap retirement and platform evidence
+remain open; no CI/QEMU/browser campaign or release archive update ran.

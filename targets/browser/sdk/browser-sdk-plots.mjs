@@ -1,3 +1,4 @@
+import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { createBodyEventStream, maximumBodyEventSubscriptions, projectBodySnapshot } from "./browser-sdk-events.mjs";
 
 const SOURCE_SCHEMA = "conduit.browser/plot-source@1";
@@ -224,10 +225,12 @@ export class BrowserBody {
     let adapter;
     let playStarted = false;
     try {
+      let renderingPlay;
+      const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: renderingPlay });
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         storage: this.#storage,
-        inputTarget: root, outputRoot: root, faceRootFor, onPatchbayOwnerRequest, onPatchbayPublication,
+        inputTarget: root, outputRoot: root, faceRootFor, onPatchbayOwnerRequest, onPatchbayPublication: renderPatchbay,
         foregroundPlot: () => {
           const current = this.#bridge.workspaceRequest({ action: "Current" });
           if (current.status < 0) throw sdkRefusal("Body.foreground", current.outputJson, this.#identities());
@@ -241,6 +244,7 @@ export class BrowserBody {
       if (accepted.status < 0) throw sdkRefusal("Body.wake.started", accepted.outputJson, this.#identities());
       await this.#retain();
       const play = this.#createPlay({ started, adapter });
+      renderingPlay = play;
       this.#play = play;
       play.dispatch().catch(() => {});
       return play;
