@@ -519,3 +519,11 @@ Run the focused chunk encoding/recovery proof with
 `cargo xtask prove environment recording`. It includes full 64-entry recovery,
 refusal without partial replacement, context/Form substitution and zero-allocation
 reconstruction of exact canonical quantities.
+
+The recorder Host request now uses the concrete IndexedDB ceiling of 64 physical
+records per application, rather than treating 4096 sample events as 4096 storage
+slots. Each immutable chunk holds at most 64 events. Partial flushes and any
+manifest consume the same finite record pool; neither eviction nor additional
+index slots are implicit. The 1 MiB aggregate request remains a requested ceiling,
+not evidence that browser storage is available or authorized. Actual Resource
+generations and the whole publication closure still require admission.

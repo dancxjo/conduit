@@ -1,11 +1,15 @@
 # The browser contributes a Face realization, a Line and durable storage.
 # Closing the page loses the active Host/Boot; retained records are not presence.
+# The concrete IndexedDB Base has 64 physical records per application. Samples
+# are packed into immutable chunks of at most 64 events; they are not slots.
+# Partial flushes consume records too. No eviction or extra manifest slots are
+# implied: the admitted realization must reserve its complete finite closure.
 host environment-recorder {
   schema = 1
   target = {architecture: "wasm32", machine: "page"}
   base = {kind: "face/graphical", implementation: "browser/dom-face@1"}
   base = {kind: "storage/durable", implementation: "browser/indexeddb@1"}
   base = {kind: "line/websocket", implementation: "browser/websocket@1"}
-  need = {id: "environment/overnight-records", class: "storage/durable", slots: 4096, bytes: 1048576}
+  need = {id: "environment/overnight-records", class: "storage/durable", slots: 64, bytes: 1048576}
   limits = {static_memory_bytes: 1048576, heap_arena_bytes: 8388608, queue_items: 512, buffered_bytes: 1048576, active_instances: 64, operation_slots: 32, timer_slots: 16, line_sessions: 4, evidence_items: 512}
 }
