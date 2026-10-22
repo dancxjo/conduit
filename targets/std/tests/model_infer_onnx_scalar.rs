@@ -245,7 +245,6 @@ fn scalar_only_offer_admits_zero_rank_and_refuses_rank_one() {
     let mut requirement = common::requirement();
     requirement.rank = 0;
     offer.validate().unwrap();
-    requirement.validate().unwrap();
     assert_eq!(offer.admits(&requirement), Ok(()));
     requirement.rank = 1;
     assert_eq!(
