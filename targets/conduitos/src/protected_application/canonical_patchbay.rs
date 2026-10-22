@@ -165,8 +165,26 @@ impl Owner {
                     }
                 } else {
                     let interaction = interaction.as_ref().map_err(|_| Refusal::Malformed)?;
-                    let expected = selection_target(&self.graphs[slot], &interaction.action_id)
-                        .unwrap_or(usize::from(publication.target));
+                    let selection = selection_target(&self.graphs[slot], &interaction.action_id);
+                    if let Some(target) = selection {
+                        let graph = self.graphs[slot][target]
+                            .as_deref()
+                            .ok_or(Refusal::Malformed)?;
+                        let action = publication
+                            .face
+                            .actions
+                            .iter()
+                            .find(|action| action.identity == interaction.action_id)
+                            .ok_or(Refusal::Malformed)?;
+                        if action.target
+                            != alloc::format!("plot/{}", graph.checked_plot_id.as_str())
+                            || action.intent != "patchbay/select-plot@1"
+                            || !action.arguments.is_empty()
+                        {
+                            return Err(Refusal::Malformed);
+                        }
+                    }
+                    let expected = selection.unwrap_or(usize::from(publication.target));
                     if usize::from(*target) != expected {
                         return Err(Refusal::Malformed);
                     }
@@ -178,7 +196,7 @@ impl Owner {
                         self.graph(slot).ok_or(Refusal::Order)?,
                         self.topology.as_deref(),
                         proposal.as_ref(),
-                        selection_target(&self.graphs[slot], &interaction.action_id).is_some(),
+                        selection.is_some(),
                     )
                 }
             }
