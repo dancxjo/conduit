@@ -753,12 +753,14 @@ export function manifestApplicationView(input, root, options = {}) {
   if (theme) {
     appliedLookProperties.set(root, Object.keys(theme.tokens));
     root.dataset.applicationLook = theme.identity;
+    root.dataset.applicationTypography = theme.typography;
     for (const [role, value] of Object.entries(theme.tokens)) {
       root.style.setProperty(`--conduit-${role}`, value);
     }
   } else {
     appliedLookProperties.delete(root);
     delete root.dataset.applicationLook;
+    delete root.dataset.applicationTypography;
   }
   restoreInteraction(root, interaction, render);
   if (activeManifestations.get(root) !== render) refuse("stale-revision");

@@ -1,9 +1,7 @@
 //! Project the exact typed Patchbay graph into renderer-neutral subjects.
 
 use crate::{FaceControlKind, PatchbayGraph, PlanDocument, PlayDocument};
-use conduit_face::{
-    FaceIconKey, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole,
-};
+use conduit_face::{FaceIconKey, FacePropertyValue};
 
 use crate::portable_projection::ContentBuilder;
 
@@ -14,43 +12,22 @@ pub(super) fn append_exact_graph(
     play: Option<&PlayDocument>,
     content: &mut ContentBuilder,
 ) {
-    let mut semantic_subjects = Vec::new();
     for composition in &graph.compositions {
-        let subject = content.subject_with_identity(
-            format!("gear/{}", composition.identity),
-            FaceRole::Gear,
-            format!(
+        let subject = patchbay_application::graph_face::append_named_composition(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            graph,
+            composition,
+            &format!(
                 "Plot-backed Gear {} through checked Back {}",
                 composition.gear_name,
                 composition.checked_plot_id.as_str()
             ),
         );
-        let parent = graph
-            .compositions
-            .iter()
-            .filter(|candidate| {
-                candidate.identity != composition.identity
-                    && composition
-                        .gear_name
-                        .starts_with(&format!("{}/", candidate.gear_name))
-            })
-            .max_by_key(|candidate| candidate.gear_name.len())
-            .map_or_else(
-                || plot.to_owned(),
-                |candidate| format!("gear/{}", candidate.identity),
-            );
-        content.contains(&parent, &subject);
-        if parent != plot {
-            identity(content, &subject, "recursive-parent", &parent);
-        }
-        identity(content, &subject, "semantic-id", &composition.identity);
-        identity(
-            content,
-            &subject,
-            "checked-back-id",
-            composition.checked_plot_id.as_str(),
-        );
-        identity(content, &subject, "back-source", &composition.back_name);
         text(content, &subject, "reviewed-back", "available");
         text(content, &subject, "back-expanded", "false");
         text(
@@ -69,79 +46,36 @@ pub(super) fn append_exact_graph(
             },
         );
         for port in composition.inputs.iter().chain(&composition.outputs) {
-            let port_subject = content.subject_with_identity(
-                format!("port/{}", port.identity),
-                FaceRole::Port,
-                format!(
+            append_port(
+                content,
+                &subject,
+                &port.identity,
+                &port.descriptor,
+                &format!(
                     "Stable Front {:?} Port {} carrying {}",
                     port.descriptor.direction,
                     port.descriptor.port_id.as_str(),
                     port.descriptor.value_kind.as_str()
                 ),
+                port.value_contract.as_ref(),
             );
-            content.contains(&subject, &port_subject);
-            identity(content, &port_subject, "semantic-id", &port.identity);
-            text(
-                content,
-                &port_subject,
-                "direction",
-                match port.descriptor.direction {
-                    conduit_core::PortDirection::Input => "receiving",
-                    conduit_core::PortDirection::Output => "outgoing",
-                },
-            );
-            identity(
-                content,
-                &port_subject,
-                "value-kind",
-                port.descriptor.value_kind.as_str(),
-            );
-            if let Some(contract) = &port.value_contract {
-                content.property(
-                    &port_subject,
-                    "value-contract",
-                    FacePropertyValue::ValueContract(contract.clone()),
-                );
-            }
-            text(
-                content,
-                &port_subject,
-                "temporal",
-                &format!("{:?}", port.descriptor.temporal),
-            );
-            semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
     for gear in &graph.gears {
         let icon = conduit_semantic_catalog::palette_metadata(&gear.kind_id)
             .map(|metadata| metadata.icon)
             .unwrap_or(FaceIconKey::GenericGear);
-        let subject = content.subject_with_identity(
-            format!("gear/{}", gear.identity),
-            FaceRole::Gear,
-            format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
+        let subject = patchbay_application::graph_face::append_named_gear(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            graph,
+            gear,
+            &format!("{} Gear, {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
-        let parent = graph
-            .compositions
-            .iter()
-            .filter(|composition| {
-                gear.gear_id
-                    .as_str()
-                    .starts_with(&format!("{}/", composition.gear_name))
-            })
-            .max_by_key(|composition| composition.gear_name.len())
-            .map_or_else(
-                || plot.to_owned(),
-                |composition| format!("gear/{}", composition.identity),
-            );
-        content.contains(&parent, &subject);
-        if parent != plot {
-            identity(content, &subject, "recursive-parent", &parent);
-        }
-        identity(content, &subject, "semantic-id", &gear.identity);
-        identity(content, &subject, "kind-id", gear.kind_id.as_str());
-        identity(content, &subject, "source-plot", &gear.source_plot);
-        text(content, &subject, "plot-path", &gear.plot_path.join(" / "));
         text(content, &subject, "icon-token", icon.as_str());
         text(content, &subject, "icon-name", icon.name());
         for (index, control) in gear.controls.iter().enumerate() {
@@ -178,62 +112,48 @@ pub(super) fn append_exact_graph(
             }
         }
         append_gear_plan(content, &subject, gear, plan, play);
-        semantic_subjects.push((gear.identity.as_str(), subject.clone()));
         for port in gear.inputs.iter().chain(&gear.outputs) {
-            let port_subject = content.subject_with_identity(
-                format!("port/{}", port.identity),
-                FaceRole::Port,
-                format!(
+            append_port(
+                content,
+                &subject,
+                &port.identity,
+                &port.descriptor,
+                &format!(
                     "{} {:?} Port carrying {}",
                     port.descriptor.port_id.as_str(),
                     port.descriptor.direction,
                     port.descriptor.value_kind.as_str()
                 ),
+                port.value_contract.as_ref(),
             );
-            content.contains(&subject, &port_subject);
-            identity(content, &port_subject, "semantic-id", &port.identity);
-            text(
-                content,
-                &port_subject,
-                "direction",
-                match port.descriptor.direction {
-                    conduit_core::PortDirection::Input => "receiving",
-                    conduit_core::PortDirection::Output => "outgoing",
-                },
-            );
-            identity(
-                content,
-                &port_subject,
-                "value-kind",
-                port.descriptor.value_kind.as_str(),
-            );
-            if let Some(contract) = &port.value_contract {
-                content.property(
-                    &port_subject,
-                    "value-contract",
-                    FacePropertyValue::ValueContract(contract.clone()),
-                );
-            }
-            text(
-                content,
-                &port_subject,
-                "temporal",
-                &format!("{:?}", port.descriptor.temporal),
-            );
-            semantic_subjects.push((port.identity.as_str(), port_subject));
         }
     }
-    for cord in &graph.cords {
-        let subject = content.subject_with_identity(
-            format!("cord/{}", cord.identity),
-            FaceRole::Cord,
-            format!("Cord from {} to {}", cord.source_port, cord.sink_port),
+    for port in graph.front_inputs.iter().chain(&graph.front_outputs) {
+        append_port(
+            content,
+            plot,
+            &port.identity,
+            &port.descriptor,
+            &format!(
+                "Plot Front {:?} Port {} carrying {}",
+                port.descriptor.direction,
+                port.descriptor.port_id.as_str(),
+                port.descriptor.value_kind.as_str(),
+            ),
+            port.value_contract.as_ref(),
         );
-        content.contains(plot, &subject);
-        identity(content, &subject, "semantic-id", &cord.identity);
-        identity(content, &subject, "source-port", &cord.source_port);
-        identity(content, &subject, "sink-port", &cord.sink_port);
-        identity(content, &subject, "value-kind", cord.value_kind.as_str());
+    }
+    for cord in &graph.cords {
+        let subject = patchbay_application::graph_face::append_named_cord(
+            &mut patchbay_application::graph_face::GraphFacts {
+                subjects: &mut content.subjects,
+                relationships: &mut content.relationships,
+                properties: &mut content.properties,
+            },
+            plot,
+            cord,
+            &format!("Cord from {} to {}", cord.source_port, cord.sink_port),
+        );
         for composition in &graph.compositions {
             if let Some(binding) = composition
                 .output_bindings
@@ -261,18 +181,6 @@ pub(super) fn append_exact_graph(
             }
         }
         append_cord_plan(content, &subject, graph, cord, plan, play);
-        for endpoint in [&cord.source_port, &cord.sink_port] {
-            if let Some((_, port_subject)) = semantic_subjects
-                .iter()
-                .find(|(identity, _)| *identity == endpoint)
-            {
-                content.relationships.push(FaceRelationship {
-                    source: subject.clone(),
-                    target: port_subject.clone(),
-                    kind: FaceRelationshipKind::Connects,
-                });
-            }
-        }
     }
 }
 
@@ -581,4 +489,27 @@ fn control_contract(kind: &FaceControlKind) -> String {
         }
         FaceControlKind::ShortText { maximum_bytes } => format!("max {maximum_bytes} bytes"),
     }
+}
+
+/// Reuse the same renderer-neutral Port facts consumed by native Masks.
+fn append_port(
+    content: &mut ContentBuilder,
+    parent: &str,
+    identity: &str,
+    descriptor: &conduit_core::PortDescriptor,
+    name: &str,
+    value_contract: Option<&conduit_core::CheckedValueContract>,
+) -> String {
+    patchbay_application::graph_face::append_named_port(
+        &mut patchbay_application::graph_face::GraphFacts {
+            subjects: &mut content.subjects,
+            relationships: &mut content.relationships,
+            properties: &mut content.properties,
+        },
+        parent,
+        identity,
+        descriptor,
+        name,
+        value_contract,
+    )
 }

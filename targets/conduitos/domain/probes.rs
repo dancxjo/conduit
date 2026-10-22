@@ -20,6 +20,9 @@ pub unsafe fn run(frame: &mut TextFrame) -> ! {
                 core::arch::asm!("pause", options(nomem, nostack));
             },
             7 => core::arch::asm!("pxor xmm0, xmm0", options(nostack)),
+            // Real x87 use must take #NM while Root keeps CR0.TS set. The
+            // existing SIMD probe can take #UD and does not cover that frame.
+            21 => core::arch::asm!("fld1", options(nostack)),
             8 => core::arch::asm!("syscall", options(nostack)),
             9 => core::arch::asm!("sysenter", options(nostack)),
             10 => {

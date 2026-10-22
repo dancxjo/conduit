@@ -13,7 +13,7 @@ pub(super) fn expand_semantic_call_graph(
     catalog: &ProfileCatalog,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
-    connections: &mut Vec<CheckedConnection>,
+    connections: &mut ConnectionInventory,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
@@ -144,7 +144,7 @@ fn expand_argument_expression(
     catalog: &ProfileCatalog,
     path: &[String],
     gears: &mut Vec<CheckedGear>,
-    connections: &mut Vec<CheckedConnection>,
+    connections: &mut ConnectionInventory,
     provenance: &mut Vec<ExpandedGearProvenance>,
     gear_ids: &mut BTreeSet<GearId>,
     anonymous_counts: &mut BTreeMap<String, usize>,
@@ -307,11 +307,7 @@ fn expand_argument_expression(
     })
 }
 
-fn connect(
-    source: TrackedEndpoint,
-    sink: TrackedEndpoint,
-    connections: &mut Vec<CheckedConnection>,
-) {
+fn connect(source: TrackedEndpoint, sink: TrackedEndpoint, connections: &mut ConnectionInventory) {
     let source_track = source.track;
     let Endpoint {
         gear_id: source_gear_id,
@@ -321,7 +317,7 @@ fn connect(
         gear_id: sink_gear_id,
         port: sink_port,
     } = sink.endpoint;
-    connections.push(CheckedConnection {
+    connections.push_generated(CheckedConnection {
         source_gear_id,
         source_port_id: source_port.port_id,
         sink_gear_id,

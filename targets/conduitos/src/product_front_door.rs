@@ -21,6 +21,8 @@ use input_actions::{ProductControl, action_for, product_control, resident_applic
 mod journey_sign;
 mod native_action_evidence;
 mod owner_action_evidence;
+mod owner_selection;
+mod patchbay_edit;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh_with_face as refresh;
@@ -28,7 +30,7 @@ use workspace_input::refresh_with_face as refresh;
 use alloc::format;
 
 use conduit_face::ApplicationEvent;
-use conduit_human::{KeyModifiers, KeyTransition};
+use conduit_human::KeyTransition;
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 use crate::display::PixelTarget as _;
@@ -321,84 +323,19 @@ fn run_controller(
                         arch::early_write(b"CONDUIT_NATIVE_OWNER_ROUTE {\"schema\":\"conduit.conduitos/native-owner-route@1\",\"status\":\"expired\"}\n");
                     }
                     ControllerInput::Key(event) if owner_face_presented => {
-                        let modifier_bits = event.modifiers_after().bits();
-                        let shift_only = modifier_bits != 0
-                            && modifier_bits
-                                & !(KeyModifiers::LEFT_SHIFT.bits()
-                                    | KeyModifiers::RIGHT_SHIFT.bits())
-                                == 0;
-                        if !owner_route_standby
-                            && owner_route.is_some()
-                            && event.transition() == KeyTransition::Pressed
-                            && (modifier_bits == 0
-                                || (shift_only && matches!(event.usage(), 63 | 64 | 66)))
-                            && matches!(event.usage(), 63..=66)
-                        {
-                            let prior = current_owner_face
-                                .as_ref()
-                                .ok_or("native-owner-face-absent")?;
-                            let route = owner_route
-                                .as_mut()
-                                .ok_or("native-owner-return-unavailable")?;
-                            let result = if shift_only && matches!(event.usage(), 63 | 64) {
-                                face_arrival.toggle_owner_axis(
-                                    *identities,
-                                    prior,
-                                    route,
-                                    event.usage(),
-                                    display,
-                                )
-                            } else if event.usage() == 66 && shift_only {
-                                face_arrival.toggle_owner_forced_colors(
-                                    prior,
-                                    route,
-                                    *identities,
-                                    display,
-                                )
-                            } else if event.usage() == 66 {
-                                face_arrival.toggle_owner_text_scale(
-                                    prior,
-                                    route,
-                                    *identities,
-                                    display,
-                                )
-                            } else {
-                                let (look, recipe) = match event.usage() {
-                                    63 => (
-                                        conduit_face::ComponentMaskLook::Compact,
-                                        conduit_face::TodoComponentRecipe::Flat,
-                                    ),
-                                    64 => (
-                                        conduit_face::ComponentMaskLook::Spacious,
-                                        conduit_face::TodoComponentRecipe::Flat,
-                                    ),
-                                    _ => (
-                                        conduit_face::ComponentMaskLook::Spacious,
-                                        conduit_face::TodoComponentRecipe::Grouped,
-                                    ),
-                                };
-                                face_arrival.select_owner_component(
-                                    *identities,
-                                    prior,
-                                    route,
-                                    look,
-                                    recipe,
-                                    display,
-                                )
-                            };
-                            match result {
-                                Ok(fresh) => {
-                                    current_owner_face = Some(fresh);
-                                }
-                                Err(reason) => {
-                                    arch::early_write(b"CONDUIT_NATIVE_COMPONENT_SELECTION {\"status\":\"refused\",\"code\":\"");
-                                    arch::early_write(reason.as_bytes());
-                                    arch::early_write(b"\"}\n");
-                                    owner_route = None;
-                                    face_arrival.retire_owner_route(display)?;
-                                    face_arrival
-                                        .show_owner_result(false, false, reason, display)?;
-                                }
+                        if let Some(disposition) = owner_selection::dispatch(
+                            event,
+                            *identities,
+                            &mut face_arrival,
+                            &mut current_owner_face,
+                            &mut owner_route,
+                            owner_route_standby,
+                            display,
+                        )? {
+                            if let owner_selection::SelectionDisposition::Refused(reason) =
+                                disposition
+                            {
+                                owner_selection::record_refusal(reason);
                             }
                             return Ok(ControllerControl::Continue);
                         }
@@ -827,10 +764,8 @@ fn run_controller(
                                 b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-presenters-replanned\n",
                             );
                         }
-                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
-                            arch::early_write(
-                                b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested\n",
-                            );
+                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(request)) => {
+                            patchbay_edit::open_source_editor(&mut front_door, &mut journey, request, identities)?;
                         }
                         Some(crate::native_workset::NativeApplicationRequest::OpenPatchbay) => {
                             return Err("resident-patchbay-request-not-routed");

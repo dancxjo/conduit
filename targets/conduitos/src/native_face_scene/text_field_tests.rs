@@ -319,3 +319,93 @@ fn current_field_row_targets_the_existing_argument_and_details_retain_the_contra
             .any(|row| row.text == "Friendly name: Éléonore 雪")
     );
 }
+
+#[test]
+fn finite_action_argument_chooses_a_draft_without_a_committed_value_binding() {
+    let mut face = finite_field();
+    face.properties.retain(|property| {
+        !matches!(
+            property.name.as_str(),
+            "current-value" | "value-change-action"
+        )
+    });
+    face.subjects
+        .iter_mut()
+        .find(|subject| subject.identity == face.actions[0].target)
+        .unwrap()
+        .role = FaceRole::Plot;
+    let face = seal(face);
+    assert_eq!(text_field::current(&face, 0), None);
+    assert_eq!(text_field::adjacent(&face, 0, None, true), Some("auto"));
+    assert_eq!(text_field::adjacent(&face, 0, None, false), Some("roman"));
+    assert_eq!(
+        text_field::adjacent(&face, 0, Some(b"auto"), true),
+        Some("roman")
+    );
+    let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: face.actions[0].identity.clone(),
+            argument_name: Some(face.actions[0].arguments[0].name.clone()),
+        })
+        .unwrap();
+    let show = tests::fixture::show(&face);
+    assert!(matches!(
+        scene.key(press(79), &show, 1).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert_eq!(scene.face(), &face);
+    assert!(matches!(
+        scene.key(press(43), &show, 2).unwrap(),
+        FaceSceneInput::Changed
+    ));
+    assert_eq!(scene.face(), &face);
+    scene
+        .focus_named(&FaceFocusRequest {
+            action_id: face.actions[0].identity.clone(),
+            argument_name: Some(face.actions[0].arguments[0].name.clone()),
+        })
+        .unwrap();
+    scene.key(press(79), &show, 3).unwrap();
+    let FaceSceneInput::Submitted { interaction, .. } = scene.key(press(40), &show, 4).unwrap()
+    else {
+        panic!("Enter must commit the exact contract member");
+    };
+    assert_eq!(interaction.arguments[0].value, b"auto");
+    assert_eq!(scene.face(), &face);
+}
+
+#[test]
+fn reading_and_background_pointer_cancel_command_drafts_without_submission() {
+    let mut face = finite_field();
+    face.properties.retain(|property| {
+        !matches!(
+            property.name.as_str(),
+            "current-value" | "value-change-action"
+        )
+    });
+    face.subjects
+        .iter_mut()
+        .find(|subject| subject.identity == face.actions[0].target)
+        .unwrap()
+        .role = FaceRole::Plot;
+    let face = seal(face);
+    let show = tests::fixture::show(&face);
+    for usage in [59, 60, 78, 0] {
+        let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
+        scene
+            .focus_named(&FaceFocusRequest {
+                action_id: face.actions[0].identity.clone(),
+                argument_name: Some(face.actions[0].arguments[0].name.clone()),
+            })
+            .unwrap();
+        scene.key(press(79), &show, 1).unwrap();
+        let result = if usage == 0 {
+            scene.pointer(639, 479, &show, 2)
+        } else {
+            scene.key(press(usage), &show, 2)
+        };
+        assert!(matches!(result.unwrap(), FaceSceneInput::Changed));
+        assert_eq!(scene.face(), &face);
+    }
+}

@@ -116,7 +116,7 @@ pub(super) fn prepare(
     if fragments.is_empty() {
         return Err("Body Play requires at least one locally managed Plot".into());
     }
-    let mut host = crate::installed_browser::advertisement(
+    let mut host = crate::installed_browser::membership_advertisement(
         request.local_host_id.clone(),
         request.local_boot_id.clone(),
     );
@@ -205,7 +205,14 @@ pub(super) fn prepare(
     }
     let mut requests = Vec::new();
     let mut instances = BTreeMap::<conduit_core::CapabilityId, usize>::new();
-    for fragment in &fragments {
+    for fragment in fragments.iter().chain(
+        request
+            .plan
+            .mask_topologies
+            .iter()
+            .flat_map(|topology| topology.chains.iter().take(1))
+            .flat_map(|chain| &chain.plan.fragments),
+    ) {
         if fragment.host_id != host.host_id
             || fragment.boot_id != host.boot_id
             || fragment.offer_generation != host.offer_generation
@@ -308,6 +315,14 @@ pub(super) fn prepare(
         started_evidence.as_ref(),
         request.play_sequence,
     )?;
+    #[cfg(feature = "creche-surface")]
+    let patchbay_face = super::patchbay_face::PatchbayObservation::prepare(
+        &request.plan,
+        &wake_at_start,
+        started_evidence.as_ref(),
+        &request.foreground_checked_plot_id,
+        &lowered.partitions,
+    )?;
     let scheduler = engine::preparation::prepare_body_scheduler(
         &fragments
             .iter()
@@ -322,6 +337,21 @@ pub(super) fn prepare(
             foreground_checked_plot_id: &request.foreground_checked_plot_id,
         }),
     )?;
+    #[cfg(feature = "creche-surface")]
+    let patchbay_publication = patchbay_face
+        .as_ref()
+        .map(|context| {
+            engine::application::prepare_publication(
+                &scheduler,
+                context,
+                &host.host_id,
+                &host.boot_id,
+                &play.active_play_id,
+                request.play_sequence,
+            )
+        })
+        .transpose()?
+        .flatten();
     let mut session = TourSession {
         _resource_admissions: Some(resources),
         cancellation: None,
@@ -332,6 +362,10 @@ pub(super) fn prepare(
         terminal_sign_sequence: 2,
         latest_face: None,
         thermostat_face: thermostat_face.map(Box::new),
+        #[cfg(feature = "creche-surface")]
+        patchbay_face: patchbay_face.map(Box::new),
+        #[cfg(feature = "creche-surface")]
+        patchbay_publication,
         host_id: host.host_id,
         boot_id: host.boot_id,
         realization: MorseRealization::Direct,

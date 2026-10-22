@@ -24,6 +24,7 @@ mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
 mod front_door_proof;
+mod graph_correspondence;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
 mod headless_profile;
@@ -84,6 +85,7 @@ mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
 mod profile;
+mod proof_viewport;
 mod protected_morse_proof;
 mod protected_product_receipt;
 mod protected_timer_proof;
@@ -222,72 +224,10 @@ struct LiveOwnerBootArgs {
     qmp_socket: Option<PathBuf>,
 }
 
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerActionProofArgs {
-    /// Private ISO produced by `make body provision-conduitos` for a live owner.
-    #[arg(long)]
-    spore: PathBuf,
-    /// Exact routed candidate ID contained in that ISO.
-    #[arg(long)]
-    candidate_id: String,
-    /// Explicit private IPv4 TLS owner listener to receive QEMU guestfwd traffic.
-    #[arg(long)]
-    owner_forward: std::net::SocketAddr,
-    /// Existing empty private directory for QMP, receipts, and before/after PNGs.
-    #[arg(long)]
-    output_dir: PathBuf,
-    /// Pause at both Face checkpoints for a live browser participant.
-    #[arg(long)]
-    coordinate: bool,
-}
-
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerTodoFaceProofArgs {
-    #[command(flatten)]
-    route: LiveOwnerActionProofArgs,
-    /// Exercise four independently selected native Looks through the owner route.
-    #[arg(long)]
-    look_selection: bool,
-    /// Body expected in the exact installed Owner admission receipt.
-    #[arg(long)]
-    expected_body_id: String,
-    /// Installed product executable that owns this Body.
-    #[arg(long)]
-    owner_conduit_bin: PathBuf,
-    /// Installed state directory for an independent current Face read.
-    #[arg(long)]
-    owner_state_dir: PathBuf,
-    /// Expected number of Todo item subjects in the current Face.
-    #[arg(long)]
-    expected_item_count: usize,
-    /// Expected human-facing progress text in the current Todo Face.
-    #[arg(long)]
-    expected_status: String,
-}
-
-#[derive(Args, Debug, Clone)]
-struct LiveOwnerTodoActionProofArgs {
-    #[command(flatten)]
-    face: LiveOwnerTodoFaceProofArgs,
-    /// Exact installed checkpoint directory of a disposable, isolated fork.
-    #[arg(long)]
-    isolated_checkpoint_root: PathBuf,
-    /// Exact selected checkpoint version from the installed Owner selection.
-    #[arg(long)]
-    selected_checkpoint_version_hex: String,
-    /// Original checkpoint directory to inventory before and after the action.
-    #[arg(long)]
-    protected_checkpoint_root: PathBuf,
-    /// Exact available Todo action to require in the Owner Face and serial receipt.
-    #[arg(long)]
-    expected_action_id: String,
-    /// Bounded Tab presses to reach that action through the native Mask.
-    #[arg(long)]
-    tab_count: u8,
-    /// Expected human progress text after the Owner accepts the action.
-    #[arg(long)]
-    expected_after_status: String,
-}
+mod owner_proof_args;
+use owner_proof_args::{
+    LiveOwnerActionProofArgs, LiveOwnerTodoActionProofArgs, LiveOwnerTodoFaceProofArgs,
+};
 
 #[derive(ValueEnum, Debug, Clone, Copy, PartialEq, Eq)]
 enum ConduitosDemoArch {
@@ -557,9 +497,16 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ),
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
-        ConduitosCommand::JourneyProof => journey_proof::execute(opts),
+        ConduitosCommand::JourneyProof(args) => {
+            journey_proof::execute_viewport(opts, args.viewport)
+        }
+        ConduitosCommand::CrecheControlsProof(args) => {
+            graphical_profile_proof::execute_controls(opts, args.viewport)
+        }
         ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(&args, opts),
-        ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
+        ConduitosCommand::GraphicalProfileProof(args) => {
+            graphical_profile_proof::execute_viewport(opts, args.viewport)
+        }
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             require_make_target(target.arch, target.board)?;
@@ -595,6 +542,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::CompositorPerformance => compositor_performance::execute(opts),
+        ConduitosCommand::GraphCorrespondence => graph_correspondence::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args, opts),
         ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),

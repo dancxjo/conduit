@@ -42,6 +42,7 @@ pub mod human_media;
 #[cfg_attr(not(feature = "plot-runner"), allow(unused_imports, dead_code))]
 mod installed_browser;
 pub mod membership;
+pub use installed_browser::patchbay_ingress;
 mod membership_abi;
 mod owner_face_mask;
 #[cfg(feature = "plot-runner")]

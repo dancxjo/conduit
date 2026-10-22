@@ -10,7 +10,10 @@ use conduit_face::{
     LayoutRect, MaskShow,
 };
 
-use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
+use crate::display::{
+    SPACE_SM, SPACE_XL,
+    typography::{TextLayout, Typography},
+};
 
 #[path = "native_face_scene/boolean_choice.rs"]
 mod boolean_choice;
@@ -25,12 +28,14 @@ mod connected_layout;
 mod diagram;
 #[path = "native_face_scene/document.rs"]
 mod document;
+#[path = "native_face_scene/expression.rs"]
+mod expression;
 #[path = "native_face_scene/frame.rs"]
 mod frame;
+#[path = "native_face_scene/graph_reading.rs"]
+mod graph_reading;
 #[path = "native_face_scene/input.rs"]
 mod input;
-#[path = "native_face_scene/inspection.rs"]
-mod inspection;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
 #[path = "native_face_scene/ports.rs"]
@@ -108,6 +113,7 @@ pub struct NativeFaceScene {
     face: Face,
     screen: LayoutRect,
     text_scale_percent: u16,
+    typography: Typography,
     primary: Vec<layout::Row>,
     details: Vec<layout::Row>,
     page: usize,
@@ -115,9 +121,9 @@ pub struct NativeFaceScene {
     showing_details: bool,
     showing_diagram: bool,
     input: input::InputState,
+    graph_reading: Option<graph_reading::GraphReading>,
     interaction_admitted: bool,
     local_notice: Option<String>,
-    inspected_subject: Option<usize>,
 }
 
 impl NativeFaceScene {
@@ -145,9 +151,11 @@ impl NativeFaceScene {
         Ok(Self {
             primary: layout::admit(primary, screen)?,
             details: layout::admit(details, screen)?,
+            graph_reading: graph_reading::GraphReading::prepare(&face)?,
             face,
             screen,
             text_scale_percent: 100,
+            typography: Typography::EDITORIAL,
             page: 0,
             focus: None,
             showing_details: false,
@@ -155,91 +163,7 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_notice: None,
-            inspected_subject: None,
         })
-    }
-
-    /// Realize source-owned structural geometry and the admitted visual facet
-    /// over this exact Face. Layout retains all original control references.
-    pub fn prepare_configured(
-        face: Face,
-        width: u16,
-        height: u16,
-        interaction_admitted: bool,
-        recipe: &conduit_face::PreparedComponentRecipe,
-        expression: &conduit_face::AdmittedVisualExpression,
-    ) -> Result<Self, FaceSceneError> {
-        if recipe.reading.source_face_identity != face.identity.as_str()
-            || recipe.reading.source_face_revision != face.revision
-        {
-            return Err(FaceSceneError::StaleFace);
-        }
-        let geometry = recipe
-            .geometry_for_width(width)
-            .map_err(|_| FaceSceneError::InvalidExtent)?;
-        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
-        for item in &mut primary {
-            item.region_order = item
-                .subject_index
-                .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten());
-            item.region = item
-                .subject_index
-                .and_then(|subject| recipe.subject_regions.get(subject).copied().flatten())
-                .and_then(|region| recipe.recipe.regions().as_slice().get(region))
-                .map(|region| *region.group());
-        }
-        let scale = expression.expression.text_scale_percent;
-        let padding = match expression.expression.density {
-            conduit_face::VisualDensity::Compact => SPACE_SM,
-            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
-        };
-        let panel_groups = layout::authored_panel_groups(
-            recipe.recipe.regions().iter().map(|region| *region.group()),
-        );
-        scene.primary = layout::admit_configured(
-            primary,
-            scene.screen,
-            geometry.gutter,
-            geometry.columns,
-            scale,
-            padding,
-            panel_groups,
-        )?;
-        scene.details = layout::admit_with_expression(
-            details,
-            scene.screen,
-            geometry.gutter,
-            geometry.columns,
-            scale,
-            padding,
-        )?;
-        scene.text_scale_percent = scale;
-        Ok(scene)
-    }
-
-    /// Generic semantic projection when configured structural capacity is unavailable.
-    /// User text requirements still use the same measured and rasterized scale.
-    pub fn prepare_visual_fallback(
-        face: Face,
-        width: u16,
-        height: u16,
-        interaction_admitted: bool,
-        expression: &conduit_face::AdmittedVisualExpression,
-    ) -> Result<Self, FaceSceneError> {
-        let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
-        let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
-        let scale = expression.expression.text_scale_percent;
-        let padding = match expression.expression.density {
-            conduit_face::VisualDensity::Compact => SPACE_SM,
-            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
-        };
-        scene.primary =
-            layout::admit_with_expression(primary, scene.screen, SPACE_XL, 1, scale, padding)?;
-        scene.details =
-            layout::admit_with_expression(details, scene.screen, SPACE_XL, 1, scale, padding)?;
-        scene.text_scale_percent = scale;
-        Ok(scene)
     }
 
     /// The selected renderer must use this same scale for rasterization.
@@ -259,7 +183,7 @@ impl NativeFaceScene {
         {
             return Err(FaceSceneError::InputBound);
         }
-        chrome::Chrome::prepare(self.screen, self.text_scale_percent)?
+        chrome::Chrome::prepare_selected(self.screen, self.text_scale_percent, self.typography)?
             .admit_footer(notice, self.text_scale_percent)?;
         self.local_notice = Some(notice.into());
         Ok(())
@@ -271,6 +195,24 @@ impl NativeFaceScene {
 
     pub fn focused(&self) -> Option<FaceControl> {
         self.focus
+    }
+
+    /// A prepared Look replacement cannot discard provisional or submitted input.
+    pub fn has_pending_input(&self) -> bool {
+        self.input.has_pending_input()
+    }
+
+    /// Exact named focus, suitable for a replacement of the same owner Face.
+    pub fn focused_request(&self) -> Option<FaceFocusRequest> {
+        let control = self.focus?;
+        let action = self.face.actions.get(control.action)?;
+        Some(FaceFocusRequest {
+            action_id: action.identity.clone(),
+            argument_name: control
+                .argument
+                .and_then(|index| action.arguments.get(index))
+                .map(|argument| argument.name.clone()),
+        })
     }
 
     pub fn showing_details(&self) -> bool {
@@ -302,6 +244,12 @@ impl NativeFaceScene {
     }
 
     pub fn show_details(&mut self, details: bool) {
+        if self.local_notice.as_deref() == Some(graph_reading::DIAGRAM_FALLBACK_NOTICE) {
+            self.local_notice = None;
+        }
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.showing_details = details;
         self.showing_diagram = false;
         // Preserve the exact control across reading views when it is present;
@@ -314,14 +262,6 @@ impl NativeFaceScene {
         });
         self.focus = retained.map(|(control, _)| control);
         self.page = retained.map_or(0, |(_, page)| page);
-    }
-
-    /// A diagram is available only when Gear subjects actually occur in this
-    /// exact Face; F3 never constructs a specimen graph to fill an empty view.
-    pub fn show_diagram(&mut self, diagram: bool) {
-        self.showing_diagram = diagram && self.has_diagram();
-        self.page = 0;
-        self.focus = None;
     }
 
     /// Mask-local reading navigation does not invoke a semantic action.
@@ -488,3 +428,14 @@ mod look_tests;
 
 #[path = "native_face_scene/encounter.rs"]
 mod encounter;
+#[cfg(test)]
+#[path = "native_face_scene/selected_typography_tests.rs"]
+mod selected_typography_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/naming_acceptance_tests.rs"]
+mod naming_acceptance_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/cross_mask_graph_tests.rs"]
+mod cross_mask_graph_tests;

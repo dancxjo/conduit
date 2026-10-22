@@ -1,0 +1,153 @@
+{
+  "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-layout-acceptance-tests",
+  "source_clean_before": true,
+  "steps": [
+    {
+      "name": "naming-acceptance",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "naming_acceptance_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 20.2112277779961,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-naming-acceptance.log",
+      "bytes": 165296,
+      "sha256": "8866ad241aa946c79b62f82f0d783c0d8ccf9316a5a7434a33afacd3fc7406c0",
+      "expected_passed_tests": 2,
+      "actual_passed_tests": 2,
+      "count_verified": true
+    },
+    {
+      "name": "field-clusters",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::field_cluster_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5734205920016393,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-field-clusters.log",
+      "bytes": 1123,
+      "sha256": "257a0ef31b4cc03d9c512be0f0c69e7c4638997804c47b45b811fef7277f8514",
+      "expected_passed_tests": 6,
+      "actual_passed_tests": 6,
+      "count_verified": true
+    },
+    {
+      "name": "actual-creche",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::panels::tests::creche::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.664879884046968,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-actual-creche.log",
+      "bytes": 4165,
+      "sha256": "66894595b5c53a6cf26e1436ed9ca657a99aa2a7d59144a45923bf6cab37627b",
+      "expected_passed_tests": 4,
+      "actual_passed_tests": 4,
+      "count_verified": true
+    },
+    {
+      "name": "creche-navigation",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::creche_navigation_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 4.211233110981993,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-creche-navigation.log",
+      "bytes": 967,
+      "sha256": "87619ffc54839e82975ac8b66b49bf06d0e8b6c7450893151492010f2bf987e9",
+      "expected_passed_tests": 5,
+      "actual_passed_tests": 5,
+      "count_verified": true
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 11.353917880973313,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-strict-clippy.log",
+      "bytes": 222,
+      "sha256": "9593014cdf3923a0f60ad91898165ad4cceef3d321cf812a6f69245b92a023cb"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 12.399352656968404,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-ad089-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "hosted checks only; no QEMU, CI or acceptance claim",
+  "source_clean_after": true,
+  "source_head_after": "ad089dab112f9efa935a229dc34cc65137c536a3",
+  "status": "passed"
+}

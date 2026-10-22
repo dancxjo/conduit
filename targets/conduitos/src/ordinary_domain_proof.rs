@@ -7,6 +7,8 @@ mod compositor_hostile;
 #[cfg(feature = "native-compositor")]
 mod compositor_recovery;
 mod gates;
+mod x87;
+pub(crate) use x87::observe as observe_transition_return;
 mod morse;
 mod retained_text;
 mod service_memory;
@@ -15,6 +17,7 @@ mod timer_runtime;
 
 pub fn run(record: &boot::BootRecord) -> ! {
     arch::initialize_machine(record, boot::executable_physical_address);
+    x87::run();
     let identities = identity::derive(
         arch::boot_entropy(record.timestamp, record.image_physical_start),
         record.timestamp,
