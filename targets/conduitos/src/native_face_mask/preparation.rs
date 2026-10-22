@@ -187,7 +187,8 @@ impl NativeFaceMask {
             .map_err(|_| NativeFaceMaskError::Plan)?,
         };
         let show = mask.planned_mask.show_placement();
-        let compositor = NativeCompositor::admitted(
+        #[allow(unused_mut)]
+        let mut compositor = NativeCompositor::admitted(
             CompositorAdmission::new(
                 host_id,
                 boot_id,
@@ -199,6 +200,12 @@ impl NativeFaceMask {
             )
             .map_err(NativeFaceMaskError::Compositor)?,
         );
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if let Some(owner) = provider.display_owner.as_ref() {
+            compositor
+                .attach_display_owner(owner.clone())
+                .map_err(NativeFaceMaskError::Compositor)?;
+        }
         Ok(Self {
             producer,
             mask,

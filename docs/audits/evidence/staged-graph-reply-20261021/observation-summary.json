@@ -1,0 +1,24 @@
+{
+  "tested_source": "9cfc7ff59aa6fd35a88a2b72e9b5ba01491a3850",
+  "proof_class": "freestanding-emulator",
+  "journey_steps": 24,
+  "original_pngs": 24,
+  "manifest_status": "complete",
+  "graph_reply_phase_counts": {
+    "CONDUIT_APPLICATION_GRAPH_REPLY serialize begin": 3,
+    "CONDUIT_APPLICATION_GRAPH_REPLY serialize complete": 3,
+    "CONDUIT_APPLICATION_GRAPH_REPLY validate begin": 3,
+    "CONDUIT_APPLICATION_GRAPH_REPLY validate complete": 3,
+    "CONDUIT_APPLICATION_GRAPH_REPLY pack begin": 3,
+    "CONDUIT_APPLICATION_GRAPH_REPLY pack complete": 3
+  },
+  "kernel_sign_records": [],
+  "application_core_tests": 36,
+  "collector_tests": 5,
+  "private_heap_peak_bytes": 2040832,
+  "private_heap_grant_bytes": 2072576,
+  "private_heap_rounded_live_headroom_bytes": 31744,
+  "full_graphical_profile_command": "still checking headless asset closure at evidence capture",
+  "physical_evidence": false,
+  "human_enactment": false
+}

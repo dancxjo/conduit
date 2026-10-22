@@ -1,0 +1,43 @@
+{
+  "new_creche_sha256": "a809feb460abbdb9dad128b46b3a0ca44044fcfdb62042e3aba9f022d89a9588",
+  "embedded_kernel_offset": 13898638,
+  "old": {
+    "entry_execute_commit_before_nested_calls_bytes": 63496,
+    "remaining_64k_bytes": 2040,
+    "entry_execute_commit_encode_bytes": 73784,
+    "encode_prefix_exceeds_64k_bytes": 8248
+  },
+  "frames_saved_registers_and_local_reservations_bytes": {
+    "creche_entry": 168,
+    "execute_including_commit": 4200,
+    "home_scene": 41768,
+    "native_scene": 42920,
+    "home_content": 920,
+    "GraphicsScene::encode": 10280
+  },
+  "cumulative_prefixes_including_two_call_return_addresses": {
+    "home_scene": {
+      "bytes": 46152,
+      "remaining_64k_bytes": 19384
+    },
+    "native_scene": {
+      "bytes": 47304,
+      "remaining_64k_bytes": 18232
+    },
+    "home_content": {
+      "bytes": 5304,
+      "remaining_64k_bytes": 60232
+    }
+  },
+  "limitation": "Static frame-prefix audit is not a complete call-graph or runtime peak proof. Nested decoder/render/allocator calls consume additional stack; canonical protected-service journey remains required.",
+  "encode_call_prefixes": {
+    "home_scene": {
+      "bytes": 56440,
+      "remaining_64k_bytes": 9096
+    },
+    "native_scene": {
+      "bytes": 57592,
+      "remaining_64k_bytes": 7944
+    }
+  }
+}

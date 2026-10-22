@@ -8,7 +8,7 @@ use conduit_face::{
 
 #[path = "diagram_geometry.rs"]
 mod geometry;
-use geometry::{visible_ports, DiagramGeometry, GAP, PORT_ROW};
+use geometry::{DiagramGeometry, GAP, PORT_ROW, visible_ports};
 #[path = "diagram_hits.rs"]
 mod hit_regions;
 use hit_regions::DiagramHits;

@@ -3,7 +3,7 @@ use crate::prelude::*;
 use crate::{CheckedConnection, Span};
 use conduit_core::{CheckedPlotId, SourceDocumentId};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ExpandedConnectionOrigin {
     /// Wiring between checked Cord stages; normalization may have produced stages.
     CordStages,

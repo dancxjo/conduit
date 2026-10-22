@@ -28,6 +28,19 @@ the second boots that artifact in QEMU. The build needs the Rust toolchain,
 The builder acquires pinned boot dependencies. An interactive boot is useful
 for exploration; the proof commands below validate specific behaviors.
 
+For the local Commons/Workshop desktop:
+
+```sh
+cargo xtask make conduitos workshop --locked
+cargo xtask make conduitos workshop-boot --locked
+```
+
+These use the same x86_64 product kernel, with a separate artifact at
+`target/conduitos/workshop/x86_64-pc/conduitos-x86_64.iso`. Boot opens Commons;
+Birth a Body, then select directly from the active plots after automatic Wake/Plan/Play.
+Rebuild with `workshop` after source changes; `workshop-boot` verifies and boots
+the retained image without rebuilding it.
+
 ### Prepare IA-32 UEFI firmware
 
 Before `cargo xtask make conduitos live-boot ia32 --locked`, prepare and
@@ -135,7 +148,7 @@ host. See [Raspberry Pi](../raspberry-pi/make/README.md) and
 | Command | What it checks |
 | --- | --- |
 | `cargo xtask make conduitos journey-proof` | Birth two resident plots, type and switch within one play, inspect body/wake/plan evidence, then exercise pointer actions and USB line state with correlated screenshots |
-| `cargo xtask make conduitos native-latency-proof` | Observe three fresh QEMU journeys over one image, with bounded raw guest counters, six typed values and reader pagination; retain separate host process/capture intervals and failed families under `target/conduitos/x86_64/native-latency/`. `--trials 1..8` changes the finite repetition count. No inferred counter frequency or physical claim. |
+| `cargo xtask make conduitos native-latency-proof` | Observe three fresh QEMU journeys over one image, with bounded raw guest counters, six typed values and reader pagination; retain separate host process/capture intervals and failed families under `target/conduitos/x86_64/native-latency/`. `--trials 1..8` changes the finite repetition count. `--cache-mode retained` (default) or `--cache-mode zero-retention` selects matched observation-only Source retention; both reuse identical catalogs. Separate bounded canonical cache deltas record real cold work, hits, unretained work and private contention fallbacks, validated against guest mode/limits and current Source. No inferred counter frequency or physical claim. |
 | `cargo xtask make conduitos front-door-proof` | The normal image's initial surface and long-lived interaction |
 | `cargo xtask make conduitos prove --arch x86-64 --locked` | Architecture appliance, image reproducibility, fresh boots, kernel execution, and Observatory evidence |
 | `cargo xtask make conduitos architecture-matrix --locked` | Architecture backends and their earned proof rungs |

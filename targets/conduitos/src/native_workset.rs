@@ -5,6 +5,7 @@ mod eligibility;
 mod keyboard_delivery;
 mod planning;
 mod play;
+mod preparation;
 mod text_state;
 mod tutorial_application;
 
@@ -30,6 +31,7 @@ pub enum WorksetRefusal {
     Capability,
     Lowering,
     Kernel,
+    Application(conduitos_application_core::data::Refusal),
 }
 
 impl WorksetRefusal {
@@ -44,6 +46,23 @@ impl WorksetRefusal {
             Self::Capability => "native-body-capability-capacity-exceeded",
             Self::Lowering => "native-body-kernel-tables-exceeded",
             Self::Kernel => "native-body-kernel-preparation-refused",
+            Self::Application(error) => match error {
+                conduitos_application_core::data::Refusal::Bounds => {
+                    "native-body-application-bounds-refused"
+                }
+                conduitos_application_core::data::Refusal::Malformed => {
+                    "native-body-application-message-malformed"
+                }
+                conduitos_application_core::data::Refusal::Order => {
+                    "native-body-application-order-refused"
+                }
+                conduitos_application_core::data::Refusal::Capacity => {
+                    "native-body-application-capacity-exceeded"
+                }
+                conduitos_application_core::data::Refusal::Application => {
+                    "native-body-application-initialization-refused"
+                }
+            },
         }
     }
 }

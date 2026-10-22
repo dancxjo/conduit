@@ -117,6 +117,10 @@ impl FaceArrival {
         })
     }
 
+    pub(super) fn suspend(&mut self) -> Result<(), &'static str> {
+        self.mask.suspend().map_err(|error| error.as_str())
+    }
+
     pub(super) fn route_keyboard(&self) -> Result<bool, &'static str> {
         self.mask.route_keyboard().map_err(|error| error.as_str())
     }

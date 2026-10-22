@@ -1,0 +1,8 @@
+{
+  "status": "PASS_PARTIAL_REPORT_SET_REFUSED",
+  "input_reports": 29,
+  "required_reports": 34,
+  "aggregate_output_written": false,
+  "stderr_sha256": "79da20a8e3e40b1596ff094d5657f5380addffe78802f9f1994dac80ca0f40b2",
+  "scope": "Tests only verifier refusal of retained partial report set, not Source execution or model quality"
+}

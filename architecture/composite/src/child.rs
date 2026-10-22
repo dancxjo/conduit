@@ -2,6 +2,7 @@
 use crate::prelude::*;
 mod preparation;
 mod scheduler_owner;
+mod worker_memory;
 use crate::BoxedKernelBack;
 use conduit_core::{PortDirection, PortId as SemanticPortId, ValuePayload};
 use conduit_kernel::scheduler::{
@@ -98,6 +99,7 @@ pub(crate) struct ChildKernel {
     boundaries: BTreeMap<SemanticPortId, BoundaryEndpoint>,
     input_targets: BTreeMap<SemanticPortId, Vec<(RemoteEndpointId, CordId)>>,
     status: SchedulerStatus,
+    worker_back_bytes: Option<usize>,
 }
 
 impl ChildKernel {

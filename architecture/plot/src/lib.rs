@@ -137,7 +137,7 @@ pub const MAXIMUM_PACKAGE_MEMBERS: usize = 256;
 pub const MAXIMUM_PACKAGE_CONTENT_BYTES: usize = 16 * 1024 * 1024;
 
 /// Exact UTF-8 byte extent plus one-based source locations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Span {
     pub start: usize,
     pub end: usize,

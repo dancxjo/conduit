@@ -1,5 +1,6 @@
 //! Fixed-storage, descriptor-pinned TLS 1.3 over one admitted TCP session.
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 use embedded_tls::{
     Aes128GcmSha256, Certificate, CryptoProvider, MaxFragmentLength, NoClock, TlsConfig,
     TlsContext, TlsError, TlsVerifier, blocking::TlsConnection, pki::CertVerifier,
@@ -224,19 +225,35 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
         &mut socket_storage,
     )
     .map_err(|error| VirtioWebSocketRunError::Transport(VirtioTlsError::Connect(error)))?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let mut tls = crate::protected_tls::Tls::open(
+        stream,
+        tls_seed,
+        server_name,
+        pinned_certificate_der,
+        deadline,
+    )
+    .map_err(VirtioWebSocketRunError::Transport)?;
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut tls_receive = [0; TLS_RECEIVE_BUFFER_BYTES];
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut tls_transmit = [0; TLS_TRANSMIT_BUFFER_BYTES];
-    let config = TlsConfig::new()
-        .with_server_name(server_name)
-        .with_max_fragment_length(MaxFragmentLength::Bits11);
-    let provider = PinnedProvider {
-        rng: ErasedChaCha::new(tls_seed),
-        verifier: CertVerifier::new(Certificate::X509(pinned_certificate_der)),
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    let mut tls = {
+        let config = TlsConfig::new()
+            .with_server_name(server_name)
+            .with_max_fragment_length(MaxFragmentLength::Bits11);
+        let provider = PinnedProvider {
+            rng: ErasedChaCha::new(tls_seed),
+            verifier: CertVerifier::new(Certificate::X509(pinned_certificate_der)),
+        };
+        let mut connection =
+            TlsConnection::<_, Aes128GcmSha256>::new(stream, &mut tls_receive, &mut tls_transmit);
+        connection
+            .open(TlsContext::new(&config, provider))
+            .map_err(|error| VirtioWebSocketRunError::Transport(classify_handshake(error)))?;
+        connection
     };
-    let mut tls =
-        TlsConnection::<_, Aes128GcmSha256>::new(stream, &mut tls_receive, &mut tls_transmit);
-    tls.open(TlsContext::new(&config, provider))
-        .map_err(|error| VirtioWebSocketRunError::Transport(classify_handshake(error)))?;
     let mut websocket = BoundedWebSocket::connect(
         &mut tls,
         ErasedChaCha::new(websocket_seed),
@@ -277,6 +294,7 @@ pub(crate) fn with_websocket_deadline_retain_device<T, E>(
     Ok((value, tcp_polls, device))
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 fn classify_handshake(error: TlsError) -> VirtioTlsError {
     match error {
         TlsError::InvalidCertificate
@@ -288,11 +306,13 @@ fn classify_handshake(error: TlsError) -> VirtioTlsError {
     }
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 struct PinnedProvider<'a> {
     rng: ErasedChaCha,
     verifier: CertVerifier<'a, Aes128GcmSha256, NoClock, MAXIMUM_CERTIFICATE_BYTES>,
 }
 
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
 impl CryptoProvider for PinnedProvider<'_> {
     type CipherSuite = Aes128GcmSha256;
     type Signature = [u8; 0];
@@ -343,7 +363,7 @@ impl Drop for ErasedChaCha {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(all(target_arch = "x86_64", target_os = "none"))))]
 mod tests {
     use super::*;
 

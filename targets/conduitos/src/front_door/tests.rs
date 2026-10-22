@@ -130,11 +130,11 @@ fn entrance_is_a_zero_body_portable_face_and_finite_scene() {
 #[test]
 fn open_is_inert_and_details_are_progressive() {
     let mut door = door();
-    assert!(!door.plot_open);
-    assert!(!door.selected_subject.starts_with("plot/"));
+    assert!(!door.reading.plot_open);
+    assert!(!door.reading.selected_plot);
     assert!(door.accept(key(TAB), 1).unwrap());
     assert!(door.accept(key(ENTER), 2).unwrap());
-    assert!(door.plot_open);
+    assert!(door.reading.plot_open);
     assert_eq!(door.revision(), 3);
     assert!(door.face().unwrap().basis.body_id.is_none());
     assert!(door.accept(key(F2), 3).unwrap());

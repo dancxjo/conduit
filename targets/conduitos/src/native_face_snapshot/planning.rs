@@ -18,7 +18,7 @@ use conduit_plot::{
 const SOURCE: &str = include_str!("../../../../plots/face-snapshot/main.conduit");
 pub(super) const IMPLEMENTATION: &str = "conduitos/face-snapshot-forward@1";
 
-impl NativeFaceSnapshotProducer {
+impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
     /// The running Host offers the exact pure Back implemented by this module.
     /// Planning allocates finite storage and grants no platform-effect authority.
     pub fn prepare(
@@ -27,6 +27,10 @@ impl NativeFaceSnapshotProducer {
         offer_generation: OfferGeneration,
         build_id: &str,
     ) -> Result<Self, FaceSnapshotRefusal> {
+        if !matches!(BYTES, MAX_SNAPSHOT_BYTES | COLLECTION_SNAPSHOT_BYTES) {
+            return Err(FaceSnapshotRefusal::Capacity);
+        }
+        let collection = BYTES == COLLECTION_SNAPSHOT_BYTES;
         if [host_id.as_str(), boot_id.as_str(), build_id]
             .iter()
             .any(|value| value.is_empty() || value.len() > 256)
@@ -56,7 +60,11 @@ impl NativeFaceSnapshotProducer {
             host_id,
             boot_id,
             offer_generation,
-            profile: HostProfileId::from("conduitos/host-face-snapshot@1"),
+            profile: HostProfileId::from(if collection {
+                "conduitos/host-collection-face-snapshot@1"
+            } else {
+                "conduitos/host-face-snapshot@1"
+            }),
             bases: Vec::new(),
             resources: Vec::new(),
             planner_capabilities: Vec::new(),
@@ -65,12 +73,17 @@ impl NativeFaceSnapshotProducer {
                 ImplementationOffer {
                     implementation_id: ImplementationId::from(IMPLEMENTATION),
                     artifact_id: ArtifactId::from(format!("{IMPLEMENTATION}/{build_id}")),
-                    execution_profile_id: "conduitos/bounded-face-snapshot@1".into(),
+                    execution_profile_id: if collection {
+                        "conduitos/bounded-collection-face-snapshot@1"
+                    } else {
+                        "conduitos/bounded-face-snapshot@1"
+                    }
+                    .into(),
                 },
                 CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: MAX_SNAPSHOT_BYTES as u32,
+                    max_queue_bytes: BYTES as u32,
                 },
             )],
         };
@@ -91,7 +104,7 @@ impl NativeFaceSnapshotProducer {
                 },
                 ConnectionQueueLimits {
                     item_capacity: 1,
-                    byte_capacity: MAX_SNAPSHOT_BYTES as u32,
+                    byte_capacity: BYTES as u32,
                 },
             )
         })
@@ -105,7 +118,7 @@ impl NativeFaceSnapshotProducer {
                 connection_bases: &BTreeMap::new(),
                 line_candidates: &BTreeMap::new(),
                 connection_item_capacity: 1,
-                connection_byte_capacity: MAX_SNAPSHOT_BYTES as u32,
+                connection_byte_capacity: BYTES as u32,
                 authority_grants: &[],
                 protected_resource_grants: &[],
                 line_offers: &[],
@@ -118,7 +131,7 @@ impl NativeFaceSnapshotProducer {
         }
         let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0])
             .map_err(|_| FaceSnapshotRefusal::Plan)?;
-        execution::validate_shape(&plan, &lowered)?;
+        execution::validate_shape::<BYTES>(&plan, &lowered)?;
         Ok(Self {
             plan,
             lowered,

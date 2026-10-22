@@ -17,6 +17,38 @@ const LOCKS: &[StandaloneLock] = &[
         lock: "targets/avr/firmware/promicro-host/Cargo.lock",
     },
     StandaloneLock {
+        manifest: "targets/conduitos/application-service/Cargo.toml",
+        lock: "targets/conduitos/application-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/compositor-hostile-proof/Cargo.toml",
+        lock: "targets/conduitos/compositor-hostile-proof/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/compositor-service/Cargo.toml",
+        lock: "targets/conduitos/compositor-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/creche-service/Cargo.toml",
+        lock: "targets/conduitos/creche-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/mask-service/Cargo.toml",
+        lock: "targets/conduitos/mask-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/network-service/Cargo.toml",
+        lock: "targets/conduitos/network-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/runtime-service/Cargo.toml",
+        lock: "targets/conduitos/runtime-service/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/conduitos/tls-service/Cargo.toml",
+        lock: "targets/conduitos/tls-service/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/conduitos/domain/Cargo.toml",
         lock: "targets/conduitos/domain/Cargo.lock",
     },

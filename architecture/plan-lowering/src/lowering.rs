@@ -7,7 +7,7 @@ use conduit_core::{
     ActivePlayId, ActivePlayIdentity, AdmittedLine, BootId, ConnectionId, ConnectionTrack,
     ExpectedSign, FaceId, FaceIdentity, FragmentId, HostCallContractId, HostId, KindId,
     LinkEndpoint, PlacementId, PlanFragment, PlanId, PortDirection, PortId as PlanPortId,
-    PortTemporal, ResourceBinding as PlanResourceBinding, SharedPoolId, SignId, SignIdentity,
+    PortTemporal, ResourceBinding as PlanResourceBinding, SignId, SignIdentity,
 };
 use conduit_kernel::{
     scheduler::{AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec},
@@ -98,47 +98,8 @@ fn source_contract_matches(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum LoweringError {
-    InvalidFragment,
-    UnsupportedState(conduit_core::StateId),
-    StateStorageExceeded,
-    EmptyFragment,
-    CapacityOverflow,
-    ProfileCapacityExceeded {
-        placement_id: PlacementId,
-        direction: PortDirection,
-        required: usize,
-        available: usize,
-    },
-    DuplicatePlacement(PlacementId),
-    DuplicateConnection(ConnectionId),
-    DuplicatePort {
-        placement_id: PlacementId,
-        port_id: PlanPortId,
-    },
-    UnknownConnectionEndpoint(ConnectionId),
-    UnknownConnectionPort(ConnectionId),
-    ConnectionContractMismatch(ConnectionId),
-    InvalidConnectionBudget(ConnectionId),
-    InvalidRemoteConnection(ConnectionId),
-    MultipleConnectionsToInput {
-        placement_id: PlacementId,
-        port_id: PlanPortId,
-    },
-    PortDirectionMismatch {
-        placement_id: PlacementId,
-        port_id: PlanPortId,
-    },
-    InvalidTerminalTransduction(PlacementId),
-    UnsupportedHostCallConcurrency(PlacementId),
-    ResourceBindingInvalid(PlacementId),
-    ResourceAuthorityTransferUnsupported(ConnectionId),
-    SignBudgetInvalid,
-    SignReferenceMissing,
-    SharedPoolInvalid(SharedPoolId),
-    SharedPoolConsumerMissing(SharedPoolId),
-}
+mod error;
+pub use error::LoweringError;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredPort {

@@ -36,6 +36,7 @@ macro_rules! run {
 }
 mod compact;
 mod compact_linear;
+mod worker_memory;
 pub use compact::compact_pointwise_offer_layout;
 pub use compact_linear::{compact_linear_offer_layout, CompactLinearOfferLayout};
 mod compact_slice;
@@ -231,6 +232,14 @@ impl KernelOperationFactory for FixedNumericOperationFactory {
             host_requests: 0,
             sign_items: 32,
         })
+    }
+    fn prepare_worker(
+        &self,
+        gear: &PlannedGear,
+        _values: &mut HostedValueStore,
+    ) -> Result<conduit_composite::PreparedWorkerBack, String> {
+        self.selected(gear)?;
+        worker_memory::prepare(gear)
     }
     fn prepare(
         &self,

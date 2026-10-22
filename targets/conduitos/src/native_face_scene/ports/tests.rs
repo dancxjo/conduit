@@ -293,10 +293,11 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             let hint = if width < 640 {
                 "F2/F3"
             } else {
-                "F2 all facts · F3 return"
+                "Alt+arrows inspect · F2/F3"
             };
+            let noun = if width < 640 { "cords shown" } else { "cords" };
             let notice = format!(
-                "{shown}/{total} cords shown · {} omitted · {hint}",
+                "{shown}/{total} {noun} · {} omitted · {hint}",
                 total - shown
             );
             assert!(

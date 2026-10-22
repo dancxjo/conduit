@@ -6,9 +6,38 @@ use crate::{
     RUNTIME_MEMORY_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+// Keep exact worker reservation metadata inline, as with HostCommand::Prepare.
+// Boxing would add an allocation to PlanFragment admission; these metadata bytes
+// remain separate from the worker runtime backing checked by the target.
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutionScheduling {
     CooperativeBoundedStep,
+    /// Independent bounded partitions. Cross-region Cords reserve outgoing
+    /// staging at their source and ingress storage at their sink. An internal
+    /// Cord is charged once; a cross-region Cord is charged at both endpoints.
+    /// Targets must explicitly install this scheduling profile before Play.
+    PartitionedBoundedStep {
+        storage: ExecutionWorkerStorage,
+    },
+}
+
+/// Separate worker realization memory, additional to selected Back resources
+/// and lane reservations. Its units cover stack, scratch and all remaining
+/// worker backing; target installation must check the actual complete footprint.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionWorkerStorage {
+    pub binding: ResourceBinding,
+    pub stack_bytes: u32,
+    pub scratch_bytes: u32,
+}
+impl ExecutionScheduling {
+    pub fn worker_storage(&self) -> Option<&ExecutionWorkerStorage> {
+        match self {
+            Self::CooperativeBoundedStep => None,
+            Self::PartitionedBoundedStep { storage } => Some(storage),
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -39,6 +68,18 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     if fragment.execution_regions.is_empty() {
         return true;
     }
+    let partitioned = fragment
+        .execution_regions
+        .iter()
+        .any(|r| r.scheduling.worker_storage().is_some());
+    if partitioned
+        && fragment
+            .execution_regions
+            .iter()
+            .any(|r| r.scheduling.worker_storage().is_none() || r.lane_count != 1)
+    {
+        return false;
+    }
     let mut region_ids = fragment
         .execution_regions
         .iter()
@@ -56,6 +97,22 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     placement_ids.sort();
     let mut admitted = Vec::new();
     for region in &fragment.execution_regions {
+        if let Some(storage) = region.scheduling.worker_storage() {
+            let binding = &storage.binding;
+            if storage.stack_bytes == 0
+                || binding.pool_id.as_str().is_empty()
+                || binding.class_id.as_str() != RUNTIME_MEMORY_RESOURCE_CLASS
+                || binding.compute.is_some()
+                || binding.protected.is_some()
+                || binding.content.is_some()
+                || storage
+                    .stack_bytes
+                    .checked_add(storage.scratch_bytes)
+                    .is_none_or(|minimum| minimum > binding.units)
+            {
+                return false;
+            }
+        }
         if region.region_id.as_str().is_empty()
             || region.execution_profile_id.as_str().is_empty()
             || region.admitted_placements.is_empty()
@@ -84,12 +141,17 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
                 .try_fold(0u32, |total, r| total.checked_add(r.units))
         };
         let mut region_connections = fragment.connections.iter().filter(|connection| {
-            region
+            let source = region
                 .admitted_placements
-                .contains(&connection.source_placement_id)
-                && region
-                    .admitted_placements
-                    .contains(&connection.sink_placement_id)
+                .contains(&connection.source_placement_id);
+            let sink = region
+                .admitted_placements
+                .contains(&connection.sink_placement_id);
+            if partitioned {
+                source || sink
+            } else {
+                source && sink
+            }
         });
         let cord_items = region_connections.clone().try_fold(0u32, |total, c| {
             total.checked_add(u32::from(c.item_capacity))
@@ -126,13 +188,22 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
         return false;
     }
     fragment.connections.iter().all(|connection| {
-        fragment.execution_regions.iter().any(|region| {
+        let source = fragment.execution_regions.iter().position(|region| {
             region
                 .admitted_placements
                 .contains(&connection.source_placement_id)
-                && region
-                    .admitted_placements
-                    .contains(&connection.sink_placement_id)
-        })
+        });
+        let sink = fragment.execution_regions.iter().position(|region| {
+            region
+                .admitted_placements
+                .contains(&connection.sink_placement_id)
+        });
+        source.is_some()
+            && sink.is_some()
+            && (source == sink
+                || (partitioned
+                    && connection.resource.is_none()
+                    && connection.selected_line.is_none()
+                    && connection.admitted_lines.is_empty()))
     })
 }

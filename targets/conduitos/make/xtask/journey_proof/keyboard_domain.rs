@@ -80,6 +80,63 @@ pub(super) fn verify_sibling(
     Ok(())
 }
 
+/// Only complete typed kernel refusals are terminal. An ordinary checked
+/// action refusal (including unavailable Wake) leaves the live Play intact.
+fn selection_observed(text: &str, revision: u64, target: &str) -> Result<bool, ConduitosError> {
+    for line in text
+        .split_inclusive('\n')
+        .filter(|line| line.ends_with('\n'))
+    {
+        let Some(encoded) = line.strip_prefix("CONDUIT_KERNEL_SIGN ") else {
+            continue;
+        };
+        let invalid = |detail: String| {
+            ConduitosError::refusal(
+                "journey-selection-kernel-sign-invalid",
+                format!("{target} selection: {detail}"),
+            )
+        };
+        let sign: Value = serde_json::from_str(encoded)
+            .map_err(|error| invalid(format!("{error}: {}", line.trim_end())))?;
+        if sign["schema"] != conduitos::sign_format::MACHINE_SIGN_SCHEMA {
+            return Err(invalid(format!(
+                "wrong kernel sign schema: {}",
+                line.trim_end()
+            )));
+        }
+        match sign["status"].as_str() {
+            Some("accepted") => {}
+            Some("refused") => {
+                if sign["reason"].as_str().is_none_or(str::is_empty) {
+                    return Err(invalid(format!(
+                        "missing refusal reason: {}",
+                        line.trim_end()
+                    )));
+                }
+                // Keep the original typed failure packet in the diagnostic;
+                // the journey owner also retains its unchanged raw serial file.
+                return Err(ConduitosError::refusal(
+                    "journey-selection-kernel-refused",
+                    format!("{target} selection: {}", line.trim_end()),
+                ));
+            }
+            _ => {
+                return Err(invalid(format!(
+                    "invalid kernel sign status: {}",
+                    line.trim_end()
+                )));
+            }
+        }
+    }
+    // Check terminal failure first, even when the same snapshot contains an
+    // earlier successful revision. A stale success cannot hide a stopped guest.
+    Ok(journey_records::decode(text)?.last().is_some_and(|record| {
+        record["revision"]
+            .as_u64()
+            .is_some_and(|next| next > revision)
+    }))
+}
+
 fn exercise_plot(
     serial: &Path,
     child: &mut Child,
@@ -92,6 +149,11 @@ fn exercise_plot(
     let expected =
         conduitos::native_workset::resident(plot).map_err(|error| refusal(format!("{error:?}")))?;
     let initial = latest(serial)?;
+    let selection = format!("{} selection", plot.title());
+    let selection_label = match plot {
+        conduitos::native_workset::NativePlot::MemoryLantern => "journey-select-memory-lantern",
+        _ => "journey-select-keyboard-canvas",
+    };
     for _ in 0..conduitos::native_workset::NATIVE_PLOT_CAPACITY {
         let current = latest(serial)?;
         if current["checked_plot_id"] == expected.checked_plot_id.as_str() {
@@ -100,19 +162,13 @@ fn exercise_plot(
         let revision = current["revision"]
             .as_u64()
             .ok_or_else(|| refusal("missing revision"))?;
-        journey_input::key_pair(stream, reader, "tab", "journey-select-keyboard-canvas")?;
+        journey_input::key_pair(stream, reader, "tab", selection_label)?;
         journey_input::wait_for_record(
             serial,
             child,
-            "journey-keyboard-selection-timeout",
-            "keyboard canvas selection",
-            |text| {
-                Ok(journey_records::decode(text)?.last().is_some_and(|record| {
-                    record["revision"]
-                        .as_u64()
-                        .is_some_and(|next| next > revision)
-                }))
-            },
+            "journey-plot-selection-timeout",
+            &selection,
+            |text| selection_observed(text, revision, plot.title()),
         )?;
     }
     let selected = latest(serial)?;
@@ -121,9 +177,10 @@ fn exercise_plot(
         || selected["active_play_id"] != initial["active_play_id"]
         || selected["plan_id"] != initial["plan_id"]
     {
-        return Err(refusal(
-            "selection replaced the admitted Body Play or did not select the checked keyboard Source",
-        ));
+        return Err(refusal(format!(
+            "{} selection replaced the admitted Body Play or did not select its checked Source",
+            plot.title(),
+        )));
     }
     let mut timing_rows = Vec::with_capacity(inputs.len());
     for (input_index, (key, expected_result)) in inputs.iter().enumerate() {
@@ -279,5 +336,83 @@ mod tests {
             );
         }
         assert!(validate_cost(&line(&cost), &identity, 5, 1).is_err());
+    }
+
+    fn terminal_sign() -> String {
+        format!(
+            "CONDUIT_KERNEL_SIGN {}\n",
+            json!({
+                "schema": conduitos::sign_format::MACHINE_SIGN_SCHEMA,
+                "status": "refused", "reason": "native-body-kernel-boundary-refused"
+            })
+        )
+    }
+
+    #[test]
+    fn complete_terminal_kernel_packet_precedes_a_selection_success() {
+        let packet = terminal_sign();
+        let text = format!("CONDUIT_PRODUCT_JOURNEY {{\"revision\":11}}\n{packet}");
+        let error = selection_observed(&text, 10, "Memory Lantern")
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("[journey-selection-kernel-refused]"));
+        assert!(error.contains("Memory Lantern selection"));
+        assert!(
+            error.contains(packet.trim_end()),
+            "preserve exact typed failure packet: {error}"
+        );
+    }
+
+    #[test]
+    fn partial_terminal_tail_waits_until_newline_without_becoming_a_failure() {
+        let packet = terminal_sign();
+        for end in 0..packet.len() {
+            assert!(!selection_observed(&packet[..end], 10, "Memory Lantern").unwrap());
+        }
+        assert!(selection_observed(&packet, 10, "Memory Lantern").is_err());
+        assert!(!selection_observed("CONDUIT_KERNEL_SIGN {", 10, "Memory Lantern").unwrap());
+    }
+
+    #[test]
+    fn malformed_complete_terminal_signs_refuse_without_becoming_timeouts() {
+        for packet in [
+            "CONDUIT_KERNEL_SIGN {\n".to_owned(),
+            format!(
+                "CONDUIT_KERNEL_SIGN {}\n",
+                json!({"schema":"wrong", "status":"refused", "reason":"x"})
+            ),
+            format!(
+                "CONDUIT_KERNEL_SIGN {}\n",
+                json!({"schema":conduitos::sign_format::MACHINE_SIGN_SCHEMA, "status":"refused"})
+            ),
+            format!(
+                "CONDUIT_KERNEL_SIGN {}\n",
+                json!({"schema":conduitos::sign_format::MACHINE_SIGN_SCHEMA, "status":"unknown"})
+            ),
+        ] {
+            let error = selection_observed(&packet, 10, "Memory Lantern")
+                .unwrap_err()
+                .to_string();
+            assert!(
+                error.contains("[journey-selection-kernel-sign-invalid]"),
+                "{error}"
+            );
+        }
+        assert!(journey_input::complete_records(b"CONDUIT_KERNEL_SIGN \xff\n").is_err());
+        assert_eq!(
+            journey_input::complete_records(b"CONDUIT_KERNEL_SIGN \xff").unwrap(),
+            ""
+        );
+    }
+
+    #[test]
+    fn accepted_kernel_and_recoverable_wake_refusals_do_not_stop_selection() {
+        let text = format!(
+            "CONDUIT_KERNEL_SIGN {}\nCONDUIT_NATIVE_ACTION {}\nCONDUIT_STARTUP_STAGE wake refused native-body-current-host-unavailable\nCONDUIT_PRODUCT_JOURNEY {{\"revision\":11}}\n",
+            json!({"schema":conduitos::sign_format::MACHINE_SIGN_SCHEMA, "status":"accepted"}),
+            json!({"disposition":{"Refused":{"reason":"UnavailableAction"}}})
+        );
+        assert!(selection_observed(&text, 10, "Memory Lantern").unwrap());
+        assert!(!selection_observed(&text, 11, "Memory Lantern").unwrap());
     }
 }

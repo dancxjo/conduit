@@ -156,7 +156,7 @@ impl Ord for InteractionValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InteractionContract {
     pub semantic_id: String,
     pub contract_identity: String,
@@ -188,20 +188,20 @@ impl InteractionContract {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InteractionOption {
     pub identity: String,
     pub value: InteractionValue,
     pub availability: OptionAvailability,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InteractionDomain {
     pub revision: u64,
     pub options: Vec<InteractionOption>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct InteractionCurrentState {
     pub state_identity: String,
     pub contract_identity: String,

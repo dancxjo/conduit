@@ -58,6 +58,13 @@ pub(super) fn enter(
 }
 
 pub(super) fn enter_context(context: EntryContext) -> Result<TransitionReturn, DomainRefusal> {
+    enter_context_with_budget(context, domain_budget::EntryBudget::Ordinary)
+}
+
+pub(super) fn enter_context_with_budget(
+    context: EntryContext,
+    profile: domain_budget::EntryBudget,
+) -> Result<TransitionReturn, DomainRefusal> {
     let _interrupts = super::cpu::InterruptMask::new();
     if ACTIVE.swap(true, Ordering::AcqRel) {
         return Err(DomainRefusal::InvalidLifecycle);
@@ -132,7 +139,7 @@ pub(super) fn enter_context(context: EntryContext) -> Result<TransitionReturn, D
             0x8e,
         );
     }
-    let budget = match domain_budget::Budget::arm() {
+    let budget = match domain_budget::Budget::arm(profile) {
         Ok(budget) => budget,
         Err(error) => {
             ACTIVE.store(false, Ordering::Release);

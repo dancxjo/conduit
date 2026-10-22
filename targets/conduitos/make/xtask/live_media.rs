@@ -110,11 +110,26 @@ impl LiveHost {
 }
 
 pub(super) fn build(host: LiveHost, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    let root = root()?;
+    build_at(host, &output(&root()?, host), opts)
+}
+
+pub(super) fn workshop(opts: &GlobalOpts, boot: bool) -> Result<(), ConduitosError> {
+    let output = workshop_output(&root()?);
+    if boot {
+        boot_at(LiveHost::X86_64, &output, opts)
+    } else {
+        build_at(LiveHost::X86_64, &output, opts)
+    }
+}
+
+fn workshop_output(root: &Path) -> PathBuf {
+    root.join("target/conduitos/workshop/x86_64-pc")
+}
+
+fn build_at(host: LiveHost, output: &Path, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let row = host.row();
-    let profile = root.join("targets/conduitos/profiles").join(row.profile);
-    let output = output(&root, host);
-    let receipt = crate::commands::host::build_conduitos_live(&profile, &output, opts)
+    let profile = root()?.join("targets/conduitos/profiles").join(row.profile);
+    let receipt = crate::commands::host::build_conduitos_live(&profile, output, opts)
         .map_err(|error| ConduitosError::refusal("live-media-build-failed", error.to_string()))?;
     if opts.json {
         println!(
@@ -135,19 +150,21 @@ pub(super) fn build(host: LiveHost, opts: &GlobalOpts) -> Result<(), ConduitosEr
 }
 
 pub(super) fn boot(host: LiveHost, opts: &GlobalOpts) -> Result<(), ConduitosError> {
-    let root = root()?;
+    boot_at(host, &output(&root()?, host), opts)
+}
+
+fn boot_at(host: LiveHost, output: &Path, opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let row = host.row();
-    let output = output(&root, host);
     if opts.dry_run && host == LiveHost::X86_64 {
         return demo::boot_visible_image(&output.join(row.artifact), None, opts);
     }
-    let manifest = crate::commands::host::host_target::verify_target(&output)
+    let manifest = crate::commands::host::host_target::verify_target(output)
         .map_err(|error| ConduitosError::refusal("live-media-invalid", error.to_string()))?;
     let image = output.join(&manifest.image.file);
     if host == LiveHost::X86_64 {
         demo::boot_visible_image(&image, Some(&manifest.image.sha256), opts)
     } else {
-        crate::commands::host::host_target::boot_target(&output, &manifest, opts)
+        crate::commands::host::host_target::boot_target(output, &manifest, opts)
             .map_err(|error| ConduitosError::refusal("live-media-boot-failed", error.to_string()))
     }
 }
@@ -318,6 +335,16 @@ pub(super) fn output(root: &Path, host: LiveHost) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn workshop_media_is_isolated_from_live() {
+        let root = Path::new("/checkout");
+        assert_eq!(
+            workshop_output(root),
+            root.join("target/conduitos/workshop/x86_64-pc")
+        );
+        assert_ne!(workshop_output(root), output(root, LiveHost::X86_64));
+    }
 
     #[test]
     fn matrix_names_every_current_product_host_and_no_proof_appliance() {

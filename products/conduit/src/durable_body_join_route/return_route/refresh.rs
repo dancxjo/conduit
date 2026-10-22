@@ -117,10 +117,13 @@ pub(super) fn serve(
         grant: next.clone(),
     };
     let hosted = old.mask == MaskSelection::Terminal;
+    let profile = conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+        &old.receipt.host_advertisement,
+    );
     let maximum = if hosted {
         super::super::response_document::MAX_HOSTED_OWNER_DOCUMENT_BYTES
     } else {
-        super::super::response_document::MAX_OWNER_DOCUMENT_BYTES
+        profile.owner_document_bytes()
     };
     if serde_json::to_vec(&response)
         .map_err(|error| format!("encode native Face refresh: {error}"))?
@@ -132,7 +135,7 @@ pub(super) fn serve(
     if hosted {
         super::super::response_document::send_hosted(line, &response)?;
     } else {
-        super::super::response_document::send(line, &response)?;
+        super::super::response_document::send_for_profile(line, &response, profile)?;
     }
     Ok(match next {
         Some(grant) => show_ack::ShowGate::Refreshed(Box::new(grant)),

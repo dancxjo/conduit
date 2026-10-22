@@ -599,6 +599,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       return completion;
     },
     patchbayObservation() { assertCurrent(); return bridge.patchbayObservation(); },
+    acknowledgePatchbayFace(message) { assertCurrent(); return bridge.patchbayAcknowledge(message); },
+    submitPatchbayInteraction(message) { assertCurrent(); return bridge.patchbayInteract(message); },
+    refreshPatchbayFace(message) { assertCurrent(); return bridge.patchbayRefresh(message); },
     patchbayRequestDisposition(message) { return reportPatchbayDisposition(message); },
     thermostatFace() { assertCurrent(); return bridge.thermostatFace(); },
     acknowledgeThermostatFace(acknowledgement) { assertCurrent(); return bridge.thermostatAcknowledge(acknowledgement); },

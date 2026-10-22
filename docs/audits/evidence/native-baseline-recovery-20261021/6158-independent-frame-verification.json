@@ -1,0 +1,79 @@
+{
+  "verified": [
+    {
+      "checkpoint": "front-door-ready",
+      "png": "front-door-ready.png",
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6"
+    },
+    {
+      "checkpoint": "creche-ready",
+      "png": "creche-ready.png",
+      "png_sha256": "68ff4ad72329ecbca3c5bf0a59abfd31861c4ae0b50f89b8bfb6797b877e5dbd",
+      "pixel_sha256": "3e6c156d9fbbea10d4e0617b56849fd5510cdc50a7bc4aabe9976483d0f884a9"
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "png": "creche-editorial-compact.png",
+      "png_sha256": "d906b3954288f5e867bd5e2191cf70174a4ab5df5936d8b2494d9fdbddf89e72",
+      "pixel_sha256": "314ad8e869a47742cc94690daf5153887a7d1d2b81be47ee7735d31c08d1cf9b"
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "png": "creche-editorial-spacious.png",
+      "png_sha256": "dadb8bb0daec17b853cb5d72f35aa09bbf172f3c53ae7222fa1c6b9a0fcf2d9c",
+      "pixel_sha256": "f34bb8441a6d58f6147b94062d4dcf87471ab1a7cac7abcb9eb3c71a2d38fd6e"
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "png": "creche-engineering-spacious.png",
+      "png_sha256": "6b8e431a3b161f594c6ebc83a1f6ea72ef158779c62a310a34cbed7d88c507d2",
+      "pixel_sha256": "718d978afce5284eecb9082c34827ddbcec7b14a71a11482d6d5a791ac3f8215"
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "png": "creche-engineering-compact.png",
+      "png_sha256": "68ff4ad72329ecbca3c5bf0a59abfd31861c4ae0b50f89b8bfb6797b877e5dbd",
+      "pixel_sha256": "3e6c156d9fbbea10d4e0617b56849fd5510cdc50a7bc4aabe9976483d0f884a9"
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "png": "creche-three-selected.png",
+      "png_sha256": "8b9b350e53b997f910edebb262638081d4fb38d8da2ac234a262cbf4442a7b74",
+      "pixel_sha256": "69f510571369a9290f69c188433da38dc1ba44be78ea73891cab5d6636915f86"
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "png": "creche-four-restored.png",
+      "png_sha256": "90488fd65d0651ae5f4570d53814ad97f96dac0dcec9aa2598682d0ebfaba7b3",
+      "pixel_sha256": "818158f301fac3c442a3f78264861d0cc1597c5ba0eb4338091014bacd7140fa"
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "png": "creche-fourth-checked.png",
+      "png_sha256": "60646e4a712b8185e8aadb6a0445b4ed1fbfbdb38177bf675c07fb2a6f450d2d",
+      "pixel_sha256": "1f1381200eac1ba88e2aaec53d7c3f7bc7f327d9a1845234af861c6c8006a695"
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "png": "creche-pointer-three-selected.png",
+      "png_sha256": "4abf9d5456c6f7dab4115661510105eab09795bdfd24b087b44fa39e6099bc73",
+      "pixel_sha256": "c92c45b934d4dded964bb6de4c37f02aca738141b36543b7711ed570d841c86f"
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "png": "creche-pointer-four-restored.png",
+      "png_sha256": "0fccc89ccafba29d5289a15cdf348f7d36ecb924a7028a23f7de1554302105c0",
+      "pixel_sha256": "24f317a55d89a9e2c7033fba493b7b0ae2ece133eb9b774ced9875047333d5b4"
+    },
+    {
+      "checkpoint": "failure",
+      "png": "failure.png",
+      "png_sha256": "fec78aeedf44433015d7f2e5643bccaeb3fcda83026ce46fba7f24d86c5a9f40",
+      "pixel_sha256": "e463b6fd3066820bf18e25b01665bc0021b0e8994eb68d096a6779da4d51935a"
+    }
+  ],
+  "count": 12,
+  "journey_status": "failed",
+  "claim": "Partial failed journey; frame integrity only"
+}

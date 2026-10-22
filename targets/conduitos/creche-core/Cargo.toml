@@ -1,0 +1,15 @@
+[package]
+name = "conduitos-creche-core"
+version = "0.1.0"
+edition = "2024"
+publish = false
+[dependencies]
+conduit-birth-plot = { path = "../../../plots/birth" }
+conduit-body = { path = "../../../architecture/body" }
+conduit-core = { path = "../../../architecture/core" }
+conduit-face = { path = "../../../semantics/face" }
+serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
+serde_json = { version = "1", default-features = false, features = ["alloc"] }
+serde-json-core = {version="0.6",default-features=false}
+conduit-human = { path = "../../../semantics/human" }
+conduit-home-model = { path = "../../../semantics/home" }

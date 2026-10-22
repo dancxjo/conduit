@@ -311,11 +311,16 @@ This is development emulator evidence, not accepted-release evidence.
 
 The x86 budget now uses a separate Root-owned RTC periodic interrupt route.
 Admission requires an unused RTC interrupt channel and verifies interrupt
-delivery in Root with finite polling before entering hostile code. Three
-1024-Hz ticks bound an entry; Root restores RTC configuration, PIC masks and
-LINT routing afterward. Root owns the CMOS index port and keeps NMI enabled;
+delivery in Root with finite polling before entering hostile code. Sixteen
+1024-Hz ticks bound an x86_64 entry (approximately one 60-Hz frame); Root
+restores RTC configuration, PIC masks and LINT routing afterward. Root owns the CMOS index port and keeps NMI enabled;
 it never attempts to recover the mask by reading the write-only index port
-([QEMU RTC implementation](https://github.com/qemu/qemu/blob/master/hw/rtc/mc146818rtc.c)). This does not reprogram the Source LAPIC/PIT timer.
+([QEMU RTC implementation](https://github.com/qemu/qemu/blob/master/hw/rtc/mc146818rtc.c)).
+This does not reprogram the Source LAPIC/PIT timer. The former three-tick
+x86_64 quantum could stop an ordinary first Memory edit under host-time QEMU;
+the interactive profile now admits sixteen ticks without retrying a failed
+entry. This is an interrupt-count bound, not a host scheduling or physical
+response-time guarantee. Other architecture profiles retain their own bounds.
 The Source timer vector queues its original fact and resumes user execution;
 only the budget vector can preempt the domain. Cost records include user
 interrupt entries, Source timer interrupts and actual privilege transitions.
@@ -564,6 +569,232 @@ this fixture profile does not define a graphical product minimum.
 This is infrastructure for [#6177](https://github.com/dancxjo/conduit/issues/6177).
 It does not move the production retained compositor, grant scanout authority,
 establish unchanged graphical behavior or complete the microkernel boundary.
+
+## Native graphical compositor service (#6177)
+
+The x86_64 freestanding native graphical path now selects an independently
+linked compositor service. The other native architectures keep their existing
+renderer until each has its own service backend and evidence. Root retains
+validated scanout and semantic Face/Mask/Show bindings. A temporary readable
+raster lease supports the existing typography/paint realization; the service
+alone owns committed pixel arenas, surface lifecycle, damage, z-order, visual
+focus/cursor, composition and advisory route selection. No Root pixel-buffer
+fallback is selected on service failure.
+
+A display-local owner is prepared only after provider/resource checks and is
+bound to the current Host, Boot, offer generation, framebuffer Base and admitted
+scanout format. Presenter-local namespaces fence old handles/routes across
+handoff. Root checks the versioned request/instance/sequence envelope and admits
+the complete finite damage plan before accepting ordered output spans. It copies
+every declared span before sending scanout acknowledgement; guest completion
+alone cannot acknowledge a semantic Show. Borrowed acknowledgement evidence also
+holds the shared owner against entry or handoff during semantic completion.
+Actual faults or partial output invalidate evidence and terminate/quarantine the
+current owner; there is no automatic retry, image replacement or semantic Show
+reuse. Backend reinstall machinery does not yet establish independent production
+restart acceptance.
+
+`cargo +stable xtask make conduitos journey-proof --locked` exercises the normal
+graphical path, including Crèche, Body lifecycle, protected applications,
+Patchbay and Mask interactions under the normal 512 MiB QEMU profile. Nonempty
+`CONDUIT_COMPOSITOR_SERVICE_FRAME` records expose cumulative entry, privilege
+transition, address-space-switch and scheduler-return counters after successful
+copies and acknowledgement. These are source/artifact-bound emulator evidence,
+not hardware attestation or physical scanout receipts. Generated names and Host
+identities can differ across captures; identical appearance must be assessed
+against semantic inputs, not asserted from different PNG hashes alone.
+
+The private-memory fixture above remains a separate mechanism proof. A passed
+ordinary journey does not itself prove hostile production-proxy replies,
+Root/sibling survival through that proxy, independent restart, other architecture
+confinement, accepted release, driver/DMA isolation or the complete microkernel.
+The evidence above predates the Crèche service work described below. Product
+control, general Face/Mask producers, the portable execution runtime and
+network/device services remain migration work under
+[#6175](https://github.com/dancxjo/conduit/issues/6175).
+
+## Crèche service implementation in progress
+
+The x86_64 native Arrival path now routes draft ownership through a separate
+Crèche executable. That executable uses the existing canonical `BirthDraft`,
+`BirthActions`, widget and Face projection code. Root retains immutable guest
+snapshots and its reviewed Plot catalog, checks returned selections against that
+catalog, and continues to own Body admission and lifecycle effects. This does
+not move the complete product controller or general Face/Mask machinery out of
+Root. The native Crèche controller now also retains keyboard composition, focus,
+name replacement and refusal handling inside that guest. Root forwards a
+revision-bound three-byte portable key event and consumes a finite outcome plus
+read-only projection; unchanged composition events do not advance the outer
+FrontDoor revision. The same guest now constructs the native Crèche scene and
+Host Face projection from explicit viewport dimensions and scoped Host/Boot/
+revision values. Root decodes the existing canonical scene codec, checks the
+request binding and viewport clips, and validates returned Face scope, revision
+and content. No framebuffer address or PixelTarget reference crosses this
+protocol. Host and other-architecture controller/presentation paths remain local.
+
+Home launcher/command-bar state also runs in an independent Home-profile guest:
+the canonical HomeModel, keyboard composition and refusal state are guest-owned.
+Root consumes validated read-only snapshots and application views, checks current
+installed Plot indices, and retains lifecycle effects. Explicit reopen resets a
+live guest; terminal recovery releases the old owner before fresh installation.
+Home layout and local Face content also execute in that guest. Root sends only
+bounded viewport, identity, installed-Plot and lifecycle display facts; it checks
+request correlation, canonical scene decoding, exact viewport clips and finite
+Home-subject Face content before assembling the checked outer Face. Outer
+Face/Mask/Show acknowledgement and physical display admission remain in Root.
+
+The closed service pool has independent compositor, Draft, Home, Runtime,
+Application, Network, OrdinaryRuntime, Mask and TLS slots. Each image is bound
+to its profile; instance and request identities fence the bounded wire
+exchange. Draft messages use finite chunked blobs, with a 128 KiB aggregate
+ceiling. A terminal transport failure quarantines and releases the owning slot.
+The standalone guest compiles with separate immutable code/constants and a
+private writable non-executable initialized-data page. Heap, complete stack
+depth and the finite Draft entry budget have not yet been measured at runtime.
+Earlier compositor journeys do not validate this later configuration.
+
+The controller platform adapter now owns hardware input handles and exposes
+typed events plus checked display effects to controller policy. This is a
+preparatory source boundary within Root, not controller hardware isolation.
+Expanded emulator proof, CI acceptance and physical/driver/DMA evidence are
+deferred while local implementation proceeds in draft PR
+[#6196](https://github.com/dancxjo/conduit/pull/6196).
+
+## Native workset execution runtime in progress
+
+The x86_64 native Body workset now constructs its existing canonical
+`FixedScheduler`, numeric Backs, value store, Cords and sign log in a separate
+Runtime executable. Root submits the checked numeric admission and services
+bounded Host Call requests. Host and other-architecture worksets use the same
+shared Back definitions and canonical scheduler locally. The ordinary/Tour text
+path now uses the same guest executable through an independent OrdinaryRuntime
+lease, preserving its original three-node scheduler and shared canonical text
+Backs. Root admits numeric plans and exact literal/input loans; guest statistics
+preserve the existing decision, Sign and pending-call receipts. The production
+Tour Morse scheduler now uses this lease too, preserving its five-node graph,
+shared canonical Backs, fan-out loans and exact Host Call identities. Its
+protected effects and the existing protected timer implementation are retained.
+Other execution paths still require migration. Native application Host Calls cross a
+separate Application service boundary described below; the whole portable engine
+has not left Root.
+
+The Root broker independently checks admitted nodes/calls/byte envelopes,
+pending completion identities, strictly increasing request IDs and at most one
+new request per node between Root step commands. Single-use Root-issued value
+loans bind effect inputs to exact completed bytes and reviewed downstream routes.
+This authority ledger does not choose runnable work or execute another scheduler.
+Initial empty Application/Edit flows have finite startup grants. Terminal errors
+release the guest and fence queued application actions, held inputs and unpublished
+views; a failed completion cannot publish a newly queued lifecycle action.
+
+A targeted native compile passes. Inspection of the first linked guest found a
+392,280-byte dispatch frame and a nested 141,176-byte scheduler construction
+frame, exceeding the initial 256 KiB stack. The corrected closed Runtime profile
+uses a 1 MiB stack and 1 MiB retained metadata; a compile-time assertion bounds
+retained storage. These observations do not establish full peak stack depth,
+execution timing, adversarial containment, physical execution or acceptance.
+Expanded proof and CI validation remain deferred for the local implementation
+workflow in draft #6196.
+
+## Native retained application models in progress
+
+The native workset's Tutorial, Tour and Patchbay retained models now execute in
+an independent Application guest. Tutorial uses its existing biography-derived
+projection; Tour uses the canonical application port; Patchbay uses the same
+canonical port over Root-reviewed graph facts. Expanded planners are not sent
+across this boundary. Host/other-architecture worksets use the same application
+core locally. The existing expanded-Plot constructor retains its previous
+validation behavior; the new projected-graph entry adds finite transport bounds.
+
+Root holds immutable admission graphs, prior views, selection context and live
+Mask topology. A returned effect proposal must match genuine admitted input and
+that prior view: Tutorial's finite actions, Tour's current specimen/run context,
+or Patchbay's reviewed subject and exact Body Plan/Mask mode. Empty inputs and
+control/refresh/completion replies cannot mint actions. This gate does not run a
+second mutable application controller. Termination fences pending actions and
+unpublished views and releases the Application lease.
+
+The Application image fits its closed RX/RO window and uses a separate 16-byte
+initialized RW/NX metadata template. Native compilation passes; entry-frame and
+segment inspection do not establish full stack/heap fit or execution acceptance.
+The separate ProductJourney lifecycle Tutorial view now also uses a scoped,
+read-only Application query, sharing its canonical projector with retained
+Tutorial models. A live workset reuses its owner; a lulled Body or text-only
+workset uses an explicit transient lease. Failed live owners cannot silently
+retry through a cold lease. Read failures immediately fence cached views and
+actions, and the next mutable boundary retires sibling execution. Root retains
+the exact lifecycle action admission and effects. Reviewed graph-to-Face facts
+also project in the Application guest. Their scoped replies cannot carry
+actions or outer lifecycle basis; Root checks reviewed object membership and
+owner identity before merging through the existing outer Face constructor.
+General Face/Mask and remaining execution/network/device paths still require
+further migration. Expanded runtime proof is deferred.
+
+## Native WebSocket codec service in progress
+
+Native owner-network connections now host the existing bounded WebSocket codec
+in an independently owned Network guest. The production adapter retains its
+binary IO interface while canonical upgrade parsing, frame encoding, retained
+partial frames and message accumulation execute behind that boundary. Bulk
+bytes use a 16 KiB transfer window; the existing 1,024-byte handshake,
+32,768-byte frame and 32,754-byte payload ceilings remain finite.
+
+Root retains TCP streams, certificate and endpoint admission, seed custody,
+deadlines, polling and actual writes. A separate TLS service now supplies the
+authenticated stream interface described below. It checks exact
+instance/sequence replies, contiguous chunks, read capacity and positive bounded
+parser progress. Local argument bounds refusals preserve the connection; an
+operation-matched canonical codec refusal permits only its explicit Close.
+Protocol, service and IO failures release the connection's guest; they do not
+silently restart it or fall back to a privileged codec. This moves a
+parser boundary, not TLS, a driver or DMA authority. The Network profile has a
+2 MiB image, 1 MiB stack and 1 MiB metadata ceiling. These are engineering bounds;
+current execution, timing, fragmentation and containment acceptance remain open.
+
+## Native TLS service in progress
+
+TLS parsing, cryptographic state and the existing certificate verifier now run
+in a separate native TLS guest. It uses embedded-tls's public async API with one
+pinned operation future that owns its connection across mailbox IO. Root pumps
+bounded ciphertext through the existing TCP stream; it does not replay a
+blocking operation after an IO refusal. Root keeps endpoint/certificate selection,
+device ownership, deadlines and TCP retirement. Completed operations survive a
+close-notify failure under the existing retirement policy.
+
+The protocol binds service, operation and consecutive IO-event identities, with
+finite poll/ciphertext ceilings and contiguous bounded chunks. The guest retains
+the original cipher suite, pinned verifier, NoClock behavior, 1,024-byte
+certificate bound and 16,640/4,096-byte record buffers. Hardware faults, malformed
+replies and IO errors quarantine the slot. Its 1 MiB stack and 2 MiB metadata
+are engineering limits; compilation does not establish peak stack, timing,
+handshake behavior or adversarial containment.
+
+The x86 service ABI deliberately traps FPU/SIMD use. Affected standalone guests
+therefore force software SHA implementations and serial Curve25519; TLS also
+forces software AES/POLYVAL. Runtime CPU detection must not silently select SIMD
+inside this ABI. Root's separate crypto configuration is unchanged.
+
+## Retained workspace Mask service in progress
+
+Workspace paging, focus and native scene layout now have an independent Mask
+service lifetime across Body Play/Lull transitions. General entrance selection,
+plot-open/details mode and detail-page state also live in this guest, with an
+independent Host/Boot-scoped control revision before any Body or viewport exists.
+Host paths reuse the same canonical reducer; native Root has no mutable copy of
+these presentation flags. The guest uses the original
+canonical row splitting, action navigation and scene layout algorithms. Root
+supplies bounded read-only presentation facts and the current application view;
+page/selection state is retained in the guest rather than a second Root model.
+
+Root binds replies to the current owner, view, foreground identity, revision and
+extent. Selected nodes resolve only through the current validated Root view; a
+guest cannot mint action or lifecycle authority. Canonical scene decoding and
+clip checks precede rendering. Root still owns semantic Face/Mask/Show admission,
+publication counters and physical scanout. Terminal faults do not install a
+replacement behind the same owner. General controller failure blocks all
+presentation that depends on its snapshots; Home/Draft state owners remain
+separate. Compilation is not execution or timing proof;
+expanded runtime and containment acceptance remain open.
 
 ## Deliberate limits
 

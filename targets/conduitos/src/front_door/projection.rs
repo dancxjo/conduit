@@ -3,11 +3,18 @@ use super::*;
 
 impl FrontDoor {
     pub fn face(&self) -> Result<Face, Error> {
+        let reading = self.reading()?;
         if let Some(joining) = &self.joining {
             return joining.face(self, None);
         }
-        if let Some(arrival) = &self.arrival {
+        if self.home.is_none()
+            && let Some(arrival) = &self.arrival
+        {
             return arrival.face(self);
+        }
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if self.home.is_none() && self.workspace.is_some() && !self.workspace_mask_healthy() {
+            return Err(Error::Scene);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
         let plot = self.plot_subject.clone();
@@ -67,9 +74,9 @@ impl FrontDoor {
                 "checked-plot-id",
                 identity(self.checked_plot_id.as_str()),
             ),
-            property(&plot, "opened", FacePropertyValue::Flag(self.plot_open)),
+            property(&plot, "opened", FacePropertyValue::Flag(reading.plot_open)),
         ];
-        if self.exact_details_open {
+        if reading.exact_details_open {
             properties.extend([
                 property(&host, "profile-id", identity(&self.profile_id)),
                 property(&host, "build-id", identity(&self.build_id)),
@@ -224,11 +231,11 @@ impl FrontDoor {
             ));
             properties.push(property(
                 home_identity,
-                "selected-launcher-index",
+                "selected-plot-index",
                 FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
-        let (home_properties, home_texts) = self.home_face_content();
+        let (home_properties, home_texts) = self.home_face_content()?;
         properties.extend(home_properties);
         let basis = self.journey.as_ref().map_or_else(
             || FaceBasis {
@@ -337,7 +344,7 @@ impl FrontDoor {
         if self.home_view().is_some() {
             texts.push(FaceText {
                 subject: home_identity.into(),
-                text: "Persistent launcher and finite Conduit command bar".into(),
+                text: "Active plots in the current Body Play".into(),
             });
             disclosures.push(FaceDisclosure {
                 subject: home_identity.into(),
@@ -350,6 +357,7 @@ impl FrontDoor {
                 .as_ref()
                 .and_then(|journey| journey.body_id.as_ref()),
         ) {
+            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
             super::graph_projection::append(
                 graph,
                 &format!("body/{}", body.as_str()),
@@ -361,8 +369,18 @@ impl FrontDoor {
                     disclosures: &mut disclosures,
                 },
             );
+            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+            self.append_graph_facts(
+                graph,
+                body,
+                &mut subjects,
+                &mut relationships,
+                &mut properties,
+                &mut texts,
+                &mut disclosures,
+            )?;
         }
-        Face::new_with_semantics(
+        let face = Face::new_with_semantics(
             self.revision,
             basis,
             subjects,
@@ -372,7 +390,13 @@ impl FrontDoor {
             self.semantic_actions(&plot),
             disclosures,
         )
-        .map_err(|_| Error::Face)
+        .map_err(|_| Error::Face)?;
+        if let Some(home) = &self.home {
+            home.commons
+                .project(face, self.journey.as_ref().ok_or(Error::Face)?)
+        } else {
+            Ok(face)
+        }
     }
 }
 

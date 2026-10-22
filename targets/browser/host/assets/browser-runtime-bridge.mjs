@@ -195,7 +195,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       minimum: 1, label: 'local Thermostat Face input',
     }, invoke, { retireInput: true });
   };
-  const patchbayRequest = (name, message) => {
+  const patchbayRequest = (name, message, maximumBytes = 4096) => {
     const invoke = length => {
       const status = message === undefined ? call(name) : call(name, length);
       const output = maybeReadPlotOutputJson(api, 1);
@@ -210,10 +210,10 @@ export function bindBrowserRuntimeBridge(api, { context }) {
     };
     if (message === undefined) return invoke();
     const bytes = encoder.encode(JSON.stringify(message));
-    if (bytes.length > 4096) throw new Error('Patchbay disposition exceeds its input bound');
+    if (bytes.length > maximumBytes) throw new Error('Patchbay request exceeds its input bound');
     return withInput(api, bytes, {
       pointerExport: 'conduit_tour_input_ptr', capacityExport: 'conduit_tour_input_capacity',
-      minimum: 1, label: 'Patchbay disposition input',
+      minimum: 1, label: 'Patchbay request input',
     }, invoke, { retireInput: true });
   };
   return Object.freeze({
@@ -221,6 +221,9 @@ export function bindBrowserRuntimeBridge(api, { context }) {
     encodeJson: (value) => encoder.encode(JSON.stringify(value)),
     decodeJson: (bytes) => JSON.parse(decoder.decode(bytes)),
     patchbayObservation: () => patchbayRequest('conduit_browser_patchbay_observation'),
+    patchbayAcknowledge: message => patchbayRequest('conduit_browser_patchbay_acknowledge', message, 8192),
+    patchbayInteract: message => patchbayRequest('conduit_browser_patchbay_interact', message, 8192),
+    patchbayRefresh: message => patchbayRequest('conduit_browser_patchbay_refresh', message, 8192),
     patchbayRequestDisposition: message => patchbayRequest('conduit_browser_patchbay_request_disposition', message),
     thermostatFace: () => localThermostat('conduit_browser_thermostat_face'),
     thermostatAcknowledge: message => localThermostat('conduit_browser_thermostat_acknowledge', message),

@@ -44,6 +44,7 @@ mod interaction_contract;
 pub use interaction_contract::{patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION};
 mod resident_actions;
 pub use resident_actions::PatchbayFaceProjectionError;
+mod projected_open;
 mod resident_canvas;
 mod resident_face;
 mod resident_execution;
@@ -125,7 +126,7 @@ pub use workbench_layout::{
 #[cfg(test)]
 mod topology_tests;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum PatchbayApplicationRequest {
     EditCurrent {
         expanded_plot_id: conduit_core::ExpandedPlotId,
@@ -217,18 +218,9 @@ impl PatchbayApplicationPort {
         plan_id: PlanId,
         body_plan_id: PlanId,
     ) -> Result<Self, PatchbayApplicationRefusal> {
-        let checked_plot_id = String::from(plot.checked_plot_id.as_str());
-        let entry = PatchbayActivePlot::project(
-            plot,
-            plot.name.clone(),
-            checked_plot_id,
-            plan_id,
-            PatchbayActivePlotState::Playing,
-            true,
-        )?;
-        let mut port = Self::open_active(vec![entry], body_plan_id, None)?;
-        port.selected_plot = Some(0);
-        Ok(port)
+        let graph =
+            PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?;
+        Self::from_projected_graph(graph, plan_id, body_plan_id)
     }
 
     pub fn open_active(

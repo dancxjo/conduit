@@ -382,10 +382,17 @@ impl ProductJourney {
 
     pub(super) fn retire_realization(&mut self) -> Result<(), JourneyError> {
         let receipt = self.current_play().cloned();
-        if let Some(kernel) = self.kernel.as_mut() {
-            kernel.cancel().map_err(JourneyError::Play)?;
+        // A failed guest acknowledgement must not keep the retired Play's
+        // Root ownership or queued actions alive. Native cancellation fences
+        // its service before returning an error; retain that negative result
+        // while still retiring the authoritative lifecycle below.
+        let cancellation = if let Some(kernel) = self.kernel.as_mut() {
+            let result = kernel.cancel().map_err(JourneyError::Play);
             self.retained_kernel_sign_gap = kernel.sign_retention_gap();
-        }
+            result
+        } else {
+            Ok(())
+        };
         self.kernel = None;
         self.application_request = None;
         if self.current_wake().is_some() {
@@ -396,7 +403,12 @@ impl ProductJourney {
                 .map_err(JourneyError::Lifecycle)?;
         }
         self.status = JourneyStatus::Lulled;
-        Ok(())
+        if cancellation.is_err() {
+            // Successful callers advance at their own transition boundary.
+            // The failed path also invalidates previously projected input.
+            self.advance()?;
+        }
+        cancellation
     }
 
     pub(super) fn stop(&mut self) -> Result<(), JourneyError> {

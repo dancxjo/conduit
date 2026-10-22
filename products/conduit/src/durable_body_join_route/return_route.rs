@@ -291,7 +291,15 @@ pub(super) fn serve(
             "CONDUIT_OWNER_RETURN_DIAGNOSTIC {{\"phase\":\"responding\",\"code\":\"{}\"}}",
             response.code
         );
-        super::response_document::send(&mut line, &action::fit_response(response)?)?;
+        let profile =
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+                &grant.receipt.host_advertisement,
+            );
+        super::response_document::send_for_profile(
+            &mut line,
+            &action::fit_response_with_maximum(response, profile.owner_document_bytes())?,
+            profile,
+        )?;
         if outcome_unknown {
             break;
         }

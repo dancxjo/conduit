@@ -248,7 +248,16 @@ impl NativeOwnerReturnRoute {
             &self.certificate_der,
             MAXIMUM_POLLS,
             Some(deadline),
-            |line| exchange(line, encoded, &mut self.frame_storage),
+            |line| {
+                exchange_for_profile(
+                    line,
+                    encoded,
+                    &mut self.frame_storage,
+                    conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+                        &self.receipt.host_advertisement,
+                    ),
+                )
+            },
         )
         .map_err(|error| {
             let (phase, code) = match error {
@@ -317,13 +326,14 @@ fn exchange_show_ack(
     serde_json::from_slice(&response[..length]).map_err(|_| "native-owner-show-ack-decode-refused")
 }
 
-fn exchange(
+fn exchange_for_profile(
     line: &mut dyn BinaryWebSocketIo,
     encoded: &[u8],
     frame: &mut [u8],
+    profile: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
 ) -> Result<Response, &'static str> {
     send_chunks(line, encoded, frame)?;
-    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES).map_err(|error| {
+    native_owner_document::receive_for_profile(line, profile).map_err(|error| {
         let code = match error {
             native_owner_document::DocumentRefusal::Receive(error) => error.as_str(),
             native_owner_document::DocumentRefusal::Bound => "native-owner-return-document-bound",

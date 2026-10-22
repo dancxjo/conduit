@@ -92,7 +92,7 @@ pub struct PatchbayConnectionCandidate {
     pub compatibility: PatchbayPortCompatibility,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayPort {
     pub identity: String,
     pub gear_id: GearId,
@@ -100,20 +100,20 @@ pub struct PatchbayPort {
     pub value_contract: Option<CheckedValueContract>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayFrontPort {
     pub identity: String,
     pub descriptor: PortDescriptor,
     pub value_contract: Option<CheckedValueContract>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayCompositionBinding {
     pub front_port: String,
     pub internal_port: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayComposition {
     pub identity: String,
     pub gear_name: String,
@@ -125,7 +125,7 @@ pub struct PatchbayComposition {
     pub output_bindings: Vec<PatchbayCompositionBinding>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayGear {
     pub identity: String,
     pub gear_id: GearId,
@@ -141,7 +141,7 @@ pub struct PatchbayGear {
 }
 
 /// Source declaration facts attached to the exact enclosing Cord contract.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayCordSource {
     pub source_document_id: SourceDocumentId,
     pub checked_plot_id: CheckedPlotId,
@@ -151,7 +151,7 @@ pub struct PatchbayCordSource {
     pub origin: conduit_plot::ExpandedConnectionOrigin,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayCord {
     /// Absent for unproven bindings or ambiguous connection origins.
     pub source_origin: Option<PatchbayCordSource>,
@@ -162,7 +162,7 @@ pub struct PatchbayCord {
     pub temporal: PortTemporal,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PatchbayGraph {
     pub source_document_id: SourceDocumentId,
     pub checked_plot_id: CheckedPlotId,

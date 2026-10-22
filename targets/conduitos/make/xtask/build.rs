@@ -17,6 +17,7 @@ use super::{
 
 pub(super) mod aarch64_domain;
 mod backbone;
+pub(super) mod compositor_semantic_recovery;
 pub(super) mod ia32_domain;
 pub(super) mod loongarch64_domain;
 mod privilege_inventory;
@@ -58,6 +59,20 @@ fn execute_profile_for_role(
     opts: &GlobalOpts,
     timing: bool,
 ) -> Result<BuildRecord, ConduitosError> {
+    let extra = if timing {
+        &["native-latency-observation"][..]
+    } else {
+        &[]
+    };
+    execute_profile_with_features(manifest, artifact_role, opts, extra)
+}
+
+fn execute_profile_with_features(
+    manifest: &BuildManifest,
+    artifact_role: ArtifactRole,
+    opts: &GlobalOpts,
+    extra_features: &[&'static str],
+) -> Result<BuildRecord, ConduitosError> {
     let arch = super::target_backend::select(&manifest.target)?.arch;
     let product_artifact = if artifact_role == ArtifactRole::ProductHost {
         Some(
@@ -76,9 +91,7 @@ fn execute_profile_for_role(
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let generated = paths.target.join("make-record.rs");
     let mut lowering = target_lowering::lower(manifest)?;
-    if timing {
-        lowering.cargo_features.push("native-latency-observation");
-    }
+    lowering.cargo_features.extend_from_slice(extra_features);
     let source = format!(
         "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, face_surface_slots: {surface_slots}, face_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::make::MAKE_SCHEMA,
@@ -223,16 +236,25 @@ pub(super) fn proof_manifest(arch: ConduitosArch) -> Result<BuildManifest, Condu
     )
 }
 
-pub(super) fn execute_native_latency(opts: &GlobalOpts) -> Result<BuildRecord, ConduitosError> {
+pub(super) fn execute_native_latency(
+    opts: &GlobalOpts,
+    mode: super::native_latency::CacheMode,
+) -> Result<BuildRecord, ConduitosError> {
     let manifest = resolve_embedded_profile(
         ConduitosArch::X86_64,
         include_str!("../../profiles/conduitos-native.host.conduit"),
     )?;
-    execute_profile_for_role(
+    let features = match mode {
+        super::native_latency::CacheMode::Retained => &["native-latency-observation"][..],
+        super::native_latency::CacheMode::ZeroRetention => {
+            &["native-latency-observation", "native-cache-zero-retention"][..]
+        }
+    };
+    execute_profile_with_features(
         &manifest,
         ArtifactRole::ArchitectureProofAppliance,
         opts,
-        true,
+        features,
     )
 }
 
@@ -317,7 +339,10 @@ fn execute_with_features(
         println!(
             "cargo rustc -p conduitos --bin {binary} --target {target} --release --features {} -- -C link-arg=-Map={}",
             features.join(","),
-            paths.built_binary(target, binary).with_extension("map").display(),
+            paths
+                .built_binary(target, binary)
+                .with_extension("map")
+                .display(),
         );
         return dry_record(arch, &paths, artifact_role);
     }
