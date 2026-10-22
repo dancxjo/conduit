@@ -14,9 +14,9 @@ pub(super) const IMPLEMENTATION: &str = "conduitos/patchbay-accept-interaction@1
 pub(super) const OPERATION: &str = "conduit.host/conduitos-patchbay-accept-interaction@1";
 const BYTES: u32 = conduit_face::MAX_FACE_INTERACTION_BYTES as u32;
 const RESOURCE: &str = "conduit.resource/runtime-memory@1";
-// One admitted input plus finite sink bookkeeping; actor storage is owned by
-// the existing protected application service, never duplicated by this Back.
-const MEMORY: u32 = BYTES + 512;
+// Reserve the exact maximum input payload. Sink bookkeeping belongs to the
+// existing fixed Runtime tables; actor storage stays in its admitted service.
+const MEMORY: u32 = BYTES;
 
 pub(super) fn offer(build: &str) -> CapabilityOffer {
     BackOfferBuilder::new(
