@@ -30,6 +30,10 @@ pub(super) struct InputState {
 }
 
 impl InputState {
+    pub(super) fn has_pending_input(&self) -> bool {
+        self.action.is_some() || self.submitted
+    }
+
     pub fn preview(
         &self,
         focus: Option<FaceControl>,
@@ -102,46 +106,12 @@ impl NativeFaceScene {
             .or_else(|| self.details.iter().find(|row| row.control == Some(control)))
             .ok_or(FaceSceneError::UnknownControl)?
             .page;
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.showing_details = primary.is_none();
         self.showing_diagram = false;
         self.focus = Some(control);
-        self.page = page;
-        Ok(())
-    }
-
-    /// Read one exact graph subject through the existing complete Details reader.
-    /// This changes Mask-local reading position, never an action or owner state.
-    pub fn inspect_subject(
-        &mut self,
-        face_id: &FaceContentId,
-        revision: u64,
-        identity: &str,
-    ) -> Result<(), FaceSceneError> {
-        if face_id != &self.face.identity || revision != self.face.revision {
-            return Err(FaceSceneError::StaleFace);
-        }
-        let subject = self
-            .face
-            .subjects
-            .iter()
-            .position(|subject| {
-                subject.identity == identity
-                    && matches!(
-                        subject.role,
-                        conduit_face::FaceRole::Gear
-                            | conduit_face::FaceRole::Port
-                            | conduit_face::FaceRole::Cord
-                    )
-            })
-            .ok_or(FaceSceneError::UnknownControl)?;
-        let page = self
-            .details
-            .iter()
-            .find(|row| row.subject_index == Some(subject))
-            .ok_or(FaceSceneError::DocumentBound)?
-            .page;
-        self.show_details(true);
-        self.inspected_subject = Some(subject);
         self.page = page;
         Ok(())
     }
@@ -159,9 +129,10 @@ impl NativeFaceScene {
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
         if self.showing_diagram {
-            if let Some(identity) =
-                diagram::hit_test(&self.face, self.screen, self.page, x, y)?.map(String::from)
-            {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected = hits.hit_test(x, y).map(String::from);
+            if let Some(identity) = selected {
                 self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
                 return Ok(FaceSceneInput::Changed);
             }
@@ -190,6 +161,9 @@ impl NativeFaceScene {
         {
             return self.commit(show, sequence, Some(self.focus_request(control)));
         }
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.focus = Some(control);
         if super::boolean_choice::applies(&self.face, control) && self.input.action.is_none() {
             return self.toggle_boolean(control, show, sequence);
@@ -208,8 +182,8 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
-        if self.inspect_key(event)? {
-            return Ok(FaceSceneInput::Changed);
+        if let Some(result) = self.graph_key(event)? {
+            return Ok(result);
         }
         if !self.interaction_admitted {
             if event.transition() != KeyTransition::Pressed {

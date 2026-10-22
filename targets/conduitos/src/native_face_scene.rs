@@ -27,10 +27,10 @@ mod diagram;
 mod document;
 #[path = "native_face_scene/frame.rs"]
 mod frame;
+#[path = "native_face_scene/graph_reading.rs"]
+mod graph_reading;
 #[path = "native_face_scene/input.rs"]
 mod input;
-#[path = "native_face_scene/inspection.rs"]
-mod inspection;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
 #[path = "native_face_scene/ports.rs"]
@@ -117,7 +117,7 @@ pub struct NativeFaceScene {
     input: input::InputState,
     interaction_admitted: bool,
     local_notice: Option<String>,
-    inspected_subject: Option<usize>,
+    graph_reading: Option<graph_reading::GraphReading>,
 }
 
 impl NativeFaceScene {
@@ -143,6 +143,7 @@ impl NativeFaceScene {
         };
         let (primary, details) = document::prepare(&face, interaction_admitted)?;
         Ok(Self {
+            graph_reading: graph_reading::GraphReading::prepare(&face)?,
             primary: layout::admit(primary, screen)?,
             details: layout::admit(details, screen)?,
             face,
@@ -155,7 +156,6 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_notice: None,
-            inspected_subject: None,
         })
     }
 
@@ -302,6 +302,12 @@ impl NativeFaceScene {
     }
 
     pub fn show_details(&mut self, details: bool) {
+        if self.local_notice.as_deref() == Some(graph_reading::DIAGRAM_FALLBACK_NOTICE) {
+            self.local_notice = None;
+        }
+        if let Some(reading) = self.graph_reading.as_mut() {
+            reading.active = false;
+        }
         self.showing_details = details;
         self.showing_diagram = false;
         // Preserve the exact control across reading views when it is present;
@@ -314,14 +320,6 @@ impl NativeFaceScene {
         });
         self.focus = retained.map(|(control, _)| control);
         self.page = retained.map_or(0, |(_, page)| page);
-    }
-
-    /// A diagram is available only when Gear subjects actually occur in this
-    /// exact Face; F3 never constructs a specimen graph to fill an empty view.
-    pub fn show_diagram(&mut self, diagram: bool) {
-        self.showing_diagram = diagram && self.has_diagram();
-        self.page = 0;
-        self.focus = None;
     }
 
     /// Mask-local reading navigation does not invoke a semantic action.
