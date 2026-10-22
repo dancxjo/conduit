@@ -4,13 +4,23 @@ The existing supported `cargo xtask make conduitos ordinary-domain-proof`
 entrance now requires clean committed source and retains
 `service-baseline-proof.json` beside its existing protection receipts. This is
 an architecture proof appliance, not the normal product or a completed #6183
-benchmark. No recorded measurements accompany this implementation yet. See
+benchmark. No recorded measurements accompany this implementation yet.
+
+The recovered source on current development compiled and linked as a real
+x86_64 appliance at `a77945244721f7ebf4a25ea69bacef789f76610f`. Its
+128 MiB QEMU profile refused `runtime-arena-unavailable` before any protected
+entry: Limine retains the roughly 59 MiB loaded image and executable file
+before reserving the 16 MiB runtime arena. The appliance now explicitly uses
+256 MiB, with the same domain, heap and work grants. That profile still requires
+its own exact-source build and execution; this does not establish 128 MiB
+support or a timing baseline. See
 [evidence/manifest.json](evidence/manifest.json) for both retained compilation
 failures and their exact sources. The first attempt stopped in existing base
 Crèche code. After merging its reviewed repair, real compilation caught this
 recorder's incorrect assumption that `Serial` implements `fmt::Write`. The
 publication correction uses the existing `FixedText`/`early_write` mechanism;
-the full corrected appliance has **not** been compiled or executed. The mock API
+that correction was subsequently compiled in the recovered source above, but
+its 128 MiB guest refused before any baseline observations. The mock API
 harness missed this defect and is not freestanding compilation proof.
 
 The receipt formatter is now shared with actual owning-package host tests,

@@ -16,6 +16,7 @@ mod compositor_recovery;
 mod service_memory;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
+const PROOF_MEMORY_MIB: u32 = 256;
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
@@ -44,6 +45,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "cannot identify emulator",
         ));
     }
+    let memory = format!("{PROOF_MEMORY_MIB}M");
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -51,11 +53,11 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-cpu",
             "max",
             "-m",
-            // This appliance also owns the 19 MiB private compositor-service
-            // slot. Limine retains the loaded image while reserving the 16 MiB
-            // runtime arena; the former 64 MiB guest refuses before entry.
-            // This is an explicit fixture profile, not a product minimum.
-            "128M",
+            // Limine retains both the roughly 59 MiB loaded appliance and its
+            // executable file before reserving the 16 MiB runtime arena. The
+            // retained 128 MiB boot refused before any protected-domain entry.
+            // This explicit appliance profile changes no domain/work grants.
+            &memory,
             "-smp",
             "1",
             "-display",
@@ -265,8 +267,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "schema":"conduit.conduitos/service-baseline-evidence@1",
         "proof_class":"freestanding-emulator", "fixture":true, "source_commit":source,
         "machine":{"emulator":"qemu-system-x86_64", "version":String::from_utf8_lossy(&qemu_version.stdout),
-            "model":"q35","cpu":"max","memory_mib":128,"vcpus":1,"accelerator":"qemu-default",
-            "arguments":["-M","q35","-cpu","max","-m","128M","-smp","1","-display","none",
+            "model":"q35","cpu":"max","memory_mib":PROOF_MEMORY_MIB,"vcpus":1,"accelerator":"qemu-default",
+            "arguments":["-M","q35","-cpu","max","-m",memory,"-smp","1","-display","none",
                 "-monitor","none","-serial",serial,"-no-reboot","-net","none","-device",
                 "isa-debug-exit,iobase=0xf4,iosize=0x04","-cdrom",paths.iso,"-boot","d"]},
         "build":build,"iso_sha256":super::report::sha256_file(&paths.iso)?,
@@ -283,7 +285,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
-            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+            "cpu": "max", "memory_mib": PROOF_MEMORY_MIB, "vcpus": 1},
         "build": build, "observations": sign["service_memory_fixture"],
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
     });
@@ -301,7 +303,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "schema": "conduit.conduitos/compositor-guest-evidence@2",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
-            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+            "cpu": "max", "memory_mib": PROOF_MEMORY_MIB, "vcpus": 1},
         "build": build, "observations": compositor_guest,
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
     });
@@ -318,7 +320,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "schema": "conduit.conduitos/compositor-copy-recovery-evidence@4",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
-            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+            "cpu": "max", "memory_mib": PROOF_MEMORY_MIB, "vcpus": 1},
         "build": build, "observations": sign["compositor_copy_recovery_fixture"],
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
     });
@@ -343,7 +345,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "schema": "conduit.conduitos/compositor-hostile-broker-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
         "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
-            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+            "cpu": "max", "memory_mib": PROOF_MEMORY_MIB, "vcpus": 1},
         "build": build, "observations": sign["compositor_hostile_fixture"],
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
     });
