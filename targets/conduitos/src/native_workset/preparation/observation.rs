@@ -54,20 +54,57 @@ fn delta(before: PreparationCacheStats, after: PreparationCacheStats) -> Option<
     Some(result)
 }
 
+#[cfg(any(
+    test,
+    all(
+        target_arch = "x86_64",
+        target_os = "none",
+        feature = "native-latency-observation"
+    )
+))]
+mod admission {
+    use core::sync::atomic::{AtomicU32, Ordering};
+    pub(super) const LIMIT: u32 = 512;
+    pub(super) struct Observer(AtomicU32);
+    #[derive(Debug, PartialEq, Eq)]
+    pub(super) enum Admission {
+        Record(u32),
+        Refusal,
+        Silent,
+    }
+    impl Observer {
+        pub(super) const fn new() -> Self {
+            Self(AtomicU32::new(0))
+        }
+        pub(super) fn admit(&self) -> Admission {
+            match self
+                .0
+                .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
+                    (next <= LIMIT).then(|| next + 1)
+                }) {
+                Ok(sequence) if sequence < LIMIT => Admission::Record(sequence),
+                Ok(_) => Admission::Refusal,
+                Err(_) => Admission::Silent,
+            }
+        }
+        // First failure freezes only telemetry. Never consulted by preparation.
+        pub(super) fn freeze(&self) -> bool {
+            self.0.swap(LIMIT + 1, Ordering::Relaxed) <= LIMIT
+        }
+    }
+}
+
 #[cfg(all(
     target_arch = "x86_64",
     target_os = "none",
     feature = "native-latency-observation"
 ))]
 mod guest {
+    use super::admission::{Admission, Observer};
     use super::*;
-    use core::{
-        fmt::{self, Write},
-        sync::atomic::{AtomicU32, Ordering},
-    };
+    use core::fmt::{self, Write};
     use sha2::{Digest, Sha256};
-    const LIMIT: u32 = 512;
-    static NEXT: AtomicU32 = AtomicU32::new(0);
+    static OBSERVER: Observer = Observer::new();
     pub(super) fn publish(
         plot: super::super::NativePlot,
         before: PreparationCacheStats,
@@ -77,20 +114,18 @@ mod guest {
         fallback: bool,
         accepted: bool,
     ) {
-        let sequence = match NEXT.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |next| {
-            (next <= LIMIT).then(|| next + 1)
-        }) {
-            Ok(sequence) => sequence,
-            Err(_) => return,
+        let sequence = match OBSERVER.admit() {
+            Admission::Record(sequence) => sequence,
+            Admission::Refusal => {
+                write_refusal("observation-bound");
+                return;
+            }
+            Admission::Silent => return,
         };
         let Some(stats) = delta(before, after) else {
             refuse("counter-bound");
             return;
         };
-        if sequence == LIMIT {
-            refuse("observation-bound");
-            return;
-        }
         let zero = cfg!(feature = "native-cache-zero-retention");
         let mode = if zero { "zero-retention" } else { "retained" };
         let limits = if zero {
@@ -142,8 +177,11 @@ mod guest {
         }
     }
     fn refuse(reason: &str) {
-        // Terminal for this observer, never for the operation being observed.
-        NEXT.store(LIMIT + 1, Ordering::Relaxed);
+        if OBSERVER.freeze() {
+            write_refusal(reason);
+        }
+    }
+    fn write_refusal(reason: &str) {
         crate::arch::early_write(b"CONDUIT_NATIVE_CACHE_REFUSAL ");
         crate::arch::early_write(reason.as_bytes());
         crate::arch::early_write(b"\n");
@@ -168,6 +206,35 @@ mod guest {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn actual_sequence_admission_has_one_terminal_refusal_after_512_records() {
+        use admission::{Admission, LIMIT, Observer};
+        let observer = Observer::new();
+        for sequence in 0..LIMIT {
+            assert_eq!(observer.admit(), Admission::Record(sequence));
+        }
+        assert_eq!(observer.admit(), Admission::Refusal);
+        assert_eq!(observer.admit(), Admission::Silent);
+        assert_eq!(observer.admit(), Admission::Silent);
+        assert!(!observer.freeze());
+    }
+    #[test]
+    fn counter_failure_and_early_refusal_freeze_only_local_observer() {
+        use admission::{Admission, Observer};
+        for counter_failure in [false, true] {
+            let observer = Observer::new();
+            assert_eq!(observer.admit(), Admission::Record(0));
+            if counter_failure {
+                let mut saturated = PreparationCacheStats::default();
+                saturated.checks = u64::MAX;
+                assert!(delta(PreparationCacheStats::default(), saturated).is_none());
+            }
+            assert!(observer.freeze());
+            assert!(!observer.freeze());
+            assert_eq!(observer.admit(), Admission::Silent);
+            assert_eq!(Observer::new().admit(), Admission::Record(0));
+        }
+    }
     #[test]
     fn deltas_refuse_saturation_and_reset_instead_of_hiding_activity() {
         let initial = PreparationCacheStats::default();
