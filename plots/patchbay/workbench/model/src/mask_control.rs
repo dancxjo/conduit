@@ -5,7 +5,8 @@ use conduit_body::{
     BodyPlanningSessionError, BodyPlanningTransition, BodyPlayIdentity, WakeLifecycle,
 };
 use conduit_core::SignId;
-use conduit_face::{Face, Manifestation, RendererExecution};
+use conduit_face::{Face, Manifestation, MaskShow, PlannedMaskPlot, RendererExecution};
+mod selected;
 
 use crate::{
     prepare_renderer_execution_with_offer_generation, RendererAdapterIdentity, RendererAdapterKind,
@@ -27,6 +28,8 @@ pub struct MaskControlSession {
     graphical_identity: RendererAdapterIdentity,
     speech_identity: RendererAdapterIdentity,
     graphical: Option<RendererExecution>,
+    // Canonical remote browser Mask is pending until its real Show returns.
+    selected_graphical: Option<(PlannedMaskPlot, Option<MaskShow>)>,
     speech: Option<RendererExecution>,
     sequence: u64,
 }
@@ -69,6 +72,7 @@ impl MaskControlSession {
             graphical_identity,
             speech_identity,
             graphical: None,
+            selected_graphical: None,
             speech: None,
             sequence: 1,
         })
@@ -126,10 +130,15 @@ impl MaskControlSession {
         }
         let mut candidate = self.clone();
         let mut next_planning = planning.clone();
+        if candidate.selected_graphical.is_some() && mode != MaskTopologyMode::Graphical {
+            // A synthesized test speech adapter is not this selected SDK Host.
+            return Err(MaskControlError::UnavailableMask);
+        }
         if matches!(
             mode,
             MaskTopologyMode::Graphical | MaskTopologyMode::GraphicalAndSpeech
         ) && candidate.graphical.is_none()
+            && candidate.selected_graphical.is_none()
         {
             candidate.graphical = Some(candidate.prepare(
                 candidate.graphical_kind,
@@ -220,6 +229,11 @@ impl MaskControlSession {
         self.graphical = graphical;
         self.speech = speech;
         self.sequence = sequence;
+        if self.face != face {
+            if let Some((_, shown)) = &mut self.selected_graphical {
+                *shown = None;
+            }
+        }
         self.face = face;
         Ok(())
     }
@@ -268,11 +282,24 @@ impl MaskControlSession {
             mode,
             MaskTopologyMode::Graphical | MaskTopologyMode::GraphicalAndSpeech
         ) {
-            chains.push(chain(
-                self.graphical
-                    .as_ref()
-                    .ok_or(MaskControlError::UnavailableMask)?,
-            ));
+            if let Some((planned, _)) = &self.selected_graphical {
+                chains.push(BodyMaskChainPlan {
+                    plan: planned.plan.clone(),
+                    stage_placement_ids: planned
+                        .plan
+                        .fragments
+                        .iter()
+                        .flat_map(|fragment| &fragment.placements)
+                        .map(|placement| placement.placement_id.clone())
+                        .collect(),
+                });
+            } else {
+                chains.push(chain(
+                    self.graphical
+                        .as_ref()
+                        .ok_or(MaskControlError::UnavailableMask)?,
+                ));
+            }
         }
         if matches!(
             mode,
@@ -295,6 +322,11 @@ impl MaskControlSession {
             .iter()
             .chain(self.speech.iter())
             .map(|execution| execution.manifestation.clone())
+            .chain(
+                self.selected_graphical
+                    .iter()
+                    .filter_map(|(_, shown)| shown.as_ref().map(|show| show.show.clone())),
+            )
             .collect()
     }
 }

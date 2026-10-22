@@ -56,7 +56,7 @@ fn copied_patchbay_kind_does_not_admit_a_different_front_port() {
         &crate::installed_browser::local_bases(),
     )
     .unwrap_err();
-    assert!(refusal.contains("unsupported resident Fore"), "{refusal}");
+    assert!(refusal.contains("canonical Patchbay"), "{refusal}");
     for extra in [
         ">> unused: FaceInteraction...|",
         "unused: FaceInteraction...| >>",
@@ -88,7 +88,7 @@ fn unrelated_open_front_is_not_admitted_by_the_patchbay_exception() {
         &crate::installed_browser::local_bases(),
     )
     .unwrap_err();
-    assert!(refusal.contains("unsupported resident Fore"), "{refusal}");
+    assert!(refusal.contains("canonical Patchbay"), "{refusal}");
 }
 
 #[test]

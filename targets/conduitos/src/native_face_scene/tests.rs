@@ -459,7 +459,7 @@ fn ordinary_graphics_lead_with_primary_content_and_keep_context_inspectable() {
 }
 
 #[test]
-fn primary_action_names_bounded_text_choices_from_current_face_contract() {
+fn primary_action_exposes_only_current_finite_text_choices() {
     let mut current = face(31);
     current.actions[0].arguments[0].value_name = "Interval in milliseconds".into();
     current.actions[0].arguments[0].contract = CheckedValueContract::new(
@@ -505,6 +505,17 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
             "Details lost choice {value}"
         );
     }
+    assert!(scene.primary.iter().any(|row| {
+        row.control
+            == Some(FaceControl {
+                action: 0,
+                argument: Some(0),
+            })
+    }));
+    assert_eq!(
+        text_field::choices(&current, 0).unwrap().as_slice(),
+        ["1000", "2000", "250", "500"]
+    );
     let show = fixture::show(&current);
     let interaction = scene
         .interaction(
@@ -524,13 +535,36 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         )
         .unwrap();
     assert_eq!(interaction.arguments[0].value, b"500");
+    assert!(
+        scene
+            .interaction(
+                &current.identity,
+                current.revision,
+                FaceControl {
+                    action: 0,
+                    argument: Some(0)
+                },
+                &show,
+                vec![FaceInteractionArgument {
+                    name: "value".into(),
+                    value_kind: UTF8_TEXT_VALUE_KIND.into(),
+                    value: b"3000".to_vec(),
+                }],
+                2,
+            )
+            .is_err()
+    );
 
+    // Nine choices are now admitted by the bounded chooser; exceed its
+    // 32-choice Mask preparation bound to exercise the text-entry fallback.
     let mut many = current.actions.clone();
     many[0].arguments[0].contract = CheckedValueContract::new(
         kind_id(UTF8_TEXT_VALUE_KIND),
         2,
         vec![ValueConstraint::CanonicalMembership {
-            members: (0u8..33).map(|value| vec![b'0' + value]).collect(),
+            members: (0u8..33)
+                .map(|value| alloc::format!("{value:02}").into_bytes())
+                .collect(),
             negated: false,
         }],
     )
@@ -563,7 +597,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         .join(" ");
     assert!(details.contains("one of the canonical values"));
     for value in 0u8..33 {
-        let value = alloc::string::String::from_utf8(vec![b'0' + value]).unwrap();
+        let value = alloc::format!("{value:02}");
         assert!(
             details.contains(&alloc::format!("{value:?}")),
             "Details lost overflow choice {value}"

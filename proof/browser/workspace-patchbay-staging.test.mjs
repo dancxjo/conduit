@@ -9,7 +9,7 @@ import { spawnSync } from "node:child_process";
 test("Workspace staging copies all declared canonical Patchbay presentation resources", async () => {
   const script = await readFile("targets/browser/tools/stage-browser-workspace.sh", "utf8");
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
-  const roles = ["browser-sdk-patchbay-play", "browser-sdk-face-actions", "browser-sdk-patchbay", "owner-face-component", "owner-face-look"];
+  const roles = ["browser-sdk-face-actions", "browser-sdk-patchbay", "owner-face-component", "owner-face-look"];
   const resources = roles.map(role => {
     const resource = template.resources.find(value => value.role === role);
     assert.ok(resource, `${role}: declared resource`);
@@ -18,8 +18,8 @@ test("Workspace staging copies all declared canonical Patchbay presentation reso
   // Execute the actual copy statements, without running release catalog or Plot
   // bundling commands. This proves these staged bytes and dependency admission,
   // not a complete release or browser execution.
-  const start = script.indexOf("for asset in browser-sdk-patchbay-play.mjs ");
-  const end = script.indexOf('\nfor asset in creche-rendezvous.mjs ', start);
+  const start = script.indexOf("cp targets/browser/sdk/browser-sdk-patchbay.mjs ");
+  const end = script.indexOf('\ncp targets/browser/workspace/browser-host-configuration.mjs ', start);
   assert.ok(start >= 0 && end > start, "explicit trusted presentation copy block");
   const scratch = await mkdtemp(path.join(tmpdir(), "conduit-workspace-patchbay-stage-"));
   try {
@@ -29,7 +29,7 @@ test("Workspace staging copies all declared canonical Patchbay presentation reso
     assert.equal(copied.status, 0, copied.stderr);
     for (const resource of resources) {
       const staged = await readFile(path.join(scratch, resource.path));
-      const source = await readFile(path.resolve("targets/browser/workspace", resource.source));
+      const source = await readFile(path.join("targets/browser", resource.role.startsWith("owner-face") ? "handbook" : "sdk", resource.path));
       assert.deepEqual(staged, source, `${resource.role}: exact source bytes`);
     }
     const input = path.join(scratch, "template.json");

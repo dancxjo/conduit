@@ -1,3 +1,4 @@
+import { inspectHandbookPlot, assertHandbookInspection } from "./handbook-patchbay-route.mjs";
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -35,11 +36,11 @@ async function current(page) {
   }
 }
 
-async function ready(page) {
+async function ready(page, { handbook = true } = {}) {
   // The retained Candidate trace reached a real Playing Body after the default
   // five-second assertion budget expired during cold SDK/WASM acquisition.
-  await expect(page.getByRole("button", { name: "Lull", exact: true })
-    .and(page.locator('[data-lull]'))).toBeEnabled({ timeout: 30_000 });
+  const controls = handbook ? page.locator(".handbook-controls") : page;
+  await expect(controls.getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
   const state = await current(page);
   for (const key of ["hostId", "bootId", "bodyId", "planId", "playId"]) expect(state[key], key).toBeTruthy();
@@ -116,12 +117,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     await journey.capture(page, { id: "try", title: "Run the clock lesson",
       action: "Restore the clock source and press Try in my Handbook.",
       observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
-    await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
-    const graph = page.locator(".handbook-show conduit-owner-face:visible");
-    const inspectClock = graph.getByRole("button", { name: /^Inspect (clock-demo|A ticker you can stop)$/i });
-    await graph.locator('details[data-body-menu] > summary').click();
-    await expect(inspectClock).toBeEnabled();
-    await inspectClock.click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Open in Patchbay", exact: true }).click();
+    await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
+    const graph = await assertHandbookInspection(page, example);
     const editForm = graph.locator('[data-owner-action="patchbay.edit.current"]');
     await expect(editForm).toBeVisible();
     const selectedPlot = graph.locator('[data-face-role="Plot"]').filter({ has: page.locator('[data-owner-action="patchbay.edit.current"]') });
@@ -130,7 +128,6 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(disclosure[2]).toBe(`plot/${example.selectedPlot}`);
     await expect(graph.locator('li').filter({ hasText: `body-plan-id: ${example.planId}` })).toHaveCount(1);
     await expect(graph.locator('li').filter({ hasText: `observed-body-play-id: ${example.playId}` })).toHaveCount(1);
-    await graph.getByText('Inspect other Face subjects', { exact: true }).click();
     const clockGear = graph.locator('[data-face-role="Gear"]').filter({
       has: page.getByRole("heading", { name: / Gear · time\/every$/ }),
     });
@@ -181,6 +178,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(editedSource).not.toBe(originalSource);
     await editor.fill(editedSource);
     await expect(page.locator("[data-check]")).toHaveText("Edited source — not checked or applied yet. Try it to check and apply the change.");
+    await assertHandbookInspection(page, originalExample);
     const unchangedDisclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
       .getAttribute('data-owner-disclosure'));
     expect(unchangedDisclosure[2]).toBe(`plot/${originalExample.selectedPlot}`);
@@ -209,10 +207,9 @@ test("static Handbook applications retain independent local Bodies through use, 
     await expect(page.getByLabel("Choose an example", { exact: true })).toBeEnabled();
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(editor).toHaveValue(editedSource);
-    await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
-    await graph.locator('details[data-body-menu] > summary').click();
-    await expect(inspectClock).toBeEnabled();
-    await inspectClock.click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Open in Patchbay", exact: true }).click();
+    await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
+    await assertHandbookInspection(page, example);
     await expect(editForm).toBeVisible();
     const editedDisclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
       .getAttribute('data-owner-disclosure'));
@@ -252,11 +249,11 @@ test("static Handbook applications retain independent local Bodies through use, 
 
     const second = await session.context.newPage();
     await second.goto(otherApplication);
-    const independent = await ready(second);
+    const independent = await ready(second, { handbook: false });
     expect(independent.hostId).toBe(first.hostId);
     expect(independent.bodyId).not.toBe(first.bodyId);
     await second.reload();
-    renewed(independent, await ready(second));
+    renewed(independent, await ready(second, { handbook: false }));
 
     await page.locator('.handbook-application').getByText("Your body and browser", { exact: true }).click();
     await Promise.all([

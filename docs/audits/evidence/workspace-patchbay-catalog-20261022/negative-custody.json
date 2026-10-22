@@ -1,0 +1,12 @@
+{
+  "candidate_run": 39779112554,
+  "job": 119826159516,
+  "tested_preview": "9ba03bb2ad6dd5fad609b8cc9e40d915174527be",
+  "published_pr_head": "596aab0e980bb697748d44281c3ed4955f510982",
+  "raw_original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-new-candidate-browser-failure.log",
+  "raw_bytes": 428201,
+  "raw_sha256": "453595a12bdfeca3ad264b6e3f43e02c7d11c316c2e61bdeba4c0ed551c10234",
+  "gzip_sha256": "ab825843b67d25dbd7d2b061c4f7c7d67aff544e6196fe1d6c8c5af873e4fea1",
+  "failure": "supported check plots bundle-workspace-catalog refuses plots/patchbay/main.conduit CND-FRM-028 missing startup signature patchbay/accept-interaction",
+  "boundary": "original hosted failure, not a local execution or a browser runtime assertion"
+}

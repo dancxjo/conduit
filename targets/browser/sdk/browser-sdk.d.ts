@@ -166,6 +166,8 @@ export class BrowserBodyParticipation {
 
 export class BrowserBodyPreparation {
   private constructor();
+  /** Fresh post-Started canonical owner Face and actual acknowledged selected Mask. */
+  showBodyFace(options: { coordinator: string | URL; root: HTMLElement; transport?: typeof fetch }): Promise<Readonly<Record<string, unknown>>>;
   observations(): readonly Readonly<Record<string, unknown>>[];
   evidence(): Readonly<Record<string, unknown>> | null;
   /** Immutable exact Plan truth for read-only workbench Masks. */
@@ -408,7 +410,6 @@ export class BrowserPlay {
   patchbayObservation(): PatchbayObservation;
   acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
   submitPatchbayInteraction(message: PatchbayInteraction): Promise<PatchbayObservation>;
-  /** Checks DOM text arguments against the current Face and encodes their declared UTF-8 wire values. */
   submitPatchbayFaceAction(options: { view: Readonly<Record<string, unknown>>; actionId: string;
     target: string; arguments?: readonly unknown[]; sequence: number }): Promise<PatchbayObservation>;
   refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;

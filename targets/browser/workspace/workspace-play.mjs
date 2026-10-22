@@ -1,23 +1,23 @@
-import { createPatchbayPlay } from "../sdk/browser-sdk-patchbay-play.mjs";
-import { renderPatchbayPublication } from "../sdk/browser-sdk-patchbay.mjs";
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
+import { renderPatchbayPublication } from "../sdk/browser-sdk-patchbay.mjs";
+import { bindWorkspacePatchbay, checkedWorkspaceTerminal, cleanupWorkspacePlay } from "./workspace-play-owner.mjs";
 
 export function openWorkspacePlay({ host, session, storage, source, planningLines, inputTarget, outputRoot, foregroundPlot, onState,
-  faceRootFor, onApplicationEvent,
+  faceRootFor, onApplicationEvent, onPatchbayOwnerRequest,
+  onPatchbayPublication = renderPatchbayPublication,
   onTutorialPresenterRequest,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
   let adapter = null, external = null, proposal = null, started = null, terminal = null, transition = false;
-  const publish = (state, detail = '', error = null) => onState({ state, detail, play: started?.play, terminal,
-    proposal, refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
-  const requireTerminal = receipt => {
-    if (receipt?.schema !== 'conduit.tour/manifestation-receipt@3' ||
-        receipt.active_play_id !== started?.play.active_play_id ||
-        !['completed', 'cancelled', 'failed'].includes(receipt.disposition) ||
-        typeof receipt.terminal_sign_id !== 'string' || !receipt.terminal_sign_id) {
-      throw new Error('The host has not supplied the terminal receipt for this play');
-    }
-    terminal = receipt;
+  let playbackState = null, rendererRetired = false;
+  const publish = (state, detail = '', error = null) => {
+    playbackState = state;
+    onState({ state, detail, play: started?.play, terminal,
+      proposal, refusal: error ? { code: typeof error.code === 'string' ? error.code : error.name, message: error.message } : null });
   };
+  const bindPatchbay = (owner, admitted) => bindWorkspacePatchbay(owner, admitted,
+    () => adapter === owner && started === admitted && !terminal && !rendererRetired
+      && ['Playing', 'Idle'].includes(playbackState));
+  const requireTerminal = receipt => { terminal = checkedWorkspaceTerminal(receipt, started?.play.active_play_id); };
   const stop = async () => {
     await external?.close();
     external = null;
@@ -34,28 +34,25 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
   return Object.freeze({
     async wake(authorizeAudio = false) {
       if (adapter || transition) return;
-      transition = true; terminal = null; started = null;
+      transition = true; terminal = null; started = null; rendererRetired = false;
       publish('Preparing', 'Checking the installed plots');
       try {
+        if (typeof onPatchbayPublication !== 'function') throw new Error('canonical Patchbay requires a selected browser Face renderer');
         proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
-        let renderingPlay, renderingBinding;
+        let patchbay = null;
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
-          inputTarget, outputRoot, foregroundPlot, faceRootFor, onApplicationEvent,
-          onTutorialPresenterRequest, storage,
+          inputTarget, outputRoot, foregroundPlot, faceRootFor, onApplicationEvent, onPatchbayOwnerRequest,
           onPatchbayPublication: request => {
-            if (!renderingBinding || adapter !== renderingBinding.adapter || terminal !== null) {
-              throw new Error("Patchbay renderer has no current started Workspace Play");
-            }
-            renderingPlay ??= createPatchbayPlay({ ...renderingBinding,
-              isCurrent: () => adapter === renderingBinding.adapter && terminal === null && !request.signal.aborted });
-            return renderPatchbayPublication({ ...request, play: renderingPlay });
+            if (!patchbay || patchbay.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+            return onPatchbayPublication({ ...request, play: patchbay });
           },
+          onTutorialPresenterRequest, storage,
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
+        patchbay = bindPatchbay(adapter, started);
         await session.started(started);
-        renderingBinding = Object.freeze({ adapter, identity: Object.freeze({ ...started.play }) });
         await external?.updateContext?.();
         publish('Playing', 'Plots are awake');
         const running = adapter;
@@ -91,23 +88,9 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
           }
         });
       } catch (error) {
-        let cleanupError = null;
-        try {
-          await external?.close();
-          external = null;
-          const closed = adapter?.close();
-          if (started) {
-            requireTerminal(closed?.receipt);
-            adapter = null;
-            await session.lull(started.play);
-          } else if (session.evidence()?.realization && error?.refusal?.rejections?.length) {
-            adapter = null;
-            await session.failed(error.refusal.rejections);
-          } else if (session.evidence()?.realization && (!closed || closed.startOutcome === 'refused-before-play' || closed.startOutcome === 'not-attempted')) {
-            adapter = null;
-            await session.lull(null);
-          }
-        } catch (failure) { cleanupError = failure; }
+        const cleanup = await cleanupWorkspacePlay({ external, adapter, started, session, error, requireTerminal });
+        ({ external, adapter } = cleanup);
+        const { cleanupError } = cleanup;
         if (session.persistenceFailure()) {
           publish(terminal ? 'Stopped' : 'Refused', `Your body could not be saved. ${terminal ? 'Its plots have stopped. ' : ''}Reopen to recover the last saved state. ${error.message}`, error);
         } else {
@@ -157,6 +140,6 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
       } finally { transition = false; }
     },
     evidence() { return adapter?.evidence() ?? terminal?.kernel_signs ?? null; },
-    close() { void external?.close(); external = null; return adapter?.close(); },
+    close() { rendererRetired = true; void external?.close(); external = null; return adapter?.close(); },
   });
 }

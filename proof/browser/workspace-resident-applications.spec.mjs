@@ -58,54 +58,37 @@ test("resident canonical Patchbay inspects a typed subject and retains an unhand
   const born = await current(page);
   await page.locator("[data-checked-plot-id]").filter({ hasText: "Patchbay" }).click();
   const patchbay = visiblePlotOutput(page);
-  const canonical = patchbay.locator("conduit-owner-face");
-  await expect(canonical).toBeVisible();
-  await canonical.locator('details[data-body-menu] > summary').click();
-  const inspectButton = canonical.getByRole("button", { name: "Inspect Memory Lantern", exact: true });
-  await expect(inspectButton).toBeEnabled();
-  const before = await patchbayObservation(page);
-  expect(before.body_plan_id).toBe(born.plan_id);
-  expect(before.active_play_id).toBe(born.active_play_id);
-  expect(before.pending_owner_request).toBeNull();
-  const inspect = before.publication.view.actions.find(action => action.name === "Inspect Memory Lantern");
-  expect(inspect).toMatchObject({ intent: "patchbay/select-plot@1", availability: "available", arguments: [] });
-  await inspectButton.click();
-  const form = canonical.locator('[data-owner-action="patchbay.edit.current"]');
-  await expect(form).toBeVisible();
-  const selected = await patchbayObservation(page);
-  const edit = selected.publication.view.actions.find(action => action.identity === "patchbay.edit.current");
-  expect(edit).toMatchObject({ intent: "patchbay/edit-subject@1", target: inspect.target, availability: "available" });
-  expect(edit.arguments).toHaveLength(1);
-  const argument = edit.arguments[0];
-  expect(argument).toMatchObject({ name: "subject", value_kind: "value/text" });
-  // Choose an actual finite offered member; larger contracts use the same typed
-  // text entry over a subject published by this checked Face.
-  const subject = argument.choices?.[0]
-    ?? selected.publication.view.subjects.find(item => item.role === "Gear")?.identity;
-  expect(typeof subject).toBe("string");
-  expect(subject.length).toBeGreaterThan(0);
-  const input = form.getByLabel(argument.value_name, { exact: true });
-  if (await input.evaluate(node => node.tagName === "SELECT")) await input.selectOption(subject);
-  else await input.fill(subject);
-  const editButton = form.getByRole("button", { name: edit.name, exact: true });
-  await expect(editButton).toBeEnabled();
-  await editButton.click();
-  // Passive observation only. Workspace has no source-editor handler: a typed
-  // request remains pending rather than acquiring inferred edit authority.
-  await expect.poll(async () => (await patchbayObservation(page)).pending_owner_request).not.toBeNull();
-  const pending = await patchbayObservation(page);
-  expect(pending.pending_owner_request.request).toMatchObject({ kind: "EditCurrent", subject_identity: subject });
-  expect(pending.last_owner_disposition).toEqual(selected.last_owner_disposition);
-  expect(pending.body_plan_id).toBe(born.plan_id);
-  expect(pending.active_play_id).toBe(born.active_play_id);
-  expect((await patchbayObservation(page)).pending_owner_request).toEqual(pending.pending_owner_request);
-  const retained = await current(page);
-  expect(retained).toMatchObject({ body_id: born.body_id, plan_id: born.plan_id,
-    active_play_id: born.active_play_id, workload_revision: born.workload_revision });
-  expect(retained.initial_plots).toEqual(born.initial_plots);
-  await testInfo.attach("canonical-patchbay-pending-edit.json", {
-    body: JSON.stringify({ before, selected, pending, retained,
-      boundary: "Workspace retained typed owner request; no source edit or owner completion claimed" }, null, 2),
-    contentType: "application/json",
-  });
+  await expect(patchbay).toContainText("Active plots on this body");
+  const component = patchbay.locator('conduit-owner-face');
+  await expect(component).toHaveAttribute('aria-busy', 'false');
+  const menu = component.locator('details[data-body-menu]');
+  await menu.locator(':scope > summary').click();
+  const lantern = page.getByRole('navigation', { name: 'Your plots' })
+    .getByRole('button', { name: 'Memory Lantern', exact: true });
+  const checkedPlotId = await lantern.getAttribute('data-checked-plot-id');
+  expect(checkedPlotId).toMatch(/^[0-9a-f]{64}$/);
+  const inspect = menu.getByRole('button', { name: 'Inspect Memory Lantern', exact: true });
+  await expect(inspect).toBeEnabled();
+  expect(JSON.parse(await inspect.getAttribute('data-owner-focus')))
+    .toEqual([born.body_id, expect.stringMatching(/^patchbay\.plot\.\d+$/), `plot/${checkedPlotId}`, 'submit']);
+  const initialFace = await component.getAttribute('data-face-id');
+  await inspect.click();
+  await expect(component).not.toHaveAttribute('data-face-id', initialFace);
+  await expect(component).toHaveAttribute('aria-busy', 'false');
+  const edit = menu.locator('form[data-owner-action="patchbay.edit.current"]');
+  const subject = edit.getByRole('combobox', { name: 'Subject to edit', exact: true });
+  await expect(subject).toBeEnabled();
+  const subjectId = await subject.locator('option').evaluateAll(options =>
+    options.find(option => option.value && !option.disabled)?.value);
+  expect(subjectId).toBeTruthy();
+  await subject.selectOption(subjectId);
+  const submit = edit.getByRole('button', { name: 'Edit a subject', exact: true });
+  expect(JSON.parse(await submit.getAttribute('data-owner-focus')))
+    .toEqual([born.body_id, 'patchbay.edit.current', `plot/${checkedPlotId}`, 'submit']);
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(component).toContainText('Edit requested against the exact inspected subject; no authority was inferred.');
+  await page.screenshot({ path: testInfo.outputPath('resident-patchbay-exact-edit.png'), fullPage: true });
+  expect((await current(page)).body_id).toBe(born.body_id);
+  expect((await current(page)).active_play_id).toBe(born.active_play_id);
 });

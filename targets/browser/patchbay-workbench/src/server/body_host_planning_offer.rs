@@ -28,6 +28,13 @@ impl PatchbayHtmlServer {
             conduit_body_make::body_planning_requirements(workset, &plots).map_err(|error| {
                 ServerError::Interaction(format!("Body planning requirements: {error:?}"))
             })?;
+        let mut requirements = serde_json::to_value(requirements)
+            .map_err(|error| ServerError::Interaction(error.to_string()))?;
+        requirements["mask_kind_ids"] = serde_json::json!(if self.selected_browser_mask {
+            vec!["face/browser-dom-mask"]
+        } else {
+            Vec::<&str>::new()
+        });
         let body = serde_json::to_vec(&requirements)
             .map_err(|error| ServerError::Interaction(error.to_string()))?;
         super::write_response(stream, "200 OK", "application/json; charset=utf-8", &body)
@@ -134,13 +141,25 @@ impl PatchbayHtmlServer {
             )
             .map_err(|error| ServerError::Interaction(format!("Body initial plan: {error:?}")))?
         };
+        let mut next_mask_control = self.mask_control.clone();
         if next_planning.current_plan().mask_topologies.is_empty() {
-            if let Some(control) = self.mask_control.as_mut() {
-                control
-                    .install_initial_graphical(&mut next_planning)
+            if let Some(control) = next_mask_control.as_mut() {
+                if self.selected_browser_mask {
+                    let planned = conduit_browser_mask_offer::planned_mask(
+                        &advertisement,
+                        conduit_browser_mask_offer::MASK_SOURCE,
+                        "browser-graphical",
+                    )
                     .map_err(|error| {
-                        ServerError::Interaction(format!("Mask initial plan: {error:?}"))
+                        ServerError::Interaction(format!("selected browser Mask: {error}"))
                     })?;
+                    control.install_initial_selected_graphical(planned, &mut next_planning)
+                } else {
+                    control.install_initial_graphical(&mut next_planning)
+                }
+                .map_err(|error| {
+                    ServerError::Interaction(format!("Mask initial plan: {error:?}"))
+                })?;
             }
         }
         let session = self
@@ -163,6 +182,8 @@ impl PatchbayHtmlServer {
         let navigation = super::navigation_state(&snapshot)?;
         self.body_workload = Some(session);
         self.body_planning = Some(next_planning);
+        self.mask_control = next_mask_control;
+        self.body_face_show = None;
         self.snapshot = snapshot;
         self.navigation = navigation;
         self.encoded_snapshot = encoded;
@@ -290,184 +311,4 @@ fn provenance(evidence: &HostOfferProjection) -> Vec<RemoteClaimProvenance> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_body::CapabilitySummary;
-    use conduit_core::{CapabilityId, HostProfileId, ImplementationId, SignId};
-
-    fn projections(server: &PatchbayHtmlServer) -> (HostOfferProjection, HostOfferProjection) {
-        let current = server
-            .body_workload
-            .as_ref()
-            .unwrap()
-            .evidence()
-            .membership
-            .parts
-            .iter()
-            .find_map(|part| part.current.as_ref())
-            .unwrap();
-        let mut host = conduit_std_host::StdHost::new().advertisement().clone();
-        host.capabilities
-            .push(conduit_std_host::hosted_keyboard_offer(
-                "proof/body-keyboard",
-                "proof/body-keyboard@1",
-            ));
-        host.resources.push(conduit_core::resource_offer(
-            "proof/body-input",
-            conduit_core::INPUT_RESOURCE_CLASS,
-            1,
-        ));
-        let workset = &server
-            .body_workload
-            .as_ref()
-            .unwrap()
-            .evidence()
-            .body
-            .workset;
-        let plots = planning_plots(workset, &server.body_planning_plots).unwrap();
-        let requirements = conduit_body_make::body_planning_requirements(workset, &plots).unwrap();
-        let mut offers = requirements
-            .kind_ids
-            .iter()
-            .map(|kind| {
-                host.capabilities
-                    .iter()
-                    .find(|offer| &offer.kind_id == kind)
-                    .unwrap()
-                    .clone()
-            })
-            .collect::<Vec<_>>();
-        offers.sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
-        offers.dedup_by(|left, right| left.capability_id == right.capability_id);
-        let required_classes = offers
-            .iter()
-            .flat_map(|offer| {
-                offer
-                    .resource_requirements
-                    .iter()
-                    .map(|item| &item.class_id)
-            })
-            .collect::<Vec<_>>();
-        let mut resources = host
-            .resources
-            .iter()
-            .filter(|offer| required_classes.contains(&&offer.class_id))
-            .cloned()
-            .collect::<Vec<_>>();
-        resources.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
-        let summary = HostOfferProjection {
-            stage: OfferDisclosureStage::AdmittedMembership,
-            protocol_version: PROTOCOL_VERSION,
-            host_id: current.host_id.clone(),
-            boot_id: current.boot_id.clone(),
-            offer_generation: current.offer_generation,
-            observation_sign_id: SignId::from("sign/browser/offer-summary"),
-            freshness_sequence: 1,
-            proof_class: RemoteProofClass::SelfReported,
-            profile: Some(HostProfileId::from("browser-standard")),
-            capability_summary: offers
-                .iter()
-                .map(|offer| CapabilitySummary {
-                    capability_id: offer.capability_id.clone(),
-                    implementation_id: offer.implementation.implementation_id.clone(),
-                })
-                .collect(),
-            capabilities: Vec::new(),
-            resources: Vec::new(),
-        };
-        let planning = HostOfferProjection {
-            stage: OfferDisclosureStage::Planning,
-            observation_sign_id: SignId::from("sign/browser/planning-detail"),
-            freshness_sequence: 2,
-            capability_summary: Vec::new(),
-            capabilities: offers,
-            resources,
-            ..summary.clone()
-        };
-        (summary, planning)
-    }
-
-    #[test]
-    fn explicit_policy_admission_starts_an_ordinary_body_plan() {
-        let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
-        let body_id = snapshot.body_workbench.as_ref().unwrap().body_id.clone();
-        let plots = crate::body_workbench_fixture_plots().unwrap();
-        let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
-            .unwrap()
-            .with_body_planning_plots(plots)
-            .unwrap();
-        let (summary, planning) = projections(&server);
-        eprintln!(
-            "measured Body planning offer: {} bytes",
-            serde_json::to_vec(&planning).unwrap().len()
-        );
-        server
-            .apply_body_host_offer_evidence(&serde_json::to_vec(&summary).unwrap())
-            .unwrap();
-
-        let admitted: crate::RendererSnapshot = serde_json::from_slice(
-            &server
-                .apply_body_host_planning_offer(&serde_json::to_vec(&planning).unwrap())
-                .unwrap(),
-        )
-        .unwrap();
-        assert_eq!(admitted.body_host_planning_offer.as_ref(), Some(&planning));
-        assert_eq!(admitted.body_workbench.as_ref().unwrap().body_id, body_id);
-        assert!(admitted.body_planning.is_some());
-        let retained: conduit_body::BodyBiographyEvidence =
-            serde_json::from_slice(&server.current_body_evidence().unwrap()).unwrap();
-        retained.validate().unwrap();
-        let planning_session = server.body_planning.as_ref().unwrap();
-        assert_eq!(&retained.body, planning_session.body());
-        assert_eq!(retained.wakes, vec![planning_session.wake().clone()]);
-        assert_eq!(
-            admitted.body_planning.as_ref().unwrap().lifecycle,
-            conduit_body::WakeLifecycle::AwaitingPlan
-        );
-        assert!(server
-            .body_planning
-            .as_ref()
-            .unwrap()
-            .wake()
-            .plans
-            .is_empty());
-        assert_eq!(
-            admitted.body_planning.as_ref().unwrap().body_id.as_str(),
-            body_id
-        );
-        assert_eq!(
-            admitted.interaction.last_disposition.as_deref(),
-            Some("Succeeded(PlanningInputAdmitted;BodyReplanned)")
-        );
-    }
-
-    #[test]
-    fn stale_boot_and_detail_absent_from_summary_refuse_atomically() {
-        let snapshot = crate::body_workbench_fixture_snapshot(false).unwrap();
-        let plots = crate::body_workbench_fixture_plots().unwrap();
-        let mut server = PatchbayHtmlServer::bind_ephemeral(&snapshot)
-            .unwrap()
-            .with_body_planning_plots(plots)
-            .unwrap();
-        let (summary, mut planning) = projections(&server);
-        server
-            .apply_body_host_offer_evidence(&serde_json::to_vec(&summary).unwrap())
-            .unwrap();
-        let prior = server.encoded_snapshot.clone();
-
-        planning.boot_id = conduit_core::BootId::from("stale/browser-boot");
-        assert!(server
-            .apply_body_host_planning_offer(&serde_json::to_vec(&planning).unwrap())
-            .is_err());
-        assert_eq!(server.encoded_snapshot, prior);
-
-        let (_, mut planning) = projections(&server);
-        planning.capabilities[0].capability_id = CapabilityId::from("unadvertised-capability");
-        planning.capabilities[0].implementation.implementation_id =
-            ImplementationId::from("unadvertised-implementation");
-        assert!(server
-            .apply_body_host_planning_offer(&serde_json::to_vec(&planning).unwrap())
-            .is_err());
-        assert_eq!(server.encoded_snapshot, prior);
-    }
-}
+mod tests;

@@ -23,7 +23,8 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// the portable Thermostat transition and bounded scan, and the separately
 /// admitted source-configured component Mask Back, saved-choice operation,
 /// independently selected continuous PCM playback Back, and the two revisioned
-/// text-document and DOM editor Backs, plus canonical Patchbay interaction ingress.
+/// text-document and DOM editor Backs, and the canonical Patchbay typed
+/// FaceInteraction owner ingress Back.
 /// The encoded advertisement byte bound remains independent.
 pub const MAX_CANDIDATE_CAPABILITIES: usize = 140;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;

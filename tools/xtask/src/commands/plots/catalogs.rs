@@ -38,14 +38,6 @@ pub(super) fn catalogs(
     conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
-    let patchbay = patchbay_application::patchbay_interaction_contract();
-    startup.insert(conduit_plot::KindSignature {
-        kind: patchbay.kind_id.as_str().into(),
-        startup_parameters: Vec::new(),
-    })?;
-    profile
-        .insert_kind(patchbay.into())
-        .map_err(|error| error.to_string())?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_saved_choice_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
@@ -130,6 +122,18 @@ pub(super) fn catalogs(
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
     conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    let patchbay = patchbay_application::patchbay_interaction_contract();
+    startup.insert(conduit_plot::KindSignature {
+        kind: patchbay.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(
+        patchbay_application::PATCHBAY_INTERACTION_KIND,
+        patchbay.checked_front(),
+    )?;
+    profile
+        .insert_kind(patchbay)
+        .map_err(|error| error.to_string())?;
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
@@ -156,3 +160,7 @@ pub(super) fn catalogs(
     )?;
     Ok((startup, profile))
 }
+
+#[cfg(test)]
+#[path = "catalogs_tests.rs"]
+mod tests;
