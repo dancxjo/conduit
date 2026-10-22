@@ -474,3 +474,10 @@ append and seal allocate nothing after preparation. No API labels a chunk as
 committed, chooses a Resource generation, writes IndexedDB, retries or retires
 content. A validated reader, cross-chunk recovery, actual publication completion,
 finite generation admission and the producer Line remain integration work.
+
+The ESP32 display now has an attended physical diagnostic under
+`targets/esp32/proof/tm1637`. The selected GPIO18/19 wiring was exercised at a
+100 microsecond half-period with open-drain release and internal pull-ups. All
+segments, `1234` and the `67.6F` fixture were acknowledged; the user confirmed
+both digits and the point after 7. This establishes that physical display path,
+not an installed seven-segment Mask/Host Call or a real temperature display.
