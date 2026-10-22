@@ -9,7 +9,9 @@ use patchbay_graph::PatchbayGraph;
 mod mask_fixture;
 
 fn graph(name: &str) -> PatchbayGraph {
-    let syntax = conduit_plot::parse_syntax_document(&format!("plot {name} {{}}"));
+    let syntax = conduit_plot::parse_syntax_document(&format!(
+        "plot {name} (\n >> value: Text\n result: Text >>\n) = (.)\n"
+    ));
     let checked =
         conduit_plot::check_syntax_document(&syntax, &conduit_plot::StartupCatalog::new()).unwrap();
     let expanded = conduit_plot::expand_canonical_plot_for_authoring(
@@ -245,7 +247,14 @@ fn projected_inventory_requires_prepared_capacity_and_exact_body_plan() {
         port.append_prepared_graph(graph("beta"), "plan/beta".into(), &"plan/body".into())
             .is_err()
     );
-    let mut port = port.with_prepared_graph_capacity(2).unwrap();
+    // Retained physical capacity is deliberately larger than the admitted
+    // inventory limit; allocation headroom must not grant another target.
+    let mut port = port
+        .with_prepared_graph_capacity(4)
+        .unwrap()
+        .with_prepared_graph_capacity(2)
+        .unwrap()
+        .without_prepared_body_focus();
     assert!(
         port.append_prepared_graph(graph("beta"), "plan/beta".into(), &"plan/other-body".into())
             .is_err()
@@ -259,8 +268,20 @@ fn projected_inventory_requires_prepared_capacity_and_exact_body_plan() {
         port.append_prepared_graph(graph("gamma"), "plan/gamma".into(), &"plan/body".into())
             .is_err()
     );
+    let before = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
+    assert!(!before.nodes.iter().any(|node| {
+        node.text
+            .contains("focused when this inspector was prepared")
+    }));
     port.select_prepared_plot(1).unwrap();
     assert_eq!(port.selected_graph().unwrap().plot_name, "beta");
+    let after = ApplicationView::decode(&port.apply(&[]).unwrap().view).unwrap();
+    assert!(
+        !after.nodes.iter().any(|node| node
+            .text
+            .contains("focused when this inspector was prepared")),
+        "inspection selection cannot fabricate Body-focus evidence"
+    );
     assert_eq!(port.selected_plan_id().unwrap().as_str(), "plan/beta");
     assert_eq!(
         port.graph(),

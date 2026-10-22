@@ -189,8 +189,25 @@ fn small_target() -> Target {
 #[test]
 fn exact_target_coverage_and_selected_position_survive_staging() {
     let first = small_target();
-    let mut selected = first.clone();
-    selected.graph.plot_name = "exact selected target".into();
+    // A second inventory entry must name a distinct checked Source/Plan, not
+    // duplicate an existing identity with a different display caption.
+    let source = "plot selected_target (\n >> value: Text\n result: Text >>\n) = (.)\n";
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(source),
+        &conduit_plot::StartupCatalog::new(),
+    )
+    .unwrap();
+    let expanded = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "selected_target",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .unwrap();
+    let selected = Target {
+        graph: patchbay_graph::PatchbayGraph::from_expanded(&expanded.expanded).unwrap(),
+        plan: "plan/selected-source-staging-fixture".into(),
+        body: first.body.clone(),
+    };
     let mut state = State::default();
     call(
         &mut state,

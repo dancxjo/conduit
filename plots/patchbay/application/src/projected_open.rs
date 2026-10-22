@@ -21,7 +21,17 @@ impl PatchbayApplicationPort {
             return Err(PatchbayApplicationRefusal::TooManyActivePlots);
         }
         self.plots.reserve_exact(maximum - self.plots.len());
+        self.prepared_graph_limit = maximum;
         Ok(self)
+    }
+
+    /// No Body-focus observation was provided for this prepared inventory.
+    /// Inspection selection never establishes or changes that separate fact.
+    pub fn without_prepared_body_focus(mut self) -> Self {
+        for plot in &mut self.plots {
+            plot.focused = false;
+        }
+        self
     }
 
     /// Move an admitted graph into reserved preparation storage without growth.
@@ -31,7 +41,8 @@ impl PatchbayApplicationPort {
         plan_id: PlanId,
         body_plan_id: &PlanId,
     ) -> Result<usize, PatchbayApplicationRefusal> {
-        if self.plots.len() == self.plots.capacity()
+        if self.plots.len() >= self.prepared_graph_limit
+            || self.plots.len() == self.plots.capacity()
             || self.plots.len() + 5 > conduit_face::MAX_APPLICATION_ACTIONS
         {
             return Err(PatchbayApplicationRefusal::TooManyActivePlots);

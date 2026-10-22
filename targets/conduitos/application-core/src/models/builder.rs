@@ -78,7 +78,8 @@ impl Builder {
             let port = PatchbayApplicationPort::open_graph(value.graph, value.plan, value.body)
                 .and_then(|port| port.with_prepared_graph_capacity(SLOTS))
                 .map_err(|_| Refusal::Application)?
-                .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection);
+                .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection)
+                .without_prepared_body_focus();
             patchbay.port = Some(Box::new(port));
             0
         };
