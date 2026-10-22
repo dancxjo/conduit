@@ -274,9 +274,13 @@ fn build_region(
         conduit_semantic_catalog::STATE_COUNT_KIND,
         conduit_semantic_catalog::COUNT_FACE_KIND,
     ]);
+    let document_editor = exact_kinds(&[
+        conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND,
+        conduit_semantic_catalog::FACE_EDITOR_KIND,
+    ]);
     let protected = cfg!(conduitos_protected_execution)
         && matches!(region_id, "region/0" | "region/text")
-        && (ordinary_text || keyboard_text || tour_morse || tour_timer);
+        && (ordinary_text || keyboard_text || document_editor || tour_morse || tour_timer);
     let cord_item_capacity = region_connections(fragment, &admitted_placements)
         .try_fold(0u32, |total, connection| {
             total.checked_add(u32::from(connection.item_capacity))

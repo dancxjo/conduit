@@ -28,7 +28,6 @@ const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
 const NODES: usize = 14;
 const CORDS: usize = 10;
 
-mod observation;
 mod refusal;
 pub use refusal::PlayRefusal;
 
@@ -187,7 +186,6 @@ impl NativeWorksetPlay {
         }
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if let Err(error) = self.activate_protection(plan, play) {
-            observation::refused("protection-activation", &error);
             let _ = self.cancel();
             return Err(error);
         }
@@ -372,10 +370,7 @@ impl NativeWorksetPlay {
         self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         self.applications.abort();
-        let result = self.scheduler.cancel().map_err(|error| {
-            observation::refused("cancel", &error);
-            PlayRefusal::Kernel
-        });
+        let result = self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel);
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if result.is_err() {
             self.fence_runtime_failure();
@@ -408,8 +403,7 @@ impl NativeWorksetPlay {
     ) -> Result<T, PlayRefusal> {
         match result {
             Ok(value) => Ok(value),
-            Err(error) => {
-                observation::refused("application", &error);
+            Err(_) => {
                 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
                 self.fence_runtime_failure();
                 Err(PlayRefusal::Kernel)
@@ -419,9 +413,6 @@ impl NativeWorksetPlay {
     fn drive(&mut self) -> Result<(), PlayRefusal> {
         self.ensure_applications_live()?;
         let result = self.drive_inner();
-        if let Err(error) = &result {
-            observation::refused("drive", error);
-        }
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if result.is_err() {
             self.fence_runtime_failure();
@@ -447,24 +438,18 @@ impl NativeWorksetPlay {
     fn drive_inner(&mut self) -> Result<(), PlayRefusal> {
         for _ in 0..512 {
             while let Some(request) = self.scheduler.next_host_request() {
-                let binding = self
-                    .binding(request.node)
-                    .inspect_err(|error| observation::refused("binding", &(request.node, error)))?;
+                let binding = self.binding(request.node)?;
                 if matches!(binding.effect, Effect::Keyboard | Effect::ApplicationEvent) {
                     if self.pending[usize::from(binding.plot)]
                         .replace(request)
                         .is_some()
                     {
-                        observation::refused("duplicate-pending", &(request.node, binding.plot));
                         return Err(PlayRefusal::Kernel);
                     }
                 } else if binding.effect == Effect::Editor {
-                    self.present_editor(usize::from(binding.plot), request)
-                        .inspect_err(|error| observation::refused("editor", error))?;
+                    self.present_editor(usize::from(binding.plot), request)?;
                 } else {
-                    self.apply(request, binding).inspect_err(|error| {
-                        observation::refused("host-effect", &(request.node, binding.effect, error))
-                    })?;
+                    self.apply(request, binding)?;
                 }
             }
             match self.scheduler.step().map_err(PlayRefusal::Scheduler)? {
@@ -477,18 +462,7 @@ impl NativeWorksetPlay {
                     return Ok(());
                 }
                 SchedulerStatus::Cancelled => return Err(PlayRefusal::Cancelled),
-                status => {
-                    observation::refused(
-                        "scheduler-status",
-                        &(
-                            status,
-                            self.plot_count,
-                            self.pending.map(|p| p.is_some()),
-                            self.patchbay_inputs.each_ref().map(|p| p.is_some()),
-                        ),
-                    );
-                    return Err(PlayRefusal::Kernel);
-                }
+                _ => return Err(PlayRefusal::Kernel),
             }
         }
         Err(PlayRefusal::WorkBound)

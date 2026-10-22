@@ -138,7 +138,7 @@ impl BodyTextAdmission {
         play: &BodyPlayIdentity,
     ) -> Result<ProtectedText<BodyRegionBinding>, MachineRunError> {
         if plan.plan_id != self.body_plan {
-            return Err(activation_refusal("plan-identity"));
+            return Err(MachineRunError::KernelConstruction);
         }
         let started = TextDomain::ticks();
         let domain = NEXT_DOMAIN
@@ -160,23 +160,21 @@ impl BodyTextAdmission {
             .plots
             .iter()
             .find(|p| p.plot == self.plot)
-            .ok_or_else(|| activation_refusal("partition"))?;
+            .ok_or(MachineRunError::KernelConstruction)?;
         let region = partition
             .plan
             .fragments
             .iter()
             .flat_map(|f| &f.execution_regions)
             .find(|r| r.region_id == self.region)
-            .ok_or_else(|| activation_refusal("region"))?;
+            .ok_or(MachineRunError::KernelConstruction)?;
         if region.execution_profile_id.as_str() != crate::ordinary_plan::PROTECTED_REGION_PROFILE
             || !region.isolation_required
             || !region.preemption_required
         {
-            return Err(activation_refusal("region-contract"));
+            return Err(MachineRunError::KernelConstruction);
         }
-        let mut capabilities = capability_table(self.generation).inspect_err(|_| {
-            let _ = activation_refusal("capability-table");
-        })?;
+        let mut capabilities = capability_table(self.generation)?;
         let serial = self
             .serial
             .map(|prepared| {
@@ -225,13 +223,6 @@ impl BodyTextAdmission {
         }
         Ok(protected)
     }
-}
-
-fn activation_refusal(stage: &str) -> MachineRunError {
-    crate::arch::early_write(b"CONDUIT_TEXT_ACTIVATION_REFUSAL ");
-    crate::arch::early_write(stage.as_bytes());
-    crate::arch::early_write(b"\n");
-    MachineRunError::KernelConstruction
 }
 
 fn body_binding_heap(binding: &BodyRegionBinding) -> usize {
