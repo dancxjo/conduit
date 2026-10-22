@@ -445,3 +445,6 @@ mod configured_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod topology_tests;

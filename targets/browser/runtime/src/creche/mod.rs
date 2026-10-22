@@ -36,6 +36,24 @@ mod spore;
 pub(crate) use spore::{prepare_workspace_browser, prepare_workspace_physical};
 mod spore_target;
 
+/// Checked Source inventory reused by whole-Body publication, never transport labels.
+pub(crate) fn body_face_inventory(
+    source: &str,
+) -> Result<Vec<conduit_body_make::ReviewedBodyPlot>, String> {
+    let inventory = initial_plots::reviewed_inventory(source)?;
+    let reviewed = inventory
+        .plots
+        .into_iter()
+        .map(|plot| conduit_body_make::ReviewedBodyPlot {
+            label: plot.title,
+            source_document_id: plot.source_document_id,
+            checked_plot_id: plot.checked_plot_id,
+        })
+        .collect::<Vec<_>>();
+    conduit_body_make::validate_reviewed_body_plots(&reviewed)?;
+    Ok(reviewed)
+}
+
 #[cfg(test)]
 mod button_workset_tests;
 #[cfg(test)]

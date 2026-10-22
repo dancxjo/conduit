@@ -1,0 +1,14 @@
+✔ typed lifecycle refusals preserve their category, operation, evidence, and exact identities (1.881667ms)
+✔ BrowserHost cannot be made outside the admitted Conduit entrance (0.451582ms)
+✔ external Body executor accepts semantic editing within its exact finite envelope (0.325017ms)
+✔ Browser SDK refuses URL-changing paths and conflicting inventories before asset fetch (53.641559ms)
+✔ Browser SDK cancels oversized manifest streams at the byte bound (1.556443ms)
+✔ Browser SDK verifies the exact IMAGE bytes it interpreted without refetching (2.607287ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.722772

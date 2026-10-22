@@ -246,12 +246,17 @@ export async function startApplication(application) {
     const showSelected = () => {
       const plot = catalog.plots.find(item => item.checked_plot_id === selected);
       const partition = session.evidence()?.realization?.plan.plots.find(item => item.plot.checked_plot_id === selected);
+      const maskPlacements = (session.evidence()?.realization?.plan.mask_topologies ?? [])
+        .filter(item => item.face?.plot?.checked_plot_id === selected)
+        .flatMap(topology => topology.chains.slice(0, 1)
+          .flatMap(chain => chain.plan.fragments.flatMap(fragment => fragment.placements)));
       root.querySelector('#surface-title').textContent = plot?.title ?? 'No Plots installed';
-      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail);
+      root.querySelector('[data-surface-invitation]').textContent = configureWorkspaceInput(input, plot, partition, playback.detail, maskPlacements);
       root.querySelector('.current-plot').textContent = plot?.title ?? 'Your plots';
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-plot-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedPlotId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
+      for (const placement of maskPlacements) visible.add(placement.placement_id);
       for (const output of root.querySelectorAll('[data-plot-output] > output')) output.hidden = !visible.has(output.dataset.placementId);
       for (const button of strip.querySelectorAll('[data-inspect="plot"], [data-inspect="flow"]')) button.disabled = !plot;
     };

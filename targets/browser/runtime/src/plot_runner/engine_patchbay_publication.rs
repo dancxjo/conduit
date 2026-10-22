@@ -82,7 +82,7 @@ pub(in crate::plot_runner) fn interact_publication(
         .and_then(|app| app.as_deref_mut())
     {
         Some(super::super::super::application_state::PreparedApplication::Patchbay(owner)) => {
-            publication.interact(owner, input)?;
+            publication.interact(owner.as_mut(), input)?;
             Ok(())
         }
         _ => Err("canonical interaction has no exact prepared Patchbay owner".into()),
@@ -103,7 +103,7 @@ fn interact_resident(
         .and_then(|app| app.as_deref_mut())
     {
         Some(super::super::super::application_state::PreparedApplication::Patchbay(owner)) => {
-            publication.emit_resident(owner, input)?
+            publication.emit_resident(owner.as_mut(), input)?
         }
         _ => return Err("resident Patchbay actor absent".into()),
     };
@@ -123,7 +123,7 @@ fn interact_resident(
     };
     let (mut receipt, outcome) = crate::patchbay_ingress::apply_to_owner(
         plan,
-        owner,
+        owner.as_mut(),
         delivered,
         &current.body_plan.body_id,
         publication.basis(),

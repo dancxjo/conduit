@@ -577,3 +577,33 @@ test('Patchbay disposition forwards exact scope, bounds input and retires bytes 
   assert.throws(() => bridge.patchbayRequestDisposition({ ...message, evidence_id: 'x'.repeat(4096) }), /input bound/);
   assert.equal(calls, 2);
 });
+
+test('Body Face bridge preserves raw owner u64 values and exact decimal ACK revision', () => {
+  const api = runtime();
+  api.conduit_tour_input_ptr = () => 2048;
+  api.conduit_tour_input_capacity = () => 8192;
+  api.conduit_browser_body_input_ptr = () => 2048;
+  api.conduit_browser_body_input_capacity = () => 8192;
+  const output = new TextEncoder().encode('{"schema":"conduit.browser/body-face-observation@1","face":{"revision":9007199254740993},"view":{"face_revision":"9007199254740993"}}');
+  api.conduit_browser_plot_output_ptr = () => 16384;
+  api.conduit_browser_plot_output_len = () => output.length;
+  let request;
+  const invoke = length => {
+    request = new Uint8Array(api.memory.buffer, 2048, length).slice();
+    new Uint8Array(api.memory.buffer, 16384, output.length).set(output);
+    return 1;
+  };
+  api.conduit_browser_body_face_prepare = invoke;
+  api.conduit_browser_body_face_acknowledge = invoke;
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'Body Face precision proof' });
+  const owner = new TextEncoder().encode('{"revision":9007199254740993}');
+  const prepared = bridge.bodyFacePrepare(owner);
+  assert.deepEqual(request, owner);
+  assert.deepEqual(prepared.bytes, output);
+  bridge.bodyFaceAcknowledge({ face_revision: prepared.value.view.face_revision, show_id: 'show/exact' });
+  assert.equal(new TextDecoder().decode(request), '{"face_revision":9007199254740993,"show_id":"show/exact"}');
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, 2048, request.length)], new Array(request.length).fill(0));
+  for (const revision of [9007199254740992, '01', '-1', '18446744073709551616']) {
+    assert.throws(() => bridge.bodyFaceAcknowledge({ face_revision: revision }), /exact u64/);
+  }
+});

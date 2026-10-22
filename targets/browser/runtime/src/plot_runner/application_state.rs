@@ -291,7 +291,7 @@ pub(super) enum PreparedApplication {
     Tutorial(conduit_face::ApplicationView),
     Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
-    Patchbay(super::prepared_patchbay::PreparedPatchbay),
+    Patchbay(Box<super::prepared_patchbay::PreparedPatchbay>),
 }
 
 impl PreparedApplication {
@@ -307,13 +307,15 @@ impl PreparedApplication {
         let _ = (plan, active_play_id, source, foreground_checked_plot_id);
         if placement.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND {
             #[cfg(feature = "creche-surface")]
-            return Ok(Some(Self::Patchbay(patchbay_actor_preparation::prepare(
-                placement,
-                plan,
-                active_play_id,
-                source,
-                foreground_checked_plot_id,
-            )?)));
+            return Ok(Some(Self::Patchbay(Box::new(
+                patchbay_actor_preparation::prepare(
+                    placement,
+                    plan,
+                    active_play_id,
+                    source,
+                    foreground_checked_plot_id,
+                )?,
+            ))));
             #[cfg(not(feature = "creche-surface"))]
             return Err("resident Patchbay preparation requires the Crèche surface".into());
         }
@@ -344,13 +346,15 @@ impl PreparedApplication {
 
                 #[cfg(feature = "creche-surface")]
                 {
-                    Ok(Some(Self::Patchbay(patchbay_actor_preparation::prepare(
-                        placement,
-                        plan,
-                        active_play_id,
-                        source,
-                        foreground_checked_plot_id,
-                    )?)))
+                    Ok(Some(Self::Patchbay(Box::new(
+                        patchbay_actor_preparation::prepare(
+                            placement,
+                            plan,
+                            active_play_id,
+                            source,
+                            foreground_checked_plot_id,
+                        )?,
+                    ))))
                 }
             }
             _ => Err(format!("unknown retained application {application:?}")),

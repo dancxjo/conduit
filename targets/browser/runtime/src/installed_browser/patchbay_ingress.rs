@@ -88,3 +88,6 @@ pub use publication::{
 #[path = "patchbay_value_budget.rs"]
 mod value_budget;
 pub use value_budget::PatchbayValueStorageBudget;
+
+#[cfg(feature = "creche-surface")]
+pub(crate) use value_budget::PublicationValueLease;
