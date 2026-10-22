@@ -41,6 +41,11 @@ pub(super) fn exercise(
     {
         return Err(refusal("native-todo-required-item-selection-invalid"));
     }
+    let prepared = conduit_face::prepare_component_recipe(recipe(&selected)?, &face)
+        .map_err(|_| refusal("native-todo-required-item-recipe-invalid"))?;
+    if prepared.recipe.identity() != "conduit.face/todo-required-item@1" {
+        return Err(refusal("native-todo-required-item-recipe-mismatch"));
+    }
     let action = face
         .actions
         .iter()
@@ -158,8 +163,15 @@ pub(super) fn exercise(
 
 fn validate_fallback(selected: &Value, fallback: &Value) -> Result<(), ConduitosError> {
     let (_, old) = decode(selected)?;
-    let (_, fresh) = decode(fallback)?;
-    if fallback["fallback"].as_str().is_none_or(str::is_empty)
+    let (face, fresh) = decode(fallback)?;
+    let cause = match conduit_face::prepare_component_recipe(recipe(fallback)?, &face) {
+        Err(
+            error @ (conduit_face::ComponentRecipeRefusal::SlotAction
+            | conduit_face::ComponentRecipeRefusal::MissingSlot),
+        ) => error,
+        _ => return Err(refusal("native-todo-fallback-not-required-slot-refusal")),
+    };
+    if fallback["fallback"] != format!("{cause:?}")
         || fallback["configuration"] != selected["configuration"]
         || fallback["expression"] != selected["expression"]
         || fallback["face"] == selected["face"]
@@ -182,6 +194,14 @@ fn validate_comparison(fallback: &Value, ordinary: &Value) -> Result<(), Conduit
         return Err(refusal("native-todo-fallback-comparison-not-same-face"));
     }
     Ok(())
+}
+
+fn recipe(value: &Value) -> Result<conduit_core::StructuredInfoValue, ConduitosError> {
+    let configured: conduit_core::StructuredConfigurationValue =
+        serde_json::from_value(value["configuration"]["recipe"].clone())
+            .map_err(|_| refusal("native-todo-fallback-recipe-invalid"))?;
+    conduit_core::StructuredInfoValue::from_canonical_bytes(configured.canonical_value())
+        .map_err(|_| refusal("native-todo-fallback-recipe-invalid"))
 }
 
 fn decode(value: &Value) -> Result<(Face, MaskShow), ConduitosError> {

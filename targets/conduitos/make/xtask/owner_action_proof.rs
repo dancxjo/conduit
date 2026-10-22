@@ -236,6 +236,9 @@ fn prove(
         return Err(error);
     }
     if let (Some(todo_face), false) = (&todo_face, return_route_available) {
+        if expected_todo_action.is_some() {
+            return Err(refusal("native-todo-action-requires-owner-return-route"));
+        }
         if expected_todo.is_some_and(|args| args.look_selection) {
             return Err(refusal("native-todo-look-requires-owner-return-route"));
         }

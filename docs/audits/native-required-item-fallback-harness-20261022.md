@@ -42,3 +42,15 @@ accepted-action predecessor/Face/revision/refresh matching. Formatting and
 whitespace checks were performed. No compilation, tests, QEMU, image rebuild,
 release, CI or acceptance run was performed for this change. The scenario is
 preparation for the next serial native acceptance step, not issue closure.
+
+Root review tightened the scenario to require the actual required-item recipe
+identity and to recompute its slot/action refusal against the complete observed
+post-completion Face. Unrelated geometry fallback cannot satisfy this witness.
+The existing action command now refuses when the owner return route is absent,
+rather than succeeding with its read-only Face receipt. The remaining action is
+performed through fallback before the same-Face ordinary component comparison.
+
+`cargo +stable check --locked -p xtask` passed, including the new supported flag,
+scenario and dependent production modules. No QEMU/browser/proof campaign,
+artifact rebuild or CI run was launched. New deterministic specification tests
+were not run in this compile-only checkpoint, per tonight's validation scope.

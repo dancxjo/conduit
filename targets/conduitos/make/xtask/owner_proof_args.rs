@@ -51,7 +51,7 @@ pub(super) struct LiveOwnerTodoActionProofArgs {
     /// Requires the isolated action fork; uses at most four owner refreshes.
     #[arg(long)]
     pub(super) required_item_fallback: bool,
-    /// Remaining offered action to enact after the same-Face fallback comparison.
+    /// Remaining offered action to enact through the generic fallback before comparison.
     #[arg(long, requires = "required_item_fallback")]
     pub(super) fallback_action_id: Option<String>,
     /// Tab count from the freshly acknowledged generic fallback to that remaining action.
