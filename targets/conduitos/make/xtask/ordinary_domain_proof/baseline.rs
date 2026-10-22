@@ -1,6 +1,6 @@
 //! Strict fixed-matrix reader; raw observations are retained without speed claims.
 use super::super::ConduitosError;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 const HEADER: &str = "CONDUIT_SERVICE_BASELINE ";
 const SAMPLE: &str = "CONDUIT_SERVICE_SAMPLE ";
 const COMPONENT: &str = "CONDUIT_SERVICE_SETUP_COMPONENT ";
@@ -265,7 +265,7 @@ mod tests {
         let mut mixed = String::new();
         let mut changed = false;
         for line in text.lines() {
-            if !changed && let Some(raw) = line.strip_prefix(COMPONENT) {
+            if let Some(raw) = line.strip_prefix(COMPONENT).filter(|_| !changed) {
                 let mut value: Value = serde_json::from_str(raw).unwrap();
                 value["schema"] = json!("conduit.conduitos/service-setup-component@1");
                 value["counter_overhead_included"] = json!(true);
