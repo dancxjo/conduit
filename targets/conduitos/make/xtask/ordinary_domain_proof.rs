@@ -14,6 +14,7 @@ mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
 mod service_memory;
+mod staged;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 const PROOF_MEMORY_MIB: u32 = 256;
@@ -113,6 +114,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let service_baseline = baseline::validate(&transcript)?;
+    let staged_ipc = staged::validate(&transcript)?;
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
@@ -289,6 +291,22 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         })?,
     )
     .map_err(|e| ConduitosError::refusal("service-baseline-write-failed", e.to_string()))?;
+    let staged_receipt = serde_json::json!({
+        "schema":"conduit.conduitos/service-staged-ipc-evidence@1",
+        "proof_class":"freestanding-emulator", "fixture":true,
+        "source_commit":source, "build":build,
+        "machine":baseline_receipt["machine"],
+        "counter_profile":baseline_receipt["observations"]["header"],
+        "transcript_sha256":super::report::sha256_file(&serial_path)?,
+        "observations":staged_ipc
+    });
+    fs::write(
+        paths.target.join("service-staged-ipc-proof.json"),
+        serde_json::to_vec_pretty(&staged_receipt).map_err(|e| {
+            ConduitosError::refusal("service-staged-receipt-invalid", e.to_string())
+        })?,
+    )
+    .map_err(|e| ConduitosError::refusal("service-staged-write-failed", e.to_string()))?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
