@@ -9,9 +9,14 @@ fn refusal() -> ConduitosError {
         "requires one exact raw-TSC fixture matrix, not calibrated or component timing",
     )
 }
+fn complete_lines(text: &str) -> impl Iterator<Item = &str> {
+    text.split_inclusive('\n').filter_map(|line| {
+        line.strip_suffix('\n')
+            .map(|line| line.strip_suffix('\r').unwrap_or(line))
+    })
+}
 pub(super) fn validate(text: &str) -> Result<Value, ConduitosError> {
-    let headers = text
-        .lines()
+    let headers = complete_lines(text)
         .filter_map(|line| line.strip_prefix(HEADER))
         .collect::<Vec<_>>();
     if headers.len() != 1 {
@@ -39,8 +44,7 @@ pub(super) fn validate(text: &str) -> Result<Value, ConduitosError> {
     {
         return Err(refusal());
     }
-    let rows = text
-        .lines()
+    let rows = complete_lines(text)
         .filter_map(|line| line.strip_prefix(SAMPLE))
         .map(|line| serde_json::from_str::<Value>(line).map_err(|_| refusal()))
         .collect::<Result<Vec<_>, _>>()?;
@@ -132,5 +136,15 @@ mod tests {
             assert!(validate(&text.replace(from, to)).is_err(), "{from}");
         }
         assert!(validate(&text.lines().take(20).collect::<Vec<_>>().join("\n")).is_err());
+    }
+    #[test]
+    fn only_newline_terminated_records_are_admitted() {
+        let text = transcript();
+        assert!(validate(text.strip_suffix('\n').unwrap()).is_err());
+        assert!(validate(&text.replace('\n', "\r\n")).is_ok());
+        // Retain raw partial serial tails, but never parse them as records.
+        let partial = format!("{text}{SAMPLE}{{\"case\":4");
+        assert!(validate(&partial).is_ok());
+        assert!(validate(&format!("{partial}\n")).is_err());
     }
 }
