@@ -132,6 +132,7 @@ struct ArgumentView {
     value_name: String,
     value_kind: String,
     maximum_bytes: u32,
+    minimum_bytes: u32,
     choices: Vec<String>,
 }
 

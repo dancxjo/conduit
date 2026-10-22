@@ -272,13 +272,15 @@ test('a replaced exclusive-choice listener cannot dispatch or reset current sele
   await expect(current).toBeDisabled();
 });
 
-for (const scenario of ['unsupported', 'utf8', 'choice']) {
+for (const scenario of ['unsupported', 'utf8', 'choice', 'minimum', 'required']) {
   test(`current forms refuse invalid ${scenario} arguments before invoking`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const argument = { name: 'value', value_name: 'Value', value_kind: 'value/text',
       maximum_bytes: 4, choices: [] };
     if (scenario === 'unsupported') argument.value_kind = 'value/unknown';
     if (scenario === 'choice') argument.choices = ['one', 'two'];
+    if (scenario === 'minimum') argument.minimum_bytes = 3;
+    if (scenario === 'required') argument.minimum_bytes = 1;
     const currentView = { ...view, actions: [{ ...view.actions[0], arguments: [argument] }] };
     await page.evaluate(async ({ view, scenario }) => {
       await import('/targets/browser/handbook/owner-face-component.mjs');
@@ -289,6 +291,7 @@ for (const scenario of ['unsupported', 'utf8', 'choice']) {
       element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
       const form = element.shadowRoot.querySelector('form');
       if (scenario === 'utf8') form.querySelector('input').value = 'ééé';
+      if (scenario === 'minimum') form.querySelector('input').value = 'é';
       if (scenario === 'choice') {
         const select = form.querySelector('select');
         select.add(new Option('forged', 'forged'));
@@ -306,15 +309,17 @@ for (const scenario of ['unsupported', 'utf8', 'choice']) {
       return;
     }
     await expect(button).toBeEnabled();
-    if (scenario === 'utf8') {
+    if (['utf8', 'minimum', 'required'].includes(scenario)) {
       const input = element.getByLabel('Value', { exact: true });
-      expect(await input.evaluate(node => node.validationMessage)).toBe('Use at most 4 UTF-8 bytes.');
+      await expect(input).toHaveJSProperty('required', scenario !== 'utf8');
+      expect(await input.evaluate(node => node.validationMessage)).toBe(scenario === 'utf8'
+        ? 'Use at most 4 UTF-8 bytes.' : `Use at least ${scenario === 'minimum' ? 3 : 1} UTF-8 bytes.`);
       await input.fill('éé');
     } else await element.getByRole('combobox').selectOption('one');
     await button.focus();
     await page.keyboard.press('Enter');
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
-      action: currentView.actions[0], arguments: [{ name: 'value', value: scenario === 'utf8' ? 'éé' : 'one' }] }]);
+      action: currentView.actions[0], arguments: [{ name: 'value', value: scenario === 'choice' ? 'one' : 'éé' }] }]);
   });
 }
 
@@ -774,7 +779,7 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
 });
 }
 
-for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many',
+for (const malformed of ['missing', 'non-array', 'negative-bound', 'negative-minimum', 'reversed-bounds', 'choice-bytes', 'too-many',
   'missing-name', 'empty-name', 'duplicate-name', 'missing-label', 'empty-label', 'choice-unicode']) {
   test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
@@ -792,6 +797,8 @@ for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes
       name: `value/${index}`, value_name: `Value ${index}`, value_kind: 'value/text', maximum_bytes: 4, choices: [],
     }));
     if (malformed === 'negative-bound') broken.arguments[0].maximum_bytes = -1;
+    if (malformed === 'negative-minimum') broken.arguments[0].minimum_bytes = -1;
+    if (malformed === 'reversed-bounds') broken.arguments[0].minimum_bytes = 5;
     if (malformed === 'choice-bytes') broken.arguments[0].choices = ['ééé'];
     if (malformed === 'choice-unicode') broken.arguments[0].choices = ['\ud800'];
     await page.evaluate(async view => {

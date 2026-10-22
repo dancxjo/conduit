@@ -1,0 +1,21 @@
+{
+  "source": "12af867766057f58fc1a80db820b85496cc944dd",
+  "command": "cargo +stable xtask check canonical-export",
+  "exit_code": 0,
+  "generic_tests": {
+    "passed": 6,
+    "failed": 0,
+    "ignored": 0
+  },
+  "categorical_custody_tests": {
+    "passed": 14,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_composite_test_lint": "passed",
+  "strict_AI_lib_and_channel_test_lint": "passed",
+  "workspace_format": "passed",
+  "proof_class": "hosted-CPU tests; no native/physical/publication claim",
+  "raw_log_sha256": "faed0d0e6217ba5b0d32fd435c1c7d767253a60aa55a86aa071fc8cdd5ec968f",
+  "first_failed_trial": "06e36ea8001db55264208fc41ac22d18cf9a7427; 6generic+12existingpass,2newfixturefail,strictnotreached"
+}
