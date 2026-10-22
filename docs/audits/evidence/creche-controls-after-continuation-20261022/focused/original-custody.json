@@ -1,0 +1,222 @@
+[
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-conduitos-clippy.log",
+    "original_bytes": 15232,
+    "original_sha256": "91ae60a24436dca593a0e9dfe465687fd454b417be836409f4c345fe2bd5083e",
+    "stored": "negative-5ded/6158-5ded31d61-conduitos-clippy.log.gz",
+    "stored_bytes": 1760,
+    "stored_sha256": "2a57f2fccf162726f8eccabf2750174680f9d545ed423e9e80a582bcf8a10505",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-metadata.log",
+    "original_bytes": 3164,
+    "original_sha256": "21f465307b91bf4778bdd4598306f5246efbe2fb36928d44d02e8bf5f2273157",
+    "stored": "negative-5ded/6158-5ded31d61-metadata.log.gz",
+    "stored_bytes": 660,
+    "stored_sha256": "e448eee11c60b5dda1731ca328292456c2caae265ce6cde3af61ddf55055ee87",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-pointer.log",
+    "original_bytes": 3578,
+    "original_sha256": "face33976ba1c08ba87e1dbd35315ba1e626427798d17428c2bfb7ce8ecf7960",
+    "stored": "negative-5ded/6158-5ded31d61-pointer.log.gz",
+    "stored_bytes": 788,
+    "stored_sha256": "3c24500eb77e9af63c28caa0b34b59a9784994412f2b36dc2587f46af059844c",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-naming-acceptance.log",
+    "original_bytes": 187798,
+    "original_sha256": "707930c0bd6e161647725adfacda96201d000b40516669e578d6ecbbf031bd97",
+    "stored": "negative-5ded/6158-5ded31d61-naming-acceptance.log.gz",
+    "stored_bytes": 15776,
+    "stored_sha256": "fd4afd48e02a20289377d0de86b115215d168581d59475b7d128214f388ddc4d",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-artifacts.log",
+    "original_bytes": 3601,
+    "original_sha256": "eca1eaa6f67c27029bd215ad59da5f7a6582232a27b570fd5bc24a47b5331eef",
+    "stored": "negative-5ded/6158-5ded31d61-artifacts.log.gz",
+    "stored_bytes": 787,
+    "stored_sha256": "d6d8a5767fb775ead4990feb2f0a4870de34f7d73c5889b3df5f22d8094cf39a",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-xtask-clippy.log",
+    "original_bytes": 14280,
+    "original_sha256": "3f640b69121563d30caa2730c60200d231b1b771769e921495e6a7768dbb13f3",
+    "stored": "negative-5ded/6158-5ded31d61-xtask-clippy.log.gz",
+    "stored_bytes": 1319,
+    "stored_sha256": "7560154d300f2319231fde2c8fbc7c26a67156a4a22ecda93524c34ef150246d",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-creche-navigation.log",
+    "original_bytes": 967,
+    "original_sha256": "7e251559f95e2246a1c16c542b867a2b41d287f803601641856c028debf97efc",
+    "stored": "negative-5ded/6158-5ded31d61-creche-navigation.log.gz",
+    "stored_bytes": 493,
+    "stored_sha256": "7056c99115308f91e1e59df6557b06227151577b6fcd2e5f0e7a51aa3e8bef22",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-controls.log",
+    "original_bytes": 6992,
+    "original_sha256": "83043877716a04616ec7f746801cc0bf8442059a8c3b4ff296c832c6c4499118",
+    "stored": "negative-5ded/6158-5ded31d61-controls.log.gz",
+    "stored_bytes": 1259,
+    "stored_sha256": "ba51e4eb85990c873f6f4fefe44ecf05e877487b13a7de9d6d3bfe9e1c5f5ebb",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-actual-creche.log",
+    "original_bytes": 4165,
+    "original_sha256": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+    "stored": "negative-5ded/6158-5ded31d61-actual-creche.log.gz",
+    "stored_bytes": 1164,
+    "stored_sha256": "31a3851bbdc2800e388f9d80cf86f3f90d3a221d6652acbbb336fb01af1d5042",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-viewport.log",
+    "original_bytes": 3320,
+    "original_sha256": "7c3a7a6a28413f67c84305366288d49eecb01393d7d9a7169b7dc80d6b5efbcb",
+    "stored": "negative-5ded/6158-5ded31d61-viewport.log.gz",
+    "stored_bytes": 699,
+    "stored_sha256": "77c732a2afcae0ddec31be6facfc17800eb48690f8a895a83fff658a880ea183",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-field-clusters.log",
+    "original_bytes": 1123,
+    "original_sha256": "79cf24f1e424fef3cf7e871ff0cb6cc5bee2fade9bfee6540796f7164380cb1e",
+    "stored": "negative-5ded/6158-5ded31d61-field-clusters.log.gz",
+    "stored_bytes": 542,
+    "stored_sha256": "7d6b36aa263d069cf5797bff87ffb7940572421b24afbb24d6d2228ada8a947c",
+    "encoding": "gzip"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-validation.json",
+    "original_bytes": 6807,
+    "original_sha256": "a9cce5808853d70f946782165f9a88fe9b52a1109a2c31d43295a034b384c94a",
+    "stored": "negative-5ded/6158-5ded31d61-validation.json",
+    "stored_bytes": 6807,
+    "stored_sha256": "a9cce5808853d70f946782165f9a88fe9b52a1109a2c31d43295a034b384c94a",
+    "encoding": "original"
+  },
+  {
+    "source": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-5ded31d61-focused-negative-preserved/6158-5ded31d61-validation.py",
+    "original_bytes": 3109,
+    "original_sha256": "942baf6cb6773ba64b3731357312d3f1ff906cd627bc8683fc94419e1e12aa51",
+    "stored": "negative-5ded/6158-5ded31d61-validation.py",
+    "stored_bytes": 3109,
+    "stored_sha256": "942baf6cb6773ba64b3731357312d3f1ff906cd627bc8683fc94419e1e12aa51",
+    "encoding": "original"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-creche-navigation.log",
+    "original_bytes": 967,
+    "original_sha256": "f20b5bf551c764caf3d722d6ff98661ba4e1fc8a70e281cc20afce6f32e0cd53",
+    "stored": "corrected-eb77/6158-eb77aad03-creche-navigation.log.gz",
+    "stored_bytes": 493,
+    "stored_sha256": "787d009d494274354075795d003b2a37600af6081ceafe127a6479789a81ab91",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-conduitos-clippy.log",
+    "original_bytes": 215,
+    "original_sha256": "911a80c298a1b3857ad98aabc4575388a1128234b655433866c48bbce5d16a6b",
+    "stored": "corrected-eb77/6158-eb77aad03-conduitos-clippy.log.gz",
+    "stored_bytes": 185,
+    "stored_sha256": "de09b1ea02e0ce288bf5a1f3074dc4855f763352ed2b6a5575cdd3b5b77810aa",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-integration-naming.log",
+    "original_bytes": 177734,
+    "original_sha256": "d7373a801f97a57ec02703be9b96e78a01f065a6b7738e4600141a59c8e95aee",
+    "stored": "corrected-eb77/6158-eb77aad03-integration-naming.log.gz",
+    "stored_bytes": 14916,
+    "stored_sha256": "906bf69a3e93959fa592c770c1d1267052bc2b56bd70c84866ddfb1eaf3de924",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-naming-acceptance.log",
+    "original_bytes": 177721,
+    "original_sha256": "358bc23c9f78b0d51d1fa51c32f650011c19d22c19cdeee8e1d849e81f2f61d7",
+    "stored": "corrected-eb77/6158-eb77aad03-naming-acceptance.log.gz",
+    "stored_bytes": 14923,
+    "stored_sha256": "2bea3ae0760be0223b5c619fa05ce875a9ae9c587e86fd2de48b12ae341cc696",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-fmt.log",
+    "original_bytes": 0,
+    "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stored": "corrected-eb77/6158-eb77aad03-fmt.log.gz",
+    "stored_bytes": 20,
+    "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-field-clusters.log",
+    "original_bytes": 1123,
+    "original_sha256": "16396c54d2fb424358ffc1a6649896194886dc3f5906dd930443e5d6b8251cc4",
+    "stored": "corrected-eb77/6158-eb77aad03-field-clusters.log.gz",
+    "stored_bytes": 541,
+    "stored_sha256": "fa8ee794bb8e7ca7fb6b7ad4db0e44834f30c3dfee5f9778438e6a30306848b0",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-actual-creche.log",
+    "original_bytes": 4165,
+    "original_sha256": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+    "stored": "corrected-eb77/6158-eb77aad03-actual-creche.log.gz",
+    "stored_bytes": 1164,
+    "stored_sha256": "31a3851bbdc2800e388f9d80cf86f3f90d3a221d6652acbbb336fb01af1d5042",
+    "encoding": "gzip"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-validation.json",
+    "original_bytes": 4869,
+    "original_sha256": "bc7c3f6176e86151900b19a8efa7c7fd8399c4e4ce2249eb3de897929d93aa51",
+    "stored": "corrected-eb77/6158-eb77aad03-validation.json",
+    "stored_bytes": 4869,
+    "stored_sha256": "bc7c3f6176e86151900b19a8efa7c7fd8399c4e4ce2249eb3de897929d93aa51",
+    "encoding": "original"
+  },
+  {
+    "source": "eb77aad03dae3654709e8004f617d48550e95a9d",
+    "original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-focused-preserved/6158-eb77aad03-validation.py",
+    "original_bytes": 2972,
+    "original_sha256": "53203017a080dfab3b7ebd293602ffb41919dc4fe028b7c3a21895ee27462bca",
+    "stored": "corrected-eb77/6158-eb77aad03-validation.py",
+    "stored_bytes": 2972,
+    "stored_sha256": "53203017a080dfab3b7ebd293602ffb41919dc4fe028b7c3a21895ee27462bca",
+    "encoding": "original"
+  }
+]

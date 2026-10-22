@@ -1,0 +1,9 @@
+{
+  "status": "equal",
+  "record_count_per_source": 753,
+  "sources": [
+    "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "eb77aad03dae3654709e8004f617d48550e95a9d"
+  ],
+  "scope": "Exact CPU row/cost observations across fixture-access correction; not guest/pixel/Host-admission equivalence."
+}
