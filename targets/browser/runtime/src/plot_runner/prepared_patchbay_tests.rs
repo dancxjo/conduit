@@ -4,7 +4,7 @@ use conduit_face::{ApplicationEvent, ApplicationEventKind, ApplicationView};
 
 #[test]
 fn resident_adapter_retains_edit_request_in_current_observation_and_blocks_overwrite() {
-    let source = include_str!("../../../../../plots/patchbay/native-retained.conduit");
+    let source = include_str!("../../../../../plots/patchbay/fixtures/legacy-retained.conduit");
     let mut request = body_start::tests::request_from_sources(&[source]);
     request.source = source.into();
     let (mut session, _) = body_start::prepare(request).unwrap();

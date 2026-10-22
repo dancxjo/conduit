@@ -6,7 +6,7 @@ use patchbay_application::EDIT_CURRENT_ACTION_ID;
 
 #[test]
 fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
-    let source = include_str!("../../../../../plots/patchbay/native-retained.conduit");
+    let source = include_str!("../../../../../plots/patchbay/fixtures/legacy-retained.conduit");
     let mut request = body_start::tests::request_from_sources(&[source]);
     request.source = source.into();
     seal_publication_masks(&mut request);

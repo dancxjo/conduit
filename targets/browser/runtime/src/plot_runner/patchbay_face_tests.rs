@@ -51,7 +51,7 @@ fn missing_optional_biography_does_not_break_legacy_patchbay_startup() {
 
 #[test]
 fn exact_owner_is_selected_when_two_patchbay_residents_are_prepared() {
-    let first = include_str!("../../../../../plots/patchbay/native-retained.conduit");
+    let first = include_str!("../../../../../plots/patchbay/fixtures/legacy-retained.conduit");
     let second = first.replacen("plot patchbay", "plot another_patchbay", 1);
     let mut request = body_start::tests::request_from_sources(&[first, &second]);
     request.source = serde_json::json!({
