@@ -87,31 +87,27 @@ fn live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_app
         build_id: "build",
         ..crate::make::MakeRecord::legacy()
     };
-    assert!(
-        workspace
-            .accept_key(
-                event,
-                &mut door,
-                &mut journey,
-                &mut display,
-                &ids,
-                &offer,
-                &make,
-            )
-            .unwrap()
-            .is_some()
-    );
+    assert!(workspace
+        .accept_key(
+            event,
+            &mut door,
+            &mut journey,
+            &mut display,
+            &ids,
+            &offer,
+            &make,
+        )
+        .unwrap()
+        .is_some());
     let scene = workspace.mask.scene().unwrap();
     assert!(scene.showing_diagram());
-    assert!(
-        scene
-            .frame()
-            .unwrap()
-            .scene
-            .commands()
-            .iter()
-            .any(|command| { command.kind == GraphicsCommandKind::OrthogonalPath })
-    );
+    assert!(scene
+        .frame()
+        .unwrap()
+        .scene
+        .commands()
+        .iter()
+        .any(|command| { command.kind == GraphicsCommandKind::OrthogonalPath }));
     let prior_show = workspace.mask.show().unwrap().show_id.clone();
     workspace
         .invoke_product_action(
@@ -217,11 +213,14 @@ fn current_action_rejects_forged_sequence_arguments_and_failed_show() {
 
 #[test]
 fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
-    let (mut journey, mut door, mut workspace, mut display) = encounter();
+    // Keep one fixture context and borrow its fields through both refusals.
+    // This avoids moving the retained owner/presenter values into more locals.
+    let mut context = alloc::boxed::Box::new(encounter());
+    let (journey, door, workspace, display) = context.as_mut();
     let face = door.face().unwrap();
     let old = workspace.selected_show.clone().unwrap();
     let interaction = stop(&face, &old);
-    workspace.present_current(&door, &mut display).unwrap();
+    workspace.present_current(door, display).unwrap();
     let (ids, offer, _) = fixture();
     let make = MakeRecord {
         build_id: "build",
@@ -230,9 +229,9 @@ fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
     let before = journey.projection();
     assert_eq!(
         workspace.apply_interaction(
-            &mut door,
-            &mut journey,
-            &mut display,
+            door,
+            journey,
+            display,
             &ids,
             &offer,
             &make,
@@ -248,9 +247,9 @@ fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
     let changed = journey.projection();
     assert_eq!(
         workspace.apply_interaction(
-            &mut door,
-            &mut journey,
-            &mut display,
+            door,
+            journey,
+            display,
             &ids,
             &offer,
             &make,
