@@ -349,3 +349,16 @@ and compares exact action/argument order and retained focus across the existing
 three swaps. It holds keys until actual guest acknowledgement and releases on
 failure. Existing four-refresh and owner grant bounds are unchanged. The xtask
 check passes; this is harness preparation, not a new live accessibility result.
+
+On `e348ce5ec`, full staging succeeds and Chromium reaches canonical graph
+inspection. The third negative browser batch is retained at
+`/tmp/conduit-patchbay-browser-failed-e348-20261022`. Workspace's selected-surface
+projection omitted admitted Mask placements and hid its prepared component;
+Handbook's nested select label prevented exact label lookup despite its
+source-owned caption. The corrections project the selected root plus its
+acquired first Mask chain (never another Plot or standby route), keep the
+admitted output container visible without inventing input, and assign the exact
+Face argument caption as the input/select's accessible label. Radio option
+labels retain their distinct option names. Four surface/resource checks pass;
+the current-caption browser case now checks exact labels before/after selection
+and caption replacement. Actual fixture and production reruns remain required.

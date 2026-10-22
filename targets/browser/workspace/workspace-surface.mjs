@@ -1,6 +1,22 @@
+// Presentation uses only the current selected Plot's admitted placements.
+// Standby Mask chains have not been acquired by the browser Body Host.
+export function workspaceSurfacePlacements(plan, checkedPlotId) {
+  if (!checkedPlotId) return [];
+  const partition = plan?.plots?.find(item => item.plot.checked_plot_id === checkedPlotId);
+  if (!partition) return [];
+  const placements = partition.plan.fragments.flatMap(fragment => fragment.placements);
+  for (const topology of plan.mask_topologies ?? []) {
+    if (topology.face?.plot?.checked_plot_id !== checkedPlotId) continue;
+    for (const chain of topology.chains.slice(0, 1)) {
+      placements.push(...chain.plan.fragments.flatMap(fragment => fragment.placements));
+    }
+  }
+  return placements;
+}
+
 // Choose interaction affordances from the exact foreground partition when planned.
-export function configureWorkspaceInput(input, plot, partition, unavailableReason) {
-  const placements = partition?.plan.fragments.flatMap(fragment => fragment.placements) ?? [];
+export function configureWorkspaceInput(input, plot, partition, unavailableReason, surfacePlacements) {
+  const placements = surfacePlacements ?? partition?.plan.fragments.flatMap(fragment => fragment.placements) ?? [];
   const kinds = new Set(partition ? placements.map(placement => placement.kind_id) : plot?.required_kinds ?? []);
   const keyboard = kinds.has('input/keyboard'), pointer = kinds.has('input/pointer-source'), button = kinds.has('input/button');
   const acceptsInput = keyboard || pointer || button;
