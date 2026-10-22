@@ -388,3 +388,24 @@ actual admitted transition service; rendering a page does not install that servi
 The connected ESP32 ROM reports revision 3.0, a 40 MHz crystal and 4 MB flash.
 This identifies the current hardware without changing the separate reviewed
 HW-463 sample descriptor or claiming initialized sensor/radio providers.
+
+## Recorder representation boundary
+
+`PreparedObservationQuantityForms` packs a validated `Dht11Observation` using
+the two quantity Forms already authored in `dht11.conduit`: two bytes for
+Temperature followed by two for humidity Ratio. Unpacking reconstructs the
+canonical observation with first-class quantities. Packing is exact; inexact
+precision and coordinate overflow refuse instead of applying display rounding.
+Both paths use storage reserved during preparation and allocate nothing in Play.
+The selected recording session must bind the exact semantic contract and both
+Form identities; these four bytes alone carry no identity, sequence, clock,
+status, provenance, integrity or transport meaning. Sensor failures need their
+own explicit record variants and must not replay the last valid reading as new.
+
+The supported `cargo xtask prove environment kernel` suite includes these codec
+proofs. They do not establish durable storage or a recorder Line. The existing
+IndexedDB implementation permits 64 physical records per application, so the
+4096-slot recorder Host request cannot be satisfied as 4096 independent entries.
+Recorder integration still needs finite chunks within those physical bounds,
+exact sample and provenance admission, transactional commit, deduplication and
+explicit gaps across reconnects. No larger storage offer is claimed here.
