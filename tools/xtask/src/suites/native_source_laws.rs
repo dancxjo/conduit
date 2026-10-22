@@ -2,6 +2,22 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[
     Step::new(
+        "native-source-laws.projection",
+        "Check exact one-wrapper borrowed identity projection",
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-p",
+            "conduit-core",
+            "--test",
+            "borrowed_projection",
+            "--",
+            "--nocapture",
+            "--test-threads=1",
+        ],
+    ),
+    Step::new(
         "native-source-laws.occurrences",
         "Check opaque ownership, nested actual laws and finite no-growth admission",
         "cargo",

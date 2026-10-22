@@ -40,6 +40,21 @@ impl<'a> ValidatedCanonicalStructuredValue<'a> {
         Ok(None)
     }
 
+    /// Borrow exactly one nominal representation, preserving any inner identity.
+    /// The original validated view owns the type/value correspondence; this
+    /// projection does not establish semantic laws or resource authority.
+    pub fn nominal_representation(self) -> Result<Self, StructuredInfoRefusal> {
+        let mut kind = Cursor::new(self.type_bytes);
+        if kind.byte()? != 5 {
+            return Err(StructuredInfoRefusal::WrongType);
+        }
+        kind.text()?;
+        Ok(Self {
+            type_bytes: kind.remaining,
+            value_node: self.value_node,
+        })
+    }
+
     /// Explicitly inspect a nominal representation while retaining the original
     /// view at the caller. This is not semantic admission or resource authority.
     pub fn representation(self) -> Result<Self, StructuredInfoRefusal> {

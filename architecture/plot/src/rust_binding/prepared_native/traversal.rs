@@ -87,9 +87,6 @@ pub(super) fn prepare<'d>(
     match ty.shape() {
         Shape::Leaf(_) => (),
         Shape::Nominal { representation, .. } => {
-            if matches!(representation.shape(), Shape::Nominal { .. }) {
-                return Err(PreparedNativeRefusal::MissingNativeMetadata);
-            }
             path.push(Part::Representation);
             prepare(document, representation, path, scopes, bounds, count)?;
             path.pop();
@@ -142,7 +139,7 @@ fn select<'a>(
     for (position, part) in path.iter().enumerate() {
         value = match part {
             Part::Representation => value
-                .representation()
+                .nominal_representation()
                 .map_err(|_| PreparedNativeRefusal::Shape)?,
             Part::Field(name) => value
                 .record_field(name)

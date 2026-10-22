@@ -231,3 +231,66 @@ fn preparation_reports_granted_limits_and_actual_storage_without_runtime_growth(
     assert_eq!(observation.allocations, 0);
     assert_eq!(observation.reallocations, 0);
 }
+
+#[test]
+fn checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth() {
+    let d = check_syntax_document(
+        &parse_syntax_document("type Inner = U64 where . >= 2\ntype Outer = Inner where . <= 7\n"),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let inner = native(&d, "Inner");
+    let outer = native(&d, "Outer");
+    let StructuredInfoTypeShape::Nominal { representation, .. } = outer.value_type.shape() else {
+        panic!()
+    };
+    assert_eq!(representation, &inner.value_type);
+    for (number, expected_failure) in [(3u64, None), (1, Some(inner)), (9, Some(outer))] {
+        let bytes = StructuredInfoValue::nominal(
+            outer.value_type.clone(),
+            StructuredInfoValue::nominal(
+                inner.value_type.clone(),
+                primitive_into_structured(
+                    StructuredInfoType::leaf(kind_id("value/u64")).unwrap(),
+                    &number,
+                )
+                .unwrap(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+        let mut admission = PreparedNativeAdmission::new(&d, &outer.identity, bounds()).unwrap();
+        assert_eq!(admission.scope_count(), 2);
+        assert_eq!(admission.capacity_report().prepared_evaluators, 2);
+        let (result, observation) = allocation_probe::observe(|| {
+            admission.begin(&bytes).unwrap();
+            complete(&mut admission)
+        });
+        assert_eq!(observation.allocations, 0);
+        assert_eq!(observation.reallocations, 0);
+        if let Some(expected) = expected_failure {
+            let PreparedNativeRefusal::Invariant {
+                scope,
+                invariant: 0,
+            } = result.unwrap_err()
+            else {
+                panic!("wrong refusal")
+            };
+            assert_eq!(
+                admission.scope_native_type(scope).unwrap().identity,
+                expected.identity
+            );
+            assert_eq!(admission.invariant_output(scope, 0), Some([0u8].as_slice()));
+            assert!(admission.admitted().is_err());
+        } else {
+            result.unwrap();
+            let witness = admission.admitted().unwrap();
+            assert!(core::ptr::eq(witness.source_document(), &d));
+            assert_eq!(witness.canonical_bytes(), bytes);
+            assert_eq!(admission.actual_occurrences(), 2);
+        }
+        assert_eq!(admission.retained_bytes(), bytes);
+    }
+}
