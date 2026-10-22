@@ -1743,3 +1743,28 @@ Current dev 624baf562 (#6225) is merged, and freestanding compilation of the
 combined source passes. This remains CPU enactment/compilation; native stack,
 private heap, QEMU/protected-service, browser/platform and release acceptance
 are not inferred from these checks.
+
+### 2026-10-22: canonical Patchbay protocol in the fixed application heap
+
+The existing real-bitmap private-grant check now initializes the retained
+controllers, selects canonical Patchbay mode, queries the actual owner fragment,
+publishes a complete Face/Show, consumes a typed Edit, and refuses both input
+replay and republication of the consumed Show. The initializer is shared without
+changing its staged production protocol. Caller preparation remains outside the
+guest allocator; service decoding, retained state and response work use it.
+
+The focused locked/offline check passes. Of the unchanged 2,072,576-byte heap
+(the 2 MiB metadata grant minus its 24 KiB header), canonical protocol rounded
+live allocation peaks at 1,909,952 bytes. The existing large Graph/ProjectGraph
+scenario peaks at 2,042,464 bytes; combined minimum rounded-live headroom is
+30,112 bytes. Both scenarios release every tracked allocation. Existing terminal
+exhaustion and impossible-reservation refusal checks still pass. These are
+allocation watermarks, not guarantees against fragmentation for arbitrary inputs.
+
+This uses the existing startup controller graphs and an explicitly CPU-model
+Mask/Show fixture with fixture Plan/Play identities. It proves this exact service
+protocol scenario in the actual allocator, not ordinary native full-Mask heap
+fit, native stack fit, protected-service/QEMU execution, browser enactment or
+release acceptance. Two dev-only fixture dependencies were added; no production
+heap, queue, transfer, value or stack limit grew. No CI/platform campaign ran.
+#6201 and #5994 remain open for their original acceptance.
