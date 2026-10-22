@@ -64,7 +64,7 @@ pub(super) fn exercise(
     let membership = members(&initial.face)?;
     let original = current(&initial.face, "creche.naming")?;
     let observed_name = current(&initial.face, "creche.name")?;
-    let name = "Café Llanfairpwllgwyngyll and a long Body name"
+    let name = "Café Llanfairpwllgwyngyll long Body name"
         .as_bytes()
         .to_vec();
     let expected = controls(&initial.face)?;
