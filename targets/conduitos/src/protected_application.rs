@@ -154,6 +154,29 @@ impl Owner {
         }
         result
     }
+    // Read-only semantic queries still mutate the transport sequence. They use
+    // the same live service and quarantine it on uncertainty, never a new actor.
+    fn read_command(&self, command: &Command) -> Result<Reply, Refusal> {
+        if self.failed.get() {
+            return Err(Refusal::Order);
+        }
+        let result = (|| {
+            let mut service = self.service.try_borrow_mut().map_err(|_| Refusal::Order)?;
+            service.as_mut().ok_or(Refusal::Order)?.command(command)
+        })();
+        self.read_result(result)
+    }
+    fn read_result<T>(&self, result: Result<T, Refusal>) -> Result<T, Refusal> {
+        if result.is_err() {
+            self.failed.set(true);
+            if let Ok(mut slot) = self.service.try_borrow_mut() {
+                if let Some(mut service) = slot.take() {
+                    service.quarantine();
+                }
+            }
+        }
+        result
+    }
     fn guard<T>(&mut self, result: Result<T, Refusal>) -> Result<T, Refusal> {
         if result.is_err() {
             self.abort();

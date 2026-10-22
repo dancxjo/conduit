@@ -16,14 +16,14 @@ impl Owner {
     /// The caller binds this query to its exact resident Plan/Play and admitted
     /// return route. A projected Available action is not an installed route.
     pub fn patchbay_fragment(
-        &mut self,
+        &self,
         slot: usize,
         body: BodyId,
         basis: FaceContributionBasis,
         actions_admitted: bool,
     ) -> Result<Reply, Refusal> {
         self.canonical_slot(slot)?;
-        let reply = self.command(&Command::PatchbayFragment {
+        let reply = self.read_command(&Command::PatchbayFragment {
             slot: slot as u8,
             body,
             basis: basis.clone(),
@@ -46,7 +46,7 @@ impl Owner {
             } => self.canonical_identity(slot, *returned, *target),
             _ => Err(Refusal::Malformed),
         })();
-        self.guard(result)?;
+        self.read_result(result)?;
         Ok(reply)
     }
 

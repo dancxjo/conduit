@@ -26,13 +26,19 @@ impl Models {
         }
     }
     pub fn patchbay_fragment(
-        &mut self,
+        &self,
         slot: u8,
         body: BodyId,
         basis: FaceContributionBasis,
         actions_admitted: bool,
     ) -> Result<Reply, Refusal> {
-        let p = self.patchbay(slot)?;
+        let Some(Application::Patchbay(p)) = self
+            .applications
+            .get(usize::from(slot))
+            .and_then(Option::as_ref)
+        else {
+            return Err(Refusal::Order);
+        };
         let port = p.ports[p.selected].as_ref().ok_or(Refusal::Order)?;
         let revision = port.revision();
         match port.face_fragment(basis, &body, actions_admitted) {
