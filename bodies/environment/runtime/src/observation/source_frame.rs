@@ -11,6 +11,8 @@ use conduit_plot::{
 };
 #[derive(Debug, PartialEq, Eq)]
 pub enum SourceFrameRefusal {
+    #[cfg(feature = "source-capture")]
+    Capture(conduit_pulse_capture::PulseCodecRefusal),
     Program(PortableExpressionProgramRefusal),
     Evaluation(PortableExpressionEvaluationRefusal),
     Canonical(R),
@@ -46,6 +48,24 @@ impl PreparedSourceFrameDecoder {
     pub const SOURCE_DOCUMENT_ID: &'static str = identity::SOURCE_DOCUMENT_ID;
     pub const CHECKED_PLOT_ID: &'static str = identity::CHECKED_PLOT_ID;
     pub const EXPANDED_PLOT_ID: &'static str = identity::EXPANDED_PLOT_ID;
+    /// Prepare electrical geometry from the checked request Plot. This is data,
+    /// not a selected pin, a provider offer or permission to perform capture.
+    #[cfg(feature = "source-capture")]
+    pub fn capture_request(
+        limits: conduit_pulse_capture::PulseReadLimits,
+    ) -> Result<conduit_pulse_capture::CheckedPulseRead, SourceFrameRefusal> {
+        let program = PortableExpressionProgram::from_canonical_bytes(include_bytes!(concat!(
+            env!("OUT_DIR"),
+            "/dht11-capture.program"
+        )))
+        .map_err(SourceFrameRefusal::Program)?;
+        let mut evaluator = PreparedPortableExpressionEvaluator::new(&program)?;
+        let contract = conduit_pulse_capture::PulseReadContract::prepare()?;
+        let codec = conduit_pulse_capture::PreparedPulseCodec::prepare(&contract)?;
+        codec
+            .request(evaluator.evaluate(&[])?, limits)
+            .map_err(SourceFrameRefusal::Capture)
+    }
     pub fn prepare(contract: &ObservationContract) -> Result<Self, SourceFrameRefusal> {
         let program = PortableExpressionProgram::from_canonical_bytes(include_bytes!(concat!(
             env!("OUT_DIR"),

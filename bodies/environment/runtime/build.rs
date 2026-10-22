@@ -6,15 +6,39 @@ fn main() {
     println!("cargo:rerun-if-changed={path}");
     let pulse = "../../../plots/device-protocols/pulse-types.conduit";
     println!("cargo:rerun-if-changed={pulse}");
+    let request = "../../../plots/device-protocols/dht11-capture.conduit";
+    println!("cargo:rerun-if-changed={request}");
     let source = format!(
-        "{}\n{}",
+        "{}\n{}\n{}",
         fs::read_to_string(pulse).unwrap(),
-        fs::read_to_string(path).unwrap()
+        fs::read_to_string(path).unwrap(),
+        fs::read_to_string(request).unwrap(),
     );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
+    let request = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked,
+        "dht11-capture-request",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .unwrap()
+    .expanded;
+    assert_eq!(request.gears.len(), 1);
+    let conduit_core::ConfigurationValue::Text(encoded) = &request.gears[0].configuration[0].value
+    else {
+        panic!("checked capture request program");
+    };
+    fs::write(
+        out.join("dht11-capture.program"),
+        conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded)
+            .unwrap()
+            .canonical_bytes()
+            .unwrap(),
+    )
+    .unwrap();
+
     let expanded = conduit_plot::expand_canonical_plot_for_authoring(
         &checked,
         "dht11-decode",

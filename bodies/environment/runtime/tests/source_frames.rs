@@ -145,3 +145,26 @@ fn validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask() {
     });
     assert_eq!((measured.allocations, measured.reallocations), (0, 0));
 }
+
+#[cfg(feature = "source-capture")]
+#[test]
+fn authored_capture_geometry_is_checked_against_the_selected_native_envelope() {
+    let limits = conduit_pulse_capture::PulseReadLimits {
+        maximum_hold_low_us: 50_000,
+        maximum_skipped_pulses: 4,
+        minimum_sample_offset_us: 10,
+        maximum_sample_offset_us: 200,
+        maximum_octets: 8,
+        maximum_capture_timeout_us: 10_000,
+    };
+    let request = PreparedSourceFrameDecoder::capture_request(limits).unwrap();
+    assert_eq!(request.request().octets, 5);
+    assert_eq!(request.deadline_span_us(), 30_000);
+    assert!(
+        PreparedSourceFrameDecoder::capture_request(conduit_pulse_capture::PulseReadLimits {
+            maximum_capture_timeout_us: 500,
+            ..limits
+        })
+        .is_err()
+    );
+}
