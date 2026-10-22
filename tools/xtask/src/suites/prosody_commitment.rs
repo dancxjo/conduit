@@ -33,6 +33,8 @@ pub const STEPS: &[Step] = &[
             "prosody_commitment",
             "--test",
             "prosody_revision",
+            "--test",
+            "analysis_session_snapshots",
             "--",
             "--nocapture",
             "--test-threads=1",
