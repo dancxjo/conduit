@@ -15,7 +15,7 @@ receipt explicitly identifies sampling: unsampled pages have no pixel claim.
 No product layout, Source authority, admission budget or proof frame limit
 changes. The original all-page wide proof remains separate evidence.
 
-Validation is pending. No new QEMU run has been performed for this source. Recipe identification and paired layout acceptance remain open.
+The initial preparation below was untested at its checkpoint. Current-source execution results are recorded separately at the end; paired historical layout acceptance remains open.
 
 
 ## Explicit two-F6 selected-recipe baseline (prepared, untested)
@@ -42,3 +42,9 @@ from478c4b74a6f52cd2d080e97970b6007d8ba11dd6. Their prior17pass/strict/fmt
 result remains bound toad089dab112f9efa935a229dc34cc65137c536a3. The combined
 Source requires fresh20host+17CPU controls and both strict checks before any
 new guest proof. All earlier positives and first failures remain unchanged.
+
+## Executed current-source selected controls
+
+Clean frozen8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0 passed37focused host/CPU tests, both strict affected all-target Clippy scopes and workspace formatting. The supported controls proof then passed once at1280×800 and once at640×480, with12 and13original PNGs respectively. Both first independent verifier executions passed.
+
+The [permanent compact packet](evidence/creche-selected-controls-20261022/README.md) retains all25PNGs, every primary/Details page receipt, exact two-F6 selected component/Source/Show/Boot/configuration/expression chains, four checked naming changes per Boot, pointer release barrier, full canonical identity metadata, raw compressed logs and original/stored checksums. Wide covered2primary/8Details pages; constrained3primary/21Details. Unsampled pages have no pixel claim. Initial drafts differ; fixed probe-name final captures are identified separately. These are independent current ProductHost results, not a matched historical before/after or full6158 acceptance. Prior capture-cap/compile/lint failures remain exact and separately source-bound. ELF/ISO/maps stay locally preserved with hashes rather than duplicated in Git. No initial recipe restoration, full row/lane wording, physical/human or stable acceptance claim follows.

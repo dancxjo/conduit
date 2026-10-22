@@ -1,0 +1,4968 @@
+{
+  "checkpoints": [
+    {
+      "checkpoint": "front-door-ready",
+      "elapsed_millis": 5748,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "front-door-ready",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+        "png": "front-door-ready.png",
+        "png_bytes": 49977,
+        "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "a796fc3b14cf51e25eafb1b452fa59f5ad10b51e458cd2e52a28d0e2d9f91d09",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "1bf57172b105d731d9d9fce9fc720cb8a62eeb38ae3bf8ef3ad94b8f2786a4b6",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "presenter/native-graphical@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 5556368031,
+        "clock": "std::time::Instant",
+        "frame_request_start": 5556587670,
+        "frame_response_end": 5748863716,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 0,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": null,
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 24158,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-ready",
+      "elapsed_millis": 8186,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-ready",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "3b42b811b6c1f9a2e004f1e200846ebf4d2aff97d92f6a5adc4f08c3cdb24756",
+        "png": "creche-controls-ready.png",
+        "png_bytes": 169827,
+        "png_sha256": "36d86e33815a88fec2018fdc6d36d126631eb2f3d5e372b58cb0d1ec1f4b541d",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 7992844398,
+        "clock": "std::time::Instant",
+        "frame_request_start": 7997510988,
+        "frame_response_end": 8186163480,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 1,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 114251,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-primary-1",
+      "elapsed_millis": 17545,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-primary-1",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "cc77adc01da1a9f62b523b4e89e5be97c80502ad77ba76ed0fa634c40a3a6493",
+        "png": "creche-controls-primary-1.png",
+        "png_bytes": 169471,
+        "png_sha256": "e17dd2be8ad0cb22df195d8e478b2fcc8615231932775077e93e4da3fee280e2",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 17364222881,
+        "clock": "std::time::Instant",
+        "frame_request_start": 17371623242,
+        "frame_response_end": 17545605601,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 2,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 145149,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-primary-2",
+      "elapsed_millis": 17867,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-primary-2",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "00f76e429014678e00cc75a5868f243df1c6ce248240087a0781a657ec9e9126",
+        "png": "creche-controls-primary-2.png",
+        "png_bytes": 97563,
+        "png_sha256": "84a30d1a9273989134a715e47d7699b4a9e780a3a549a8b41e4eaf63a4c6e774",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 17685137556,
+        "clock": "std::time::Instant",
+        "frame_request_start": 17692412405,
+        "frame_response_end": 17867087695,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 3,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 146295,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-details-1",
+      "elapsed_millis": 18917,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-details-1",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b2fef50766e19bb81967738446edd3285c1ccd8ba5bd10d47735c709596d4b31",
+        "png": "creche-controls-details-1.png",
+        "png_bytes": 180428,
+        "png_sha256": "9c40e4c5310a9ac0e28a14687d9ef567c8ec06c296fbde8abf921e15cb57bed7",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 18722760111,
+        "clock": "std::time::Instant",
+        "frame_request_start": 18731028485,
+        "frame_response_end": 18917811247,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 4,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 157758,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-details-4",
+      "elapsed_millis": 19350,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-details-4",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "c24fd1148cea658a30d1a1438e854a86dc4ace5c135abf0072450c252643ccbc",
+        "png": "creche-controls-details-4.png",
+        "png_bytes": 266432,
+        "png_sha256": "ca542e4ab30f7b374ca3926c018f1f6ef2d4b5c55ec665b5d03889ae16040da7",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 19156452180,
+        "clock": "std::time::Instant",
+        "frame_request_start": 19162400551,
+        "frame_response_end": 19350042611,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 5,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 161201,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-details-8",
+      "elapsed_millis": 20151,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-details-8",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "753e872cb00ba8a45faf2e54a8af7a9b4807aeacfd296854d1f7c30535e7c2c9",
+        "png": "creche-controls-details-8.png",
+        "png_bytes": 235256,
+        "png_sha256": "02a98371ab2c5129b0f12930841ee783b4d5edf64f961397b16d2289ad6af497",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 19959899095,
+        "clock": "std::time::Instant",
+        "frame_request_start": 19965904595,
+        "frame_response_end": 20151555181,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 6,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+            "face_revision": 1,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "573cc95af13887e955c72aab72859f2de2046d8f3cede8a7b0c00eeb30ff0f62",
+            "mask_active_play_id": "554986e21359fc0878882a3600d442f6d5c3c9bb5c0d1b90dddca3b87e47c179",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 165797,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-probe-name",
+      "elapsed_millis": 28054,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-probe-name",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "ddeb93e44de7d4c7c6a9aa0158c8a60bbb4f4baa30a15aa571ac60c4fdfe41e1",
+        "png": "creche-controls-probe-name.png",
+        "png_bytes": 169077,
+        "png_sha256": "88800c511cb64878f06541c3e6262c393b4da56b4f643536a24f0fa2939942d9",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 27860989083,
+        "clock": "std::time::Instant",
+        "frame_request_start": 27872009271,
+        "frame_response_end": 28054956494,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 7,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+            "face_revision": 2,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "85f095fa57b090346f1c4c024e575d0ca023a0bbd2ea3ca979a60f49a4f48683",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+              "face_revision": 2,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "ea6a06d690eb1f4c23b5614dd2f55f15ab4da87d63ce36527a6a4183f0eefe6e",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 4,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "85f095fa57b090346f1c4c024e575d0ca023a0bbd2ea3ca979a60f49a4f48683",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "ea6a06d690eb1f4c23b5614dd2f55f15ab4da87d63ce36527a6a4183f0eefe6e",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 4,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "85f095fa57b090346f1c4c024e575d0ca023a0bbd2ea3ca979a60f49a4f48683",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "ea6a06d690eb1f4c23b5614dd2f55f15ab4da87d63ce36527a6a4183f0eefe6e",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 4,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "ea6a06d690eb1f4c23b5614dd2f55f15ab4da87d63ce36527a6a4183f0eefe6e",
+            "mask_active_play_id": "85f095fa57b090346f1c4c024e575d0ca023a0bbd2ea3ca979a60f49a4f48683",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 215772,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-naming-welsh",
+      "elapsed_millis": 33165,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-naming-welsh",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b9411d7b621f747ae9a439456193015d9331a7c84c80e3c63b9c9e58517d834a",
+        "png": "creche-naming-welsh.png",
+        "png_bytes": 168331,
+        "png_sha256": "5a0f3dd14ee0945586cef7859ba7e02b1257082f5ab2071a25e178fc0d2d70c6",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 32971510701,
+        "clock": "std::time::Instant",
+        "frame_request_start": 32981036789,
+        "frame_response_end": 33165492058,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 8,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+            "face_revision": 3,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+              "face_revision": 3,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 5,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 5,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 5,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+            "mask_active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 257447,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-naming-pointer-focused",
+      "elapsed_millis": 37721,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-naming-pointer-focused",
+        "height": 800,
+        "non_background_pixels": 1017458,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a164223fdf3cd5e24ac6d117b901face4bb23d1e0bcb205e1d5094bb9fc73063",
+        "png": "creche-naming-pointer-focused.png",
+        "png_bytes": 168361,
+        "png_sha256": "7bab7da701dbfb35b4795fa33f7266be88301815c23e98193fca8d785f1b5caf",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 37524421770,
+        "clock": "std::time::Instant",
+        "frame_request_start": 37534698207,
+        "frame_response_end": 37721819902,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 9,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+            "face_revision": 3,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+              "face_revision": 3,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 5,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 5,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 5,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "630c7d8599ac3b43b528de749003ffc4b4011b0c7e42b714b4906c2e8261cc5b",
+            "mask_active_play_id": "293e35e4665f10ad9d93574e188f05afeea363eb474aa37951b89efe9d125bf2",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 277887,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-naming-tradition-restored",
+      "elapsed_millis": 46246,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-naming-tradition-restored",
+        "height": 800,
+        "non_background_pixels": 1017458,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "d4258450c01736b0f2c947ce734f4ebbd85d0ea29eeb4c56061ed3fdc8d92994",
+        "png": "creche-naming-tradition-restored.png",
+        "png_bytes": 170256,
+        "png_sha256": "70258a56f7a24bafbae7923e21208a3b34d98889599b0def8074b100696bf268",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 46056629865,
+        "clock": "std::time::Instant",
+        "frame_request_start": 46068720773,
+        "frame_response_end": 46246869930,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 10,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+            "face_revision": 4,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "1f1c4f88a943bf6c9d289323fea5526f8ba64e1d33a07842c1033e7bfc5775fd",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+              "face_revision": 4,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "96714ed528159e06fe5deb15cb41b270deedec3f3a585235fa44e82054279445",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 6,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "1f1c4f88a943bf6c9d289323fea5526f8ba64e1d33a07842c1033e7bfc5775fd",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "96714ed528159e06fe5deb15cb41b270deedec3f3a585235fa44e82054279445",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 6,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "1f1c4f88a943bf6c9d289323fea5526f8ba64e1d33a07842c1033e7bfc5775fd",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "96714ed528159e06fe5deb15cb41b270deedec3f3a585235fa44e82054279445",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 6,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "96714ed528159e06fe5deb15cb41b270deedec3f3a585235fa44e82054279445",
+            "mask_active_play_id": "1f1c4f88a943bf6c9d289323fea5526f8ba64e1d33a07842c1033e7bfc5775fd",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 329311,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-naming-exact-name-restored",
+      "elapsed_millis": 54269,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-naming-exact-name-restored",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "52e8eea180b436d14b79720625d9e0945b61843a624e9d11a1e57ef186fd932e",
+        "png": "creche-naming-exact-name-restored.png",
+        "png_bytes": 169092,
+        "png_sha256": "1004d54a602a422b6dff27182a16425516b29b9fdb1ce61de965e0a7eafdc62a",
+        "width": 1280
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "limine": "12.5.2",
+        "memory_regions": 19,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+        "born_sign_id": null,
+        "build_id": "build:sha256:fbc1c420de627d859551b78fa842b6ad8f000ace332c22d1d2ab6216f082a16a",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+        "image_id": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "c37a799e9049610dd3229444eaf45fc3445992e56e5bc7f09bf3e28734b312c2",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 54058839502,
+        "clock": "std::time::Instant",
+        "frame_request_start": 54081111274,
+        "frame_response_end": 54269819283,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 11,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "bf8205c5ae5136559c03b7834af7ce78dd4b6069f11d53ef623fd77048db51a1",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+          "face_revision": 5,
+          "show": {
+            "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+            "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+            "face_revision": 5,
+            "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "c74aaf02526d848b2e8617d3c88c62869f462d0412c4a333ac34f883fc284cb5",
+              "body_id": null,
+              "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+              "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+              "face_revision": 5,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+              "lifecycle": "Available",
+              "manifestation_id": "f529e1e1afe5ac94d6fbb6736dea0b5c5894bf4f21349e6c2b612053ae31faae",
+              "offer_generation": 1,
+              "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+              "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+              "play_sequence": 7,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "c74aaf02526d848b2e8617d3c88c62869f462d0412c4a333ac34f883fc284cb5",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "f529e1e1afe5ac94d6fbb6736dea0b5c5894bf4f21349e6c2b612053ae31faae",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 7,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "c74aaf02526d848b2e8617d3c88c62869f462d0412c4a333ac34f883fc284cb5",
+                  "boot_id": "05a2c6c10a9c39bcd2fc6aba3fdbc975ac69d772e72c44c8bd2914936520b3dd",
+                  "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+                  "failure": null,
+                  "host_id": "b9e9fdc176a982a74e3581d8fd2d16f7e98260515e803137e0742dfe62dc11df",
+                  "lifecycle": "Available",
+                  "manifestation_id": "f529e1e1afe5ac94d6fbb6736dea0b5c5894bf4f21349e6c2b612053ae31faae",
+                  "offer_generation": 1,
+                  "placement_id": "af31d49e1fcf549622c0a2c8449e5b0cc8cda88c5347953f7c92749beef16c31",
+                  "plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+                  "play_sequence": 7,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "f529e1e1afe5ac94d6fbb6736dea0b5c5894bf4f21349e6c2b612053ae31faae",
+            "mask_active_play_id": "c74aaf02526d848b2e8617d3c88c62869f462d0412c4a333ac34f883fc284cb5",
+            "mask_plan_id": "8cd663eda72a55e6d49931198a4193baf9c733f70057212eaeae9089d2de745f",
+            "mask_plot": {
+              "checked_plot_id": "33bf5ee5773b65ec09ff79a0eb0ef051bf0c5d279da2883cb856b28428782343",
+              "expanded_plot_id": "f8988066e1f3ed2fd45af91bb9ab9289e77a50a691768c16c5bc0a20e0b9fd0f",
+              "source_document_id": "9806a8f80f7bb86144edfb744fef1f1f17e80b888b005f55e21a4d4e79423583"
+            },
+            "offer_generation": 1,
+            "show_id": "show/5529d27350d9ed210e47e1a13a83a035bab9bfcbcc0b19d61dd818b2a44005e9"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 379465,
+      "unchanged": false
+    }
+  ],
+  "context": {
+    "capture_contract": {
+      "maximum_checkpoints": 27
+    },
+    "graphical_profile": {
+      "code": "DejaVu Sans Mono",
+      "fallback": "pinned Unifont",
+      "primary": "DejaVu Sans",
+      "primitive": false,
+      "profile": "conduitos/graphical/dejavu-v1"
+    },
+    "image_sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+    "process_stop": {
+      "cause": "harness-stop-after-success",
+      "code": null,
+      "status": "signal: 9 (SIGKILL)"
+    },
+    "qemu_argv": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "none",
+      "-device",
+      "VGA,edid=on,xres=1280,yres=800",
+      "-monitor",
+      "none",
+      "-qmp",
+      "unix:/tmp/cj-250012.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-8c3ecb0d7-controls-1280x800-target/x86_64/journey-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+      "-device",
+      "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-startup/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ],
+    "source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+    "viewport_guest_evidence": {
+      "evidence": "guest Mask display bounds with prior acknowledged Show",
+      "focus_records": [
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/0acfbb51403f4107db46bfe135581621bf961e260ae217bfb04ee51d6cc4206a"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 57,
+            "width": 578,
+            "x": 48,
+            "y": 553
+          },
+          "page": 1,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/5358f4474d260bda6d0b1d6adb88048111eb41ae0efb7e0fb7f7097555b910e6"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 495
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 539
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 64
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 108
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 489
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 45,
+            "width": 1228,
+            "x": 40,
+            "y": 158
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 1228,
+            "x": 40,
+            "y": 211
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 1228,
+            "x": 40,
+            "y": 211
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 45,
+            "width": 1228,
+            "x": 40,
+            "y": 158
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 489
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 108
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 64
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 539
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 495
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 2,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 3,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 4,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 5,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 6,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 7,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 8,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 8,
+          "pages": 8,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": null,
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": null,
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 45,
+            "width": 1228,
+            "x": 40,
+            "y": 158
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 1228,
+            "x": 40,
+            "y": 211
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "960c39779945e7447477c4f673bb3d05b23faf7262e6123505b20c21ae50fe97",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/25368a21492bef71c8c4c3022d21675549e8fca1b7b347304c5ba394fac9d23d"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 495
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 539
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 64
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 108
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 489
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "613ea41bcbd50be759c820f084f196616ad61f245a68822d45e34d9af9bb6ed4",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/40a16e5f3fa39a4ba76f764775a7a3aa91f2b3a6ba925555dbe3e09453e263ed"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 45,
+            "width": 1228,
+            "x": 40,
+            "y": 158
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 1228,
+            "x": 40,
+            "y": 211
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 495
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 539
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 64
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 108
+          },
+          "page": 2,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 489
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "543db50883717e68bbb2d9f7f2a5da145d092336f8b95fef9fcbcf89330175af",
+          "face_revision": 3,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/ebcae5e84b6ac98a9f9c47338c0097b6e5d66933bff47171242e3af398f91726"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 533
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 682,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.birth",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 45,
+            "width": 1228,
+            "x": 40,
+            "y": 158
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.suggest",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 1228,
+            "x": 40,
+            "y": 211
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 354
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "2db29d458baf5b0e9173a45deb0c7885783f39cc245a32bd16142f775bcd7194",
+          "face_revision": 4,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c9c42e1bcecbbb39116dc04e238ef3afec3e92ff3b7015d13208bb8b8ab2c8a4"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 800,
+            "width": 1280,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "b62ddfe2eff5a1d08d0616cddc6642af4563be037305036bb03de9d8882bdd4f",
+          "face_revision": 5,
+          "hit_bounds": {
+            "height": 36,
+            "width": 578,
+            "x": 48,
+            "y": 398
+          },
+          "page": 1,
+          "pages": 2,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/5529d27350d9ed210e47e1a13a83a035bab9bfcbcc0b19d61dd818b2a44005e9"
+        }
+      ],
+      "provider_format": "not serialized by ordinary product receipt"
+    },
+    "viewport_request": {
+      "height": 800,
+      "provider_format": "not serialized; actual Mask display bounds and QMP pixels checked",
+      "selection": "stdVGA EDID preference; actual boot selection must match",
+      "width": 1280
+    },
+    "visual_contract": {
+      "display": "std-vga",
+      "dynamic_identity_pixels": "allowed",
+      "height": 800,
+      "minimum_non_background_pixels": 64,
+      "mode": "invariant",
+      "width": 1280
+    }
+  },
+  "failure": null,
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/visual-journey@1",
+  "serial_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-8c3ecb0d7-controls-1280x800-target/x86_64/journey-serial.log",
+  "status": "complete"
+}

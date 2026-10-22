@@ -1,0 +1,17 @@
+{
+  "source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "requested_viewport": "640x480",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "creche-controls-proof",
+    "--viewport",
+    "640x480",
+    "--locked"
+  ],
+  "started_utc": "2026-10-22T04:27:27.775735+00:00",
+  "boundary": "Separate canonical live-image controls proof. Actual source-owned naming/control evidence, no default journey or full6158 acceptance. EDID preference, never crop; capture count is actual."
+}

@@ -1,0 +1,53 @@
+{
+  "status": "verified",
+  "source": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "packet": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-8c3ecb0d7-controls-640x480-preserved",
+  "viewport": "640x480",
+  "original_files_rehashed": 47,
+  "png_names": [
+    "journey-frames/front-door-ready.png",
+    "journey-frames/creche-controls-ready.png",
+    "journey-frames/creche-controls-primary-1.png",
+    "journey-frames/creche-controls-primary-2.png",
+    "journey-frames/creche-controls-primary-3.png",
+    "journey-frames/creche-controls-details-1.png",
+    "journey-frames/creche-controls-details-11.png",
+    "journey-frames/creche-controls-details-21.png",
+    "journey-frames/creche-controls-probe-name.png",
+    "journey-frames/creche-naming-welsh.png",
+    "journey-frames/creche-naming-pointer-focused.png",
+    "journey-frames/creche-naming-tradition-restored.png",
+    "journey-frames/creche-naming-exact-name-restored.png"
+  ],
+  "unsampled_pages_no_pixel_claim": {
+    "primary": [],
+    "details": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ]
+  },
+  "serial_prefixes_verified": 13,
+  "selected_recipe_records": 2,
+  "source_changes": 4,
+  "available_controls": 12,
+  "kernel_sha256": "ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da",
+  "image_sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+  "logical_image_binding": "image:sha256:b2cc869557592174ad053061178f84353aaab0c899429c6336e229c35761b22b",
+  "scope": "Original documentary custody and explicit two-selection chain; no initial recipe restoration, unsampled pixels, row wording, physical/human evidence or full6158 acceptance. No independent recomputation of canonical Face digest; seals are hashes, not signatures."
+}
