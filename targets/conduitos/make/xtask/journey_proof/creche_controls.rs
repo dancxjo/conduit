@@ -64,7 +64,9 @@ pub(super) fn exercise(
     let membership = members(&initial.face)?;
     let original = current(&initial.face, "creche.naming")?;
     let observed_name = current(&initial.face, "creche.name")?;
-    let name = b"Naming proof".to_vec();
+    let name = "Café Llanfairpwllgwyngyll and a long Body name"
+        .as_bytes()
+        .to_vec();
     let expected = controls(&initial.face)?;
     if expected.is_empty() || expected.len() > 64 {
         return Err(refusal(
@@ -146,7 +148,7 @@ pub(super) fn exercise(
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
         }),
         json!({
-            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"incomplete_argument_refusal":incomplete_refusal,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
+            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"incomplete_argument_refusal":incomplete_refusal,"restoration_basis":"checked long Unicode probe draft typed through actual HID; original observed name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
             "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
         }),
         json!({
@@ -206,18 +208,19 @@ fn keys_for(bytes: &[u8]) -> Result<Vec<Vec<String>>, ConduitosError> {
     if bytes.is_empty() || bytes.len() > 64 {
         return Err(refusal("probe name outside finite HID input profile"));
     }
-    bytes
-        .iter()
-        .map(|b| {
-            Ok(match b {
-                b'a'..=b'z' | b'0'..=b'9' => vec![char::from(*b).to_string()],
-                b'A'..=b'Z' => vec![
-                    "shift".into(),
-                    char::from(b.to_ascii_lowercase()).to_string(),
-                ],
-                b' ' => vec!["spc".into()],
-                b'-' => vec!["minus".into()],
-                b'\'' => vec!["apostrophe".into()],
+    std::str::from_utf8(bytes)
+        .map_err(|_| refusal("probe name is not UTF-8; no Source changed"))?
+        .chars()
+        .map(|ch| {
+            Ok(match ch {
+                'a'..='z' | '0'..='9' => vec![ch.to_string()],
+                'A'..='Z' => vec!["shift".into(), ch.to_ascii_lowercase().to_string()],
+                ' ' => vec!["spc".into()],
+                '-' => vec!["minus".into()],
+                '\'' => vec!["apostrophe".into()],
+                // The prepared us(altgr-intl) keymap maps this genuine chord to é.
+                // Unsupported scalars refuse before input; never normalize Source.
+                'é' => vec!["alt_r".into(), "e".into()],
                 _ => {
                     return Err(refusal(
                         "probe name needs unsupported HID spelling; no Source changed",
@@ -234,7 +237,9 @@ mod tests {
     #[test]
     fn exact_probe_spelling_is_bounded_and_never_normalizes_unicode() {
         assert_eq!(keys_for(b"Naming proof").unwrap()[0], ["shift", "n"]);
+        assert_eq!(keys_for("Café".as_bytes()).unwrap()[3], ["alt_r", "e"]);
         assert!(keys_for("Dafydd ŵ".as_bytes()).is_err());
+        assert!(keys_for(&[0xff]).is_err());
         assert!(keys_for(&[b'a'; 65]).is_err());
         assert!(keys_for(b"").is_err());
         assert!(keys_for(b"wrong\ninput").is_err());
