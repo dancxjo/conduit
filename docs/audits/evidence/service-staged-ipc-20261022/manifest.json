@@ -1,0 +1,147 @@
+{
+  "source_commit": "d2d7b69eca496280a0e07ee7cc18396b12f12dac",
+  "source_blobs": {
+    "targets/conduitos/domain/probes.rs": "3567ab14d7420e660b7f56ce348344eef3452df5",
+    "targets/conduitos/domain/service_bulk.rs": "9b796580113da282f73a56532efc2260d6f548b4",
+    "targets/conduitos/domain/service_probe.rs": "9804aca19a1a77d467e006fb01d4dfc863602275",
+    "targets/conduitos/make/xtask/ordinary_domain_proof.rs": "beac7d0093da8a25f5cc2e5163fd5fd4d337c105",
+    "targets/conduitos/make/xtask/ordinary_domain_proof/staged.rs": "1348fc8c2c0948b0fc92594930221909057f04e2",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory.rs": "a271dbdc97573d56d01645f4febb65e0ec576006",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/staged.rs": "f1d472b11fb9db36ff113c89debbb5babd7b523e",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/staged/format.rs": "60e39dbc175cea1ecf7f50bf0930c98e77523bc0",
+    "targets/conduitos/tests/service_staged_fixture.rs": "43e7bf5a8b16c7ab2601e6a1109c1148835f790a"
+  },
+  "command": "cargo +stable xtask make conduitos ordinary-domain-proof --locked",
+  "result": "PASS",
+  "native_exit_code": 0,
+  "host_fixture_tests": 2,
+  "owning_reader_tests": 2,
+  "staged_samples": 30,
+  "staged_refusals": 8,
+  "original_baseline_rows": 20,
+  "original_setup_records": 14,
+  "artifacts": {
+    "conduitos": {
+      "bytes": 61462200,
+      "sha256": "0f7819383771e9aa412224380f80d9d4f2d870c7895fd48e6cf5cab721f716d6"
+    },
+    "conduitos.iso": {
+      "bytes": 65728512,
+      "sha256": "7f2ba04a44bc857151f482317efe09decea3900aa2b3c584490aeda66ff579db"
+    },
+    "ordinary-domain-proof.log": {
+      "bytes": 47598,
+      "sha256": "3a183b21d269b773a7b454fa62e656b185fb0838b02c47b5e78b9b9eb5df4a8a"
+    }
+  },
+  "external_test_executables": {
+    "service_staged_fixture-cf4c361197de577b": {
+      "bytes": 7197272,
+      "sha256": "dc7d57bb44433f9de84ea4de0bdf98f58e1c90b9ab7a1e9f04a595d2f789be4a"
+    },
+    "xtask-a700fc9647e6fec9": {
+      "bytes": 150811784,
+      "sha256": "621518580546bc9364e20b644796ee4b92001b918b287f54eb0572ad5c63c9f5"
+    },
+    "xtask-3eb3f6c9c152b662": {
+      "bytes": 186096824,
+      "sha256": "c260c2381773ed0ffe7ed463244b6544ecb0efa973f76638d883497c87d73949"
+    }
+  },
+  "packet_files": [
+    {
+      "file": "host-fixture.log.gz",
+      "raw_bytes": 18323,
+      "raw_sha256": "cc8c607f5f4d25ee618d5374d01811f1a313ddb0f6d63b475ccfa8bc97f026d9",
+      "gzip_sha256": "8b07d141a7b4713f55c62ac35f5e69c5ad0131fdeaaa51441d9718973a03b461"
+    },
+    {
+      "file": "owning-reader.log.gz",
+      "raw_bytes": 21410,
+      "raw_sha256": "dadd8334287d840b87e3e02a5cf1f633dc3a47b224afd55fd19ca99f748c0ddd",
+      "gzip_sha256": "5bc31f99112892752633cb57fd06f2cf4bbe68ccf5826cfcb07ecd2fe7d97015"
+    },
+    {
+      "file": "native-proof.log.gz",
+      "raw_bytes": 182823,
+      "raw_sha256": "9bfb7deb76b8b34cdff83f1eeadc55f2508a13c3a4cc8de00c8a0c1e8c434d0a",
+      "gzip_sha256": "8a005edccb2dd9a8cc05a9fe6599d0940f2040e9ded6fc6612720a26091b9463"
+    },
+    {
+      "file": "identity-check.json.gz",
+      "raw_bytes": 696,
+      "raw_sha256": "18b3ac5e1d7cd6108320cc822bd2ab4c08753d76cdfbf7d6eb170c45f5585fec",
+      "gzip_sha256": "5fc18874547dd5cb40b7cf874a927f3762d08cb58f55b0d4f57a6bef36526fbf"
+    },
+    {
+      "file": "preflight.json.gz",
+      "raw_bytes": 1083,
+      "raw_sha256": "9baf09302fee0592238b9782bb48d4a6f7160a38a847a62419a58ee06172b835",
+      "gzip_sha256": "ae888297d2f34d911fd74a3f7a31627ee6b3e56a20ec6bdb3fb4950e7b81c648"
+    },
+    {
+      "file": "ordinary-domain-proof.log.gz",
+      "raw_bytes": 47598,
+      "raw_sha256": "3a183b21d269b773a7b454fa62e656b185fb0838b02c47b5e78b9b9eb5df4a8a",
+      "gzip_sha256": "a67bcdf12b47577f7e61f31376790f353c0c2b48d25ce3bd461a0623af9e2899"
+    },
+    {
+      "file": "build.json.gz",
+      "raw_bytes": 335,
+      "raw_sha256": "ae4f08be5ccc4b64d4ebf8d81c29ee0d451718da1fd81837c961c9b1187d7e20",
+      "gzip_sha256": "b48458830545181880d89fbd03aa38386250b70849074328ee6880aeaf7dd395"
+    },
+    {
+      "file": "image.json.gz",
+      "raw_bytes": 351,
+      "raw_sha256": "9904858b92e80cf53c64a8f7939417f3a2d637cedb916af06758753366e00de6",
+      "gzip_sha256": "1f6cb960abfd27479bbbb4d6153b3d460045bcc44ea5d0fdb0ffb446981b5ccc"
+    },
+    {
+      "file": "compositor-copy-recovery-fixture-proof.json.gz",
+      "raw_bytes": 1630,
+      "raw_sha256": "d864fa21090dbeb045e292e6c7ccfac48da98ba7f0f184694011b1648f62dbfc",
+      "gzip_sha256": "7c9b49692bf2577ef3f7d53aabfb8a46f8f211766a1b66e459389b3514ac7da5"
+    },
+    {
+      "file": "compositor-guest-fixture-proof.json.gz",
+      "raw_bytes": 1546,
+      "raw_sha256": "780edaa9515d10d539568602abe48ce08cad8e79397f7230d792a6ad8370bbcd",
+      "gzip_sha256": "11d76932d996070eae7d8d71e9a58f5fbd85b7dc61e126f673611fdb20d6df30"
+    },
+    {
+      "file": "compositor-hostile-broker-fixture-proof.json.gz",
+      "raw_bytes": 2423,
+      "raw_sha256": "488647464e54b4cfd82c74f8ff8264af6bb4aa68f4c15edbf1b0219f0827596a",
+      "gzip_sha256": "93ce8291c8e6a7e53e69acaf9f7066cb824ba551b66a4c6af3e1430cc5887a97"
+    },
+    {
+      "file": "service-baseline-proof.json.gz",
+      "raw_bytes": 13401,
+      "raw_sha256": "9a84d2a03cd017c5930bdb6864580b9ca525c476d8d11c160e53adcb1ca9f7d8",
+      "gzip_sha256": "12f53cb4c60dce402d7df099d791be6c1441ab1e13bb259dd66f87ba3a1a58b5"
+    },
+    {
+      "file": "service-memory-fixture-proof.json.gz",
+      "raw_bytes": 1169,
+      "raw_sha256": "81cec8eea98e96a41ced03e050f665c92231c76d9797eac0bc9db6ccdf78d5cc",
+      "gzip_sha256": "602f534f137b7a4adeec87392ec63a421ab27428fe8ccdb1961e2d755cff7ad1"
+    },
+    {
+      "file": "service-staged-ipc-proof.json.gz",
+      "raw_bytes": 15305,
+      "raw_sha256": "10f335177427d1dd16f0d87f4754e8ebef820a908c235a1530d5057ff2454a58",
+      "gzip_sha256": "407007ddb3b242be44e4012fa9f1bf098d05df6341b29748c9ccee0908b1926e"
+    }
+  ],
+  "scope": [
+    "calibrated latency",
+    "independent trap/CR3/register/interrupt costs",
+    "production staged protocol",
+    "parent production confinement",
+    "whole-process heap accounting",
+    "normal responsive-journey speedup"
+  ],
+  "ambient": "Concurrent independent host/native builds; jobs2, incremental0, dev/test debug0; no calibrated performance/gain claim",
+  "first_failures": "No failed invocation in this staged campaign. Existing inherited and host-import warnings retained in logs."
+}
