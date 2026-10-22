@@ -6,13 +6,17 @@ use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
 use conduit_face::*;
 
 fn actual_face() -> Face {
-    let (_, offer) = crate::native_workset::tests::fixture();
     let choices = crate::native_workset::candidate_inventory()
         .into_iter()
         .map(|plot| {
-            let refusal = crate::native_workset::eligibility(plot, &offer)
-                .err()
-                .map(|error| error.as_str().into());
+            // Mirror open_creche_reviewed's installed-membership guard, not
+            // Host eligibility or execution admission for this CPU specimen.
+            let refusal =
+                (!crate::native_workset::profile().installed().contains(&plot)).then(|| {
+                    crate::native_workset::WorksetRefusal::UnknownPlot
+                        .as_str()
+                        .into()
+                });
             BirthPlotChoice {
                 title: plot.title().into(),
                 search_text: plot.source().into(),
