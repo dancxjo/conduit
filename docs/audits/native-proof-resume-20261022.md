@@ -247,3 +247,16 @@ The browser resident proof now uses canonical typed actions and verifies the
 Workspace retains an unhandled Edit request without changing its Plan/Play.
 These harness changes compile/syntax-check locally; actual enactment and
 successful fresh-editor handoff remain separate gates until new receipts land.
+
+The first extended journey on clean `ee200e166` reached canonical Patchbay but
+refused before dispatch: the Face offers only the current Keyboard graph's
+Inspect action, not the resident Memory Lantern Plot. Application-core currently
+holds a one-Plot actor per target and projects only the selected actor; the
+legacy outer selection is absent from canonical actions. This is a production
+cross-Plot selection gap, not permission to synthesize an action. Its failed
+serial/capture packet remains local at
+`/tmp/conduit-patchbay-journey-ee200-failed-20261022`.
+The next bounded harness enacts the actually offered idempotent current-Plot
+selection and explicitly records `cross_plot_selection_enacted: false`.
+Positive browser Edit-handler preparation now also covers Handbook's real
+source-opening handler; it remains unearned until Chromium enactment.

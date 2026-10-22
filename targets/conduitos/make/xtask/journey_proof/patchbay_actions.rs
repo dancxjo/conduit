@@ -36,16 +36,22 @@ pub(super) fn exercise(
         },
     )?;
     let initial = current(serial)?;
-    let editor =
-        conduitos::native_workset::resident(conduitos::native_workset::NativePlot::MemoryLantern)
-            .map_err(|error| refusal(error.as_str()))?;
-    let target = format!("plot/{}", editor.checked_plot_id.as_str());
     let face = decode(&initial)?;
+    // The current native owner offers only its already selected graph. Enact
+    // that exact offered action; cross-Plot selection remains a product gap.
     let select = face
         .actions
         .iter()
-        .find(|action| action.intent == "patchbay/select-plot@1" && action.target == target)
-        .ok_or_else(|| refusal("Patchbay does not offer the admitted editor Plot"))?;
+        .find(|action| {
+            action.intent == "patchbay/select-plot@1"
+                && face.properties.iter().any(|property| {
+                    property.subject == action.target
+                        && property.name == "patchbay-selected"
+                        && property.value == conduit_face::FacePropertyValue::Flag(true)
+                })
+        })
+        .ok_or_else(|| refusal("Patchbay does not offer its current selected Plot"))?;
+    let target = select.target.clone();
     let selected = submit(serial, child, qmp, reader, &initial, &select.identity, None)?;
     let after_select = current(serial)?;
     if !decode(&after_select)?.properties.iter().any(|property| {
@@ -58,7 +64,7 @@ pub(super) fn exercise(
     if selected["before"]["active_play_id"] != selected["after"]["active_play_id"] {
         return Err(refusal("Patchbay inspection replaced the actor Play"));
     }
-    artifacts.capture(qmp, reader, "patchbay-inspect-editor", true)?;
+    artifacts.capture(qmp, reader, "patchbay-inspect-current-plot", false)?;
 
     // The existing editor proof intentionally left café. Edit must preserve
     // that real draft, not overwrite it to make this demonstration succeed.
@@ -117,11 +123,14 @@ pub(super) fn exercise(
         ));
     }
     artifacts.capture(qmp, reader, "patchbay-mask-replanned", true)?;
-    Ok(json!({"select_plot":selected, "selected_face":after_select,
+    Ok(
+        json!({"select_plot":selected, "selection_kind":"idempotent-current-plot",
+        "cross_plot_selection_enacted":false, "selected_face":after_select,
         "edit_request":edit_request, "edit_outcome":"native-editor-existing-draft",
         "successful_edit_handoff_enacted":false, "edit_refusal_face":after_edit,
         "mask_request":mask_request, "replanned_face":after_mask,
-        "limits":"existing draft refusal; no successful Source editor handoff or Save/reopen"}))
+        "limits":"idempotent selection only; existing draft refusal; no cross-Plot selection, successful Source editor handoff or Save/reopen"}),
+    )
 }
 
 fn decode(record: &Value) -> Result<Face, ConduitosError> {
