@@ -1,5 +1,7 @@
 //! Native Host adapter around the one fixed production scheduler.
+mod effect_binding;
 mod effects;
+use effect_binding::{Binding, Effect};
 mod preparation;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod protection;
@@ -25,23 +27,6 @@ const CORDS: usize = 10;
 type Scheduler = conduitos_runtime_core::Scheduler;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 type Scheduler = crate::protected_runtime::Scheduler;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum Effect {
-    Keyboard,
-    Keymap,
-    Upper,
-    Edit,
-    Face,
-    ApplicationEvent,
-    Application,
-    ApplicationFace,
-}
-#[derive(Clone, Copy)]
-struct Binding {
-    plot: u8,
-    effect: Effect,
-}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PlayRefusal {

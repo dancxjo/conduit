@@ -129,6 +129,26 @@ fn prepare_inner(
                     // installed host binding gives it retained text semantics.
                     (Effect::Edit, BackKind::Edit)
                 }
+                super::super::document_state::IMPLEMENTATION => {
+                    let maximum = super::super::document_state::validate(placement)?;
+                    if admitted_editors[plot] {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+                    {
+                        editors[plot] = Some(
+                            BoundedTextState::new(
+                                conduit_semantic_catalog::TextStateMode::Edit,
+                                maximum,
+                            )
+                            .map_err(|_| WorksetRefusal::Plan)?,
+                        );
+                    }
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    let _ = maximum; // Exact protected owner configuration is prepared separately.
+                    admitted_editors[plot] = true;
+                    (Effect::Document, BackKind::Document)
+                }
                 crate::offer::TEXT_FACE_IMPLEMENTATION => {
                     if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
                     {
