@@ -21,6 +21,8 @@ mod birth;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod graph_facts;
 mod projection;
+mod source_edit;
+pub use source_edit::{SourceEditError, SourceEditReceipt, SourceEditRefusal};
 mod proposal;
 mod tutorial;
 pub use tutorial::{TutorialRefusal, TutorialSurface};
