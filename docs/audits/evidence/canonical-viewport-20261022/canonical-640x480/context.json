@@ -1,0 +1,17 @@
+{
+  "source_commit": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "requested_viewport": "640x480",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "graphical-profile-proof",
+    "--viewport",
+    "640x480",
+    "--locked"
+  ],
+  "started_utc": "2026-10-22T02:47:41.130728+00:00",
+  "boundary": "Canonical graphical-profile proof through live_media build/product-host image; viewport prerequisite only, not naming acceptance. Request is EDID preference, never cropping."
+}

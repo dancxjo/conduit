@@ -1,0 +1,17 @@
+{
+  "source_commit": "47e361d7c11105b40dc8e70aae4a0ec9a77d6fa7",
+  "requested_viewport": "1280x800",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "journey-proof",
+    "--viewport",
+    "1280x800",
+    "--locked"
+  ],
+  "started_utc": "2026-10-22T02:25:17.730323+00:00",
+  "boundary": "Supported ordinary journey through architecture-proof appliance image; viewport prerequisite only, not naming acceptance. Request is EDID preference, never cropping."
+}

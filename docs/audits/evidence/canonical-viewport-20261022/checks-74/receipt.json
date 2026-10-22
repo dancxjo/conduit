@@ -1,0 +1,94 @@
+{
+  "source_commit": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "status": "complete",
+  "steps": [
+    {
+      "name": "viewport-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "proof_viewport",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 212.2538588559837,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-74-viewport-tests.log",
+      "sha256": "46ce21dd9bda1b2f32b3dc025ecabe8461eaf01dffab4dd9c9bbf3b90b3c7332"
+    },
+    {
+      "name": "canonical-metadata-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "graphical_profile_proof",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.38924510701326653,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-74-canonical-metadata-tests.log",
+      "sha256": "40b28b635703d48ed9ee10279097c495608b49267101bf6ab78c8c3c7eb4caa7"
+    },
+    {
+      "name": "artifacts-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "qemu_artifacts",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.31776376598281786,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-74-artifacts-tests.log",
+      "sha256": "ee3f0285b8325a65793b8b54e6040d7f2a6ba3b578ea98a1a60154675781b619"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 169.9831850429764,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-74-strict-clippy.log",
+      "sha256": "4876311f0039ffe7beddab3b07d12d1a127c2259e25ccd97cdfb79114165f3a6"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 10.569212935050018,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-74-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
