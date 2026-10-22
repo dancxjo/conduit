@@ -2,12 +2,23 @@
 use super::refuse;
 use crate::{
     arch,
-    protected_region::{DomainBackend, DomainFault, DomainReturn},
+    protected_region::{
+        DomainBackend, DomainBinding, DomainFault, DomainReturn, DomainState, ProtectedRegion,
+    },
+    protection_domain::{KernelCapabilityTable, ProtectionDomainId},
 };
 use core::fmt::Write;
 use core::sync::atomic::{AtomicU64, Ordering};
 static VALUE: AtomicU64 = AtomicU64::new(u64::MAX);
 static ORIGIN: AtomicU64 = AtomicU64::new(u64::MAX);
+// This architecture fixture owns no effect capabilities or semantic Plan.
+#[derive(Clone, Copy, Eq, PartialEq)]
+struct ProbeBinding;
+impl DomainBinding for ProbeBinding {
+    fn domain(&self) -> ProtectionDomainId {
+        ProtectionDomainId(1)
+    }
+}
 /// Root receives these raw words only after the assembly transition returns.
 pub(crate) fn observe(value: u64, origin: u64) {
     VALUE.store(value, Ordering::Release);
@@ -23,9 +34,13 @@ pub(super) fn run() {
     let sibling_before = unsafe { (sibling_address as *const u32).read_volatile() };
     let mut domain = arch::TextDomain::install().unwrap_or_else(|_| refuse("x87-domain-install"));
     domain.probe(21, 0);
+    let binding = ProbeBinding;
+    let mut capabilities =
+        KernelCapabilityTable::new(7).unwrap_or_else(|_| refuse("x87-capability-table"));
+    let mut region = ProtectedRegion::installed(binding, domain);
     observe(u64::MAX, u64::MAX);
     arch::early_write(b"CONDUIT_X87_NM_ATTEMPT instruction=fld1 expected_vector=7\n");
-    let returned = domain.enter(1);
+    let returned = region.resume(&binding, 1, &mut capabilities);
     let value = VALUE.load(Ordering::Acquire);
     let origin = ORIGIN.load(Ordering::Acquire);
     let mut observation = crate::sign_format::FixedText::new();
@@ -42,10 +57,10 @@ pub(super) fn run() {
         refuse("x87-nm-vector-or-return");
     }
     let mut output = [0u8; 256];
-    if domain.enter(1).is_ok()
-        || domain.input(b"replay").is_ok()
-        || domain.output(&mut output).is_ok()
-        || domain.cost().scheduler_returns != 1
+    if region.resume(&binding, 1, &mut capabilities).is_ok()
+        || region.backend_mut().is_ok()
+        || region.state() != DomainState::Faulted(DomainFault::InvalidInstruction)
+        || region.cost().scheduler_returns != 1
     {
         refuse("x87-nm-not-terminal");
     }
