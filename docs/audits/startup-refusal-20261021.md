@@ -19,3 +19,14 @@ Actual normal-QEMU success and CPU production-handler refusal tests are separate
 The original9f failure and one-runb639 marker diagnostic remain retained. The diagnostic printed only before-encounter before stack overflow, so neither stale-Show assertion had been reached. One boxed fixture context with borrowed fields preserves the original sequential presentation, old-Show refusal, owner change, second refusal and exact projection equality checks. Actual compiled caller reservation is43592B versus60696B in the diagnostic; helper reservations remain unchanged, and Box still leaves stack temporaries. No product/stack/grant/timeout change was made.
 
 Clean45e36bd43562c51ceb620c9fc7775d9e65cf1a8a passes the exact control first and all25other named controls, strict all-target ConduitOS Clippy and workspacefmt. The [corrected packet](evidence/startup-refusal-20261021/corrected-45e36/README.md) preserves positive/negative raw logs, source/commands/default-stack boundary and measured prologues. Prior9f freestanding success is not relabelled; this repair changes only test storage. Exact final-source reviewed CI/acceptance remain pending, and CPU evidence is not represented as nativeQEMU failure injection.
+
+## Fresh combined-dev controls
+
+Clean `e422ea7323a4804a5315df4e4d1f6c18fbf9a2c9` includes reviewed dev
+`f3e582ce98ede25394a392de4ed06e0b6b086133`. All 26 focused controls pass,
+including the corrected exact replaced-Show/stale-owner test with default
+thread stack; strict all-target hosted Clippy and workspace formatting pass.
+[Exact Source, commands, original logs and count/hash receipt](evidence/startup-refusal-20261021/fresh-e422/README.md).
+This is hosted evidence; native compilation and all earlier negatives retain
+their original Source identities. Current Candidate and delivery gates remain
+pending; no installed guest fault-injection result is asserted.
