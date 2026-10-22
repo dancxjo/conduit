@@ -60,6 +60,8 @@ pub enum CheckSuite {
     CanonicalExport,
     /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
     ModelInference,
+    /// Prove an explicit installed CPU profile has finite native backing and fail-closed pressure.
+    ModelNativeBacking,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
     AngleReference,
     /// Prove first-class physical values, derived quantities and installed Plan/Play.

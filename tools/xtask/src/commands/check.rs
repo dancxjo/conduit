@@ -18,6 +18,8 @@ mod expression_baseline;
 mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
+#[path = "../suites/model_native_backing.rs"]
+mod model_native_backing;
 #[path = "../suites/parser_scorer.rs"]
 mod parser_scorer;
 #[path = "../suites/physical_values.rs"]
@@ -103,6 +105,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::CanonicalExport => run_suite(canonical_export::STEPS, &root, opts),
         CheckSuite::CategoricalRuntime => run_suite(categorical_runtime::STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
+        CheckSuite::ModelNativeBacking => run_suite(model_native_backing::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::AsrCommonLanguage => run_suite(asr_common_language::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
