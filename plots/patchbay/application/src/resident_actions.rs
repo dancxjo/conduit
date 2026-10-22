@@ -52,13 +52,41 @@ impl PatchbayApplicationPort {
         if let Some(index) = self.selected_plot {
             // Reading focus is Mask-local. Editing therefore names an explicit
             // semantic subject instead of depending on a renderer's cursor.
-            let argument = FaceActionArgument::text(
+            let mut argument = FaceActionArgument::text(
                 "subject".into(),
-                "Exact subject identity".into(),
+                "Subject to edit".into(),
                 1,
                 conduit_face::MAX_FACE_ID_BYTES as u32,
             )
             .map_err(|_| PatchbayFaceProjectionError::InvalidActionContract)?;
+            // These are already the only subjects this owner can edit. Publish
+            // their finite membership for Masks which can realize a chooser.
+            // Larger contracts retain the typed entry path and owner check.
+            let mut members: Vec<Vec<u8>> = self.plots[index]
+                .graph
+                .subject_identities()
+                .map(|identity| identity.as_bytes().to_vec())
+                .collect();
+            members.sort();
+            members.dedup();
+            let mut constraints = argument.contract.constraints.clone();
+            constraints.push(conduit_core::ValueConstraint::CanonicalMembership {
+                members,
+                negated: false,
+            });
+            match conduit_core::CheckedValueContract::new(
+                argument.contract.value_kind.clone(),
+                argument.contract.maximum_bytes,
+                constraints,
+            ) {
+                Ok(contract) => argument.contract = contract,
+                Err(
+                    conduit_core::ConstraintDefinitionError::EmptyMembership
+                    | conduit_core::ConstraintDefinitionError::TooManyMembershipValues
+                    | conduit_core::ConstraintDefinitionError::MembershipBytesExceeded,
+                ) => {}
+                Err(_) => return Err(PatchbayFaceProjectionError::InvalidActionContract),
+            }
             fragment.actions.push(FaceAction {
                 identity: EDIT_CURRENT_ACTION_ID.into(),
                 intent: "patchbay/edit-subject@1".into(),

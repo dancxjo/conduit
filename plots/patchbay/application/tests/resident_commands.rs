@@ -169,15 +169,25 @@ fn unknown_subject_and_forged_action_contract_refuse_without_mutation() {
     let current = face(&port, &body, &basis);
     let show = mask_fixture::available_mask_show(&current);
     let before = port.observe_fragment(basis.clone(), &body).unwrap();
-    let unknown = interaction(
-        &current,
-        &show,
-        EDIT_CURRENT_ACTION_ID,
-        Some("not/a/subject"),
-    );
+    let action = current
+        .actions
+        .iter()
+        .find(|action| action.identity == EDIT_CURRENT_ACTION_ID)
+        .unwrap();
     assert_eq!(
-        port.admit_face_command(&body, basis.clone(), &current, &show, &unknown),
-        Err(PatchbayCommandRefusal::UnknownSubject)
+        FaceInteraction::new(
+            &current,
+            &show,
+            &action.identity,
+            &action.target,
+            vec![FaceInteractionArgument {
+                name: "subject".into(),
+                value_kind: action.arguments[0].contract.value_kind.as_str().into(),
+                value: b"not/a/subject".to_vec()
+            }],
+            1
+        ),
+        Err(FaceInteractionRefusal::ViolatedConstraint)
     );
     let mut actions = current.actions.clone();
     actions
