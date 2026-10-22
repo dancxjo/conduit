@@ -1,0 +1,12 @@
+{
+  "source_commit": "47e361d7c11105b40dc8e70aae4a0ec9a77d6fa7",
+  "status": "owner-cancelled before QEMU: wrong artifact role for intended normal-product proof",
+  "runtime_failure": false,
+  "stopped_pids": [
+    55376,
+    54017,
+    52901,
+    52890
+  ],
+  "boundary": "Only owned local appliance preflight cancelled by owner instruction; no CI cancellation or unchanged retry."
+}

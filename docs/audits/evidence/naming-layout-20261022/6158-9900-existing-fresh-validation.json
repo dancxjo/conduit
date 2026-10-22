@@ -1,0 +1,111 @@
+{
+  "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-layout-acceptance-tests",
+  "source_clean_before": true,
+  "steps": [
+    {
+      "name": "field-clusters",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::field_cluster_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 57.85993558698101,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-9900-existing-field-clusters.log",
+      "bytes": 1800,
+      "sha256": "77e473679eff01a09229480db9edc619e24627d21a26acb5921bcd6dac98b93b",
+      "expected_passed_tests": 6,
+      "actual_passed_tests": 6,
+      "count_verified": true
+    },
+    {
+      "name": "actual-creche",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::panels::tests::creche::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.7412682509748265,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-9900-existing-actual-creche.log",
+      "bytes": 4165,
+      "sha256": "06ed528af6de8b93b6f55a771f92f516f184590d570f51e597916f0cca12bb6d",
+      "expected_passed_tests": 4,
+      "actual_passed_tests": 4,
+      "count_verified": true
+    },
+    {
+      "name": "creche-navigation",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::creche_navigation_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 4.179344326024875,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-9900-existing-creche-navigation.log",
+      "bytes": 967,
+      "sha256": "6a5d16c0c07c9d8b5137fb816e886270f99348c649f6d71eccff78d2cd5096da",
+      "expected_passed_tests": 5,
+      "actual_passed_tests": 5,
+      "count_verified": true
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "seconds": 202.6793709420017,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-9900-existing-strict-clippy.log",
+      "bytes": 15779,
+      "sha256": "9fb0c6ddec873fd5e9ff0f5a5a3855ed0d33f333a58b4c5f1354b5521073676b"
+    }
+  ],
+  "scope": "hosted checks only; no QEMU, CI or acceptance claim",
+  "source_clean_after": true,
+  "source_head_after": "9900ecde5bc38df782caf8e321267295b4ec642a",
+  "status": "failed"
+}

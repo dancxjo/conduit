@@ -1,0 +1,1083 @@
+{
+  "schema": "documentary-original-custody@1",
+  "source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "original_packets_unchanged": true,
+  "files": [
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/build.json",
+      "original_bytes": 319,
+      "original_sha256": "3ae2086792e256cf929bacc5d5cf32b8bb5003f30966e73f2c349826f690020b",
+      "stored": "wide/build.json",
+      "stored_bytes": 319,
+      "stored_sha256": "3ae2086792e256cf929bacc5d5cf32b8bb5003f30966e73f2c349826f690020b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/context.json",
+      "original_bytes": 528,
+      "original_sha256": "2b9c46e1fe939eadcae2e013d0bd16f1ce368b675fd38c81b54715eec45dace2",
+      "stored": "wide/context.json",
+      "stored_bytes": 528,
+      "stored_sha256": "2b9c46e1fe939eadcae2e013d0bd16f1ce368b675fd38c81b54715eec45dace2",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/creche-controls-proof.json",
+      "original_bytes": 289189,
+      "original_sha256": "6c89b3f9814c6c7f46fde8981c560876e276adbe469e63d1e157187b19e2dec2",
+      "stored": "wide/creche-controls-proof.json",
+      "stored_bytes": 289189,
+      "stored_sha256": "6c89b3f9814c6c7f46fde8981c560876e276adbe469e63d1e157187b19e2dec2",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/image.json",
+      "original_bytes": 335,
+      "original_sha256": "7d7f69e3270f0fd6e6fac5b71dc4128a00e099b3c16d527f6467670fca46ec53",
+      "stored": "wide/image.json",
+      "stored_bytes": 335,
+      "stored_sha256": "7d7f69e3270f0fd6e6fac5b71dc4128a00e099b3c16d527f6467670fca46ec53",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-details-1.png",
+      "original_bytes": 180428,
+      "original_sha256": "9c40e4c5310a9ac0e28a14687d9ef567c8ec06c296fbde8abf921e15cb57bed7",
+      "stored": "wide/journey-frames/creche-controls-details-1.png",
+      "stored_bytes": 180428,
+      "stored_sha256": "9c40e4c5310a9ac0e28a14687d9ef567c8ec06c296fbde8abf921e15cb57bed7",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-details-4.png",
+      "original_bytes": 266432,
+      "original_sha256": "ca542e4ab30f7b374ca3926c018f1f6ef2d4b5c55ec665b5d03889ae16040da7",
+      "stored": "wide/journey-frames/creche-controls-details-4.png",
+      "stored_bytes": 266432,
+      "stored_sha256": "ca542e4ab30f7b374ca3926c018f1f6ef2d4b5c55ec665b5d03889ae16040da7",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-details-8.png",
+      "original_bytes": 235256,
+      "original_sha256": "02a98371ab2c5129b0f12930841ee783b4d5edf64f961397b16d2289ad6af497",
+      "stored": "wide/journey-frames/creche-controls-details-8.png",
+      "stored_bytes": 235256,
+      "stored_sha256": "02a98371ab2c5129b0f12930841ee783b4d5edf64f961397b16d2289ad6af497",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-primary-1.png",
+      "original_bytes": 169471,
+      "original_sha256": "e17dd2be8ad0cb22df195d8e478b2fcc8615231932775077e93e4da3fee280e2",
+      "stored": "wide/journey-frames/creche-controls-primary-1.png",
+      "stored_bytes": 169471,
+      "stored_sha256": "e17dd2be8ad0cb22df195d8e478b2fcc8615231932775077e93e4da3fee280e2",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-primary-2.png",
+      "original_bytes": 97563,
+      "original_sha256": "84a30d1a9273989134a715e47d7699b4a9e780a3a549a8b41e4eaf63a4c6e774",
+      "stored": "wide/journey-frames/creche-controls-primary-2.png",
+      "stored_bytes": 97563,
+      "stored_sha256": "84a30d1a9273989134a715e47d7699b4a9e780a3a549a8b41e4eaf63a4c6e774",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-probe-name.png",
+      "original_bytes": 169077,
+      "original_sha256": "88800c511cb64878f06541c3e6262c393b4da56b4f643536a24f0fa2939942d9",
+      "stored": "wide/journey-frames/creche-controls-probe-name.png",
+      "stored_bytes": 169077,
+      "stored_sha256": "88800c511cb64878f06541c3e6262c393b4da56b4f643536a24f0fa2939942d9",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-controls-ready.png",
+      "original_bytes": 169827,
+      "original_sha256": "36d86e33815a88fec2018fdc6d36d126631eb2f3d5e372b58cb0d1ec1f4b541d",
+      "stored": "wide/journey-frames/creche-controls-ready.png",
+      "stored_bytes": 169827,
+      "stored_sha256": "36d86e33815a88fec2018fdc6d36d126631eb2f3d5e372b58cb0d1ec1f4b541d",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-naming-exact-name-restored.png",
+      "original_bytes": 169092,
+      "original_sha256": "1004d54a602a422b6dff27182a16425516b29b9fdb1ce61de965e0a7eafdc62a",
+      "stored": "wide/journey-frames/creche-naming-exact-name-restored.png",
+      "stored_bytes": 169092,
+      "stored_sha256": "1004d54a602a422b6dff27182a16425516b29b9fdb1ce61de965e0a7eafdc62a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-naming-pointer-focused.png",
+      "original_bytes": 168361,
+      "original_sha256": "7bab7da701dbfb35b4795fa33f7266be88301815c23e98193fca8d785f1b5caf",
+      "stored": "wide/journey-frames/creche-naming-pointer-focused.png",
+      "stored_bytes": 168361,
+      "stored_sha256": "7bab7da701dbfb35b4795fa33f7266be88301815c23e98193fca8d785f1b5caf",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-naming-tradition-restored.png",
+      "original_bytes": 170256,
+      "original_sha256": "70258a56f7a24bafbae7923e21208a3b34d98889599b0def8074b100696bf268",
+      "stored": "wide/journey-frames/creche-naming-tradition-restored.png",
+      "stored_bytes": 170256,
+      "stored_sha256": "70258a56f7a24bafbae7923e21208a3b34d98889599b0def8074b100696bf268",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/creche-naming-welsh.png",
+      "original_bytes": 168331,
+      "original_sha256": "5a0f3dd14ee0945586cef7859ba7e02b1257082f5ab2071a25e178fc0d2d70c6",
+      "stored": "wide/journey-frames/creche-naming-welsh.png",
+      "stored_bytes": 168331,
+      "stored_sha256": "5a0f3dd14ee0945586cef7859ba7e02b1257082f5ab2071a25e178fc0d2d70c6",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/front-door-ready.png",
+      "original_bytes": 49977,
+      "original_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "stored": "wide/journey-frames/front-door-ready.png",
+      "stored_bytes": 49977,
+      "stored_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-frames/manifest.json",
+      "original_bytes": 194690,
+      "original_sha256": "014d3bbc69dbd4003d7945e2b6d6cd0faadf147eb5a31d2fdbc663817c4f9564",
+      "stored": "wide/journey-frames/manifest.json",
+      "stored_bytes": 194690,
+      "stored_sha256": "014d3bbc69dbd4003d7945e2b6d6cd0faadf147eb5a31d2fdbc663817c4f9564",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-qemu-stderr.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "wide/journey-qemu-stderr.log.gz",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-qmp.log",
+      "original_bytes": 132321,
+      "original_sha256": "cbd399d05ae01e46e2100dde3cbb72266a9051b545bfe60db6f46e32c3810331",
+      "stored": "wide/journey-qmp.log.gz",
+      "stored_bytes": 7518,
+      "stored_sha256": "6265e301f3231b2914367d2214a3cf98ec9bb02143ea433a753315d4b1c8cdbd",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/journey-serial.log",
+      "original_bytes": 379465,
+      "original_sha256": "b47eecf9a2b612cf4354f9933d69b81a7609490e9abcbd8651a481333c138764",
+      "stored": "wide/journey-serial.log.gz",
+      "stored_bytes": 34809,
+      "stored_sha256": "014e5e0bfedee84fe747ee188acfc2d0dea062000e1c602d5d278f20272d8e26",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/aarch64-virt/build-manifest.json",
+      "original_bytes": 3785,
+      "original_sha256": "bfe5d5df4a54d602f9868f5b3f6581818c0ca69eb11d176fe5ef9df06674258b",
+      "stored": "wide/live-images/aarch64-virt/build-manifest.json",
+      "stored_bytes": 3785,
+      "stored_sha256": "bfe5d5df4a54d602f9868f5b3f6581818c0ca69eb11d176fe5ef9df06674258b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/aarch64-virt/resolved-image.json",
+      "original_bytes": 3740,
+      "original_sha256": "02b7bc7f733426a893a4e5bf907b3c3278591dccf9d0579d4abb0cfb021b8afe",
+      "stored": "wide/live-images/aarch64-virt/resolved-image.json",
+      "stored_bytes": 3740,
+      "stored_sha256": "02b7bc7f733426a893a4e5bf907b3c3278591dccf9d0579d4abb0cfb021b8afe",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/ia32-pc/build-manifest.json",
+      "original_bytes": 3766,
+      "original_sha256": "4fc1c1bad2d8708294309c59f3f0f2be2fa3563bc4c838573b600968fe4d3c51",
+      "stored": "wide/live-images/ia32-pc/build-manifest.json",
+      "stored_bytes": 3766,
+      "stored_sha256": "4fc1c1bad2d8708294309c59f3f0f2be2fa3563bc4c838573b600968fe4d3c51",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/ia32-pc/resolved-image.json",
+      "original_bytes": 3734,
+      "original_sha256": "072105fe73bc174453ed7aaa404847eec17246a8a0217976a47212ad95136679",
+      "stored": "wide/live-images/ia32-pc/resolved-image.json",
+      "stored_bytes": 3734,
+      "stored_sha256": "072105fe73bc174453ed7aaa404847eec17246a8a0217976a47212ad95136679",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/loongarch64-virt/build-manifest.json",
+      "original_bytes": 3795,
+      "original_sha256": "ce4a71d8d70ed80fde6bee09df0c21747985cbd4196c4148a4a7c0b542533626",
+      "stored": "wide/live-images/loongarch64-virt/build-manifest.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "ce4a71d8d70ed80fde6bee09df0c21747985cbd4196c4148a4a7c0b542533626",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/loongarch64-virt/resolved-image.json",
+      "original_bytes": 3776,
+      "original_sha256": "71046cee1f716cd5f791036762396acbabea2ae4ed1e03d1292c22dd57267790",
+      "stored": "wide/live-images/loongarch64-virt/resolved-image.json",
+      "stored_bytes": 3776,
+      "stored_sha256": "71046cee1f716cd5f791036762396acbabea2ae4ed1e03d1292c22dd57267790",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/riscv64-virt/build-manifest.json",
+      "original_bytes": 3794,
+      "original_sha256": "ccb8b269476443c0a8b8faa72f14436453466f261a9279566f2593313933e65a",
+      "stored": "wide/live-images/riscv64-virt/build-manifest.json",
+      "stored_bytes": 3794,
+      "stored_sha256": "ccb8b269476443c0a8b8faa72f14436453466f261a9279566f2593313933e65a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/riscv64-virt/resolved-image.json",
+      "original_bytes": 3795,
+      "original_sha256": "3e175683de543b21982b69c3057d81ea7820b3e4d1a9eabd7856b68284aef875",
+      "stored": "wide/live-images/riscv64-virt/resolved-image.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "3e175683de543b21982b69c3057d81ea7820b3e4d1a9eabd7856b68284aef875",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/x86_64-pc/build-manifest.json",
+      "original_bytes": 4269,
+      "original_sha256": "65a39dcb4f3163a63d43f7b0573c44c0fab25ef18a0ad44cadcd3072abddd31a",
+      "stored": "wide/live-images/x86_64-pc/build-manifest.json",
+      "stored_bytes": 4269,
+      "stored_sha256": "65a39dcb4f3163a63d43f7b0573c44c0fab25ef18a0ad44cadcd3072abddd31a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/x86_64-pc/resolved-image.json",
+      "original_bytes": 4453,
+      "original_sha256": "0ec49eb7620427f92b3ae757e1aaf2201ad2c4963f03d4f176d5ba8afbc62496",
+      "stored": "wide/live-images/x86_64-pc/resolved-image.json",
+      "stored_bytes": 4453,
+      "stored_sha256": "0ec49eb7620427f92b3ae757e1aaf2201ad2c4963f03d4f176d5ba8afbc62496",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/make-record.rs",
+      "original_bytes": 684,
+      "original_sha256": "3d2f78f3bba3c31abca4cd652cf9a8c24067dc8dfb0a8cec995f994520d6354b",
+      "stored": "wide/make-record.rs",
+      "stored_bytes": 684,
+      "stored_sha256": "3d2f78f3bba3c31abca4cd652cf9a8c24067dc8dfb0a8cec995f994520d6354b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.json",
+      "original_bytes": 64012,
+      "original_sha256": "5049cc614817b023cf282dcaad1fcaccfd06789d44d5ec00590c73b4afce68a5",
+      "stored": "wide/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.json",
+      "stored_bytes": 64012,
+      "stored_sha256": "5049cc614817b023cf282dcaad1fcaccfd06789d44d5ec00590c73b4afce68a5",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/seal.json",
+      "original_bytes": 95251,
+      "original_sha256": "7db1c9a4509145e85f8f98c252511fc606fa3325a886557dae8f3c53219b0cd8",
+      "stored": "wide/seal.json",
+      "stored_bytes": 95251,
+      "stored_sha256": "7db1c9a4509145e85f8f98c252511fc606fa3325a886557dae8f3c53219b0cd8",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/supported-command.log",
+      "original_bytes": 40744,
+      "original_sha256": "4880b7db8619ec1eda40ed6fe117a9e028d93a4dd5568b1e01e231b78f97ad71",
+      "stored": "wide/supported-command.log.gz",
+      "stored_bytes": 5824,
+      "stored_sha256": "7150bfa12e9764fc87932a216a876caf671c377b4b0a6b3cab23fbe14cb55aa6",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-wide-verification.json",
+      "original_bytes": 1731,
+      "original_sha256": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+      "stored": "verification/6158-8c3ecb0d7-controls-wide-verification.json",
+      "stored_bytes": 1731,
+      "stored_sha256": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-wide-verifier-first.log",
+      "original_bytes": 1731,
+      "original_sha256": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+      "stored": "verification/6158-8c3ecb0d7-controls-wide-verifier-first.log.gz",
+      "stored_bytes": 807,
+      "stored_sha256": "5728cefbc09878ecd01c1edb3218f3b480c0ec302c541bcd6cf13b1b00aae37a",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/build.json",
+      "original_bytes": 319,
+      "original_sha256": "3ae2086792e256cf929bacc5d5cf32b8bb5003f30966e73f2c349826f690020b",
+      "stored": "constrained/build.json",
+      "stored_bytes": 319,
+      "stored_sha256": "3ae2086792e256cf929bacc5d5cf32b8bb5003f30966e73f2c349826f690020b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/context.json",
+      "original_bytes": 526,
+      "original_sha256": "44d3edafbb1903d54b17588c84b304cf94edeb8b9d545b5a2f1b30d188a71ed8",
+      "stored": "constrained/context.json",
+      "stored_bytes": 526,
+      "stored_sha256": "44d3edafbb1903d54b17588c84b304cf94edeb8b9d545b5a2f1b30d188a71ed8",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/creche-controls-proof.json",
+      "original_bytes": 312011,
+      "original_sha256": "2f920843cec77e51e15a97ee0965e922940b838f3a45f7dc06a9c6f3181433e4",
+      "stored": "constrained/creche-controls-proof.json",
+      "stored_bytes": 312011,
+      "stored_sha256": "2f920843cec77e51e15a97ee0965e922940b838f3a45f7dc06a9c6f3181433e4",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/image.json",
+      "original_bytes": 335,
+      "original_sha256": "7d7f69e3270f0fd6e6fac5b71dc4128a00e099b3c16d527f6467670fca46ec53",
+      "stored": "constrained/image.json",
+      "stored_bytes": 335,
+      "stored_sha256": "7d7f69e3270f0fd6e6fac5b71dc4128a00e099b3c16d527f6467670fca46ec53",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-details-1.png",
+      "original_bytes": 85848,
+      "original_sha256": "4179c3a893f4dcd77724d4c14767c1171633181719a7984cb8c83edd9e024ccd",
+      "stored": "constrained/journey-frames/creche-controls-details-1.png",
+      "stored_bytes": 85848,
+      "stored_sha256": "4179c3a893f4dcd77724d4c14767c1171633181719a7984cb8c83edd9e024ccd",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-details-11.png",
+      "original_bytes": 70629,
+      "original_sha256": "d24295d367bb45034f48208b6f6c277ca2325d8bada347d0660c189a4a357cd8",
+      "stored": "constrained/journey-frames/creche-controls-details-11.png",
+      "stored_bytes": 70629,
+      "stored_sha256": "d24295d367bb45034f48208b6f6c277ca2325d8bada347d0660c189a4a357cd8",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-details-21.png",
+      "original_bytes": 170203,
+      "original_sha256": "a1ce5048effe8398ba1f42bff5667b3046b2d5b06f7690e1f4de21709ff414c5",
+      "stored": "constrained/journey-frames/creche-controls-details-21.png",
+      "stored_bytes": 170203,
+      "stored_sha256": "a1ce5048effe8398ba1f42bff5667b3046b2d5b06f7690e1f4de21709ff414c5",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-primary-1.png",
+      "original_bytes": 78247,
+      "original_sha256": "df2a1b56f9bb9b96733541aaf0e662a4bb5b49a0000d1d1dfa77839e03399854",
+      "stored": "constrained/journey-frames/creche-controls-primary-1.png",
+      "stored_bytes": 78247,
+      "stored_sha256": "df2a1b56f9bb9b96733541aaf0e662a4bb5b49a0000d1d1dfa77839e03399854",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-primary-2.png",
+      "original_bytes": 71371,
+      "original_sha256": "0e86c9d005841b19854fcae124985a0e399ce5b7c40a3e8be11de50219af1fb9",
+      "stored": "constrained/journey-frames/creche-controls-primary-2.png",
+      "stored_bytes": 71371,
+      "stored_sha256": "0e86c9d005841b19854fcae124985a0e399ce5b7c40a3e8be11de50219af1fb9",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-primary-3.png",
+      "original_bytes": 93887,
+      "original_sha256": "85a6b96e1a0e39c61c132bce3abda0ac3aedd2c9efe8536828348bc5638ed31c",
+      "stored": "constrained/journey-frames/creche-controls-primary-3.png",
+      "stored_bytes": 93887,
+      "stored_sha256": "85a6b96e1a0e39c61c132bce3abda0ac3aedd2c9efe8536828348bc5638ed31c",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-probe-name.png",
+      "original_bytes": 71369,
+      "original_sha256": "2c4e8f04cd3dd5a2b46ea0f46225d2954e157cbc1d2cbb4fd945c82bec5d733a",
+      "stored": "constrained/journey-frames/creche-controls-probe-name.png",
+      "stored_bytes": 71369,
+      "stored_sha256": "2c4e8f04cd3dd5a2b46ea0f46225d2954e157cbc1d2cbb4fd945c82bec5d733a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-controls-ready.png",
+      "original_bytes": 71773,
+      "original_sha256": "460ee629dc8108f010f6f49a3f6b7bd16b197049b2e240d208141125a89eeb01",
+      "stored": "constrained/journey-frames/creche-controls-ready.png",
+      "stored_bytes": 71773,
+      "stored_sha256": "460ee629dc8108f010f6f49a3f6b7bd16b197049b2e240d208141125a89eeb01",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-naming-exact-name-restored.png",
+      "original_bytes": 71372,
+      "original_sha256": "3d80da6f5cc91f9e2965a7b619121666f406d16b20cc337713f943b952765301",
+      "stored": "constrained/journey-frames/creche-naming-exact-name-restored.png",
+      "stored_bytes": 71372,
+      "stored_sha256": "3d80da6f5cc91f9e2965a7b619121666f406d16b20cc337713f943b952765301",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-naming-pointer-focused.png",
+      "original_bytes": 93925,
+      "original_sha256": "fd361b666c6e60bb45c79a112e23bb5f14135899a7486bbe4d49142b641fa815",
+      "stored": "constrained/journey-frames/creche-naming-pointer-focused.png",
+      "stored_bytes": 93925,
+      "stored_sha256": "fd361b666c6e60bb45c79a112e23bb5f14135899a7486bbe4d49142b641fa815",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-naming-tradition-restored.png",
+      "original_bytes": 94301,
+      "original_sha256": "57e20742ae6deff417915959d8277ae569e0803325d898508184b43fd4c9cf42",
+      "stored": "constrained/journey-frames/creche-naming-tradition-restored.png",
+      "stored_bytes": 94301,
+      "stored_sha256": "57e20742ae6deff417915959d8277ae569e0803325d898508184b43fd4c9cf42",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/creche-naming-welsh.png",
+      "original_bytes": 93885,
+      "original_sha256": "24311689f4a706771cb85f5eda94120778cafa3bfbe8951034194bb7566d845d",
+      "stored": "constrained/journey-frames/creche-naming-welsh.png",
+      "stored_bytes": 93885,
+      "stored_sha256": "24311689f4a706771cb85f5eda94120778cafa3bfbe8951034194bb7566d845d",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/front-door-ready.png",
+      "original_bytes": 31831,
+      "original_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+      "stored": "constrained/journey-frames/front-door-ready.png",
+      "stored_bytes": 31831,
+      "stored_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-frames/manifest.json",
+      "original_bytes": 219447,
+      "original_sha256": "a7c2ebfd1e5a88b5587938ad54fcabe0ed19780e39e6be4025865671175a2ca4",
+      "stored": "constrained/journey-frames/manifest.json",
+      "stored_bytes": 219447,
+      "stored_sha256": "a7c2ebfd1e5a88b5587938ad54fcabe0ed19780e39e6be4025865671175a2ca4",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-qemu-stderr.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "constrained/journey-qemu-stderr.log.gz",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-qmp.log",
+      "original_bytes": 159063,
+      "original_sha256": "bd0f1e294905c356168598005e35e9f7f8626af4ca7514db5fc5ea5d8a05c8c6",
+      "stored": "constrained/journey-qmp.log.gz",
+      "stored_bytes": 8830,
+      "stored_sha256": "7a9d3304b2fcd0c7ea28bb4405273df5ac8925c69d13eb4fea3e347dd4b9dca6",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/journey-serial.log",
+      "original_bytes": 411186,
+      "original_sha256": "2268884a7bf985e175b8c76c58f5b849dea31e8032623a42435f67beda51bf21",
+      "stored": "constrained/journey-serial.log.gz",
+      "stored_bytes": 36376,
+      "stored_sha256": "058090f21590d4ee3e7ef70ee600772d56232cddca08731ef90d59671ecfeabf",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/aarch64-virt/build-manifest.json",
+      "original_bytes": 3785,
+      "original_sha256": "bfe5d5df4a54d602f9868f5b3f6581818c0ca69eb11d176fe5ef9df06674258b",
+      "stored": "constrained/live-images/aarch64-virt/build-manifest.json",
+      "stored_bytes": 3785,
+      "stored_sha256": "bfe5d5df4a54d602f9868f5b3f6581818c0ca69eb11d176fe5ef9df06674258b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/aarch64-virt/resolved-image.json",
+      "original_bytes": 3740,
+      "original_sha256": "02b7bc7f733426a893a4e5bf907b3c3278591dccf9d0579d4abb0cfb021b8afe",
+      "stored": "constrained/live-images/aarch64-virt/resolved-image.json",
+      "stored_bytes": 3740,
+      "stored_sha256": "02b7bc7f733426a893a4e5bf907b3c3278591dccf9d0579d4abb0cfb021b8afe",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/ia32-pc/build-manifest.json",
+      "original_bytes": 3766,
+      "original_sha256": "4fc1c1bad2d8708294309c59f3f0f2be2fa3563bc4c838573b600968fe4d3c51",
+      "stored": "constrained/live-images/ia32-pc/build-manifest.json",
+      "stored_bytes": 3766,
+      "stored_sha256": "4fc1c1bad2d8708294309c59f3f0f2be2fa3563bc4c838573b600968fe4d3c51",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/ia32-pc/resolved-image.json",
+      "original_bytes": 3734,
+      "original_sha256": "072105fe73bc174453ed7aaa404847eec17246a8a0217976a47212ad95136679",
+      "stored": "constrained/live-images/ia32-pc/resolved-image.json",
+      "stored_bytes": 3734,
+      "stored_sha256": "072105fe73bc174453ed7aaa404847eec17246a8a0217976a47212ad95136679",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/loongarch64-virt/build-manifest.json",
+      "original_bytes": 3795,
+      "original_sha256": "ce4a71d8d70ed80fde6bee09df0c21747985cbd4196c4148a4a7c0b542533626",
+      "stored": "constrained/live-images/loongarch64-virt/build-manifest.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "ce4a71d8d70ed80fde6bee09df0c21747985cbd4196c4148a4a7c0b542533626",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/loongarch64-virt/resolved-image.json",
+      "original_bytes": 3776,
+      "original_sha256": "71046cee1f716cd5f791036762396acbabea2ae4ed1e03d1292c22dd57267790",
+      "stored": "constrained/live-images/loongarch64-virt/resolved-image.json",
+      "stored_bytes": 3776,
+      "stored_sha256": "71046cee1f716cd5f791036762396acbabea2ae4ed1e03d1292c22dd57267790",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/riscv64-virt/build-manifest.json",
+      "original_bytes": 3794,
+      "original_sha256": "ccb8b269476443c0a8b8faa72f14436453466f261a9279566f2593313933e65a",
+      "stored": "constrained/live-images/riscv64-virt/build-manifest.json",
+      "stored_bytes": 3794,
+      "stored_sha256": "ccb8b269476443c0a8b8faa72f14436453466f261a9279566f2593313933e65a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/riscv64-virt/resolved-image.json",
+      "original_bytes": 3795,
+      "original_sha256": "3e175683de543b21982b69c3057d81ea7820b3e4d1a9eabd7856b68284aef875",
+      "stored": "constrained/live-images/riscv64-virt/resolved-image.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "3e175683de543b21982b69c3057d81ea7820b3e4d1a9eabd7856b68284aef875",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/x86_64-pc/build-manifest.json",
+      "original_bytes": 4269,
+      "original_sha256": "65a39dcb4f3163a63d43f7b0573c44c0fab25ef18a0ad44cadcd3072abddd31a",
+      "stored": "constrained/live-images/x86_64-pc/build-manifest.json",
+      "stored_bytes": 4269,
+      "stored_sha256": "65a39dcb4f3163a63d43f7b0573c44c0fab25ef18a0ad44cadcd3072abddd31a",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/x86_64-pc/resolved-image.json",
+      "original_bytes": 4453,
+      "original_sha256": "0ec49eb7620427f92b3ae757e1aaf2201ad2c4963f03d4f176d5ba8afbc62496",
+      "stored": "constrained/live-images/x86_64-pc/resolved-image.json",
+      "stored_bytes": 4453,
+      "stored_sha256": "0ec49eb7620427f92b3ae757e1aaf2201ad2c4963f03d4f176d5ba8afbc62496",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/make-record.rs",
+      "original_bytes": 684,
+      "original_sha256": "3d2f78f3bba3c31abca4cd652cf9a8c24067dc8dfb0a8cec995f994520d6354b",
+      "stored": "constrained/make-record.rs",
+      "stored_bytes": 684,
+      "stored_sha256": "3d2f78f3bba3c31abca4cd652cf9a8c24067dc8dfb0a8cec995f994520d6354b",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.json",
+      "original_bytes": 64012,
+      "original_sha256": "5049cc614817b023cf282dcaad1fcaccfd06789d44d5ec00590c73b4afce68a5",
+      "stored": "constrained/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.json",
+      "stored_bytes": 64012,
+      "stored_sha256": "5049cc614817b023cf282dcaad1fcaccfd06789d44d5ec00590c73b4afce68a5",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/seal.json",
+      "original_bytes": 110935,
+      "original_sha256": "c8a235b549737abfea9d00121f099da93907976a901abd9f13962dc7b3976712",
+      "stored": "constrained/seal.json",
+      "stored_bytes": 110935,
+      "stored_sha256": "c8a235b549737abfea9d00121f099da93907976a901abd9f13962dc7b3976712",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/supported-command.log",
+      "original_bytes": 21648,
+      "original_sha256": "20c2bbffa65aa728a5fa3775ace1414b3a9db1c739578bb97c7eef25a30a1d41",
+      "stored": "constrained/supported-command.log.gz",
+      "stored_bytes": 3705,
+      "stored_sha256": "eaa0b859ee433493d4fc6f232b10729be26910eacb967d383f19048be6ca3a88",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-constrained-verification.json",
+      "original_bytes": 1910,
+      "original_sha256": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+      "stored": "verification/6158-8c3ecb0d7-controls-constrained-verification.json",
+      "stored_bytes": 1910,
+      "stored_sha256": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-constrained-verifier-first.log",
+      "original_bytes": 1910,
+      "original_sha256": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+      "stored": "verification/6158-8c3ecb0d7-controls-constrained-verifier-first.log.gz",
+      "stored_bytes": 847,
+      "stored_sha256": "2ec82d976b4d1816ebf173ba3665202201b2da0e49b5b6af547b190307bded1a",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-actual-creche.log",
+      "original_bytes": 4165,
+      "original_sha256": "0b45b5d23bf9a236e1037ca794ed2536e9ade4df20a017ea9d6805ae42e6d13e",
+      "stored": "focused/6158-8c3ecb0d7-actual-creche.log.gz",
+      "stored_bytes": 1161,
+      "stored_sha256": "de6296e20a3103020ccde8d361c6f327b5f1bb6bd96df48bcf89b2ca92fb8ec5",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-artifacts.log",
+      "original_bytes": 3601,
+      "original_sha256": "23a8c61209b6baecc639bfe171a6b89a5df56876ae14acc770b27bcaad137404",
+      "stored": "focused/6158-8c3ecb0d7-artifacts.log.gz",
+      "stored_bytes": 785,
+      "stored_sha256": "8907c172e80ecf71dd08122ace2f0f2c0a03be4f9ba6688a751c3cae61a278b3",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-conduitos-clippy.log",
+      "original_bytes": 608,
+      "original_sha256": "372ab6362bb01dbfad8d99323ced8f42e1bae70a6e81ceff97f0ceb24d5f460d",
+      "stored": "focused/6158-8c3ecb0d7-conduitos-clippy.log.gz",
+      "stored_bytes": 264,
+      "stored_sha256": "f188da528d09ee638fb7ae5c6fd5324d6b37ee5c8598de61992930a014c998b4",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-controls.log",
+      "original_bytes": 4775,
+      "original_sha256": "7c4ec46b004e5dc380ddb633198bf050d62ce65f5b45b9acc781458fe1f7d562",
+      "stored": "focused/6158-8c3ecb0d7-controls.log.gz",
+      "stored_bytes": 1074,
+      "stored_sha256": "c5c853f499702b05c296f55b0da8562804fb7b69154698639b9401650c4ecc49",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-creche-navigation.log",
+      "original_bytes": 967,
+      "original_sha256": "81f57996f865ecf42d569ba87555798ed11d4e949f01ca028d78bb7f4d4b507e",
+      "stored": "focused/6158-8c3ecb0d7-creche-navigation.log.gz",
+      "stored_bytes": 494,
+      "stored_sha256": "1e91a3ac52d4debc9d0294054a55273fcd9ef7c9d04a381cba710067e84c3488",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-field-clusters.log",
+      "original_bytes": 1123,
+      "original_sha256": "6810452b1318102ba52734b656256eae6076e0c1a808f65a5fb61958e8237ec3",
+      "stored": "focused/6158-8c3ecb0d7-field-clusters.log.gz",
+      "stored_bytes": 541,
+      "stored_sha256": "accc96152a3ff086b6e4681390a58a9cf525d766a0afc0d7ac64dc58fcf5e7f3",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-fmt.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "focused/6158-8c3ecb0d7-fmt.log.gz",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-metadata.log",
+      "original_bytes": 3164,
+      "original_sha256": "fd48f4371bb946c554af504b59fbde043a587eafba13b510b7cd16e04310c249",
+      "stored": "focused/6158-8c3ecb0d7-metadata.log.gz",
+      "stored_bytes": 660,
+      "stored_sha256": "20242954868136b3aa76bb4d40b7af79ffe5a6d10ba95b562b6e09e45ee18c90",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-naming-acceptance.log",
+      "original_bytes": 165682,
+      "original_sha256": "97da32c280b977abc887f80955621fd07e71b2d81a039a06b52f419d565a4651",
+      "stored": "focused/6158-8c3ecb0d7-naming-acceptance.log.gz",
+      "stored_bytes": 13968,
+      "stored_sha256": "f60587bbffcad35a057e97a3515be637343b6af38713cdb652eba9ae39dfb6ce",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-pointer.log",
+      "original_bytes": 4476,
+      "original_sha256": "32d1304ab2642aa010df363079416af289676cf68ce655a348daee5648159253",
+      "stored": "focused/6158-8c3ecb0d7-pointer.log.gz",
+      "stored_bytes": 994,
+      "stored_sha256": "5393595d185f0233549c30c937fc1321af81f2ba48b2925acd8a42336d65fb3e",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-validation.json",
+      "original_bytes": 7198,
+      "original_sha256": "c5eec9c178c6aebbda5dbdf764c1e488574acd453c054b829739690fa3bfc08c",
+      "stored": "focused/6158-8c3ecb0d7-validation.json",
+      "stored_bytes": 7198,
+      "stored_sha256": "c5eec9c178c6aebbda5dbdf764c1e488574acd453c054b829739690fa3bfc08c",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-validation.py",
+      "original_bytes": 3100,
+      "original_sha256": "7653a36cc3b04b0777ce1938648585e556c6bee4d92b6b3aad5e6664cbe01248",
+      "stored": "focused/6158-8c3ecb0d7-validation.py",
+      "stored_bytes": 3100,
+      "stored_sha256": "7653a36cc3b04b0777ce1938648585e556c6bee4d92b6b3aad5e6664cbe01248",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-viewport.log",
+      "original_bytes": 3320,
+      "original_sha256": "9a753775e182aaaf35584c9aa09a675a3cf5f4384606e7dbb9a229c0406e4711",
+      "stored": "focused/6158-8c3ecb0d7-viewport.log.gz",
+      "stored_bytes": 699,
+      "stored_sha256": "557de649028700a2974b6b8bdc28f9c440b50e906bba8a5470e08c2f0d7a826e",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/6158-8c3ecb0d7-xtask-clippy.log",
+      "original_bytes": 460,
+      "original_sha256": "7249532d2a940b1f3959088ed119ff33621afb66bee9f17ee912319184bb27e1",
+      "stored": "focused/6158-8c3ecb0d7-xtask-clippy.log.gz",
+      "stored_bytes": 245,
+      "stored_sha256": "bd691a40e40adbcad5fa19da0e4175f815a97e95b8ac23399c2232d05b93ca5b",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-focused-preserved/seal.json",
+      "original_bytes": 2140,
+      "original_sha256": "bb8914f05a1bce776975e22eda208dc5bb28fdb3c61c4bb41827b57f796f7b36",
+      "stored": "focused/seal.json",
+      "stored_bytes": 2140,
+      "stored_sha256": "bb8914f05a1bce776975e22eda208dc5bb28fdb3c61c4bb41827b57f796f7b36",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-artifacts.log",
+      "original_bytes": 3705,
+      "original_sha256": "4e5482c4489228095a0810d68ece99da90a01830e90d09a3f60ec20fa63b9fac",
+      "stored": "first-lint-negative/6158-4b15b7e80-artifacts.log.gz",
+      "stored_bytes": 818,
+      "stored_sha256": "ca79af24c3b48494835d53ffbd2201c225f3767b4b2a6f79fab151e1b7146bdd",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-check-sequence.json",
+      "original_bytes": 1268,
+      "original_sha256": "b929da72df2574aa1545e87d560734d082f3caf5b125e61efbf87c5f01bed661",
+      "stored": "first-lint-negative/6158-4b15b7e80-check-sequence.json",
+      "stored_bytes": 1268,
+      "stored_sha256": "b929da72df2574aa1545e87d560734d082f3caf5b125e61efbf87c5f01bed661",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-clippy.log",
+      "original_bytes": 1434,
+      "original_sha256": "0ab533bac312740dac57c2510d231a7f42ad85339c33cbf54f77e4d3ea15c9c5",
+      "stored": "first-lint-negative/6158-4b15b7e80-clippy.log.gz",
+      "stored_bytes": 614,
+      "stored_sha256": "e4347853d32f9abe48bfc992c9c0dfcaf53bd8e8fbe05835d772ee7e271dee94",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-controls.log",
+      "original_bytes": 4829,
+      "original_sha256": "58e54c736fce0691e6a8ce53025ea61abd4b18722c49554af22006bee1c1c82f",
+      "stored": "first-lint-negative/6158-4b15b7e80-controls.log.gz",
+      "stored_bytes": 1109,
+      "stored_sha256": "cd0fd9d03648854da6c3d993ee21d32a5cac4d8921f498f4da63db78933443c9",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-metadata.log",
+      "original_bytes": 3268,
+      "original_sha256": "1b705959e18c540ba547af94cd1fa132cdad64750fcb037b659e827134d549a0",
+      "stored": "first-lint-negative/6158-4b15b7e80-metadata.log.gz",
+      "stored_bytes": 692,
+      "stored_sha256": "80c15560f10c8fed0618e789c130c51f5d8a087fc7bb65fb9f9a76ca0f9e7047",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-pointer.log",
+      "original_bytes": 4200,
+      "original_sha256": "f2f68a0594553317c119c9b2b3620592354249224de88979cb552153a86fc0a2",
+      "stored": "first-lint-negative/6158-4b15b7e80-pointer.log.gz",
+      "stored_bytes": 908,
+      "stored_sha256": "ffe421bc770ebec5e70d86f421a0be266ace1be43ad0727de0977c9f194a74d5",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/6158-4b15b7e80-viewport.log",
+      "original_bytes": 3424,
+      "original_sha256": "e46c4d06212308afd75c07dcb6b85932e3406941abfc2b2cedd9c0ec94f99bc3",
+      "stored": "first-lint-negative/6158-4b15b7e80-viewport.log.gz",
+      "stored_bytes": 732,
+      "stored_sha256": "ff027ee26b4eec7f3b9b10c7392c4800c4701ab4fa169f84d1afa01d506aaa66",
+      "encoding": "gzip"
+    },
+    {
+      "original": "work/6158-4b15b7e80-focused-negative-preserved/receipt.json",
+      "original_bytes": 1519,
+      "original_sha256": "7ab96c24f620728e1f48338977d7b3f0a83b511d50f17f758b02c8d114629b8e",
+      "stored": "first-lint-negative/receipt.json",
+      "stored_bytes": 1519,
+      "stored_sha256": "7ab96c24f620728e1f48338977d7b3f0a83b511d50f17f758b02c8d114629b8e",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-verify-selected-controls.py",
+      "original_bytes": 24206,
+      "original_sha256": "95c85a5c62c1e88147ec35424c1b0cd722cf4d0d9d9d194c279e9b9fbb581224",
+      "stored": "verification/6158-verify-selected-controls.py",
+      "stored_bytes": 24206,
+      "stored_sha256": "95c85a5c62c1e88147ec35424c1b0cd722cf4d0d9d9d194c279e9b9fbb581224",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-run-8c3-controls.py",
+      "original_bytes": 6159,
+      "original_sha256": "e468da4cc0553446910532eb33e2c60a23fac7ca767695866d9ac4251ecc2ccb",
+      "stored": "verification/6158-run-8c3-controls.py",
+      "stored_bytes": 6159,
+      "stored_sha256": "e468da4cc0553446910532eb33e2c60a23fac7ca767695866d9ac4251ecc2ccb",
+      "encoding": "original"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-two-controls-results.json",
+      "original_bytes": 2711,
+      "original_sha256": "ce568f9379084a107dbf5d5e2f28d81e6cfa417b20cb5b8eaa0c665ff19f8e36",
+      "stored": "verification/6158-8c3ecb0d7-two-controls-results.json",
+      "stored_bytes": 2711,
+      "stored_sha256": "ce568f9379084a107dbf5d5e2f28d81e6cfa417b20cb5b8eaa0c665ff19f8e36",
+      "encoding": "original"
+    },
+    {
+      "original": "outputs/6158-selected-controls-wide-verification.json",
+      "original_bytes": 1731,
+      "original_sha256": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+      "stored": "independent-root-review/6158-selected-controls-wide-verification.json",
+      "stored_bytes": 1731,
+      "stored_sha256": "7612634d009a861aa71199e47a0e30cd459b161af7546390828849134bf6a777",
+      "encoding": "original"
+    },
+    {
+      "original": "outputs/6158-selected-controls-constrained-verification.json",
+      "original_bytes": 1910,
+      "original_sha256": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+      "stored": "independent-root-review/6158-selected-controls-constrained-verification.json",
+      "stored_bytes": 1910,
+      "stored_sha256": "aab582b9b8619cc56b096fac2eec43917fb9385b6c02ef7b44949b9b3613452d",
+      "encoding": "original"
+    },
+    {
+      "original": "outputs/6158-combined-focused-checks.json",
+      "original_bytes": 319,
+      "original_sha256": "c2195e035256e6a7e4377bc0a96dd3038316db14b62ede99f0caf470f3059abf",
+      "stored": "independent-root-review/6158-combined-focused-checks.json",
+      "stored_bytes": 319,
+      "stored_sha256": "c2195e035256e6a7e4377bc0a96dd3038316db14b62ede99f0caf470f3059abf",
+      "encoding": "original"
+    }
+  ],
+  "omitted": [
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/conduitos",
+      "bytes": 77555296,
+      "sha256": "ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/conduitos.iso",
+      "bytes": 81827840,
+      "sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/aarch64-virt/conduitos-aarch64.iso",
+      "bytes": 11898880,
+      "sha256": "ce6071efe1ee6898a2e768e077a359d3c8afcf1d83fa284b08609ce7501dd89f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/aarch64-virt/conduitos-kernel.elf",
+      "bytes": 7668912,
+      "sha256": "728939489bd938b83f697ba5a6b9189f51d5131458bfb2a155d090fbe7800dc6",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/ia32-pc/conduitos-ia32.iso",
+      "bytes": 10164224,
+      "sha256": "b24083001dffe707ece0e6fc14a248f017e14006f8515a3c2423d928eee3c658",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/ia32-pc/conduitos-kernel.elf",
+      "bytes": 5879836,
+      "sha256": "b8875f5557f2aa11f8d4f210eff01ce2a83bf77dc51a6f68a96cc38df1b90ef5",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/loongarch64-virt/conduitos-kernel.elf",
+      "bytes": 6620256,
+      "sha256": "a1923aa6b83079ff1c8760c57c41591fb17d53773156a27506fbe8b18fe01cba",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "bytes": 10883072,
+      "sha256": "5ac111e934e1f959f17104d345f57a0e49c7a0d6f98437ed34d322cbdb98f1dd",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/riscv64-virt/conduitos-kernel.elf",
+      "bytes": 4924712,
+      "sha256": "7a441b15d5eb23b31be03e72fed84a1ee10cd7305a8fd8c737aed2ebb9b4f156",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/riscv64-virt/conduitos-riscv64.iso",
+      "bytes": 9138176,
+      "sha256": "4bfb89e923656ac26edd7725601a8f2e7f8128a1b0f1840eed4205bddd08ed1f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 77555296,
+      "sha256": "ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/live-images/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 81827840,
+      "sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-1280x800-preserved/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.map",
+      "bytes": 21485671,
+      "sha256": "4eb094df8097429e131f6a2729fe809cec1a81e2796b4783647bcdb7fa2040ef",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/conduitos",
+      "bytes": 77555296,
+      "sha256": "ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/conduitos.iso",
+      "bytes": 81827840,
+      "sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/aarch64-virt/conduitos-aarch64.iso",
+      "bytes": 11898880,
+      "sha256": "ce6071efe1ee6898a2e768e077a359d3c8afcf1d83fa284b08609ce7501dd89f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/aarch64-virt/conduitos-kernel.elf",
+      "bytes": 7668912,
+      "sha256": "728939489bd938b83f697ba5a6b9189f51d5131458bfb2a155d090fbe7800dc6",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/ia32-pc/conduitos-ia32.iso",
+      "bytes": 10164224,
+      "sha256": "b24083001dffe707ece0e6fc14a248f017e14006f8515a3c2423d928eee3c658",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/ia32-pc/conduitos-kernel.elf",
+      "bytes": 5879836,
+      "sha256": "b8875f5557f2aa11f8d4f210eff01ce2a83bf77dc51a6f68a96cc38df1b90ef5",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/loongarch64-virt/conduitos-kernel.elf",
+      "bytes": 6620256,
+      "sha256": "a1923aa6b83079ff1c8760c57c41591fb17d53773156a27506fbe8b18fe01cba",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "bytes": 10883072,
+      "sha256": "5ac111e934e1f959f17104d345f57a0e49c7a0d6f98437ed34d322cbdb98f1dd",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/riscv64-virt/conduitos-kernel.elf",
+      "bytes": 4924712,
+      "sha256": "7a441b15d5eb23b31be03e72fed84a1ee10cd7305a8fd8c737aed2ebb9b4f156",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/riscv64-virt/conduitos-riscv64.iso",
+      "bytes": 9138176,
+      "sha256": "4bfb89e923656ac26edd7725601a8f2e7f8128a1b0f1840eed4205bddd08ed1f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 77555296,
+      "sha256": "ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/live-images/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 81827840,
+      "sha256": "641aa4cc0da375e2dbe895497804b0b06bac0fd155379bbb4ed19a864a525e3f",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    },
+    {
+      "original": "work/6158-8c3ecb0d7-controls-640x480-preserved/privilege-inventory-ac97abd5d29cc6a8ef9e04605bed40923be33807f640edbd9f580bc0bf2c95da-product-host.map",
+      "bytes": 21485671,
+      "sha256": "4eb094df8097429e131f6a2729fe809cec1a81e2796b4783647bcdb7fa2040ef",
+      "reason": "regenerable binary or linker map omitted; canonical current product identity comes only from x86_64-pc target manifest"
+    }
+  ]
+}

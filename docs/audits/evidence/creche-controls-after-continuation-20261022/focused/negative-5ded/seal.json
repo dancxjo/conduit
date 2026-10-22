@@ -1,0 +1,24 @@
+{
+  "source_commit": "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+  "tests_passed": 37,
+  "xtask_strict": "passed",
+  "conduitos_all_targets_strict_exit": 101,
+  "cause": "native_face_scene integration test facade omits candidate_inventory/eligibility/NativePlot/WorksetRefusal and has no private native_workset::tests::fixture",
+  "format": "unstarted",
+  "qemu": "unstarted",
+  "hashes": {
+    "6158-5ded31d61-conduitos-clippy.log": "91ae60a24436dca593a0e9dfe465687fd454b417be836409f4c345fe2bd5083e",
+    "6158-5ded31d61-metadata.log": "21f465307b91bf4778bdd4598306f5246efbe2fb36928d44d02e8bf5f2273157",
+    "6158-5ded31d61-pointer.log": "face33976ba1c08ba87e1dbd35315ba1e626427798d17428c2bfb7ce8ecf7960",
+    "6158-5ded31d61-naming-acceptance.log": "707930c0bd6e161647725adfacda96201d000b40516669e578d6ecbbf031bd97",
+    "6158-5ded31d61-artifacts.log": "eca1eaa6f67c27029bd215ad59da5f7a6582232a27b570fd5bc24a47b5331eef",
+    "6158-5ded31d61-xtask-clippy.log": "3f640b69121563d30caa2730c60200d231b1b771769e921495e6a7768dbb13f3",
+    "6158-5ded31d61-creche-navigation.log": "7e251559f95e2246a1c16c542b867a2b41d287f803601641856c028debf97efc",
+    "6158-5ded31d61-controls.log": "83043877716a04616ec7f746801cc0bf8442059a8c3b4ff296c832c6c4499118",
+    "6158-5ded31d61-actual-creche.log": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+    "6158-5ded31d61-viewport.log": "7c3a7a6a28413f67c84305366288d49eecb01393d7d9a7169b7dc80d6b5efbcb",
+    "6158-5ded31d61-field-clusters.log": "79cf24f1e424fef3cf7e871ff0cb6cc5bee2fade9bfee6540796f7164380cb1e",
+    "6158-5ded31d61-validation.json": "a9cce5808853d70f946782165f9a88fe9b52a1109a2c31d43295a034b384c94a",
+    "6158-5ded31d61-validation.py": "942baf6cb6773ba64b3731357312d3f1ff906cd627bc8683fc94419e1e12aa51"
+  }
+}

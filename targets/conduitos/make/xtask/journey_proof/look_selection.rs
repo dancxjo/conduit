@@ -153,6 +153,10 @@ struct NativeShow {
 // The installed native-face/v1 receipt deliberately does not duplicate the
 // complete planned Mask. Validate its actual compact/manifestation binding;
 // the full journey's shared correspondence gate checks the same publications.
+pub(super) fn validate_current(record: &Value) -> Result<(), ConduitosError> {
+    decode(record).map(|_| ())
+}
+
 fn decode(record: &Value) -> Result<(Face, NativeShow), ConduitosError> {
     let face: Face = serde_json::from_value(record["face"].clone())
         .map_err(|error| refusal(error.to_string()))?;

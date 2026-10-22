@@ -1,0 +1,12 @@
+{
+  "status": "verified",
+  "staged_documentary_files": 30,
+  "source_bound_originals": 22,
+  "geometry_records_equal_per_source": 753,
+  "sources": [
+    "5ded31d6172e2b1ad75bb5f404ceb698db35546c",
+    "eb77aad03dae3654709e8004f617d48550e95a9d"
+  ],
+  "source_checkout_edited": false,
+  "scope": "Independent focused packet byte/gzip custody, retained first failure and unchanged CPU geometry; native and CI proof separate."
+}

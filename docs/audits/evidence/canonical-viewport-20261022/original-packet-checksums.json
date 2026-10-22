@@ -1,0 +1,930 @@
+{
+  "source_commit": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "files": [
+    {
+      "packet": "owner-cancelled-appliance-47",
+      "path": "context.json",
+      "bytes": 498,
+      "sha256": "6f172c037172510d87323c5be8fd06e4a93dc946eb976e8efa664648af3030f4",
+      "published": true
+    },
+    {
+      "packet": "owner-cancelled-appliance-47",
+      "path": "make-record.rs",
+      "bytes": 684,
+      "sha256": "60f01ed053e821aba2221366ccd8913701390590ecccb54358eef15399f8e423",
+      "published": true
+    },
+    {
+      "packet": "owner-cancelled-appliance-47",
+      "path": "owner-cancellation.json",
+      "bytes": 385,
+      "sha256": "cd092715d75355f361e3a9da4999dddc9762f8f4591eb96612d2e02a6478c509",
+      "published": true
+    },
+    {
+      "packet": "owner-cancelled-appliance-47",
+      "path": "seal.json",
+      "bytes": 630,
+      "sha256": "8274428754de7937d444ecd11f2ae7d16288753c0bf5abd729e45ce20c3dcc0b",
+      "published": true
+    },
+    {
+      "packet": "owner-cancelled-appliance-47",
+      "path": "supported-command.log",
+      "bytes": 83206,
+      "sha256": "a7a379e417d1aafdd5457456b9adb7f27a4393ed2083cf4d0d4cf8a116ddf16c",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "build.json",
+      "bytes": 319,
+      "sha256": "6a378560dac780a58428c5b11773b7088f31f978e18b3e376e350d2d82e4b8b6",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "cache-contention.json",
+      "bytes": 605,
+      "sha256": "205d55a115019e25a602ff330194095e20c28d58d7b8cbb54782a3b6b61f6189",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "conduitos",
+      "bytes": 77465256,
+      "sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "conduitos.iso",
+      "bytes": 81737728,
+      "sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "context.json",
+      "bytes": 516,
+      "sha256": "e3574469fdd3352837ea36633f10f9b7cee6e8f6aa8355d59f5701f42bf45e4f",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "graphical-profile-gallery.html",
+      "bytes": 2967,
+      "sha256": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "graphical-profile-proof.json",
+      "bytes": 5852,
+      "sha256": "a7c8b5e34841fcb2515c4c7617b13054d9c1c031cb9b434cc56db7a1a192262a",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "image.json",
+      "bytes": 335,
+      "sha256": "93042524b6df152222693b0371bf5affff535a2f411057a016c2d13a6e5e2afa",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/body-playing.png",
+      "bytes": 67388,
+      "sha256": "7a79931410516ab72e18b9862f1db6ffe7c06db73aad54d4e6e546f15c921c53",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/body-stopped.png",
+      "bytes": 197182,
+      "sha256": "056eef1961c102da6aa037632ff9f080e562e18812194e33dfca37b37f0addd0",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-editorial-compact.png",
+      "bytes": 169681,
+      "sha256": "54549cc2da3272750f6aa64e5eb20a46f0954f961d1d50efb78d4b4889844320",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-editorial-spacious.png",
+      "bytes": 144643,
+      "sha256": "6cb4f0e55294cdf387d241f6090a7424fffcbbaf728d09e4101bf559ecbe3b72",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-engineering-compact.png",
+      "bytes": 168511,
+      "sha256": "ea1b92438507254cc629f453c86b867fc031b6334bf8229623371e38f87ab0cf",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-engineering-spacious.png",
+      "bytes": 143661,
+      "sha256": "50929cde1bb80a6efec415ebdb03b1c0c623bea53ecb3d6ac20d8c7d323e0acc",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-four-restored.png",
+      "bytes": 168506,
+      "sha256": "3b58c3dfb17755fc56a7635afc20ce32673e8d1b28ad228465f7ad48649c625f",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-fourth-checked.png",
+      "bytes": 96151,
+      "sha256": "e622248df4f3b2be5c4964b3454f0593680528a284722c98ec1b113c4e570311",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-pointer-four-restored.png",
+      "bytes": 96179,
+      "sha256": "ad53dfd3d16ee6382dde470864f0b07ea884f611ff2befaceaeb3a0ea5af19e3",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-pointer-three-selected.png",
+      "bytes": 96080,
+      "sha256": "0519c485a05277e780161af8ea1dc944d2b67ee5a98f1537938583891a5d2acd",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-ready.png",
+      "bytes": 168390,
+      "sha256": "04145bb1863e46dca486213cdc3b2e2c8bc7b7320dffed4c3ab40322c3c0aa15",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/creche-three-selected.png",
+      "bytes": 168385,
+      "sha256": "9c99a1611b4215e120362d3b9d8a682830feee23fe28aeb75ba40fd30f485a8a",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/home-returned.png",
+      "bytes": 55662,
+      "sha256": "dc14e0428ef4110ecb7126914c7546183c8677f7d4a7c8a1dd00659a303dea49",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/home.png",
+      "bytes": 67388,
+      "sha256": "7a79931410516ab72e18b9862f1db6ffe7c06db73aad54d4e6e546f15c921c53",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/manifest.json",
+      "bytes": 427449,
+      "sha256": "3a2c56a50b2795b161806e88dde297736165c7c61d980abe8f8628cc63183028",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-diagram-returned.png",
+      "bytes": 139139,
+      "sha256": "c89e9aa6d604a1d5531cbd730a6168458525972c021afa515d105b1b48908ed2",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-diagram.png",
+      "bytes": 139139,
+      "sha256": "c89e9aa6d604a1d5531cbd730a6168458525972c021afa515d105b1b48908ed2",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-face.png",
+      "bytes": 231973,
+      "sha256": "eb54f46c16bac8bf85a3520934f7f07596f9e25fc6e3ba0f63dcb7397da1f913",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-gear-details.png",
+      "bytes": 240234,
+      "sha256": "2863c43d25a8411311d894cb441521ecfb7f3f90d8ab96357902445949941fc7",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-reentered.png",
+      "bytes": 53397,
+      "sha256": "82cc87f3f9ba25580e3dc07259e3e318431795352064253f03bc350d41748966",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/patchbay-workspace.png",
+      "bytes": 106131,
+      "sha256": "274ec07b37a28541b987a5d538393cb7fb96e0cf606c72b652d6d3f8047f631b",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/protected-keyboard-canvas.png",
+      "bytes": 67111,
+      "sha256": "915f3743c21c5edcd5c9a14c3ffda1c765e2115f0805fdc2728129da76ec7e1c",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/protected-memory-lantern.png",
+      "bytes": 64173,
+      "sha256": "13b07dda6b0d41f25b50f2d572ebf12e530e08301e45a397728186f1b58deeb4",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-frames/wake-refused.png",
+      "bytes": 124807,
+      "sha256": "6b3708ff4ba4f6e96fb205e7462a489485763121e0c42d1990760eac8084dd95",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-proof.json",
+      "bytes": 23954,
+      "sha256": "e84752826ba5935003bbe4c7235200b0ca1b20e333053f92b529eb29b017289c",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-qmp.log",
+      "bytes": 61765,
+      "sha256": "5fdcf827e8ed01fd555b0f603404505100c93e0d211dd4f47d1b9469c1556e94",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "journey-serial.log",
+      "bytes": 976152,
+      "sha256": "b2aaf7504ebb60f8d5b2f4275eed24c3e4e3e56b8abdaaba24e542b4f2bfdcf8",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/aarch64-virt/build-manifest.json",
+      "bytes": 3785,
+      "sha256": "1ebc3a0ffa8bed3da2224127589bc25b3d577f7b8cea53ed7177afe16e32a8c5",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/aarch64-virt/conduitos-aarch64.iso",
+      "bytes": 11898880,
+      "sha256": "09848c6a93b70fbeecc89c4786fd4d4a1d3ad421097b3f2b3d4bc425551dfc91",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/aarch64-virt/conduitos-kernel.elf",
+      "bytes": 7668912,
+      "sha256": "0961de05355b3350c7119ce827c237abc32bbffa1f38dd7528f030a12350f810",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/aarch64-virt/resolved-image.json",
+      "bytes": 3740,
+      "sha256": "fe70d11723b705e800f16c4408c6f9fd6e4d06a5daaf76c1b420766f48ee41d2",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/ia32-pc/build-manifest.json",
+      "bytes": 3766,
+      "sha256": "1e1e8443a2fde7a6899bf24d190f30b680766ed62fdad4c83d4295444d871c0e",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/ia32-pc/conduitos-ia32.iso",
+      "bytes": 10164224,
+      "sha256": "6228ed24f27949903df44ac2fe6cdab07f686d35804885f51a459e11c2d1efe4",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/ia32-pc/conduitos-kernel.elf",
+      "bytes": 5879836,
+      "sha256": "2e4ce54baadf0de1b778884da27a42daead6f54711dc7e26c27d70c1e5e9f96c",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/ia32-pc/resolved-image.json",
+      "bytes": 3734,
+      "sha256": "e9747a6e710454fc29d04a709e54ff0b35805e78e765dd2550b7913d1c4cf7ba",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/loongarch64-virt/build-manifest.json",
+      "bytes": 3795,
+      "sha256": "77ebac19351ff674c7caa87718e8704401e119c76cb5572cfb71a6dbb986873e",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/loongarch64-virt/conduitos-kernel.elf",
+      "bytes": 6620256,
+      "sha256": "2395044c9877a3f982be0a87aee4a3ed354d28e40eda913f9b0760fa3555b388",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "bytes": 10883072,
+      "sha256": "afa7efc49251aceaa5f5deb8f199e2b054dcad1cb028ddf34413ec2b99323eb7",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/loongarch64-virt/resolved-image.json",
+      "bytes": 3776,
+      "sha256": "3c0fdc79da67107e0a3b80ec26345ff1a5cff6e6c5e89748b9c5e45061c11e3f",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/riscv64-virt/build-manifest.json",
+      "bytes": 3794,
+      "sha256": "ff22744baf3c58460840caf76d6b08739ec627417c6a8645ed8610ed28f2dd34",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/riscv64-virt/conduitos-kernel.elf",
+      "bytes": 4732200,
+      "sha256": "106bb112a8fa1caddd5d1d305b24e16952f3d996b7132562a9e265b18ceaf8fd",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/riscv64-virt/conduitos-riscv64.iso",
+      "bytes": 8945664,
+      "sha256": "e9f68eba4afadc4d438a7f5b4a1d0bfcfd26027beedbe0e35a3617a59e6a97d6",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/riscv64-virt/resolved-image.json",
+      "bytes": 3795,
+      "sha256": "6a6b8f796b17eb12227e44c4c88f5aebdc4ff5c035ab7e5b0d8da45109da448e",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/x86_64-pc/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "8a44b594ec4539d96018885af17e47430761636f31219fc794cfcab018f8ce88",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 77465256,
+      "sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 81737728,
+      "sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "live-images/x86_64-pc/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "f6c00d64034bd5511e9577ab3227c531aaf758034903243580f674331aa9cf6d",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "make-record.rs",
+      "bytes": 684,
+      "sha256": "f9449a35cd228eff651bbc2b7e697f096339aa5927a58bdd4bff85d140fb86a8",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "memory-lantern-native-edit.json",
+      "bytes": 5853,
+      "sha256": "64861029900050b00e67723558725ef135acc41553fac9bd2b203e8a70eb5ea9",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "native-shell-paired-linear.json",
+      "bytes": 1830218,
+      "sha256": "f6106779a83c5c1909e90f015f0fef4450913ed9690557de89bdeb71416bc10d",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "privilege-inventory-2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9-product-host.json",
+      "bytes": 64012,
+      "sha256": "bc5bfb48bc6e900c627168367883c41ccf2afa676ef12815e6f7e28ba827a4cc",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "privilege-inventory-2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9-product-host.map",
+      "bytes": 21449073,
+      "sha256": "2c578e1f797225c83978ad0ce7368664ba82f9b01dd20a922241de7e7bdfd952",
+      "published": false
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "seal.json",
+      "bytes": 30081,
+      "sha256": "a33e3edcce7b03c124ca4ed41da15ec38c7fc4b6be25ac92fa008ae330c0fb7f",
+      "published": true
+    },
+    {
+      "packet": "canonical-1280x800",
+      "path": "supported-command.log",
+      "bytes": 227876,
+      "sha256": "ef4b139dbd199c006541a94fd4b72ba25ab66b388c03d4f842bbf82005d9b129",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "build.json",
+      "bytes": 319,
+      "sha256": "6a378560dac780a58428c5b11773b7088f31f978e18b3e376e350d2d82e4b8b6",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "conduitos",
+      "bytes": 77465256,
+      "sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "conduitos.iso",
+      "bytes": 81737728,
+      "sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "context.json",
+      "bytes": 514,
+      "sha256": "6c00d3f0b9f64250a286b3d0139eaf2249c4ed49fb42ddb7e6e36411bbdb43bf",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "graphical-profile-gallery.html",
+      "bytes": 2967,
+      "sha256": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "graphical-profile-proof.json",
+      "bytes": 5851,
+      "sha256": "246a3cef425dab7ca53adfcfc0e4125108f249a0d4aab59b6acf3eea1456e96b",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "image.json",
+      "bytes": 335,
+      "sha256": "93042524b6df152222693b0371bf5affff535a2f411057a016c2d13a6e5e2afa",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/body-playing.png",
+      "bytes": 51293,
+      "sha256": "15f03596fb1b049cc3911f9ea1ed028dcffdcaa6b6b7d4267e4e82139289e2f0",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/body-stopped.png",
+      "bytes": 119980,
+      "sha256": "6f098fabbe4f0a7603ed3d927b42d5e1b36ef2a67e87a48e15b757885863ee66",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-editorial-compact.png",
+      "bytes": 72721,
+      "sha256": "a91bbb149a872ad0d5cf837d5a85a7d221ea305e83f114c38e481df695f9b4a8",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-editorial-spacious.png",
+      "bytes": 94916,
+      "sha256": "e124fcf21a48f54914aca5bf0f55043174d197b0164e7c09e6139a5b388f303f",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-engineering-compact.png",
+      "bytes": 72420,
+      "sha256": "7bde53c2fce5f2a9ed8e6d51e4b325050177ba45b91634b12d0e4d5e7a04fafc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-engineering-spacious.png",
+      "bytes": 94061,
+      "sha256": "cf2a395f71c723c368b90f6a071f96823e6c8f0b24755f902cd4732920b81e79",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-four-restored.png",
+      "bytes": 72421,
+      "sha256": "f42b6b4490afc720d7a118c80cf80431867f70fd67a9a5598bdffbe0e107fc48",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-fourth-checked.png",
+      "bytes": 72421,
+      "sha256": "b4a0cc78722420e0b715d60b2af846f605684e8a0d12b90a51ed6f75d558eac5",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-pointer-four-restored.png",
+      "bytes": 72426,
+      "sha256": "03d78908031465e174f38a6fdfde09298351acdd9d1d13ac10ffee005477a0ee",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-pointer-three-selected.png",
+      "bytes": 72307,
+      "sha256": "52936fdcd6903eeba2f18e4abca7543951fe22d5265e2bea1b1ef915c5b34702",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-ready.png",
+      "bytes": 72420,
+      "sha256": "7bde53c2fce5f2a9ed8e6d51e4b325050177ba45b91634b12d0e4d5e7a04fafc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/creche-three-selected.png",
+      "bytes": 72302,
+      "sha256": "e7c23f096884591cbb2b6337583f0a10ae937bc03e23f17147286035393fc086",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/front-door-ready.png",
+      "bytes": 31831,
+      "sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/home-returned.png",
+      "bytes": 39560,
+      "sha256": "eb09c6a5d903a908d6ed39f5c9099111971a57ef6926d93f660f8eb5c5a0334c",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/home.png",
+      "bytes": 51293,
+      "sha256": "15f03596fb1b049cc3911f9ea1ed028dcffdcaa6b6b7d4267e4e82139289e2f0",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/manifest.json",
+      "bytes": 427626,
+      "sha256": "d450b4b94eedadfe4567be753bd2d61c5be4398e60aa20fa925fe46500111f1d",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-diagram-returned.png",
+      "bytes": 118929,
+      "sha256": "e256e1098370033c0927121797acb876745cb8d79ea0eb8cf41069a13edeadcc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-diagram.png",
+      "bytes": 118929,
+      "sha256": "e256e1098370033c0927121797acb876745cb8d79ea0eb8cf41069a13edeadcc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-face.png",
+      "bytes": 110155,
+      "sha256": "ef5f2dcca94fac91d14bde02118ae61a2d5f6200473db30584d149a0ddfb903e",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-gear-details.png",
+      "bytes": 135419,
+      "sha256": "a07aa0d998d4aa9955b27fb9aa23f840bbe689bd7cb13f48489512fd9bed3cb9",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-reentered.png",
+      "bytes": 38937,
+      "sha256": "e9fda6efc680a19b5d6f13b76187bc8df27e7505097d554d976d01755a99caf3",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/patchbay-workspace.png",
+      "bytes": 91443,
+      "sha256": "226ca79e2b8eb962fce47777278fea785e51926e5c619bad28210a1ad13a69b3",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/protected-keyboard-canvas.png",
+      "bytes": 52633,
+      "sha256": "b6b453df2537be86bfb83459c9418420f0d7e82fc28342e8252117bdfecd2c24",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/protected-memory-lantern.png",
+      "bytes": 38677,
+      "sha256": "6788257055d3a375995b39b10a7f991052780331a8542468a2d761d5d73f7957",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-frames/wake-refused.png",
+      "bytes": 95192,
+      "sha256": "5301bd59db782486217539b953674c97fecaae577c6bed91a2d59f90b7188fcd",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-proof.json",
+      "bytes": 23950,
+      "sha256": "c0be1d80581e1d7896d38d8fa6d52ea81df26605c409766dc748fa22fa5c7278",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-qmp.log",
+      "bytes": 61667,
+      "sha256": "aa0ce88f3959311499879bd34427d96d8ef3e72cbcea6bf9700959c8e5d3e244",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "journey-serial.log",
+      "bytes": 956644,
+      "sha256": "a4c5ee8737f6ad453ce0f5c86425c82fc2dc9adc004c78b79c63397013dcb854",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/aarch64-virt/build-manifest.json",
+      "bytes": 3785,
+      "sha256": "1ebc3a0ffa8bed3da2224127589bc25b3d577f7b8cea53ed7177afe16e32a8c5",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/aarch64-virt/conduitos-aarch64.iso",
+      "bytes": 11898880,
+      "sha256": "09848c6a93b70fbeecc89c4786fd4d4a1d3ad421097b3f2b3d4bc425551dfc91",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/aarch64-virt/conduitos-kernel.elf",
+      "bytes": 7668912,
+      "sha256": "0961de05355b3350c7119ce827c237abc32bbffa1f38dd7528f030a12350f810",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/aarch64-virt/resolved-image.json",
+      "bytes": 3740,
+      "sha256": "fe70d11723b705e800f16c4408c6f9fd6e4d06a5daaf76c1b420766f48ee41d2",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/ia32-pc/build-manifest.json",
+      "bytes": 3766,
+      "sha256": "1e1e8443a2fde7a6899bf24d190f30b680766ed62fdad4c83d4295444d871c0e",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/ia32-pc/conduitos-ia32.iso",
+      "bytes": 10164224,
+      "sha256": "6228ed24f27949903df44ac2fe6cdab07f686d35804885f51a459e11c2d1efe4",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/ia32-pc/conduitos-kernel.elf",
+      "bytes": 5879836,
+      "sha256": "2e4ce54baadf0de1b778884da27a42daead6f54711dc7e26c27d70c1e5e9f96c",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/ia32-pc/resolved-image.json",
+      "bytes": 3734,
+      "sha256": "e9747a6e710454fc29d04a709e54ff0b35805e78e765dd2550b7913d1c4cf7ba",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/loongarch64-virt/build-manifest.json",
+      "bytes": 3795,
+      "sha256": "77ebac19351ff674c7caa87718e8704401e119c76cb5572cfb71a6dbb986873e",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/loongarch64-virt/conduitos-kernel.elf",
+      "bytes": 6620256,
+      "sha256": "2395044c9877a3f982be0a87aee4a3ed354d28e40eda913f9b0760fa3555b388",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "bytes": 10883072,
+      "sha256": "afa7efc49251aceaa5f5deb8f199e2b054dcad1cb028ddf34413ec2b99323eb7",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/loongarch64-virt/resolved-image.json",
+      "bytes": 3776,
+      "sha256": "3c0fdc79da67107e0a3b80ec26345ff1a5cff6e6c5e89748b9c5e45061c11e3f",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/riscv64-virt/build-manifest.json",
+      "bytes": 3794,
+      "sha256": "ff22744baf3c58460840caf76d6b08739ec627417c6a8645ed8610ed28f2dd34",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/riscv64-virt/conduitos-kernel.elf",
+      "bytes": 4732200,
+      "sha256": "106bb112a8fa1caddd5d1d305b24e16952f3d996b7132562a9e265b18ceaf8fd",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/riscv64-virt/conduitos-riscv64.iso",
+      "bytes": 8945664,
+      "sha256": "e9f68eba4afadc4d438a7f5b4a1d0bfcfd26027beedbe0e35a3617a59e6a97d6",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/riscv64-virt/resolved-image.json",
+      "bytes": 3795,
+      "sha256": "6a6b8f796b17eb12227e44c4c88f5aebdc4ff5c035ab7e5b0d8da45109da448e",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/x86_64-pc/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "8a44b594ec4539d96018885af17e47430761636f31219fc794cfcab018f8ce88",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 77465256,
+      "sha256": "2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 81737728,
+      "sha256": "5282cd4afc93f3be4966569788a3e8301fbfaa6598fd438c3ffc65683534b224",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "live-images/x86_64-pc/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "f6c00d64034bd5511e9577ab3227c531aaf758034903243580f674331aa9cf6d",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "make-record.rs",
+      "bytes": 684,
+      "sha256": "f9449a35cd228eff651bbc2b7e697f096339aa5927a58bdd4bff85d140fb86a8",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "memory-lantern-native-edit.json",
+      "bytes": 5863,
+      "sha256": "fd54c9c054ffa181a7da64f4f7d128717e42c96d1060b23074df1498a7e19d25",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "native-shell-paired-linear.json",
+      "bytes": 1798521,
+      "sha256": "1814dc05659033f879cff6b3ba48124c5e049e72b21f983f505f1e89a04848fc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "privilege-inventory-2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9-product-host.json",
+      "bytes": 64012,
+      "sha256": "bc5bfb48bc6e900c627168367883c41ccf2afa676ef12815e6f7e28ba827a4cc",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "privilege-inventory-2ad8b73f669f43c74d6464f43bbbc84f0deadeaaeb6d41615d02fb7c5c1f55e9-product-host.map",
+      "bytes": 21449073,
+      "sha256": "2c578e1f797225c83978ad0ce7368664ba82f9b01dd20a922241de7e7bdfd952",
+      "published": false
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "seal.json",
+      "bytes": 29925,
+      "sha256": "682ae3079ceb7f40be4e5bb1d43c98a45edaaeba5ca2bae3bd66508c9bd4df62",
+      "published": true
+    },
+    {
+      "packet": "canonical-640x480",
+      "path": "supported-command.log",
+      "bytes": 175095,
+      "sha256": "52cb4a4d719b0b470b646668bd9bb3b4f4bc0cf50354ceece5c4a38832e4061d",
+      "published": true
+    }
+  ],
+  "payload_exclusion": "Actual ELF/ISO/large maps remain in original local sealed packets. Their original hashes are preserved; canonical ELF/ISO independently verified against ProductHost manifest and journey/graphical receipts. Gzip decompression preserves original bytes."
+}
