@@ -369,3 +369,10 @@ to be 3.3 V. These are new physical binding requests, not reused Pico pin number
 or proof of initialized ESP32 providers. The sensor Source, quantities, Face,
 Mask and network request contracts remain portable. The old Pico firmware and
 physical receipts remain evidence for that target only.
+
+The HTTP input boundary now also owns a fixed 1024-byte, single-request buffer.
+It waits for the complete declared form body across partial TCP reads, bounds
+headers to 512 bytes, refuses ambiguous length or transfer framing, secret-bearing
+query routes and pipelining, and erases its raw bytes on consumption, refusal or
+Drop. Root must still bound the connection lifetime. This is request framing for
+the setup page, not an installed HTTP route or permission to change radio mode.

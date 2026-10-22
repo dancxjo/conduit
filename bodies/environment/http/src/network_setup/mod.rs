@@ -1,7 +1,9 @@
 //! One volatile page submission for the existing network/credentials Host Call.
 //! This mailbox grants no authority, changes no radio mode and schedules no Play.
 mod form;
+mod request;
 pub use form::{NetworkSetupInput, NetworkSetupLimits, NetworkSetupRefusal};
+pub use request::{NetworkHttpRefusal, NetworkHttpRequest, NetworkRequestBuffer};
 
 /// Opaque local correlation, not a Host/Boot identity or an authority token.
 #[derive(Clone, Copy, PartialEq, Eq)]

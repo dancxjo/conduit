@@ -115,11 +115,11 @@ fn malformed_duplicate_unknown_and_oversized_fields_are_refused_before_submissio
 fn fully_percent_encoded_maximum_fields_use_byte_bounds_without_truncation() {
     let mut body = [0; 300];
     body[..5].copy_from_slice(b"ssid=");
-    for octet in body[5..101].chunks_exact_mut(3) {
+    for octet in body[5..101].as_chunks_mut::<3>().0 {
         octet.copy_from_slice(b"%41");
     }
     body[101..111].copy_from_slice(b"&password=");
-    for octet in body[111..].chunks_exact_mut(3) {
+    for octet in body[111..].as_chunks_mut::<3>().0 {
         octet.copy_from_slice(b"%42");
     }
     let input = NetworkSetupInput::from_form(&body, limits()).unwrap();
@@ -130,4 +130,81 @@ fn fully_percent_encoded_maximum_fields_use_byte_bounds_without_truncation() {
         zero.submit(input),
         Err(NetworkSetupRefusal::Exhausted)
     ));
+}
+
+#[test]
+fn network_http_framing_waits_for_the_entire_body_and_consumes_once_without_allocating() {
+    let body = b"ssid=Test+LAN&password=sample%26value%2B";
+    let header = std::format!("POST /network HTTP/1.1\r\nHost: 192.168.4.1\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: {}\r\n\r\n", body.len());
+    let mut request = NetworkRequestBuffer::default();
+    let ((), allocation) = allocation_probe::observe(|| {
+        for byte in header.as_bytes().iter().chain(&body[..body.len() - 1]) {
+            request.append(core::slice::from_ref(byte)).unwrap();
+            assert!(request.take(limits()).unwrap().is_none());
+        }
+        request.append(&body[body.len() - 1..]).unwrap();
+        let Some(NetworkHttpRequest::Join(input)) = request.take(limits()).unwrap() else {
+            panic!("complete join")
+        };
+        assert_eq!(input.request().ssid, b"Test LAN");
+        assert_eq!(input.request().credential, b"sample&value+");
+        assert_eq!(
+            request.take(limits()).err(),
+            Some(NetworkHttpRefusal::Closed)
+        );
+        assert_eq!(request.append(b"x"), Err(NetworkHttpRefusal::Closed));
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+}
+
+#[test]
+fn network_http_refuses_ambiguous_framing_and_secret_query_routes() {
+    use NetworkHttpRefusal as E;
+    for (raw, expected) in [
+        (
+            &b"POST /network HTTP/1.1\r\nContent-Length: 0\r\nContent-Length: 0\r\n\r\n"[..],
+            E::Malformed,
+        ),
+        (
+            &b"POST /network HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n"[..],
+            E::Malformed,
+        ),
+        (&b"POST /network HTTP/1.1\r\n\r\n"[..], E::Malformed),
+        (
+            &b"GET /network?password=secret HTTP/1.1\r\n\r\n"[..],
+            E::UnsupportedRoute,
+        ),
+        (
+            &b"GET /network HTTP/1.1\r\n\r\nGET /network HTTP/1.1\r\n\r\n"[..],
+            E::Malformed,
+        ),
+        (
+            &b"POST /network HTTP/1.1\r\nContent-Length: 0\r\n\r\n"[..],
+            E::UnsupportedContentType,
+        ),
+        (
+            &b"POST /network HTTP/1.1\r\nContent-Length: 999999999999999999999999999999\r\n\r\n"[..],
+            E::TooLarge,
+        ),
+        (
+            &b"GET /network HTTP/1.1\r\nContent-Length: 1\r\n\r\nx"[..],
+            E::Malformed,
+        ),
+    ] {
+        let mut request = NetworkRequestBuffer::default();
+        request.append(raw).unwrap();
+        assert_eq!(request.take(limits()).err(), Some(expected));
+        assert_eq!(request.append(b""), Err(E::Closed));
+    }
+    let mut request = NetworkRequestBuffer::default();
+    request.append(b"GET /network HTTP/1.1\r\n\r\n").unwrap();
+    assert!(matches!(
+        request.take(limits()).unwrap(),
+        Some(NetworkHttpRequest::Page)
+    ));
+    let mut request = NetworkRequestBuffer::default();
+    request.append(&[b'x'; 512]).unwrap();
+    assert_eq!(request.take(limits()).err(), Some(E::TooLarge));
+    let mut request = NetworkRequestBuffer::default();
+    assert_eq!(request.append(&[b'x'; 1025]), Err(E::TooLarge));
 }
