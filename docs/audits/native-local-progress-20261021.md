@@ -1620,3 +1620,44 @@ The final complete-Plan Fore helper and Root owner wrapper compile together on
 freestanding x86_64 (5.51 seconds, existing/preparation-only dead-code warnings).
 The installed Source/Fore selection and ordinary dispatch remain unfinished;
 this checkpoint does not close #6201 or #5994.
+
+### Canonical resident Fore dispatch in the existing native Body scheduler
+
+The native Play now prepares exactly one explicit legacy or Face scheduler
+profile. Canonical selection depends on its actual admitted resident Fore;
+legacy-only worksets keep the 3 KiB value profile. Both profiles retain existing
+node/Cord/value-slot/aggregate bounds. The canonical dispatcher validates the
+current Body/Plan/Play and acknowledged Mask Host/Boot/offer generation, enters
+its exact Fore Cord, handles the actual selected owner Host Call, and drives its
+completion before releasing input custody. Confirmed Full remains input
+pressure; uncertain admission/completion stops the Play without replay.
+
+The retained application owner now has a one-way canonical preparation command.
+It preserves the actor, target and consumed-Show watermark, rejects legacy
+ApplicationEvents, and omits legacy snapshot production for canonical slots.
+Root independently retains this mode and rejects unexpected canonical snapshots.
+Existing selection/topology controls refresh canonical state without completing
+an invented legacy event-source request. Tutorial/Tour legacy paths remain
+supported. Canonical initial actor construction selects the same existing owner
+from the exact admitted implementation rather than creating another graph.
+
+The Source preparation cache preserves authored Fore bindings for Patchbay;
+other installed roots stay closed and all output boundaries remain unsupported.
+The native planner can now plan and admit the canonical closing input Fore in
+its resident partition. Its Kind/catalog, exact Back and resource reservations
+are installed in the normal native preparation catalogs/advertisement.
+
+Focused evidence: four application-core query/codec/refusal/mode checks pass;
+the actual native Mask acknowledged Edit/replay test passes over real native
+lifecycle evidence. A canonical Source planning test passes with an ordinary
+native Host and combined fragment-set lowering: it preserves nonzero actual
+node/Cord indices and refuses a foreign numeric sink. Final freestanding
+x86_64 native-compositor compilation passes (4.57 seconds). These are local
+conformance/compilation checks, not installed Source/scanout/QEMU acceptance.
+
+Remaining before #6201/#5994 completion: connect ordinary ProductJourney and
+FrontDoor/Mask publication/interaction handling, switch the installed Patchbay
+Source, and retire its real legacy adapter consumers. The installed Source is
+still `native-retained.conduit`; its replacement is deliberately not claimed
+from these prepared paths. No new CI jobs, image/ZIP publication or platform
+proof campaign was requested.
