@@ -44,21 +44,10 @@ fn select(journey: &mut ProductJourney, plot: NativePlot) {
 fn request_mask_change(
     journey: &mut ProductJourney,
 ) -> patchbay_application::PatchbayApplicationRequest {
-    let view = journey.foreground_application_view().unwrap().clone();
-    let action = view
-        .actions
-        .iter()
-        .find(|action| action.id == patchbay_application::CHANGE_MASKS_ACTION_ID)
-        .unwrap();
-    assert!(
-        journey
-            .accept_application_event(&conduit_face::ApplicationEvent {
-                revision: view.revision,
-                action: action.id.clone(),
-                kind: action.event,
-                value: Vec::new(),
-            })
-            .unwrap()
+    super::test_support::submit_patchbay(
+        journey,
+        patchbay_application::CHANGE_MASKS_ACTION_ID,
+        None,
     );
     match journey.take_application_request().unwrap() {
         native_workset::NativeApplicationRequest::EditCurrent(request) => request,
@@ -75,8 +64,8 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
-    assert_eq!(started.gear_ids.len(), 12);
-    assert_eq!(started.cord_ids.len(), 9);
+    assert_eq!(started.gear_ids.len(), 10);
+    assert_eq!(started.cord_ids.len(), 7);
     let mask = started.mask.as_ref().unwrap();
     assert_eq!(mask.route_disposition, "planned-route-awaiting-show");
     assert!(mask.shows.is_empty());
@@ -89,6 +78,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
                     input.value_kind.as_str(),
                     conduit_human::KEY_EVENT_INFO_ID
                         | conduit_face::APPLICATION_EVENT_INFO_ID
+                        | conduit_face::FACE_INTERACTION_VALUE_KIND
                         | conduit_semantic_catalog::TEXT_EDIT_VALUE_KIND
                 )
         })
@@ -144,22 +134,29 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     run(&mut journey, &ids, &offer);
     select(&mut journey, NativePlot::Patchbay);
     let initial = journey.projection();
-    let initial_view = journey.foreground_application_view().unwrap();
-    assert_eq!(
-        initial_view
-            .nodes
+    let initial_view = journey.foreground_patchbay_fragment().unwrap().unwrap();
+    let stage_facts = |fragment: &conduit_face::FaceFragment, index: usize| {
+        fragment
+            .properties
             .iter()
-            .filter(|node| node.key.starts_with("mask-stage-"))
-            .count(),
-        1
-    );
-    let initial_graphics = initial_view
-        .nodes
-        .iter()
-        .find(|node| node.key == "mask-facts-0")
-        .unwrap()
-        .value
-        .clone();
+            .filter(|property| {
+                property.subject.ends_with(&format!("/mask-stage/{index}"))
+                    && property.name != "available"
+            })
+            .cloned()
+            .collect::<Vec<_>>()
+    };
+    let stage_count = |fragment: &conduit_face::FaceFragment| {
+        fragment
+            .properties
+            .iter()
+            .filter(|property| {
+                property.subject.contains("/mask-stage/") && property.name == "available"
+            })
+            .count()
+    };
+    assert_eq!(stage_count(&initial_view), 1);
+    let initial_graphics = stage_facts(&initial_view, 0);
 
     let add = request_mask_change(&mut journey);
     let stale_add = add.clone();
@@ -169,13 +166,7 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     assert_ne!(parallel.plan_id, initial.plan_id);
     assert_ne!(parallel.active_play_id, initial.active_play_id);
     assert_eq!(
-        journey
-            .foreground_application_view()
-            .unwrap()
-            .nodes
-            .iter()
-            .filter(|node| node.key.starts_with("mask-stage-"))
-            .count(),
+        stage_count(&journey.foreground_patchbay_fragment().unwrap().unwrap()),
         2
     );
     let before_stale = journey.projection();
@@ -210,21 +201,10 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
             .all(|plan| Some(plan) != speech.plan_id.as_ref()),
         "application and Mask Plan identities remain distinct"
     );
-    let speech_view = journey.foreground_application_view().unwrap();
-    assert_eq!(
-        speech_view
-            .nodes
-            .iter()
-            .filter(|node| node.key.starts_with("mask-stage-"))
-            .count(),
-        1
-    );
-    assert!(
-        speech_view
-            .nodes
-            .iter()
-            .any(|node| { node.key == "mask-impl-0" && node.value.contains("test-speech") })
-    );
+    let speech_view = journey.foreground_patchbay_fragment().unwrap().unwrap();
+    assert_eq!(stage_count(&speech_view), 1);
+    assert!(speech_view.properties.iter().any(|property| property.name == "implementation-id"
+        && matches!(&property.value, conduit_face::FacePropertyValue::Identity(id) if id.contains("test-speech"))));
 
     let restore_graphics = request_mask_change(&mut journey);
     journey
@@ -233,30 +213,14 @@ fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     let restored = journey.projection();
     assert_eq!(restored.body_id, initial.body_id);
     assert_ne!(restored.plan_id, speech.plan_id);
-    let restored_view = journey.foreground_application_view().unwrap();
-    assert_eq!(
-        restored_view
-            .nodes
-            .iter()
-            .filter(|node| node.key.starts_with("mask-stage-"))
-            .count(),
-        2
-    );
-    assert_eq!(
-        restored_view
-            .nodes
-            .iter()
-            .find(|node| node.key == "mask-facts-0")
-            .unwrap()
-            .value,
-        initial_graphics
-    );
-    assert!(
-        restored_view
-            .nodes
-            .iter()
-            .any(|node| { node.key == "mask-stage-0" && node.text.contains("unavailable") })
-    );
+    let restored_view = journey.foreground_patchbay_fragment().unwrap().unwrap();
+    assert_eq!(stage_count(&restored_view), 2);
+    assert_eq!(stage_facts(&restored_view, 0), initial_graphics);
+    assert!(restored_view.properties.iter().any(|property| {
+        property.subject.ends_with("/mask-stage/0")
+            && property.name == "available"
+            && property.value == conduit_face::FacePropertyValue::Flag(false)
+    }));
 }
 
 #[test]
@@ -286,26 +250,28 @@ fn resident_patchbay_opens_the_previously_used_exact_plot_and_plan() {
     let expected_plot = before.expanded_plot_id.clone().unwrap();
     let expected_plan = before.plan_id.clone().unwrap();
     select(&mut journey, NativePlot::Patchbay);
-    let view = journey.foreground_application_view().unwrap();
+    let view = journey.foreground_patchbay_fragment().unwrap().unwrap();
     assert!(
-        view.nodes.iter().any(|node| {
-            node.key == "identity"
-                && node.text.contains(expected_plot.as_str())
-                && node.text.contains(expected_plan.as_str())
-        }),
-        "{view:?} expected {expected_plot:?} {expected_plan:?}"
+        view.properties
+            .iter()
+            .any(|property| property.name == "expanded-plot-id"
+                && property.value
+                    == conduit_face::FacePropertyValue::Identity(expected_plot.as_str().into()))
+    );
+    assert!(
+        view.properties
+            .iter()
+            .any(|property| property.name == "body-plan-id"
+                && property.value
+                    == conduit_face::FacePropertyValue::Identity(expected_plan.as_str().into()))
     );
     let execution = journey.projection();
     assert_eq!(execution.body_id, before.body_id);
     select(&mut journey, NativePlot::MemoryLantern);
     select(&mut journey, NativePlot::Patchbay);
-    assert!(
-        journey
-            .foreground_application_view()
-            .unwrap()
-            .nodes
-            .iter()
-            .any(|node| node.key == "plot" && node.text == "memory_lantern")
+    assert_eq!(
+        journey.foreground_patchbay_graph().unwrap().plot_name,
+        "memory_lantern"
     );
     assert_eq!(
         journey.projection().active_play_id,

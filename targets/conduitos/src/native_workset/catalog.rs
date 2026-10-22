@@ -67,7 +67,7 @@ impl NativePlot {
                 include_str!("../../../../plots/memory-lantern/main.conduit")
             }
             Self::Tour => include_str!("../../../../plots/tour/main.conduit"),
-            Self::Patchbay => include_str!("../../../../plots/patchbay/native-retained.conduit"),
+            Self::Patchbay => include_str!("../../../../plots/patchbay/main.conduit"),
             Self::Hello => include_str!("../../../../plots/hello/main.conduit"),
         }
     }

@@ -17,21 +17,17 @@ fn patchbay_source_handoff_requires_one_current_owner_request_and_preserves_draf
         Err(SourceEditError::Refused(SourceEditRefusal::WrongTarget))
     ));
     let request = |journey: &mut ProductJourney| {
-        let view = journey.foreground_application_view().unwrap().clone();
-        let action = view
-            .actions
-            .iter()
-            .find(|a| a.id == patchbay_application::EDIT_CURRENT_ACTION_ID)
-            .unwrap();
-        assert!(
-            journey
-                .accept_application_event(&conduit_face::ApplicationEvent {
-                    revision: view.revision,
-                    action: action.id.clone(),
-                    kind: action.event,
-                    value: Vec::new()
-                })
-                .unwrap()
+        let subject = journey
+            .foreground_patchbay_graph()
+            .unwrap()
+            .subject_identities()
+            .next()
+            .unwrap()
+            .to_owned();
+        super::test_support::submit_patchbay(
+            journey,
+            patchbay_application::EDIT_CURRENT_ACTION_ID,
+            Some(&subject),
         );
         match journey.take_application_request().unwrap() {
             native_workset::NativeApplicationRequest::EditCurrent(request) => request,

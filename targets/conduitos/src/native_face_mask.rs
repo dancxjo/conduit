@@ -495,4 +495,4 @@ impl NativeFaceMask {
 mod creche_tests;
 #[cfg(test)]
 #[path = "native_face_mask/tests.rs"]
-mod tests;
+pub(crate) mod tests;

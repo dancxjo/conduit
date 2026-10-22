@@ -40,16 +40,18 @@ fn prepare_inner(
     let mut patchbay_inputs = core::array::from_fn(|_| None);
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
-        if part.identity.plan_id != fragment.plan_id
-            || part.identity.fragment_id != fragment.fragment_id
-            || part.nodes.len() != fragment.placements.len()
-            || !super::super::editor_delivery::partition_shape(fragment)?
-        {
-            return Err(WorksetRefusal::Plan);
-        }
         patchbay_inputs[plot] =
             super::super::patchbay_ingress::admit(&prepared.plan.plots[plot].plan, part)?
                 .map(patchbay::IngressState::new);
+
+        if part.identity.plan_id != fragment.plan_id
+            || part.identity.fragment_id != fragment.fragment_id
+            || part.nodes.len() != fragment.placements.len()
+            || (patchbay_inputs[plot].is_none()
+                && !super::super::editor_delivery::partition_shape(fragment)?)
+        {
+            return Err(WorksetRefusal::Plan);
+        }
         for node in &part.nodes {
             if usize::from(node.node.0) != operation_count {
                 return Err(WorksetRefusal::Lowering);

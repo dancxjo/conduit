@@ -27,25 +27,44 @@ macro_rules! dispatch {
 
 impl Runtime {
     pub fn prepare(admission: Admission, canonical: bool) -> Result<Self, SchedulerError> {
+        if canonical {
+            Self::prepare_face(admission)
+        } else {
+            Self::prepare_legacy(admission)
+        }
+    }
+    // Keep mutually exclusive large value-store constructors in distinct stack
+    // frames. Preparation owns one profile, never storage for both branches.
+    #[cfg(not(test))]
+    #[inline(never)]
+    fn prepare_face(admission: Admission) -> Result<Self, SchedulerError> {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-        {
-            if canonical {
-                return Platform::<FACE_VALUE_BYTES>::new_face(admission)
-                    .map(|runtime| Self::Face(Box::new(runtime)));
-            }
-            Platform::<VALUE_BYTES>::new(admission).map(|runtime| Self::Legacy(Box::new(runtime)))
-        }
+        let runtime = Platform::<FACE_VALUE_BYTES>::new_face(admission)?;
         #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-        {
-            if canonical {
-                return admission
-                    .build_face()
-                    .map(|runtime| Self::Face(Box::new(runtime)));
-            }
-            admission
-                .build()
-                .map(|runtime| Self::Legacy(Box::new(runtime)))
-        }
+        let runtime = admission.build_face()?;
+        Ok(Self::Face(Box::new(runtime)))
+    }
+    // Hosted debug constructors need the same explicit finite fixture stack as
+    // runtime-core's Face profile tests. This does not enlarge a native stack
+    // or prove that the optimized protected Runtime stack fits.
+    #[cfg(test)]
+    fn prepare_face(admission: Admission) -> Result<Self, SchedulerError> {
+        std::thread::Builder::new()
+            .name("native-face-prepare-fixture".into())
+            .stack_size(8 * 1024 * 1024)
+            .spawn(move || admission.build_face().map(Box::new))
+            .map_err(|_| SchedulerError::InvalidPlan)?
+            .join()
+            .map_err(|_| SchedulerError::InvalidPlan)?
+            .map(Self::Face)
+    }
+    #[inline(never)]
+    fn prepare_legacy(admission: Admission) -> Result<Self, SchedulerError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let runtime = Platform::<VALUE_BYTES>::new(admission)?;
+        #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+        let runtime = admission.build()?;
+        Ok(Self::Legacy(Box::new(runtime)))
     }
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
         dispatch!(self, runtime => runtime.step())

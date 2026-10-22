@@ -94,3 +94,7 @@ pub(crate) fn invoke(
 pub(crate) fn key(usage: u8, transition: KeyTransition) -> KeyEvent {
     KeyEvent::new(usage, transition, KeyModifiers::from_bits(0)).unwrap()
 }
+
+#[path = "test_support_patchbay.rs"]
+mod patchbay;
+pub(crate) use patchbay::submit_patchbay;

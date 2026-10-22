@@ -110,25 +110,7 @@ impl ProductJourney {
         )));
         self.input_count = next_count;
         self.advance()?;
-        self.source_request_authorization = None;
-        if application_request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
-            let patchbay = native_workset::resident(native_workset::NativePlot::Patchbay)
-                .map_err(JourneyError::Workset)?;
-            self.select_plot(&patchbay, self.revision)?;
-        } else if application_request.is_some() {
-            if self.application_request.is_some() {
-                return Err(JourneyError::Play(
-                    native_workset::PlayRefusal::InputPressure,
-                ));
-            }
-            self.source_request_authorization = match &application_request {
-                Some(native_workset::NativeApplicationRequest::EditCurrent(request)) => {
-                    super::source_edit::request_digest(request).map(|digest| (digest, self.revision))
-                }
-                _ => None,
-            };
-            self.application_request = application_request;
-        }
+        self.retain_application_request(application_request)?;
         Ok(true)
     }
 

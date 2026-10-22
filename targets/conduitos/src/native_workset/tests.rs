@@ -118,8 +118,8 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    assert_eq!(prepared.lowered.nodes, 12);
-    assert_eq!(prepared.lowered.cords, 9);
+    assert_eq!(prepared.lowered.nodes, 10);
+    assert_eq!(prepared.lowered.cords, 8);
     assert_eq!(prepared.plan.plots.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
     assert_eq!(prepared.input_owners().len(), 4);
@@ -133,6 +133,7 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
                     conduit_semantic_catalog::KEYBOARD_KIND
                         | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
                         | conduit_semantic_catalog::FACE_EDITOR_KIND
+                        | patchbay_application::PATCHBAY_INTERACTION_KIND
                 )
             })
             .unwrap();
@@ -182,6 +183,16 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
                         |resource| resource.class_id.as_str() == keyboard_delivery::RESOURCE
                             && resource.units == 1
                     )
+            );
+        } else if source.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND {
+            assert_eq!(owner.port_id.as_str(), "interaction");
+            assert_eq!(
+                owner.value_kind.as_str(),
+                conduit_face::FACE_INTERACTION_VALUE_KIND
+            );
+            assert_eq!(
+                source.implementation_id.as_str(),
+                patchbay_ingress::IMPLEMENTATION
             );
         } else {
             assert_eq!(

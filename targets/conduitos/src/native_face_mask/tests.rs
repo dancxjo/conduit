@@ -17,7 +17,8 @@ fn compositor_refusal_keeps_its_specific_machine_reason() {
     );
 }
 
-struct CountingDisplay {
+#[derive(Default)]
+pub(crate) struct CountingDisplay {
     writes: u32,
     fail: bool,
 }

@@ -22,6 +22,7 @@ mod birth;
 mod graph_facts;
 mod projection;
 mod source_edit;
+mod patchbay;
 pub use source_edit::{SourceEditError, SourceEditReceipt, SourceEditRefusal};
 mod proposal;
 mod tutorial;
