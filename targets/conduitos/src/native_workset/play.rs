@@ -4,7 +4,10 @@ mod effect_binding;
 mod effects;
 use editor_encounter::EditorObservation;
 use effect_binding::{Binding, Effect};
+mod patchbay;
 mod preparation;
+mod runtime;
+use runtime::Runtime;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod protection;
 #[cfg(test)]
@@ -12,7 +15,6 @@ mod tests;
 
 use super::application_delivery::NativeApplications;
 use super::{AdmittedPlotInput, PreparedNativeWorkset, WorksetRefusal};
-use alloc::boxed::Box;
 use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 use conduit_kernel::{
     NodeId,
@@ -25,10 +27,6 @@ use conduitos_application_core::data::Kind;
 const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
 const NODES: usize = 14;
 const CORDS: usize = 10;
-#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-type Scheduler = conduitos_runtime_core::Scheduler;
-#[cfg(all(target_arch = "x86_64", target_os = "none"))]
-type Scheduler = crate::protected_runtime::Scheduler;
 
 mod refusal;
 pub use refusal::PlayRefusal;
@@ -64,7 +62,7 @@ pub struct NativeWorksetPlay {
     >; PLOTS],
     #[cfg(all(target_arch = "x86_64", target_os = "none"))]
     protection_admissions: [Option<crate::text_protection::BodyTextAdmission>; PLOTS],
-    scheduler: Box<Scheduler>,
+    scheduler: Runtime,
     bindings: [Option<Binding>; NODES],
     keymaps: [PreparedKeymap; PLOTS],
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -75,6 +73,7 @@ pub struct NativeWorksetPlay {
     editor_observations: [Option<EditorObservation>; PLOTS],
     application_views: [Option<conduit_face::ApplicationView>; PLOTS],
     applications: NativeApplications,
+    patchbay_inputs: [Option<patchbay::IngressState>; PLOTS],
     application_requests: [Option<super::NativeApplicationRequest>; PLOTS],
     input_owners: [Option<AdmittedPlotInput>; PLOTS],
     plot_count: usize,
@@ -198,16 +197,7 @@ impl NativeWorksetPlay {
         Ok(())
     }
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
-        {
-            #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-            {
-                self.scheduler.sign_retention_gap()
-            }
-            #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-            {
-                conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
-            }
-        }
+        self.scheduler.sign_retention_gap()
     }
     pub fn take_face(&mut self, plot: usize) -> Option<NativeFace> {
         if self.cancelled || !self.applications_live() {
@@ -240,6 +230,9 @@ impl NativeWorksetPlay {
         self.ensure_applications_live()?;
         let result = self.applications.select(patchbay, target);
         self.application_result(result)?;
+        if self.has_patchbay_fore(patchbay) {
+            return Ok(());
+        }
         let _ = self.take_application_view(patchbay);
         let request = self.pending[patchbay].ok_or(PlayRefusal::InputPressure)?;
         self.output(request, Some(&[]))?;
@@ -272,7 +265,8 @@ impl NativeWorksetPlay {
         let result = self.applications.topology(topology);
         self.application_result(result)?;
         for plot in 0..self.plot_count {
-            if self.applications.kind(plot) != Some(Kind::Patchbay) {
+            if self.applications.kind(plot) != Some(Kind::Patchbay) || self.has_patchbay_fore(plot)
+            {
                 continue;
             }
             let _ = self.take_application_view(plot);
@@ -388,6 +382,7 @@ impl NativeWorksetPlay {
         for keymap in &mut self.keymaps {
             keymap.reset();
         }
+        self.patchbay_inputs.fill_with(|| None);
         self.active_body_play = None;
         self.cancelled = true;
         self.faces.fill(None);
@@ -433,6 +428,7 @@ impl NativeWorksetPlay {
         self.application_requests.fill(None);
         self.held.fill(None);
         self.pure_results.fill_with(|| None);
+        self.patchbay_inputs.fill_with(|| None);
         self.active_body_play = None;
         self.faces.fill(None);
         self.editor_observations.fill(None);
@@ -459,7 +455,9 @@ impl NativeWorksetPlay {
             match self.scheduler.step().map_err(PlayRefusal::Scheduler)? {
                 SchedulerStatus::Progress { .. } => {}
                 SchedulerStatus::Idle
-                    if self.pending[..self.plot_count].iter().all(Option::is_some) =>
+                    if (0..self.plot_count).all(|plot| {
+                        self.pending[plot].is_some() || self.patchbay_inputs[plot].is_some()
+                    }) =>
                 {
                     return Ok(());
                 }

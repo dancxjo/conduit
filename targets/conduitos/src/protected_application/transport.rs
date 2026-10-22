@@ -241,6 +241,7 @@ fn record_command_refusal(command: &Command, error: Refusal) {
         Command::PrepareGraphProjection { .. } => ("prepare-graph-projection", None, None),
         Command::FinishGraphProjection => ("finish-graph-projection", None, None),
         Command::ProjectTutorial { .. } => ("project-tutorial", None, None),
+        Command::PatchbayCanonical { slot } => ("patchbay-canonical", Some(*slot), None),
         Command::PatchbayFragment { slot, .. } => ("patchbay-fragment", Some(*slot), None),
         Command::PatchbayPublish { slot, .. } => ("patchbay-publish", Some(*slot), None),
         Command::PatchbayConsume { slot, .. } => ("patchbay-consume", Some(*slot), None),

@@ -11,6 +11,7 @@ pub(super) enum Effect {
     ApplicationEvent,
     Application,
     ApplicationFace,
+    Patchbay,
 }
 #[derive(Clone, Copy)]
 pub(super) struct Binding {

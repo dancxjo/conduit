@@ -153,6 +153,20 @@ pub(crate) fn prepare_exact(
 
 fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, WorksetRefusal> {
     let fragment = plot.plan.fragments.first().ok_or(WorksetRefusal::Plan)?;
+    if let Some(placement) = fragment.placements.iter().find(|placement| {
+        placement.implementation_id.as_str() == super::patchbay_ingress::IMPLEMENTATION
+    }) {
+        let [fore] = fragment.fore_ports.as_slice() else {
+            return Err(WorksetRefusal::Plan);
+        };
+        return Ok(AdmittedPlotInput {
+            plot: plot.plot.clone(),
+            kind_id: placement.kind_id.clone(),
+            placement_id: placement.placement_id.clone(),
+            port_id: fore.gear_port_id.clone(),
+            value_kind: fore.value_kind.clone(),
+        });
+    }
     let placement = fragment
         .placements
         .iter()
@@ -263,6 +277,9 @@ fn host_inner(
     advertisement
         .capabilities
         .extend(super::application_delivery::offers(build_id));
+    advertisement
+        .capabilities
+        .push(super::patchbay_ingress::offer(build_id));
     Ok((advertisement, keyboard))
 }
 
@@ -285,7 +302,16 @@ fn plan_plots_inner(
 ) -> Result<Vec<BodyPlotPlan>, WorksetRefusal> {
     let mut plots = Vec::with_capacity(identities.len());
     for identity in identities {
-        let expanded = catalog::checked(catalog::resolve(identity)?)?;
+        let authored =
+            super::preparation::with_authoring(catalog::resolve(identity)?, Clone::clone)?;
+        if !authored.input_bindings.is_empty() {
+            plots.push(BodyPlotPlan {
+                plot: identity.clone(),
+                plan: super::patchbay_ingress::plan(&authored, advertisement)?,
+            });
+            continue;
+        }
+        let expanded = authored.expanded;
         let hosts = core::slice::from_ref(advertisement);
         let placements =
             default_expanded_placements(&expanded, hosts).map_err(|_| WorksetRefusal::Plan)?;

@@ -40,6 +40,7 @@ impl Builder {
                         selected: selected as usize,
                         publication: None,
                         publication_sequence: 0,
+                        canonical: false,
                     }))
                 }
                 _ => None,

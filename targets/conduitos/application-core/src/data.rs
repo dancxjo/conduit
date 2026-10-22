@@ -121,6 +121,9 @@ impl TutorialScope {
 // Keep the admitted finite payload inline in the shared application wire.
 #[allow(clippy::large_enum_variant)]
 pub enum Command {
+    PatchbayCanonical {
+        slot: u8,
+    },
     PatchbayFragment {
         slot: u8,
         body: conduit_body::BodyId,

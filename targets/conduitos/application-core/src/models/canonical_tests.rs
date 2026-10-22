@@ -88,3 +88,28 @@ fn canonical_refusal_keeps_interaction_and_actor_domain_categories_typed() {
         ))
     );
 }
+
+#[test]
+fn canonical_preparation_excludes_legacy_events_and_snapshot_production() {
+    let mut models = models();
+    let before = models
+        .patchbay_fragment(
+            0,
+            serde_json::from_str("\"body/native\"").unwrap(),
+            basis(),
+            true,
+        )
+        .unwrap();
+    models.canonical(0).unwrap();
+    assert!(models.snapshots().unwrap()[0].is_none());
+    assert!(matches!(models.apply(0, &[]), Err(Refusal::Order)));
+    let after = models
+        .patchbay_fragment(
+            0,
+            serde_json::from_str("\"body/native\"").unwrap(),
+            basis(),
+            true,
+        )
+        .unwrap();
+    assert_eq!(encode(&before).unwrap(), encode(&after).unwrap());
+}

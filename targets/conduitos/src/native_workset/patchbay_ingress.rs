@@ -66,6 +66,7 @@ pub(super) fn install_catalogs(
 }
 
 pub(super) struct Ingress {
+    pub checked_plot_id: conduit_core::CheckedPlotId,
     pub input: LoweredForePort,
     pub node: NodeId,
     pub plan_id: PlanId,
@@ -207,6 +208,7 @@ pub(super) fn admit(
         return Err(WorksetRefusal::Lowering);
     }
     Ok(Some(Ingress {
+        checked_plot_id: plan.checked_plot_id.clone(),
         input: input.clone(),
         node: node.node,
         plan_id: fragment.plan_id.clone(),
@@ -215,3 +217,57 @@ pub(super) fn admit(
         offer_generation: fragment.offer_generation,
     }))
 }
+
+/// Plan the authored return Fore in the same resident partition. No scheduler,
+/// actor or authority is constructed here; those belong to Body preparation.
+pub(super) fn plan(
+    authored: &conduit_plot::ExpandedAuthoringPlot,
+    host: &conduit_core::HostAdvertisement,
+) -> Result<Plan, WorksetRefusal> {
+    use alloc::collections::BTreeMap;
+    use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
+    let hosts = core::slice::from_ref(host);
+    let placements = conduit_planner::default_expanded_placements(&authored.expanded, hosts)
+        .map_err(|_| WorksetRefusal::Plan)?;
+    let limits = BTreeMap::from([(
+        ForeBoundaryKey {
+            direction: PortDirection::Input,
+            front_port_id: "interaction".into(),
+            track: ConnectionTrack::Payload,
+        },
+        ConnectionQueueLimits {
+            item_capacity: 1,
+            byte_capacity: BYTES,
+        },
+    )]);
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        authored,
+        hosts,
+        &placements,
+        &[],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: BYTES,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &limits,
+    )
+    .map_err(|_| WorksetRefusal::Plan)?;
+    let [fragment] = plan.fragments.as_slice() else {
+        return Err(WorksetRefusal::Plan);
+    };
+    let (lowered, _) = lower_plan_fragment_from_plan(&plan, &fragment.fragment_id)
+        .map_err(|_| WorksetRefusal::Lowering)?;
+    if admit(&plan, &lowered)?.is_none() {
+        return Err(WorksetRefusal::Plan);
+    }
+    Ok(plan)
+}
+
+#[cfg(test)]
+#[path = "patchbay_ingress_tests.rs"]
+mod tests;

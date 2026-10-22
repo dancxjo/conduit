@@ -37,6 +37,7 @@ fn prepare_inner(
     let mut admitted_editors = [false; PLOTS];
     let mut admitted_encounters = [false; PLOTS];
     let mut operation_count = 0;
+    let mut patchbay_inputs = core::array::from_fn(|_| None);
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
         if part.identity.plan_id != fragment.plan_id
@@ -46,6 +47,9 @@ fn prepare_inner(
         {
             return Err(WorksetRefusal::Plan);
         }
+        patchbay_inputs[plot] =
+            super::super::patchbay_ingress::admit(&prepared.plan.plots[plot].plan, part)?
+                .map(patchbay::IngressState::new);
         for node in &part.nodes {
             if usize::from(node.node.0) != operation_count {
                 return Err(WorksetRefusal::Lowering);
@@ -58,6 +62,12 @@ fn prepare_inner(
             let (effect, operation) = match placement.implementation_id.as_str() {
                 super::super::keyboard_delivery::IMPLEMENTATION => {
                     (Effect::Keyboard, BackKind::Keyboard)
+                }
+                super::super::patchbay_ingress::IMPLEMENTATION => {
+                    if patchbay_inputs[plot].is_none() {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    (Effect::Patchbay, BackKind::Face)
                 }
                 super::super::application_delivery::EVENT_IMPLEMENTATION => {
                     (Effect::ApplicationEvent, BackKind::Keyboard)
@@ -211,13 +221,17 @@ fn prepare_inner(
             return Err(WorksetRefusal::Kernel);
         }
     }
-    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-    let scheduler =
-        crate::protected_runtime::Scheduler::new(admission).map_err(|_| WorksetRefusal::Kernel)?;
-    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
-    let scheduler = admission.build().map_err(|_| WorksetRefusal::Kernel)?;
+    let scheduler = Runtime::prepare(admission, patchbay_inputs.iter().any(Option::is_some))
+        .map_err(|_| WorksetRefusal::Kernel)?;
     let initial = super::super::application_delivery::initial(prepared, evidence)?;
-    let applications = NativeApplications::new(initial).map_err(WorksetRefusal::Application)?;
+    let mut applications = NativeApplications::new(initial).map_err(WorksetRefusal::Application)?;
+    for (slot, input) in patchbay_inputs.iter().enumerate() {
+        if input.is_some() {
+            applications
+                .canonical(slot)
+                .map_err(WorksetRefusal::Application)?;
+        }
+    }
     Ok(NativeWorksetPlay {
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         pure_results: core::array::from_fn(|_| None),
@@ -227,7 +241,7 @@ fn prepare_inner(
         protection_admissions: core::array::from_fn(|index| {
             prepared.protected_text.get(index).cloned().flatten()
         }),
-        scheduler: Box::new(scheduler),
+        scheduler,
         bindings,
         keymaps,
         #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
@@ -238,6 +252,7 @@ fn prepare_inner(
         editor_observations: core::array::from_fn(|_| None),
         application_views: core::array::from_fn(|_| None),
         applications,
+        patchbay_inputs,
         application_requests: core::array::from_fn(|_| None),
         input_owners: core::array::from_fn(|index| prepared.input_owners.get(index).cloned()),
         plot_count: count,

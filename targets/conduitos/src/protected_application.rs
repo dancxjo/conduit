@@ -110,6 +110,16 @@ impl Owner {
         self.abort();
         Err(Refusal::Malformed)
     }
+    pub fn canonical(&mut self, slot: usize) -> Result<(), Refusal> {
+        if self.kind(slot) != Some(Kind::Patchbay) {
+            return Err(Refusal::Order);
+        }
+        self.prepared(&Command::PatchbayCanonical { slot: slot as u8 })?;
+        self.canonical_slots[slot] = true;
+        self.snapshots[slot] = None;
+        self.publications[slot] = None;
+        Ok(())
+    }
     pub fn kind(&self, slot: usize) -> Option<Kind> {
         if !self.is_live() {
             return None;
@@ -199,7 +209,10 @@ impl Owner {
             };
             for (slot, snapshot) in snapshots.iter().enumerate() {
                 match (self.kinds[slot], snapshot) {
-                    (Some(_), Some(snapshot)) => self.snapshot(slot, snapshot)?,
+                    (Some(Kind::Patchbay), None) if self.canonical_slots[slot] => {}
+                    (Some(_), Some(snapshot)) if !self.canonical_slots[slot] => {
+                        self.snapshot(slot, snapshot)?
+                    }
                     (None, None) => {}
                     _ => return Err(Refusal::Malformed),
                 }

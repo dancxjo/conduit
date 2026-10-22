@@ -10,6 +10,9 @@ impl NativeWorksetPlay {
         binding: Binding,
     ) -> Result<(), PlayRefusal> {
         let plot = usize::from(binding.plot);
+        if binding.effect == Effect::Patchbay {
+            return self.consume_patchbay(plot, request);
+        }
         let input = self
             .scheduler
             .host_value(request.input.value)
@@ -181,7 +184,7 @@ impl NativeWorksetPlay {
                 }
                 Ok(())
             }
-            Effect::Keyboard | Effect::ApplicationEvent | Effect::Editor => {
+            Effect::Keyboard | Effect::ApplicationEvent | Effect::Editor | Effect::Patchbay => {
                 Err(PlayRefusal::Kernel)
             }
         }

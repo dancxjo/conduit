@@ -11,6 +11,7 @@ pub struct Patchbay {
     selected: usize,
     publication: Option<Box<canonical::Publication>>,
     publication_sequence: u64,
+    canonical: bool,
 }
 enum Application {
     Tutorial(Tutorial),
@@ -47,6 +48,20 @@ impl Models {
             Application::Tour(_) => Some(Kind::Tour),
             Application::Patchbay(_) => Some(Kind::Patchbay),
         }
+    }
+    /// One-way preparation of the canonical resident route, preserving actor and
+    /// consumed-Show watermark. It never creates an input or replenishes authority.
+    pub fn canonical(&mut self, slot: usize) -> Result<(), Refusal> {
+        let Some(Application::Patchbay(p)) =
+            self.applications.get_mut(slot).and_then(Option::as_mut)
+        else {
+            return Err(Refusal::Order);
+        };
+        if p.publication.is_some() {
+            return Err(Refusal::Order);
+        }
+        p.canonical = true;
+        Ok(())
     }
     pub fn graph(&self, slot: usize) -> Option<&PatchbayGraph> {
         let Application::Patchbay(p) = self.applications.get(slot)?.as_ref()? else {
@@ -89,6 +104,9 @@ impl Models {
                 (out.view, request, context)
             }
             Application::Patchbay(p) => {
+                if p.canonical {
+                    return Err(Refusal::Order);
+                }
                 p.publication = None;
                 let out = p.ports[p.selected]
                     .as_mut()
@@ -163,6 +181,10 @@ impl Models {
     pub fn snapshots(&mut self) -> Result<[Option<Snapshot>; SLOTS], Refusal> {
         let mut out = core::array::from_fn(|_| None);
         for (slot, target) in out.iter_mut().enumerate() {
+            if matches!(self.applications[slot].as_ref(), Some(Application::Patchbay(p)) if p.canonical)
+            {
+                continue;
+            }
             if self.kind(slot).is_some() {
                 let (snapshot, proposal) = self.apply(slot, &[])?;
                 if proposal.is_some() {
@@ -175,6 +197,10 @@ impl Models {
     }
     pub fn execute(&mut self, command: Command) -> Result<Reply, Refusal> {
         match command {
+            Command::PatchbayCanonical { slot } => {
+                self.canonical(usize::from(slot))?;
+                Ok(Reply::Prepared)
+            }
             Command::PatchbayFragment {
                 slot,
                 body,

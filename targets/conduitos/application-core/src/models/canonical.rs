@@ -96,6 +96,7 @@ impl Models {
         if !matches {
             return fail(CanonicalRefusal::InvalidContribution);
         }
+        p.canonical = true;
         p.publication_sequence = show.show.play_sequence;
         p.publication = Some(Box::new(Publication {
             body,
