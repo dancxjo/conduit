@@ -225,8 +225,10 @@ mod tests {
             let observer = Observer::new();
             assert_eq!(observer.admit(), Admission::Record(0));
             if counter_failure {
-                let mut saturated = PreparationCacheStats::default();
-                saturated.checks = u64::MAX;
+                let saturated = PreparationCacheStats {
+                    checks: u64::MAX,
+                    ..PreparationCacheStats::default()
+                };
                 assert!(delta(PreparationCacheStats::default(), saturated).is_none());
             }
             assert!(observer.freeze());
