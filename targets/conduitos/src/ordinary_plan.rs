@@ -182,16 +182,43 @@ pub fn prepare_source(
     }
     #[allow(unused_mut)]
     let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
-        .map_err(|_| PreparationError::KernelRejected)?;
+        .map_err(|error| {
+            #[cfg(all(
+                target_os = "none",
+                target_arch = "x86_64",
+                feature = "ordinary-domain-proof"
+            ))]
+            crate::ordinary_domain_proof::preparation_observation(
+                "text-kernel",
+                match error {
+                    conduit_kernel::scheduler::SchedulerError::InvalidPlan => "invalid-plan",
+                    conduit_kernel::scheduler::SchedulerError::Cancelled => "cancelled",
+                    conduit_kernel::scheduler::SchedulerError::InvalidHostCallAccess => {
+                        "invalid-host-call-access"
+                    }
+                    _ => "scheduler-error",
+                },
+            );
+            let _ = error;
+            PreparationError::KernelRejected
+        })?;
     let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
     #[cfg(conduitos_protected_execution)]
     kernel
         .protect(&plan, &active_play, fixed_offer)
-        .map_err(|error| match error {
-            crate::composition::MachineRunError::ProtectionDomain(refusal) => {
-                PreparationError::Protection(refusal)
+        .map_err(|error| {
+            #[cfg(all(
+                target_os = "none",
+                target_arch = "x86_64",
+                feature = "ordinary-domain-proof"
+            ))]
+            crate::ordinary_domain_proof::preparation_observation("text-protect", error.as_str());
+            match error {
+                crate::composition::MachineRunError::ProtectionDomain(refusal) => {
+                    PreparationError::Protection(refusal)
+                }
+                _ => PreparationError::KernelRejected,
             }
-            _ => PreparationError::KernelRejected,
         })?;
     Ok(PreparedOrdinaryPlay {
         kernel,

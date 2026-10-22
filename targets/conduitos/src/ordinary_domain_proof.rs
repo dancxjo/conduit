@@ -67,6 +67,15 @@ pub fn run(record: &boot::BootRecord) -> ! {
     arch::deterministic_exit(true)
 }
 
+/// Closed proof-only preparation observations, outside measured intervals.
+pub(crate) fn preparation_observation(stage: &'static str, error: &'static str) {
+    arch::early_write(b"CONDUIT_PREPARATION_REFUSAL stage=");
+    arch::early_write(stage.as_bytes());
+    arch::early_write(b" error=");
+    arch::early_write(error.as_bytes());
+    arch::early_write(b"\n");
+}
+
 fn hostile_entries() {
     use crate::protected_region::{DomainBackend, DomainFault, DomainReturn};
     let private = 0x5a5a_5a5a_u64;
