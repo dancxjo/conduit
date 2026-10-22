@@ -136,15 +136,6 @@ pub(super) fn catalogs(
         .map_err(|error| error.to_string())?;
     conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
     conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
-    let interaction = patchbay_application::patchbay_interaction_contract();
-    startup.insert(conduit_plot::KindSignature {
-        kind: interaction.kind_id.as_str().into(),
-        startup_parameters: Vec::new(),
-    })?;
-    startup.insert_fore(interaction.kind_id.as_str(), interaction.checked_front())?;
-    profile
-        .insert_kind(interaction)
-        .map_err(|error| error.to_string())?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;
