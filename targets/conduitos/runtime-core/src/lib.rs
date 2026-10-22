@@ -11,10 +11,13 @@ pub const CORDS: usize = 10;
 pub const PORTS: usize = 16;
 pub const ROUTES: usize = NODES * PORTS;
 pub const VALUE_BYTES: usize = 3072;
+pub const FACE_VALUE_BYTES: usize = 8192;
 pub const SIGN_ITEMS: usize = 1024;
-pub type Scheduler = conduit_kernel::scheduler::FixedScheduler<
+pub type Scheduler = NativeScheduler<VALUE_BYTES>;
+pub type FaceScheduler = NativeScheduler<FACE_VALUE_BYTES>;
+pub type NativeScheduler<const VALUE: usize> = conduit_kernel::scheduler::FixedScheduler<
     backs::PlannedBack,
-    conduit_kernel::FixedValueStore<10, VALUE_BYTES>,
+    conduit_kernel::FixedValueStore<10, VALUE>,
     conduit_kernel::FixedSignLog<SIGN_ITEMS>,
     NODES,
     CORDS,
@@ -33,3 +36,6 @@ pub mod memory {
     pub const METADATA_BYTES: usize = 1024 * 1024;
     pub const STATE: usize = METADATA + 4096;
 }
+
+#[cfg(test)]
+mod face_profile_tests;
