@@ -688,7 +688,7 @@
     },
     {
       "role": "owner-face-look",
-      "kind": "style",
+      "kind": "content",
       "path": "owner-face-look.css",
       "source": "../handbook/owner-face-look.css",
       "maximum_bytes": 16384,
