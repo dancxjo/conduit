@@ -3,6 +3,7 @@
 //! from a fixture or a retired Tour surface.
 
 mod creche_choices;
+mod creche_controls;
 mod creche_pointer;
 mod face_correspondence;
 mod face_input;
@@ -44,7 +45,16 @@ pub fn execute_viewport(
     }
     let built = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    execute_with_viewport(opts, &paths.iso, built.iso_sha256, false, None, viewport).map(|_| ())
+    execute_with_viewport(
+        opts,
+        &paths.iso,
+        built.iso_sha256,
+        false,
+        None,
+        viewport,
+        false,
+    )
+    .map(|_| ())
 }
 
 pub(super) fn execute_supplied(
@@ -61,7 +71,7 @@ pub(super) fn execute_supplied_viewport(
     image_sha256: String,
     viewport: Option<super::proof_viewport::Viewport>,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport)
+    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, false)
 }
 
 pub(super) fn execute_supplied_observed(
@@ -71,8 +81,17 @@ pub(super) fn execute_supplied_observed(
     observe: bool,
     output: Option<&Path>,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    execute_with_viewport(opts, image_path, image_sha256, observe, output, None)
+    execute_with_viewport(opts, image_path, image_sha256, observe, output, None, false)
 }
+pub(super) fn execute_controls(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, true)
+}
+#[allow(clippy::too_many_arguments)]
 fn execute_with_viewport(
     opts: &GlobalOpts,
     image_path: &Path,
@@ -80,6 +99,7 @@ fn execute_with_viewport(
     observe: bool,
     output: Option<&Path>,
     viewport: Option<super::proof_viewport::Viewport>,
+    controls: bool,
 ) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
         return Err(refusal("a live product journey needs a real guest"));
@@ -173,6 +193,18 @@ fn execute_with_viewport(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
         journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
+        if controls {
+            return creche_controls::exercise(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+                &paths.target,
+                &source,
+                &image_sha256,
+            );
+        }
         artifacts.capture(&mut qmp, &mut reader, "creche-ready", false)?;
         let look_selection = if observe {
             json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})

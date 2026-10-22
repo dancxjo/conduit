@@ -130,6 +130,8 @@ pub(super) enum ConduitosCommand {
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
     JourneyProof(proof_viewport::JourneyArgs),
+    /// Exercise current Crèche naming and controls on the canonical live image.
+    CrecheControlsProof(proof_viewport::JourneyArgs),
     /// Observe instrumented graphical startup and the real native journey.
     NativeLatencyProof(native_latency::NativeLatencyArgs),
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.

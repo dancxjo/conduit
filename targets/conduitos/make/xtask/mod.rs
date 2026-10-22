@@ -561,6 +561,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::JourneyProof(args) => {
             journey_proof::execute_viewport(opts, args.viewport)
         }
+        ConduitosCommand::CrecheControlsProof(args) => {
+            graphical_profile_proof::execute_controls(opts, args.viewport)
+        }
         ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(&args, opts),
         ConduitosCommand::GraphicalProfileProof(args) => {
             graphical_profile_proof::execute_viewport(opts, args.viewport)

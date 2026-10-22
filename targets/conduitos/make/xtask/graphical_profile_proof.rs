@@ -87,6 +87,39 @@ pub(super) fn execute_viewport(
     Ok(())
 }
 
+/// Separate bounded control proof: no normal-journey or headless-gallery claim.
+pub(super) fn execute_controls(
+    opts: &GlobalOpts,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<(), ConduitosError> {
+    if opts.dry_run {
+        return Err(ConduitosError::refusal(
+            "creche-controls-requires-boot",
+            "a real canonical image and guest are required",
+        ));
+    }
+    let paths = Paths::new(ConduitosArch::X86_64)?;
+    let source = clean_head(&paths.root)?;
+    live_media::build(live_media::LiveHost::X86_64, opts)?;
+    let image = paths
+        .root
+        .join("target/conduitos/live/x86_64-pc/conduitos-x86_64.iso");
+    let digest = sha256_file(&image)?;
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(image.with_file_name("build-manifest.json")).map_err(io_error)?,
+    )
+    .map_err(|error| ConduitosError::refusal("creche-controls-build-invalid", error.to_string()))?;
+    validate_viewport_build(&manifest, &source, &digest)?;
+    journey_proof::execute_controls(opts, &image, digest, viewport)?;
+    if clean_head(&paths.root)? != source {
+        return Err(ConduitosError::refusal(
+            "creche-controls-source-changed",
+            "source changed during the proof",
+        ));
+    }
+    Ok(())
+}
+
 fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("graphical-profile-evidence-unavailable", error.to_string())
 }
