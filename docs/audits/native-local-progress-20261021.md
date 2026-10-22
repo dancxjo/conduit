@@ -1553,3 +1553,9 @@ this does not change or prove the native 1 MiB stack. The linked native local
 frame reservations are documented in the Runtime service README, with complete
 peak stack/timing explicitly unproven. The integrated freestanding library
 check passes; no QEMU, CI or release campaign was run.
+
+The checkpoint was synchronized with `dev` through `63ac09331` (#6222/#6224)
+without conflicts. The post-sync freestanding native-compositor library check
+passed at `1ae49e2bc` in 7.56 seconds. The newly linked Runtime's three documented
+local stack reservations were inspected again and remain unchanged; this is
+partial static evidence, not complete peak-stack or guest-execution proof.
