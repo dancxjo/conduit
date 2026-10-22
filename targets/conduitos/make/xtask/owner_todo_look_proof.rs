@@ -184,8 +184,16 @@ pub(super) fn exercise(
                     || record["owner_host"] != first["owner_host"]
             })
             || prior_show.as_ref().is_some_and(|prior| {
-                show.show.plan_id == prior.show.plan_id
-                    || show.show.host_id != prior.show.host_id
+                // User preferences are admitted beneath the same sealed Mask
+                // configuration; a new Show does not imply a different Plan.
+                (if args.user_overrides {
+                    show.planned_mask != prior.planned_mask
+                        || origin
+                            .as_ref()
+                            .is_none_or(|first| config != &first["configuration"])
+                } else {
+                    show.show.plan_id == prior.show.plan_id
+                }) || show.show.host_id != prior.show.host_id
                     || show.show.boot_id != prior.show.boot_id
                     || show.show.offer_generation != prior.show.offer_generation
             })

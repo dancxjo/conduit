@@ -338,7 +338,9 @@ with `--look-selection`. Its three replacements select compact editorial,
 require 200% text through F9, then enable platform forced colors through
 Shift+F9 while retaining 200% text. The existing exact Face, component, recipe,
 owner acknowledgement, focus and full action-order checks apply to every
-replacement. Motion must remain disabled. The scenario changes only the proof
+replacement. Override steps require the exact same sealed Mask Plan and
+configuration with a fresh acknowledged Show: user constraints do not invent
+a new Plan. Motion must remain disabled. The scenario changes only the proof
 key sequence; it does not extend the grant or mutate the Body. Running it is
 required before claiming actual native override enactment; the option alone
 is not evidence of that result.
