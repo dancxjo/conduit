@@ -4,6 +4,7 @@ mod catalog;
 mod eligibility;
 mod keyboard_delivery;
 mod planning;
+mod patchbay_ingress;
 mod play;
 mod preparation;
 mod text_state;
