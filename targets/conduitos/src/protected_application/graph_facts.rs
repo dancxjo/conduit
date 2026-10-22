@@ -48,10 +48,10 @@ impl Owner {
         };
         if result.is_err() {
             self.failed.set(true);
-            if let Ok(mut slot) = self.service.try_borrow_mut() {
-                if let Some(mut service) = slot.take() {
-                    service.quarantine();
-                }
+            if let Ok(mut slot) = self.service.try_borrow_mut()
+                && let Some(mut service) = slot.take()
+            {
+                service.quarantine();
             }
         }
         result
@@ -61,15 +61,14 @@ fn role(graph: &PatchbayGraph, id: &str) -> Option<FaceRole> {
     if id == format!("plot/{}", graph.checked_plot_id.as_str()) {
         return Some(FaceRole::Plot);
     }
-    if let Some(raw) = id.strip_prefix("gear/") {
-        if graph.gears.iter().any(|gear| gear.identity == raw)
-            || graph.compositions.iter().any(|gear| gear.identity == raw)
-        {
-            return Some(FaceRole::Gear);
-        }
+    if let Some(raw) = id.strip_prefix("gear/")
+        && (graph.gears.iter().any(|gear| gear.identity == raw)
+            || graph.compositions.iter().any(|gear| gear.identity == raw))
+    {
+        return Some(FaceRole::Gear);
     }
-    if let Some(raw) = id.strip_prefix("port/") {
-        if graph
+    if let Some(raw) = id.strip_prefix("port/")
+        && (graph
             .front_inputs
             .iter()
             .chain(&graph.front_outputs)
@@ -85,15 +84,14 @@ fn role(graph: &PatchbayGraph, id: &str) -> Option<FaceRole> {
                     .iter()
                     .chain(&gear.outputs)
                     .any(|port| port.identity == raw)
-            })
-        {
-            return Some(FaceRole::Port);
-        }
+            }))
+    {
+        return Some(FaceRole::Port);
     }
-    if let Some(raw) = id.strip_prefix("cord/") {
-        if graph.cords.iter().any(|cord| cord.identity == raw) {
-            return Some(FaceRole::Cord);
-        }
+    if let Some(raw) = id.strip_prefix("cord/")
+        && graph.cords.iter().any(|cord| cord.identity == raw)
+    {
+        return Some(FaceRole::Cord);
     }
     None
 }

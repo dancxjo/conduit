@@ -191,10 +191,10 @@ impl Owner {
     fn read_result<T>(&self, result: Result<T, Refusal>) -> Result<T, Refusal> {
         if result.is_err() {
             self.failed.set(true);
-            if let Ok(mut slot) = self.service.try_borrow_mut() {
-                if let Some(mut service) = slot.take() {
-                    service.quarantine();
-                }
+            if let Ok(mut slot) = self.service.try_borrow_mut()
+                && let Some(mut service) = slot.take()
+            {
+                service.quarantine();
             }
         }
         result
