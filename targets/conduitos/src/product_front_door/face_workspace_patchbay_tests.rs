@@ -7,6 +7,15 @@ use conduit_face::FaceInteractionArgument;
 
 #[test]
 fn installed_patchbay_typed_edit_opens_actual_source_editor_once() {
+    edit_once(false);
+}
+
+#[test]
+fn installed_patchbay_keyboard_choice_opens_actual_source_editor_once() {
+    edit_once(true);
+}
+
+fn edit_once(keyboard: bool) {
     let (mut journey, mut door, mut workspace, mut display) = tests::encounter();
     let patchbay = native_workset::resident(NativePlot::Patchbay).unwrap();
     journey.select_plot(&patchbay, journey.revision()).unwrap();
@@ -28,20 +37,87 @@ fn installed_patchbay_typed_edit_opens_actual_source_editor_once() {
         .iter()
         .find(|action| action.identity == patchbay_application::EDIT_CURRENT_ACTION_ID)
         .unwrap();
-    let input = FaceInteraction::new(
-        &face,
-        &show,
-        &action.identity,
-        &action.target,
-        alloc::vec![FaceInteractionArgument {
-            name: "subject".into(),
-            value_kind: action.arguments[0].contract.value_kind.as_str().into(),
-            value: subject.into_bytes()
-        }],
-        1,
-    )
-    .unwrap();
-    let delivered = workspace.mask.submit(input).unwrap();
+    let delivered = if keyboard {
+        workspace
+            .mask
+            .focus_named(
+                &crate::native_face_scene::FaceFocusRequest {
+                    action_id: action.identity.clone(),
+                    argument_name: Some("subject".into()),
+                },
+                &mut display,
+            )
+            .unwrap();
+        let before_choice = journey.projection();
+        let right = conduit_human::KeyEvent::new(
+            79,
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::NONE,
+        )
+        .unwrap();
+        assert!(matches!(
+            workspace.mask.key(right, 1, &mut display).unwrap(),
+            NativeFaceMaskInput::Redrawn(_)
+        ));
+        assert_eq!(
+            journey.projection(),
+            before_choice,
+            "choosing is only a Mask-local draft"
+        );
+        let tab = conduit_human::KeyEvent::new(
+            43,
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::NONE,
+        )
+        .unwrap();
+        assert!(matches!(
+            workspace.mask.key(tab, 2, &mut display).unwrap(),
+            NativeFaceMaskInput::Redrawn(_)
+        ));
+        assert_eq!(
+            journey.projection(),
+            before_choice,
+            "leaving a command argument must not execute it"
+        );
+        workspace
+            .mask
+            .focus_named(
+                &crate::native_face_scene::FaceFocusRequest {
+                    action_id: action.identity.clone(),
+                    argument_name: Some("subject".into()),
+                },
+                &mut display,
+            )
+            .unwrap();
+        workspace.mask.key(right, 3, &mut display).unwrap();
+        let enter = conduit_human::KeyEvent::new(
+            40,
+            conduit_human::KeyTransition::Pressed,
+            conduit_human::KeyModifiers::NONE,
+        )
+        .unwrap();
+        let NativeFaceMaskInput::Submitted { correlation, .. } =
+            workspace.mask.key(enter, 4, &mut display).unwrap()
+        else {
+            panic!("Enter must submit the offered subject choice");
+        };
+        correlation.interaction
+    } else {
+        let input = FaceInteraction::new(
+            &face,
+            &show,
+            &action.identity,
+            &action.target,
+            alloc::vec![FaceInteractionArgument {
+                name: "subject".into(),
+                value_kind: action.arguments[0].contract.value_kind.as_str().into(),
+                value: subject.into_bytes()
+            }],
+            1,
+        )
+        .unwrap();
+        workspace.mask.submit(input).unwrap().interaction
+    };
     let before = journey.projection();
     let (ids, offer, _) = crate::product_journey::test_support::fixture();
     let make = MakeRecord {
@@ -57,7 +133,7 @@ fn installed_patchbay_typed_edit_opens_actual_source_editor_once() {
             &offer,
             &make,
             &show,
-            &delivered.interaction,
+            &delivered,
         )
         .unwrap();
     let after = journey.projection();
@@ -83,7 +159,7 @@ fn installed_patchbay_typed_edit_opens_actual_source_editor_once() {
             &offer,
             &make,
             &show,
-            &delivered.interaction
+            &delivered
         ),
         Err("workspace-face-show-not-selected")
     );

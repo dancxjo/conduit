@@ -88,8 +88,8 @@ impl NativeFaceScene {
 
     /// Pointer coordinates use the exact currently displayed page. Clicking a
     /// field focuses it; clicking an argument-free action submits it. Dirty
-    /// replacement input commits before changing focus, returning a fresh-focus
-    /// request instead of applying a second action under the old Show.
+    /// field replacement commits before changing focus. Command-argument drafts
+    /// cancel on leaving their action; they require explicit submission.
     pub fn pointer(
         &mut self,
         x: i16,
@@ -112,14 +112,19 @@ impl NativeFaceScene {
             return Ok(FaceSceneInput::Unchanged);
         }
         let control = self.frame()?.hit_test(x, y).map(|hit| hit.control);
+        let cancelled = self.discard_command_draft_for(control);
         let Some(control) = control else {
-            return if self.input.action.is_some() {
+            return if self.commit_on_navigation() {
                 self.commit(show, sequence, None)
             } else {
-                Ok(FaceSceneInput::Unchanged)
+                Ok(if cancelled {
+                    FaceSceneInput::Changed
+                } else {
+                    FaceSceneInput::Unchanged
+                })
             };
         };
-        if self.input.action.is_some()
+        if self.commit_on_navigation()
             && self.focus != Some(control)
             && !(self.input.action == Some(control.action)
                 && self.input.values.iter().any(Option::is_none))
@@ -181,7 +186,7 @@ impl NativeFaceScene {
                     let next = self
                         .focus_next(forward)
                         .map(|control| self.focus_request(control));
-                    if self.input.action.is_some()
+                    if self.commit_on_navigation()
                         && !(self
                             .focus
                             .is_some_and(|control| self.input.action == Some(control.action))
@@ -191,13 +196,15 @@ impl NativeFaceScene {
                         self.page = old_page;
                         return self.commit(show, sequence, next);
                     }
+                    self.discard_command_draft_for(self.focus);
                     self.input.keymap.reset();
                     return Ok(FaceSceneInput::Changed);
                 }
                 59 | 60 | 75 | 78 => {
-                    if self.input.action.is_some() {
+                    if self.commit_on_navigation() {
                         return self.commit(show, sequence, None);
                     }
+                    self.discard_command_draft_for(None);
                     if event.usage() == 59 {
                         self.show_details(self.showing_diagram || !self.showing_details);
                     } else if event.usage() == 60 {
@@ -351,6 +358,29 @@ impl NativeFaceScene {
                 argument_name: None,
             }),
         })
+    }
+
+    // Source text-entry fields retain their established blur-commit behavior.
+    // A command's argument draft is not an action: navigation cancels it.
+    fn commit_on_navigation(&self) -> bool {
+        self.input
+            .action
+            .and_then(|index| self.face.actions.get(index))
+            .is_some_and(|action| {
+                self.face.subjects.iter().any(|subject| {
+                    subject.identity == action.target
+                        && subject.role == conduit_face::FaceRole::TextEntry
+                })
+            })
+    }
+    fn discard_command_draft_for(&mut self, next: Option<FaceControl>) -> bool {
+        let discard = self.input.action.is_some()
+            && !self.commit_on_navigation()
+            && next.map(|control| control.action) != self.input.action;
+        if discard {
+            self.input = InputState::default();
+        }
+        discard
     }
 
     fn commit(
