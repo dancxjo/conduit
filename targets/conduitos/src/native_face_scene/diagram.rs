@@ -8,10 +8,10 @@ use conduit_face::{
 
 #[path = "diagram_geometry.rs"]
 mod geometry;
-#[path = "diagram/selection.rs"]
-mod selection;
-use geometry::{DiagramGeometry, GAP, GearHits, PORT_ROW, visible_ports};
-pub(super) use selection::hit_test;
+use geometry::{DiagramGeometry, GAP, PORT_ROW, visible_ports};
+#[path = "diagram_hits.rs"]
+mod hit_regions;
+use hit_regions::DiagramHits;
 const MAX_VISIBLE_LINKS: usize = 12;
 
 pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
@@ -62,7 +62,7 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         .iter()
         .filter(|cord| endpoints(face, &gears, cord, height).is_some())
         .count();
-    let shown = eligible.min(MAX_VISIBLE_LINKS);
+    let shown = eligible.min(link_capacity(face, &gears, height));
     if screen.width < 640 {
         alloc::format!(
             "{} · {shown}/{} cords shown · {} omitted · F2/F3",
@@ -72,12 +72,31 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         )
     } else {
         alloc::format!(
-            "{} · {shown}/{} cords · {} omitted · Alt+arrows inspect · F2/F3",
+            "{} · Tab subjects · {shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
             ordering.label(),
             cords.len(),
             cords.len() - shown
         )
     }
+}
+
+/// Cards, their Port rows and overflow notices are mandatory on this page.
+/// Admit Cord paths from the commands left after those rows and shared chrome;
+/// reporting and pointer selection use the exact same visible prefix.
+fn link_capacity(face: &Face, gears: &[&FaceSubject], height: u16) -> usize {
+    let cards: usize = gears
+        .iter()
+        .map(|gear| {
+            let count = ports(face, gear).count();
+            let shown = visible_ports(height, count).min(count);
+            2 + usize::from(!gear_labels(&gear.name).1.is_empty())
+                + shown
+                + usize::from(count > shown && height >= 90)
+        })
+        .sum();
+    conduit_face::MAX_GRAPHICS_COMMANDS
+        .saturating_sub(super::chrome::COMMANDS + cards)
+        .min(MAX_VISIBLE_LINKS)
 }
 
 fn endpoints(
@@ -98,7 +117,7 @@ pub(super) fn append<'a>(
     face: &'a Face,
     screen: LayoutRect,
     page: usize,
-) -> Result<GearHits<'a>, FaceSceneError> {
+) -> Result<DiagramHits<'a>, FaceSceneError> {
     let gear_count = face
         .subjects
         .iter()
@@ -114,13 +133,14 @@ pub(super) fn append<'a>(
         geometry.capacity(),
     );
     let card = |index| geometry.card(index);
-    let hits = core::array::from_fn(|index| {
+    let mut hits = DiagramHits::new(core::array::from_fn(|index| {
         gears
             .get(index)
             .map(|gear| (card(index), gear.identity.as_str()))
-    });
+    }));
     // Paths go underneath their endpoint cards and use only endpoints whose
     // exact Port subject and directional contract are visible on this page.
+    let maximum_links = link_capacity(face, &gears, height);
     let mut visible_links = 0;
     for cord in face
         .subjects
@@ -132,15 +152,37 @@ pub(super) fn append<'a>(
         else {
             continue;
         };
-        if visible_links == MAX_VISIBLE_LINKS {
+        if visible_links == maximum_links {
             break;
         }
-        let path =
-            selection::cord_path(card(source_index), card(sink_index), source_row, sink_row)?;
+        let from = card(source_index);
+        let to = card(sink_index);
+        let (start_x, end_x) = if from.x <= to.x {
+            (from.x + from.width as i16 - 1, to.x)
+        } else {
+            (from.x, to.x + to.width as i16 - 1)
+        };
+        let start_y = from.y + 80 + source_row as i16 * PORT_ROW as i16;
+        let end_y = to.y + 80 + sink_row as i16 * PORT_ROW as i16;
+        let middle = if from.x == to.x {
+            from.x + from.width as i16 + GAP as i16 / 2
+        } else {
+            start_x + (end_x - start_x) / 2
+        };
+        let mut points = Vec::with_capacity(4);
+        points.push(GraphicsPoint::new(start_x, start_y).map_err(|_| FaceSceneError::SceneBound)?);
+        if start_y != end_y {
+            points
+                .push(GraphicsPoint::new(middle, start_y).map_err(|_| FaceSceneError::SceneBound)?);
+            points.push(GraphicsPoint::new(middle, end_y).map_err(|_| FaceSceneError::SceneBound)?);
+        }
+        points.push(GraphicsPoint::new(end_x, end_y).map_err(|_| FaceSceneError::SceneBound)?);
+        let path = GraphicsPath::new(&points).map_err(|_| FaceSceneError::SceneBound)?;
         push(
             scene,
             GraphicsCommand::path(path, screen, GraphicsPaintRole::Accent),
         )?;
+        hits.cords[visible_links] = Some((path, cord.identity.as_str()));
         visible_links += 1;
     }
     for (index, gear) in gears.into_iter().enumerate() {
@@ -187,7 +229,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     GraphicsPaintRole::Muted,
-                    &preview(&readable(origin), 40),
+                    &preview(
+                        &readable(origin),
+                        crate::display::typography::TextRole::Body,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
             )?;
@@ -202,6 +248,15 @@ pub(super) fn append<'a>(
                 GraphicsPaintRole::Muted
             };
             let y = bounds.y + 70 + row as i16 * PORT_ROW as i16;
+            hits.ports[index * 4 + row] = Some((
+                LayoutRect {
+                    x: bounds.x + 12,
+                    y,
+                    width: bounds.width - 24,
+                    height: 23,
+                },
+                port.identity.as_str(),
+            ));
             push(
                 scene,
                 GraphicsCommand::text(
@@ -213,7 +268,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     paint,
-                    &preview(&super::ports::label(face, port), 30),
+                    &preview(
+                        &super::ports::label(face, port),
+                        crate::display::typography::TextRole::Label,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
             )?;
@@ -231,7 +290,11 @@ pub(super) fn append<'a>(
                     },
                     screen,
                     GraphicsPaintRole::Muted,
-                    &more,
+                    &preview(
+                        &more,
+                        crate::display::typography::TextRole::Body,
+                        bounds.width - 24,
+                    )?,
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
             )?;
@@ -307,15 +370,15 @@ fn property_text<'a>(face: &'a Face, subject: &str, name: &str) -> Option<&'a st
     })
 }
 
-fn preview(value: &str, limit: usize) -> alloc::string::String {
-    if value.chars().count() <= limit {
-        return value.into();
-    }
-    let end = value
-        .char_indices()
-        .nth(limit - 3)
-        .map_or(value.len(), |(index, _)| index);
-    alloc::format!("{}...", &value[..end])
+/// Fit to the actual card width using the same pinned font as painting.
+/// Full source labels remain in Details; an ellipsis marks a clipped preview.
+fn preview(
+    value: &str,
+    role: crate::display::typography::TextRole,
+    width: u16,
+) -> Result<alloc::string::String, FaceSceneError> {
+    crate::display::typography::single_line_preview(value, role, width)
+        .map_err(|_| FaceSceneError::SceneBound)
 }
 
 fn gear_labels(value: &str) -> (&str, &str) {
@@ -357,121 +420,5 @@ fn visible_gears<'a>(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn notice_counts_capped_links_and_missing_endpoints_without_changing_face() {
-        let mut face: Face = serde_json::from_str(include_str!(
-            "../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
-        ))
-        .unwrap();
-        let cord = face
-            .subjects
-            .iter()
-            .find(|s| s.role == FaceRole::Cord)
-            .unwrap()
-            .clone();
-        let properties = face
-            .properties
-            .iter()
-            .filter(|p| p.subject == cord.identity)
-            .cloned()
-            .collect::<Vec<_>>();
-        let relationships = face
-            .relationships
-            .iter()
-            .filter(|r| r.source == cord.identity)
-            .cloned()
-            .collect::<Vec<_>>();
-        for index in 0..13 {
-            let identity = alloc::format!("cord/overflow/{index}");
-            let mut subject = cord.clone();
-            subject.identity = identity.clone();
-            face.subjects.push(subject);
-            for property in &properties {
-                let mut property = property.clone();
-                property.subject = identity.clone();
-                face.properties.push(property);
-            }
-            for relationship in &relationships {
-                let mut relationship = relationship.clone();
-                relationship.source = identity.clone();
-                face.relationships.push(relationship);
-            }
-        }
-        let screen = LayoutRect {
-            x: 0,
-            y: 0,
-            width: 640,
-            height: 720,
-        };
-        let retained = face.clone();
-        assert!(
-            link_notice(&face, screen, 0)
-                .ends_with("12/15 cords · 3 omitted · Alt+arrows inspect · F2/F3")
-        );
-        assert_eq!(face, retained);
-        let checked = Face::new_with_semantics(
-            face.revision,
-            face.basis.clone(),
-            face.subjects.clone(),
-            face.relationships.clone(),
-            face.properties.clone(),
-            face.text.clone(),
-            face.actions.clone(),
-            face.disclosures.clone(),
-        )
-        .unwrap();
-        let mut scene = NativeFaceScene::prepare(checked.clone(), 640, 720).unwrap();
-        scene.show_diagram(true);
-        let frame = scene.frame().unwrap();
-        assert_eq!(
-            frame
-                .scene
-                .commands()
-                .iter()
-                .filter(|command| command.kind == conduit_face::GraphicsCommandKind::OrthogonalPath)
-                .count(),
-            12
-        );
-        assert!(frame.scene.commands().iter().any(|command| {
-            command
-                .payload()
-                .ends_with("12/15 cords · 3 omitted · Alt+arrows inspect · F2/F3")
-        }));
-        assert!(
-            frame.hits.is_empty(),
-            "drawing cords must not invent action mappings"
-        );
-        assert_eq!(scene.face(), &checked);
-        scene.show_details(true);
-        let details: String = scene.details.iter().map(|row| row.text.as_str()).collect();
-        for subject in checked
-            .subjects
-            .iter()
-            .filter(|subject| subject.role == FaceRole::Cord)
-        {
-            assert!(details.contains(&subject.identity));
-        }
-        // A one-column page cannot draw a link to a Gear on another page.
-        assert!(
-            link_notice(
-                &face,
-                LayoutRect {
-                    width: 320,
-                    height: 240,
-                    ..screen
-                },
-                0
-            )
-            .ends_with("0/15 cords shown · 15 omitted · F2/F3")
-        );
-        // Missing semantic endpoint facts never become geometry-invented links.
-        face.properties.retain(|p| p.name != "sink-port");
-        assert!(
-            link_notice(&face, screen, 0)
-                .ends_with("0/15 cords · 15 omitted · Alt+arrows inspect · F2/F3")
-        );
-    }
-}
+#[path = "diagram/tests.rs"]
+mod tests;
