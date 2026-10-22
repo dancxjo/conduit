@@ -159,6 +159,8 @@ pub(super) enum ConduitosCommand {
     TimingProfile,
     /// Compare bounded compositor spans with the per-pixel reference on memory scanout.
     CompositorPerformance,
+    /// Compare exact Patchbay truth through native, Node browser and linear descriptions.
+    GraphCorrespondence,
     /// Prove one real bounded xHCI Base and fail-closed controller absence.
     XhciProof(PreparedProofArgs),
     /// Prove one real bounded root-attached USB device without semantic input.
