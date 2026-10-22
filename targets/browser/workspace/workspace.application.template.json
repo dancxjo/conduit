@@ -369,8 +369,54 @@
         {
           "role": "browser-body-host",
           "specifier": "../../../targets/browser/host/assets/browser-body-host.mjs"
+        },
+        {
+          "role": "browser-sdk-patchbay",
+          "specifier": "../sdk/browser-sdk-patchbay.mjs"
+        },
+        {
+          "role": "workspace-play-owner",
+          "specifier": "./workspace-play-owner.mjs"
         }
       ]
+    },
+    {
+      "role": "workspace-play-owner",
+      "kind": "module",
+      "path": "workspace-play-owner.mjs",
+      "maximum_bytes": 4096,
+      "dependencies": [
+        {
+          "role": "browser-sdk-face-actions",
+          "specifier": "../sdk/browser-sdk-face-actions.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-sdk-patchbay",
+      "kind": "module",
+      "path": "browser-sdk-patchbay.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "owner-face-component",
+          "specifier": "../handbook/owner-face-component.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-sdk-face-actions",
+      "kind": "module",
+      "path": "browser-sdk-face-actions.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": []
+    },
+    {
+      "role": "owner-face-component",
+      "kind": "module",
+      "path": "owner-face-component.mjs",
+      "maximum_bytes": 32768,
+      "dependencies": []
     },
     {
       "role": "browser-body-continuity",

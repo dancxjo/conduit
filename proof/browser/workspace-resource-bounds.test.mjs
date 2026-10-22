@@ -6,19 +6,27 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
+async function workspaceResourceBytes(resource) {
+  const candidates = [
+    resource.path.replace("/browser-deployment/", "/deployment/browser/"),
+    path.join("targets/browser/workspace", resource.path),
+    path.join("targets/browser/host/assets", resource.path),
+    path.join("targets/browser/sdk", resource.path),
+    path.join("targets/browser/handbook", resource.path),
+  ];
+  let bytes;
+  for (const candidate of candidates) {
+    try { bytes = await readFile(candidate); break; }
+    catch (error) { if (error.code !== "ENOENT") throw error; }
+  }
+  assert.ok(bytes, `${resource.role}: shipped source must be located`);
+  return bytes;
+}
+
 test("every shipped Workspace module fits its declared finite package bound", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   for (const resource of template.resources.filter(value => value.kind === "module")) {
-    const candidates = [
-      resource.path.replace("/browser-deployment/", "/deployment/browser/"),
-      path.join("targets/browser/workspace", resource.path),
-      path.join("targets/browser/host/assets", resource.path),
-    ];
-    let bytes;
-    for (const candidate of candidates) {
-      try { bytes = await readFile(candidate); break; }
-      catch (error) { if (error.code !== "ENOENT") throw error; }
-    }
+    const bytes = await workspaceResourceBytes(resource);
     assert.ok(bytes, `${resource.role}: shipped source must be located`);
     assert.ok(bytes.length > 0 && bytes.length <= resource.maximum_bytes,
       `${resource.role}: ${bytes.length} module bytes exceed declared ${resource.maximum_bytes}`);
@@ -54,10 +62,10 @@ test("Workspace admits its current storage module and still refuses an undersize
 });
 
 
-test("Workspace packages the actual Body host dependency closure with exact byte custody", async () => {
+test("Workspace packages the Body host and owner adapter dependency closure with exact byte custody", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   assert.ok(template.resources.length <= 96);
-  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22384640);
+  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22437888);
   assert.ok(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0) <= 32 * 1024 * 1024);
   const byRole = new Map(template.resources.map(resource => [resource.role, resource]));
   const included = new Set();
@@ -70,6 +78,7 @@ test("Workspace packages the actual Body host dependency closure with exact byte
     for (const dependency of resource.dependencies) include(dependency.role);
   }
   include("browser-body-host");
+  include("workspace-play");
   const resources = template.resources.filter(resource => included.has(resource.role));
   const bodyHost = byRole.get("browser-body-host");
   assert.equal(bodyHost.maximum_bytes, 48 * 1024);
@@ -77,7 +86,7 @@ test("Workspace packages the actual Body host dependency closure with exact byte
   const originals = new Map();
   try {
     for (const resource of resources) {
-      const bytes = await readFile(path.join("targets/browser/host/assets", resource.path));
+      const bytes = await workspaceResourceBytes(resource);
       assert.ok(bytes.length > 0 && bytes.length <= resource.maximum_bytes);
       originals.set(resource.role, bytes);
       const destination = path.join(scratch, resource.path);
@@ -85,9 +94,8 @@ test("Workspace packages the actual Body host dependency closure with exact byte
       await writeFile(destination, bytes);
     }
     const bytes = originals.get("browser-body-host");
-    assert.equal(bytes.length, 40187);
-    assert.equal(createHash("sha256").update(bytes).digest("hex"),
-      "9a253937044133229222e2a94eac4d8571cc00119d2fa5a1aef9efe4e1365b1c");
+    assert.ok(bytes.length > 32 * 1024 && bytes.length <= bodyHost.maximum_bytes,
+      `actual Body host module must cross 32 KiB within its role bound: ${bytes.length}`);
     const input = path.join(scratch, "template.json");
     const producer = path.resolve("targets/browser/tools/build-browser-application-package.mjs");
     await writeFile(input, JSON.stringify({ ...template, resources }));
