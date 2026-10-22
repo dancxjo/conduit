@@ -15,6 +15,7 @@ mod compositor_hostile;
 mod compositor_recovery;
 mod cr3;
 mod service_memory;
+mod state;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 const PROOF_MEMORY_MIB: u32 = 256;
@@ -115,6 +116,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let service_baseline = baseline::validate(&transcript)?;
     let cr3_observations = cr3::validate(&transcript, &service_baseline)?;
+    let state_observations = state::validate(&transcript, &service_baseline)?;
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
     let signs = transcript
         .lines()
@@ -307,6 +309,24 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         })?,
     )
     .map_err(|error| ConduitosError::refusal("service-cr3-write-failed", error.to_string()))?;
+    let state_receipt = serde_json::json!({
+        "schema":"conduit.conduitos/service-root-state-evidence@1", "fixture":true,
+        "proof_class":"freestanding-emulator", "source_commit":source,
+        "build":build, "machine":baseline_receipt["machine"],
+        "iso_sha256":baseline_receipt["iso_sha256"],
+        "counter_profile":baseline_receipt["observations"]["header"],
+        "transcript_sha256":baseline_receipt["transcript_sha256"],
+        "observations":state_observations
+    });
+    fs::write(
+        paths.target.join("service-root-state-proof.json"),
+        serde_json::to_vec_pretty(&state_receipt).map_err(|error| {
+            ConduitosError::refusal("service-root-state-receipt-invalid", error.to_string())
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal("service-root-state-write-failed", error.to_string())
+    })?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,

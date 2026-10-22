@@ -16,6 +16,8 @@ pub struct ServiceDomain {
     quarantined: bool,
     #[cfg(feature = "ordinary-domain-proof")]
     cr3_observation: Option<[u64; 4]>,
+    #[cfg(feature = "ordinary-domain-proof")]
+    state_observation: Option<[u64; 9]>,
 }
 impl ServiceDomain {
     pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
@@ -35,6 +37,8 @@ impl ServiceDomain {
             quarantined: false,
             #[cfg(feature = "ordinary-domain-proof")]
             cr3_observation: None,
+            #[cfg(feature = "ordinary-domain-proof")]
+            state_observation: None,
             cost: DomainCost {
                 reserved_bytes,
                 root_metadata_bytes: core::mem::size_of::<Self>() as u32,
@@ -62,6 +66,10 @@ impl ServiceDomain {
     pub fn take_cr3_observation(&mut self) -> Option<[u64; 4]> {
         self.cr3_observation.take()
     }
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub fn take_state_observation(&mut self) -> Option<[u64; 9]> {
+        self.state_observation.take()
+    }
     pub fn exchange(&mut self) -> Result<&mut [u8], DomainRefusal> {
         self.space.exchange()
     }
@@ -82,6 +90,7 @@ impl DomainBackend for ServiceDomain {
         #[cfg(feature = "ordinary-domain-proof")]
         {
             self.cr3_observation = None;
+            self.state_observation = None;
         }
         if self.quarantined || maximum_work != 1 {
             return Err(DomainRefusal::InvalidLifecycle);
@@ -101,6 +110,7 @@ impl DomainBackend for ServiceDomain {
         #[cfg(feature = "ordinary-domain-proof")]
         {
             self.cr3_observation = domain_transition::take_cr3_observation();
+            self.state_observation = domain_transition::take_state_observation();
         }
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;

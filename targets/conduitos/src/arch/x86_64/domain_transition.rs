@@ -9,6 +9,12 @@ use core::{
 #[cfg(feature = "ordinary-domain-proof")]
 mod cr3_observation;
 #[cfg(feature = "ordinary-domain-proof")]
+mod state_observation;
+#[cfg(feature = "ordinary-domain-proof")]
+pub(super) fn take_state_observation() -> Option<[u64; 9]> {
+    state_observation::take()
+}
+#[cfg(feature = "ordinary-domain-proof")]
 pub(super) fn take_cr3_observation() -> Option<[u64; 4]> {
     cr3_observation::take()
 }

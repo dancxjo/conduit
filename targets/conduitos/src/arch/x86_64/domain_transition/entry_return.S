@@ -20,6 +20,17 @@
     .global conduitos_cr3_observation
 conduitos_cr3_observation:
     .quad 0, 0, 0, 0, 0, 0, 0, 0, 0
+    .global conduitos_state_observation
+conduitos_state_observation:
+    // valid; eight register timestamps; IRQ count/total/min/max/bad/control.
+    .quad 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0
+    .macro proof_state_control offset
+    proof_read
+    mov r10, rax
+    proof_read
+    mov [rip + conduitos_state_observation + \offset], r10
+    mov [rip + conduitos_state_observation + \offset + 8], rax
+    .endm
     .endif
 
     .bss
@@ -37,12 +48,31 @@ conduitos_ordinary_root_gs: .quad 0
 conduitos_ordinary_enter:
     pushfq
     cli
+    .if {proof_cr3}
+    mov qword ptr [rip + conduitos_state_observation], 0
+    mov qword ptr [rip + conduitos_state_observation + 72], 0
+    mov qword ptr [rip + conduitos_state_observation + 80], 0
+    mov qword ptr [rip + conduitos_state_observation + 88], -1
+    mov qword ptr [rip + conduitos_state_observation + 96], 0
+    mov qword ptr [rip + conduitos_state_observation + 104], 0
+    mov qword ptr [rip + conduitos_state_observation + 112], 0
+    mov r11, rdx
+    proof_state_control 8
+    proof_read
+    mov r10, rax
+    .endif
     push rbx
     push rbp
     push r12
     push r13
     push r14
     push r15
+    .if {proof_cr3}
+    proof_read
+    mov [rip + conduitos_state_observation + 24], r10
+    mov [rip + conduitos_state_observation + 32], rax
+    mov rdx, r11
+    .endif
     mov [rip + conduitos_ordinary_root_rsp], rsp
     mov rax, cr3
     mov [rip + conduitos_ordinary_root_cr3], rax
@@ -251,11 +281,59 @@ conduitos_ordinary_irq:
     // The interrupted User DF must not affect Root Rust/string operations.
     cld
     mov r15, rsp
+    .if {proof_cr3}
+    // Guest registers are already saved. Rust preserves R12/R13/R15 by ABI.
+    mov r13, [r15 + 136]
+    and r13, 3
+    cmp r13, 3
+    jne .Lstate_irq_start_done
+    proof_read
+    mov r10, rax
+    proof_read
+    cmp rax, r10
+    jb .Lstate_irq_control_bad
+    sub rax, r10
+    add [rip + conduitos_state_observation + 112], rax
+    jnc .Lstate_irq_control_done
+.Lstate_irq_control_bad:
+    mov qword ptr [rip + conduitos_state_observation + 104], 1
+.Lstate_irq_control_done:
+    proof_read
+    mov r12, rax
+.Lstate_irq_start_done:
+    .endif
     mov rdi, [rsp + 136]
     mov rsi, [rsp + 120]
     and rsp, -16
     call conduitos_ordinary_timer_handler
     mov rsp, r15
+    .if {proof_cr3}
+    cmp r13, 3
+    jne .Lstate_irq_end_done
+    // No collector call may clobber this saved handler decision.
+    mov r11, rax
+    proof_read
+    cmp rax, r12
+    jb .Lstate_irq_bad
+    sub rax, r12
+    add qword ptr [rip + conduitos_state_observation + 72], 1
+    jc .Lstate_irq_bad
+    add [rip + conduitos_state_observation + 80], rax
+    jc .Lstate_irq_bad
+    cmp rax, [rip + conduitos_state_observation + 88]
+    jae .Lstate_irq_min_done
+    mov [rip + conduitos_state_observation + 88], rax
+.Lstate_irq_min_done:
+    cmp rax, [rip + conduitos_state_observation + 96]
+    jbe .Lstate_irq_restore
+    mov [rip + conduitos_state_observation + 96], rax
+    jmp .Lstate_irq_restore
+.Lstate_irq_bad:
+    mov qword ptr [rip + conduitos_state_observation + 104], 1
+.Lstate_irq_restore:
+    mov rax, r11
+.Lstate_irq_end_done:
+    .endif
     test rax, rax
     jz conduitos_ordinary_timer_resume
     mov eax, 4
@@ -325,11 +403,24 @@ conduitos_ordinary_return:
     mov cr3, rcx
     .endif
     mov rsp, [rip + conduitos_ordinary_root_rsp]
+    .if {proof_cr3}
+    proof_state_control 40
+    proof_read
+    mov r10, rax
+    .endif
     pop r15
     pop r14
     pop r13
     pop r12
     pop rbp
     pop rbx
+    .if {proof_cr3}
+    proof_read
+    mov [rip + conduitos_state_observation + 56], r10
+    mov [rip + conduitos_state_observation + 64], rax
+    mov qword ptr [rip + conduitos_state_observation], 1
+    mov rax, r8
+    mov rdx, r9
+    .endif
     popfq
     ret

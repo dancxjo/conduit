@@ -9,6 +9,7 @@ use crate::{
 #[path = "../../native_observation/raw_counter.rs"]
 mod counter;
 mod cr3_format;
+mod state_format;
 
 fn elapsed(start: u64) -> u64 {
     counter::read()
@@ -30,7 +31,7 @@ fn sample(
     mode: u8,
     case: u8,
     trial: usize,
-) -> (Sample, [u64; 4]) {
+) -> (Sample, [u64; 4], [u64; 9]) {
     let payload = [b'a'; super::frame::TEXT_CAPACITY];
     let length = match case {
         0 | 3 | 4 => 0,
@@ -67,6 +68,9 @@ fn sample(
     let cr3 = domain
         .take_cr3_observation()
         .unwrap_or_else(|| super::refuse("baseline-cr3-missing-or-regressed"));
+    let state = domain
+        .take_state_observation()
+        .unwrap_or_else(|| super::refuse("baseline-state-missing-regressed-or-overflow"));
     let after = domain.cost();
     let mut response = 0;
     if case < 3 {
@@ -99,12 +103,14 @@ fn sample(
             ..Sample::default()
         },
         cr3,
+        state,
     )
 }
 pub(super) fn run() {
     let image = ServiceImage::compositor(IMAGE).unwrap_or_else(|_| super::refuse("baseline-image"));
     let mut rows = [Sample::default(); RECORDS];
     let mut cr3_rows = [[0u64; 4]; RECORDS];
+    let mut state_rows = [[0u64; 9]; RECORDS];
     let mut next = 0;
     let mut overhead = [0u64; TRIALS];
     for value in &mut overhead {
@@ -114,17 +120,18 @@ pub(super) fn run() {
     for case in 0..3 {
         for trial in 0..TRIALS {
             let (mut domain, setup) = install(&image);
-            let (mut row, cr3) = sample(&mut domain, 0, case, trial);
+            let (mut row, cr3, state) = sample(&mut domain, 0, case, trial);
             row.setup = setup;
             row.setup_clearing = domain.setup_clearing_ticks();
             row.teardown = quarantine(&mut domain);
             cr3_rows[next] = cr3;
+            state_rows[next] = state;
             rows[next] = row;
             next += 1;
         }
         let (mut domain, setup) = install(&image);
         for trial in 0..TRIALS {
-            let (mut row, cr3) = sample(&mut domain, 1, case, trial);
+            let (mut row, cr3, state) = sample(&mut domain, 1, case, trial);
             if trial == 0 {
                 row.setup = setup;
                 row.setup_clearing = domain.setup_clearing_ticks();
@@ -133,19 +140,21 @@ pub(super) fn run() {
                 row.teardown = quarantine(&mut domain);
             }
             cr3_rows[next] = cr3;
+            state_rows[next] = state;
             rows[next] = row;
             next += 1;
         }
     }
     for case in 3..5 {
         let (mut domain, setup) = install(&image);
-        let (mut row, cr3) = sample(&mut domain, 0, case, 0);
+        let (mut row, cr3, state) = sample(&mut domain, 0, case, 0);
         row.setup = setup;
         row.setup_clearing = domain.setup_clearing_ticks();
         // Fault entry already includes automatic quarantine. This is only the
         // subsequent idempotent call; do not subtract it from entry time.
         row.teardown = quarantine(&mut domain);
         cr3_rows[next] = cr3;
+        state_rows[next] = state;
         rows[next] = row;
         next += 1;
     }
@@ -160,11 +169,14 @@ pub(super) fn run() {
     let serial = format::header([basic.eax, basic.ecx, basic.edx], invariant, overhead)
         .unwrap_or_else(|_| super::refuse("baseline-serial"));
     arch::early_write(serial.as_bytes());
-    for (row, cr3) in rows.into_iter().zip(cr3_rows) {
+    for ((row, cr3), state) in rows.into_iter().zip(cr3_rows).zip(state_rows) {
         let serial = format::sample(row).unwrap_or_else(|_| super::refuse("baseline-serial"));
         arch::early_write(serial.as_bytes());
         let serial =
             cr3_format::sample(row, cr3).unwrap_or_else(|_| super::refuse("baseline-cr3-serial"));
+        arch::early_write(serial.as_bytes());
+        let serial = state_format::sample(row, state)
+            .unwrap_or_else(|_| super::refuse("baseline-state-serial"));
         arch::early_write(serial.as_bytes());
         if row.mode == 0 || row.trial == 0 {
             let serial = format::setup_component(row)
