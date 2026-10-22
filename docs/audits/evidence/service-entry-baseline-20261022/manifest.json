@@ -1,0 +1,320 @@
+{
+  "schema": "conduit.audit/service-entry-baseline-packet@1",
+  "measured_source": "a04beed4a44405fe3a42369d67afd8d9183c4cf5",
+  "compiler_observed_after_run": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "source_unchanged_after_run": true,
+  "raw_serial_contains_binary_presentation": true,
+  "proof": "supported command exit0; five receipts share exact build/serial; 20 raw-TSC observations",
+  "limits": "not calibrated; no component attribution or optimization; no normal graphical journey, physical execution or stable acceptance",
+  "retained_local_images": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/conduitos",
+      "bytes": 61285944,
+      "sha256": "3db7d4fec1280ce7e641f15a92b02b9a20d9cd5174270d2d341911c4e7e7dddb"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/conduitos.iso",
+      "bytes": 65552384,
+      "sha256": "bc1108e009bdb85def300e6efd196726c605aa7f9e0186c0d5515d24f9825a0b"
+    }
+  ],
+  "files": [
+    {
+      "path": "positive/service-baseline-proof.json",
+      "bytes": 8166,
+      "sha256": "107bcf767776d87ae5c494f1ea3a81b880c15e6a60abb08ee97fff6e6e083b01",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/service-baseline-proof.json",
+      "original_bytes": 8166,
+      "original_sha256": "107bcf767776d87ae5c494f1ea3a81b880c15e6a60abb08ee97fff6e6e083b01",
+      "gzip": false
+    },
+    {
+      "path": "positive/service-memory-fixture-proof.json",
+      "bytes": 1169,
+      "sha256": "c7677798804f229bf33b7e0ac6bb172bc3dd3ca535009ca422f46541896afe3f",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/service-memory-fixture-proof.json",
+      "original_bytes": 1169,
+      "original_sha256": "c7677798804f229bf33b7e0ac6bb172bc3dd3ca535009ca422f46541896afe3f",
+      "gzip": false
+    },
+    {
+      "path": "positive/compositor-guest-fixture-proof.json",
+      "bytes": 1546,
+      "sha256": "4c7dd028829d3bc19cec810d43efff8ed0a4d06fc022e22e8f21a90dc95962f0",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/compositor-guest-fixture-proof.json",
+      "original_bytes": 1546,
+      "original_sha256": "4c7dd028829d3bc19cec810d43efff8ed0a4d06fc022e22e8f21a90dc95962f0",
+      "gzip": false
+    },
+    {
+      "path": "positive/compositor-hostile-broker-fixture-proof.json",
+      "bytes": 2423,
+      "sha256": "41f9c33cb93a284697136fb65ff89ae1609261543a54fd998d8c651a1542bca3",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/compositor-hostile-broker-fixture-proof.json",
+      "original_bytes": 2423,
+      "original_sha256": "41f9c33cb93a284697136fb65ff89ae1609261543a54fd998d8c651a1542bca3",
+      "gzip": false
+    },
+    {
+      "path": "positive/compositor-copy-recovery-fixture-proof.json",
+      "bytes": 1630,
+      "sha256": "b0b8804ea099986a5c46afb092789de1c55c5f5de07430cf6993e882bd3996b3",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/compositor-copy-recovery-fixture-proof.json",
+      "original_bytes": 1630,
+      "original_sha256": "b0b8804ea099986a5c46afb092789de1c55c5f5de07430cf6993e882bd3996b3",
+      "gzip": false
+    },
+    {
+      "path": "positive/build.json",
+      "bytes": 335,
+      "sha256": "99cc4e4436c89b277f8c83d8aa6e7e13fe49814ed907ec76455266ed021dc5ab",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/build.json",
+      "original_bytes": 335,
+      "original_sha256": "99cc4e4436c89b277f8c83d8aa6e7e13fe49814ed907ec76455266ed021dc5ab",
+      "gzip": false
+    },
+    {
+      "path": "positive/image.json",
+      "bytes": 351,
+      "sha256": "27a850f7f891df430c4b62d859237f651295ec96d2c6bbc33cfc941ff9dc9fa0",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/image.json",
+      "original_bytes": 351,
+      "original_sha256": "27a850f7f891df430c4b62d859237f651295ec96d2c6bbc33cfc941ff9dc9fa0",
+      "gzip": false
+    },
+    {
+      "path": "positive/serial.log.gz",
+      "bytes": 5555,
+      "sha256": "695ac18e349a904c3c9feef8f9edb1ffeb8c6d70074852ab9e2dc5849baef463",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "original_bytes": 34886,
+      "original_sha256": "4b4557b63081c50eaeb10b7307ac3294f8d807c2c7528d0eb0aafab058997518",
+      "gzip": true
+    },
+    {
+      "path": "positive/privilege-inventory-3db7d4fec1280ce7e641f15a92b02b9a20d9cd5174270d2d341911c4e7e7dddb-architecture-proof-appliance.json.gz",
+      "bytes": 5072,
+      "sha256": "c27324480017c0c85e973e630a192c51ff4893d799d254bef27fef2e6838e01d",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/privilege-inventory-3db7d4fec1280ce7e641f15a92b02b9a20d9cd5174270d2d341911c4e7e7dddb-architecture-proof-appliance.json",
+      "original_bytes": 65823,
+      "original_sha256": "74946c799542c8792c5a89e508e6ff73cb3b336f6e94adeb5f0f99e9ab825744",
+      "gzip": true
+    },
+    {
+      "path": "positive/privilege-inventory-3db7d4fec1280ce7e641f15a92b02b9a20d9cd5174270d2d341911c4e7e7dddb-architecture-proof-appliance.map.gz",
+      "bytes": 440832,
+      "sha256": "f1e26d6c0f8418b6ac781e9b89951e13f763a8a1e940260451384b48967233ca",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native-artifacts/x86_64/privilege-inventory-3db7d4fec1280ce7e641f15a92b02b9a20d9cd5174270d2d341911c4e7e7dddb-architecture-proof-appliance.map",
+      "original_bytes": 6955945,
+      "original_sha256": "6962655151bfa4cb244da1e785fdc9ae07ead20896b7f982ac43cbd34ee82905",
+      "gzip": true
+    },
+    {
+      "path": "checks/checks.json",
+      "bytes": 1699,
+      "sha256": "7715edb956d330990b73aee09f53d27765211b8be5a4a21cf6244b601bfa3142",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-checks.json",
+      "original_bytes": 1699,
+      "original_sha256": "7715edb956d330990b73aee09f53d27765211b8be5a4a21cf6244b601bfa3142",
+      "gzip": false
+    },
+    {
+      "path": "checks/format.log.gz",
+      "bytes": 909,
+      "sha256": "279ba56565db399767b0d52716dd6110e7e0a6ac5589142c31d72afe4cbb5473",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-format.log",
+      "original_bytes": 2758,
+      "original_sha256": "84d912a4f8cf7b52536919abbf883410e7a9ef58b9d29a5164ccc85e1fba400a",
+      "gzip": true
+    },
+    {
+      "path": "checks/formatter.log.gz",
+      "bytes": 1490,
+      "sha256": "6aa8fbe9c6b978a6a9c1d626de264046ae075e0663215fd9dbf8da8dd16ecb23",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-formatter.log",
+      "original_bytes": 12034,
+      "original_sha256": "9d6b0486c0953c49e7710c0dd4d50001381ed373f41d55f89d3f485ac44ecca6",
+      "gzip": true
+    },
+    {
+      "path": "checks/reader.log.gz",
+      "bytes": 1871,
+      "sha256": "bc58231e8abf39baacec5980e0afade3888df6f2045477d8428d0ca5b89de1ad",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-reader.log",
+      "original_bytes": 15945,
+      "original_sha256": "65f2181d8ca8987cbd32adce92f32d30da83771c03a154a4665338dc95e9769c",
+      "gzip": true
+    },
+    {
+      "path": "checks/native.log.gz",
+      "bytes": 17941,
+      "sha256": "8fd22c64fb36c9cb66b078f33857aae67e179ea4ac73a80c763f8c4e7b122e2d",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native.log",
+      "original_bytes": 171729,
+      "original_sha256": "c5a89276c39cee1b989c6dcdbd3f2472c2b7ddb20f3411a5ac3d289f2ab4d40d",
+      "gzip": true
+    },
+    {
+      "path": "negative/128m/6183-a779-128m-negative.json",
+      "bytes": 1379,
+      "sha256": "2f05d86079f3387c2fd72add543e6d4cfb9b9f85d972378833ade7b1005c6c43",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-128m-negative.json",
+      "original_bytes": 1379,
+      "original_sha256": "2f05d86079f3387c2fd72add543e6d4cfb9b9f85d972378833ade7b1005c6c43",
+      "gzip": false
+    },
+    {
+      "path": "negative/128m/6183-a779-128m-arena-refusal-run.json",
+      "bytes": 608,
+      "sha256": "60dc8a669758e3726e0521f91b66f8e9336522999d5f2d21f8f3df9b970f4ae0",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-128m-arena-refusal-run.json",
+      "original_bytes": 608,
+      "original_sha256": "60dc8a669758e3726e0521f91b66f8e9336522999d5f2d21f8f3df9b970f4ae0",
+      "gzip": false
+    },
+    {
+      "path": "negative/128m/command.log.gz",
+      "bytes": 19441,
+      "sha256": "96229a2c0d1a198100532bfede9e4f3a1a756b090b12a154017e4904593625c3",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-128m-arena-refusal-ordinary-domain-proof.log",
+      "original_bytes": 185882,
+      "original_sha256": "cb207fc65f1f6b37a06f896bba2a96f8801151f00822132082f259160553d3a3",
+      "gzip": true
+    },
+    {
+      "path": "negative/128m/build.json",
+      "bytes": 335,
+      "sha256": "dd0856a68f6d5e41f8426a675653a4824f7010d0cb030d5d53c2a4cdeeed8377",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-native-artifacts/x86_64/build.json",
+      "original_bytes": 335,
+      "original_sha256": "dd0856a68f6d5e41f8426a675653a4824f7010d0cb030d5d53c2a4cdeeed8377",
+      "gzip": false
+    },
+    {
+      "path": "negative/128m/image.json",
+      "bytes": 351,
+      "sha256": "ee6f1ad33c123f55f03469bb9d0f2925f4a90e31352b842cb9ae5d78279302d1",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-native-artifacts/x86_64/image.json",
+      "original_bytes": 351,
+      "original_sha256": "ee6f1ad33c123f55f03469bb9d0f2925f4a90e31352b842cb9ae5d78279302d1",
+      "gzip": false
+    },
+    {
+      "path": "negative/128m/ordinary-domain-proof.log.gz",
+      "bytes": 184,
+      "sha256": "9523085d2be63f72a389da547ba7b6be8b2e1d732e8be6dc67a5047eee3009c6",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-a779-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "original_bytes": 234,
+      "original_sha256": "6ce9717b8623ae37efaa4be66f94c3e15c07cf4cf9f488b4363340430b971f37",
+      "gzip": true
+    },
+    {
+      "path": "negative/256m-contract/6183-ba281-256m-negative.json",
+      "bytes": 1378,
+      "sha256": "9a6ff057492a86c6e6b44ba3df0898c9088806d58d13ca6a526f60d811650032",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-ba281-256m-negative.json",
+      "original_bytes": 1378,
+      "original_sha256": "9a6ff057492a86c6e6b44ba3df0898c9088806d58d13ca6a526f60d811650032",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-contract/6183-256m-run.json",
+      "bytes": 673,
+      "sha256": "5bce1c5172ef8a167354e4886dd225a7d0b25d8b323fa6f59fd3af23cb97caef",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-256m-run.json",
+      "original_bytes": 673,
+      "original_sha256": "5bce1c5172ef8a167354e4886dd225a7d0b25d8b323fa6f59fd3af23cb97caef",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-contract/command.log.gz",
+      "bytes": 18494,
+      "sha256": "f12d1f480389ff82a72b87abfb3f7850b670abbfbd67b2bdedf64f6c32b70a5f",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-256m-ordinary-domain-proof.log",
+      "original_bytes": 176757,
+      "original_sha256": "ce92115eac37dfe25eeb447e1dcb1829477fbbcac606965d69c4f2dd50fc0673",
+      "gzip": true
+    },
+    {
+      "path": "negative/256m-contract/build.json",
+      "bytes": 335,
+      "sha256": "2b04a5fe0c941e7ec9eb909dfd94683fbd2411fd2d341fa6c5123ff67fcbd229",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-256m-native-artifacts/x86_64/build.json",
+      "original_bytes": 335,
+      "original_sha256": "2b04a5fe0c941e7ec9eb909dfd94683fbd2411fd2d341fa6c5123ff67fcbd229",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-contract/image.json",
+      "bytes": 351,
+      "sha256": "8b4c0e06044fed6e6e5c8f267ac6237af3fbc7862cebf0f0bef7c87826fc06dc",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-256m-native-artifacts/x86_64/image.json",
+      "original_bytes": 351,
+      "original_sha256": "8b4c0e06044fed6e6e5c8f267ac6237af3fbc7862cebf0f0bef7c87826fc06dc",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-contract/ordinary-domain-proof.log.gz",
+      "bytes": 216,
+      "sha256": "be25faafd6e53a45b66c590c133d29ea7b07aa09aa6ee01cb75156a6ecc35aff",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-256m-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "original_bytes": 403,
+      "original_sha256": "fcafb80f2fa2d813fbb294fc42de913002cc729fded88623dcb839da6dd33ebb",
+      "gzip": true
+    },
+    {
+      "path": "negative/256m-diagnostic/6183-9b50-diagnostic-negative.json",
+      "bytes": 1388,
+      "sha256": "484c32d5cc814eddd71d51be57fe9bc4fe3629f3e025139b87ef4fa394eeb310",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-9b50-diagnostic-negative.json",
+      "original_bytes": 1388,
+      "original_sha256": "484c32d5cc814eddd71d51be57fe9bc4fe3629f3e025139b87ef4fa394eeb310",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-diagnostic/6183-diagnostic-run.json",
+      "bytes": 679,
+      "sha256": "dc9ecfb1dc0b9eb8812299d0671099c2fbb8b48b0e99455b73210c7b23f2b6ca",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-run.json",
+      "original_bytes": 679,
+      "original_sha256": "dc9ecfb1dc0b9eb8812299d0671099c2fbb8b48b0e99455b73210c7b23f2b6ca",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-diagnostic/command.log.gz",
+      "bytes": 18522,
+      "sha256": "eb4bfc52d82b3d5f9f39045504c7c519a79cc83986acd4b260a262bffc918f98",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-ordinary-domain-proof.log",
+      "original_bytes": 176726,
+      "original_sha256": "0dea99ef959269529084d6012f5b0a6e9245184ce9bfa83e7c4ab9d53c8f6f61",
+      "gzip": true
+    },
+    {
+      "path": "negative/256m-diagnostic/build.json",
+      "bytes": 335,
+      "sha256": "4f6fce1a98e971045f8b7a5d47e41f8cc19c7a7c8324026816233068976108fb",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-native-artifacts/x86_64/build.json",
+      "original_bytes": 335,
+      "original_sha256": "4f6fce1a98e971045f8b7a5d47e41f8cc19c7a7c8324026816233068976108fb",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-diagnostic/image.json",
+      "bytes": 351,
+      "sha256": "2a7eecdedaff0d06f6e705ec18ded876a064765bf80a4f2548adff9f693284ab",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-native-artifacts/x86_64/image.json",
+      "original_bytes": 351,
+      "original_sha256": "2a7eecdedaff0d06f6e705ec18ded876a064765bf80a4f2548adff9f693284ab",
+      "gzip": false
+    },
+    {
+      "path": "negative/256m-diagnostic/ordinary-domain-proof.log.gz",
+      "bytes": 266,
+      "sha256": "d24d2ba211be77294439126671df7fb1e2a0f2de050f106352ffecfa4d92e7c5",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "original_bytes": 543,
+      "original_sha256": "545373175dc4e018c407d2b87d90d1aee06188706e744b9ccb5f0637b9a02de9",
+      "gzip": true
+    }
+  ]
+}

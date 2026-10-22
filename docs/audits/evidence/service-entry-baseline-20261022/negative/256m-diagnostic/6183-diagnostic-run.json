@@ -1,0 +1,19 @@
+{
+  "source_commit": "9b50a2d8773362879fc5335b8a298f8681ba1bca",
+  "accepted_base": "a2300af6e9870680dccf49efde5a80467e73cda1",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "ordinary-domain-proof",
+    "--locked"
+  ],
+  "cargo_target": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+  "artifact_root": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-diagnostic-native-artifacts",
+  "started_unix": 1792646819.0983222,
+  "preceding_failure": "6183-ba281-256m-negative.json",
+  "exit_code": 1,
+  "finished_unix": 1792647555.597975
+}

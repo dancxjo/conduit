@@ -1,0 +1,37 @@
+{
+  "source_commit": "a77945244721f7ebf4a25ea69bacef789f76610f",
+  "native_compile": "passed",
+  "guest_result": "runtime-arena-unavailable",
+  "profile_memory_mib": 128,
+  "baseline_observations": null,
+  "files": {
+    "privilege-inventory-514d660414fa5b13bd7c3648ecbb386b29a936b75418b55e2b4ee627b5137dc6-architecture-proof-appliance.json": {
+      "bytes": 65823,
+      "sha256": "1fdec9fe06c522f5eb8b3f330f40108a730fd12ea529f17368a00d1641c1a6a1"
+    },
+    "privilege-inventory-514d660414fa5b13bd7c3648ecbb386b29a936b75418b55e2b4ee627b5137dc6-architecture-proof-appliance.map": {
+      "bytes": 6886047,
+      "sha256": "fd23785a385c895614b3ad0b3b93844c42a83f55cbb4d9a5b7f119a74c2b8045"
+    },
+    "conduitos.iso": {
+      "bytes": 65634304,
+      "sha256": "8fb5945bea175fe7d4fa196d5066e940e1eae3d2e5f985edde26ff8cdb47af6d"
+    },
+    "conduitos": {
+      "bytes": 61367944,
+      "sha256": "514d660414fa5b13bd7c3648ecbb386b29a936b75418b55e2b4ee627b5137dc6"
+    },
+    "build.json": {
+      "bytes": 335,
+      "sha256": "dd0856a68f6d5e41f8426a675653a4824f7010d0cb030d5d53c2a4cdeeed8377"
+    },
+    "image.json": {
+      "bytes": 351,
+      "sha256": "ee6f1ad33c123f55f03469bb9d0f2925f4a90e31352b842cb9ae5d78279302d1"
+    },
+    "ordinary-domain-proof.log": {
+      "bytes": 234,
+      "sha256": "6ce9717b8623ae37efaa4be66f94c3e15c07cf4cf9f488b4363340430b971f37"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "source_commit": "a77945244721f7ebf4a25ea69bacef789f76610f",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "ordinary-domain-proof",
+    "--locked"
+  ],
+  "cargo_target": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+  "artifact_root": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-native-artifacts",
+  "started_unix": 1792643388.175377,
+  "preceding_failure": "6183-a779-tmpfs-quota-sha256.json",
+  "exit_code": 1,
+  "finished_unix": 1792645559.656416
+}

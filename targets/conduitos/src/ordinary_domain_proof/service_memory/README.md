@@ -1,34 +1,27 @@
-# Held protected-service baseline (#6183)
+# First protected-service baseline (#6183)
 
-The existing supported `cargo xtask make conduitos ordinary-domain-proof`
-entrance now requires clean committed source and retains
-`service-baseline-proof.json` beside its existing protection receipts. This is
-an architecture proof appliance, not the normal product or a completed #6183
-benchmark. No recorded measurements accompany this implementation yet.
+The supported `cargo xtask make conduitos ordinary-domain-proof` entrance
+requires clean committed source and retains `service-baseline-proof.json` beside
+its protection receipts. Clean `a04beed4a44405fe3a42369d67afd8d9183c4cf5`
+completed the real x86_64 appliance at q35/max/one vCPU/256 MiB and published all
+20 raw-TSC observations. This is an architecture appliance and an initial matrix;
+full #6183 acceptance remains open. See the source/image-bound
+[packet](../../../../../../docs/audits/evidence/service-entry-baseline-20261022/README.md).
 
-The recovered source on current development compiled and linked as a real
-x86_64 appliance at `a77945244721f7ebf4a25ea69bacef789f76610f`. Its
-128 MiB QEMU profile refused `runtime-arena-unavailable` before any protected
-entry: Limine retains the roughly 59 MiB loaded image and executable file
-before reserving the 16 MiB runtime arena. The appliance now explicitly uses
-256 MiB, with the same domain, heap and work grants. That profile still requires
-its own exact-source build and execution; this does not establish 128 MiB
-support or a timing baseline. See
-[evidence/manifest.json](evidence/manifest.json) for both retained compilation
-failures and their exact sources. The first attempt stopped in existing base
-Crèche code. After merging its reviewed repair, real compilation caught this
-recorder's incorrect assumption that `Serial` implements `fmt::Write`. The
-publication correction uses the existing `FixedText`/`early_write` mechanism;
-that correction was subsequently compiled in the recovered source above, but
-its 128 MiB guest refused before any baseline observations. The mock API
-harness missed this defect and is not freestanding compilation proof.
+Historical `a77945244721f7ebf4a25ea69bacef789f76610f` compiled and linked,
+but its 128 MiB profile refused `runtime-arena-unavailable` before protected
+entry. Later 256 MiB admission failures and the exact text-binding diagnostic
+are retained in the packet. The successful appliance changes no domain, heap or
+work grant and establishes no 128 MiB minimum. Its measured source includes the
+text/Morse admission repair and pending #6231 fault repair; it is not an
+accepted-development or stable-release claim.
 
-The receipt formatter is now shared with actual owning-package host tests,
-using the production `sign_format::FixedText` rather than a replacement serial
-API. Two focused tests pass, checking valid complete single-line JSON and exact
-maximum-width counters. This compiles the real formatting API and catches the
-original trait mismatch without a VM; it does not establish native execution or
-a timing baseline. See `evidence/real-format-tests.json` and its raw log.
+Both original compilation failures remain in
+[evidence/manifest.json](evidence/manifest.json): the existing Crèche failure and
+the recorder's invalid assumption that `Serial` implements `fmt::Write`. The
+recorder uses production `FixedText`/`early_write`; two actual owning formatter
+tests and two complete-line reader tests pass. The mock API harness is not
+freestanding compilation proof.
 
 The fixed recorder admits 20 observations: three trials each of terminal no-op,
 eight-byte uppercase and 256-byte uppercase on fresh and reused service domains,

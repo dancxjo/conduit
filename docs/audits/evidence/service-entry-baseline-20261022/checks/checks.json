@@ -1,0 +1,67 @@
+{
+  "source_commit": "a04beed4a44405fe3a42369d67afd8d9183c4cf5",
+  "checks": [
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 1,
+      "seconds": 13.276409387588501,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-format.log"
+    },
+    {
+      "name": "formatter",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "ordinary_domain_baseline_format::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 415.2047417163849,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-formatter.log"
+    },
+    {
+      "name": "reader",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "ordinary_domain_proof::baseline::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 348.0889377593994,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-reader.log"
+    },
+    {
+      "name": "native",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "ordinary-domain-proof",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 1848.9486207962036,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-matrix-native.log"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "source_commit": "ba2814d7eaf786f42bb4155add4448b7bc83a744",
+  "native_compile": "passed",
+  "guest_result": "ordinary-kernel-rejected",
+  "profile_memory_mib": 256,
+  "baseline_observations": null,
+  "files": {
+    "privilege-inventory-0a03d5597b3f176da03e4825335eec0ffaf0fde7e14a70c2c3047ea82adfa4a4-architecture-proof-appliance.json": {
+      "bytes": 65823,
+      "sha256": "0606a512735dc048c9600749f0b66b7803115c34a61dde2716d5b947def7e2b1"
+    },
+    "conduitos.iso": {
+      "bytes": 65490944,
+      "sha256": "8657590834896b0186db784f8d1961ac4d11faae2dc3c9746b3a696e318eb704"
+    },
+    "conduitos": {
+      "bytes": 61224632,
+      "sha256": "0a03d5597b3f176da03e4825335eec0ffaf0fde7e14a70c2c3047ea82adfa4a4"
+    },
+    "build.json": {
+      "bytes": 335,
+      "sha256": "2b04a5fe0c941e7ec9eb909dfd94683fbd2411fd2d341fa6c5123ff67fcbd229"
+    },
+    "privilege-inventory-0a03d5597b3f176da03e4825335eec0ffaf0fde7e14a70c2c3047ea82adfa4a4-architecture-proof-appliance.map": {
+      "bytes": 6877383,
+      "sha256": "1036e1b18f730917c8169d85cb836fd5d32c46d19ee1da7a2f155c7668e7f018"
+    },
+    "image.json": {
+      "bytes": 351,
+      "sha256": "8b4c0e06044fed6e6e5c8f267ac6237af3fbc7862cebf0f0bef7c87826fc06dc"
+    },
+    "ordinary-domain-proof.log": {
+      "bytes": 403,
+      "sha256": "fcafb80f2fa2d813fbb294fc42de913002cc729fded88623dcb839da6dd33ebb"
+    }
+  }
+}
