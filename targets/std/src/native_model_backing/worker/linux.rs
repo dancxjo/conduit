@@ -15,6 +15,7 @@ struct Region {
     file: bool,
 }
 pub struct Snapshot {
+    pid: u32,
     regions: Vec<Region>,
 }
 impl Snapshot {
@@ -86,7 +87,7 @@ impl Snapshot {
             }
             regions.push(region);
         }
-        Ok(Self { regions })
+        Ok(Self { pid, regions })
     }
     pub fn private_capacity(&self) -> Result<u64, NativeBackingRefusal> {
         self.regions
@@ -198,6 +199,9 @@ impl Snapshot {
             .and_then(|v| v.checked_sub(stack_bytes))
             .ok_or(NativeBackingRefusal::InvalidLedger)?;
         let mut pool_hash = Sha256::new();
+        // An owned, unreaped process ID distinguishes simultaneous domains even
+        // when separate address spaces happen to use identical virtual spans.
+        pool_hash.update(self.pid.to_le_bytes());
         pool_hash.update(mapping);
         for p in [io, stack] {
             pool_hash.update(p.start.to_le_bytes());
@@ -329,6 +333,7 @@ mod tests {
             file: true,
         };
         let snapshot = Snapshot {
+            pid: 17,
             regions: vec![
                 private(0x1000, 0x2000),
                 private(io.start, io.end),
@@ -341,6 +346,18 @@ mod tests {
         assert_eq!(ledger.shared_pool.capacity_bytes, 4096);
         assert_eq!(ledger.immutable_file_bytes, 0x4000);
         assert_eq!(ledger.image_mapping_bytes, 0x8000);
+        let other_domain = Snapshot {
+            pid: 18,
+            regions: snapshot.regions.clone(),
+        };
+        assert_ne!(
+            ledger.shared_pool.pool_identity,
+            other_domain
+                .ledger(io, stack)
+                .unwrap()
+                .shared_pool
+                .pool_identity
+        );
         let grant = super::super::super::NativeBackingGrant {
             maximum_private_bytes: ledger.private_bytes,
             maximum_fixed_mapping_bytes: ledger.image_mapping_bytes + ledger.other_mapping_bytes,
