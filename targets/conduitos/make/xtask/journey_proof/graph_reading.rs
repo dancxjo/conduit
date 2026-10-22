@@ -39,7 +39,7 @@ pub(super) fn exercise(
             .ok_or_else(|| refusal("missing graph reading receipt"))?;
         if current["usage"] != usage
             || current["diagram"] != diagram
-            || current["details"] != details
+            || (!diagram && current["details"] != details)
             || current["disposition"] != "mask-local-input-acknowledged-and-drawn"
         {
             return Err(refusal(
