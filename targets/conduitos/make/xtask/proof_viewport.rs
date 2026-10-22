@@ -1,7 +1,11 @@
 //! Finite proof requests, never boot framebuffer authority.
 use super::ConduitosError;
 use clap::{Args, ValueEnum};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
+// Match native progress Face custody and journey correspondence bounds.
+const MAX_RECORD_BYTES: usize = 96 * 1024;
+const MAX_RECORDS: usize = 256;
+const MAX_SERIAL_BYTES: usize = 16 * 1024 * 1024;
 #[cfg(test)]
 use std::process::Command;
 #[derive(Args, Debug)]
@@ -41,15 +45,24 @@ impl Viewport {
         Ok(())
     }
     pub(super) fn guest(self, serial: &str, boot: &Value) -> Result<Value, ConduitosError> {
+        if serial.len() > MAX_SERIAL_BYTES {
+            return Err(refusal("viewport serial bound exceeded"));
+        }
         let mut shows = Vec::new();
         let mut focuses = Vec::new();
         for line in serial.split_inclusive('\n').filter(|l| l.ends_with('\n')) {
             if let Some(text) = line.strip_prefix("CONDUIT_NATIVE_FACE ") {
+                if shows.len() == MAX_RECORDS || text.len() > MAX_RECORD_BYTES {
+                    return Err(refusal("viewport Face record bound exceeded"));
+                }
                 let row: Value = serde_json::from_str(text)
                     .map_err(|_| refusal("invalid viewport Face receipt"))?;
                 shows.push(row["show"].clone());
             }
             if let Some(text) = line.strip_prefix("CONDUIT_CRECHE_FOCUS ") {
+                if focuses.len() == MAX_RECORDS || text.len() > MAX_RECORD_BYTES {
+                    return Err(refusal("viewport focus record bound exceeded"));
+                }
                 let focus: Value = serde_json::from_str(text)
                     .map_err(|_| refusal("invalid viewport focus receipt"))?;
                 let (w, h) = self.dimensions();
@@ -60,7 +73,11 @@ impl Viewport {
                 {
                     return Err(refusal("missing viewport focus identity"));
                 }
-                if focus["display_bounds"]["width"] != w || focus["display_bounds"]["height"] != h {
+                if focus["display_bounds"]["x"].as_u64() != Some(0)
+                    || focus["display_bounds"]["y"].as_u64() != Some(0)
+                    || focus["display_bounds"]["width"] != w
+                    || focus["display_bounds"]["height"] != h
+                {
                     return Err(refusal(
                         "requested viewport differs from actual guest Mask bounds",
                     ));
@@ -99,13 +116,11 @@ mod tests {
             #[command(flatten)]
             args: JourneyArgs,
         }
-        assert!(
-            Cli::try_parse_from(["proof"])
-                .unwrap()
-                .args
-                .viewport
-                .is_none()
-        );
+        assert!(Cli::try_parse_from(["proof"])
+            .unwrap()
+            .args
+            .viewport
+            .is_none());
         assert_eq!(
             Cli::try_parse_from(["proof", "--viewport", "640x480"])
                 .unwrap()
@@ -130,7 +145,7 @@ mod tests {
     fn mask_requires_extent_and_prior_show_custody() {
         let boot = json!({"host_id":"host","boot_id":"boot"});
         let show = json!({"host_id":"host","boot_id":"boot","face_id":"face","face_revision":1,"show_id":"show","lifecycle":"Available"});
-        let focus = json!({"display_bounds":{"width":640,"height":480},"face_id":"face","face_revision":1,"show_id":"show"});
+        let focus = json!({"display_bounds":{"x":0,"y":0,"width":640,"height":480},"face_id":"face","face_revision":1,"show_id":"show"});
         let serial = |s: &Value| {
             format!(
                 "CONDUIT_NATIVE_FACE {}\nCONDUIT_CRECHE_FOCUS {focus}\n",
@@ -138,16 +153,68 @@ mod tests {
             )
         };
         assert!(Viewport::Constrained.guest(&serial(&show), &boot).is_ok());
+        for field in ["x", "y"] {
+            let mut changed = focus.clone();
+            changed["display_bounds"][field] = json!(1);
+            let prefix = format!("CONDUIT_NATIVE_FACE {}\n", json!({"show":show}));
+            assert!(Viewport::Constrained
+                .guest(
+                    &(prefix.clone() + &format!("CONDUIT_CRECHE_FOCUS {changed}\n")),
+                    &boot
+                )
+                .is_err());
+            changed["display_bounds"]
+                .as_object_mut()
+                .unwrap()
+                .remove(field);
+            assert!(Viewport::Constrained
+                .guest(
+                    &(prefix + &format!("CONDUIT_CRECHE_FOCUS {changed}\n")),
+                    &boot
+                )
+                .is_err());
+        }
+        let face_line = format!("CONDUIT_NATIVE_FACE {}\n", json!({"show":show}));
+        let focus_line = format!("CONDUIT_CRECHE_FOCUS {focus}\n");
+        assert!(Viewport::Constrained
+            .guest(
+                &(face_line.clone() + &focus_line.repeat(MAX_RECORDS)),
+                &boot
+            )
+            .is_ok());
+        assert!(Viewport::Constrained
+            .guest(
+                &(face_line.clone() + &focus_line.repeat(MAX_RECORDS + 1)),
+                &boot
+            )
+            .is_err());
+        assert!(Viewport::Constrained
+            .guest(&(face_line.repeat(MAX_RECORDS + 1) + &focus_line), &boot)
+            .is_err());
+        for prefix in ["CONDUIT_NATIVE_FACE ", "CONDUIT_CRECHE_FOCUS "] {
+            assert!(Viewport::Constrained
+                .guest(
+                    &(prefix.to_owned() + &" ".repeat(MAX_RECORD_BYTES) + "{}\n"),
+                    &boot
+                )
+                .is_err());
+            assert!(Viewport::Constrained
+                .guest(&(prefix.to_owned() + "malformed\n"), &boot)
+                .is_err());
+            // A live snapshot may omit only its final uncommitted line.
+            assert!(Viewport::Constrained
+                .guest(&(serial(&show) + prefix + "{incomplete"), &boot)
+                .is_ok());
+        }
+
         assert!(Viewport::Wide.guest(&serial(&show), &boot).is_err());
         for field in ["host_id", "boot_id", "face_id", "show_id"] {
             let mut wrong = show.clone();
             wrong[field] = json!("foreign");
             assert!(Viewport::Constrained.guest(&serial(&wrong), &boot).is_err());
         }
-        assert!(
-            Viewport::Constrained
-                .guest(&format!("CONDUIT_CRECHE_FOCUS {focus}\n"), &boot)
-                .is_err()
-        );
+        assert!(Viewport::Constrained
+            .guest(&format!("CONDUIT_CRECHE_FOCUS {focus}\n"), &boot)
+            .is_err());
     }
 }

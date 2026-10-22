@@ -1,6 +1,6 @@
 //! Explicit, bounded visual evidence for one ordinary QEMU journey.
-use super::{ConduitosError, qmp_display};
-use serde_json::{Value, json};
+use super::{qmp_display, ConduitosError};
+use serde_json::{json, Value};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
