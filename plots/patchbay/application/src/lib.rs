@@ -45,6 +45,7 @@ pub use interaction_contract::{
     patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION,
 };
 mod resident_actions;
+mod resident_mask_face;
 pub use resident_actions::PatchbayFaceProjectionError;
 mod projected_open;
 mod resident_canvas;

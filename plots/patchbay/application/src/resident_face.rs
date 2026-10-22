@@ -7,7 +7,7 @@ use conduit_face::{
     FaceText,
 };
 
-use super::{graph_face, PatchbayActivePlotState, PatchbayApplicationPort};
+use super::{PatchbayActivePlotState, PatchbayApplicationPort, graph_face};
 
 impl PatchbayApplicationPort {
     /// Prepare read-only resident meaning before any input. The caller supplies
@@ -132,6 +132,9 @@ impl PatchbayApplicationPort {
         fragment
             .disclosures
             .retain(|disclosure| !owned_plots.contains(&disclosure.subject));
+        if let Some(topology) = &self.mask_topology {
+            super::resident_mask_face::append(&mut fragment, &root, topology);
+        }
         fragment.validate_bounds()?;
         Ok(fragment)
     }
