@@ -1616,3 +1616,7 @@ arms for the new commands; those now carry explicit bounded operation names.
 The subsequent freestanding x86_64 native-compositor compile passed. Final
 complete-Plan helper changes receive the same focused compilation below; no
 broader suite or product proof campaign is added.
+The final complete-Plan Fore helper and Root owner wrapper compile together on
+freestanding x86_64 (5.51 seconds, existing/preparation-only dead-code warnings).
+The installed Source/Fore selection and ordinary dispatch remain unfinished;
+this checkpoint does not close #6201 or #5994.
