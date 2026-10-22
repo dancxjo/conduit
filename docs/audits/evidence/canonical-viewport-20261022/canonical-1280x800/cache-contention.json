@@ -1,0 +1,10 @@
+{
+  "observed_utc": "2026-10-22T02:42:03.090250+00:00",
+  "phase": "after complete24frame QEMU journey; aarch64 headless build check awaiting Cargo lock",
+  "other_processes": [
+    72679,
+    72739
+  ],
+  "other_log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6205-updated-scene-tests.log",
+  "boundary": "Wide runtime completed before contention. This command is a viewport prerequisite, not controlled timing comparison. Unowned process not interrupted, current asset command waits normally, no retry; constrained QEMU deferred until other tests terminate."
+}

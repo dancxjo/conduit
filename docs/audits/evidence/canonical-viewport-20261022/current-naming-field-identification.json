@@ -1,0 +1,738 @@
+{
+  "schema": "conduit.audit/naming-field-identification@1",
+  "source": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "serial_sha256": "b2aaf7504ebb60f8d5b2f4275eed24c3e4e3e56b8abdaaba24e542b4f2bfdcf8",
+  "face_identity": "509e8d2ec328b4cb776d8af7299eb8b81e0c65b0a7946b22492fc110aa5b4eea",
+  "face_revision": 1,
+  "source_basis": {
+    "active_play_id": null,
+    "body_id": null,
+    "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+    "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+    "plan_id": "5581fa0274fe68883bb8845636bbc526364c3f3a5dca716ba7c754b1c308109b",
+    "sign_ids": [],
+    "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+    "wake_id": null
+  },
+  "reported_field_target": "birth/conduitos/creche/current/name-system",
+  "action": {
+    "arguments": [
+      {
+        "contract": {
+          "constraints": [
+            {
+              "ByteLength": {
+                "maximum": 64,
+                "minimum": 0
+              }
+            },
+            {
+              "CanonicalMembership": {
+                "members": [
+                  [
+                    97,
+                    109,
+                    101,
+                    114,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  [
+                    97,
+                    109,
+                    104,
+                    97,
+                    114,
+                    105,
+                    99
+                  ],
+                  [
+                    97,
+                    110,
+                    99,
+                    105,
+                    101,
+                    110,
+                    116,
+                    45,
+                    104,
+                    101,
+                    98,
+                    114,
+                    101,
+                    119
+                  ],
+                  [
+                    97,
+                    114,
+                    97,
+                    98,
+                    105,
+                    99
+                  ],
+                  [
+                    98,
+                    114,
+                    105,
+                    116,
+                    105,
+                    115,
+                    104
+                  ],
+                  [
+                    99,
+                    104,
+                    105,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    99,
+                    108,
+                    97,
+                    115,
+                    115,
+                    105,
+                    99,
+                    45,
+                    97,
+                    110,
+                    103,
+                    108,
+                    111,
+                    112,
+                    104,
+                    111,
+                    110,
+                    101
+                  ],
+                  [
+                    101,
+                    108,
+                    118,
+                    105,
+                    115,
+                    104
+                  ],
+                  [
+                    102,
+                    114,
+                    101,
+                    110,
+                    99,
+                    104
+                  ],
+                  [
+                    105,
+                    99,
+                    101,
+                    108,
+                    97,
+                    110,
+                    100,
+                    105,
+                    99
+                  ],
+                  [
+                    105,
+                    110,
+                    100,
+                    111,
+                    110,
+                    101,
+                    115,
+                    105,
+                    97,
+                    110
+                  ],
+                  [
+                    106,
+                    97,
+                    112,
+                    97,
+                    110,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    107,
+                    111,
+                    114,
+                    101,
+                    97,
+                    110
+                  ],
+                  [
+                    107,
+                    117,
+                    114,
+                    109,
+                    97,
+                    110,
+                    106,
+                    105
+                  ],
+                  [
+                    109,
+                    101,
+                    120,
+                    105,
+                    99,
+                    97,
+                    110
+                  ],
+                  [
+                    112,
+                    111,
+                    114,
+                    116,
+                    117,
+                    103,
+                    117,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    114,
+                    111,
+                    109,
+                    97,
+                    110
+                  ],
+                  [
+                    115,
+                    117,
+                    114,
+                    112,
+                    114,
+                    105,
+                    115,
+                    101
+                  ],
+                  [
+                    116,
+                    97,
+                    109,
+                    105,
+                    108
+                  ],
+                  [
+                    116,
+                    97,
+                    114,
+                    103,
+                    117,
+                    115
+                  ],
+                  [
+                    117,
+                    107,
+                    114,
+                    97,
+                    105,
+                    110,
+                    105,
+                    97,
+                    110
+                  ],
+                  [
+                    118,
+                    105,
+                    101,
+                    116,
+                    110,
+                    97,
+                    109,
+                    101,
+                    115,
+                    101
+                  ],
+                  [
+                    119,
+                    101,
+                    108,
+                    115,
+                    104
+                  ],
+                  [
+                    121,
+                    111,
+                    114,
+                    117,
+                    98,
+                    97
+                  ]
+                ],
+                "negated": false
+              }
+            }
+          ],
+          "maximum_bytes": 64,
+          "value_kind": "value/text"
+        },
+        "name": "value",
+        "value_name": "Naming tradition"
+      }
+    ],
+    "availability": "Available",
+    "disclosure": "CurrentAction",
+    "identity": "creche.naming",
+    "intent": "conduit.intent/creche.naming@1",
+    "name": "Use naming tradition",
+    "target": "birth/conduitos/creche/current/name-system"
+  },
+  "help": [
+    {
+      "subject": "birth/conduitos/creche/current/name-system",
+      "text": "Choose a tradition for the next name suggestion."
+    }
+  ],
+  "current_value": "surprise",
+  "actual_membership": [
+    "american",
+    "amharic",
+    "ancient-hebrew",
+    "arabic",
+    "british",
+    "chinese",
+    "classic-anglophone",
+    "elvish",
+    "french",
+    "icelandic",
+    "indonesian",
+    "japanese",
+    "korean",
+    "kurmanji",
+    "mexican",
+    "portuguese",
+    "roman",
+    "surprise",
+    "tamil",
+    "targus",
+    "ukrainian",
+    "vietnamese",
+    "welsh",
+    "yoruba"
+  ],
+  "source_action_inventory": [
+    {
+      "identity": "creche.name",
+      "target": "birth/conduitos/creche/current/body-name",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 64,
+                  "minimum": 0
+                }
+              }
+            ],
+            "maximum_bytes": 64,
+            "value_kind": "value/text"
+          },
+          "name": "value",
+          "value_name": "Friendly Body name"
+        }
+      ]
+    },
+    {
+      "identity": "creche.naming",
+      "target": "birth/conduitos/creche/current/name-system",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 64,
+                  "minimum": 0
+                }
+              },
+              {
+                "CanonicalMembership": {
+                  "members": [
+                    [
+                      97,
+                      109,
+                      101,
+                      114,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      97,
+                      109,
+                      104,
+                      97,
+                      114,
+                      105,
+                      99
+                    ],
+                    [
+                      97,
+                      110,
+                      99,
+                      105,
+                      101,
+                      110,
+                      116,
+                      45,
+                      104,
+                      101,
+                      98,
+                      114,
+                      101,
+                      119
+                    ],
+                    [
+                      97,
+                      114,
+                      97,
+                      98,
+                      105,
+                      99
+                    ],
+                    [
+                      98,
+                      114,
+                      105,
+                      116,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      99,
+                      104,
+                      105,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      99,
+                      108,
+                      97,
+                      115,
+                      115,
+                      105,
+                      99,
+                      45,
+                      97,
+                      110,
+                      103,
+                      108,
+                      111,
+                      112,
+                      104,
+                      111,
+                      110,
+                      101
+                    ],
+                    [
+                      101,
+                      108,
+                      118,
+                      105,
+                      115,
+                      104
+                    ],
+                    [
+                      102,
+                      114,
+                      101,
+                      110,
+                      99,
+                      104
+                    ],
+                    [
+                      105,
+                      99,
+                      101,
+                      108,
+                      97,
+                      110,
+                      100,
+                      105,
+                      99
+                    ],
+                    [
+                      105,
+                      110,
+                      100,
+                      111,
+                      110,
+                      101,
+                      115,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      106,
+                      97,
+                      112,
+                      97,
+                      110,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      107,
+                      111,
+                      114,
+                      101,
+                      97,
+                      110
+                    ],
+                    [
+                      107,
+                      117,
+                      114,
+                      109,
+                      97,
+                      110,
+                      106,
+                      105
+                    ],
+                    [
+                      109,
+                      101,
+                      120,
+                      105,
+                      99,
+                      97,
+                      110
+                    ],
+                    [
+                      112,
+                      111,
+                      114,
+                      116,
+                      117,
+                      103,
+                      117,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      114,
+                      111,
+                      109,
+                      97,
+                      110
+                    ],
+                    [
+                      115,
+                      117,
+                      114,
+                      112,
+                      114,
+                      105,
+                      115,
+                      101
+                    ],
+                    [
+                      116,
+                      97,
+                      109,
+                      105,
+                      108
+                    ],
+                    [
+                      116,
+                      97,
+                      114,
+                      103,
+                      117,
+                      115
+                    ],
+                    [
+                      117,
+                      107,
+                      114,
+                      97,
+                      105,
+                      110,
+                      105,
+                      97,
+                      110
+                    ],
+                    [
+                      118,
+                      105,
+                      101,
+                      116,
+                      110,
+                      97,
+                      109,
+                      101,
+                      115,
+                      101
+                    ],
+                    [
+                      119,
+                      101,
+                      108,
+                      115,
+                      104
+                    ],
+                    [
+                      121,
+                      111,
+                      114,
+                      117,
+                      98,
+                      97
+                    ]
+                  ],
+                  "negated": false
+                }
+              }
+            ],
+            "maximum_bytes": 64,
+            "value_kind": "value/text"
+          },
+          "name": "value",
+          "value_name": "Naming tradition"
+        }
+      ]
+    },
+    {
+      "identity": "creche.suggest",
+      "target": "birth/conduitos/creche/current/navigation",
+      "availability": "Available",
+      "arguments": []
+    },
+    {
+      "identity": "creche.search",
+      "target": "birth/conduitos/creche/current/plot-search",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [
+              {
+                "ByteLength": {
+                  "maximum": 128,
+                  "minimum": 0
+                }
+              }
+            ],
+            "maximum_bytes": 128,
+            "value_kind": "value/text"
+          },
+          "name": "value",
+          "value_name": "Search Plots"
+        }
+      ]
+    },
+    {
+      "identity": "creche.plot.0",
+      "target": "birth/conduitos/creche/current/initial-plots/0",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ]
+    },
+    {
+      "identity": "creche.plot.1",
+      "target": "birth/conduitos/creche/current/initial-plots/1",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ]
+    },
+    {
+      "identity": "creche.plot.2",
+      "target": "birth/conduitos/creche/current/initial-plots/2",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ]
+    },
+    {
+      "identity": "creche.plot.3",
+      "target": "birth/conduitos/creche/current/initial-plots/3",
+      "availability": "Available",
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ]
+    },
+    {
+      "identity": "creche.plot.4",
+      "target": "birth/conduitos/creche/current/initial-plots/4",
+      "availability": {
+        "Unavailable": {
+          "explanation": "native-body-plot-unavailable",
+          "reason_code": "birth/unavailable"
+        }
+      },
+      "arguments": [
+        {
+          "contract": {
+            "constraints": [],
+            "maximum_bytes": 1,
+            "value_kind": "value/bool"
+          },
+          "name": "value",
+          "value_name": "Include Plot"
+        }
+      ]
+    },
+    {
+      "identity": "creche.birth",
+      "target": "birth/conduitos/creche/current/navigation",
+      "availability": "Available",
+      "arguments": []
+    }
+  ],
+  "limits": "Identifies the current source-owned field corresponding to reported wording. Original attachment Source/image/guest extent remains unknown. No naming action enacted by this analysis; no all-page/control reachability, exact historical route or full6158 closure claim. Native Face observation is retained with its original Show; not relabelled as a later component acknowledgement."
+}

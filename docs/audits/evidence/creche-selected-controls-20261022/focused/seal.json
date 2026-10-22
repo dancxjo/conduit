@@ -1,0 +1,30 @@
+{
+  "schema": "local-focused-validation-seal@1",
+  "source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "stable_source_commit": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0",
+  "source_clean_after": true,
+  "stable_clean_after": true,
+  "remote_ref": "8c3ecb0d762dbb2e1e3b079f3f033d80fa44cff0\trefs/heads/prep/6158-bounded-control-captures",
+  "tests_passed": 37,
+  "strict_xtask_all_targets": "passed",
+  "strict_conduitos_hosted_tools_native_compositor_all_targets": "passed",
+  "workspace_format": "passed",
+  "qemu": "unstarted",
+  "scope": "host CPU proof only, no current sampled-controls VM or pixel/recipe execution claim",
+  "hashes": {
+    "6158-8c3ecb0d7-actual-creche.log": "0b45b5d23bf9a236e1037ca794ed2536e9ade4df20a017ea9d6805ae42e6d13e",
+    "6158-8c3ecb0d7-naming-acceptance.log": "97da32c280b977abc887f80955621fd07e71b2d81a039a06b52f419d565a4651",
+    "6158-8c3ecb0d7-artifacts.log": "23a8c61209b6baecc639bfe171a6b89a5df56876ae14acc770b27bcaad137404",
+    "6158-8c3ecb0d7-field-clusters.log": "6810452b1318102ba52734b656256eae6076e0c1a808f65a5fb61958e8237ec3",
+    "6158-8c3ecb0d7-creche-navigation.log": "81f57996f865ecf42d569ba87555798ed11d4e949f01ca028d78bb7f4d4b507e",
+    "6158-8c3ecb0d7-xtask-clippy.log": "7249532d2a940b1f3959088ed119ff33621afb66bee9f17ee912319184bb27e1",
+    "6158-8c3ecb0d7-viewport.log": "9a753775e182aaaf35584c9aa09a675a3cf5f4384606e7dbb9a229c0406e4711",
+    "6158-8c3ecb0d7-conduitos-clippy.log": "372ab6362bb01dbfad8d99323ced8f42e1bae70a6e81ceff97f0ceb24d5f460d",
+    "6158-8c3ecb0d7-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "6158-8c3ecb0d7-metadata.log": "fd48f4371bb946c554af504b59fbde043a587eafba13b510b7cd16e04310c249",
+    "6158-8c3ecb0d7-pointer.log": "32d1304ab2642aa010df363079416af289676cf68ce655a348daee5648159253",
+    "6158-8c3ecb0d7-controls.log": "7c4ec46b004e5dc380ddb633198bf050d62ce65f5b45b9acc781458fe1f7d562",
+    "6158-8c3ecb0d7-validation.json": "c5eec9c178c6aebbda5dbdf764c1e488574acd453c054b829739690fa3bfc08c",
+    "6158-8c3ecb0d7-validation.py": "7653a36cc3b04b0777ce1938648585e556c6bee4d92b6b3aad5e6664cbe01248"
+  }
+}

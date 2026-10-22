@@ -1,0 +1,17 @@
+{
+  "source_commits": [
+    "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "ad089dab112f9efa935a229dc34cc65137c536a3"
+  ],
+  "independently_extracted": true,
+  "row_and_cost_bytes_equal": true,
+  "records_per_source": [
+    704,
+    704
+  ],
+  "sha256_per_source": [
+    "af4160b233ba7f00aa0d49ee50173f20446ce7f148c98cbe191f465b4f0576b8",
+    "af4160b233ba7f00aa0d49ee50173f20446ce7f148c98cbe191f465b4f0576b8"
+  ],
+  "boundary": "CPU test diagnostic equivalence only; no runtime-row, global optimality or layout-patch improvement claim."
+}
