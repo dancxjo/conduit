@@ -23,10 +23,10 @@ mod graph_projection;
 mod home;
 mod home_projection;
 mod joining;
+mod patchbay_face;
 #[cfg(any(test, feature = "native-compositor"))]
 mod presenter;
 mod projection;
-mod patchbay_face;
 mod reading;
 mod scene;
 mod workspace;

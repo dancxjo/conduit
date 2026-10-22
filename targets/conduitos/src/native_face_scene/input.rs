@@ -38,6 +38,9 @@ impl InputState {
     }
 }
 
+#[path = "input/command_draft.rs"]
+mod command_draft;
+
 impl NativeFaceScene {
     /// Resolve a named navigation request against this fresh Face, not an old
     /// action index. A missing/removed/unavailable target refuses explicitly.
@@ -358,29 +361,6 @@ impl NativeFaceScene {
                 argument_name: None,
             }),
         })
-    }
-
-    // Source text-entry fields retain their established blur-commit behavior.
-    // A command's argument draft is not an action: navigation cancels it.
-    fn commit_on_navigation(&self) -> bool {
-        self.input
-            .action
-            .and_then(|index| self.face.actions.get(index))
-            .is_some_and(|action| {
-                self.face.subjects.iter().any(|subject| {
-                    subject.identity == action.target
-                        && subject.role == conduit_face::FaceRole::TextEntry
-                })
-            })
-    }
-    fn discard_command_draft_for(&mut self, next: Option<FaceControl>) -> bool {
-        let discard = self.input.action.is_some()
-            && !self.commit_on_navigation()
-            && next.map(|control| control.action) != self.input.action;
-        if discard {
-            self.input = InputState::default();
-        }
-        discard
     }
 
     fn commit(
