@@ -13,6 +13,7 @@ pub enum BackKind {
     Edit,
     Face,
     Application,
+    Document,
 }
 
 pub struct Admission {
@@ -92,6 +93,9 @@ impl Admission {
                 BackKind::Upper => PlannedBack::Upper(StreamTransformBack::new(false)),
                 BackKind::Edit => {
                     PlannedBack::TextEdit(StreamTransformBack::initially_empty(values.store(&[])?))
+                }
+                BackKind::Document => {
+                    PlannedBack::Document(DocumentBack::new(values.store(&[0; 8])?))
                 }
                 BackKind::Face => PlannedBack::Face(FaceBack {
                     pending: None,
