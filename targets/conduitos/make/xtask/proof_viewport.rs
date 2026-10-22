@@ -6,7 +6,6 @@ use serde_json::{json, Value};
 const MAX_RECORD_BYTES: usize = 96 * 1024;
 const MAX_RECORDS: usize = 256;
 const MAX_SERIAL_BYTES: usize = 16 * 1024 * 1024;
-#[cfg(test)]
 use std::process::Command;
 #[derive(Args, Debug)]
 pub struct JourneyArgs {
@@ -27,12 +26,6 @@ impl Viewport {
         match self {
             Self::Wide => (1280, 800),
             Self::Constrained => (640, 480),
-        }
-    }
-    pub(super) fn vga_args(self) -> [&'static str; 2] {
-        match self {
-            Self::Wide => ["-device", "VGA,edid=on,xres=1280,yres=800"],
-            Self::Constrained => ["-device", "VGA,edid=on,xres=640,yres=480"],
         }
     }
     pub(super) fn capture(self, frame: &Value) -> Result<(), ConduitosError> {
@@ -102,6 +95,21 @@ impl Viewport {
         )
     }
 }
+/// This is the sole VGA argument insertion used by the live journey builder.
+pub(super) fn append_vga(command: &mut Command, viewport: Option<Viewport>) {
+    match viewport {
+        None => {
+            command.args(["-vga", "std"]);
+        }
+        Some(viewport) => {
+            let device = match viewport {
+                Viewport::Wide => "VGA,edid=on,xres=1280,yres=800",
+                Viewport::Constrained => "VGA,edid=on,xres=640,yres=480",
+            };
+            command.args(["-vga", "none", "-device", device]);
+        }
+    }
+}
 fn refusal(detail: &str) -> ConduitosError {
     ConduitosError::refusal("proof-viewport-mismatch", detail)
 }
@@ -132,10 +140,25 @@ mod tests {
     }
     #[test]
     fn modes_emit_one_vga_and_refuse_capture_mismatch() {
+        let mut default = Command::new("qemu");
+        append_vga(&mut default, None);
+        assert_eq!(
+            default
+                .get_args()
+                .map(|arg| arg.to_str().unwrap())
+                .collect::<Vec<_>>(),
+            ["-vga", "std"]
+        );
         for mode in [Viewport::Wide, Viewport::Constrained] {
             let mut c = Command::new("qemu");
-            c.args(mode.vga_args());
-            assert_eq!(c.get_args().count(), 2);
+            append_vga(&mut c, Some(mode));
+            let args: Vec<_> = c.get_args().map(|arg| arg.to_str().unwrap()).collect();
+            let expected = match mode {
+                Viewport::Wide => "VGA,edid=on,xres=1280,yres=800",
+                Viewport::Constrained => "VGA,edid=on,xres=640,yres=480",
+            };
+            assert_eq!(args, ["-vga", "none", "-device", expected]);
+            assert_eq!(args.iter().filter(|arg| arg.starts_with("VGA,")).count(), 1);
             let (w, h) = mode.dimensions();
             assert!(mode.capture(&json!({"width":w,"height":h})).is_ok());
             assert!(mode.capture(&json!({"width":w+1,"height":h})).is_err());

@@ -95,22 +95,22 @@ fn execute_with_viewport(
             Err(error) => return Err(io_error(error)),
         }
     }
-    let vga_args = viewport.map_or(["-vga", "std"], |viewport| viewport.vga_args());
     let mut command = Command::new("qemu-system-x86_64");
+    command.args([
+        "-M",
+        "q35",
+        "-cpu",
+        "max",
+        "-m",
+        conduitos::make::PC_PRODUCT_QEMU_MEMORY,
+        "-smp",
+        "1",
+        "-display",
+        "none",
+    ]);
+    super::proof_viewport::append_vga(&mut command, viewport);
     command
         .args([
-            "-M",
-            "q35",
-            "-cpu",
-            "max",
-            "-m",
-            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
-            "-smp",
-            "1",
-            "-display",
-            "none",
-            vga_args[0],
-            vga_args[1],
             "-monitor",
             "none",
             "-qmp",
