@@ -118,16 +118,47 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-environment-specification-proof"
+name = "conduit-embedded-build"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
+name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
  "conduit-body-make",
+ "conduit-core",
+ "conduit-embedded-build",
+ "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
  "conduit-host-make",
  "conduit-host-rp2040",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-planner",
  "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-time",
  "serde_json",
+]
+
+[[package]]
+name = "conduit-environment-runtime"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-pulse-capture",
+ "conduit-semantic-catalog",
+ "conduit-time",
 ]
 
 [[package]]
@@ -186,6 +217,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
+]
+
+[[package]]
 name = "conduit-language"
 version = "0.1.0"
 dependencies = [
@@ -208,6 +246,14 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]
@@ -239,6 +285,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-pulse-capture"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-plot",
+]
+
+[[package]]
 name = "conduit-purpose"
 version = "0.1.0"
 dependencies = [
@@ -266,6 +322,7 @@ dependencies = [
  "conduit-education",
  "conduit-face",
  "conduit-human",
+ "conduit-kernel",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
@@ -293,6 +350,7 @@ name = "conduit-time"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-kernel",
  "conduit-plot",
  "serde",
 ]

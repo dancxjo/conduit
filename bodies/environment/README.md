@@ -283,3 +283,27 @@ capacities and pointer widths differ. They favor preparing the rich Plan on a
 host and admitting its exact bounded native projection on the MCU. Such an
 installation still requires current initialized offers, Boot identity, authority
 and resident layout checks; these measurements do not establish that path.
+
+
+`bodies/environment/make` now also exposes `PreparedNativeAppliance::prepare`.
+It consumes the checked appliance Source, supplied Host advertisement, chosen
+Bases, authority and explicit artifact ceilings. It uses ordinary planning and
+lowering, produces the native assignment, and retains the rich Plan on the
+planning host. Make creates no Ready provider. `compile_default()` preserves
+the count and cadence authored in `profiles/appliance.conduit`.
+
+```sh
+cargo xtask prove environment native-construction
+```
+
+This transcript proof covers the default Source through native production
+kernel-table admission without capture effects, missing authority, a stale
+Boot and inadequate projection capacity. The complete publication kernel proof
+also runs through the native assignment and selected pulse-owner path: all
+seven sensor scenarios allocate nothing during Play. Its native assignment is
+46,121 bytes and declares 20,722 bytes of projection state; these exclude Back
+preparation, kernel storage, Face, network and Root memory. The trusted resident
+records now pin numeric count/cadence as well as graph and computation records,
+so a re-digested assignment cannot replace Source configuration. Authentication,
+real Body/Wake integration, target memory admission and physical installation
+remain necessary before this construction material becomes an appliance.

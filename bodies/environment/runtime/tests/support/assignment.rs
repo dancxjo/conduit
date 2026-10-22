@@ -31,8 +31,8 @@ pub fn prepare_from_resident<
 ) -> conduit_environment_runtime::assigned::AssignedKernelTables<N, C, P, R, T, H> {
     let maxima = AssignedPlanMaxima {
         encoded_bytes: 48 * 1024,
-        runtime_state_bytes: 16 * 1024,
-        counts: [16, 32, 8, 16, 16, 16, 8, 1, 128, 0, 32, 32, 0],
+        runtime_state_bytes: 32 * 1024,
+        counts: [16, 32, 16, 16, 16, 16, 8, 1, 128, 0, 32, 32, 0],
     };
     let encoded = conduit_embedded_build::encode_assigned_native_plan(image, maxima).unwrap();
     let legacy = encode_assigned_plan(image, maxima).unwrap();
@@ -73,10 +73,17 @@ pub fn prepare_from_resident<
         AssignedIdentity::from_text(&image.fragment_id)
     );
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
-    let structural =
+    let mut structural =
         conduit_embedded_build::assigned_native_layout_requirements(resident, maxima).unwrap();
     let resident_bytes =
         conduit_embedded_build::encode_assigned_native_plan(resident, maxima).unwrap();
+    structural.extend(
+        AssignedPlanRecords::new(&resident_bytes)
+            .unwrap()
+            .map(Result::unwrap)
+            .filter(|record| record.tag == ASSIGNED_CONFIGURATION)
+            .map(AssignedRecordRequirement::from_record),
+    );
     let mut resident_counts = [0; ASSIGNED_PLAN_COUNT_KINDS];
     resident_counts.copy_from_slice(&resident_bytes[80..80 + ASSIGNED_PLAN_COUNT_KINDS]);
     let layout = conduit_environment_runtime::assigned::ResidentLayout {
@@ -200,7 +207,7 @@ pub fn prepare_from_resident<
     // resident trusted inventory. The assignment digest is integrity, not authority.
     let mut substituted = encoded.clone();
     let mut cursor = ASSIGNED_PLAN_HEADER_BYTES;
-    while substituted[cursor] != ASSIGNED_CONFIGURATION {
+    while !(substituted[cursor] == ASSIGNED_CONFIGURATION && substituted[cursor + 3 + 18] == 3) {
         cursor += 3 + usize::from(u16::from_le_bytes([
             substituted[cursor + 1],
             substituted[cursor + 2],
@@ -219,6 +226,23 @@ pub fn prepare_from_resident<
         decode_assigned_plan_with_computations(&substituted, maxima, required, profile),
         Err(AssignedPlanRefusal::UnknownComputation)
     );
+    // The timer's finite count and cadence belong to the trusted Source too.
+    // A digest-valid numeric configuration must not change them on installation.
+    if let Some(offset) = numeric_configuration_offset(&encoded) {
+        let mut changed = encoded.clone();
+        changed[offset] ^= 1;
+        let digest = assigned_plan_payload_digest(&changed[ASSIGNED_PLAN_HEADER_BYTES..]);
+        changed[digest_start..digest_start + 32].copy_from_slice(&digest);
+        assert!(
+            decode_assigned_plan_with_computations(&changed, maxima, required, profile).is_ok()
+        );
+        assert!(matches!(
+            conduit_environment_runtime::assigned::AssignedKernelTables::<N,C,P,R,T,H>::prepare(
+                &changed, maxima, required, profile, &layout
+            ),
+            Err(conduit_environment_runtime::assigned::AssignedKernelRefusal::Layout)
+        ));
+    }
     let mut changed_table = encoded;
     // Node zero's fuel is valid in the format but must match the resident image.
     let fuel = ASSIGNED_PLAN_HEADER_BYTES + 3 + 2;
@@ -268,8 +292,8 @@ impl NativeProjection {
     pub fn maxima() -> AssignedPlanMaxima {
         AssignedPlanMaxima {
             encoded_bytes: 48 * 1024,
-            runtime_state_bytes: 16 * 1024,
-            counts: [16, 32, 8, 16, 16, 16, 8, 1, 128, 0, 32, 32, 0],
+            runtime_state_bytes: 32 * 1024,
+            counts: [16, 32, 16, 16, 16, 16, 8, 1, 128, 0, 32, 32, 0],
         }
     }
     pub fn required(&self) -> AssignedPlanRequirements<'_> {
@@ -288,4 +312,15 @@ impl NativeProjection {
             requirements: &self.computations,
         }
     }
+}
+
+fn numeric_configuration_offset(bytes: &[u8]) -> Option<usize> {
+    let mut cursor = ASSIGNED_PLAN_HEADER_BYTES;
+    while cursor < bytes.len() {
+        if bytes[cursor] == ASSIGNED_CONFIGURATION && bytes[cursor + 3 + 18] == 2 {
+            return Some(cursor + 3 + 19);
+        }
+        cursor += 3 + usize::from(u16::from_le_bytes([bytes[cursor + 1], bytes[cursor + 2]]));
+    }
+    None
 }

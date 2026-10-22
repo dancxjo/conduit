@@ -16,6 +16,21 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["native-construction"] {
+        return execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "bodies/environment/make/Cargo.toml",
+                    "--test",
+                    "native",
+                ])
+                .env("CARGO_TARGET_DIR", root.join("target")),
+        );
+    }
     if arguments == ["http"] {
         return execute(
             Command::new("cargo")
@@ -270,7 +285,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, mask, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, native-construction, mask, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

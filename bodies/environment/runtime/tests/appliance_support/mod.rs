@@ -76,3 +76,36 @@ pub fn advertisement(
         .unwrap();
     host
 }
+
+/// Host-side preparation of the exact authored Plan; no model provider is built.
+pub fn native_image(
+    plan: &Plan,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> conduit_embedded_build::GeneratedEmbeddedPlan {
+    conduit_embedded_build::generate_embedded_plan_with_computations(
+        &plan.fragments[0],
+        lowered,
+        conduit_embedded_build::EmbeddedImageBounds {
+            maximum_nodes: 15,
+            maximum_cords: 14,
+            maximum_routes: 15,
+            maximum_route_targets: 14,
+            maximum_host_calls: 15,
+            maximum_resources: 1,
+            maximum_sign_expectations: 128,
+            maximum_configuration_entries: 16,
+            maximum_ports_per_node:
+                conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
+            maximum_remote_endpoints: 0,
+            maximum_cord_value_slots: 14,
+            maximum_cord_value_bytes: 32768,
+            maximum_sign_items: 128,
+            maximum_sign_bytes: 32768,
+        },
+        conduit_embedded_build::EmbeddedComputationBounds {
+            maximum_program_bytes: 32768,
+            maximum_total_program_bytes: 65536,
+        },
+    )
+    .unwrap()
+}

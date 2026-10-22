@@ -87,7 +87,26 @@ fn run(scenario: usize) {
         );
     }
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
-    let (mut owner, pulse_node) = pulse::bind(ready, &plan, &lowered).unwrap();
+    let image = appliance_support::native_image(&plan, &lowered);
+    let projection = assignment::NativeProjection::prepare(&image);
+    let (mut owner, pulse_node) =
+        pulse::bind_assigned(ready, &plan, &lowered, &projection).unwrap();
+    let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
+    assert_eq!(
+        tables.nodes,
+        core::array::from_fn(|i| lowered.node_specs[i])
+    );
+    assert_eq!(
+        tables.cords,
+        core::array::from_fn(|i| lowered.cords[i].spec)
+    );
+    assert_eq!(
+        tables.startup_order(),
+        &core::array::from_fn(|i| lowered
+            .identity
+            .node_for_placement(&plan.fragments[0].startup_order[i])
+            .unwrap())
+    );
     let mut capacities = [1024; 32];
     capacities[..2].fill(4096);
     let mut values = k::HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap();
@@ -152,23 +171,6 @@ fn run(scenario: usize) {
             },
         );
     }
-    let mut routes = k::FixedRoutes::<R, C>::new(P as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .unwrap();
-    }
-    routes.seal().unwrap();
-    let mut calls = k::FixedHostCallBindings::<N>::new(1);
-    for call in &lowered.host_calls {
-        calls.install(call.node, call.binding).unwrap();
-    }
-    calls.seal().unwrap();
     let sign_slots = lowered.sign_items.max(
         u16::try_from(
             (lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<k::KernelEvent>()),
@@ -176,10 +178,10 @@ fn run(scenario: usize) {
         .unwrap(),
     );
     let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_with_host_calls(
-        core::array::from_fn(|i| lowered.node_specs[i]),
-        core::array::from_fn(|i| lowered.cords[i].spec),
-        routes,
-        calls,
+        tables.nodes,
+        tables.cords,
+        tables.routes,
+        tables.calls,
         drivers.map(Option::unwrap),
         values,
         k::HostedSignLog::new(sign_slots, lowered.sign_bytes).unwrap(),

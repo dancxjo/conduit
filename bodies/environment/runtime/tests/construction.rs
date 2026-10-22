@@ -28,4 +28,6 @@ fn authored_appliance_uses_real_typed_publication_kinds_and_a_finite_clock() {
         }
     }
     assert!(compile(4097, 60000).is_err());
+    let authored = conduit_environment_runtime::construction::compile_default().unwrap();
+    assert_eq!((authored.count, authored.period_ms), (960, 60000));
 }

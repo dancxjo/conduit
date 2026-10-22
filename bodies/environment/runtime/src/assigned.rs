@@ -7,6 +7,8 @@ use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
 
+/// Exact Make-owned graph and configuration records. Programs are also checked
+/// against the admitted computation inventory; incoming digests confer no authority.
 pub struct ResidentLayout<'a> {
     pub records: &'a [c::AssignedRecordRequirement],
     pub counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
@@ -286,10 +288,7 @@ fn validate_layout(bytes: &[u8], layout: &ResidentLayout<'_>) -> Result<(), Assi
     let mut seen = [false; 256];
     for record in c::AssignedPlanRecords::new(bytes)? {
         let record = record?;
-        if matches!(
-            record.tag,
-            c::ASSIGNED_CONFIGURATION | c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL
-        ) {
+        if matches!(record.tag, c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL) {
             continue;
         }
         let expected = c::AssignedRecordRequirement::from_kernel_record(record, u16_at(bytes, 8)?);

@@ -17,7 +17,15 @@ pub struct ApplianceSource {
     pub period_ms: u64,
 }
 
+/// Preserve the defaults authored in the appliance Plot rather than copying
+/// count and cadence policy into Make or a target adapter.
+pub fn compile_default() -> Result<ApplianceSource, String> {
+    compile_invocation("environmental-appliance()")
+}
 pub fn compile(count: u64, period_ms: u64) -> Result<ApplianceSource, String> {
+    compile_invocation(&format!("environmental-appliance({count}, {period_ms})"))
+}
+fn compile_invocation(invocation: &str) -> Result<ApplianceSource, String> {
     let mut startup = StartupCatalog::new();
     let mut profiles = ProfileCatalog::new();
     conduit_pulse_capture::PulseReadContract::prepare()
@@ -37,14 +45,16 @@ pub fn compile(count: u64, period_ms: u64) -> Result<ApplianceSource, String> {
             .map_err(debug)?
             .install(&mut startup, &mut profiles)?;
     }
-    let source = format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\nplot appliance {{\n logger: environmental-appliance({count}, {period_ms})\n}}\n",
+    let source = format!(
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\nplot appliance {{\n logger: {invocation}\n}}\n",
         include_str!("../../../../plots/device-protocols/pulse-types.conduit"),
         include_str!("../../../../plots/device-protocols/dht11-capture.conduit"),
         include_str!("../../../../plots/device-protocols/dht11.conduit"),
         include_str!("../../../../plots/device-protocols/dht11-read.conduit"),
         include_str!("../../../../plots/device-protocols/dht11-observe.conduit"),
         include_str!("../../profiles/sampling.conduit"),
-        include_str!("../../profiles/appliance.conduit"));
+        include_str!("../../profiles/appliance.conduit")
+    );
     let syntax = p::parse_syntax_document(&source);
     if !syntax.diagnostics.is_empty() {
         return Err(format!("appliance Source: {:?}", syntax.diagnostics));
