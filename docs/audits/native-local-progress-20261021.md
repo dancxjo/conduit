@@ -1456,3 +1456,31 @@ and mode distinctions. Both hosted and freestanding x86_64 native-compositor
 library checks pass for this integration. The offer remains unadvertised: the
 matching editor encounter, topology admission and checked Mask return path are
 not yet complete. The native 256-byte capacity is unchanged.
+
+### Canonical native Memory Lantern encounter (#6192, #6201)
+
+The installed native Memory Lantern now uses its canonical `main.conduit`, the
+same document/editor Source as the browser, rather than `keyboard-only.conduit`.
+Its exact two-node initialized loop is admitted explicitly; other arbitrary
+small or cyclic graphs are not newly admitted. The document Back retains the
+existing protected owner, and `face/editor` has one bounded pending Host Call.
+Physical default-keymap input returns real revisioned `TextEdit` values through
+that planned call. The native profile appends Unicode, inserts newline, and
+backspaces one Unicode scalar; arbitrary cursor selection and IME parity are not
+claimed. The Mask displays an immutable returned document and never predicts a
+successful edit. Empty input or a key release cannot masquerade as a document edit.
+
+The editor reserves one existing keyboard delivery slot and its fixed adapter
+memory; no remote ingress or remote Sign budget is invented. Document storage
+remains 256 bytes. The full four-Plot workset is now 12 nodes/nine cords, within
+the same fixed Runtime bounds. Cancellation retires pending calls, values and
+presentation observations. Source loading has an admitted-call API which refuses
+an existing nonempty draft and over-capacity Source, then checks the returned
+revision and bytes; it does not replace resident Source or replan execution.
+
+Validation at `62ff847f4`: 28 focused native-workset checks and nine resident
+journey checks passed; the freestanding x86_64 native-compositor library check
+passed. The first cold test compilation built dependencies, then subsequent
+focused runs reused them. No QEMU, CI, ISO/ZIP, physical or human proof follows
+from these checks. Native Patchbay request-to-Source authorization is the next
+handoff; persistence and explicit Save/reopen remain #6192 work.
