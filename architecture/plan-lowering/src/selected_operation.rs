@@ -64,12 +64,7 @@ pub fn bind_selected_operation_for_subject(
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
-        || conduit_core::bind_active_play(
-            &claim.plan_id,
-            &claim.host_id,
-            &claim.boot_id,
-            active.play_sequence,
-        ) != *active
+        || !canonical_active_play(active)
         || lowered.identity.plan_id != fragment.plan_id
         || lowered.identity.fragment_id != fragment.fragment_id
     {
@@ -214,4 +209,21 @@ pub(crate) fn matching_scope<'a>(
         return Err(SelectedCallRefusal::WrongBinding);
     }
     Ok(scope)
+}
+
+/// Compare canonical identity text without constructing owned IDs at admission.
+pub(crate) fn canonical_active_play(active: &ActivePlayIdentity) -> bool {
+    let digest = conduit_core::active_play_digest(
+        active.plan_id.as_str(),
+        active.host_id.as_str(),
+        active.boot_id.as_str(),
+        active.play_sequence,
+    );
+    let encoded = active.active_play_id.as_str().as_bytes();
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    encoded.len() == 64
+        && digest.iter().enumerate().all(|(i, byte)| {
+            encoded[i * 2] == HEX[usize::from(byte >> 4)]
+                && encoded[i * 2 + 1] == HEX[usize::from(byte & 15)]
+        })
 }

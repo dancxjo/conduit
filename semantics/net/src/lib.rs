@@ -132,7 +132,8 @@ pub fn network_join_offer(
     .build()
 }
 
-fn network_join_contract() -> Kind {
+/// The semantic join Kind, independent of any initialized radio or authority.
+pub fn network_join_contract() -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: Some((PortId::from("request"), PortId::from("attachment"))),

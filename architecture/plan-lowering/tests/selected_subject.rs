@@ -4,31 +4,10 @@ use conduit_core::*;
 use conduit_plan_lowering::{lowering::lower_plan_fragment, selected_operation::*};
 #[path = "../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
 mod fixture;
+#[path = "common/native_possession.rs"]
+mod native_possession;
+use native_possession::{possession, scope};
 
-fn scope(subject: &str) -> BaseCapabilityScope {
-    BaseCapabilityScope {
-        host_id: "host/network".into(),
-        boot_id: "boot/current".into(),
-        base_instance_id: "base/radio".into(),
-        base_provider_generation: 1,
-        plan_id: "plan/unsealed".into(),
-        active_play_id: "play/unsealed".into(),
-        authority_grant_id: "grant/configurator".into(),
-        authority_contract_id: "authority/network-config@1".into(),
-        capability_id: "cap/join".into(),
-        implementation_id: "impl/join".into(),
-        operation_contract_id: "call/join".into(),
-        subject_kind: subject.into(),
-        resource_pool_id: "pool/radio".into(),
-        resource_generation_id: ResourceGenerationId("generation/current".into()),
-        envelope_id: "envelope/radio".into(),
-        maximum_parameter_bytes: 256,
-        maximum_result_bytes: 256,
-        maximum_work_units: 1,
-        maximum_in_flight: 1,
-        maximum_operations: 1,
-    }
-}
 fn kind() -> Kind {
     Kind {
         kind_id: "network/join".into(),
@@ -57,59 +36,6 @@ fn kind() -> Kind {
             max_queue_bytes: 256,
         },
     }
-}
-fn possession(scope: BaseCapabilityScope) -> (BaseCapabilityTable, BaseOperationClaim) {
-    let claim = BaseOperationClaim {
-        host_id: scope.host_id.clone(),
-        boot_id: scope.boot_id.clone(),
-        base_instance_id: scope.base_instance_id.clone(),
-        base_provider_generation: 1,
-        plan_id: scope.plan_id.clone(),
-        active_play_id: scope.active_play_id.clone(),
-        implementation_id: scope.implementation_id.clone(),
-        operation_contract_id: scope.operation_contract_id.clone(),
-        subject_kind: scope.subject_kind.clone(),
-        resource_pool_id: scope.resource_pool_id.clone(),
-        resource_generation_id: scope.resource_generation_id.clone(),
-        envelope_id: scope.envelope_id.clone(),
-        parameter_bytes: 256,
-        work_units: 1,
-    };
-    let authority = BaseCapabilityAuthority {
-        grant: AuthorityGrant {
-            grant_id: scope.authority_grant_id.clone(),
-            contract_id: scope.authority_contract_id.clone(),
-            host_call_contract_id: scope.operation_contract_id.clone(),
-            subject_kind: scope.subject_kind.clone(),
-            host_id: scope.host_id.clone(),
-            boot_id: scope.boot_id.clone(),
-            capability_id: scope.capability_id.clone(),
-        },
-        base_instance_id: scope.base_instance_id.clone(),
-        base_provider_generation: 1,
-        resource_pool_id: scope.resource_pool_id.clone(),
-        resource_generation_id: scope.resource_generation_id.clone(),
-        operation_contract_id: scope.operation_contract_id.clone(),
-        envelope_id: scope.envelope_id.clone(),
-        maximum_parameter_bytes: 256,
-        maximum_result_bytes: 256,
-        maximum_work_units: 1,
-        maximum_in_flight: 1,
-        maximum_operations: 1,
-    };
-    let mut table = BaseCapabilityTable::new(
-        scope.host_id.clone(),
-        scope.boot_id.clone(),
-        scope.base_instance_id.clone(),
-        1,
-        [7; 32],
-        1,
-    )
-    .unwrap();
-    let _handle = table
-        .issue(CapabilityIssueRequest { scope, authority })
-        .unwrap();
-    (table, claim)
 }
 #[test]
 fn separate_subject_requires_independent_expected_target_and_exact_current_binding() {
@@ -161,6 +87,21 @@ fn separate_subject_requires_independent_expected_target_and_exact_current_bindi
         ),
         Err(SelectedCallRefusal::WrongBinding)
     );
+    let mut noncanonical = active.clone();
+    noncanonical.play_sequence += 1;
+    assert_eq!(
+        bind_selected_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &subject,
+            SelectedOperationPlan {
+                active: &noncanonical,
+                ..selection()
+            }
+        ),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
     let mut stale = claim.clone();
     stale.boot_id = "boot/old".into();
     assert_eq!(
@@ -194,7 +135,7 @@ fn separate_subject_requires_independent_expected_target_and_exact_current_bindi
         &wrong_plan.boot_id,
         3,
     );
-    let mut wrong_scope = self::scope(subject.as_str());
+    let mut wrong_scope = native_possession::scope(subject.as_str());
     wrong_scope.plan_id = wrong_plan.plan_id.clone();
     wrong_scope.active_play_id = wrong_active.active_play_id.clone();
     let (wrong_table, wrong_claim) = possession(wrong_scope);

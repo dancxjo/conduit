@@ -54,6 +54,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "bodies/environment/make/Cargo.toml",
                     "--test",
                     "native",
+                    "--test",
+                    "network_assignment",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );

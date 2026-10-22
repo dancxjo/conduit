@@ -35,6 +35,23 @@ pub fn bind_selected_assigned_operation(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedOperationPlan<'_>,
 ) -> Result<NodeId, E> {
+    let subject = &definition.kind.kind_id;
+    bind_selected_assigned_operation_for_subject(
+        table, claim, definition, subject, native, selected,
+    )
+}
+
+/// Bind the constrained projection against a subject chosen independently by
+/// the native implementation. The assignment cannot choose its own authority
+/// subject. The default entry point retains its gear-Kind subject requirement.
+pub fn bind_selected_assigned_operation_for_subject(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    subject: &c::KindId,
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedOperationPlan<'_>,
+) -> Result<NodeId, E> {
     let wrong = || E::WrongBinding;
     let id = c::AssignedIdentity::from_text;
     if selected.bytes.get(8..10) != Some(c::ASSIGNED_NATIVE_PLAN_SCHEMA.to_le_bytes().as_slice()) {
@@ -56,13 +73,8 @@ pub fn bind_selected_assigned_operation(
         || active.host_id != claim.host_id
         || active.boot_id != claim.boot_id
         || active.active_play_id != claim.active_play_id
-        || c::bind_active_play(
-            &claim.plan_id,
-            &claim.host_id,
-            &claim.boot_id,
-            active.play_sequence,
-        ) != *active
-        || claim.subject_kind != definition.kind.kind_id
+        || !crate::selected_operation::canonical_active_play(active)
+        || &claim.subject_kind != subject
         || claim.operation_contract_id.as_str() != definition.call
     {
         return Err(wrong());
@@ -130,7 +142,7 @@ pub fn bind_selected_assigned_operation(
                 calls += 1;
                 if u16_at(data, 2)? != 0
                     || identity(data, 4)? != id(definition.call)
-                    || identity(data, 20)? != id(definition.kind.kind_id.as_str())
+                    || identity(data, 20)? != id(subject.as_str())
                     || u16_at(data, 36)? != 1
                     || u32_at(data, 38)? != definition.input_bytes
                     || u32_at(data, 42)? != definition.output_bytes
@@ -165,7 +177,7 @@ pub fn bind_selected_assigned_operation(
         || b.grant != id(scope.authority_grant_id.as_str())
         || b.authority != id(native.authority)
         || b.call != id(definition.call)
-        || b.subject != id(definition.kind.kind_id.as_str())
+        || b.subject != id(subject.as_str())
         || b.host != view.host
         || b.boot != view.boot
         || b.authority_capability != b.capability

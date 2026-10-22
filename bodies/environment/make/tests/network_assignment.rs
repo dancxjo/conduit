@@ -1,0 +1,201 @@
+//! CPU fixture: the actual network Kind through ordinary generation and admission.
+//! This issues no hardware offer and performs no network operation.
+extern crate alloc;
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+use conduit_core as c;
+use conduit_embedded_build as e;
+use conduit_plan_lowering::{
+    lowering::lower_plan_fragment, selected_assigned_operation::*, selected_operation::*,
+};
+#[path = "../../../../targets/conduitos/src/machine_membrane/selection_fixture.rs"]
+mod fixture;
+#[path = "../../../../architecture/plan-lowering/tests/common/native_possession.rs"]
+mod possession;
+
+#[test]
+fn network_assignment_preserves_its_independent_subject_and_native_possession() {
+    let kind = conduit_net::network_join_contract();
+    let subject = c::KindId::from(conduit_net::NETWORK_CONFIG_SUBJECT);
+    let mut scope = possession::scope(subject.as_str());
+    scope.authority_contract_id = conduit_net::NETWORK_CONFIG_AUTHORITY.into();
+    scope.operation_contract_id = conduit_net::NETWORK_JOIN_HOST_CALL.into();
+    scope.maximum_parameter_bytes = conduit_net::MAXIMUM_JOIN_INPUT_BYTES;
+    scope.maximum_result_bytes = conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES;
+    let (mut fragment, _, _, placement) = fixture::selected(
+        &scope,
+        &kind,
+        conduit_net::NETWORK_JOIN_HOST_CALL,
+        conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
+        "radio",
+        "join",
+    );
+    let gear = &mut fragment.placements[0];
+    gear.host_calls[0].target_kind = Some(subject.clone());
+    gear.resources[0].class_id = conduit_net::WIFI_STATION_RESOURCE_CLASS.into();
+    let identity = c::PlotIdentity {
+        source_document_id: fragment.source_document_id.clone(),
+        checked_plot_id: fragment.checked_plot_id.clone(),
+        expanded_plot_id: fragment.expanded_plot_id.clone(),
+    };
+    let fragment = c::seal_plan(identity, vec![fragment]).fragments.remove(0);
+    let lowered = lower_plan_fragment(&fragment).unwrap();
+    let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
+    scope.plan_id = fragment.plan_id.clone();
+    scope.active_play_id = active.active_play_id.clone();
+    let (table, claim) = possession::possession(scope);
+    let image = e::generate_embedded_plan(
+        &fragment,
+        &lowered,
+        e::EmbeddedImageBounds {
+            maximum_nodes: 1,
+            maximum_cords: 0,
+            maximum_routes: 1,
+            maximum_route_targets: 1,
+            maximum_host_calls: 1,
+            maximum_resources: 1,
+            maximum_sign_expectations: 16,
+            maximum_configuration_entries: 0,
+            maximum_ports_per_node: 8,
+            maximum_remote_endpoints: 0,
+            maximum_cord_value_slots: 1,
+            maximum_cord_value_bytes: 1024,
+            maximum_sign_items: 64,
+            maximum_sign_bytes: 8192,
+        },
+    )
+    .unwrap();
+    let maxima = c::AssignedPlanMaxima {
+        encoded_bytes: 8192,
+        runtime_state_bytes: 8192,
+        counts: [32; c::ASSIGNED_PLAN_COUNT_KINDS],
+    };
+    let bytes = e::encode_assigned_native_plan(&image, maxima).unwrap();
+    let calls = [c::AssignedIdentity::from_text(
+        conduit_net::NETWORK_JOIN_HOST_CALL,
+    )];
+    let resources: Vec<_> = image.resources.iter().map(|r| r.resource).collect();
+    let definition = || SelectedOperationContract {
+        kind: &kind,
+        call: conduit_net::NETWORK_JOIN_HOST_CALL,
+        input_bytes: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
+        output_bytes: conduit_net::MAXIMUM_JOIN_OUTPUT_BYTES,
+        resource_bytes: 1,
+    };
+    let native = || AssignedNativeIdentity {
+        capability: "cap/join",
+        execution_profile: "conduitos/cooperative-bounded-step@1",
+        artifact: "artifact/join/fixture",
+        base: "base/join",
+        base_implementation: "base/join/fixture@1",
+        mechanism: "machine/radio-attachment",
+        authority: conduit_net::NETWORK_CONFIG_AUTHORITY,
+        resource_class: conduit_net::WIFI_STATION_RESOURCE_CLASS,
+    };
+    let selected = || SelectedAssignedOperationPlan {
+        bytes: &bytes,
+        maxima,
+        requirements: c::AssignedPlanRequirements {
+            host: c::AssignedIdentity::from_text(fragment.host_id.as_str()),
+            boot: c::AssignedIdentity::from_text(fragment.boot_id.as_str()),
+            host_calls: &calls,
+            resources: &resources,
+            remote_bindings: &[],
+        },
+        computations: c::AssignedComputationProfile {
+            maximum_text_bytes: 32768,
+            maximum_total_text_bytes: 32768,
+            requirements: &[],
+        },
+        fragment_id: &fragment.fragment_id,
+        active: &active,
+        node: lowered.nodes[0].node,
+    };
+    assert_eq!(
+        bind_selected_assigned_operation(&table, &claim, definition(), native(), selected()),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
+    let (result, allocation) = allocation_probe::observe(|| {
+        bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &subject,
+            native(),
+            selected(),
+        )
+    });
+    assert_eq!(result, Ok(lowered.nodes[0].node));
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    assert_eq!(
+        bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &kind.kind_id,
+            native(),
+            selected()
+        ),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
+    let mut noncanonical = active.clone();
+    noncanonical.play_sequence += 1;
+    assert_eq!(
+        bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &subject,
+            native(),
+            SelectedAssignedOperationPlan {
+                active: &noncanonical,
+                ..selected()
+            }
+        ),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
+    let mut stale = claim.clone();
+    stale.boot_id = "boot/old".into();
+    assert_eq!(
+        bind_selected_assigned_operation_for_subject(
+            &table,
+            &stale,
+            definition(),
+            &subject,
+            native(),
+            selected()
+        ),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
+    assert_eq!(
+        bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &subject,
+            AssignedNativeIdentity {
+                authority: "authority/other",
+                ..native()
+            },
+            selected()
+        ),
+        Err(SelectedCallRefusal::WrongBinding)
+    );
+    assert_eq!(
+        bind_selected_operation_for_subject(
+            &table,
+            &claim,
+            definition(),
+            &subject,
+            SelectedOperationPlan {
+                fragment: &fragment,
+                lowered: &lowered,
+                active: &active,
+                placement_id: &placement
+            }
+        ),
+        Ok(lowered.nodes[0].node)
+    );
+}
