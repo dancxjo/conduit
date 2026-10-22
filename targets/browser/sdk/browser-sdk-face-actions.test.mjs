@@ -137,3 +137,16 @@ test('Patchbay submission cannot borrow another contributor route or a forged ca
       error => error.code === 'StaleShow');
   }
 });
+
+test('resident Patchbay arguments preserve exact Unicode as canonical ABI bytes', () => {
+  const value = 'gear/café/λ';
+  const view = { body_id: 'body', show_id: 'show', face_id: 'face', face_revision: '1',
+    show_state: 'available', interactions_admitted: true,
+    actions: [{ identity: 'edit', target: 'plot/exact', availability: 'available',
+      intent: 'patchbay/edit-subject@1', arguments: [{ name: 'subject', value_kind: 'value/text',
+        maximum_bytes: 14, choices: [value] }] }] };
+  const supplied = [{ name: 'subject', value }];
+  assert.deepEqual(checkedPatchbayFaceArguments(view, view, 'edit', 'plot/exact', supplied),
+    [{ name: 'subject', value: [103, 101, 97, 114, 47, 99, 97, 102, 195, 169, 47, 206, 187] }]);
+  assert.deepEqual(supplied, [{ name: 'subject', value }]);
+});

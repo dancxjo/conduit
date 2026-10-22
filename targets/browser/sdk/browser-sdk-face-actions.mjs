@@ -17,7 +17,8 @@ export function checkedPatchbayFaceArguments(acknowledged, view, actionId, targe
   if (!['patchbay/select-plot@1', 'patchbay/edit-subject@1', 'patchbay/change-masks@1'].includes(action.intent)) {
     refuse('UnsupportedAction', 'This action has no resident Patchbay return route.');
   }
-  return checked;
+  // FaceInteraction arguments cross the canonical ABI as UTF-8 byte sequences.
+  return checked.map(({ name, value }) => ({ name, value: Array.from(encoder.encode(value)) }));
 }
 
 export function checkedAcknowledgedOwnerFaceArguments(acknowledged, view, actionId, target, supplied) {
