@@ -1,0 +1,114 @@
+{
+  "schema": "conduit.audit/rank-zero-imported-model@1",
+  "captured_utc": "2026-10-21T18:29:12.852234+00:00",
+  "executable_source": "9cacd3ca8d8ae486112ba81d1f35b692c25505f1",
+  "source_tree_clean_for_supported_suite": true,
+  "supported_suite": {
+    "exit_code": 0,
+    "passed": 68,
+    "test_targets": 24,
+    "failed": 0,
+    "ignored": 0
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "task-owned shared lint-target",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2"
+  },
+  "focused_source_note": "Data and AI focused runs used the same source bytes subsequently committed at executable_source; the Data raw-codec test fix was committed during the AI build. The full supported suite ran from clean executable_source and is the authoritative complete receipt.",
+  "negative_note": "Initial Data test compilation at 60788896065305b24fb2127253154fcc2f70cb05 failed with E0382 because NativeRustBinding::encode(self) was selected over the borrowed raw TensorValue codec. Commit 9cacd3ca8 explicitly selects TensorValue::encode(&value). Retained as negative evidence; not a product execution failure.",
+  "proof_class": "local-hosted-fixture-source-plan-play",
+  "not_established": [
+    "CI or exact-head Integration acceptance",
+    "merge or issue closure",
+    "actual ONNX Runtime execution",
+    "physical or native emulator proof",
+    "parent issue 5219 completion"
+  ],
+  "logs": [
+    {
+      "file": "model-inference.log.gz",
+      "command": "cargo +stable xtask check model-inference",
+      "exit_code": 0,
+      "raw_bytes": 44934,
+      "raw_sha256": "96c8e8998a9552080e4f1423b4a966386c590eca07d2d5fb0e1436919d4f1d9e",
+      "gzip_sha256": "b187558e05b73e7f301167f05c2201941a8424a94b53921f60eb2dcc2055c424",
+      "test_targets": 24,
+      "passed": 68,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "file": "focused-data.log.gz",
+      "command": "cargo +stable test --locked -p conduit-data --test tensor_scalar --test tensor",
+      "exit_code": 0,
+      "raw_bytes": 1298,
+      "raw_sha256": "86a5f80846d1935abe998d4eaa6b8659627b6abc5c8951d69950aefbd75a388f",
+      "gzip_sha256": "b92db6a45d24dfb612f475bcb981b5eeb9bad14f46e2c08111fafe613a7e4d6f",
+      "test_targets": 2,
+      "passed": 7,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "file": "focused-ai.log.gz",
+      "command": "cargo +stable test --locked -p conduit-ai --test onnx_metadata",
+      "exit_code": 0,
+      "raw_bytes": 8408,
+      "raw_sha256": "a39cbe4d503fa8108040fc3cc252f444597609c560c0253dfee936f7dcbde1ea",
+      "gzip_sha256": "c31bc397f62bd7570a9370e907793fd330c1c275f4173c248c46daf4c8c0cdeb",
+      "test_targets": 1,
+      "passed": 5,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "file": "focused-std-scalar.log.gz",
+      "command": "cargo +stable test --locked -p conduit-std-host --test model_infer_onnx_scalar",
+      "exit_code": 0,
+      "raw_bytes": 10486,
+      "raw_sha256": "0b2fff1ca361cd5b837b8db25b73abc3d5e92cec942d2f921eef81edf79eb746",
+      "gzip_sha256": "a9ec845981a780c1a29f1391e7bb6da2e8bc13de98b9560de34eba9538ff2585",
+      "test_targets": 1,
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "file": "negative-initial-data-compile.log.gz",
+      "command": "cargo +stable test --locked -p conduit-data --test tensor_scalar --test tensor",
+      "exit_code": 101,
+      "raw_bytes": 3741,
+      "raw_sha256": "8393389b977d5dfd121d8985aec63fd1cb4064be12670b812b2a4b0f55883a81",
+      "gzip_sha256": "01b871370cabfe67837f72660a9af275038ad96d96ef5f7e8927497b9480d8c0",
+      "test_targets": 0,
+      "passed": 0,
+      "failed": 0,
+      "ignored": 0
+    }
+  ],
+  "fixtures": [
+    {
+      "file": "targets/std/tests/fixtures/model-scalar-f32.onnx",
+      "bytes": 77,
+      "sha256": "72785540323feefa4de420be198a40b7163273a909962ed89b0a58e78133be7b"
+    },
+    {
+      "file": "targets/std/tests/fixtures/model-scalar-f32.conduit",
+      "bytes": 739,
+      "sha256": "cab6dafc1104b6a4f96f595f74904ef24ce8303cbe3e19a1b442962229bb0e83"
+    },
+    {
+      "file": "targets/std/tests/fixtures/model-scalar-i64.onnx",
+      "bytes": 77,
+      "sha256": "4d5755b7a3d72daf1c97ae8e478d4bd1f422f94bc16c0352b22f3fdbe491f4e3"
+    },
+    {
+      "file": "targets/std/tests/fixtures/model-scalar-i64.conduit",
+      "bytes": 739,
+      "sha256": "0b2494c4ce6a109724aade8a841cedce45bdf4f394c0447935d6598492b47680"
+    }
+  ]
+}

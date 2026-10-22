@@ -1,0 +1,89 @@
+{
+  "schema": "conduit.audit/rank-zero-current-dev@1",
+  "executable_source": "aa197a741498c68d92b46ee6272a17a778191379",
+  "source_clean_for_supported_suite": true,
+  "base_dev": "f3e582ce98ede25394a392de4ed06e0b6b086133",
+  "command": "cargo +stable xtask check model-inference",
+  "exit_code": 0,
+  "passed": 70,
+  "test_targets": 24,
+  "failed": 0,
+  "ignored": 0,
+  "proof_class": "local-hosted-fixture-source-plan-play",
+  "not_established": [
+    "Candidate or Integration",
+    "merge or issue closure",
+    "actual ORT execution",
+    "parent 5219 completion"
+  ],
+  "environment": {
+    "target": "task-owned /tmp/conduit-bitmap-target",
+    "jobs": 2,
+    "incremental": 0,
+    "dev_debug": 0,
+    "test_debug": 0
+  },
+  "logs": [
+    {
+      "file": "model-inference.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "1470968f63e5e5f06eb6b84b6d111861a7fdea26895b5839528bde8fd4dc73d0",
+      "gzip_sha256": "20a918adb624be6fc22ff37c8d2deb4043c6ae0eeffc8a6aed0ee59f27257d86"
+    },
+    {
+      "file": "negative-private-validation.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "b0da0432ba4040a4ee045ed364d895de3eab31e5f40b1632e66d6e71e498bf1f",
+      "gzip_sha256": "db7268fa98b8e905db64704411e451b20d459e41246d4441e3123464d3147693"
+    },
+    {
+      "file": "negative-cross-worktree-cache.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "e3ad16f29c5bc4bbdd949788be48b49e66348f244f8b8d7262a0475c78426951",
+      "gzip_sha256": "aa2f3cf24ce9ed7fbfc14ed6b08b0d893f52caa46cb6fde497aaa48e8c02ff4c"
+    },
+    {
+      "file": "refusal-clippy.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "d23f695f93f7eaea256ade2243e2943fa234e72b09ef953bebe5d3cf64599fbd",
+      "gzip_sha256": "96caad473bff00c6aed4743fca4bf86ff109b0aa7bf8c42a08cce8d6dffe1b29"
+    },
+    {
+      "file": "refusal-tests.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "ef18a7749879e313db43b82198cc47802d99799742f2977e668494c09f2f14d4",
+      "gzip_sha256": "c3d5f86aefa891cbbeb887eda76e8fa3c1eae64a68b055f7dd4a969e3b00c232"
+    },
+    {
+      "file": "all-changed-tests-clippy.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "5a3c8ec71d15de4768c5c648b7ae41a7a5e75c805ba1d0a35069e57e3b858474",
+      "gzip_sha256": "af9176f2e6edba4dd646ab8dc763989ad1f4141643480af4f24779307d670647"
+    },
+    {
+      "file": "negative-scalar-ci-lint.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "609fe96cac2b16155e12479f0bdf8a5c6226528b7cf51b792260558005bce374",
+      "gzip_sha256": "b1bc3bc7befa65d1c0d5b71e6af6194a4349d30868f64fa23ceb2d26e5af7b22"
+    }
+  ],
+  "negative_notes": [
+    "Initial new scalar-only offer test attempted private requirement.validate; corrected to public offer.admits before passing suite.",
+    "Sibling-worktree shared Cargo cache retained prerequisite tensor objects across relative dep paths; package-native clean of conduit-data/conduit-ai/conduit-std-host forced rebuild. Actual clean-source suite then passed without product changes."
+  ],
+  "module_wiring_followup": {
+    "clippy_source": "6078f6142",
+    "refusal_tests_source": "2caa2e436",
+    "clippy": "cargo +stable clippy --locked -p conduit-std-host --test model_infer_imported_refusals -- -D warnings",
+    "clippy_exit_code": 0,
+    "refusal_tests_passed": 2,
+    "note": "Changes after full suite share one fixture profile module and format its import; no production behavior changes. Whole workspace formatting and diff checks pass."
+  },
+  "scalar_ci_lint_followup": {
+    "source": "1a30320a6",
+    "fix": "Use equivalent 2..=4 pattern in negative test fixture; no production behavior change.",
+    "command": "cargo +stable clippy --locked -p conduit-ai --test onnx_metadata -p conduit-data --test tensor --test tensor_scalar -p conduit-std-host --test model_infer_onnx_scalar --test model_infer_imported_refusals -- -D warnings",
+    "exit_code": 0,
+    "note": "Earlier focused Clippy covered prerequisite refusals only. This follow-up checks every changed AI/Data/std test target before publication."
+  }
+}
