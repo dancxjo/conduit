@@ -1,4 +1,4 @@
-//! Positive Source handoff only after a real fresh Wake/Plan/Play encounter.
+//! Positive Source handoff after an offered Lull and fresh Wake/Plan/Play encounter.
 use super::*;
 use conduitos::native_workset::{self, NativePlot};
 
@@ -113,6 +113,7 @@ pub(in super::super) fn exercise(
     }
     let mut lifecycle = Vec::new();
     for (key, status, intent) in [
+        ("f7", "lulled", "conduit.intent/lull@1"),
         ("f4", "awake", "conduit.intent/wake@1"),
         ("f5", "planned", "conduit.intent/plan@1"),
         ("f6", "quiescent-awaiting-input", "conduit.intent/play@1"),
