@@ -159,6 +159,17 @@ impl PreparedBodyFace {
 }
 
 impl TourSession {
+    pub(super) fn retire_body_face(&mut self) -> Result<(), String> {
+        if let Some(context) = self.body_face_publication.as_mut() {
+            if let Some(mut publication) = context.publication.take() {
+                publication.mask.retire()?;
+                // Drop actual scheduler/value backing before its accounting lease.
+                drop(publication);
+            }
+        }
+        Ok(())
+    }
+
     pub(super) fn body_face_prepare(
         &mut self,
         request: BodyFaceRequest,

@@ -253,6 +253,38 @@ fn whole_body_mask_replacement_reuses_reservation_and_stop_revokes_lease() {
         .unwrap()
         .admit(&context.plan.plan_id, &session.active_play_id, 0)
         .unwrap();
+    // Both fixed publication leases are occupied. Retiring the actual Mask
+    // must release its backing while the parent and sentinel lease stay live.
+    let budget = session
+        .scheduler
+        ._prepared_storage
+        .publication_value_budget
+        .as_ref()
+        .unwrap();
+    assert!(budget
+        .admit(&context.plan.plan_id, &session.active_play_id, 0)
+        .is_err());
+    let plan = context.plan.plan_id.clone();
+    session.retire_body_face().unwrap();
+    assert!(session
+        .body_face_publication
+        .as_ref()
+        .unwrap()
+        .publication
+        .is_none());
+    assert!(lease.is_live());
+    let freed = session
+        .scheduler
+        ._prepared_storage
+        .publication_value_budget
+        .as_ref()
+        .unwrap()
+        .admit(&plan, &session.active_play_id, 0)
+        .unwrap();
+    drop(freed);
+    // A fresh real Mask is still charged to the same parent's one admitted slot.
+    let third = request(&session, 3);
+    session.body_face_prepare(third).unwrap();
     session.cancel().unwrap();
     assert!(!lease.is_live());
 }

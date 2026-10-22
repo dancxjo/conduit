@@ -294,9 +294,17 @@ impl TourSession {
     }
 
     fn cancel(mut self) -> Result<TourReceipt, String> {
-        self.scheduler
+        // Attempt both cancellations even if a companion refuses retirement;
+        // uncertainty must not yield a successful parent terminal receipt.
+        #[cfg(feature = "creche-surface")]
+        let companion = self.retire_body_face();
+        let parent = self
+            .scheduler
             .cancel()
-            .map_err(|error| format!("{error:?}"))?;
+            .map_err(|error| format!("{error:?}"));
+        #[cfg(feature = "creche-surface")]
+        companion?;
+        parent?;
         let sign = bind_sign(
             &self.host_id,
             &self.boot_id,
