@@ -58,3 +58,47 @@ and report boot and individual action attribution separately from harness wall
 and capture overhead. Raw Plan/Face/Show identifiers legitimately vary with each
 fresh Boot and must not be equated across Boots. Raw ticks remain uncalibrated,
 nested and nonadditive; emulator measurements establish no physical latency.
+
+## Corrected matched result (2026-10-22 UTC)
+
+Both arms completed three fresh sequential QEMU trials on clean frozen Source
+`0d53819e2faa129b49bd6e324894cec2bf232143`, with identical tools/profile and
+104 accepted preparation requests per trial. Retained mode made five cold
+checks/expansions and 99 hits; zero retention made 104 checks/expansions and no
+hits, held entries or evictions. All 21 required phases passed in all six
+trials. The independent comparison verified 174 original PNG byte/dimension/
+decoded-RGBA identities and selected Source/graph/action/edit/reading outcomes.
+
+| Observation | Retained median | Zero-retention median |
+| --- | ---: | ---: |
+| Full harness journey | 21.360 s | 56.822 s |
+| Birth input command to validated active-Play capture upper bound | 3.300 s | 34.414 s |
+
+The first interval includes process/input/poll/capture/teardown; the second
+includes QMP/serial/poll/capture and is not exact guest input-to-Play latency.
+These represent 62.4% and 90.4% lower observed medians respectively, within this
+three-per-arm experiment. Arm order and host scheduling were not randomized;
+compiler/observer overhead remains part of the instrumented appliance. Both
+arms already share installed catalogs: this isolates retention, not all
+historical catalog-installation reuse. Raw tick frequency remains unknown.
+
+Strict raw metadata equality initially refused. Crèche emits its ready marker
+before its new PRODUCT_JOURNEY row, so four snapshots retain the preceding
+presenter field. All six original captured serial prefixes already contain the
+same actual acknowledged component Show. The comparison checks that Show's
+Host/Boot/Face/manifestation/mask custody only at this checkpoint and preserves
+the raw discrepancy. Fresh Birth request IDs are checked against each exact
+Boot before correspondence. Other presenter fields are unchanged. Five negative
+controls refuse wrong Show Boot/presenter, absent pre-ready Show, wrong Birth
+Boot and additional unexamined Accepted fields. Future producers should wait
+for the complete post-ready journey record matching the acknowledged Face
+before capture; these original families are not rewritten or retried.
+
+[Permanent corrected packet and independent verifier](https://github.com/dancxjo/conduit/blob/f3f96770217592008929ca007544124fe9801e07/docs/audits/evidence/native-cache-control-20261022/corrected-0d53819e2/README.md)
+retains all six families, original hashes, raw metadata refusal, comparison,
+negative controls and exact image/build identities. The earlier failed `550`
+packet is unchanged. Measured Source stays `0d53819e2`; the subsequent merge of
+accepted dev `84dac6d02` produced `2eda544dc` with the exact same tree
+`74a10c946a2b22a6dbda04871d3d593b8682caca`. This audit is a later documentation
+successor, not a relabelled measured image. Candidate, merged Integration and
+applicable publication acceptance remain pending.
