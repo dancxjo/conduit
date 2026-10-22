@@ -21,6 +21,21 @@
       "source": null,
       "uncompressed_bytes": 0,
       "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "6063-composite-no-default-check.log.gz": {
+      "source": "12af867766057f58fc1a80db820b85496cc944dd",
+      "uncompressed_bytes": 1026,
+      "uncompressed_sha256": "dd508094373935d98b7d787d126be2017bf9dd040bddd6ab059899a5078500a9"
+    },
+    "6063-ai-no-default-check.log.gz": {
+      "source": "12af867766057f58fc1a80db820b85496cc944dd",
+      "uncompressed_bytes": 954,
+      "uncompressed_sha256": "6ee6559e91678883e688cef56cb602eed059e140074b6ce313b3334b8f2cfbc9"
+    },
+    "6063-ai-owner-no-fixture-check.log.gz": {
+      "source": "12af867766057f58fc1a80db820b85496cc944dd",
+      "uncompressed_bytes": 201,
+      "uncompressed_sha256": "089a2cbe89f64d597bf325f828dabbb05c702ad91740bcdc2ed1ae513c59f8db"
     }
   }
 }
