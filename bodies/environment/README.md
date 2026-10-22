@@ -537,3 +537,30 @@ service readiness. `cargo xtask prove environment network-esp32` cross-checks
 this machinery. The page/control-Play connection, initialized offers, lifecycle
 admission and physical station/fallback/link-loss proof remain outstanding; the
 current flashed AP bench is unchanged.
+
+### Station-side local name
+
+The requested local address is derived from the current Body's actual friendly
+name, using its first-name component: `<body-first-name>.local`. This belongs to
+the device's **station/client attachment** on the joined LAN. It is not an AP
+SSID policy, DHCP hostname substitution, a minted Body identity or an AP-only
+DNS alias. The corresponding HTTP URL is `http://<body-first-name>.local/`.
+
+Root must prepare a valid finite DNS label from the current Body biography,
+retain the chosen label in Face, and bind the mDNS responder to the exact current
+Host/Boot/station attachment and actual assigned address. A name collision must
+be detected and resolved through an explicit bounded name-selection policy;
+silently claiming an existing name is not success. Link loss, address/name change,
+Lull or station withdrawal retires that responder. Graceful retirement should
+send the protocol goodbye when the attachment still permits it; loss of a link
+cannot guarantee remote-cache invalidation. No placeholder name is advertised
+before a Body name exists. An MCU or browser recorder joining/leaving does not
+change the Body's identity.
+
+The current ESP32 AP bench has no installed Body biography and does not yet
+advertise this name. Responder installation, multicast resource admission,
+collision handling and real client-network resolution remain required. The
+Embassy `mdns` flag resolves names as a client; it does not by itself install a
+host responder. The bounded no-alloc responder in
+[edge-mdns](https://docs.rs/edge-mdns/0.8.0/edge_mdns/) is under evaluation;
+no dependency or availability claim is implied by that investigation.
