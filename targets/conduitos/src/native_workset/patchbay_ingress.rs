@@ -4,10 +4,12 @@ use super::WorksetRefusal;
 use alloc::{format, vec};
 use conduit_core::{
     Back, BackOfferBuilder, BootId, CapabilityOffer, ConnectionTrack, HostCallRequirement, HostId,
-    OfferGeneration, PlanFragment, PlanId, PortDirection, PortTemporal, resource_requirement,
+    OfferGeneration, Plan, PlanId, PortDirection, PortTemporal, resource_requirement,
 };
 use conduit_kernel::NodeId;
-use conduit_plan_lowering::lowering::{LoweredForePort, LoweredPlanFragment, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{
+    LoweredForePort, LoweredPlanFragment, lower_plan_fragment_from_plan,
+};
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 
 pub(super) const IMPLEMENTATION: &str = "conduitos/patchbay-accept-interaction@1";
@@ -73,16 +75,20 @@ pub(super) struct Ingress {
 }
 
 pub(super) fn admit(
-    fragment: &PlanFragment,
+    plan: &Plan,
     lowered: &LoweredPlanFragment,
 ) -> Result<Option<Ingress>, WorksetRefusal> {
-    if !fragment
-        .placements
+    if !plan
+        .fragments
         .iter()
+        .flat_map(|fragment| &fragment.placements)
         .any(|gear| gear.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND)
     {
         return Ok(None);
     }
+    let [fragment] = plan.fragments.as_slice() else {
+        return Err(WorksetRefusal::Plan);
+    };
     let [gear] = fragment.placements.as_slice() else {
         return Err(WorksetRefusal::Plan);
     };
@@ -142,7 +148,11 @@ pub(super) fn admit(
     // Fragment-set lowering reindexes numeric nodes, Cords and endpoints.
     // Normalize the independently lowered shape to the actual admitted indices;
     // retain those actual indices rather than inventing a detached kernel.
-    let mut exact = lower_plan_fragment(fragment).map_err(|_| WorksetRefusal::Lowering)?;
+    let (mut exact, activations) = lower_plan_fragment_from_plan(plan, &fragment.fragment_id)
+        .map_err(|_| WorksetRefusal::Lowering)?;
+    if !activations.entries.is_empty() {
+        return Err(WorksetRefusal::Plan);
+    }
     let [input] = lowered.fore_ports.as_slice() else {
         return Err(WorksetRefusal::Lowering);
     };
@@ -179,7 +189,16 @@ pub(super) fn admit(
     exact.host_calls[0].node = node.node;
     exact.host_calls[0].call = call.call;
     exact.host_calls[0].binding.call = call.call;
-    if lowered.fore_ports != exact.fore_ports
+    if lowered.completion_policy != exact.completion_policy
+        || lowered.cord_value_slots != exact.cord_value_slots
+        || lowered.cord_value_bytes != exact.cord_value_bytes
+        || lowered.sign_items != exact.sign_items
+        || lowered.sign_bytes != exact.sign_bytes
+        || !lowered.routes.is_empty()
+        || !lowered.states.is_empty()
+        || !lowered.fusions.is_empty()
+        || !lowered.shared_pools.is_empty()
+        || lowered.fore_ports != exact.fore_ports
         || lowered.nodes != exact.nodes
         || lowered.node_specs != exact.node_specs
         || lowered.host_calls != exact.host_calls
