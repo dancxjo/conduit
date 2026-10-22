@@ -199,11 +199,13 @@ fn preserve_draft(
     Ok(())
 }
 fn primary_review(face: &Face, selected: &BTreeMap<String, String>) -> Result<(), ConduitosError> {
+    // Canonical Face omission means Primary, matching native and spoken Masks.
     if selected.keys().any(|subject| {
-        !face
-            .disclosures
+        face.disclosures
             .iter()
-            .any(|d| d.subject == *subject && d.level == FaceDisclosureLevel::Primary)
+            .find(|d| d.subject == *subject)
+            .map_or(FaceDisclosureLevel::Primary, |d| d.level)
+            != FaceDisclosureLevel::Primary
     }) {
         return Err(refusal(
             "filter concealed selected Plot review from primary disclosure",
