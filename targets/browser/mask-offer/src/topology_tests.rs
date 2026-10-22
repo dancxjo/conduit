@@ -52,7 +52,7 @@ fn sealed_show_with_wrong_temporal_contract_refuses_instead_of_disappearing() {
         .unwrap()
         .temporal = PortTemporal::Flow { closes: true };
     let mut catalog = ProfileCatalog::new();
-    catalog.insert(malformed.clone()).unwrap();
+    catalog.insert_kind(malformed.clone()).unwrap();
     let plot = conduit_plot::parse(
         "plot malformed {\n mask: face/browser-dom-mask\n}\n",
         &catalog,
