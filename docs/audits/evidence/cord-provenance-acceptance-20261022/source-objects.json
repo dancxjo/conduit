@@ -1,0 +1,8 @@
+{
+  "architecture/plot/src": "6e4b0e2e29e4a40d79b7e7ab74a9e9d454a6ddcb",
+  "plots/patchbay/graph/src": "42c2c045966295fef8791533e5d7b30df47be7c0",
+  "plots/patchbay/application/src": "ebe076a50c99978ba95db174abbf9a2dae7055f3",
+  "plots/patchbay/workbench/model/src": "221b7a5785b0e880785b58091d1773361e6e4407",
+  "targets/browser/handbook/patchbay-editor.mjs": "5ef36c2faeb3dcc83e8bffd3db08b2a377bb5466",
+  "semantics/face/src": "823fa2a4b02717d1a1f8de6dc678f51e5d9f121d"
+}
