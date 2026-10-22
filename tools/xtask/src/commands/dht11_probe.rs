@@ -93,9 +93,13 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         || arguments == ["capture-esp32"]
         || arguments == ["live-esp32"]
         || arguments == ["ap-esp32"]
+        || arguments == ["network-esp32"]
     {
         let pulse = arguments == ["pulse-esp32"];
-        let package = root.join(if pulse {
+        let network = arguments == ["network-esp32"];
+        let package = root.join(if network {
+            "targets/esp32/network-switch"
+        } else if pulse {
             "targets/esp32/pulse-capture"
         } else {
             "targets/esp32/proof/tm1637"
@@ -113,7 +117,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
             .current_dir(&package)
             .arg(format!("+{channel}"))
             .args([
-                if pulse { "check" } else { "build" },
+                if pulse || network { "check" } else { "build" },
                 "--locked",
                 "--release",
             ])
@@ -370,7 +374,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, recording, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, recording, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

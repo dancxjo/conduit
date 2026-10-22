@@ -527,3 +527,13 @@ manifest consume the same finite record pool; neither eviction nor additional
 index slots are implicit. The 1 MiB aggregate request remains a requested ceiling,
 not evidence that browser storage is available or authorized. Actual Resource
 generations and the whole publication closure still require admission.
+
+The ESP32 platform adapter in `targets/esp32/network-switch` now implements the
+portable station/AP execution traits against the real SDK and distinct network
+stacks. It preserves one absolute join deadline, invalidates old address state,
+and requires Root-owned service retirement/restoration acknowledgement. Pending
+SDK association gets cancellation cleanup; radio mode alone never establishes
+service readiness. `cargo xtask prove environment network-esp32` cross-checks
+this machinery. The page/control-Play connection, initialized offers, lifecycle
+admission and physical station/fallback/link-loss proof remain outstanding; the
+current flashed AP bench is unchanged.
