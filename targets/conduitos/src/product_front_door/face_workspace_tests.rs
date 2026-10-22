@@ -87,27 +87,31 @@ fn live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_app
         build_id: "build",
         ..crate::make::MakeRecord::legacy()
     };
-    assert!(workspace
-        .accept_key(
-            event,
-            &mut door,
-            &mut journey,
-            &mut display,
-            &ids,
-            &offer,
-            &make,
-        )
-        .unwrap()
-        .is_some());
+    assert!(
+        workspace
+            .accept_key(
+                event,
+                &mut door,
+                &mut journey,
+                &mut display,
+                &ids,
+                &offer,
+                &make,
+            )
+            .unwrap()
+            .is_some()
+    );
     let scene = workspace.mask.scene().unwrap();
     assert!(scene.showing_diagram());
-    assert!(scene
-        .frame()
-        .unwrap()
-        .scene
-        .commands()
-        .iter()
-        .any(|command| { command.kind == GraphicsCommandKind::OrthogonalPath }));
+    assert!(
+        scene
+            .frame()
+            .unwrap()
+            .scene
+            .commands()
+            .iter()
+            .any(|command| { command.kind == GraphicsCommandKind::OrthogonalPath })
+    );
     let prior_show = workspace.mask.show().unwrap().show_id.clone();
     workspace
         .invoke_product_action(
