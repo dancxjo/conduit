@@ -63,6 +63,17 @@ mod todo_action_command_tests {
         ];
         assert!(Cli::try_parse_from(args).is_ok());
         assert!(Cli::try_parse_from(&args[..args.len() - 2]).is_err());
+        let mut fallback = args.to_vec();
+        fallback.extend(["--fallback-action-id", "todo.complete.task-2"]);
+        assert!(Cli::try_parse_from(&fallback).is_err());
+        fallback.extend([
+            "--required-item-fallback",
+            "--fallback-tab-count",
+            "2",
+            "--fallback-status",
+            "1 thing left",
+        ]);
+        assert!(Cli::try_parse_from(&fallback).is_ok());
     }
 }
 

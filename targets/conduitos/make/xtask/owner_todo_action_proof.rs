@@ -171,6 +171,39 @@ pub(super) fn continue_after_arrival(
     {
         return Err(refusal("native-todo-action-face-was-not-refreshed"));
     }
+    if args.required_item_fallback {
+        let scenario = super::todo_fallback::exercise(
+            args,
+            directory,
+            serial_path,
+            child,
+            qmp,
+            reader,
+            before,
+        )?;
+        let (protected_after, selected_after) = verify_isolation(isolation)?;
+        let isolation_receipt = json!({
+            "protected_unchanged":true, "selected_changed":true,
+            "selected_checkpoint_root":isolation.selected,
+            "protected_checkpoint_root":isolation.protected,
+            "selected_before":isolation.selected_before.sha256,
+            "selected_after":selected_after.sha256,
+            "protected_before":isolation.protected_before.sha256,
+            "protected_after":protected_after.sha256,
+        });
+        return Ok(json!({
+            "schema":"conduit.conduitos/native-todo-required-item-fallback-proof@1",
+            "proof_class":"live-local-qmp-installed-owner-isolated-checkpoint-fork",
+            "source_commit":route.source_identity,
+            "spore_build_id":route.build_id,
+            "spore_sha256":route.artifact_sha256,
+            "candidate_id":route.candidate_id,
+            "qemu_argv":qemu_args,
+            "scenario":scenario,
+            "isolation":isolation_receipt,
+            "native_mutations":2,
+        }));
+    }
     let owner_before = todo_validation::read_and_validate_current(
         &args.face,
         before,
@@ -220,21 +253,7 @@ pub(super) fn continue_after_arrival(
     if let Some(error) = health {
         return Err(error);
     }
-    let protected_after = inventory(&isolation.protected)?;
-    let selected_after = inventory(&isolation.selected)?;
-    let protected_metadata = fs::symlink_metadata(&isolation.protected)
-        .map_err(|_| refusal("native-todo-protected-checkpoint-absent"))?;
-    let selected_metadata = fs::symlink_metadata(&isolation.selected)
-        .map_err(|_| refusal("native-todo-selected-checkpoint-absent"))?;
-    if protected_after != isolation.protected_before
-        || (protected_metadata.dev(), protected_metadata.ino())
-            != (isolation.protected_device, isolation.protected_inode)
-        || selected_after == isolation.selected_before
-        || (selected_metadata.dev(), selected_metadata.ino())
-            != (isolation.selected_device, isolation.selected_inode)
-    {
-        return Err(refusal("native-todo-checkpoint-fork-proof-failed"));
-    }
+    let (protected_after, selected_after) = verify_isolation(isolation)?;
     if child
         .try_wait()
         .map_err(|_| refusal("native-todo-guest-status-unknown"))?
@@ -334,4 +353,23 @@ mod tests {
         symlink(original.join("generation.checkpoint"), fork.join("alias")).unwrap();
         assert!(inventory(&fork).is_err());
     }
+}
+
+fn verify_isolation(isolation: &Isolation) -> Result<(Inventory, Inventory), ConduitosError> {
+    let protected_after = inventory(&isolation.protected)?;
+    let selected_after = inventory(&isolation.selected)?;
+    let protected_metadata = fs::symlink_metadata(&isolation.protected)
+        .map_err(|_| refusal("native-todo-protected-checkpoint-absent"))?;
+    let selected_metadata = fs::symlink_metadata(&isolation.selected)
+        .map_err(|_| refusal("native-todo-selected-checkpoint-absent"))?;
+    if protected_after != isolation.protected_before
+        || (protected_metadata.dev(), protected_metadata.ino())
+            != (isolation.protected_device, isolation.protected_inode)
+        || selected_after == isolation.selected_before
+        || (selected_metadata.dev(), selected_metadata.ino())
+            != (isolation.selected_device, isolation.selected_inode)
+    {
+        return Err(refusal("native-todo-checkpoint-fork-proof-failed"));
+    }
+    Ok((protected_after, selected_after))
 }
