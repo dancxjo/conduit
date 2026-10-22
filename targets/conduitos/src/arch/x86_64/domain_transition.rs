@@ -294,6 +294,7 @@ conduitos_ordinary_ud:
 conduitos_ordinary_nm:
     push 0
     mov eax, 7
+    jmp conduitos_ordinary_fault
     .global conduitos_ordinary_exception_0
 conduitos_ordinary_exception_0:
     push 0
