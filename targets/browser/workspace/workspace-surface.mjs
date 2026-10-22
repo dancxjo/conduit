@@ -1,12 +1,12 @@
 // Choose interaction affordances from the exact foreground partition when planned.
-export function configureWorkspaceInput(input, plot, partition, unavailableReason) {
+export function configureWorkspaceInput(input, plot, partition, unavailableReason, maskPlacements = []) {
   const placements = partition?.plan.fragments.flatMap(fragment => fragment.placements) ?? [];
   const kinds = new Set(partition ? placements.map(placement => placement.kind_id) : plot?.required_kinds ?? []);
   const keyboard = kinds.has('input/keyboard'), pointer = kinds.has('input/pointer-source'), button = kinds.has('input/button');
   const acceptsInput = keyboard || pointer || button;
   const theremin = plot?.name === 'phone-two-axis-controller' || plot?.entry === 'phone-two-axis-controller';
   input.toggleAttribute('data-pocket-theremin', theremin);
-  const hasOutput = placements.some(placement => placement.resources.some(resource => resource.class_id === 'conduit.resource/face-slot@1'));
+  const hasOutput = [...placements, ...maskPlacements].some(placement => placement.resources.some(resource => resource.class_id === 'conduit.resource/face-slot@1'));
   input.hidden = !plot || (!acceptsInput && !hasOutput);
   input.dataset.acceptsInput = String(acceptsInput);
   input.setAttribute('role', keyboard ? 'textbox' : 'group');

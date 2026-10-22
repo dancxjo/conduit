@@ -1,9 +1,9 @@
 //! Bounded Body start input; execution and completions use the existing slot.
 use super::*;
 // Match the bounded 2 MiB proposal transfer, with host observations/framing separate.
-const BODY_INPUT_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
+pub(super) const BODY_INPUT_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
 thread_local! {
-    static BODY_INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; BODY_INPUT_BYTES].into_boxed_slice());
+    pub(super) static BODY_INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; BODY_INPUT_BYTES].into_boxed_slice());
 }
 
 #[no_mangle]

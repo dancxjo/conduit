@@ -1,5 +1,5 @@
 // Reuse the checked Face realization; this module only owns Show presentation.
-import '../handbook/owner-face-component.mjs';
+import "../handbook/owner-face-component.mjs";
 
 const sequences = new WeakMap();
 const visibilityWaits = new WeakMap();

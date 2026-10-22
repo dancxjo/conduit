@@ -12,6 +12,8 @@ mod evidence_attachment;
 mod planning;
 mod readable_history;
 mod spore;
+mod workbench_face;
+mod workbench_inventory;
 mod workload_session;
 
 pub use biography_projection::*;
@@ -23,6 +25,8 @@ pub use evidence_attachment::*;
 pub use planning::*;
 pub use readable_history::*;
 pub use spore::*;
+pub use workbench_face::*;
+pub use workbench_inventory::*;
 pub use workload_session::*;
 
 #[cfg(test)]

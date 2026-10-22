@@ -24,5 +24,4 @@ impl NativeFaceScene {
         }
         discard
     }
-
 }

@@ -4,7 +4,7 @@ use super::WorksetRefusal;
 use alloc::{format, vec};
 use conduit_core::{
     Back, BackOfferBuilder, BootId, CapabilityOffer, ConnectionTrack, HostCallRequirement, HostId,
-    OfferGeneration, Plan, PlanId, PortDirection, PortTemporal, resource_requirement,
+    OfferGeneration, Plan, PortDirection, PortTemporal, resource_requirement,
 };
 use conduit_kernel::NodeId;
 use conduit_plan_lowering::lowering::{
@@ -69,7 +69,6 @@ pub(super) struct Ingress {
     pub checked_plot_id: conduit_core::CheckedPlotId,
     pub input: LoweredForePort,
     pub node: NodeId,
-    pub plan_id: PlanId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -211,7 +210,6 @@ pub(super) fn admit(
         checked_plot_id: plan.checked_plot_id.clone(),
         input: input.clone(),
         node: node.node,
-        plan_id: fragment.plan_id.clone(),
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
         offer_generation: fragment.offer_generation,

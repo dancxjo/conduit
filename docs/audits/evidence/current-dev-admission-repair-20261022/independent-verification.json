@@ -1,0 +1,7 @@
+{
+  "source": "077a2a535b4ec30d1f09ec6c2884c22bbffd1c57",
+  "indexed_files_verified": 56,
+  "lossless_originals_verified": 54,
+  "fresh_cases": 18,
+  "scope": "Independent byte/hash/decompression/original-copy custody verification. Source-bound command status remains in original receipts; no new runtime/CI/QEMU proof."
+}
