@@ -1,8 +1,7 @@
 //! Actual canonical Mask reading, correlated to its acknowledged owner Face.
-use super::super::qemu_artifacts::Artifacts;
+use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::{
-    face_correspondence, hid_qmp, io_error, journey_input, qmp, refusal, stage_count,
-    ConduitosError,
+    face_correspondence, hid_qmp, io_error, journey_input, refusal, stage_count, ConduitosError,
 };
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
