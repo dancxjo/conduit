@@ -20,11 +20,26 @@ pub enum CommittedDependencyRefusal {
     Bound,
     ObservationMismatch,
 }
+#[cfg(not(target_has_atomic = "ptr"))]
+use alloc::rc::Rc as SnapshotShared;
+#[cfg(target_has_atomic = "ptr")]
+use alloc::sync::Arc as SnapshotShared;
+/// Full immutable Native custody; sharing does not confer Current authority.
+#[derive(Clone)]
+pub(crate) struct CommittedSnapshot(SnapshotShared<CommittedSnapshotValues>);
+struct CommittedSnapshotValues {
+    admission: LanguageCommittedDependencyAdmission,
+    lexical: LanguageLexicalTape,
+}
+impl CommittedSnapshot {
+    pub(crate) fn matches(&self, receipt: &PreparedCommittedDependency) -> bool {
+        &self.0.admission == receipt.admission() && &self.0.lexical == receipt.lexical()
+    }
+}
 pub struct PreparedCommittedDependency {
     commitment: PreparedParserCommitment,
-    admission: LanguageCommittedDependencyAdmission,
+    snapshot: CommittedSnapshot,
     arc: LanguageDependencyArc,
-    lexical: LanguageLexicalTape,
 }
 impl PreparedCommittedDependency {
     pub fn prepare(
@@ -100,19 +115,24 @@ impl PreparedCommittedDependency {
         let arc = LanguageDependencyArc::decode(&bytes).map_err(Native)?;
         Ok(Self {
             commitment,
-            admission,
+            snapshot: CommittedSnapshot(SnapshotShared::new(CommittedSnapshotValues {
+                admission,
+                lexical: lexical.tape().clone(),
+            })),
             arc,
-            lexical: lexical.tape().clone(),
         })
+    }
+    pub(crate) fn shared_snapshot(&self) -> CommittedSnapshot {
+        self.snapshot.clone()
     }
     pub fn commitment(&self) -> &PreparedParserCommitment {
         &self.commitment
     }
     pub fn admission(&self) -> &LanguageCommittedDependencyAdmission {
-        &self.admission
+        &self.snapshot.0.admission
     }
     pub fn lexical(&self) -> &LanguageLexicalTape {
-        &self.lexical
+        &self.snapshot.0.lexical
     }
     pub fn execution_context(
         &self,
@@ -124,7 +144,16 @@ impl PreparedCommittedDependency {
         )))
         .map_err(|_| Program)?;
         let encoded = program
-            .evaluate(&self.admission.query().clone().encode().map_err(Native)?)
+            .evaluate(
+                &self
+                    .snapshot
+                    .0
+                    .admission
+                    .query()
+                    .clone()
+                    .encode()
+                    .map_err(Native)?,
+            )
             .map_err(|_| Program)?;
         if encoded.len() > DEPENDENCY_CONTEXT_MAXIMUM_BYTES as usize
             || self
