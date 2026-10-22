@@ -595,3 +595,19 @@ whereas Body execution binds a `BodyPlayIdentity` over the sealed Body Plan and
 Wake. They are different identities. Native installation needs an explicit,
 Root-authorized Body-to-fragment execution binding; relabelling either identity
 or removing checks without replacement is not a valid integration.
+
+`NativeBodyBinding` now retains the separately canonical Body and fragment Play
+identities for the exact proposed partition. Root supplies both prospective
+identities from its own issuers; in particular a Body-local counter must not be
+reused as the Host/Boot-wide fragment counter. Confirmation requires the exact
+started Body Play retained by the ordinary owner. Unstarted/different Plays,
+stale membership, Lull and explicit revocation refuse. Current-owner checks
+allocate nothing, and the ordinary native binder and its capability scope keep
+the fragment Play identity unchanged.
+
+This host-side correlation object is not an exclusive execution claim, MCU
+resource admission, a serialized start receipt or replacement for capability
+revocation. Root must supply its current retained owner, persist the correlation,
+reserve real target resources, and connect actual start/terminal receipts before
+using it in physical installation. CPU fixtures exercise those lifecycle gates
+and the existing native binder; they do not prove a physical Body Play.

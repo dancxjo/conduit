@@ -263,3 +263,158 @@ fn stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation() {
     assert!(wrong.realization().is_none());
     assert_eq!(effects.get(), 0);
 }
+
+/// Simulated Root start receipt for CPU lifecycle proof, not a hardware start.
+fn start_body(
+    owner: &mut conduit_body::BodyLifecycleSession,
+    play: &conduit_body::BodyPlayIdentity,
+    host: &c::HostId,
+    boot: &c::BootId,
+) {
+    let current = owner.realization().unwrap();
+    let wake = current
+        .wake
+        .body_plan_ready(
+            &current.plan,
+            c::bind_sign(host, boot, Some(&play.active_play_id), 0).sign_id,
+        )
+        .unwrap()
+        .body_play_started(
+            &current.plan,
+            play,
+            c::bind_sign(host, boot, Some(&play.active_play_id), 1).sign_id,
+        )
+        .unwrap();
+    owner.started(host, boot, play.clone(), wake).unwrap();
+}
+#[test]
+fn body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start() {
+    use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
+    let source = construction::compile_default().unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let host = appliance_support::advertisement(&source, &ready);
+    let native = PreparedNativeAppliance::prepare(
+        &source,
+        &host,
+        &["conduit.base/local@1".into()],
+        &[pulse::grant()],
+        limits(),
+    )
+    .unwrap();
+    let mut owner = body_owner(&native, &host.host_id, &host.boot_id, false);
+    native.propose_to_body(&mut owner, vec![]).unwrap();
+    let body_play = conduit_body::BodyPlayIdentity::bind(&owner.realization().unwrap().plan, 1);
+    let fragment_play =
+        c::bind_active_play(&native.plan().plan_id, &host.host_id, &host.boot_id, 0);
+    assert_ne!(body_play.active_play_id, fragment_play.active_play_id);
+    let mut binding =
+        NativeBodyBinding::prepare(&native, &owner, &body_play, &fragment_play).unwrap();
+    assert_eq!(binding.fragment_play(&owner), Err(E::NotStarted));
+    assert_eq!(binding.confirm_started(&owner), Err(E::NotStarted));
+    start_body(&mut owner, &body_play, &host.host_id, &host.boot_id);
+    binding.confirm_started(&owner).unwrap();
+    assert_eq!(binding.confirm_started(&owner), Err(E::AlreadyConfirmed));
+    let ((), allocated) = allocation_probe::observe(|| {
+        assert_eq!(binding.fragment_play(&owner).unwrap(), &fragment_play);
+        assert_eq!(binding.body_play(&owner).unwrap(), &body_play);
+    });
+    assert_eq!((allocated.allocations, allocated.reallocations), (0, 0));
+    let projection = assignment::NativeProjection::prepare(native.image());
+    // Existing native binder, unchanged: its own fragment identity remains canonical.
+    let selected =
+        pulse::bind_assigned(ready, native.plan(), native.lowered(), &projection).unwrap();
+    assert_eq!(
+        selected.0.inspection().scope.active_play_id,
+        fragment_play.active_play_id
+    );
+    assert_eq!(selected.0.inspection().scope.plan_id, native.plan().plan_id);
+    assert_eq!(effects.get(), 0);
+    owner
+        .lull(&host.host_id, &host.boot_id, Some(&body_play))
+        .unwrap();
+    assert_eq!(binding.fragment_play(&owner), Err(E::StaleProposal));
+}
+#[test]
+fn body_binding_refuses_identity_substitution_membership_loss_and_revocation() {
+    use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
+    let source = construction::compile_default().unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let host = appliance_support::advertisement(&source, &ready);
+    let native = PreparedNativeAppliance::prepare(
+        &source,
+        &host,
+        &["conduit.base/local@1".into()],
+        &[pulse::grant()],
+        limits(),
+    )
+    .unwrap();
+    let mut owner = body_owner(&native, &host.host_id, &host.boot_id, false);
+    native.propose_to_body(&mut owner, vec![]).unwrap();
+    let body_play = conduit_body::BodyPlayIdentity::bind(&owner.realization().unwrap().plan, 1);
+    let fragment_play =
+        c::bind_active_play(&native.plan().plan_id, &host.host_id, &host.boot_id, 42);
+    for substitute in [body_play.active_play_id.clone(), "forged/play".into()] {
+        let mut bad = fragment_play.clone();
+        bad.active_play_id = substitute;
+        assert!(matches!(
+            NativeBodyBinding::prepare(&native, &owner, &body_play, &bad),
+            Err(E::WrongFragment)
+        ));
+    }
+    let stale = c::bind_active_play(
+        &native.plan().plan_id,
+        &host.host_id,
+        &"fixture/old-boot".into(),
+        42,
+    );
+    assert!(matches!(
+        NativeBodyBinding::prepare(&native, &owner, &body_play, &stale),
+        Err(E::WrongFragment)
+    ));
+    let mut bad_body = body_play.clone();
+    bad_body.active_play_id = fragment_play.active_play_id.clone();
+    assert!(matches!(
+        NativeBodyBinding::prepare(&native, &owner, &bad_body, &fragment_play),
+        Err(E::StaleProposal)
+    ));
+    let mut binding =
+        NativeBodyBinding::prepare(&native, &owner, &body_play, &fragment_play).unwrap();
+    let mut revoked =
+        NativeBodyBinding::prepare(&native, &owner, &body_play, &fragment_play).unwrap();
+    revoked.revoke();
+    assert_eq!(revoked.confirm_started(&owner), Err(E::Revoked));
+    start_body(&mut owner, &body_play, &host.host_id, &host.boot_id);
+    binding.confirm_started(&owner).unwrap();
+    assert_eq!(revoked.fragment_play(&owner), Err(E::Revoked));
+    owner
+        .observe_host_lost(&host.host_id, &host.boot_id, &host.host_id, &host.boot_id)
+        .unwrap();
+    assert_eq!(binding.fragment_play(&owner), Err(E::StaleHost));
+    assert_eq!(effects.get(), 0);
+}
+
+#[test]
+fn a_different_retained_body_play_cannot_confirm_the_prepared_binding() {
+    use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
+    let source = construction::compile_default().unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let host = appliance_support::advertisement(&source, &ready);
+    let native = PreparedNativeAppliance::prepare(
+        &source,
+        &host,
+        &["conduit.base/local@1".into()],
+        &[pulse::grant()],
+        limits(),
+    )
+    .unwrap();
+    let mut owner = body_owner(&native, &host.host_id, &host.boot_id, false);
+    native.propose_to_body(&mut owner, vec![]).unwrap();
+    let prepared = conduit_body::BodyPlayIdentity::bind(&owner.realization().unwrap().plan, 1);
+    let issued_other = conduit_body::BodyPlayIdentity::bind(&owner.realization().unwrap().plan, 2);
+    let fragment = c::bind_active_play(&native.plan().plan_id, &host.host_id, &host.boot_id, 9);
+    let mut binding = NativeBodyBinding::prepare(&native, &owner, &prepared, &fragment).unwrap();
+    start_body(&mut owner, &issued_other, &host.host_id, &host.boot_id);
+    assert_eq!(binding.confirm_started(&owner), Err(E::StalePlay));
+    assert_eq!(binding.fragment_play(&owner), Err(E::NotStarted));
+    assert_eq!(effects.get(), 0);
+}

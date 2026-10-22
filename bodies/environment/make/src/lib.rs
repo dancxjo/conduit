@@ -2,6 +2,8 @@
 //! Source checker, planner and embedded image producer. No provider is invented.
 //! The result is construction material; Root must still authenticate it, admit
 //! current possession and storage, and advance the real Body/Wake before Play.
+mod execution;
+pub use execution::{NativeBodyBinding, NativeBodyBindingRefusal};
 mod network;
 pub use network::compile_network_setup;
 
