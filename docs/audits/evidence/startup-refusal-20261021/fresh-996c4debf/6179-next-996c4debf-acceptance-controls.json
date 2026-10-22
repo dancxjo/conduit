@@ -1,0 +1,110 @@
+{
+  "source_commit": "996c4debf82bbb2af1f91e68320eef2ae1ce8ea1",
+  "status": "complete",
+  "scope": "Existing named acceptance negatives, not a broad full-suite rerun and not QEMU fault injection",
+  "steps": [
+    {
+      "name": "journey-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 6,
+      "actual_passed_tests": 6,
+      "count_verified": true,
+      "seconds": 19.6590676039923,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-journey-controls.log",
+      "sha256": "56d250cb043016023e4e9baf251d8f6c56d34baceec9af69b475c9e9373cdc9e"
+    },
+    {
+      "name": "birth-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::birth::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 4,
+      "actual_passed_tests": 4,
+      "count_verified": true,
+      "seconds": 1.7507002849597484,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-birth-controls.log",
+      "sha256": "e0c7f73fdab63522111a8642122c1fe01aa850780d8a41b9796461d5495f70dd"
+    },
+    {
+      "name": "forged-failed-show",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 1,
+      "actual_passed_tests": 1,
+      "count_verified": true,
+      "seconds": 1.9081478290027007,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-forged-failed-show.log",
+      "sha256": "cb1c6b6a2966bf6ada0167dfe2a333f87e773597fd13f3500af4792f5d96b6fa"
+    },
+    {
+      "name": "replaced-stale-show",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 1,
+      "actual_passed_tests": 1,
+      "count_verified": true,
+      "seconds": 2.08460116002243,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-next-996c4debf-replaced-stale-show.log",
+      "sha256": "20e663735de310158567d9d1dd6be458557353599c8a30192774a3c894888c7c"
+    }
+  ],
+  "source_clean_after": true
+}

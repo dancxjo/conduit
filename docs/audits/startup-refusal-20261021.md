@@ -38,3 +38,10 @@ Clean `ce688e5889d4ee18911fee3b5152c76bf92d9995` normally merges accepted develo
 ## Actual current-source normal ProductHost proof
 
 The single supported graphical-profile-proof command passed on clean frozen `ce688e5889d4ee18911fee3b5152c76bf92d9995`. The [permanent native packet](evidence/startup-refusal-20261021/native-ce688/README.md) retains all 24 original 1280×800 PNGs, complete serial/QMP, canonical metadata, original proof receipts/seal, independent verification/counterexamples and source/byte custody. Root independently verified all 62 original files and exact one-Birth→separate Wake/Plan/Play→same Body/Plan/active Play/listening chain, with later keyboard/editor/Stop evidence. The observed command-to-active-capture interval is 4.249989562 s including observer overhead, not ACK latency or speedup. All four additional headless asset checks passed; their original local ISOs and manifests remain hash-bound, without claiming non-x86 runtime. Large binary/map payloads stay local with explicit hashes rather than duplicated in Git. This supplies the missing current-source normal-QEMU positive, distinct from hosted refusal controls; reviewed Candidate/merge/Integration and relevant delivery gates remain pending.
+
+
+## Refreshed controls after the published baseline repair
+
+Clean Source `996c4debf82bbb2af1f91e68320eef2ae1ce8ea1` includes dev `a560015402ee08b641c2fac7334d3df6bf3345d4` and prerequisite #6252 head `596aab0e980bb697748d44281c3ed4955f510982`. All26 focused controls, strict hosted all-target ConduitOS Clippy, workspace formatting and x86_64 freestanding compilation pass. [Exact-source positive packet](evidence/startup-refusal-20261021/fresh-996c4debf/README.md) retains nine original logs, commands, hashes and independent count/custody checks. Native compiler warnings remain in their log.
+
+The earlier856b current-base strict negative remains preserved. The native QEMU packet remains ce688-bound; no QEMU ran at996. New default-document runtime repair #6255 and the exact tested product journey/current CI/reviewed merge/relevant Integration are still required. This documentary successor is not the executed Source.
