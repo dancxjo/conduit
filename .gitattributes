@@ -18,3 +18,6 @@ targets/conduitos/plots/usb/evidence/**/*.log whitespace=-trailing-space,-blank-
 docs/audits/evidence/native-baseline-recovery-20261021/**/serial.log whitespace=cr-at-eol
 docs/audits/evidence/native-baseline-recovery-20261021/journey-serial.log whitespace=cr-at-eol
 docs/audits/evidence/native-proof-resume-20261022/**/journey-serial.log whitespace=cr-at-eol
+
+# Retain the original native membership control log, including its terminal newline.
+docs/audits/evidence/native-proof-resume-20261022/membership-bound-after.log -text whitespace=-blank-at-eof
