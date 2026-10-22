@@ -9,6 +9,7 @@ use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, proc
 mod custody;
 mod evidence;
 mod navigation;
+mod recipe_selection;
 use evidence::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -49,14 +50,16 @@ pub(super) fn exercise(
                 }))
         },
     )?;
-    let initial = snapshot(&text(serial)?)?;
+    let arrival = snapshot(&text(serial)?)?;
     let initial_text = text(serial)?;
     let boot = super::journey_records::boot(&initial_text)?
         .ok_or_else(|| refusal("controls Boot identity absent"))?;
     let world = super::journey_records::decode(&initial_text)?
         .pop()
         .ok_or_else(|| refusal("controls world absent"))?;
-    custody::validate(metadata, &boot, &world, &initial.record, source, image)?;
+    custody::validate(metadata, &boot, &world, &arrival.record, source, image)?;
+    let selected_recipe = recipe_selection::select(serial, child, stream, reader, &arrival)?;
+    let initial = snapshot(&text(serial)?)?;
     let membership = members(&initial.face)?;
     let original = current(&initial.face, "creche.naming")?;
     let observed_name = current(&initial.face, "creche.name")?;
@@ -135,7 +138,8 @@ pub(super) fn exercise(
             "final_image_id":metadata["target_build_manifest"]["image_id"],"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
         }),
         json!({
-            "route":"acknowledged component presenter and checked Mask Plot Source; exact initial recipe and visual-fallback configuration are not serialized",
+            "route":"explicitly selected creche-mask-columns baseline with checked component/recipe and acknowledged Source/Show chain; no retrospective initial-recipe claim",
+            "arrival_acknowledged_face":arrival.record,"selected_recipe":selected_recipe,
             "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
         }),
@@ -150,7 +154,7 @@ pub(super) fn exercise(
         "rendered_rows_and_lane_wording":"unsupported: product focus receipt exposes hit/page/display bounds, not rendered row commands/text/lane mapping",
         "details_view_state":"F2 command and subsequent focus/page observations retained; no separate product Details-mode flag exists",
         "component_realization_records":rows(&text(run.serial)?,"CONDUIT_NATIVE_COMPONENT_REALIZATION ")?,
-        "historical_renderer_reproduced":false,"fallback_proof":"unsupported: this entrance does not independently admit a fallback profile or infer renderer route from image chrome","physical_evidence":false,"human_enactment":false,"full_6158_acceptance":false}),
+        "historical_renderer_reproduced":false,"fallback_proof":"both selected transitions require fallback:null; initial fallback state and independently admitted fallback profile remain unproven","physical_evidence":false,"human_enactment":false,"full_6158_acceptance":false}),
     ];
     // Keep the same flat schema without increasing the crate macro limit.
     let mut fields = serde_json::Map::new();
