@@ -56,7 +56,7 @@ pub(super) fn admitted_selected_route(
 ) -> Result<AdmittedMaskPlotRoutes, String> {
     AdmittedMaskPlotRoutes::new(
         body_plan,
-        &[mask.clone()],
+        core::slice::from_ref(mask),
         vec![SealedMaskPlotRoute {
             route_id: "route/browser-graphical".into(),
             mask_plot: mask.mask.plot_identity.clone(),
