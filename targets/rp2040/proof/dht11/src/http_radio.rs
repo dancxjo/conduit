@@ -33,11 +33,11 @@ async fn service(future: Pin<Box<dyn Future<Output = ()> + 'static>>) {
 /// Prepare network storage only after the Plan/Back preparation peak. It remains
 /// retained for the appliance lifetime; no allocation is permitted during Play.
 #[inline(never)]
-pub fn launch(resources: Resources) {
+pub fn launch(resources: Resources, basis: conduit_face::FaceBasis) {
     let spawner = resources.spawner;
     let state = Box::leak(Box::new(cyw43::State::new()));
     let buffers = Box::leak(Box::new(embassy_net::StackResources::<3>::new()));
-    crate::http_view::initialize();
+    crate::http_view::initialize(basis);
     let future = Box::pin(start(resources, state, buffers));
     spawner.spawn(service(future).unwrap());
 }

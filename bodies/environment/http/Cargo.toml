@@ -8,6 +8,8 @@ publish = false
 
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-environment-face = { path = "../face" }
+conduit-face = { path = "../../../semantics/face", default-features = false }
 heapless = "0.8"
 critical-section = "1.2"
 
