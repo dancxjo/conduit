@@ -1,6 +1,6 @@
 //! Guest-private owner of unchanged canonical scheduler specializations/storage.
 use crate::{
-    Scheduler, VALUE_BYTES, morse, text,
+    FACE_VALUE_BYTES, FaceScheduler, Scheduler, VALUE_BYTES, morse, text,
     wire::{Request, Response, Stats},
 };
 use conduit_kernel::{SignQuery, SignRetentionGap, SignSink, scheduler::SchedulerError};
@@ -10,6 +10,7 @@ use conduit_kernel::{SignQuery, SignRetentionGap, SignSink, scheduler::Scheduler
 enum Owner {
     Empty,
     Native(Scheduler),
+    Face(FaceScheduler),
     Text(text::Scheduler),
     Morse(morse::Scheduler),
 }
@@ -29,6 +30,7 @@ macro_rules! scheduler {
     ($owner:expr, $s:ident, $body:expr) => {
         match $owner {
             Owner::Native($s) => $body,
+            Owner::Face($s) => $body,
             Owner::Text($s) => $body,
             Owner::Morse($s) => $body,
             Owner::Empty => return Err(SchedulerError::InvalidPlan),
@@ -40,6 +42,7 @@ impl Runtime {
         match &self.owner {
             Owner::Empty => None,
             Owner::Native(s) => SignQuery::retention_gap(s.signs()),
+            Owner::Face(s) => SignQuery::retention_gap(s.signs()),
             Owner::Text(s) => SignQuery::retention_gap(s.signs()),
             Owner::Morse(s) => SignQuery::retention_gap(s.signs()),
         }
@@ -52,7 +55,8 @@ impl Runtime {
         match request {
             Request::Init { bytes }
             | Request::InitText { bytes }
-            | Request::InitMorse { bytes } => {
+            | Request::InitMorse { bytes }
+            | Request::InitFace { bytes } => {
                 if !matches!(self.owner, Owner::Empty) {
                     return Err(SchedulerError::InvalidPlan);
                 }
@@ -70,13 +74,39 @@ impl Runtime {
                 } else {
                     let admission = crate::wire::admission::decode(data)
                         .map_err(|_| SchedulerError::InvalidPlan)?;
-                    Owner::Native(admission.build()?)
+                    if matches!(request, Request::InitFace { .. }) {
+                        Owner::Face(admission.build_face()?)
+                    } else {
+                        Owner::Native(admission.build()?)
+                    }
                 };
                 return Ok(Response::Ready);
             }
             _ => {}
         }
-        let maximum = if matches!(self.owner, Owner::Morse(_)) {
+        if let Request::AdmitRemote {
+            endpoint,
+            cord,
+            sequence,
+            bytes,
+        } = request
+        {
+            let Owner::Face(scheduler) = &mut self.owner else {
+                return Err(SchedulerError::InvalidRemoteCordAccess);
+            };
+            if bytes as usize > FACE_VALUE_BYTES {
+                return Err(SchedulerError::SemanticValueBoundExceeded);
+            }
+            let input = transfer
+                .get(..bytes as usize)
+                .ok_or(SchedulerError::SemanticValueBoundExceeded)?;
+            return scheduler
+                .admit_remote_input(endpoint, cord, sequence, input)
+                .map(Response::RemoteAdmission);
+        }
+        let maximum = if matches!(self.owner, Owner::Face(_)) {
+            FACE_VALUE_BYTES
+        } else if matches!(self.owner, Owner::Morse(_)) {
             morse::MAX_VALUE_BYTES
         } else if matches!(self.owner, Owner::Text(_)) {
             text::MAX_VALUE_BYTES
@@ -131,9 +161,15 @@ impl Runtime {
                     s.cancel()?;
                     Ok(Response::Cancelled)
                 }
-                Request::Init { .. } | Request::InitText { .. } | Request::InitMorse { .. } =>
-                    Err(SchedulerError::InvalidPlan),
+                Request::Init { .. }
+                | Request::InitText { .. }
+                | Request::InitMorse { .. }
+                | Request::InitFace { .. }
+                | Request::AdmitRemote { .. } => Err(SchedulerError::InvalidPlan),
             }
         )
     }
 }
+
+// Retained service header is three u64 fields; reserve an extra alignment word.
+const _: () = assert!(core::mem::size_of::<Runtime>() <= crate::memory::METADATA_BYTES - 4096 - 32);
