@@ -180,7 +180,13 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(editedSource).not.toBe(originalSource);
     await editor.fill(editedSource);
     await expect(page.locator("[data-check]")).toHaveText("Edited source — not checked or applied yet. Try it to check and apply the change.");
-    await expect(graph).toHaveAttribute("data-checked-plot-id", originalExample.selectedPlot);
+    const unchangedDisclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
+      .getAttribute('data-owner-disclosure'));
+    expect(unchangedDisclosure[2]).toBe(`plot/${originalExample.selectedPlot}`);
+    const draftOnly = await current(page);
+    expect(draftOnly.selectedPlot).toBe(originalExample.selectedPlot);
+    expect(draftOnly.planId).toBe(originalExample.planId);
+    expect(draftOnly.playId).toBe(originalExample.playId);
     await expect(highlighting).toHaveText(editedSource, { useInnerText: false });
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     // Applying the edit returns to the selected Plot. Its visible checker
