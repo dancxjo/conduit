@@ -1906,3 +1906,20 @@ all other file bytes match. All five typed owner/refusal cases pass again after
 resolution. The log is retained under `evidence/native-local-portable-sync-20261022/`.
 CI was deliberately skipped; #6201/#5994 remain open. No browser/QEMU/image or
 private-service-fit campaign ran. The larger recovery branch remains separate.
+
+### 2026-10-22: native and browser graph consumers share meaning
+
+PR6236 delivered the two existing graph-producer migrations to dev2350a5048;
+the merged tree equals tested56e20faaf. Native FrontDoor delegates directly to
+the shared projector; browser workbench keeps its augmentation while sharing
+Gear/Port/Cord facts and now retaining root Fore Ports. Nine focused hosted cases,
+the workbench all-target check and formatting pass. The dedicated delivery audit
+retains the new test's initial compile negative and all passing logs.
+
+This branch includes delivered dev without conflicts. The boundary correspondence
+case passes again here: actual graph role identities, shared properties, local
+topology and ordered endpoint facts survive both the complete and explicitly
+missing-endpoint fixtures. The retained log is under
+`evidence/native-local-consumer-sync-20261022/`. This remains CPU adapter evidence;
+resident input/effect routes and their original platform/acknowledgement/bounds
+acceptance remain open under #6201/#5518/#5994. CI was deliberately skipped.
