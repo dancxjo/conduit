@@ -81,7 +81,7 @@ pub(super) fn parse(
         }
         match record["path"].as_str() {
             Some("shared") => {
-                if delta[1] > 0 && !shared_sources.contains(plot)
+                if delta[1] > 0 && !shared_sources.contains(&digest)
                     || delta[3] > 0 && !shared_expansions.contains(plot)
                 {
                     return Err(refusal("hit without retained current Source/expansion"));
@@ -89,11 +89,21 @@ pub(super) fn parse(
                 if held[0] < retained[0] || held[1] < retained[1] {
                     return Err(refusal("shared retention reset"));
                 }
-                retained = held;
                 if accepted && mode == CacheMode::Retained {
-                    shared_sources.insert(plot.to_owned());
+                    if (delta[0] == 1 && shared_sources.contains(&digest))
+                        || (delta[2] == 1 && shared_expansions.contains(plot))
+                    {
+                        return Err(refusal("cold work repeated in unchanged retained context"));
+                    }
+                    shared_sources.insert(digest.clone());
                     shared_expansions.insert(plot.to_owned());
                 }
+                if mode == CacheMode::Retained
+                    && held != [shared_sources.len() as u64, shared_expansions.len() as u64]
+                {
+                    return Err(refusal("retained counts disagree with actual shared work"));
+                }
+                retained = held;
             }
             Some("private-contention") => {
                 if delta[1] != 0 || delta[3] != 0 || held[0] > 1 || held[1] > 1 {
@@ -116,6 +126,9 @@ pub(super) fn parse(
             return Err(refusal(
                 "zero retention retained entries, hits or omitted cold work",
             ));
+        }
+        if mode == CacheMode::Retained && delta[6] != 0 {
+            return Err(refusal("bounded retained Source unexpectedly unretained"));
         }
         if delta[4] != 0 || delta[5] != 0 {
             return Err(refusal("finite native inventory unexpectedly evicted"));

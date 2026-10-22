@@ -28,7 +28,7 @@ changing the operation's outcome. A fallback remains the existing finite cold
 path and cannot spin, retry or block preparation.
 
 Mode and limits must match the guest. The parser verifies Source digests against
-the exact tool source, rejects missing/reordered/stale/foreign records, false
+the exact tool source, rejects absent families, sequence gaps, reordered/stale/foreign records, false
 hits and retained entries in the zero-retention arm, and correlates every Face
 custody record to the observed Host/Boot. Early records are Boot-scoped just as
 early progress records are; they precede identity generation. The family and

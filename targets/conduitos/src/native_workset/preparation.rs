@@ -189,6 +189,42 @@ mod tests {
     use super::*;
 
     #[test]
+    fn selected_mode_has_real_zero_retention_or_real_cache_hits() {
+        let mut prepared = NativePreparation::new().unwrap();
+        let plot = super::super::candidate_inventory()[0];
+        prepared.expanded(plot).unwrap();
+        prepared.expanded(plot).unwrap();
+        let stats = prepared.cache.stats();
+        if cfg!(feature = "native-cache-zero-retention") {
+            assert_eq!(
+                (stats.checks, stats.expansions, stats.unretained_checks),
+                (2, 2, 2)
+            );
+            assert_eq!((stats.check_hits, stats.expansion_hits), (0, 0));
+            assert_eq!(
+                (
+                    prepared.cache.retained_sources(),
+                    prepared.cache.retained_expansions()
+                ),
+                (0, 0)
+            );
+        } else {
+            assert_eq!(
+                (stats.checks, stats.expansions, stats.unretained_checks),
+                (1, 1, 0)
+            );
+            assert_eq!((stats.check_hits, stats.expansion_hits), (1, 1));
+            assert_eq!(
+                (
+                    prepared.cache.retained_sources(),
+                    prepared.cache.retained_expansions()
+                ),
+                (1, 1)
+            );
+        }
+    }
+
+    #[test]
     fn zero_retention_rechecks_same_inventory_without_changing_meaning() {
         let mut retained = NativePreparation::with_retention(true).unwrap();
         let mut control = NativePreparation::with_retention(false).unwrap();
@@ -222,7 +258,7 @@ mod tests {
     fn every_native_source_reuses_exact_cold_meaning_with_finite_entries() {
         fn assert_send<T: Send>() {}
         assert_send::<NativePreparation>();
-        let mut prepared = NativePreparation::new().unwrap();
+        let mut prepared = NativePreparation::with_retention(true).unwrap();
         let (startup, profile) = catalogs().unwrap();
         for plot in super::super::candidate_inventory() {
             assert!(plot.source().len() <= SOURCE_BYTES);
