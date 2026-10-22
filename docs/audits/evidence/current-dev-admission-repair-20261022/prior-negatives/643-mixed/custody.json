@@ -1,0 +1,106 @@
+{
+  "source": "643aa7e3347a53e66108c8e0e9188510bfc7d13d",
+  "scope": "18 focused cases, supported catalog and formatting pass; combined strict lint exits101 on unused latest_workspace_view. Originals retained unchanged.",
+  "files": [
+    {
+      "file": "6252-643aa7e33-candidate-boundary.log",
+      "bytes": 578,
+      "sha256": "bcd0e0afe9a8ae7a3e06eba08be555e546a9eedd3f171624531dd4d828c32bcb"
+    },
+    {
+      "file": "6252-643aa7e33-catalog-checks.json",
+      "bytes": 1696,
+      "sha256": "6db27fc47bf214a5ced8af816b53b81b9f1a53bd693c6ee427ed8f6e009c87fa"
+    },
+    {
+      "file": "6252-643aa7e33-catalog-refusals.log",
+      "bytes": 4159,
+      "sha256": "c738816d335471eb2b5fad13c0bd55311cc7c1933aeed915133ed8b46b668b1c"
+    },
+    {
+      "file": "6252-643aa7e33-catalog-regression.log",
+      "bytes": 3614,
+      "sha256": "6147699391849ed45a430b5fdb7b6342d168b9a8b606199eef4af7b65a9a8e8e"
+    },
+    {
+      "file": "6252-643aa7e33-catalog.json",
+      "bytes": 113169,
+      "sha256": "d2e9881b033f2101a66d035bdf7886f06945524a020add048bce64940dbc9e0b"
+    },
+    {
+      "file": "6252-643aa7e33-catalog.log",
+      "bytes": 15187,
+      "sha256": "4c4e8804d61bfd1ad40aba7f799110f3d0b1e4106bf714d584779220292fa1bf"
+    },
+    {
+      "file": "6252-643aa7e33-choices.log",
+      "bytes": 452,
+      "sha256": "272c6c23efed402c798c9202cbc8e5d810293fe726c3425f11aba476a941b6fa"
+    },
+    {
+      "file": "6252-643aa7e33-cold.log",
+      "bytes": 459,
+      "sha256": "f21058e6a7657221c93534642c9502d820ae492ad05cb931cf6ac47494c8d7a1"
+    },
+    {
+      "file": "6252-643aa7e33-cycles.log",
+      "bytes": 7177,
+      "sha256": "0ba83427f6465fd99d54e1f5ff7aa6fdc9b856d8cd14451fdff8c82c3a78fd52"
+    },
+    {
+      "file": "6252-643aa7e33-fmt.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "6252-643aa7e33-focused-checks.json",
+      "bytes": 6537,
+      "sha256": "f0337274f1d5962fdf051acbf632892b7fab4dc124117f21274b40180b1f3bde"
+    },
+    {
+      "file": "6252-643aa7e33-large-graph.log",
+      "bytes": 461,
+      "sha256": "853ceaac349b24831f9e24efef65c94e82d9618413854b25ed717dd1f8bf3d89"
+    },
+    {
+      "file": "6252-643aa7e33-membership.log",
+      "bytes": 5636,
+      "sha256": "93fc5abcd705a49dbfd25933c3cb5cc12a617fa769d1ca935bc5cd8accb74d6c"
+    },
+    {
+      "file": "6252-643aa7e33-prebirth-cancel.log",
+      "bytes": 478,
+      "sha256": "c7c36d720392e3661d86557b53478e0a3a8c75f268fcadce694f566ba7f0b05d"
+    },
+    {
+      "file": "6252-643aa7e33-release.log",
+      "bytes": 468,
+      "sha256": "bffdadbe62e1b5f07b1fc7fe72fdb1e56ed27f174a3e329de4d7f60c22da8f0a"
+    },
+    {
+      "file": "6252-643aa7e33-sdk-check.json",
+      "bytes": 323,
+      "sha256": "bb3fff3cdef2cc7b82d5ccaaf593a4640338d002de29acab718c8adf60f80e53"
+    },
+    {
+      "file": "6252-643aa7e33-sdk-errors.log",
+      "bytes": 683,
+      "sha256": "db73b2ca8b1ee6e38531a5f8c2dbe7fc0d8e9988fc1946d2efb7d61b43fb43a5"
+    },
+    {
+      "file": "6252-643aa7e33-service-release.log",
+      "bytes": 482,
+      "sha256": "aba497f3402e95843b6beb7b19507bea51499ca598b34a9d64e4cff031c43555"
+    },
+    {
+      "file": "6252-643aa7e33-strict-checks.json",
+      "bytes": 994,
+      "sha256": "0d6070d702599221b402000693d0352638475056a541c7581bd0bec65bd692d3"
+    },
+    {
+      "file": "6252-643aa7e33-strict-packages.log",
+      "bytes": 16378,
+      "sha256": "9cd62321a81ea6dd5a99fc582ed1d0d60234f5c6698b80b3c2f988ca04ad01e0"
+    }
+  ]
+}

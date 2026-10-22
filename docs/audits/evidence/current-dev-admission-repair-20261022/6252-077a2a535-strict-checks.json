@@ -1,0 +1,42 @@
+{
+  "source": "077a2a535b4ec30d1f09ec6c2884c22bbffd1c57",
+  "checks": [
+    {
+      "label": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-077a2a535-fmt.log",
+      "seconds": 10.371256113052368
+    },
+    {
+      "label": "strict-packages",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "-p",
+        "conduit-browser-runtime",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--features",
+        "conduitos/native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-077a2a535-strict-packages.log",
+      "seconds": 26.35230040550232
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "source": "643aa7e3347a53e66108c8e0e9188510bfc7d13d",
+  "checks": [
+    {
+      "label": "catalog",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "plots",
+        "bundle-workspace-catalog",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-643aa7e33-catalog.json"
+      ],
+      "exit_code": 0,
+      "expected_cases": null,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-643aa7e33-catalog.log",
+      "seconds": 298.339989900589
+    },
+    {
+      "label": "catalog-refusals",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "workspace_patchbay_catalog",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "expected_cases": 2,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-643aa7e33-catalog-refusals.log",
+      "seconds": 65.68193078041077
+    },
+    {
+      "label": "catalog-regression",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "workspace_catalog_preserves_memory_lantern_semantic_editor_requirement",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "expected_cases": 1,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-643aa7e33-catalog-regression.log",
+      "seconds": 16.497040510177612
+    }
+  ]
+}

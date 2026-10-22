@@ -1,0 +1,25 @@
+{
+  "source": "ededf3c51df6ce0daf3bfeea26267bf0789c1f3b",
+  "checks": [
+    {
+      "label": "cycles",
+      "test": "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": false,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-ededf3c51-cycles.log",
+      "seconds": 252.7692449092865
+    }
+  ]
+}
