@@ -13,6 +13,9 @@ pub(in super::super) fn focus_argument(
     let target = (action, Some(argument));
     creche_choices::navigate_to(serial, child, stream, reader, action, Some(argument), false)?;
     let current = focus(serial, target)?;
+    let source_before = records(serial, "CONDUIT_NATIVE_FACE ")?
+        .pop()
+        .ok_or_else(|| refusal("pointer field Source Face absent"))?;
     rectangle(&current)?;
     let changes = records(serial, CHANGE)?.len();
     let scale = (
@@ -85,9 +88,67 @@ pub(in super::super) fn focus_argument(
         });
     let (press, fresh) = observed?;
     let release = released?;
+    // dispatch() emits a pointer observation before checking its semantic press
+    // route. A later harmless released motion is a sequential guest barrier:
+    // the event loop cannot observe it before returning from release dispatch.
+    let barrier = move_by(serial, child, stream, reader, scale, (1, 0), false, target)?;
+    if sequence(&barrier)? <= sequence(&release)? {
+        return Err(refusal("post-release barrier is not later than release"));
+    }
+    let source_after = records(serial, "CONDUIT_NATIVE_FACE ")?
+        .pop()
+        .ok_or_else(|| refusal("post-release Source Face absent"))?;
+    post_release_unchanged(
+        &source_before,
+        &source_after,
+        changes,
+        records(serial, CHANGE)?.len(),
+    )?;
+    let final_focus = focus(serial, target)?;
+    if ["face_id", "face_revision", "show_id"]
+        .iter()
+        .any(|key| final_focus[*key] != current[*key])
+    {
+        return Err(refusal(
+            "field release/barrier changed current Face or Show",
+        ));
+    }
     Ok(
         json!({"schema":"conduit.creche/argument-pointer-focus@1","action":action,"argument":argument,
-        "target_geometry":current,"before_press_focus":away,"press":press,"after_focus":fresh,"release":release,
+        "target_geometry":current,"before_press_focus":away,"press":press,"after_focus":fresh,"release":release,"post_release_barrier":barrier,"final_focus":final_focus,
         "source_change_count":0,"selection_effect":"focus only; naming changes require checked keyboard commit","physical_evidence":false}),
     )
+}
+
+fn post_release_unchanged(
+    before: &Value,
+    after: &Value,
+    original_changes: usize,
+    final_changes: usize,
+) -> Result<(), ConduitosError> {
+    if original_changes != final_changes
+        || before["face"] != after["face"]
+        || before["show"] != after["show"]
+    {
+        return Err(refusal(
+            "pointer release/barrier mutated Source or acknowledged Show",
+        ));
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn release_only_effect_or_stale_show_cannot_be_absorbed_by_later_restoration() {
+        let before = json!({"face":{"identity":"face","revision":1,"value":"original"},"show":{"show_id":"show","face_revision":1}});
+        assert!(post_release_unchanged(&before, &before, 0, 0).is_ok());
+        assert!(post_release_unchanged(&before, &before, 0, 1).is_err());
+        let mut changed = before.clone();
+        changed["face"]["value"] = json!("release-only-mutation");
+        assert!(post_release_unchanged(&before, &changed, 0, 0).is_err());
+        let mut stale = before.clone();
+        stale["show"]["show_id"] = json!("stale-show");
+        assert!(post_release_unchanged(&before, &stale, 0, 0).is_err());
+    }
 }

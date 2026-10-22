@@ -31,3 +31,7 @@ Host receipt controls cover foreign world profile/build/image/Host/Boot, mistake
 ## First focused compilation attempt
 
 Frozen merged source `3ad3b1b70803d13205c22e64b812a4a866c2c68b` stopped during its first focused command with exit101: the large receipt `json!` exceeded the existing macro recursion limit. Zero tests executed; all later focused/lint/format stages and QEMU were unstarted. Exact command/log/hash custody remains in local `work/6158-3ad-compile-negative-preserved`. The successor splits construction into smaller objects and merges the same flat keys/values; no recursion, stack or proof budget is increased. It requires its own changed-source validation.
+
+## Post-release review correction
+
+Independent review required extending the focus-only assertion beyond press. The pointer probe now sends one benign released motion after release and requires its strictly later physical sequence, no press edge and the same current Show. In the actual product dispatch order, the original pointer sample is emitted before the semantic press branch; observing the next sequential event therefore forms the existing event-loop barrier rather than assuming the release sample alone means dispatch completion. After that barrier, the exact Source Face, acknowledged Show and total checked-change count must equal the pregesture baseline. A receipt-shape host control refuses release-only count/value mutation and stale Show; later naming restoration cannot absorb those effects into a passing focus-only claim. No guest event/state, timing budget or limit changes.
