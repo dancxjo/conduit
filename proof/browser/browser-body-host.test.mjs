@@ -375,3 +375,41 @@ test("saved-choice acquisition reports its exact admitted units and requires ini
   assert.throws(() => acquireBrowserBodyHost({ ...f, storage }), /resource demand exceeds local bounds/);
   assert.throws(() => acquireBrowserBodyHost({ ...f, storage: { ...storage, state: "Unavailable" } }), /saved choice requires initialized durable browser storage/);
 });
+
+test("canonical Patchbay input dispatches one owner effect without replaying a legacy event", async () => {
+  const f = fixture();
+  const part = f.proposal.plan.plots[0];
+  part.plot = { checked_plot_id: "checked/patchbay" };
+  Object.assign(part.plan.fragments[0].placements[0], {
+    kind_id: "application/retained", configuration: [{ key: "application", value: { Text: "patchbay" } }],
+  });
+  let calls = 0, dispositions = 0, finish;
+  let pending = { application_revision: 7, request: { EditCurrent: {} } };
+  const observation = () => ({ schema: "conduit.browser/patchbay-observation@1",
+    body_plan_id: "body-plan", active_play_id: "play", owner_checked_plot_id: "checked/patchbay",
+    face: { basis: { body_id: "body" } }, mask_show: null, interaction_admitted: false,
+    pending_owner_request: pending,
+  });
+  f.api.conduit_tour_input_ptr = () => 128 * 1024;
+  f.api.conduit_tour_input_capacity = () => 8192;
+  f.api.conduit_browser_patchbay_interact = () => { f.output(observation()); return 0; };
+  f.api.conduit_browser_patchbay_request_disposition = () => {
+    dispositions++; pending = null; f.output(observation()); return 0;
+  };
+  const owner = acquireBrowserBodyHost({ ...f, onPatchbayOwnerRequest: async ({ signal }) => {
+    calls++; assert.equal(signal.aborted, false);
+    await new Promise(resolve => { finish = resolve; });
+    return { outcome: "Completed", evidenceId: "editor/exact-source" };
+  } });
+  try {
+    owner.start(1);
+    const first = owner.submitPatchbayInteraction({ sequence: 1 });
+    const concurrent = await owner.submitPatchbayInteraction({ sequence: 2 });
+    assert.equal(concurrent.pending_owner_request.application_revision, 7);
+    assert.equal(calls, 1);
+    finish();
+    assert.equal((await first).pending_owner_request, null);
+    assert.equal(dispositions, 1);
+    assert.equal(calls, 1);
+  } finally { owner.close(); }
+});

@@ -1168,3 +1168,20 @@ Body Plan/Play scope, and Rust remains authoritative for admission. JavaScript
 syntax checks pass. These transport methods do not render a Show, select a
 canonical route, fulfill owner effects or retire legacy adapters. Platform proof
 and CI campaigns remain deferred tonight.
+
+### Canonical owner-effect dispatch
+
+Canonical SDK submission is now asynchronous: after Rust accepts the exact typed
+interaction, the Host invokes the same scoped `onPatchbayOwnerRequest` callback
+used by legacy presentation. Both paths share a single owner/revision fence set
+before awaiting the handler, so concurrent input and uncertain outcomes cannot
+replay an effect. Valid reports use the existing checked disposition command;
+handler failure reports Uncertain. Canonical dispatch does not enqueue a legacy
+application observation to refresh its presentation; its Show replacement stays
+explicit. No handler means the retained request remains pending.
+
+The 21 browser Body Host CPU tests pass, including a new deferred-handler case
+that submits concurrent canonical requests and verifies one handler invocation
+and one disposition. JavaScript syntax and diff whitespace checks pass. This is
+Host callback dispatch, not evidence that production canonical rendering/route
+selection or native Editor/Mask-change fulfillment is complete.

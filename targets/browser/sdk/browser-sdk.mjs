@@ -515,9 +515,9 @@ export class BrowserPlay {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
     return this.#checkedPatchbayObservation(this.#adapter.acknowledgePatchbayFace(message));
   }
-  submitPatchbayInteraction(message) {
+  async submitPatchbayInteraction(message) {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    return this.#checkedPatchbayObservation(this.#adapter.submitPatchbayInteraction(message));
+    return this.#checkedPatchbayObservation(await this.#adapter.submitPatchbayInteraction(message));
   }
   refreshPatchbayFace(message) {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');

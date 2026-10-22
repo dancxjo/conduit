@@ -402,7 +402,7 @@ export class BrowserPlay {
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
   patchbayObservation(): PatchbayObservation;
   acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
-  submitPatchbayInteraction(message: PatchbayInteraction): PatchbayObservation;
+  submitPatchbayInteraction(message: PatchbayInteraction): Promise<PatchbayObservation>;
   refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;
   reportPatchbayRequestDisposition(options: {
     observation: PatchbayObservation;
