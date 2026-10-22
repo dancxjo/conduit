@@ -143,6 +143,15 @@ pub mod opl2_plan;
 #[cfg(target_arch = "x86_64")]
 pub mod opl2_play;
 mod ordinary_base;
+#[cfg(any(
+    test,
+    all(
+        target_os = "none",
+        target_arch = "x86_64",
+        feature = "ordinary-domain-proof"
+    )
+))]
+mod ordinary_domain_baseline_format;
 #[cfg(all(
     target_os = "none",
     target_arch = "x86_64",

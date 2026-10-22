@@ -1,0 +1,30 @@
+{
+  "schema": "conduit.conduitos/service-baseline-preparation@1",
+  "status": "unmeasured",
+  "proof_class": "local-compilation-negative",
+  "attempts": [
+    {
+      "source_commit": "fbb0af16c0189ed6e48d8a4a28294cb52cea3f23",
+      "exit_code": 1,
+      "refusal": "matrix-common-backbone-failed: existing Cr\u00e8che compile errors on e546 base",
+      "raw_log_sha256": "860b8df3dc6ae1d14a0d018fed5971fdc022840e9dc263590b355aec25a9b27f",
+      "log": "fbb-compile-failure.log.gz",
+      "guest_started": false,
+      "image_sha256": null,
+      "baseline_receipt": null
+    },
+    {
+      "source_commit": "f6c220c157161df15114232e9325bf8b63b8a3ed",
+      "exit_code": 1,
+      "refusal": "compile-link-failed: new recorder used fmt::Write on Serial, which implements SerialBase instead",
+      "raw_log_sha256": "0c333b2beebd3610775a9cab1c807abf4eeaadf16d592bf70fd4aaabba4c7efb",
+      "log": "f6c-compile-failure.log.gz",
+      "guest_started": false,
+      "image_sha256": null,
+      "baseline_receipt": null
+    }
+  ],
+  "publication_correction": "Use existing sign_format::FixedText and arch::early_write after all measured intervals; repaired source has not been compiled or executed.",
+  "checks": "Reader unit harness, rustfmt and diff checks passed; mock guest API harness did not establish real API compatibility and missed Serial formatting error.",
+  "remaining": "Actual freestanding compilation and baseline execution; larger transfer-window/staged IPC sweeps; independent assembly component boundaries/overhead controls; demonstrated optimization; before/after isolation and normal responsive-journey wall-time comparison."
+}

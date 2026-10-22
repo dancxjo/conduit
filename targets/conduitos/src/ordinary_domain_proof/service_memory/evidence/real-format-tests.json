@@ -1,0 +1,11 @@
+{
+  "source": "591c2207ec5da96c878adff6e7d66583848a36c6",
+  "source_note": "Exact formatter and test bytes were committed unchanged after the successful run.",
+  "command": "cargo +stable test --locked -p conduitos --lib ordinary_domain_baseline_format::tests -- --nocapture",
+  "passed": 2,
+  "failed": 0,
+  "ignored": 0,
+  "exit_code": 0,
+  "raw_log_sha256": "f8485c5dc448055672b69c3663b56edd302741117993659f089660c1af5aad12",
+  "scope": "Production FixedText API, complete JSON records and maximum-width counters; no appliance build, VM, measurement or full issue completion."
+}

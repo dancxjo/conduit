@@ -1,5 +1,6 @@
 //! Backend fixture evidence, separate from production compositor isolation.
 use super::refuse;
+mod baseline;
 use crate::{
     arch,
     protected_region::{DomainBackend, DomainFault, DomainRefusal, DomainReturn},
@@ -77,6 +78,7 @@ fn sentinel(address: u64) -> u32 {
 }
 
 pub(super) fn run() {
+    baseline::run();
     let image = ServiceImage::compositor(IMAGE).unwrap_or_else(|_| refuse("service-image"));
     let layout = image.layout();
     let root_sentinel = VALUE;
