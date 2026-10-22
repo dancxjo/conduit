@@ -405,3 +405,49 @@ fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
 
 #[path = "source_edit_tests.rs"]
 mod source_edit_tests;
+
+#[test]
+fn resident_patchbay_mask_replan_requires_exact_one_use_owner_request() {
+    use patchbay_application::{PatchbayApplicationRequest, PatchbayMaskMode};
+    let (ids, offer, mut journey) = born();
+    run(&mut journey, &ids, &offer);
+    select(&mut journey, NativePlot::Patchbay);
+    let initial = journey.projection();
+    let forged = PatchbayApplicationRequest::ChangeMasks {
+        body_plan_id: journey.current_plan().unwrap().plan_id.clone(),
+        mode: PatchbayMaskMode::GraphicalAndSpeech,
+    };
+    assert_eq!(
+        journey.replan_masks(forged, &ids, &offer, "build"),
+        Err(JourneyError::WrongTarget)
+    );
+    assert_eq!(journey.projection(), initial);
+
+    let issued = request_mask_change(&mut journey);
+    let mut changed = issued.clone();
+    let PatchbayApplicationRequest::ChangeMasks { mode, .. } = &mut changed else {
+        panic!("Mask request")
+    };
+    *mode = match *mode {
+        PatchbayMaskMode::Graphical => PatchbayMaskMode::Speech,
+        _ => PatchbayMaskMode::Graphical,
+    };
+    let before = journey.projection();
+    assert_eq!(
+        journey.replan_masks(changed, &ids, &offer, "build"),
+        Err(JourneyError::WrongTarget)
+    );
+    assert_eq!(journey.projection(), before);
+    // The mismatched attempt consumes the issued receipt, never authorizing a
+    // later replay of either the changed request or the original owner output.
+    assert_eq!(
+        journey.replan_masks(issued, &ids, &offer, "build"),
+        Err(JourneyError::WrongTarget)
+    );
+    assert_eq!(journey.projection(), before);
+
+    let fresh = request_mask_change(&mut journey);
+    journey.replan_masks(fresh, &ids, &offer, "build").unwrap();
+    assert_eq!(journey.projection().body_id, initial.body_id);
+    assert_ne!(journey.projection().active_play_id, initial.active_play_id);
+}

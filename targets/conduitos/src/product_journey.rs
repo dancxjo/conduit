@@ -20,9 +20,9 @@ mod biography;
 mod birth;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 mod graph_facts;
+mod patchbay;
 mod projection;
 mod source_edit;
-mod patchbay;
 pub use source_edit::{SourceEditError, SourceEditReceipt, SourceEditRefusal};
 mod proposal;
 mod tutorial;
@@ -211,7 +211,7 @@ pub struct ProductJourney {
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
-    source_request_authorization: Option<([u8; 32], u64)>,
+    patchbay_request_authorization: Option<([u8; 32], u64)>,
     mask_control: Option<crate::mask_control::MaskControl>,
     surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
 }
@@ -312,7 +312,7 @@ impl ProductJourney {
             retained_kernel_sign_gap: None,
             last_request_id: None,
             application_request: None,
-            source_request_authorization: None,
+            patchbay_request_authorization: None,
             mask_control: None,
             surface_provider: None,
         })

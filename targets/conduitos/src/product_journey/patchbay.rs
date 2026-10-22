@@ -95,7 +95,7 @@ impl ProductJourney {
         &mut self,
         request: Option<native_workset::NativeApplicationRequest>,
     ) -> Result<(), JourneyError> {
-        self.source_request_authorization = None;
+        self.patchbay_request_authorization = None;
         if request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
             let patchbay = native_workset::resident(native_workset::NativePlot::Patchbay)
                 .map_err(JourneyError::Workset)?;
@@ -106,10 +106,9 @@ impl ProductJourney {
                     native_workset::PlayRefusal::InputPressure,
                 ));
             }
-            self.source_request_authorization = match &request {
+            self.patchbay_request_authorization = match &request {
                 native_workset::NativeApplicationRequest::EditCurrent(request) => {
-                    super::source_edit::request_digest(request)
-                        .map(|digest| (digest, self.revision))
+                    super::patchbay::request_digest(request).map(|digest| (digest, self.revision))
                 }
                 _ => None,
             };
@@ -117,4 +116,43 @@ impl ProductJourney {
         }
         Ok(())
     }
+}
+
+/// One fixed receipt of the exact owner-issued fields. Plan identity alone is
+/// not authority to edit Source or change the Body's admitted Masks.
+pub(super) fn request_digest(
+    request: &patchbay_application::PatchbayApplicationRequest,
+) -> Option<[u8; 32]> {
+    use patchbay_application::{PatchbayApplicationRequest, PatchbayMaskMode};
+    use sha2::{Digest, Sha256};
+    let mut hash = Sha256::new();
+    match request {
+        PatchbayApplicationRequest::EditCurrent {
+            expanded_plot_id,
+            subject_identity,
+        } => {
+            if subject_identity.len() > 256 || expanded_plot_id.as_str().len() > 256 {
+                return None;
+            }
+            hash.update(b"conduitos/issued-source-edit@1");
+            for field in [expanded_plot_id.as_str(), subject_identity.as_str()] {
+                hash.update((field.len() as u64).to_le_bytes());
+                hash.update(field.as_bytes());
+            }
+        }
+        PatchbayApplicationRequest::ChangeMasks { body_plan_id, mode } => {
+            if body_plan_id.as_str().len() > 256 {
+                return None;
+            }
+            hash.update(b"conduitos/issued-mask-change@1");
+            hash.update((body_plan_id.as_str().len() as u64).to_le_bytes());
+            hash.update(body_plan_id.as_str().as_bytes());
+            hash.update([match mode {
+                PatchbayMaskMode::Graphical => 0,
+                PatchbayMaskMode::GraphicalAndSpeech => 1,
+                PatchbayMaskMode::Speech => 2,
+            }]);
+        }
+    }
+    Some(hash.finalize().into())
 }

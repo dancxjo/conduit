@@ -1792,3 +1792,30 @@ filename-based filter selected zero tests and is excluded from behavioral
 evidence; selecting the actual module corrected that observation. The installed
 resident test also passed individually. No browser/guest execution is claimed.
 Current dev remains 624baf562; the working branch includes it unchanged.
+
+### 2026-10-22: one-use owner receipt for native Mask replacement
+
+Native Mask replacement now requires the exact request actually emitted by the
+Patchbay owner at the current journey revision, in addition to current Body Plan,
+foreground Patchbay and Host/Boot checks. Previously a matching Plan ID could
+reach replacement without the issuance check already required by Source editing.
+The existing fixed digest receipt now covers both request families with distinct
+tags, bounded length-prefixed identities and exact Mask mode. No extra retained
+request, authority, document or graph model was introduced.
+
+An unissued or altered request refuses before Play retirement or replacement.
+A mismatched attempt consumes an outstanding Patchbay receipt, so the original
+cannot subsequently replay; a newly issued request remains usable. Unrelated
+pending application requests are not removed by an unissued attempt. Existing
+Source-edit checks use the same receipt helper and retain their prior digest.
+
+Focused final validation is recorded below. This is a native owner-handoff
+correction, not new QEMU/protected-service, physical or release evidence.
+
+All 17 final Patchbay-filtered native-compositor hosted tests pass (4.28 seconds),
+including unissued/altered Mask request refusal and fresh recovery, actual
+Mask replanning, Source authorization/draft preservation, ordinary installed
+keyboard-choice and typed Edit handoffs, admitted Fore indices and complete
+Face graph preservation. Compilation passed after the final source change;
+no platform proof or CI jobs ran. A prior five-test focused run also passed,
+but the final seventeen-test run owns this source's reported behavior.
