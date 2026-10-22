@@ -1,4 +1,4 @@
-//! Four actual preference requests through one finite installed-owner return route.
+//! Three actual selections after activation use the four-refresh owner route.
 use super::super::hid_qmp;
 use super::*;
 use conduit_face::{Face, ManifestationLifecycle, MaskShow};
@@ -71,7 +71,6 @@ pub(super) fn exercise(
             125,
             "todo-engineering-spacious",
         ),
-        ("f6", "compact", "phosphor", 100, "todo-engineering-compact"),
     ] {
         let count = bounded_records(&bounded_serial(serial)?, COMPONENT, 65_536)?.len();
         hid_qmp::send_named_keys(stream, reader, &["shift", key], true, "todo-look-select")?;

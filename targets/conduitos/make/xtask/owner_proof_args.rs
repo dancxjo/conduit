@@ -25,7 +25,7 @@ pub(super) struct LiveOwnerActionProofArgs {
 pub(super) struct LiveOwnerTodoFaceProofArgs {
     #[command(flatten)]
     pub(super) route: LiveOwnerActionProofArgs,
-    /// Exercise four independently selected native Looks through the owner route.
+    /// Exercise three Look selections after activation within four owner refreshes.
     #[arg(long)]
     pub(super) look_selection: bool,
     /// Body expected in the exact installed Owner admission receipt.

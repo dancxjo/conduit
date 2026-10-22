@@ -133,3 +133,12 @@ executed cases pass and one existing case is ignored. The cancellation,
 corrupted-witness refusal and second-fresh-Boot regressions execute successfully.
 This is local hosted execution evidence, separate from the pending live guest
 Look and fallback scenarios. The full command log is retained locally.
+
+At `cc199656e`, activation and three acknowledged Look selections consumed
+the existing four-refresh route. Editorial compact, editorial spacious and
+engineering spacious were drawn over the same verified Face. A fourth
+selection was explicitly refused; the attempted four-selection harness did not
+pass. The harness now requests three selections after activation, retaining
+the existing finite allowance and still comparing both actual Looks and two
+densities. The unsuccessful attempt and its three captures remain retained
+locally. A fresh exact-source successful run is still required.
