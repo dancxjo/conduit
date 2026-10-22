@@ -349,11 +349,15 @@ mod tests {
         let requirements = conduit_body_make::body_planning_requirements(workset, &plots).unwrap();
         if server.selected_browser_mask {
             host.capabilities.push(conduit_browser_mask_offer::offer());
-            host.resources.push(conduit_core::resource_offer(
-                "browser/face",
-                conduit_core::FACE_RESOURCE_CLASS,
-                1,
-            ));
+            // The fixture Host already offers one shared Face pool. A second
+            // unowned pool of the same class would be ambiguous provenance.
+            assert_eq!(
+                host.resources
+                    .iter()
+                    .filter(|pool| pool.class_id.as_str() == conduit_core::FACE_RESOURCE_CLASS)
+                    .count(),
+                1
+            );
         }
         let mut kinds = requirements.kind_ids.clone();
         if server.selected_browser_mask {

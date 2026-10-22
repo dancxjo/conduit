@@ -1,4 +1,4 @@
-import { inspectHandbookPlot } from "./handbook-patchbay-route.mjs";
+import { inspectHandbookPlot, assertHandbookInspection } from "./handbook-patchbay-route.mjs";
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -118,23 +118,14 @@ test("static Handbook applications retain independent local Bodies through use, 
       observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
     await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
-    const graph = page.locator(".handbook-show [data-checked-plot-id]:visible");
-    await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
-    await expect(graph.getByRole("group", { name: "Resident plot gears, ports, and cords" })).toBeVisible();
-    await expect(graph).toHaveAttribute("data-body-plan-id", example.planId);
-    await expect(graph).toHaveAttribute("data-active-play-id", example.playId);
-    const outputPort = graph.getByRole("button", { name: /^output tick,/ });
-    await outputPort.focus();
-    await outputPort.press("Enter");
-    await expect(outputPort).toHaveAttribute("aria-pressed", "true");
-    await expect(outputPort).toBeFocused();
+    await assertHandbookInspection(page, example);
     let inspected = await current(page);
     expect(inspected.bodyId).toBe(first.bodyId);
     expect(inspected.selectedPlot).toEqual(example.selectedPlot);
     expect(inspected.foreground.checked_plot_id).not.toBe(example.selectedPlot);
     await journey.capture(page, { id: "inspect", title: "Inspect the running clock",
-      action: "Press Open in Patchbay, choose the clock, focus its output port, and press Enter.",
-      observation: "The resident Patchbay shows the clock's gears, ports, and cord. Its selected output port and graph identities belong to this Body's actual Plan and Play." });
+      action: "Press Open in Patchbay, choose the clock, focus its output-port facts, and press Enter.",
+      observation: "The resident Patchbay shows the clock's source-derived gears, typed ports, and cord. Keyboard-opened output-port facts retain focus, and the Face names this Body's actual Plan and Play." });
     await page.screenshot({ path: testInfo.outputPath("02-real-patchbay.png"), fullPage: true });
 
     const originalExample = example;
@@ -142,7 +133,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(editedSource).not.toBe(originalSource);
     await editor.fill(editedSource);
     await expect(page.locator("[data-check]")).toHaveText("Edited source — not checked or applied yet. Try it to check and apply the change.");
-    await expect(graph).toHaveAttribute("data-checked-plot-id", originalExample.selectedPlot);
+    await assertHandbookInspection(page, originalExample);
     await expect(highlighting).toHaveText(editedSource, { useInnerText: false });
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     // Applying the edit returns to the selected Plot. Its visible checker
@@ -166,9 +157,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     await expect(editor).toHaveValue(editedSource);
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
     await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
-    await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
-    await expect(graph).toHaveAttribute("data-body-plan-id", example.planId);
-    await expect(graph).toHaveAttribute("data-active-play-id", example.playId);
+    await assertHandbookInspection(page, example);
     inspected = await current(page);
     await page.screenshot({ path: testInfo.outputPath("02b-edited-clock-patchbay.png"), fullPage: true });
 
