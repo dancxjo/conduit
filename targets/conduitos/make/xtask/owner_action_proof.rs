@@ -32,6 +32,8 @@ mod todo_validation;
 #[path = "owner_action_observation.rs"]
 mod observation;
 use observation::*;
+#[path = "owner_todo_fallback_proof.rs"]
+mod todo_fallback;
 #[path = "owner_todo_look_proof.rs"]
 mod todo_look;
 
@@ -72,6 +74,21 @@ pub(super) fn execute_todo_action(
     {
         return Err(refusal(
             "native-todo-action-requires-bounded-coordinated-body",
+        ));
+    }
+    if args.required_item_fallback
+        && (args.expected_action_id != "todo.complete.task-1"
+            || args
+                .fallback_action_id
+                .as_deref()
+                .is_none_or(|id| !id.starts_with("todo.") || id == args.expected_action_id)
+            || args
+                .fallback_tab_count
+                .is_none_or(|tabs| !(1..=64).contains(&tabs))
+            || args.fallback_status.as_deref().is_none_or(str::is_empty))
+    {
+        return Err(refusal(
+            "native-todo-fallback-requires-two-explicit-actions",
         ));
     }
     execute_mode(&args.face.route, opts, Some(&args.face), Some(args))
