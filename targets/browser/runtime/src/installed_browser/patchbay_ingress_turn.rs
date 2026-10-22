@@ -26,6 +26,7 @@ impl PatchbayOwnerTurn {
         show: MaskShow,
         ingress: PreparedPatchbayIngress,
     ) -> Result<Self, String> {
+        ingress.validate_local_show(&show)?;
         face.validate()
             .map_err(|error| format!("Patchbay owner Face: {error:?}"))?;
         show.validate(&face)

@@ -54,6 +54,7 @@ pub fn dispatch_to_owner(
     face: &Face,
     show: &MaskShow,
 ) -> Result<PatchbayIngressDispatch, String> {
+    ingress.validate_local_show(show)?;
     let input = ingress.pending_input()?;
     let owner_result = owner
         .port()?

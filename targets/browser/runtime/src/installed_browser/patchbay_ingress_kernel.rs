@@ -105,6 +105,27 @@ impl PreparedPatchbayIngress {
         !self.submitted && !self.revoked && !self.terminal
     }
 
+    /// This entrance has no selected Line: copying Mask bytes is local to one
+    /// exact Host/Boot/generation. A foreign source requires separate Line admission.
+    pub(super) fn validate_local_show(&self, show: &conduit_face::MaskShow) -> Result<(), String> {
+        let [fragment] = self.planned.plan().fragments.as_slice() else {
+            return Err("Patchbay ingress requires one local fragment".into());
+        };
+        let manifestation = &show.show;
+        if fragment.host_id != manifestation.host_id
+            || fragment.boot_id != manifestation.boot_id
+            || fragment.offer_generation != manifestation.offer_generation
+            || show.planned_mask.plan.fragments.iter().any(|mask| {
+                mask.host_id != fragment.host_id
+                    || mask.boot_id != fragment.boot_id
+                    || mask.offer_generation != fragment.offer_generation
+            })
+        {
+            return Err("patchbay-local-ingress-host-mismatch".into());
+        }
+        Ok(())
+    }
+
     pub fn planned(&self) -> &PlannedPatchbayIngress {
         &self.planned
     }

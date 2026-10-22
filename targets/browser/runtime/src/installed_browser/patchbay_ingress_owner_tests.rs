@@ -65,8 +65,10 @@ fn face(port: &PatchbayApplicationPort, body: &BodyId, basis: &FaceContributionB
     .unwrap()
 }
 fn prepared_transport() -> PreparedPatchbayIngress {
-    let mut host =
-        crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    let mut host = crate::installed_browser::advertisement(
+        "host/interaction-mask".into(),
+        "boot/interaction-mask".into(),
+    );
     host.capabilities.push(offer());
     PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap()
 }
@@ -212,8 +214,10 @@ fn revoked_show_transport_never_dispatches_pending_bytes_to_owner() {
         .is_err());
     assert!(dispatch_to_owner(&mut pending, &mut owner, &body, &basis, &current, &show).is_err());
     assert_eq!(pending.value_capacities(), capacity);
-    let mut host =
-        crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    let mut host = crate::installed_browser::advertisement(
+        "host/interaction-mask".into(),
+        "boot/interaction-mask".into(),
+    );
     host.capabilities.push(offer());
     let mut ready =
         PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap()).unwrap();
@@ -303,4 +307,52 @@ fn owner_turn_refuses_wrong_scope_or_unavailable_show_and_revokes_before_dispatc
     assert!(turn.submit(&mut owner, &input).is_err());
     assert!(turn.receipt().is_none());
     assert_eq!(owner.observe_fragment(basis, &body).unwrap(), before);
+}
+
+#[test]
+fn local_ingress_refuses_foreign_host_boot_and_generation_before_owner_mutation() {
+    let (mut owner, body, basis) = owner();
+    let current = face(&owner, &body, &basis);
+    let show = mask_fixture::available_mask_show(&current);
+    let subject = owner
+        .graph()
+        .subject_identities()
+        .next()
+        .unwrap()
+        .to_owned();
+    let input = edit(&current, &show, &subject);
+    let before = owner.observe_fragment(basis.clone(), &body).unwrap();
+    for (host_id, boot_id, generation) in [
+        ("host/foreign", "boot/interaction-mask", 1),
+        ("host/interaction-mask", "boot/foreign", 1),
+        ("host/interaction-mask", "boot/interaction-mask", 2),
+    ] {
+        let mut host = crate::installed_browser::advertisement(host_id.into(), boot_id.into());
+        host.offer_generation = conduit_core::OfferGeneration(generation);
+        host.capabilities.push(offer());
+        let make = || {
+            PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&host).unwrap())
+                .unwrap()
+        };
+        assert!(PatchbayOwnerTurn::bind(
+            body.clone(),
+            basis.clone(),
+            current.clone(),
+            show.clone(),
+            make()
+        )
+        .is_err());
+        let mut ingress = make();
+        ingress.admit(&input).unwrap();
+        assert_eq!(
+            dispatch_to_owner(&mut ingress, &mut owner, &body, &basis, &current, &show)
+                .unwrap_err(),
+            "patchbay-local-ingress-host-mismatch"
+        );
+        assert_eq!(
+            owner.observe_fragment(basis.clone(), &body).unwrap(),
+            before
+        );
+        assert!(ingress.pending_input().is_ok());
+    }
 }

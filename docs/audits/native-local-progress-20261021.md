@@ -1342,3 +1342,22 @@ canonical observation and still dispatches normally. Syntax/whitespace checks
 pass. This removes the presentation dependency on bootstrap traffic; the old
 Source event/view participants still exist and require typed Fore migration.
 No browser/QEMU/CI campaign, artifact rebuild or platform enactment claim.
+
+### Exact local custody before canonical owner dispatch
+
+Source/Fore migration review found that the no-Line ingress could previously be
+paired with a Mask Show on a different Host/Boot/generation. Publication
+preparation, owner-turn binding and direct dispatch now share an exact local
+custody check: the ingress fragment, producing Show and all Mask fragments must
+name the same current Host/Boot/offer generation. A foreign source requires an
+independently admitted Line; direct value copying cannot invent that connectivity.
+Refusal occurs before owner access, pending-byte consumption or value-budget
+admission, with `patchbay-local-ingress-host-mismatch` retained distinctly.
+
+All six ingress-owner CPU tests pass, including independent Host, Boot and
+generation mismatch cases with unchanged owner facts and retained pending bytes.
+Positive fixtures now use a genuinely local ingress/Mask pairing rather than
+implicitly passing a foreign one. The full canonical selection/Edit/refresh CPU
+case also passes. Formatting/whitespace checks pass. This strengthens the current
+transport seam; it does not complete Source/Fore bootstrap retirement, native
+editing, complete storage admission or platform enactment. No platform/CI run.

@@ -27,6 +27,7 @@ impl PatchbayPublication {
         value_budget: &PatchbayValueStorageBudget,
     ) -> Result<Self, String> {
         let observed = mask.observation();
+        ingress.validate_local_show(&observed.mask_show)?;
         if !ingress.is_ready()
             || observed.mask_show.show.lifecycle != conduit_face::ManifestationLifecycle::Prepared
             || observed.face.basis.body_id.as_ref() != Some(&observed.body_plan.body_id)
