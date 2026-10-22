@@ -142,13 +142,16 @@ fn real_projection_preflight_preserves_compressed_graph_and_scope_custody() {
     let Some(Initial::Patchbay { targets, .. }) = &applications[0] else {
         panic!("fixture")
     };
+    let Some(Initial::Tutorial { evidence }) = &applications[1] else {
+        panic!("fixture Body")
+    };
     let mut workspace = Workspace::new().unwrap();
     let mut compressed = false;
     for target in targets.iter().flatten() {
         let scope = crate::graph_facts::Scope::new(
             "host/preflight".into(),
             "boot/preflight".into(),
-            "body/preflight".into(),
+            evidence.body_id.clone(),
             1,
             &target.graph,
             false,
