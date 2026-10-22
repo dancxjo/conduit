@@ -3,6 +3,7 @@
 //! from a fixture or a retired Tour surface.
 
 mod creche_choices;
+mod creche_controls;
 mod creche_pointer;
 mod face_correspondence;
 mod face_input;
@@ -33,7 +34,10 @@ pub(super) struct JourneyIdentity {
     pub spore_join: Option<Value>,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute_viewport(
+    opts: &GlobalOpts,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal(
             "a live product journey needs a real image and guest",
@@ -41,7 +45,16 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let built = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    execute_supplied(opts, &paths.iso, built.iso_sha256).map(|_| ())
+    execute_with_viewport(
+        opts,
+        &paths.iso,
+        built.iso_sha256,
+        false,
+        None,
+        viewport,
+        None,
+    )
+    .map(|_| ())
 }
 
 pub(super) fn execute_supplied(
@@ -52,12 +65,50 @@ pub(super) fn execute_supplied(
     execute_supplied_observed(opts, image_path, image_sha256, false, None)
 }
 
+pub(super) fn execute_supplied_viewport(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, None)
+}
+
 pub(super) fn execute_supplied_observed(
     opts: &GlobalOpts,
     image_path: &Path,
     image_sha256: String,
     observe: bool,
     output: Option<&Path>,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(opts, image_path, image_sha256, observe, output, None, None)
+}
+pub(super) fn execute_controls(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    viewport: Option<super::proof_viewport::Viewport>,
+    metadata: &Value,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(
+        opts,
+        image_path,
+        image_sha256,
+        false,
+        None,
+        viewport,
+        Some(metadata),
+    )
+}
+#[allow(clippy::too_many_arguments)]
+fn execute_with_viewport(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    observe: bool,
+    output: Option<&Path>,
+    viewport: Option<super::proof_viewport::Viewport>,
+    controls: Option<&Value>,
 ) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
         return Err(refusal("a live product journey needs a real guest"));
@@ -83,20 +134,21 @@ pub(super) fn execute_supplied_observed(
         }
     }
     let mut command = Command::new("qemu-system-x86_64");
+    command.args([
+        "-M",
+        "q35",
+        "-cpu",
+        "max",
+        "-m",
+        conduitos::make::PC_PRODUCT_QEMU_MEMORY,
+        "-smp",
+        "1",
+        "-display",
+        "none",
+    ]);
+    super::proof_viewport::append_vga(&mut command, viewport);
     command
         .args([
-            "-M",
-            "q35",
-            "-cpu",
-            "max",
-            "-m",
-            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
-            "-smp",
-            "1",
-            "-display",
-            "none",
-            "-vga",
-            "std",
             "-monitor",
             "none",
             "-qmp",
@@ -130,7 +182,8 @@ pub(super) fn execute_supplied_observed(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(if observe { 32 } else { 27 })?;
+    .with_capture_limit(if observe { 32 } else { 27 })?
+    .with_viewport(viewport)?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
@@ -149,6 +202,19 @@ pub(super) fn execute_supplied_observed(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
         journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
+        if let Some(metadata) = controls {
+            return creche_controls::exercise(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+                &paths.target,
+                &source,
+                &image_sha256,
+                metadata,
+            );
+        }
         artifacts.capture(&mut qmp, &mut reader, "creche-ready", false)?;
         let look_selection = if observe {
             json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})

@@ -155,6 +155,10 @@ export class BrowserBodyParticipation {
     proposal: Readonly<Record<string, unknown>>;
     inputTarget: Element;
     outputRoot: Element;
+    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal; play: BrowserPlay }>) => void | Promise<void>;
+    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
+      Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
+      | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
     externallyManagedPlanIds?: readonly string[];
   }): BrowserBodyPreparation;
   close(): number;
@@ -272,7 +276,12 @@ export class BrowserBody {
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
   wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
-  }>) => Element | ShadowRoot }): Promise<BrowserPlay>;
+  }>) => Element | ShadowRoot;
+    onPatchbayPublication?: (request: Readonly<{ observation: PatchbayObservation; root: Element; signal: AbortSignal; play: BrowserPlay }>) => void | Promise<void>;
+    onPatchbayOwnerRequest?: (request: Readonly<{ observation: PatchbayObservation; signal: AbortSignal }>) =>
+      Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>
+      | Promise<Readonly<{ outcome: PatchbayRequestDisposition["outcome"]; evidenceId: string }>>;
+  }): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
   lull(): Promise<Readonly<Record<string, unknown>>>;
   close(): Promise<void>;
@@ -339,6 +348,55 @@ export interface BrowserBodyEvent {
   readonly evidence: Readonly<Record<string, unknown>>;
 }
 
+export type PatchbayOwnerRequest =
+  Readonly<{ kind: "EditCurrent"; expanded_plot_id: string; subject_identity: string }>
+  | Readonly<{ kind: "ChangeMasks"; body_plan_id: string; mode: "graphical" | "graphical-and-speech" | "speech" }>;
+
+/** Host report only; this is not execution proof. Uncertain retains the pending request. */
+export interface PatchbayRequestDisposition {
+  readonly body_id: string;
+  readonly body_plan_id: string;
+  readonly active_play_id: string;
+  readonly owner_checked_plot_id: string;
+  readonly application_revision: number;
+  readonly outcome: "Completed" | "Rejected" | "Cancelled" | "Uncertain";
+  readonly evidence_id: string;
+}
+
+/** Owner observation; any prepared canonical route is separately admitted by Rust. */
+export interface PatchbayObservation {
+  readonly schema: "conduit.browser/patchbay-observation@1";
+  readonly owner_checked_plot_id: string;
+  readonly last_input_refusal: Readonly<{ reason_code: "patchbay-owner-request-pending"; application_revision: number }> | null;
+  readonly last_owner_disposition: Readonly<PatchbayRequestDisposition & { request: PatchbayOwnerRequest }> | null;
+  readonly body_plan_id: string;
+  readonly active_play_id: string;
+  readonly face: Readonly<Record<string, unknown>>;
+  readonly pending_owner_request: null | Readonly<{
+    application_revision: number;
+    request: PatchbayOwnerRequest;
+  }>;
+  readonly publication?: null | Readonly<Record<string, unknown>>;
+  readonly mask_show: null;
+  readonly interaction_admitted: false;
+  readonly reason_code: "patchbay-canonical-ingress-not-admitted" | "patchbay-canonical-publication-observed-separately";
+}
+
+/** Exact Rust Mask envelopes; preparation and an actual rendered Show remain required. */
+export interface PatchbayAcknowledgement {
+  show_id: string; manifestation_id: string; mask_plan_id: string;
+  active_play_id: string; placement_id: string; face_id: string; face_revision: number;
+}
+export interface PatchbayInteraction {
+  show_id: string; face_id: string; face_revision: number; action_id: string;
+  target: string; sequence: number;
+  arguments: readonly Readonly<{ name: string; value_kind: string; value: readonly number[] }>[];
+}
+export interface PatchbayPublicationTarget {
+  body_plan_id: string; active_play_id: string; show_id: string;
+  face_id: string; face_revision: number;
+}
+
 export class BrowserPlay {
   private constructor();
   readonly schema: "conduit.browser/play@1";
@@ -347,6 +405,17 @@ export class BrowserPlay {
   readonly plan: Readonly<{ planId: string; wakeId: string; bodyId: string }>;
   readonly state: "playing" | "terminal" | "failed";
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
+  patchbayObservation(): PatchbayObservation;
+  acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
+  submitPatchbayInteraction(message: PatchbayInteraction): Promise<PatchbayObservation>;
+  submitPatchbayFaceAction(options: { view: Readonly<Record<string, unknown>>; actionId: string;
+    target: string; arguments?: readonly unknown[]; sequence: number }): Promise<PatchbayObservation>;
+  refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;
+  reportPatchbayRequestDisposition(options: {
+    observation: PatchbayObservation;
+    outcome: PatchbayRequestDisposition["outcome"];
+    evidenceId: string;
+  }): PatchbayObservation;
   dispatch(): Promise<Readonly<Record<string, unknown>> | null>;
   terminate(): Promise<Readonly<Record<string, unknown>> | null>;
 }

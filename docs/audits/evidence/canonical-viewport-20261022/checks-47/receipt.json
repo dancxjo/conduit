@@ -1,0 +1,76 @@
+{
+  "source_commit": "47e361d7c11105b40dc8e70aae4a0ec9a77d6fa7",
+  "status": "complete",
+  "steps": [
+    {
+      "name": "viewport-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "proof_viewport",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 28.48391020996496,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-47-viewport-tests.log",
+      "sha256": "f3fba3cfe8a2cabc31e6f62dab1384efd4f83028a1b118627e776c1f8bbb93f5"
+    },
+    {
+      "name": "artifacts-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "qemu_artifacts",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.3090564020094462,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-47-artifacts-tests.log",
+      "sha256": "4dafd2b008a06f59e42f3d65e873dbce49dd8713e6b4152017ba6bb690f4c93c"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 17.088763219013344,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-47-strict-clippy.log",
+      "sha256": "db65feda58fcd4749bf549d194e2499c6cc69733aa2d1f28723ed5f9031b9685"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 10.016651696991175,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-47-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

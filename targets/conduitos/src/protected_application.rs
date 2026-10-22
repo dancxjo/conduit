@@ -1,5 +1,6 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
 mod authority;
+mod canonical_patchbay;
 mod graph_facts;
 pub(crate) use graph_facts::project_graph;
 mod projection;
@@ -22,6 +23,9 @@ pub(crate) struct Owner {
     graphs: [[Option<Box<PatchbayGraph>>; SLOTS]; SLOTS],
     selected: [u8; SLOTS],
     topology: Option<Box<PatchbayMaskTopology>>,
+    publications: [Option<Box<canonical_patchbay::Publication>>; SLOTS],
+    publication_sequences: [Option<u64>; SLOTS],
+    canonical_slots: [bool; SLOTS],
 }
 impl Owner {
     pub fn new(initial: [Option<Initial>; SLOTS]) -> Result<Self, Refusal> {
@@ -34,6 +38,9 @@ impl Owner {
             graphs: core::array::from_fn(|_| core::array::from_fn(|_| None)),
             selected: [0; SLOTS],
             topology: None,
+            publications: core::array::from_fn(|_| None),
+            publication_sequences: [None; SLOTS],
+            canonical_slots: [false; SLOTS],
         };
         for (slot, initial) in initial.iter().enumerate() {
             if let Some(Initial::Patchbay { targets, selected }) = initial {
@@ -103,6 +110,16 @@ impl Owner {
         self.abort();
         Err(Refusal::Malformed)
     }
+    pub fn canonical(&mut self, slot: usize) -> Result<(), Refusal> {
+        if self.kind(slot) != Some(Kind::Patchbay) {
+            return Err(Refusal::Order);
+        }
+        self.prepared(&Command::PatchbayCanonical { slot: slot as u8 })?;
+        self.canonical_slots[slot] = true;
+        self.snapshots[slot] = None;
+        self.publications[slot] = None;
+        Ok(())
+    }
     pub fn kind(&self, slot: usize) -> Option<Kind> {
         if !self.is_live() {
             return None;
@@ -128,6 +145,9 @@ impl Owner {
             .iter_mut()
             .for_each(|targets| targets.fill_with(|| None));
         self.topology = None;
+        self.publications.fill_with(|| None);
+        self.publication_sequences.fill(None);
+        self.canonical_slots.fill(false);
     }
     fn command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         if self.failed.get() {
@@ -141,6 +161,29 @@ impl Owner {
             .command(command);
         if result.is_err() {
             self.abort();
+        }
+        result
+    }
+    // Read-only semantic queries still mutate the transport sequence. They use
+    // the same live service and quarantine it on uncertainty, never a new actor.
+    fn read_command(&self, command: &Command) -> Result<Reply, Refusal> {
+        if self.failed.get() {
+            return Err(Refusal::Order);
+        }
+        let result = (|| {
+            let mut service = self.service.try_borrow_mut().map_err(|_| Refusal::Order)?;
+            service.as_mut().ok_or(Refusal::Order)?.command(command)
+        })();
+        self.read_result(result)
+    }
+    fn read_result<T>(&self, result: Result<T, Refusal>) -> Result<T, Refusal> {
+        if result.is_err() {
+            self.failed.set(true);
+            if let Ok(mut slot) = self.service.try_borrow_mut() {
+                if let Some(mut service) = slot.take() {
+                    service.quarantine();
+                }
+            }
         }
         result
     }
@@ -159,13 +202,17 @@ impl Owner {
         authority::validate_context(kind, &view, &snapshot.context).map_err(|_| Refusal::Malformed)
     }
     fn commit_updated(&mut self, reply: Reply) -> Result<(), Refusal> {
+        self.publications.fill_with(|| None);
         let result = (|| {
             let Reply::Updated { snapshots } = reply else {
                 return Err(Refusal::Malformed);
             };
             for (slot, snapshot) in snapshots.iter().enumerate() {
                 match (self.kinds[slot], snapshot) {
-                    (Some(_), Some(snapshot)) => self.snapshot(slot, snapshot)?,
+                    (Some(Kind::Patchbay), None) if self.canonical_slots[slot] => {}
+                    (Some(_), Some(snapshot)) if !self.canonical_slots[slot] => {
+                        self.snapshot(slot, snapshot)?
+                    }
                     (None, None) => {}
                     _ => return Err(Refusal::Malformed),
                 }
@@ -188,6 +235,10 @@ impl Owner {
         slot: usize,
         input: &[u8],
     ) -> Result<(Snapshot, Option<Proposal>), Refusal> {
+        if self.canonical_slots.get(slot).copied().unwrap_or(false) {
+            // Legacy events cannot race an acknowledged canonical publication.
+            return Err(Refusal::Order);
+        }
         if input.len() > EVENT_BYTES {
             return Err(Refusal::Bounds);
         }

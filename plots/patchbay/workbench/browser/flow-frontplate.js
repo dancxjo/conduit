@@ -4,6 +4,9 @@ const e = React.createElement;
 
 function PortRow({ port, onActivate }) {
   const receiving = port.direction === "receiving";
+  // A Plot input supplies the interior graph; a Plot output receives from it.
+  // This is Mask-local handle orientation, never a change to the Port contract.
+  const target = port.boundary ? !receiving : receiving;
   const activity = port.debugger;
   const compatibility = port.compatibility
     ? (port.compatibility.compatible ? "compatible" : "incompatible")
@@ -11,23 +14,24 @@ function PortRow({ port, onActivate }) {
   const diagnostic = port.compatibility?.diagnostic || undefined;
   const handle = e(Flow.Handle, {
     id: port.id,
-    type: receiving ? "target" : "source",
-    position: receiving ? Flow.Position.Left : Flow.Position.Right,
+    type: target ? "target" : "source",
+    position: target ? Flow.Position.Left : Flow.Position.Right,
     isConnectable: true,
     className: "faceplate-handle",
     role: "img",
-    "aria-label": port.accessibilityName,
+    "aria-label": port.boundary ? `Plot boundary: ${port.accessibilityName}` : port.accessibilityName,
     "data-port-id": port.id,
+    "data-port-boundary": String(port.boundary === true),
     "data-port-direction": port.direction,
     "data-compatibility": compatibility,
     title: diagnostic,
   });
   return e("div", { className: `faceplate-port ${port.direction}${port.diagnosticError ? " diagnostic-error" : ""}${activity ? ` debugger-${activity.phase}` : ""}`, "data-port-id": port.id, "data-compatibility": compatibility, title: diagnostic, "data-debugger-phase": activity?.phase || "inactive", onClick:event=>{event.stopPropagation();onActivate(port.id);} },
-    receiving && handle,
+    target && handle,
     e("span", { className: "faceplate-port-name", title: port.accessibilityName }, port.label),
     e("code", { title: port.valueKind }, port.valueKind),
     activity?.latest_value && e("output", { className: "debugger-value", "aria-label": `Latest observed value ${activity.latest_value.summary}` }, activity.latest_value.summary),
-    !receiving && handle,
+    !target && handle,
   );
 }
 

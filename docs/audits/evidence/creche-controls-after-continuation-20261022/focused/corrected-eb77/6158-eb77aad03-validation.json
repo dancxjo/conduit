@@ -1,0 +1,170 @@
+{
+  "source_commit": "eb77aad03dae3654709e8004f617d48550e95a9d",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-bounded-captures",
+  "source_clean_before": true,
+  "RUST_MIN_STACK": "unset",
+  "jobs": 4,
+  "steps": [
+    {
+      "name": "naming-acceptance",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "naming_acceptance_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "358bc23c9f78b0d51d1fa51c32f650011c19d22c19cdeee8e1d849e81f2f61d7",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-naming-acceptance.log",
+      "bytes": 177721,
+      "expected_tests": 2,
+      "actual_tests": 2
+    },
+    {
+      "name": "field-clusters",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::field_cluster_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "16396c54d2fb424358ffc1a6649896194886dc3f5906dd930443e5d6b8251cc4",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-field-clusters.log",
+      "bytes": 1123,
+      "expected_tests": 6,
+      "actual_tests": 6
+    },
+    {
+      "name": "actual-creche",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::layout::panels::tests::creche::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "056a3890f9c7fa3a1b1f26a01c96184c80d888d4958a341ab2c285e3c011c961",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-actual-creche.log",
+      "bytes": 4165,
+      "expected_tests": 4,
+      "actual_tests": 4
+    },
+    {
+      "name": "creche-navigation",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "native_face_scene::creche_navigation_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "f20b5bf551c764caf3d722d6ff98661ba4e1fc8a70e281cc20afce6f32e0cd53",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-creche-navigation.log",
+      "bytes": 967,
+      "expected_tests": 5,
+      "actual_tests": 5
+    },
+    {
+      "name": "integration-naming",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--test",
+        "native_face_scene",
+        "--features",
+        "hosted-tools,native-compositor",
+        "naming_acceptance_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "sha256": "d7373a801f97a57ec02703be9b96e78a01f065a6b7738e4600141a59c8e95aee",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-integration-naming.log",
+      "bytes": 177734,
+      "expected_tests": 2,
+      "actual_tests": 2
+    },
+    {
+      "name": "conduitos-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "sha256": "911a80c298a1b3857ad98aabc4575388a1128234b655433866c48bbce5d16a6b",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-conduitos-clippy.log",
+      "bytes": 215
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6158-eb77aad03-fmt.log",
+      "bytes": 0
+    }
+  ],
+  "qemu": "unstarted",
+  "status": "passed",
+  "source_clean_after": true,
+  "source_head_after": "eb77aad03dae3654709e8004f617d48550e95a9d"
+}

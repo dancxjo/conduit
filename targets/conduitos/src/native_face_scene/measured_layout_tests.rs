@@ -376,7 +376,7 @@ fn read_only_chrome_is_measured_without_exposing_action_hits() {
     }
 }
 #[test]
-fn independent_diagram_geometry_refuses_expanded_chrome_with_readable_facts_fallback() {
+fn independent_diagram_geometry_falls_back_to_complete_facts_under_expanded_chrome() {
     let face: Face = serde_json::from_str(include_str!(
         "../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
@@ -390,8 +390,10 @@ fn independent_diagram_geometry_refuses_expanded_chrome_with_readable_facts_fall
     )
     .unwrap();
     scene.show_diagram(true);
-    assert!(matches!(scene.frame(), Err(FaceSceneError::InvalidExtent)));
-    scene.show_details(true);
+    assert!(!scene.showing_diagram());
+    assert!(scene.showing_details());
+    assert_eq!(scene.diagram_refusal(), Some(FaceSceneError::InvalidExtent));
+    assert!(scene.frame().is_ok());
     all_pages(&mut scene);
     assert_eq!(scene.face(), &face);
 }

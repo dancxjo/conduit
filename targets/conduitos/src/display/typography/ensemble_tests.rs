@@ -166,7 +166,9 @@ fn serif_and_mono_paint_every_measured_ink_sample_with_the_same_cursor() {
 fn fixed_ensemble_resource_bytes_remain_under_existing_admission() {
     extern crate std;
     assert!(COVERAGE.len() <= 4 * 1_048_576);
-    assert!(GLYPHS.len() <= 5 * 1_024);
+    assert!(GLYPHS.len() <= 6 * 1_024);
+    assert_eq!(PROFILES.len(), 6);
+    assert!(GLYPHS.iter().any(|glyph| glyph.profile == 5));
     std::println!(
         "NATIVE_TYPOGRAPHY_RESOURCES coverage={} glyph_records={} glyph_record_bytes={} profile_bytes={}",
         COVERAGE.len(),

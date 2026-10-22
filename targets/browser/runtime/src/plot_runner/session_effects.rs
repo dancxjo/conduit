@@ -147,7 +147,8 @@ impl TourSession {
             }
             engine::DriveStatus::Quiescent => Ok(TourProgress::Waiting {
                 schema: "conduit.browser/pending-effects@1",
-                disposition: if self.scheduler.thermostat_state().is_some()
+                disposition: if (self.scheduler.thermostat_state().is_some()
+                    || self.scheduler.has_resident_patchbay_input())
                     && self.pending.is_empty()
                 {
                     "externally_admitted_input"

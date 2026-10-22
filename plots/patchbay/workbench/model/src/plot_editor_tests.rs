@@ -32,6 +32,7 @@ fn graph_projection_preserves_terminal_and_cancellation_stages() {
         end_column: 11,
     };
     let cord = conduit_plot::CheckedCanonicalCord {
+        source_span: span,
         stages: vec![
             CheckedCordStage::TerminalProjection {
                 endpoint: "worker.done".into(),
@@ -80,6 +81,7 @@ fn graph_projection_exposes_the_ordinary_gear_behind_a_relational_glyph() {
         end_column: 11,
     };
     let cord = conduit_plot::CheckedCanonicalCord {
+        source_span: span,
         stages: vec![CheckedCordStage::RelationalGear {
             operands: vec!["left.out".into(), "right.out".into()],
             gear: conduit_plot::CheckedCanonicalGear {

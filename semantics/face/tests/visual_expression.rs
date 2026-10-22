@@ -188,3 +188,29 @@ fn structured_expression_uses_exact_checked_schema_and_validated_values() {
         Err(VisualExpressionRefusal::Encoding)
     );
 }
+
+#[test]
+fn typography_is_required_versioned_and_independent_of_palette_and_density() {
+    let editorial = VisualExpression::phosphor();
+    let mut engineering = editorial.clone();
+    engineering.typography = VisualTypography::Engineering;
+    assert_eq!(engineering.palette, editorial.palette);
+    assert_eq!(engineering.density, editorial.density);
+    assert_ne!(engineering, editorial);
+    for request in [editorial.clone(), engineering] {
+        let info = visual_expression_info(&request).unwrap();
+        assert_eq!(visual_expression_from_info(info).unwrap(), request);
+    }
+    let mut historical = serde_json::to_value(editorial).unwrap();
+    historical.as_object_mut().unwrap().remove("typography");
+    historical["version"] = serde_json::json!(1);
+    assert_eq!(
+        decode_visual_expression(&serde_json::to_vec(&historical).unwrap()),
+        Err(VisualExpressionRefusal::Encoding)
+    );
+    historical["typography"] = serde_json::json!("editorial");
+    assert_eq!(
+        decode_visual_expression(&serde_json::to_vec(&historical).unwrap()),
+        Err(VisualExpressionRefusal::Version)
+    );
+}
