@@ -19,6 +19,7 @@ struct Arguments {
     body_invitation: Option<String>,
     body_workbench_fixture: Option<bool>,
     one_plot_two_fronts: bool,
+    selected_browser_mask: bool,
 }
 
 fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments, String> {
@@ -26,6 +27,12 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     let mut parsed = Arguments::default();
     while let Some(argument) = arguments.next() {
         match argument.as_str() {
+            "--body-mask" if !parsed.selected_browser_mask => {
+                if arguments.next().as_deref() != Some("browser-dom") {
+                    return Err("--body-mask requires browser-dom".into());
+                }
+                parsed.selected_browser_mask = true;
+            }
             "--one-plot-two-fronts" if parsed == Arguments::default() => {
                 parsed.one_plot_two_fronts = true;
             }
@@ -182,11 +189,18 @@ fn parse_arguments(arguments: impl Iterator<Item = String>) -> Result<Arguments,
     {
         return Err("--one-plot-two-fronts is an exclusive deterministic entrance".into());
     }
+    if parsed.selected_browser_mask
+        && parsed.body_evidence.is_none()
+        && parsed.body_workbench_fixture.is_none()
+    {
+        return Err("--body-mask requires a Body entrance".into());
+    }
     Ok(parsed)
 }
 
 fn main() -> Result<(), String> {
     let arguments = parse_arguments(std::env::args().skip(1))?;
+    let selected_browser_mask = arguments.selected_browser_mask;
     let server = if arguments.one_plot_two_fronts {
         let snapshot = conduit_browser_patchbay_workbench::one_plot_two_fronts_snapshot()?;
         PatchbayHtmlServer::bind_ephemeral(&snapshot).map_err(|error| error.to_string())?
@@ -241,6 +255,13 @@ fn main() -> Result<(), String> {
     let server = if let Some(invitation) = arguments.body_invitation {
         server
             .with_body_invitation(&invitation)
+            .map_err(|error| error.to_string())?
+    } else {
+        server
+    };
+    let server = if selected_browser_mask {
+        server
+            .with_selected_browser_mask()
             .map_err(|error| error.to_string())?
     } else {
         server

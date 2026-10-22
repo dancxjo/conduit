@@ -54,6 +54,10 @@ pub(super) fn read_request(stream: &mut TcpStream) -> Result<HttpRequest, Server
             let request_bound =
                 if head.starts_with("POST /api/body-host-planning-offer HTTP/1.1\r\n") {
                     super::body_host_planning_offer::MAX_BODY_HOST_PLANNING_OFFER_BYTES + 8 * 1024
+                } else if head.starts_with("POST /api/body-face-acknowledge HTTP/1.1\r\n")
+                    || head.starts_with("POST /api/body-face-interact HTTP/1.1\r\n")
+                {
+                    1024 * 1024 + 8 * 1024
                 } else {
                     MAX_HTTP_REQUEST_BYTES
                 };

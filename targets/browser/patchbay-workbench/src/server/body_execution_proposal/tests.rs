@@ -68,6 +68,15 @@ fn exact_proposal_round_trips_without_admission_or_state_mutation() {
         schema: "conduit.body/execution-proposal@1",
         wake: planning.wake(),
         plan: planning.current_plan(),
+        body_evidence: server.body_workload.as_ref().unwrap().evidence(),
+        source: server.body_planning_source().unwrap(),
+        owner_face_revision: server
+            .snapshot
+            .body_workbench
+            .as_ref()
+            .unwrap()
+            .evidence_revision
+            .to_string(),
     })
     .unwrap();
     eprintln!(

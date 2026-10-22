@@ -166,6 +166,8 @@ export class BrowserBodyParticipation {
 
 export class BrowserBodyPreparation {
   private constructor();
+  /** Fresh post-Started canonical owner Face and actual acknowledged selected Mask. */
+  showBodyFace(options: { coordinator: string | URL; root: HTMLElement; transport?: typeof fetch }): Promise<Readonly<Record<string, unknown>>>;
   observations(): readonly Readonly<Record<string, unknown>>[];
   evidence(): Readonly<Record<string, unknown>> | null;
   /** Immutable exact Plan truth for read-only workbench Masks. */

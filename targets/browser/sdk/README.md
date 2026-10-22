@@ -392,3 +392,28 @@ It cancels an oversized response before retaining the excess chunk and reports
 report `FaceUnavailable` with the operation and original cause. Accepted bytes
 must decode as UTF-8 JSON. This bounds SDK response accumulation, not browser
 transport buffers or the size of the parsed JavaScript object.
+
+A coordinator can explicitly select the SDK's checked Body Mask with
+`conduit-browser-patchbay-workbench --body-evidence body.json --external-reader --body-mask browser-dom`.
+Read `mask_kind_ids` alongside ordinary `kind_ids` from
+`/api/body-planning-requirements`, and request those actual Mask capabilities and
+resource pools in the admitted planning disclosure. Mask execution is separate
+from `executionCapabilities()`'s ordinary domain executors. Missing requested
+Mask offers refuse planning; the coordinator never retargets another Host's Mask.
+
+After reporting the actual `Started` receipt to the same coordinator, call
+`preparation.showBodyFace({ coordinator, root, transport })`. This requests the
+fresh canonical owner Face, executes the already admitted Mask, realizes the
+existing owner component, and acknowledges its actual Show before enabling input.
+`transport` has the `fetch` signature; it defaults to same-origin `fetch`. Supply
+an explicitly configured authenticated/proxied carrier for other origins. The
+SDK does not bypass CORS. The external-Body browser proof uses a bounded,
+endpoint-specific Node HTTP carrier and preserves the real owner response bytes.
+The raw publication and returned Mask observation retain exact u64 values.
+
+The typed Lull action consumes that acknowledged Show once and leaves a pending
+owner transaction until actual domain cancellation produces a Terminal receipt.
+Only then does the coordinator commit Lull. Unknown cancellation/transport
+outcomes leave the old Show disabled and the pending intent retained; callers
+must inspect `/api/body-face-state` (including `pending_lull`) rather than retry the action. The explicit
+`play.terminate()` API remains available independently.

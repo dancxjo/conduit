@@ -1,3 +1,4 @@
+import { showBodyFace } from "./browser-sdk-body-face.mjs";
 import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
@@ -416,7 +417,10 @@ export class BrowserBodyParticipation {
         || proposal?.plan?.body_id !== credential.body_id) {
       throw new Error("current external Body participation does not match the proposal");
     }
-    const preparation = { proposal, owner: null, play: null };
+    const selectedHost = this.hostId, selectedBoot = this.bootId;
+    const preparation = { proposal, owner: null, play: null, bridge: this.#state.host.bridge,
+      current: () => this.presenceState() === 'available' && this.hostId === selectedHost && this.bootId === selectedBoot
+        && this.membershipCredential()?.body_id === proposal.plan.body_id };
     const renderPatchbay = request => (onPatchbayPublication ?? renderPatchbayPublication)({ ...request, play: preparation.play });
     const owner = acquireBrowserBodyHost({
       api: this.#state.host.api,
@@ -450,6 +454,10 @@ export class BrowserBodyPreparation {
     Object.freeze(this);
   }
 
+  /** Publish the fresh post-Started canonical Body Face through its selected Mask. */
+  showBodyFace({ coordinator, root, transport }) {
+    return showBodyFace({ coordinator, root, transport, bridge: this.#state.bridge, play: this.#state.play, current: this.#state.current });
+  }
   observations() { return Object.freeze(this.#state.owner.observations().map(item => Object.freeze({ ...item }))); }
   evidence() { return this.#state.owner.evidence(); }
 

@@ -121,13 +121,7 @@ pub struct BrowserBodyWorkbench {
     pub history: serde_json::Value,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct BrowserReviewedPlot {
-    pub label: String,
-    pub source_document_id: String,
-    pub checked_plot_id: String,
-}
+pub type BrowserReviewedPlot = conduit_body_make::ReviewedBodyPlot;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case", tag = "kind", deny_unknown_fields)]

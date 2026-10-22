@@ -15,6 +15,9 @@ struct ExecutionProposal<'a> {
     schema: &'static str,
     wake: &'a Wake,
     plan: &'a BodyPlan,
+    body_evidence: &'a conduit_body::BodyBiographyEvidence,
+    source: String,
+    owner_face_revision: String,
 }
 
 struct BoundedOutput(Vec<u8>);
@@ -36,6 +39,25 @@ impl Write for BoundedOutput {
 }
 
 impl PatchbayHtmlServer {
+    pub(super) fn body_planning_source(&self) -> Result<String, ServerError> {
+        let plots = self
+            .body_planning_plots
+            .iter()
+            .map(|candidate| {
+                Ok(serde_json::json!({
+                    "slug": candidate.checked_plot_id.as_str(),
+                    "entry": candidate.checked_entry_name().map_err(ServerError::Interaction)?,
+                    "title": candidate.label,
+                    "source": candidate.source,
+                }))
+            })
+            .collect::<Result<Vec<_>, ServerError>>()?;
+        Ok(
+            serde_json::json!({"schema":"conduit.creche/reviewed-plot-bundle@2","plots":plots})
+                .to_string(),
+        )
+    }
+
     pub(super) fn body_execution_proposal(&self) -> Result<Vec<u8>, ServerError> {
         let refuse = |reason: &str| ServerError::Interaction(reason.into());
         let planning = self
@@ -63,7 +85,14 @@ impl PatchbayHtmlServer {
         let plan = planning.current_plan();
         plan.validate_for(wake)
             .map_err(|_| refuse("BodyProposalInvalidPlan"))?;
-        for fragment in plan.plots.iter().flat_map(|plot| &plot.plan.fragments) {
+        let domain_fragments = plan.plots.iter().flat_map(|plot| &plot.plan.fragments);
+        let selected_mask_fragments = plan
+            .mask_topologies
+            .iter()
+            .flat_map(|topology| &topology.chains)
+            .flat_map(|chain| &chain.plan.fragments)
+            .filter(|_| self.selected_browser_mask);
+        for fragment in domain_fragments.chain(selected_mask_fragments) {
             if !evidence.membership.parts.iter().any(|part| {
                 part.state == conduit_body::MembershipState::Admitted
                     && part.current.as_ref().is_some_and(|current| {
@@ -75,10 +104,27 @@ impl PatchbayHtmlServer {
                 return Err(refuse("BodyProposalStaleHost"));
             }
         }
+        // A selected remote Mask starts from this retained owner revision.  Its
+        // first post-Started projection must take history::retain's one append.
+        let owner_face_revision = self
+            .snapshot
+            .body_workbench
+            .as_ref()
+            .ok_or_else(|| refuse("BodyWorkbenchAbsent"))?
+            .evidence_revision;
+        if self.selected_browser_mask && !evidence.wakes.iter().any(|retained| retained == wake) {
+            return Err(refuse("BodyProposalOwnerBasisNotRetained"));
+        }
+        owner_face_revision
+            .checked_add(1)
+            .ok_or_else(|| refuse("BodyEvidenceRevisionExhausted"))?;
         let proposal = ExecutionProposal {
             schema: "conduit.body/execution-proposal@1",
             wake,
             plan,
+            body_evidence: evidence,
+            source: self.body_planning_source()?,
+            owner_face_revision: owner_face_revision.to_string(),
         };
         let mut output = BoundedOutput(Vec::with_capacity(MAX_PROPOSAL_BYTES));
         serde_json::to_writer(&mut output, &proposal)

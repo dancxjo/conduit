@@ -10,6 +10,16 @@ impl PatchbayHtmlServer {
         body: &[u8],
     ) -> Option<Result<(), ServerError>> {
         Some(match request_line {
+            "GET /api/body-face-state HTTP/1.1" => self.deliver_body_face(stream, body, "state"),
+            "GET /api/body-face-publication HTTP/1.1" => {
+                self.deliver_body_face(stream, body, "publication")
+            }
+            "POST /api/body-face-acknowledge HTTP/1.1" => {
+                self.deliver_body_face(stream, body, "acknowledge")
+            }
+            "POST /api/body-face-interact HTTP/1.1" => {
+                self.deliver_body_face(stream, body, "interact")
+            }
             "POST /api/body-execution HTTP/1.1" => self.deliver_body_execution(stream, body),
             "POST /api/body-workload HTTP/1.1" => self.deliver_body_workload(stream, body),
             "POST /api/body-membership-evidence HTTP/1.1" => {

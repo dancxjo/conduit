@@ -66,6 +66,17 @@ impl PatchbayHtmlServer {
             .body_planning
             .clone()
             .ok_or_else(|| ServerError::Interaction("BodyProposalAbsent".into()))?;
+        let completing_pending = match (&request.action, &self.pending_face_lull) {
+            (ExecutionAction::Terminal { play, .. }, Some(pending)) if play == &pending.play => {
+                Some(pending.clone())
+            }
+            (_, Some(_)) => {
+                return Err(ServerError::Interaction(
+                    "BodyFaceLullPendingTerminalRequired".into(),
+                ))
+            }
+            _ => None,
+        };
         let report = match request.action {
             ExecutionAction::Lull { wake_id } => {
                 if planning.wake().wake_id != wake_id {
@@ -108,24 +119,47 @@ impl PatchbayHtmlServer {
             } => planning.report_execution_terminal(&play, &disposition, &terminal_sign_id),
         };
         report.map_err(|error| ServerError::Interaction(format!("BodyExecution{error:?}")))?;
+        if let Some(pending) = &completing_pending {
+            if planning.wake().wake_id != pending.wake_id {
+                return Err(ServerError::Interaction("BodyFaceLullStaleWake".into()));
+            }
+            planning
+                .lull(
+                    SignId::from(format!(
+                        "patchbay-html/body-face-lull/{}/wake",
+                        pending.play.active_play_id.as_str()
+                    )),
+                    SignId::from(format!(
+                        "patchbay-html/body-face-lull/{}/retained",
+                        pending.play.active_play_id.as_str()
+                    )),
+                )
+                .map_err(|error| ServerError::Interaction(format!("BodyFaceLull{error:?}")))?;
+        }
         let session = self
             .body_workload
             .as_ref()
             .ok_or_else(|| ServerError::Interaction("BodyWorkloadAbsent".into()))?;
         let (session, mut snapshot) = history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
-        if let (Some(control), Some(play)) = (&mut self.mask_control, started_play.as_ref()) {
+        let mut next_mask_control = self.mask_control.clone();
+        if let (Some(control), Some(play)) = (&mut next_mask_control, started_play.as_ref()) {
             control
                 .refresh_face(snapshot.face.clone())
                 .map_err(|error| ServerError::Interaction(format!("Mask refresh: {error:?}")))?;
-            let topology = control
-                .project_current(&planning, play)
-                .map_err(|error| ServerError::Interaction(format!("Mask projection: {error:?}")))?;
-            snapshot.mask_topology = Some(
-                patchbay_application::project_mask_topology(control.face(), &topology).map_err(
-                    |error| ServerError::Interaction(format!("Mask projection: {error:?}")),
-                )?,
-            );
+            if !control.selected_graphical_pending() {
+                let topology = control.project_current(&planning, play).map_err(|error| {
+                    ServerError::Interaction(format!("Mask projection: {error:?}"))
+                })?;
+                snapshot.mask_topology = Some(
+                    patchbay_application::project_mask_topology(control.face(), &topology)
+                        .map_err(|error| {
+                            ServerError::Interaction(format!("Mask projection: {error:?}"))
+                        })?,
+                );
+            } else {
+                snapshot.mask_topology = None;
+            }
         }
         snapshot.interaction.revision = snapshot
             .interaction
@@ -137,6 +171,11 @@ impl PatchbayHtmlServer {
             Some("Succeeded(BodyExecutionAccountingUpdated)".into());
         let encoded = snapshot.encode()?;
         let navigation = super::navigation_state(&snapshot)?;
+        self.mask_control = next_mask_control;
+        self.body_face_show = None;
+        if completing_pending.is_some() {
+            self.pending_face_lull = None;
+        }
         self.body_workload = Some(session);
         self.body_planning = Some(planning);
         self.navigation = navigation;

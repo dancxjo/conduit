@@ -607,6 +607,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
         local_boot_id: bootId,
         externally_managed_plan_ids: [...external],
         body_evidence: proposal.body_evidence ?? null,
+        owner_face_revision: proposal.owner_face_revision ?? null,
         source: proposal.source ?? "",
         foreground_checked_plot_id: foregroundPlot?.() ?? proposal.plan.plots[0].plot?.checked_plot_id ?? proposal.plan.plots[0].plan.checked_plot_id,
         play_sequence: playSequence,

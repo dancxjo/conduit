@@ -11,6 +11,7 @@ mod body_execution;
 mod error;
 pub use error::{RendererDeliveryFailure, ServerError};
 mod body_execution_proposal;
+mod body_face;
 pub(crate) mod body_host_offer_evidence;
 pub(crate) mod body_host_planning_offer;
 mod body_membership_evidence;
@@ -54,6 +55,9 @@ pub struct PatchbayHtmlServer {
     body_planning_plots: Vec<conduit_patchbay_workbench::PlotCandidate>,
     body_planning: Option<conduit_body::BodyPlanningSession>,
     mask_control: Option<conduit_patchbay_workbench::MaskControlSession>,
+    selected_browser_mask: bool,
+    body_face_show: Option<conduit_face::MaskShow>,
+    pending_face_lull: Option<body_face::PendingFaceLull>,
     body_admission: Option<Vec<u8>>,
     browser_wasm: Option<Vec<u8>>,
     text_lab_base: Option<String>,
@@ -97,6 +101,9 @@ impl PatchbayHtmlServer {
             body_planning_plots: Vec::new(),
             body_planning: None,
             mask_control: None,
+            selected_browser_mask: false,
+            body_face_show: None,
+            pending_face_lull: None,
             body_admission: None,
             browser_wasm: None,
             text_lab_base: None,
@@ -106,6 +113,16 @@ impl PatchbayHtmlServer {
 
     pub fn bind_ephemeral(snapshot: &RendererSnapshot) -> Result<Self, ServerError> {
         Self::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 0).into(), snapshot)
+    }
+
+    pub fn with_selected_browser_mask(mut self) -> Result<Self, ServerError> {
+        if self.body_workload.is_none() || self.mask_control.is_none() {
+            return Err(ServerError::Interaction(
+                "selected browser Mask requires a Body owner Face".into(),
+            ));
+        }
+        self.selected_browser_mask = true;
+        Ok(self)
     }
 
     pub fn with_body_planning_plots(

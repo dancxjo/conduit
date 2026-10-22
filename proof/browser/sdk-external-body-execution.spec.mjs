@@ -132,7 +132,7 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
       const executable = new Set(sdk.executionCapabilities());
       const advertisement = sdk.participation.advertisement;
       const capabilities = kindIds.map(kind => advertisement.capabilities
-        .find(offer => offer.kind_id === kind && executable.has(offer.capability_id)));
+        .find(offer => offer.kind_id === kind && (executable.has(offer.capability_id) || kind === "face/browser-dom-mask")));
       if (capabilities.some(offer => !offer)) throw new Error("SDK Host cannot realize the active Body workset");
       const resourceClasses = new Set(capabilities
         .flatMap(offer => offer.resource_requirements.map(requirement => requirement.class_id)));
@@ -141,7 +141,7 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
         resourcePoolIds: advertisement.resources
           .filter(offer => resourceClasses.has(offer.class_id)).map(offer => offer.pool_id).sort(),
       };
-    }, requirements.kind_ids);
+    }, [...requirements.kind_ids, ...requirements.mask_kind_ids]);
     await page.evaluate(requested =>
       globalThis.__conduitSdkParticipation.participation.requestOfferEvidence(requested), selection);
     await expect.poll(() => page.evaluate(() =>
@@ -180,6 +180,33 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
       schema: "conduit.body/execution-request@1",
       action: { kind: "Started", play: claim.play, wake_at_start: started.wakeAtStart },
     });
+    // Explicit Node-backed HTTP carrier: real owner response bytes cross this
+    // bounded transport; this proves no direct cross-origin browser fetch claim.
+    await page.exposeFunction('__conduitBodyOwnerCarrier', async request => {
+      const url = new URL(request.url);
+      const methods = new Map([
+        ['/api/body-face-publication', 'GET'], ['/api/body-face-acknowledge', 'POST'],
+        ['/api/body-face-interact', 'POST'], ['/api/body-execution', 'POST'],
+      ]);
+      if (url.origin !== new URL(coordinator.url).origin || url.search || url.hash
+          || methods.get(url.pathname) !== request.method || !Array.isArray(request.body)
+          || request.body.length > 1024 * 1024
+          || request.body.some(byte => !Number.isInteger(byte) || byte < 0 || byte > 255)
+          || (request.method === 'GET' && request.body.length)) throw new Error('Refused owner HTTP carrier request');
+      const response = await page.request.fetch(url.href, { method: request.method,
+        ...(request.method === 'POST' ? { data: Buffer.from(request.body), headers: { 'Content-Type': 'application/json' } } : {}) });
+      const bytes = await response.body();
+      if (bytes.length > 2 * 1024 * 1024) throw new Error('Owner response exceeds carrier bound');
+      return { status: response.status(), bytes: Array.from(bytes) };
+    });
+    const bodyFace = await page.evaluate(async coordinator => {
+      const shown = await globalThis.__conduitSdkParticipation.showBodyFace(coordinator);
+      return { view: shown.view, observation: shown.observation };
+    }, coordinator.url);
+    expect(bodyFace.view).toMatchObject({ show_state: 'available', interactions_admitted: true });
+    expect(bodyFace.observation.mask_show.show.host_id).toBe(host.id);
+    expect(bodyFace.observation.mask_show.show.boot_id).toBe(host.bootId);
+    expect(bodyFace.observation.execution.remote_signs.length).toBeGreaterThan(0);
     return { api, bodyId: current.body_id, claim, cleanup, host, proposal };
   } catch (error) {
     await cleanup();
@@ -188,16 +215,11 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
 }
 
 async function finishExternalBody(page, journey) {
+  await page.locator('#body-owner-face').getByRole('button', { name: 'Lull', exact: true }).click();
+  await expect(page.locator('#body-owner-face')).toHaveAttribute('data-body-face-disposition', 'lulled');
   const receipt = await page.evaluate(() => globalThis.__conduitSdkParticipation.cancel());
-  const terminal = await post(page, journey.api("body-execution"), {
-    schema: "conduit.body/execution-request@1",
-    action: {
-      kind: "Terminal",
-      play: journey.claim.play,
-      disposition: receipt.disposition,
-      terminal_sign_id: receipt.terminal_sign_id,
-    },
-  });
+  const terminal = await get(page, journey.api('snapshot'));
+  expect(terminal.body_planning.lifecycle).toBe('Lulled');
   return { receipt, terminal };
 }
 
@@ -205,6 +227,7 @@ async function startCoordinator(evidencePath, invitation, plots) {
   const process = spawn("target/debug/conduit-browser-patchbay-workbench", [
     "--body-evidence", evidencePath,
     "--external-reader",
+    "--body-mask", "browser-dom",
     "--body-invitation", invitation,
     ...plots.flatMap(([name, source]) => ["--plot", name, source]),
   ], { cwd: new URL("../..", import.meta.url).pathname, stdio: ["ignore", "pipe", "pipe"] });

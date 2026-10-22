@@ -197,6 +197,17 @@ impl PlotCandidate {
         Ok(self.editor.clone())
     }
 
+    pub fn checked_entry_name(&self) -> Result<String, String> {
+        self.editor
+            .view()
+            .checked
+            .plots
+            .iter()
+            .find(|plot| plot.checked_plot_id == self.checked_plot_id)
+            .map(|plot| plot.name.clone())
+            .ok_or_else(|| "checked Plot entry is absent from its Source".into())
+    }
+
     pub fn body_planning_plot(
         &self,
     ) -> Result<conduit_body_make::BodyPlanningPlot, conduit_body::BodyPlanningSessionError> {
