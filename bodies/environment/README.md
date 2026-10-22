@@ -239,8 +239,9 @@ This component has no installed GPIO Host Call binding or physical display proof
 
 The optional HTTP AP bench now builds through `cargo xtask prove dht11 build-http`.
 It reuses the same Source sensor decoder and first-class observation Back inside
-the production kernel, with 4096 samples at 15-second intervals. Its HTTP Look
-publishes the latest semantic quantities in Fahrenheit and relative humidity at
+the production kernel, with 4096 samples at 15-second intervals. Its prepared environmental Face
+retains the latest semantic quantities; the HTTP Mask expresses them in Fahrenheit
+and relative humidity at
 `http://192.168.4.1/` on the open `Conduit-Climate` AP. This separate bench has
 bounded DHCP/HTTP buffers and prepares network storage before Play seals the
 allocator. It does not install new offers in the production Host construction

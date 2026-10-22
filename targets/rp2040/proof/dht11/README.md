@@ -189,13 +189,17 @@ responses have a 2048-byte ceiling. Other paths receive 404.
 
 The authored finite Tick/Trigger/Observe composition samples every 15 seconds,
 4096 times (about 17 hours). Source checks sensor frames and the observation
-Back emits first-class Temperature and Ratio quantities. The HTTP Look converts
-temperature to Fahrenheit downstream. Latest committed readings are published;
+Back emits first-class Temperature and Ratio quantities. A pre-admitted environmental Face retains the quantities and exact producing
+Source/Plan/Play basis. The HTTP Mask converts temperature to Fahrenheit
+downstream, and JSON includes the Face identity and revision. Latest committed readings are published;
 no overnight history or persistent browser store is claimed. Sensor failure
 preserves the last valid values with an unavailable status. Values older than
 30 seconds are marked non-current. The page refreshes every five seconds.
 Sampling and AP startup do not wait for USB. Existing lifecycle control remains
 available during the timer wait. No external display pins or shifter are used.
+JSON `fresh` describes the retained measurement's age; `current` additionally
+requires a successful latest sensor outcome. A recent retained reading can be
+fresh while the page correctly labels it as last known after capture failure.
 
 The existing CYW43 radio setup, firmware assets, DHCP parser and lease pool are
 reused. Radio PIO0/SM0/DMA0/1 and sensor PIO1/SM0/DMA2 share one DMA IRQ binding.

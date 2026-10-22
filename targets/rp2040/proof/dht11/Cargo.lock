@@ -265,6 +265,8 @@ name = "conduit-environment-http"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-environment-face",
+ "conduit-face",
  "critical-section",
  "heapless 0.8.0",
 ]

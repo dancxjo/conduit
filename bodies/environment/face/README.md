@@ -27,7 +27,22 @@ retention of the original quantities, stale/unavailable output, temperature-only
 sensors and invalid-input refusal. The package also checks for
 `thumbv6m-none-eabi` without an OS.
 
-Construction allocates ordinary Face objects. This is a bounded contribution
-builder, not an installed allocation-sealed MCU Back. Admission of recurring
-Face construction, the workload connection and physical display output remain
-application integration work.
+The original `contribution` builder allocates ordinary Face objects and remains
+available for dynamic Body composition. The prepared publication path below
+serves recurring MCU observations. Installed Host/Body construction and physical
+display output remain separate integration work.
+
+`PreparedObservationFace` reserves the recurring grammar and exact quantity
+leaves before Play. It owns the current immutable universal Face revision;
+measurements are absent while warming. A committed result updates the typed
+quantities or the distinct failure status, retaining prior valid values and
+sample time on failure. Inspection advances freshness only when it changes.
+The sample ceiling, property capacities, text capacities and stale interval are
+explicit preparation inputs. Publication, expiry and validation allocate nothing
+in the tested environmental profile. Refused input preserves the prior revision.
+
+The universal Face identity remains the ordinary canonical identity, including
+its exact Source/Plan/Play basis. Contract identity bytes stream directly into
+its hash; `Face::reseal_prepared` validates changed content and writes the new
+identity into constructor-reserved storage. There is no sensor-specific Face
+identity or renderer-owned observation cache.

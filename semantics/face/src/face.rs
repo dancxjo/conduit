@@ -253,7 +253,7 @@ impl core::fmt::Display for FaceError {
 impl Face {
     pub fn validate(&self) -> Result<(), FaceError> {
         self.validate_content()?;
-        if self.identity.0 != self.content_digest() {
+        if !self.identity_matches() {
             return Err(FaceError::InvalidIdentity);
         }
         Ok(())
@@ -536,9 +536,9 @@ fn property_value_len(value: &FacePropertyValue) -> usize {
         FacePropertyValue::Flag(_) => 1,
         FacePropertyValue::Content(encoded) => encoded.len(),
         FacePropertyValue::TypedValue { contract, bytes } => {
-            contract.identity_bytes().len() + bytes.len()
+            contract.identity_byte_len() + bytes.len()
         }
-        FacePropertyValue::ValueContract(contract) => contract.identity_bytes().len(),
+        FacePropertyValue::ValueContract(contract) => contract.identity_byte_len(),
     }
 }
 
