@@ -134,16 +134,43 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
                 .clone()
                 .with_basis(component_face.basis.clone())
                 .unwrap();
-            let component_seal = conduit_face::RemoteOwnerMaskRouteSeal::seal_current(
-                &owner.session,
-                &component_face,
-                &owner_offer,
-                &native_offer,
-                &component.planned_mask,
-                &face_line,
-                &return_line,
-            )
-            .unwrap();
+            // Cross the former 32 KiB limit using valid Face basis entries,
+            // rather than relying on incidental encoding size of one Look.
+            let mut next_sign = 12;
+            let (component_seal, encoded) = loop {
+                let seal = conduit_face::RemoteOwnerMaskRouteSeal::seal_current(
+                    &owner.session,
+                    &component_face,
+                    &owner_offer,
+                    &native_offer,
+                    &component.planned_mask,
+                    &face_line,
+                    &return_line,
+                )
+                .unwrap();
+                let encoded = serde_json::to_vec(&seal).unwrap();
+                if encoded.len() > 32 * 1024 {
+                    break (seal, encoded);
+                }
+                assert!(
+                    component_face.basis.sign_ids.len() < conduit_face::MAX_FACE_SIGNS,
+                    "valid Face fixture cannot cross 32 KiB: {} bytes",
+                    encoded.len()
+                );
+                component_face
+                    .basis
+                    .sign_ids
+                    .push(conduit_core::SignId::from(format!(
+                        "sign/{next_sign}/{}",
+                        "f".repeat(64)
+                    )));
+                next_sign += 1;
+                component_face.basis.sign_ids.sort();
+                component_face = component_face
+                    .clone()
+                    .with_basis(component_face.basis.clone())
+                    .unwrap();
+            };
             assert_eq!(
                 component_seal.profile,
                 conduit_face::RemoteMaskRouteProfile::Native
@@ -158,8 +185,11 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
                 changed_profile.validate_mask_host_offer(&native_offer),
                 Err(conduit_face::RemoteOwnerMaskRouteError::InvalidSeal)
             );
-            let encoded = serde_json::to_vec(&component_seal).unwrap();
-            assert!(encoded.len() > 32 * 1024 && encoded.len() < 40 * 1024);
+            assert!(
+                encoded.len() > 32 * 1024 && encoded.len() < 40 * 1024,
+                "native route fixture must cross 32 KiB within 40 KiB: {} bytes",
+                encoded.len()
+            );
             component_seal
                 .validate_mask_host_offer(&native_offer)
                 .unwrap();
