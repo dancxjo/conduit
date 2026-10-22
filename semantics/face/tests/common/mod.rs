@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use conduit_body::Body;
+// Shared by Rust 2021 and 2024 test crates; preserve one import layout.
+#[rustfmt::skip]
 use conduit_core::{
     bind_active_play, kind_id, port_id, resource_offer, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
@@ -8,6 +10,7 @@ use conduit_core::{
     ImplementationId, Kind, KindIdentity, OfferGeneration, PortDescriptor, PortDirection,
     PortTemporal, SignId, PROTOCOL_VERSION,
 };
+#[rustfmt::skip]
 use conduit_face::{
     install_mask_plot_value_aliases, renderer_kind_projection, renderer_offer, Face, FaceBasis,
     FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
@@ -15,6 +18,7 @@ use conduit_face::{
     FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, MAX_RENDERER_VALUE_BYTES, SHOW_VALUE_KIND,
 };
 use conduit_planner::{default_placements, plan};
+#[rustfmt::skip]
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse, parse_syntax_document,
     KindSignature, ProfileCatalog, StartupCatalog,

@@ -1,0 +1,86 @@
+[
+  {
+    "path": "/reading",
+    "status": 200,
+    "bytes": 158,
+    "reading": {
+      "sequence": 6,
+      "status": "available",
+      "fresh": true,
+      "temperature_f": 66.2,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 92850,
+      "age_ms": 11630,
+      "ap_ready": true
+    }
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 702,
+    "reading": null
+  },
+  {
+    "path": "/reading",
+    "status": 200,
+    "bytes": 158,
+    "reading": {
+      "sequence": 6,
+      "status": "available",
+      "fresh": true,
+      "temperature_f": 66.2,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 92850,
+      "age_ms": 12251,
+      "ap_ready": true
+    }
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 702,
+    "reading": null
+  },
+  {
+    "path": "/reading",
+    "status": 200,
+    "bytes": 158,
+    "reading": {
+      "sequence": 6,
+      "status": "available",
+      "fresh": true,
+      "temperature_f": 66.2,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 92850,
+      "age_ms": 12773,
+      "ap_ready": true
+    }
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 702,
+    "reading": null
+  },
+  {
+    "path": "/reading",
+    "status": 200,
+    "bytes": 158,
+    "reading": {
+      "sequence": 6,
+      "status": "available",
+      "fresh": true,
+      "temperature_f": 66.2,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 92850,
+      "age_ms": 12981,
+      "ap_ready": true
+    }
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 702,
+    "reading": null
+  }
+]

@@ -393,6 +393,7 @@ dependencies = [
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
+ "conduit-plot",
 ]
 
 [[package]]

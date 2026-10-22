@@ -37,4 +37,3 @@ type Dht11DecodedResult =
 plot dht11-decode (
     capture: Dht11Capture...| >> result: Dht11DecodedResult...|
 ) = (.length < 5 ? unavailable(short-frame(.length)) : .length > 5 ? unavailable(malformed-length(.length)) : ((value/u64(.wire.0) + value/u64(.wire.1) + value/u64(.wire.2) + value/u64(.wire.3)) & 255) != value/u64(.wire.4) ? unavailable(checksum(empty)) : (.wire.1 > 9 || (.wire.3 & 112) != 0 || (.wire.3 & 15) > 9 || .wire.0 < 5 || .wire.0 > 95 || (.wire.0 == 95 && .wire.1 != 0) || ((.wire.3 & 128) == 0 && (.wire.2 > 60 || (.wire.2 == 60 && (.wire.3 & 15) != 0))) || ((.wire.3 & 128) != 0 && .wire.2 > 19)) ? unavailable(invalid-payload(empty)) : frame({ temperature: ((.wire.3 & 128) != 0 ? -10 - value/i128(.wire.2) * 10 : value/i128(.wire.2) * 10) + value/i128(.wire.3 & 15), humidity: value/i128(.wire.0) * 10 + value/i128(.wire.1) }))
-

@@ -39,15 +39,17 @@ fn run(scenario: usize) {
     let (ready, effects) = pulse::ready(scenario);
     let ((plan, lowered), preparation) = allocation_probe::observe(|| plan::prepare(&ready));
     if scenario == 0 {
-        // Captured before incremental fragment hashing; preserving exact IDs
-        // also preserves assigned-image and native capability commitments.
+        // Exact baseline for this authored Source and checked expansion. Source
+        // byte changes or upstream Cord provenance intentionally change these IDs.
         assert_eq!(
-            plan.plan_id.as_str(),
-            "65b07ecf4cfab32871cb3911dc3b4b0140688fdc144babe10a4f7ed1af4cdf8b"
-        );
-        assert_eq!(
-            plan.fragments[0].fragment_id.as_str(),
-            "fb365b246d31f380ea08a3efd2b1332975ca164bd4dccdef025c3b1aceb95b79"
+            (
+                plan.plan_id.as_str(),
+                plan.fragments[0].fragment_id.as_str()
+            ),
+            (
+                "4c8197aec4f210bd183d4dd62d2649d1d093563d388fea57b7e71f6986066323",
+                "664dab5fadf452d0aa6e039e0e38bf54bf169002dc7fdc7c2b482126b628fc8d"
+            )
         );
         eprintln!(
             "environment_source_planning_peak_bytes={} preparation_requested_bytes={}",
