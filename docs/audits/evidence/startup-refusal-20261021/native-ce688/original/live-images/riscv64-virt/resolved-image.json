@@ -1,0 +1,128 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:3dd62ff7d785292b78a876f8e46ad9918015b957cd8396f1bbb586c524f1947b",
+    "profile_id": "sha256:7f0c8cf605e18a78a166fb6238e648067a17fe8a5c95b45e9dca65aed4791278",
+    "source_configuration_id": "sha256:f1bd2df01a33c97fa8ca30859e2bd19c3c008341a1fa87b161992109c1027799",
+    "target": "conduitos/riscv64/virt",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/riscv64-sbi-console-text",
+        "driver": "conduitos/riscv64-sbi-console@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/riscv64-sbi-console@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/riscv64-linear-sbi-console@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 33554432,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:7f0c8cf605e18a78a166fb6238e648067a17fe8a5c95b45e9dca65aed4791278",
+    "source_configuration_id": "sha256:f1bd2df01a33c97fa8ca30859e2bd19c3c008341a1fa87b161992109c1027799",
+    "build_id": "build:sha256:3dd62ff7d785292b78a876f8e46ad9918015b957cd8396f1bbb586c524f1947b",
+    "image_id": "image:sha256:0fb03012fd2353aee5d99ff90750b9e3d088e65454342d4417d6b4657f27056e",
+    "source_identity": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+    "toolchain_identity": "rustc:stable+riscv64gc-unknown-none-elf+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-riscv64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-riscv64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/riscv64-sbi-console@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/riscv64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [],
+    "resource_budgets": [],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "conduitos/riscv64-sbi-console-text",
+        "driver": "conduitos/riscv64-sbi-console@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "conduitos/riscv64-sbi-console@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/riscv64-linear-sbi-console@1"
+    ],
+    "facilities": [],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 33554432,
+      "queue_items": 64,
+      "buffered_bytes": 16384,
+      "active_instances": 16,
+      "operation_slots": 8,
+      "timer_slots": 4,
+      "line_sessions": 1,
+      "evidence_items": 64
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:conduitos/riscv64-sbi-console-text": [
+        "base:conduitos/riscv64-sbi-console-text"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ]
+    }
+  }
+}

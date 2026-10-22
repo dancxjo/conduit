@@ -1,0 +1,93 @@
+{
+  "status": "verified",
+  "source": "f3e582ce98ede25394a392de4ed06e0b6b086133",
+  "integration_run": 39715578317,
+  "packet_files": {
+    "work/6180-integration-12400001216/packet/conduitos-x86_64/evidence/journey-serial.log": {
+      "bytes": 1021236,
+      "sha256": "f2f232ac38dc9344c840e985863dafdd62b04cf164837d5cdec49b43e83f0e9c"
+    },
+    "work/6180-integration-12400001216/packet/conduitos-x86_64/evidence/journey-qmp.log": {
+      "bytes": 60206,
+      "sha256": "782d00cf13b30d2b241bb46e773bbdcb04174ddc4503f4e432b3e626fb16cdfe"
+    }
+  },
+  "stages": [
+    {
+      "line": 379,
+      "stage": "wake",
+      "outcome": "begin"
+    },
+    {
+      "line": 464,
+      "stage": "wake",
+      "outcome": "accepted"
+    },
+    {
+      "line": 465,
+      "stage": "plan",
+      "outcome": "begin"
+    },
+    {
+      "line": 586,
+      "stage": "plan",
+      "outcome": "accepted"
+    },
+    {
+      "line": 587,
+      "stage": "play",
+      "outcome": "begin"
+    },
+    {
+      "line": 610,
+      "stage": "play",
+      "outcome": "accepted"
+    }
+  ],
+  "journey_records": [
+    {
+      "line": 375,
+      "status": "born-lulled",
+      "revision": 3,
+      "body_id": "6cd55593ed945567726505e413cd6f9318a5ee8b53151a5ed51b45ab8ca3d651",
+      "wake_id": null,
+      "plan_id": null,
+      "active_play_id": null
+    },
+    {
+      "line": 462,
+      "status": "awake",
+      "revision": 4,
+      "body_id": "6cd55593ed945567726505e413cd6f9318a5ee8b53151a5ed51b45ab8ca3d651",
+      "wake_id": "acf6fbe3becf20d5a0a4542dd7d6f4df36207251899f20ebf597a1c4aa9146fa",
+      "plan_id": "body-plan/sha256:52d1c0ab8998242254e8dfbd9fe1fbfb9cf4e9d869f7734173204966e1e92a8b",
+      "active_play_id": null
+    },
+    {
+      "line": 584,
+      "status": "planned",
+      "revision": 5,
+      "body_id": "6cd55593ed945567726505e413cd6f9318a5ee8b53151a5ed51b45ab8ca3d651",
+      "wake_id": "acf6fbe3becf20d5a0a4542dd7d6f4df36207251899f20ebf597a1c4aa9146fa",
+      "plan_id": "body-plan/sha256:52d1c0ab8998242254e8dfbd9fe1fbfb9cf4e9d869f7734173204966e1e92a8b",
+      "active_play_id": null
+    },
+    {
+      "line": 614,
+      "status": "quiescent-awaiting-input",
+      "revision": 6,
+      "body_id": "6cd55593ed945567726505e413cd6f9318a5ee8b53151a5ed51b45ab8ca3d651",
+      "wake_id": "acf6fbe3becf20d5a0a4542dd7d6f4df36207251899f20ebf597a1c4aa9146fa",
+      "plan_id": "body-plan/sha256:52d1c0ab8998242254e8dfbd9fe1fbfb9cf4e9d869f7734173204966e1e92a8b",
+      "active_play_id": "body-play/sha256:d2ec62a682cb73696ea99abc531c26d8996bbc79b6be0a08d244f80ca66bf32f"
+    }
+  ],
+  "observer_command_interval": {
+    "birth_enter_qmp_line": 114,
+    "body_playing_capture_qmp_line": 118,
+    "nanoseconds": 3986458450,
+    "seconds": 3.98645845,
+    "scope": "QMP key-down command to screendump command; includes observer overhead; not Birth ACK to Play ACK, calibrated guest latency or speedup"
+  },
+  "scope": "Historical accepted normal QEMU startup only. Does not establish current ce688 execution, refusal controls or full6179 closure."
+}

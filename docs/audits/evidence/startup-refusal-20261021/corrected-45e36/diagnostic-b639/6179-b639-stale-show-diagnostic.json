@@ -1,0 +1,31 @@
+{
+  "source_commit": "b639d2e76c5b8a23d34878d587ee974d162833f0",
+  "base_tested_source": "9f865823c12092c5a6967f98378749f0dbd5c727",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "hosted-tools,native-compositor",
+    "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect",
+    "--",
+    "--nocapture",
+    "--test-threads=1",
+    "--exact"
+  ],
+  "exit_code": 101,
+  "seconds": 16.39871476200642,
+  "RUST_MIN_STACK": null,
+  "stack_or_grant_increase": false,
+  "markers": [
+    "test product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect ... STALE_SHOW_DIAGNOSTIC before-encounter"
+  ],
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-b639-stale-show-diagnostic.log",
+  "sha256": "46c6fdcc2ade34905147b233e283081df1d358779f656899d8ecd4f61b677a83",
+  "source_clean_after": true,
+  "boundary": "Exactly one run of changed test-only diagnostic source under unchanged profile/default stack; not an unchanged retry or semantic fix."
+}

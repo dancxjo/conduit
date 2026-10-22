@@ -1,0 +1,26 @@
+{
+  "status": "verified",
+  "fixture_source": "74f64e12ff062cb991c891d2a162e125c7ed3944",
+  "original_seal_unchanged": true,
+  "controls": [
+    {
+      "case": "resealed-foreign-source",
+      "exit_code": 1,
+      "output_absent": true,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verify-normal-startup.py\", line 26, in <module>\n    assert m['artifact_role']=='product-host' and m['source_identity']==j['source_commit']==g['source_commit']==a.source\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    {
+      "case": "resealed-missing-play-acceptance",
+      "exit_code": 1,
+      "output_absent": true,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verify-normal-startup.py\", line 52, in <module>\n    assert [v for _,v in stages]==[[x,y] for x in ['wake','plan','play'] for y in ['begin','accepted']]\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    },
+    {
+      "case": "resealed-empty-serial-prefix",
+      "exit_code": 1,
+      "output_absent": true,
+      "stderr": "Traceback (most recent call last):\n  File \"/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verify-normal-startup.py\", line 45, in <module>\n    end=cp['serial_byte_end'];assert last<=end<=len(complete) and complete[end-1:end]==b'\\n';last=end\n                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError\n"
+    }
+  ],
+  "scope": "Three resealed documentary counterexamples; hashes are custody, not signatures or hostile authenticity."
+}
