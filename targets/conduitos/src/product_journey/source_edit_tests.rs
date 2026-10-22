@@ -29,6 +29,18 @@ fn patchbay_source_handoff_requires_one_current_owner_request_and_preserves_draf
             patchbay_application::EDIT_CURRENT_ACTION_ID,
             Some(&subject),
         );
+        assert!(
+            journey
+                .foreground_patchbay_fragment()
+                .unwrap()
+                .unwrap()
+                .actions
+                .iter()
+                .all(|action| !matches!(
+                    action.availability,
+                    conduit_face::FaceActionAvailability::Available
+                ))
+        );
         match journey.take_application_request().unwrap() {
             native_workset::NativeApplicationRequest::EditCurrent(request) => request,
             _ => panic!("expected actual owner edit request"),

@@ -36,7 +36,12 @@ impl ProductJourney {
         self.kernel
             .as_ref()
             .ok_or(JourneyError::Kernel)?
-            .patchbay_fragment(self.foreground_index(), body, self.patchbay_basis()?)
+            .patchbay_fragment(
+                self.foreground_index(),
+                body,
+                self.patchbay_basis()?,
+                self.application_request.is_none(),
+            )
             .map(Some)
             .map_err(JourneyError::Play)
     }

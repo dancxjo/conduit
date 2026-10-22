@@ -60,9 +60,10 @@ impl NativeWorksetPlay {
         plot: usize,
         body: BodyId,
         basis: FaceContributionBasis,
+        return_slot_available: bool,
     ) -> Result<FaceFragment, PlayRefusal> {
         self.patchbay_basis(plot, &body, &basis)?;
-        let actions = self.application_requests[plot].is_none();
+        let actions = return_slot_available && self.application_requests[plot].is_none();
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         let result = self
             .applications
