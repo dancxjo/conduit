@@ -47,6 +47,18 @@ pub(crate) struct Broker<const BYTES: usize> {
     staged_bytes: [u8; BYTES],
     gap: Option<SignRetentionGap>,
 }
+// Supplemental proof diagnostics retain the original error and never grant an
+// operation or change admission. Each event is one finite enum Debug value.
+fn diagnose<T, E: core::fmt::Debug>(stage: &'static str, result: Result<T, E>) -> Result<T, E> {
+    #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+    if let Err(error) = &result {
+        crate::arch::early_write(
+            alloc::format!("CONDUIT_RUNTIME_DIAGNOSTIC {stage} {error:?}\n").as_bytes(),
+        );
+    }
+    let _ = stage;
+    result
+}
 impl Scheduler {
     pub fn new(admission: Admission) -> Result<Self, SchedulerError> {
         Self::prepare(admission, false)
@@ -161,7 +173,13 @@ impl<const BYTES: usize> Broker<BYTES> {
         exchange.fill(0);
         wire::encode_request(envelope, request, exchange)
             .map_err(|_| SchedulerError::InvalidHostCallAccess)?;
-        if domain.enter(1).map_err(|_| SchedulerError::Cancelled)? != DomainReturn::Yielded {
+        let returned =
+            diagnose("guest-entry", domain.enter(1)).map_err(|_| SchedulerError::Cancelled)?;
+        if returned != DomainReturn::Yielded {
+            #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+            crate::arch::early_write(
+                alloc::format!("CONDUIT_RUNTIME_DIAGNOSTIC guest-return {returned:?}\n").as_bytes(),
+            );
             return Err(SchedulerError::Cancelled);
         }
         let exchange = domain.exchange().map_err(|_| SchedulerError::Cancelled)?;

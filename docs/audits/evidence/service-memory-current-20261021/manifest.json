@@ -1,0 +1,250 @@
+{
+  "schema": "conduit.audit/service-memory-retention@1",
+  "tested_source": "08a8352297ec35a18138b5e02e958cce5331d395",
+  "artifact_role": "architecture-proof-appliance",
+  "proof_class": "freestanding-emulator",
+  "current_status": "supported ordinary-domain-proof exited 0",
+  "cpu_status": "19 tests passed at exact clean source: 12 ordinary text controls, 2 Morse contract controls, 5 service image/layout controls; zero failures or ignored cases",
+  "files": [
+    {
+      "path": "current/compositor-guest-fixture-proof.json",
+      "sha256": "66ae9a904bc36d304880a94f2394808bf26e95266c0cfe4abca84f0d65af2610",
+      "bytes": 1546,
+      "original_sha256": "66ae9a904bc36d304880a94f2394808bf26e95266c0cfe4abca84f0d65af2610",
+      "original_bytes": 1546,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/compositor-hostile-broker-fixture-proof.json",
+      "sha256": "e7fc023642181f87c929e436d47816a6169c158d0c695bc8be4f561d9df414e6",
+      "bytes": 2423,
+      "original_sha256": "e7fc023642181f87c929e436d47816a6169c158d0c695bc8be4f561d9df414e6",
+      "original_bytes": 2423,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/build-proof.log.gz",
+      "sha256": "bbbacd7d53002b923f1cc927aa3e0bdeeeccfe6ba0eac8ff66f671474951014a",
+      "bytes": 16625,
+      "original_sha256": "b3a8341cc653eb0b2cd32d3048ab22904b25d897fe60e81ba82fc06e2bd469a5",
+      "original_bytes": 146433,
+      "encoding": "gzip"
+    },
+    {
+      "path": "current/privilege-inventory-53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98-architecture-proof-appliance.json.gz",
+      "sha256": "e0553a386249adadd418a4961541f57962eb41e3056d3fd80447716a5adbca8e",
+      "bytes": 5055,
+      "original_sha256": "30690cbbf3ad042e1178cfc3830d1236fc98f0b1199479158ab7d7ba617445b2",
+      "original_bytes": 64095,
+      "encoding": "gzip"
+    },
+    {
+      "path": "current/service-memory-fixture-proof.json",
+      "sha256": "7887869cb58cb79ac87b98235d29d6f3851093d7c9c0f8815e6d8a6f575d7a26",
+      "bytes": 1169,
+      "original_sha256": "7887869cb58cb79ac87b98235d29d6f3851093d7c9c0f8815e6d8a6f575d7a26",
+      "original_bytes": 1169,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/privilege-inventory-53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98-architecture-proof-appliance.map.gz",
+      "sha256": "76b2f8120145ff9a171f8495d8c4c0c56533f703bfc804bb2adc0d8a30af753f",
+      "bytes": 435914,
+      "original_sha256": "a9ab968b9ca6ef355804ba874c4d64a1cab02ceb4b195fd6f61bf39816e4f0dc",
+      "original_bytes": 6762285,
+      "encoding": "gzip"
+    },
+    {
+      "path": "current/compositor-copy-recovery-fixture-proof.json",
+      "sha256": "54cb9a39701c1f966832f28be78e9affef942cd08a2bbe541189a8493177a72b",
+      "bytes": 1630,
+      "original_sha256": "54cb9a39701c1f966832f28be78e9affef942cd08a2bbe541189a8493177a72b",
+      "original_bytes": 1630,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/build.json",
+      "sha256": "4313562a2756ee1a834f14aa75194ad63b4f10c278b5ceb28bf38362de0982b4",
+      "bytes": 335,
+      "original_sha256": "4313562a2756ee1a834f14aa75194ad63b4f10c278b5ceb28bf38362de0982b4",
+      "original_bytes": 335,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/image.json",
+      "sha256": "10dc76a76772548e46025643fe3a456743d7505200b15d60910e90feba7a2c68",
+      "bytes": 351,
+      "original_sha256": "10dc76a76772548e46025643fe3a456743d7505200b15d60910e90feba7a2c68",
+      "original_bytes": 351,
+      "encoding": "identity"
+    },
+    {
+      "path": "current/ordinary-domain-proof.log.gz",
+      "sha256": "02c5d6343e8add5635150306409f1af948b6f4fbd7e31c7e1938976707ef0e0d",
+      "bytes": 4425,
+      "original_sha256": "303d070ef744eb75db14e24e25067005cc3f331621fba8f68e0c95dd9eec2c0a",
+      "original_bytes": 28793,
+      "encoding": "gzip"
+    },
+    {
+      "path": "current/retention.json",
+      "sha256": "565acc7ee1eed15a039c81c7e0b328506051d623bc20d0f670cda088b36bc0b1",
+      "bytes": 1515,
+      "original_sha256": "565acc7ee1eed15a039c81c7e0b328506051d623bc20d0f670cda088b36bc0b1",
+      "original_bytes": 1515,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/build.json",
+      "sha256": "46b436d11868476184cbac8063af63177065d3de0c113249086d4026fb3dad68",
+      "bytes": 335,
+      "original_sha256": "46b436d11868476184cbac8063af63177065d3de0c113249086d4026fb3dad68",
+      "original_bytes": 335,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/image.json",
+      "sha256": "755d92fbc4bf9602e9c934f58d6f91d0da8ac6f97a52782ce40afac4a702ee48",
+      "bytes": 351,
+      "original_sha256": "755d92fbc4bf9602e9c934f58d6f91d0da8ac6f97a52782ce40afac4a702ee48",
+      "original_bytes": 351,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/ordinary-domain-proof.log.gz",
+      "sha256": "437335be54cde1b1f696223196d086a00a82dc725927bba3247224d70f4fb215",
+      "bytes": 353,
+      "original_sha256": "6e7675208bf5c37b91c12dd883fb4a35231010787d8358a531c50ca24bbfc762",
+      "original_bytes": 778,
+      "encoding": "gzip"
+    },
+    {
+      "path": "negative-text-0f221/original-file-hashes.json",
+      "sha256": "64adbfdb10096d9ec92441d24e5b4a33b89be7a86208ecd69c0f51e3227cd7c4",
+      "bytes": 535,
+      "original_sha256": "64adbfdb10096d9ec92441d24e5b4a33b89be7a86208ecd69c0f51e3227cd7c4",
+      "original_bytes": 535,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/build-and-failure.log.gz",
+      "sha256": "2e45dcce0879ef623648c71fbcc65babedb8dba2c30525786881a50c2dbc380e",
+      "bytes": 18493,
+      "original_sha256": "a0d95f2329b5593ac46bb13f03f9829ad1233513a3072c28c39704eccdfe2837",
+      "original_bytes": 173960,
+      "encoding": "gzip"
+    },
+    {
+      "path": "negative-morse-f306/build.json",
+      "sha256": "d65e1c6cb6d6829bf8b07c9579c3700dde7353f70e2121531d067ea8536c0b4d",
+      "bytes": 335,
+      "original_sha256": "d65e1c6cb6d6829bf8b07c9579c3700dde7353f70e2121531d067ea8536c0b4d",
+      "original_bytes": 335,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-morse-f306/image.json",
+      "sha256": "c6fba7d5e750adfe81d82a1fea36166eac20e0470f30fa01f8f17696b824c6e0",
+      "bytes": 351,
+      "original_sha256": "c6fba7d5e750adfe81d82a1fea36166eac20e0470f30fa01f8f17696b824c6e0",
+      "original_bytes": 351,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-morse-f306/ordinary-domain-proof.log.gz",
+      "sha256": "c5e67054c192dc85a31fc562f944702bbafc94d1c94246a0ec76bba12a14fed8",
+      "bytes": 1825,
+      "original_sha256": "0ff469b3a2e826b5c028eb6c504cc5c7ee4f69becbb64153222af35a2fa889a1",
+      "original_bytes": 13670,
+      "encoding": "gzip"
+    },
+    {
+      "path": "negative-morse-f306/retention.json",
+      "sha256": "a262004e8088abb87682887b0f783708fbfec87125cffd47ad6adf9f18d6aac6",
+      "bytes": 2609,
+      "original_sha256": "a262004e8088abb87682887b0f783708fbfec87125cffd47ad6adf9f18d6aac6",
+      "original_bytes": 2609,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-morse-f306/build-proof.log.gz",
+      "sha256": "48f3160c35bf47dc3c3a2995d1711b5285de8292efd2fc184a182eb0bf336e69",
+      "bytes": 18398,
+      "original_sha256": "867ab95fd4626ae18af52ab0499c5199fdfa819371145ee18d64f780aff69ae0",
+      "original_bytes": 173700,
+      "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-morse-contract-tests.log.gz",
+      "sha256": "4cca9e9593c4dca783f2dc409f4276394f1de2f186922f5c4c34b1f83d1e0f3c",
+      "bytes": 2076,
+      "original_sha256": "a9c8f064b3bf31923cdc5d4a8007391b1a12b7cb05e534b5c80278f7d36412df",
+      "original_bytes": 14539,
+      "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-current-text-contract-tests.log.gz",
+      "sha256": "0f863cd8c2a45aa7f8d790f8a6947e65c86922508d2db52c2d9800b98d99572b",
+      "bytes": 643,
+      "original_sha256": "4e4828e05962a8cdb9989401b14db2e4f6c0946e75fd65e6c60794d7c21576b0",
+      "original_bytes": 1455,
+      "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-service-memory-tests.log.gz",
+      "sha256": "57dc81292f098f3d62dc1380b386acd51f36f2a6a501d6c8303f1e186e66f5b5",
+      "bytes": 2239,
+      "original_sha256": "79a82f9f079030ec634a80f91df3ddabd0a7df44f2c06a9d1726c69a3d1a3f6a",
+      "original_bytes": 15077,
+      "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-focused-clippy.log.gz",
+      "sha256": "41f54254fd69b66c1ee8be9f520bea525c1e01e0f99a435b63d36db8a1c15146",
+      "bytes": 1848,
+      "original_sha256": "a8c3a27d9cc424207246ae110be607df11a43990f6b457f621ce0c35932ce60c",
+      "original_bytes": 14392,
+      "encoding": "gzip"
+    },
+    {
+      "path": "negative-text-0f221/serial-drain-diagnostic.json",
+      "sha256": "75a62c6b4bb9d718067f8ca79480477895dcce1a2a49df8cfe85020462bb676d",
+      "bytes": 1055,
+      "original_sha256": "75a62c6b4bb9d718067f8ca79480477895dcce1a2a49df8cfe85020462bb676d",
+      "original_bytes": 1055,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/serial-drain-no-exit-device.log.gz",
+      "sha256": "437335be54cde1b1f696223196d086a00a82dc725927bba3247224d70f4fb215",
+      "bytes": 353,
+      "original_sha256": "6e7675208bf5c37b91c12dd883fb4a35231010787d8358a531c50ca24bbfc762",
+      "original_bytes": 778,
+      "encoding": "gzip"
+    }
+  ],
+  "omitted_artifacts": {
+    "conduitos": "53da1a141c18c1d6dc9789aea94dd1fafba22358865fb1bbe64d51fd83764c98",
+    "conduitos.iso": "66e5ea74e21cd4bee96c24af36d7b6540c0fe6f540fbe8c10f1a26e30fe5778d"
+  },
+  "limits": [
+    "No ELF or ISO bytes committed",
+    "Current packet proves independent backend and named compositor fixtures, not full production retained-compositor isolation",
+    "Physical, DMA, driver and other-architecture isolation unproved",
+    "No Candidate, Integration or publication acceptance claimed by this local packet"
+  ],
+  "strict_clippy": {
+    "tested_source": "08a8352297ec35a18138b5e02e958cce5331d395",
+    "command": "cargo +stable clippy --locked -p conduitos --all-targets --features hosted-tools,native-compositor -- -D warnings",
+    "status": "passed",
+    "exit_code": 0
+  },
+  "negative_text_diagnostic_custody": {
+    "source": "0f2218d1a32dd0577b71b577536281c842b78a88",
+    "legacy_serial_alias": "negative-text-0f221/ordinary-domain-proof.log.gz",
+    "accurately_named_serial": "negative-text-0f221/serial-drain-no-exit-device.log.gz",
+    "command_record": "negative-text-0f221/serial-drain-diagnostic.json",
+    "interpretation": "unchanged ISO diagnostic without isa-debug-exit; terminated with SIGTERM after full refusal capture; recorded returncode 0 is not accepted proof",
+    "original_failed_supported_run_output": "negative-text-0f221/build-and-failure.log.gz"
+  }
+}
