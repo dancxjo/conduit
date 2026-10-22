@@ -3,7 +3,6 @@
 mod common;
 #[path = "imported_model_infer/fixture.rs"]
 mod fixture;
-use fixture::profile;
 use conduit_ai::{
     imported_back_admission::ImportedBackRefusal, imported_onnx::ONNX_FORMAT_PROFILE, *,
 };
@@ -11,6 +10,7 @@ use conduit_std_host::{
     hosted_model_compute::*,
     hosted_model_infer::{ImportedModelPrepareRefusal, PreparedModelInfer},
 };
+use fixture::profile;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
