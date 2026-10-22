@@ -8,9 +8,18 @@ use conduit_face::{
 
 use super::planned_location;
 
+/// Workbench aspects partition facts; the single-aspect graph reader retains
+/// every fact of its selected subjects, including exact Plan/Play provenance.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(super) enum PropertyScope {
+    ByAspect,
+    Complete,
+}
+
 pub(super) fn memberships(
     face: &Face,
     navigation: &FaceNavigation,
+    property_scope: PropertyScope,
 ) -> Result<Vec<ProjectionMembership>, String> {
     let mut memberships = Vec::new();
     for place in &navigation.places {
@@ -33,14 +42,15 @@ pub(super) fn memberships(
                 );
                 for (index, property) in face.properties.iter().enumerate() {
                     if property.subject == *subject
-                        && property_belongs_to_aspect(
-                            property,
-                            aspect.aspect,
-                            face.subjects
-                                .iter()
-                                .find(|candidate| candidate.identity == *subject)
-                                .map(|candidate| candidate.role.clone()),
-                        )
+                        && (property_scope == PropertyScope::Complete
+                            || property_belongs_to_aspect(
+                                property,
+                                aspect.aspect,
+                                face.subjects
+                                    .iter()
+                                    .find(|candidate| candidate.identity == *subject)
+                                    .map(|candidate| candidate.role.clone()),
+                            ))
                     {
                         push(
                             &mut memberships,
