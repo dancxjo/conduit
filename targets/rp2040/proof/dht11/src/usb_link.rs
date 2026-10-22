@@ -11,9 +11,12 @@ pub enum UsbLinkError {
     Framing,
     Timeout,
 }
+// This diagnostic carries only bounded BOOTSEL lifecycle control frames.
+const MAXIMUM_CONTROL_BYTES: usize = 256;
+const FRAMED_CONTROL_BYTES: usize = MAXIMUM_CONTROL_BYTES + 2;
 pub struct UsbLinkSession {
     pub class: CdcAcmClass<'static, Driver<'static, USB>>,
-    decoder: StreamFrameDecoder<1026>,
+    decoder: StreamFrameDecoder<FRAMED_CONTROL_BYTES>,
 }
 impl UsbLinkSession {
     pub async fn write_text(&mut self, line: &str) -> Result<(), UsbLinkError> {
@@ -31,11 +34,11 @@ impl UsbLinkSession {
     pub fn new(class: CdcAcmClass<'static, Driver<'static, USB>>) -> Self {
         Self {
             class,
-            decoder: StreamFrameDecoder::new(1024).unwrap(),
+            decoder: StreamFrameDecoder::new(MAXIMUM_CONTROL_BYTES).unwrap(),
         }
     }
     pub fn reset_stream_decoder(&mut self) {
-        self.decoder = StreamFrameDecoder::new(1024).unwrap();
+        self.decoder = StreamFrameDecoder::new(MAXIMUM_CONTROL_BYTES).unwrap();
     }
     pub async fn wait_connection(&mut self) {
         self.class.wait_connection().await;
@@ -74,9 +77,9 @@ impl UsbLinkSession {
         }
     }
     pub async fn send_raw_stream_frame(&mut self, payload: &[u8]) -> Result<(), UsbLinkError> {
-        let mut framed = [0; 1026];
-        let length =
-            encode_stream_frame(payload, 1024, &mut framed).map_err(|_| UsbLinkError::Framing)?;
+        let mut framed = [0; FRAMED_CONTROL_BYTES];
+        let length = encode_stream_frame(payload, MAXIMUM_CONTROL_BYTES, &mut framed)
+            .map_err(|_| UsbLinkError::Framing)?;
         for chunk in framed[..length].chunks(64) {
             self.class
                 .write_packet(chunk)

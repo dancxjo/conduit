@@ -170,17 +170,18 @@ async fn main(_spawner: Spawner) {
     config.serial_number = Some("conduit-pico-dht11-probe");
     config.max_packet_size_0 = 64;
     config.max_power = 100;
-    static DEVICE: static_cell::StaticCell<[u8; 256]> = static_cell::StaticCell::new();
-    static CONFIG: static_cell::StaticCell<[u8; 256]> = static_cell::StaticCell::new();
-    static BOS: static_cell::StaticCell<[u8; 256]> = static_cell::StaticCell::new();
+    // One CDC configuration; bounded configuration/BOS/MSOS descriptor buffers.
+    static DEVICE: static_cell::StaticCell<[u8; 128]> = static_cell::StaticCell::new();
+    static CONFIG: static_cell::StaticCell<[u8; 64]> = static_cell::StaticCell::new();
+    static BOS: static_cell::StaticCell<[u8; 64]> = static_cell::StaticCell::new();
     static CONTROL: static_cell::StaticCell<[u8; 64]> = static_cell::StaticCell::new();
     static STATE: static_cell::StaticCell<State> = static_cell::StaticCell::new();
     let mut builder = Builder::new(
         usb::Driver::new(p.USB, Irqs),
         config,
-        DEVICE.init([0; 256]),
-        CONFIG.init([0; 256]),
-        BOS.init([0; 256]),
+        DEVICE.init([0; 128]),
+        CONFIG.init([0; 64]),
+        BOS.init([0; 64]),
         CONTROL.init([0; 64]),
     );
     let serial = CdcAcmClass::new(&mut builder, STATE.init(State::new()), 64);

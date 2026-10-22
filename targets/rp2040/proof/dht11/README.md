@@ -210,3 +210,7 @@ freshness, failed observations retaining timestamps, JSON and HTTP content lengt
 Physical AP/HTTP evidence and exact firmware hashes are retained by the invoking
 task separately from portable tests. Do not infer a full 17-hour endurance proof
 from a short physical run.
+
+The diagnostic USB control transport admits 256-byte lifecycle payloads; it is
+not an application Line. Its CDC-only descriptor buffers reserve 128/64/64 bytes
+for configuration/BOS/MSOS descriptors, preserving stack space for preparation.
