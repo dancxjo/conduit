@@ -3,7 +3,7 @@ use super::*;
 use crate::native_face_scene::{NativeFaceScene, tests as scene_tests};
 use alloc::{format, vec};
 
-fn screen(width: u16, height: u16) -> LayoutRect {
+pub(super) fn screen(width: u16, height: u16) -> LayoutRect {
     LayoutRect {
         x: 0,
         y: 0,
@@ -11,7 +11,7 @@ fn screen(width: u16, height: u16) -> LayoutRect {
         height,
     }
 }
-fn item(text: &str, region: Option<u8>) -> document::Item {
+pub(super) fn item(text: &str, region: Option<u8>) -> document::Item {
     document::Item {
         text: text.into(),
         role: GraphicsTextRole::Label,
@@ -34,7 +34,7 @@ fn intersects(a: LayoutRect, b: LayoutRect) -> bool {
         && i32::from(a.y) < i32::from(b.y) + i32::from(b.height)
         && i32::from(b.y) < i32::from(a.y) + i32::from(a.height)
 }
-fn assert_disjoint(rows: &[Row]) {
+pub(super) fn assert_disjoint(rows: &[Row]) {
     for (index, row) in rows.iter().enumerate() {
         for other in &rows[index + 1..] {
             if row.page == other.page {

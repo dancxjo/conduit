@@ -65,3 +65,18 @@ six AI admission/inspection tests and the std pre-load refusal matrix. This
 supersedes the getter-only inspection and fixture-only admission limitation of
 the earlier checkpoint. The previous strict-lint failure remains negative
 evidence; no new lint-clean or integration/publication claim follows.
+
+## Current-dev recovery for #6219
+
+The imported custody/admission slice is tracked separately as #6219, prerequisite
+for scalar tensors in #6210. On current-dev product source
+`c08880393` the supported model-inference suite passed **58 tests across 21
+targets**, zero failures or ignored tests. The focused borrowed-symbol unit also
+passed. A new ordinary Source/Plan/Play regression checks that a provider reply
+from an unadmitted runtime fails after one load and one invocation, emitting no
+output. Source-bound logs and hashes are retained in
+`evidence/imported-onnx-current-dev-20261021/`.
+
+These local hosted fixture receipts do not establish Candidate, Integration,
+merge, actual ORT execution, or parent #5219 completion. Historical positive and
+negative receipts above retain their original source identities.
