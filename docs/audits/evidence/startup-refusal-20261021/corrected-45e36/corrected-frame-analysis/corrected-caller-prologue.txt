@@ -1,0 +1,30 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos-ff6c8edf1239f389:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000002868540 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_63replaced_show_and_changed_unobserved_owner_refuse_before_effect>:
+ 2868540:	49 89 e3             	mov    %rsp,%r11
+ 2868543:	49 81 eb 00 a0 00 00 	sub    $0xa000,%r11
+ 286854a:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 2868551:	48 c7 04 24 00 00 00 	movq   $0x0,(%rsp)
+ 2868558:	00 
+ 2868559:	4c 39 dc             	cmp    %r11,%rsp
+ 286855c:	75 ec                	jne    286854a <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_63replaced_show_and_changed_unobserved_owner_refuse_before_effect+0xa>
+ 286855e:	48 81 ec 48 0a 00 00 	sub    $0xa48,%rsp
+ 2868565:	48 8d bc 24 a8 00 00 	lea    0xa8(%rsp),%rdi
+ 286856c:	00 
+ 286856d:	e8 ce d6 ff ff       	call   2865c40 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5tests9encounter>
+ 2868572:	bf 08 00 00 00       	mov    $0x8,%edi
+ 2868577:	be 68 42 00 00       	mov    $0x4268,%esi
+ 286857c:	e8 df d5 6a ff       	call   1f15b60 <_RNvNtCs6i54tJFfzR_5alloc5boxed14box_new_uninitCs7rkybaQFxn0_9conduitos>
+ 2868581:	48 89 84 24 98 00 00 	mov    %rax,0x98(%rsp)
+ 2868588:	00 
+ 2868589:	eb 3e                	jmp    28685c9 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_63replaced_show_and_changed_unobserved_owner_refuse_before_effect+0x89>
+ 286858b:	48 89 c1             	mov    %rax,%rcx
+ 286858e:	89 d0                	mov    %edx,%eax
+ 2868590:	48 89 8c 24 78 a9 00 	mov    %rcx,0xa978(%rsp)
+ 2868597:	00 
+ 2868598:	89 84 24 80 a9 00 00 	mov    %eax,0xa980(%rsp)
+ 286859f:	48                   	rex.W

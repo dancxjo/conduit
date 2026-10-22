@@ -65,6 +65,7 @@ conduit-web = { path = "../../semantics/web", default-features = false, features
 conduit-pete = { path = "../../bodies/pete" }
 conduit-observatory = { path = "../../architecture/observatory" }
 conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
+patchbay-application = { path = "../../plots/patchbay/application" }
 conduit-signal = { path = "../../semantics/signal" }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-planner = { path = "../../architecture/planner" }

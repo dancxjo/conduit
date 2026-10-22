@@ -56,7 +56,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     };
     let initial_revision = owner.port.revision();
     assert!(!publication.can_submit());
-    assert!(publication.interact(owner, &proposed).is_err());
+    assert!(publication.interact(owner.as_mut(), &proposed).is_err());
     let ack = BrowserMaskAcknowledgement {
         show_id: effect.show_id,
         manifestation_id: effect.manifestation_id,
@@ -74,9 +74,9 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
     assert!(publication.can_submit());
     let mut forged = proposed.clone();
     forged.show_id = "show/foreign".into();
-    assert!(publication.interact(owner, &forged).is_err());
+    assert!(publication.interact(owner.as_mut(), &forged).is_err());
     assert_eq!(owner.port.revision(), initial_revision);
-    let receipt = publication.interact(owner, &proposed).unwrap();
+    let receipt = publication.interact(owner.as_mut(), &proposed).unwrap();
     assert_eq!(receipt.owner_result, Ok(None));
     assert!(receipt.transport_completion.is_ok());
     assert_eq!(owner.port.revision(), initial_revision + 1);
@@ -89,7 +89,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         .validate_against(&face, &observed.mask_show)
         .unwrap();
     assert!(!publication.can_submit());
-    assert!(publication.interact(owner, &proposed).is_err());
+    assert!(publication.interact(owner.as_mut(), &proposed).is_err());
     publication.retire().unwrap();
     assert!(publication.take_receipt().unwrap().owner_result.is_ok());
     assert!(publication.take_receipt().is_none());
@@ -135,7 +135,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         })
         .unwrap();
     assert_ne!(face.identity, edit_face.identity);
-    let receipt = edited.interact(owner, &proposed_edit).unwrap();
+    let receipt = edited.interact(owner.as_mut(), &proposed_edit).unwrap();
     assert_eq!(receipt.owner_result, Ok(None));
     assert_eq!(
         receipt.request_delivery,
@@ -178,7 +178,7 @@ fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
         arguments: proposed_edit.arguments.clone(),
         sequence: 1,
     };
-    assert!(blocked.interact(owner, &blocked_input).is_err());
+    assert!(blocked.interact(owner.as_mut(), &blocked_input).is_err());
     assert!(
         blocked.can_submit(),
         "pressure must not consume the closing Mask input"
@@ -426,7 +426,6 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         .port
         .graph()
         .subject_identities()
-        .into_iter()
         .next()
         .unwrap()
         .to_string();

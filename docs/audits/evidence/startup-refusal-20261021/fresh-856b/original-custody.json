@@ -1,0 +1,153 @@
+{
+  "source": "856b518cc2f480908d9ee11e994e40b0efa4d3a0",
+  "logs": [
+    {
+      "file": "6179-current-856b518cc-startup-tests.log.gz",
+      "original_bytes": 503660,
+      "original_sha256": "3bea1ca3ad92090ab3a31c8dcbbb074c2429ae04e1ee3f45ee311013cdbd4940",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-lifecycle-tests.log.gz",
+      "original_bytes": 170059,
+      "original_sha256": "af8abfeb985ca10c18baee6f61ac9534232b2b256352a253a896e2284aa725f5",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-strict-clippy.log.gz",
+      "original_bytes": 10943,
+      "original_sha256": "2013bc885492772ac98243098b636ef4602ea95da96fee8bbe2393a951b0c7c5",
+      "exit_code": 101,
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-journey-controls.log.gz",
+      "original_bytes": 1483,
+      "original_sha256": "48dac47b45f825c7783149e2b4251ffa51b33d00f7df510e5f760e7a96956ad9",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-birth-controls.log.gz",
+      "original_bytes": 1317,
+      "original_sha256": "eeee0a126eb8921afe44caf86015e2acd89a7b4a1757c819b71570feb073e758",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::birth::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-forged-failed-show.log.gz",
+      "original_bytes": 13667,
+      "original_sha256": "15f5eacd50396c811d3c7ada62e52b8024192fd8c5a0fb1b40ee5e1240856197",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ]
+    },
+    {
+      "file": "6179-current-856b518cc-replaced-stale-show.log.gz",
+      "original_bytes": 26326,
+      "original_sha256": "331ae597f5f5c1a9900e8fa6a7c3332f447d082ab57a0846bea5244c5a1d4b9c",
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ]
+    }
+  ]
+}

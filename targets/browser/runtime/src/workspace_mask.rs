@@ -66,7 +66,7 @@ pub struct BrowserMaskObservation {
     pub schema: &'static str,
     pub wardrobe_action: MaskWardrobeControlEvidence,
     pub planned_mask: PlannedMaskPlot,
-    pub alternate: PlannedMaskPlot,
+    pub alternate: Option<PlannedMaskPlot>,
     pub body_plan: BodyPlan,
     pub mask_play: ActivePlayIdentity,
     pub face: Face,
@@ -105,7 +105,7 @@ pub struct BrowserMaskRuntime {
     routes: AdmittedMaskPlotRoutes,
     wardrobe_action: MaskWardrobeControlEvidence,
     planned: PlannedMaskPlot,
-    alternate: PlannedMaskPlot,
+    alternate: Option<PlannedMaskPlot>,
     body_plan: BodyPlan,
     basis_plan: BodyPlan,
     wake: Wake,
@@ -265,6 +265,14 @@ impl BrowserMaskRuntime {
         self.scheduler.values().reserved_storage_bytes()
     }
 
+    /// Retire actual pending Mask work before releasing its already charged backing.
+    #[cfg(feature = "creche-surface")]
+    pub(crate) fn retire(&mut self) -> Result<(), String> {
+        self.scheduler
+            .cancel()
+            .map_err(|error| format!("retire browser Mask: {error:?}"))
+    }
+
     pub(crate) fn face_view(&self, admitted: bool) -> crate::owner_face_mask::FaceView {
         crate::owner_face_mask::view::local_view_admitted(
             &self.body_plan.body_id,
@@ -319,6 +327,9 @@ impl BrowserMaskRuntime {
     }
 
     pub fn alternate(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        self.alternate
+            .as_ref()
+            .ok_or("selected-only Mask has no admitted alternate route")?;
         Self::prepare_route(
             body_id,
             self.play.host_id.clone(),
@@ -332,6 +343,9 @@ impl BrowserMaskRuntime {
     }
 
     pub fn replacement(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        self.alternate
+            .as_ref()
+            .ok_or("selected-only Mask has no admitted alternate route")?;
         Self::prepare_route(
             body_id,
             self.play.host_id.clone(),
@@ -345,6 +359,9 @@ impl BrowserMaskRuntime {
     }
 
     pub fn restored(&self, body_id: BodyId) -> Result<(Self, BrowserMaskEffect), String> {
+        self.alternate
+            .as_ref()
+            .ok_or("selected-only Mask has no admitted alternate route")?;
         Self::prepare_route(
             body_id,
             self.play.host_id.clone(),

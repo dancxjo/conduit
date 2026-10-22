@@ -155,3 +155,82 @@ fn changed_offer_cannot_replace_the_sealed_proposal_during_preparation() {
     assert_eq!(journey.biography(), Some(&before));
     assert!(journey.kernel.is_none());
 }
+
+#[test]
+fn cancelled_prepared_execution_refuses_play_without_losing_birth_or_claiming_started() {
+    let (ids, offer, mut journey) = born();
+    let born = journey.projection();
+    invoke(&mut journey, JourneyAction::Wake, &ids, &offer).unwrap();
+    invoke(&mut journey, JourneyAction::Plan, &ids, &offer).unwrap();
+    assert_eq!(journey.status(), JourneyStatus::Planned);
+    // Cancel the actual prepared kernel, rather than fabricating a Play
+    // response. Its production start boundary must refuse this realization.
+    journey.kernel.as_mut().unwrap().cancel().unwrap();
+    assert!(invoke(&mut journey, JourneyAction::Play, &ids, &offer).is_err());
+    let refused = journey.projection();
+    assert_eq!(refused.status, JourneyStatus::Lulled);
+    assert_eq!(refused.body_id, born.body_id);
+    assert_eq!(refused.born_sign_id, born.born_sign_id);
+    assert!(refused.active_play_id.is_none());
+    assert!(refused.play_sign_id.is_none());
+    assert!(journey.kernel.is_none());
+    // Recovery is a new explicitly requested realization of the same Body.
+    for action in [
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        invoke(&mut journey, action, &ids, &offer).unwrap();
+    }
+    let recovered = journey.projection();
+    assert_eq!(recovered.body_id, born.body_id);
+    assert_eq!(recovered.born_sign_id, born.born_sign_id);
+    assert!(recovered.active_play_id.is_some());
+}
+
+#[test]
+fn automatic_remaining_play_refusal_retains_birth_and_exposes_the_failing_stage() {
+    // This test lives with the owner so cancellation uses its real private
+    // prepared kernel, without adding a fault-injection or production API.
+    let mut encounter = crate::product_front_door::StartupEncounter::born();
+    let born = encounter.journey.projection();
+    encounter.invoke(JourneyAction::Wake).unwrap();
+    encounter.invoke(JourneyAction::Plan).unwrap();
+    assert_eq!(encounter.journey.status(), JourneyStatus::Planned);
+    let prior = encounter.journey.biography().unwrap().clone();
+    encounter.journey.kernel.as_mut().unwrap().cancel().unwrap();
+    encounter.remaining().unwrap();
+    let refused = encounter.journey.projection();
+    assert_eq!(refused.status, JourneyStatus::Lulled);
+    assert_eq!(refused.body_id, born.body_id);
+    assert_eq!(refused.born_sign_id, born.born_sign_id);
+    assert!(refused.active_play_id.is_none());
+    assert!(refused.play_sign_id.is_none());
+    assert!(encounter.journey.kernel.is_none());
+    let retained = encounter.journey.biography().unwrap();
+    assert_eq!(retained.body.body_id, prior.body.body_id);
+    assert_eq!(retained.body.workset, prior.body.workset);
+    assert!(retained.records.starts_with(&prior.records));
+    assert_eq!(retained.wakes.len(), prior.wakes.len());
+    for (before, after) in prior.wakes.iter().zip(&retained.wakes) {
+        assert_eq!(after.wake_id, before.wake_id);
+        assert!(
+            before
+                .sign_ids
+                .iter()
+                .all(|sign| after.sign_ids.contains(sign))
+        );
+    }
+    encounter.assert_startup_refused("play:");
+    for action in [
+        JourneyAction::Wake,
+        JourneyAction::Plan,
+        JourneyAction::Play,
+    ] {
+        encounter.invoke(action).unwrap();
+    }
+    let recovered = encounter.journey.projection();
+    assert_eq!(recovered.body_id, born.body_id);
+    assert_eq!(recovered.born_sign_id, born.born_sign_id);
+    assert!(recovered.active_play_id.is_some());
+}

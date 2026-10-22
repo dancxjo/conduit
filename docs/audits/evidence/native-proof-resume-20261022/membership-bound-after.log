@@ -1,0 +1,28 @@
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/targets/browser/runtime)
+    Finished `test` profile [unoptimized] target(s) in 13.98s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/conduit_browser_runtime-37e53a114b3953af)
+
+running 1 test
+browser membership advertisement: 681620 bytes, 140 capabilities
+test installed_browser::membership_offer::tests::membership_preserves_every_installed_offer_within_admission_bounds ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 466 filtered out; finished in 0.07s
+
+     Running tests/browser_body_camera_realization.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/browser_body_camera_realization-650c0471e646940d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/face_offer_ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/face_offer_ownership-3b0071e970c712ca)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/human_media_offer_ownership.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/human_media_offer_ownership-a9fcf7d602d78d71)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

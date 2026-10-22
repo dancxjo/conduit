@@ -1,0 +1,197 @@
+{
+  "source_commit": "996c4debf82bbb2af1f91e68320eef2ae1ce8ea1",
+  "passed_cases": 26,
+  "checks": [
+    {
+      "file": "6179-next-996c4debf-startup-tests.log.gz",
+      "original_bytes": 493008,
+      "original_sha256": "6f6cd8d015b8c009194c4251953f701ec6259c146a0fc0eb2827ba00363649d4",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 6
+    },
+    {
+      "file": "6179-next-996c4debf-lifecycle-tests.log.gz",
+      "original_bytes": 169517,
+      "original_sha256": "6a1287d95e81204b6b8e3f584eebc065d5d4f122fdd39ffa24ef8326542d238e",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 8
+    },
+    {
+      "file": "6179-next-996c4debf-strict-clippy.log.gz",
+      "original_bytes": 670,
+      "original_sha256": "c9ca17696ff135e0af830030919c5f9509f756d1947cf213b64b55db68331622",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "passed": null
+    },
+    {
+      "file": "6179-next-996c4debf-fmt.log.gz",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "passed": null
+    },
+    {
+      "file": "6179-next-996c4debf-freestanding-check.log.gz",
+      "original_bytes": 14744,
+      "original_sha256": "0e01b05be249c93c5c259d64e522cdc3abba16b2d72bea272585b418cb16ef73",
+      "command": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--target",
+        "x86_64-unknown-none",
+        "--features",
+        "native-compositor"
+      ],
+      "exit_code": 0,
+      "passed": null
+    },
+    {
+      "file": "6179-next-996c4debf-journey-controls.log.gz",
+      "original_bytes": 941,
+      "original_sha256": "56d250cb043016023e4e9baf251d8f6c56d34baceec9af69b475c9e9373cdc9e",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 6
+    },
+    {
+      "file": "6179-next-996c4debf-birth-controls.log.gz",
+      "original_bytes": 775,
+      "original_sha256": "e0c7f73fdab63522111a8642122c1fe01aa850780d8a41b9796461d5495f70dd",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::birth::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "passed": 4
+    },
+    {
+      "file": "6179-next-996c4debf-forged-failed-show.log.gz",
+      "original_bytes": 13125,
+      "original_sha256": "cb1c6b6a2966bf6ada0167dfe2a333f87e773597fd13f3500af4792f5d96b6fa",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "passed": 1
+    },
+    {
+      "file": "6179-next-996c4debf-replaced-stale-show.log.gz",
+      "original_bytes": 25784,
+      "original_sha256": "20e663735de310158567d9d1dd6be458557353599c8a30192774a3c894888c7c",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "passed": 1
+    }
+  ],
+  "scope": "Focused hosted controls, strict Clippy, formatting and freestanding compilation. No QEMU execution or current-source CI acceptance."
+}

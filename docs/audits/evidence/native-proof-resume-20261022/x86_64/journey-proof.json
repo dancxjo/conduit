@@ -1,0 +1,580 @@
+{
+  "body_id": "22f2a4a45f6afc147f2055657c1b5a9c56e60bba36b9e5713e082e49748901eb",
+  "boot_id": "a7d5e558c6049ce29ebd1d0e7b8439a02f65c43be7841eb4f7f1aea9691510e7",
+  "browser_comparison": "unsupported",
+  "build_id": "build:sha256:eb1e4379b93b01e9464404009ad338465d85aabd8519e795901f769a5a2a1567",
+  "committed_edit_receipt": "memory-lantern-native-edit.json",
+  "host_id": "b153e2d6fcda5192d2a75ded3a695e797340b4c86b5cc51b09ce626065f0d28f",
+  "human_enactment": false,
+  "image_id": "image:sha256:eabb0abacd9ca60dd7d80215f2e2262b2e430fa996f3ecfff951ebfc992ece6d",
+  "image_sha256": "c349193ab054d2be614c3a04ee6902a9229926bb3fbc1f0c0a288a4b857d6e35",
+  "input": "real-qmp-keyboard-and-pointer",
+  "look_selection": {
+    "body_actions": 0,
+    "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+    "face_revision": 1,
+    "human_enactment": false,
+    "input": "real-qmp-keyboard",
+    "physical_evidence": false,
+    "same_checked_component": {
+      "checked_plot_id": "fc33bd9fbf7218c196ba6d11b5141fd17710e78857271d399aae9f8f09b92491",
+      "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+      "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+    },
+    "same_recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+    "schema": "conduit.conduitos/local-look-proof@1",
+    "status": "passed",
+    "transitions": [
+      {
+        "active_play_id": "570610185d478b4b4663824110dbf4cb12bd83c922e25bcb47b77103c37705fa",
+        "boot_id": "a7d5e558c6049ce29ebd1d0e7b8439a02f65c43be7841eb4f7f1aea9691510e7",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "fc33bd9fbf7218c196ba6d11b5141fd17710e78857271d399aae9f8f09b92491",
+            "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+            "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-compact-editorial",
+            "component"
+          ],
+          "placement_id": "01947b33e54a1954cc731ad99d4bb61eec9d09c97c79bcb2f11dcc4f6ff9b502",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-compact-editorial"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "compact",
+            "identity": "conduit.face/compact-editorial@1",
+            "motion": "none",
+            "palette": "editorial",
+            "text_scale_percent": 100,
+            "typography": "editorial",
+            "version": 2
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "b153e2d6fcda5192d2a75ded3a695e797340b4c86b5cc51b09ce626065f0d28f",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "6b7fc20365bbbffdabb381ee78f038c74efa3a62789e45896d719ed533bdc92e",
+        "mask_plan_id": "ff6645cff1f11060ced340d3e24b36e70254219ce471e354390bd21d85d141bf",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/5face7435556e36905803855c47c78b320e3aa647907d37ef438a58ade484f2c",
+        "render": {
+          "commands": 48,
+          "pixels_written": 1476900
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/5d157f2ae668f28668c0d05f43fe1a55c80f08beb9fc4beac878b1864be01788"
+      },
+      {
+        "active_play_id": "2c9744e22f661c11d7709d8af39e7894aa24fa63d60db51470b5e15141bce611",
+        "boot_id": "a7d5e558c6049ce29ebd1d0e7b8439a02f65c43be7841eb4f7f1aea9691510e7",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "fc33bd9fbf7218c196ba6d11b5141fd17710e78857271d399aae9f8f09b92491",
+            "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+            "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-spacious",
+            "component"
+          ],
+          "placement_id": "bf31975169d4c0a30c35e4f8491d246c5f33431f50c99ef3d0f8cfa0e76f6aad",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-spacious"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "spacious",
+            "identity": "conduit.face/spacious@1",
+            "motion": "none",
+            "palette": "editorial",
+            "text_scale_percent": 125,
+            "typography": "editorial",
+            "version": 2
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "b153e2d6fcda5192d2a75ded3a695e797340b4c86b5cc51b09ce626065f0d28f",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "c6da5625d59961df3dc23f67a8f171c04363c8470bc83b15b188f9761abeeb37",
+        "mask_plan_id": "1e0e005ddc181a83334550cbd8c49333dffc9a7c1d13b1ba2740ae4b5be8d054",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/5d157f2ae668f28668c0d05f43fe1a55c80f08beb9fc4beac878b1864be01788",
+        "render": {
+          "commands": 25,
+          "pixels_written": 1276225
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/cc122691819f762a4809b77cecf8a3cd48004e73b445f7825167c0dbda25cc92"
+      },
+      {
+        "active_play_id": "48c7795244357a6d884e0cd7f34bd6517801e0c28f0ca63cd311265e31e4eb09",
+        "boot_id": "a7d5e558c6049ce29ebd1d0e7b8439a02f65c43be7841eb4f7f1aea9691510e7",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "fc33bd9fbf7218c196ba6d11b5141fd17710e78857271d399aae9f8f09b92491",
+            "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+            "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns-spacious-phosphor",
+            "component"
+          ],
+          "placement_id": "0063b130bbb5c5362aa9827e0d742079c35c0902a369645dfa7f1b050d1a1d8d",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns-spacious-phosphor"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "spacious",
+            "identity": "conduit.face/spacious-phosphor@1",
+            "motion": "none",
+            "palette": "phosphor",
+            "text_scale_percent": 125,
+            "typography": "editorial",
+            "version": 2
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "b153e2d6fcda5192d2a75ded3a695e797340b4c86b5cc51b09ce626065f0d28f",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "dbd2ee3f4da092d5f211a3a232251806b1d94e35992830c83e505d5325d67afb",
+        "mask_plan_id": "ad377af1e60fdbd17130670eca00fc3809fead3a2f979ecc24fa0e9b0c5dbdc2",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/cc122691819f762a4809b77cecf8a3cd48004e73b445f7825167c0dbda25cc92",
+        "render": {
+          "commands": 25,
+          "pixels_written": 1276225
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/5c419183471a975e4d1ab2f6029328ed3d006b636bcca4d12fc36c353047e382"
+      },
+      {
+        "active_play_id": "d209861fafc7a41519ac248926273cd63e7d9bf3a6ca92d876301854a0113a6a",
+        "boot_id": "a7d5e558c6049ce29ebd1d0e7b8439a02f65c43be7841eb4f7f1aea9691510e7",
+        "configuration": {
+          "component": {
+            "checked_plot_id": "fc33bd9fbf7218c196ba6d11b5141fd17710e78857271d399aae9f8f09b92491",
+            "fore_id": "3eda3eeae408d07d1b3cc005da0aabce30f91832e39acf63919d5cd54e3a2dbe",
+            "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+          },
+          "execution_profile_id": "conduitos/bounded-mask@1",
+          "implementation_id": "face/renderer-conduitos-component@1",
+          "invocation_path": [
+            "creche-mask-columns",
+            "component"
+          ],
+          "placement_id": "05a5ef15578223f14e4d68f31ab4bf35ddca7712b2d06bc0ab2601d16689b21f",
+          "recipe_canonical_bytes": 2313,
+          "recipe_canonical_sha256": "1d1026f84b59dcedab72bae38f91a0ec73fc16777d31de739fdec008f93a97d9",
+          "root": "creche-mask-columns"
+        },
+        "expression": {
+          "accessibility_overrides": {
+            "forced_colors": false,
+            "reduced_motion": true,
+            "text_scale": false
+          },
+          "expression": {
+            "density": "compact",
+            "identity": "conduit.face/compact@1",
+            "motion": "none",
+            "palette": "phosphor",
+            "text_scale_percent": 100,
+            "typography": "editorial",
+            "version": 2
+          },
+          "outcome": "Selected",
+          "platform_forced_colors": false
+        },
+        "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+        "face_revision": 1,
+        "fallback": null,
+        "host_id": "b153e2d6fcda5192d2a75ded3a695e797340b4c86b5cc51b09ce626065f0d28f",
+        "local_scanout_acknowledged": true,
+        "manifestation_id": "367bf1f74ddc63537b5fc54447e2bb89c9c2d0828f8868bbb9a29f4e04577d92",
+        "mask_plan_id": "671ce56d306460d4447f933700fcc3ea9b3666f2c1e2a3d14de1e58acec3a018",
+        "offer_generation": 1,
+        "owner_show_acknowledged": false,
+        "previous_show_id": "show/5c419183471a975e4d1ab2f6029328ed3d006b636bcca4d12fc36c353047e382",
+        "render": {
+          "commands": 48,
+          "pixels_written": 1476900
+        },
+        "schema": "conduit.conduitos/component-realization@1",
+        "selection_entrance": "local-creche",
+        "show_id": "show/42e265d3af94fcd435044af86d0077503f22c1e6291ca805061f34d74ef9cfe6"
+      }
+    ]
+  },
+  "paired_reconstruction": "native-shell-paired-linear.json",
+  "parent_5356_acceptance": "open",
+  "physical_evidence": false,
+  "pointer_actions": {
+    "entrance": "normal-product-creche",
+    "held_motion_after_fresh_show": {
+      "coalesced": 0,
+      "delta_x": 4000,
+      "delta_y": 0,
+      "display_x": 660,
+      "display_y": 124,
+      "dropped": 0,
+      "face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+      "face_revision": 4,
+      "manifestation_id": "131502aca6b560f02563a05493de2ac3dbee55ea92a4ab83708d5c485e5ddc94",
+      "position_x": 516000,
+      "position_y": 156000,
+      "press_edge": false,
+      "primary_pressed": true,
+      "schema": "conduit.native-pointer/v1",
+      "sequence": 5,
+      "show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd"
+    },
+    "held_motion_duplicate_effects": 0,
+    "held_motion_on_refreshed_control": true,
+    "human_enactment": false,
+    "keyboard_action_count": 2,
+    "physical_evidence": false,
+    "pointer_action_count": 2,
+    "presses": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 655,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "ed92933987d6fc8b21c704c9fa1bdb63dcd126e8e7934ce5ddbfa3f677f683d0",
+        "face_revision": 3,
+        "manifestation_id": "980dc8e8bd1e310b00c884974aeead4149b9ec5953ee2b50839396f82aa9dc7e",
+        "position_x": 512000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 4,
+        "show_id": "show/4d9d48216e25079fceb39a7571cb05e102cdb9da097b5d86b820cf97a190d2fc"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 660,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+        "face_revision": 4,
+        "manifestation_id": "131502aca6b560f02563a05493de2ac3dbee55ea92a4ab83708d5c485e5ddc94",
+        "position_x": 516000,
+        "position_y": 156000,
+        "press_edge": true,
+        "primary_pressed": true,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 7,
+        "show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd"
+      }
+    ],
+    "proof_class": "freestanding-emulator",
+    "releases": [
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 660,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+        "face_revision": 4,
+        "manifestation_id": "131502aca6b560f02563a05493de2ac3dbee55ea92a4ab83708d5c485e5ddc94",
+        "position_x": 516000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 6,
+        "show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd"
+      },
+      {
+        "coalesced": 0,
+        "delta_x": 0,
+        "delta_y": 0,
+        "display_x": 660,
+        "display_y": 124,
+        "dropped": 0,
+        "face_id": "e795851faab6ba6db6ff8cc763b22e258b92fa5f72a3fb2cbe597e632edb9452",
+        "face_revision": 5,
+        "manifestation_id": "e82cc1bbc4fe13c1b67d43bdb7e2cad910f292e2d9322dc7cde003224b3306a0",
+        "position_x": 516000,
+        "position_y": 156000,
+        "press_edge": false,
+        "primary_pressed": false,
+        "schema": "conduit.native-pointer/v1",
+        "sequence": 8,
+        "show_id": "show/d90633a6bfb132e40180fc6d61b126a4a396234333fa051dc72a004a21560bb1"
+      }
+    ],
+    "schema": "conduit.creche/native-pointer-proof@1",
+    "source_changes": [
+      {
+        "after_face_id": "0d057fa27451969b96f0186f0240bd0f1bfba300d98347cfea7e8aeb1b73509b",
+        "after_revision": 2,
+        "after_show_id": "show/d9084f4aaa2e2fb1605940239dd7475d0522c3eabe87e8b0e480fb01f6c5ac40",
+        "before_face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+        "before_revision": 1,
+        "before_show_id": "show/42e265d3af94fcd435044af86d0077503f22c1e6291ca805061f34d74ef9cfe6",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "e6b1a6620e514fb9de8d51faf84e53f393fb9db36c3f994b85a4b399829b83a0",
+          "face_revision": 1,
+          "identity": "44a1acbee14bf7971a803555fe0acb1b0099939c813ce00188b0711a1ca08399",
+          "sequence": 8,
+          "show_id": "show/42e265d3af94fcd435044af86d0077503f22c1e6291ca805061f34d74ef9cfe6",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "ed92933987d6fc8b21c704c9fa1bdb63dcd126e8e7934ce5ddbfa3f677f683d0",
+        "after_revision": 3,
+        "after_show_id": "show/4d9d48216e25079fceb39a7571cb05e102cdb9da097b5d86b820cf97a190d2fc",
+        "before_face_id": "0d057fa27451969b96f0186f0240bd0f1bfba300d98347cfea7e8aeb1b73509b",
+        "before_revision": 2,
+        "before_show_id": "show/d9084f4aaa2e2fb1605940239dd7475d0522c3eabe87e8b0e480fb01f6c5ac40",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.0",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "0d057fa27451969b96f0186f0240bd0f1bfba300d98347cfea7e8aeb1b73509b",
+          "face_revision": 2,
+          "identity": "2bae9cc203719a614b137261cf7b02ace5a63f4cc489bb9aba37c6a28d959e34",
+          "sequence": 10,
+          "show_id": "show/d9084f4aaa2e2fb1605940239dd7475d0522c3eabe87e8b0e480fb01f6c5ac40",
+          "target": "birth/conduitos/creche/current/initial-plots/0"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+        "after_revision": 4,
+        "after_show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd",
+        "before_face_id": "ed92933987d6fc8b21c704c9fa1bdb63dcd126e8e7934ce5ddbfa3f677f683d0",
+        "before_revision": 3,
+        "before_show_id": "show/4d9d48216e25079fceb39a7571cb05e102cdb9da097b5d86b820cf97a190d2fc",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                0
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "ed92933987d6fc8b21c704c9fa1bdb63dcd126e8e7934ce5ddbfa3f677f683d0",
+          "face_revision": 3,
+          "identity": "0491b1262deaaca51079169653a85d94d5e56d3bd9ca4a9ae6c12c780321822a",
+          "sequence": 18,
+          "show_id": "show/4d9d48216e25079fceb39a7571cb05e102cdb9da097b5d86b820cf97a190d2fc",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      },
+      {
+        "after_face_id": "e795851faab6ba6db6ff8cc763b22e258b92fa5f72a3fb2cbe597e632edb9452",
+        "after_revision": 5,
+        "after_show_id": "show/d90633a6bfb132e40180fc6d61b126a4a396234333fa051dc72a004a21560bb1",
+        "before_face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+        "before_revision": 4,
+        "before_show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd",
+        "disposition": "source-accepted-and-shown",
+        "interaction": {
+          "action_id": "creche.plot.3",
+          "arguments": [
+            {
+              "name": "value",
+              "value": [
+                1
+              ],
+              "value_kind": "value/bool"
+            }
+          ],
+          "face_id": "1e28355cc50031077542b966ea364ecc69c6758bbc70132ac74046cc9895080c",
+          "face_revision": 4,
+          "identity": "b331524c8325374daea4daadb572c19331e3009a8cb136878b46bcc61e4a9143",
+          "sequence": 19,
+          "show_id": "show/8c037b7c1eb508dc8911b0ecf196343b83f76001ac8c0de584081e1e59f368cd",
+          "target": "birth/conduitos/creche/current/initial-plots/3"
+        },
+        "schema": "conduit.creche-change/v1"
+      }
+    ],
+    "status": "passed",
+    "target_action": "creche.plot.3",
+    "target_geometry": "observed-current-frame-hit-bounds"
+  },
+  "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+  "proof_class": "freestanding-emulator",
+  "protected_keyboard_domain": {
+    "address_space_switches": 10,
+    "architecture": "x86_64",
+    "base_gate_transitions": 1,
+    "checked_plot_id": "f70ecce1b064835918a9ff13e0e5665fe5d50005ac5ab1155cfc75b9e606732b",
+    "copied_bytes": 10,
+    "dma_isolation": false,
+    "domain_id": 2,
+    "driver_isolation": false,
+    "entries": 5,
+    "fixture": false,
+    "gate_transitions": 5,
+    "interrupt_entries": 0,
+    "partition_plan_id": "f7d5a51e1a1bcebef3e8985a05cb56e33de0a190d5726185eecaad1f3379f4a4",
+    "plan_id": "body-plan/sha256:5a8414bc9cd55a06c5cfd9a887e12229cb1e7f21a2a063fb95d4df021a1d0618",
+    "play_id": "body-play/sha256:b22e3fee58b93dc0c2129c7a238cf4f9c3e9926c44f989b78ee4cbde2e01d0f0",
+    "preemptions": 0,
+    "privilege_transitions": 10,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 5,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116831,
+    "setup_ticks": 31243642,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 5,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 2299926,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 10
+  },
+  "protected_retained_text_domain": {
+    "address_space_switches": 14,
+    "architecture": "x86_64",
+    "base_gate_transitions": 0,
+    "checked_plot_id": "27152a47ba4a7c1b5e38a706c165de5c0d5f477fa5e5357ceb323781d6016629",
+    "copied_bytes": 170,
+    "dma_isolation": false,
+    "domain_id": 1,
+    "driver_isolation": false,
+    "entries": 7,
+    "fixture": false,
+    "gate_transitions": 7,
+    "interrupt_entries": 0,
+    "partition_plan_id": "78970fdb3e22ea76b2d7fd3e3225512dfaa73b87c2eea975939eb9c2aa1264d7",
+    "plan_id": "body-plan/sha256:5a8414bc9cd55a06c5cfd9a887e12229cb1e7f21a2a063fb95d4df021a1d0618",
+    "play_id": "body-play/sha256:b22e3fee58b93dc0c2129c7a238cf4f9c3e9926c44f989b78ee4cbde2e01d0f0",
+    "preemptions": 0,
+    "privilege_transitions": 14,
+    "region_id": "region/0",
+    "reserved_bytes": 217088,
+    "ring_slots": 0,
+    "root_metadata_bytes": 6516,
+    "scheduler_returns": 7,
+    "schema": "conduit.conduitos/domain-cost@1",
+    "setup_copied_bytes": 116831,
+    "setup_ticks": 18085486,
+    "shared_page_bytes": 4096,
+    "shared_peak_bytes": 31,
+    "source_timer_interrupts": 0,
+    "state": "Revoked(PlayCancelled)",
+    "teardown_ticks": 1957728,
+    "teardown_zeroed_bytes": 217088,
+    "tick_unit": "tsc",
+    "tlb_flushes": 14
+  },
+  "schema": "conduit.conduitos/face-journey-proof@1",
+  "screenshots": "journey-frames/manifest.json",
+  "source_commit": "b1e18996c4e18a78a93ffc596514f8da78d5fa05",
+  "steps": [
+    "arrive",
+    "creche-three-selected",
+    "creche-four-restored",
+    "creche-fourth-checked",
+    "creche-pointer-three-selected",
+    "creche-pointer-four-restored",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "commons-hub",
+    "commons-workshop",
+    "unavailable-wake-refused",
+    "protected-keyboard-canvas",
+    "protected-memory-lantern",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "gear-details",
+    "diagram-return",
+    "stop",
+    "home-returned",
+    "patchbay-reentered"
+  ]
+}
