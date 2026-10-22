@@ -35,13 +35,14 @@ fn prepare_inner(
     let mut editors = core::array::from_fn(|_| None);
     let mut keymaps = core::array::from_fn(|_| PreparedKeymap::default_layout());
     let mut admitted_editors = [false; PLOTS];
+    let mut admitted_encounters = [false; PLOTS];
     let mut operation_count = 0;
     for (plot, part) in parts.iter().enumerate() {
         let fragment = &prepared.plan.plots[plot].plan.fragments[0];
         if part.identity.plan_id != fragment.plan_id
             || part.identity.fragment_id != fragment.fragment_id
             || part.nodes.len() != fragment.placements.len()
-            || !matches!(part.nodes.len(), 3 | 4)
+            || !super::super::editor_delivery::partition_shape(fragment)?
         {
             return Err(WorksetRefusal::Plan);
         }
@@ -149,6 +150,14 @@ fn prepare_inner(
                     admitted_editors[plot] = true;
                     (Effect::Document, BackKind::Document)
                 }
+                super::super::editor_delivery::IMPLEMENTATION => {
+                    super::super::editor_delivery::validate(placement)?;
+                    if admitted_encounters[plot] {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    admitted_encounters[plot] = true;
+                    (Effect::Editor, BackKind::Editor)
+                }
                 crate::offer::TEXT_FACE_IMPLEMENTATION => {
                     if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
                     {
@@ -226,6 +235,7 @@ fn prepare_inner(
         pending: [None; PLOTS],
         held: [None; 256],
         faces: [None; PLOTS],
+        editor_observations: core::array::from_fn(|_| None),
         application_views: core::array::from_fn(|_| None),
         applications,
         application_requests: core::array::from_fn(|_| None),
