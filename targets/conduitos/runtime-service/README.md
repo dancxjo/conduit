@@ -74,40 +74,37 @@ acceptance. Stats remains the existing additive counter query, with mode-specifi
 96Sign/4pending ceilings. ProtectedTimer is unchanged: that production path
 already owns its canonical timer scheduler in its private TextDomain.
 
-Canonical Face transport has a separate prepared specialization:
-`InitFace` (tag 10) selects `FaceScheduler` with an 8192-byte per-value envelope.
-The legacy native scheduler remains 3072 bytes; text and Morse specializations
-retain their own limits. All use the same kernel, fixed node/cord/value counts,
-and 24,576-byte aggregate native value budget. The Face specialization reserves
-finite remote Sign storage explicitly. This does not advertise a new native
-Patchbay Back or change its retained production Source by itself.
 
-`AdmitRemote` (tag 11) carries an exact admitted endpoint, cord, sequence and
-transfer length. Only the Face specialization accepts it. Its distinct
-`RemoteAdmission` response reports Accepted or Full with the same sequence;
-Full is live pressure and consumes neither a value nor a sequence. Legacy,
-text and Morse owners refuse the command. Root's separate Face broker retains
-only exact admitted Fore custody receipts and publishes byte loans after guest
-acceptance. Unknown routes, stale sequences and oversized inputs refuse before
-entry; uncertain transport results quarantine the broker without replay.
+## Canonical interaction profile
 
-Initialized Document output has its own one-shot Root loan of exactly eight
-zero bytes. It grants no empty edit and no second initial publication. Subsequent
-Editor/Document values require the existing exact Root-completed value loans.
-Hosted deterministic ledger specifications cover that boundary independently of
-any claim about executing the protected service.
+`InitFace` (tag 10) selects `FaceScheduler` with an 8,192-byte per-value envelope.
+The legacy native scheduler remains 3,072 bytes; text and Morse specializations
+retain their own limits. Both native profiles use the same execution kernel with fixed node/Cord/value
+counts and the 24,576-byte aggregate native value budget. Native workset preparation
+selects this profile for the exact admitted Patchbay interaction Fore; this does
+not widen every application value or make a second scheduler.
 
-The current linked release image reserves 501,128 bytes in Runtime::execute,
-195,160 in Face admission construction, and 190,936 in the nested 8192-byte
-scheduler constructor (local reservations, excluding saved registers and further
-callees). These observations do not establish complete peak stack fit or timing
-within the unchanged 1 MiB native stack. Unoptimized hosted Runtime tests need
-an explicitly larger test thread stack; that is not a native stack change or a
-substitute for native enactment. Native canonical Patchbay integration and
-platform acceptance remain incomplete.
+`AdmitRemote` (tag 11) names the admitted endpoint, Cord, sequence and transfer
+length. Only the Face profile accepts it. `RemoteAdmission` reports Accepted or
+Full with that same sequence. Full is pressure and consumes neither a loan nor a
+sequence. Root's separate broker checks route, sequence and byte bounds before
+entry and publishes custody loans only after exact acceptance. Uncertain guest
+results quarantine that broker without replay. The complete Face/publication
+uses the separate retained-application protocol; the 8,192-byte envelope does not
+claim arbitrary full Face admission.
 
-The Face profile reserves 1024 remote lifecycle Sign events in the existing
-`FixedSignLog<1024>` backing, not ten endpoint records. Mandatory retained history
-still eventually refuses at finite Sign pressure; there is no hidden eviction or
-replenishment. A focused regression dispatches thirteen inputs on one endpoint,
-so the number of cords cannot accidentally become a ten-interaction session cap.
+Initialized Document output has a one-shot Root loan of exactly eight zero bytes
+(revision-zero empty text). It grants neither an empty edit nor a second initial
+publication. Successor Editor/Document values need exact Root-completed loans.
+The Face profile explicitly reserves 1,024 remote lifecycle Sign events in the
+existing `FixedSignLog<1024>` backing, not one history slot per Cord. History is
+finite, with no hidden eviction or replenishment; it is not a promise of 1,024
+interactions.
+
+See the [runtime profile delivery](../../../docs/audits/native-runtime-profiles-delivery-20261022.md),
+[Root custody checks](../../../docs/audits/patchbay-root-custody-delivery-20261022.md)
+and [installed caller cutover](../../../docs/audits/patchbay-installed-cutover-20261022.md).
+Those records distinguish hosted checks, compilation and actual protected-service
+execution. Native peak stack/private-heap fit and current-source QEMU enactment
+remain unproven by the local compilation/CPU evidence; a larger hosted fixture
+stack is not a native stack change.
