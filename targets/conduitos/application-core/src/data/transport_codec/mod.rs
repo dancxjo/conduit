@@ -20,17 +20,34 @@ pub(crate) fn encode_to_slice<T: Serialize + ?Sized>(
     value: &T,
     output: &mut [u8],
 ) -> Result<usize, Refusal> {
-    let length = backend::encode(&ser::Envelope(value), output)?;
+    let length = encode_unvalidated(value, output)?;
     preflight::validate(&output[..length])?;
     Ok(length)
 }
 
-/// No typed Deserialize visitor runs until every sequence hint is verified.
-pub(crate) fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
+/// State validates these immutable bytes in a separate protected entry.
+pub(super) fn encode_unvalidated<T: Serialize + ?Sized>(
+    value: &T,
+    output: &mut [u8],
+) -> Result<usize, Refusal> {
+    backend::encode(&ser::Envelope(value), output)
+}
+
+pub(super) fn preflight(bytes: &[u8]) -> Result<(), Refusal> {
     if !bytes.starts_with(PREFIX) {
         return Err(Refusal::Malformed);
     }
-    preflight::validate(bytes)?;
+    preflight::validate(bytes)
+}
+
+/// No typed Deserialize visitor runs until every sequence hint is verified.
+pub(crate) fn decode<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
+    preflight(bytes)?;
+    decode_validated(bytes)
+}
+
+/// Only safe for bytes already validated and retained immutably by State.
+pub(super) fn decode_validated<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, Refusal> {
     let mut decoder = serde_json::Deserializer::from_slice(bytes);
     let value = serde::de::DeserializeSeed::deserialize(de::EnvelopeSeed::<T>::new(), &mut decoder)
         .map_err(|_| Refusal::Malformed)?;

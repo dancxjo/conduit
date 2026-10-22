@@ -54,11 +54,16 @@ impl Builder {
         }
         Ok(slot)
     }
-    pub(crate) fn target(&mut self, slot: u8, target: u8, value: Target) -> Result<(), Refusal> {
-        let slot = self.expected(slot, target)?;
-        let Some(InitSlot::Patchbay { .. }) = self.manifest.slots[slot] else {
+    pub(crate) fn validate_target(&self, slot: u8, target: u8) -> Result<(), Refusal> {
+        let index = self.expected(slot, target)?;
+        if !matches!(self.manifest.slots[index], Some(InitSlot::Patchbay { .. })) {
             return Err(Refusal::Order);
-        };
+        }
+        Ok(())
+    }
+    pub(crate) fn target(&mut self, slot: u8, target: u8, value: Target) -> Result<(), Refusal> {
+        self.validate_target(slot, target)?;
+        let slot = usize::from(slot);
         let Some(Application::Patchbay(patchbay)) = &mut self.applications[slot] else {
             return Err(Refusal::Order);
         };

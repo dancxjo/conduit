@@ -83,8 +83,13 @@ impl Service {
                 );
                 Err(error)
             }
-            (Request::Begin { .. } | Request::Write { .. }, Response::Ready)
-            | (Request::Commit, Response::Blob { .. })
+            (
+                Request::Begin { .. } | Request::Write { .. } | Request::Preflight,
+                Response::Ready,
+            )
+            | (Request::Commit, Response::Blob { .. } | Response::Ready)
+            | (Request::GraphSerialize | Request::GraphValidate, Response::Ready)
+            | (Request::GraphPack { .. }, Response::Ready | Response::Blob { .. })
             | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
             _ => Err(Refusal::Malformed),
         }
@@ -96,6 +101,40 @@ impl Service {
             self.quarantine();
         }
         result
+    }
+    fn prepare_graph_reply(&mut self) -> Result<Response, Refusal> {
+        for (request, begin, complete) in [
+            (
+                Request::GraphSerialize,
+                b"CONDUIT_APPLICATION_GRAPH_REPLY serialize begin\n".as_slice(),
+                b"CONDUIT_APPLICATION_GRAPH_REPLY serialize complete\n".as_slice(),
+            ),
+            (
+                Request::GraphValidate,
+                b"CONDUIT_APPLICATION_GRAPH_REPLY validate begin\n".as_slice(),
+                b"CONDUIT_APPLICATION_GRAPH_REPLY validate complete\n".as_slice(),
+            ),
+        ] {
+            write_observation(begin);
+            self.request(request)?;
+            write_observation(complete);
+        }
+        write_observation(b"CONDUIT_APPLICATION_GRAPH_REPLY pack begin\n");
+        // Every Ready consumes exactly GRAPH_PACK_BYTES input bytes. The last
+        // turn must return Blob, within the unchanged decoded storage ceiling.
+        for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
+            match self.request(Request::GraphPack {
+                offset: offset as u32,
+            })? {
+                response @ Response::Blob { .. } => {
+                    write_observation(b"CONDUIT_APPLICATION_GRAPH_REPLY pack complete\n");
+                    return Ok(response);
+                }
+                Response::Ready => {}
+                _ => return Err(Refusal::Malformed),
+            }
+        }
+        Err(Refusal::Bounds)
     }
     fn exchange_command(&mut self, command: &Command) -> Result<Reply, Refusal> {
         let input = data::encode_command(command)?;
@@ -121,7 +160,38 @@ impl Service {
             })?;
             offset += chunk.len() as u32;
         }
-        let Response::Blob { bytes: total } = self.request(Request::Commit)? else {
+        let projection = matches!(command, Command::PrepareGraphProjection { .. });
+        if projection {
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION preflight begin\n");
+        }
+        if matches!(
+            command,
+            Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+        ) {
+            // Separate immutable decompression/framing from typed graph decode.
+            // Preflight freezes the same bytes consumed by the following Commit.
+            self.request(Request::Preflight)?;
+        }
+        if projection {
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION preflight complete\n");
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION prepare begin\n");
+        }
+        let committed = self.request(Request::Commit)?;
+        if projection {
+            if !matches!(committed, Response::Blob { .. }) {
+                return Err(Refusal::Malformed);
+            }
+            write_observation(b"CONDUIT_APPLICATION_GRAPH_PROJECTION prepare complete\n");
+        }
+        let response = if matches!(command, Command::Graph { .. }) {
+            if committed != Response::Ready {
+                return Err(Refusal::Malformed);
+            }
+            self.prepare_graph_reply()?
+        } else {
+            committed
+        };
+        let Response::Blob { bytes: total } = response else {
             return Err(Refusal::Malformed);
         };
         if total == 0 || total as usize > MAX_BLOB {
@@ -164,6 +234,7 @@ fn record_command_refusal(command: &Command, error: Refusal) {
         Command::PrepareTarget { slot, target, .. } => {
             ("prepare-target", Some(*slot), Some(*target))
         }
+        Command::FinishTarget { slot, target } => ("finish-target", Some(*slot), Some(*target)),
         Command::PrepareTutorial { slot, .. } => ("prepare-tutorial", Some(*slot), None),
         Command::PrepareTour { slot } => ("prepare-tour", Some(*slot), None),
         Command::FinishInit => ("finish-init", None, None),
@@ -181,7 +252,7 @@ fn record_command_refusal(command: &Command, error: Refusal) {
     if writeln!(line,
         "CONDUIT_APPLICATION_COMMAND_REFUSAL operation={operation} slot={slot:?} target={target:?} refusal={error:?}"
     ).is_ok() {
-        crate::arch::early_write(line.as_bytes());
+        write_observation(line.as_bytes());
     }
 }
 
@@ -200,11 +271,19 @@ fn record_refusal(
     if writeln!(line,
         "CONDUIT_APPLICATION_REFUSAL stage={stage} sequence={sequence} request={request:?} detail={detail:?} entries_interrupts_preemptions={counters:?}"
     ).is_ok() {
-        crate::arch::early_write(line.as_bytes());
+        write_observation(line.as_bytes());
     }
 }
 impl Drop for Service {
     fn drop(&mut self) {
         self.quarantine();
     }
+}
+
+/// Guest serial evidence uses captured output when exercising CPU tests.
+fn write_observation(bytes: &[u8]) {
+    #[cfg(not(test))]
+    crate::arch::early_write(bytes);
+    #[cfg(test)]
+    std::print!("{}", alloc::string::String::from_utf8_lossy(bytes));
 }

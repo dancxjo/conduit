@@ -13,9 +13,17 @@ pub struct State {
     preparing: Option<Builder>,
     workspace: Option<data::Workspace>,
     projection: Option<crate::graph_facts::PreparedProjection>,
+    graph_reply: Option<GraphReply>,
+    pending_target: Option<(u8, u8, data::Target)>,
     incoming: Option<(usize, Vec<u8>)>,
+    preflighted: Option<usize>,
     outgoing: Vec<u8>,
     read: usize,
+}
+enum GraphReply {
+    Serialize(u8),
+    Validate(usize),
+    Pack(data::GraphPacking),
 }
 impl State {
     pub fn execute(&mut self, request: Request, transfer: &mut [u8]) -> Result<Response, Refusal> {
@@ -28,6 +36,9 @@ impl State {
             self.models = None;
             self.preparing = None;
             self.projection = None;
+            self.pending_target = None;
+            self.graph_reply = None;
+            self.preflighted = None;
             self.workspace = None;
             self.incoming = None;
             self.outgoing = Vec::new();
@@ -39,12 +50,21 @@ impl State {
         request: Request,
         transfer: &mut [u8],
     ) -> Result<Response, Refusal> {
+        if self.graph_reply.is_some()
+            && !matches!(
+                request,
+                Request::GraphSerialize | Request::GraphValidate | Request::GraphPack { .. }
+            )
+        {
+            return Err(Refusal::Order);
+        }
         match request {
             Request::Begin { bytes } => {
-                if self.incoming.is_some()
+                if self.read != self.outgoing.len()
+                    || self.incoming.is_some()
                     || bytes == 0
                     || bytes as usize > MAX_BLOB
-                    || (self.projection.is_some() && self.read != self.outgoing.len())
+                    || (self.pending_target.is_some() && bytes > 256)
                 {
                     return Err(Refusal::Order);
                 }
@@ -57,6 +77,7 @@ impl State {
                 }
                 self.outgoing.clear();
                 self.read = 0;
+                self.preflighted = None;
                 let mut incoming = Vec::new();
                 incoming
                     .try_reserve_exact(bytes as usize)
@@ -65,6 +86,9 @@ impl State {
                 Ok(Response::Ready)
             }
             Request::Write { offset, bytes } => {
+                if self.preflighted.is_some() {
+                    return Err(Refusal::Order);
+                }
                 let (total, incoming) = self.incoming.as_mut().ok_or(Refusal::Order)?;
                 if offset as usize != incoming.len()
                     || incoming
@@ -77,6 +101,21 @@ impl State {
                 incoming.extend_from_slice(transfer.get(..bytes as usize).ok_or(Refusal::Bounds)?);
                 Ok(Response::Ready)
             }
+            Request::Preflight => {
+                if self.preflighted.is_some()
+                    || self.projection.is_some()
+                    || self.pending_target.is_some()
+                {
+                    return Err(Refusal::Order);
+                }
+                let (total, incoming) = self.incoming.as_ref().ok_or(Refusal::Order)?;
+                if incoming.len() != *total {
+                    return Err(Refusal::Order);
+                }
+                let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
+                self.preflighted = Some(workspace.preflight_command(incoming)?);
+                Ok(Response::Ready)
+            }
             Request::Commit => {
                 let (total, incoming) = self.incoming.take().ok_or(Refusal::Order)?;
                 if incoming.len() != total {
@@ -85,6 +124,8 @@ impl State {
                 let workspace = self.workspace.as_mut().ok_or(Refusal::Order)?;
                 let command: Command = if self.projection.is_some() {
                     workspace.decode_projection_finish(&incoming)?
+                } else if let Some(length) = self.preflighted.take() {
+                    workspace.decode_preflighted_command(length)?
                 } else {
                     workspace.decode_command(&incoming)?
                 };
@@ -94,6 +135,7 @@ impl State {
                     && !matches!(
                         &command,
                         Command::PrepareTarget { .. }
+                            | Command::FinishTarget { .. }
                             | Command::PrepareTutorial { .. }
                             | Command::PrepareTour { .. }
                             | Command::FinishInit
@@ -101,9 +143,21 @@ impl State {
                 {
                     return Err(Refusal::Order);
                 }
+                if self.pending_target.is_some()
+                    && !matches!(&command, Command::FinishTarget { .. })
+                {
+                    return Err(Refusal::Order);
+                }
                 if self.projection.is_some() && !matches!(&command, Command::FinishGraphProjection)
                 {
                     return Err(Refusal::Order);
+                }
+                if let Command::Graph { slot } = command {
+                    if self.models.is_none() {
+                        return Err(Refusal::Order);
+                    }
+                    self.graph_reply = Some(GraphReply::Serialize(slot));
+                    return Ok(Response::Ready);
                 }
                 let reply = match command {
                     Command::PrepareGraphProjection { graph, scope } => {
@@ -139,6 +193,22 @@ impl State {
                         value,
                     } => {
                         self.preparing
+                            .as_ref()
+                            .ok_or(Refusal::Order)?
+                            .validate_target(slot, target)?;
+                        self.pending_target = Some((slot, target, value));
+                        Reply::Prepared
+                    }
+                    Command::FinishTarget { slot, target } => {
+                        if self
+                            .pending_target
+                            .as_ref()
+                            .is_none_or(|(s, t, _)| *s != slot || *t != target)
+                        {
+                            return Err(Refusal::Order);
+                        }
+                        let (_, _, value) = self.pending_target.take().ok_or(Refusal::Order)?;
+                        self.preparing
                             .as_mut()
                             .ok_or(Refusal::Order)?
                             .target(slot, target, value)?;
@@ -173,6 +243,54 @@ impl State {
                 Ok(Response::Blob {
                     bytes: self.outgoing.len() as u32,
                 })
+            }
+            Request::GraphSerialize => {
+                let Some(GraphReply::Serialize(slot)) = self.graph_reply.take() else {
+                    return Err(Refusal::Order);
+                };
+                let graph = self
+                    .models
+                    .as_ref()
+                    .ok_or(Refusal::Order)?
+                    .graph(usize::from(slot));
+                let length = self
+                    .workspace
+                    .as_mut()
+                    .ok_or(Refusal::Order)?
+                    .serialize_graph(graph)?;
+                self.graph_reply = Some(GraphReply::Validate(length));
+                Ok(Response::Ready)
+            }
+            Request::GraphValidate => {
+                let Some(GraphReply::Validate(length)) = self.graph_reply.take() else {
+                    return Err(Refusal::Order);
+                };
+                let packing = self
+                    .workspace
+                    .as_ref()
+                    .ok_or(Refusal::Order)?
+                    .validate_graph(length)?;
+                self.graph_reply = Some(GraphReply::Pack(packing));
+                Ok(Response::Ready)
+            }
+            Request::GraphPack { offset } => {
+                let Some(GraphReply::Pack(mut packing)) = self.graph_reply.take() else {
+                    return Err(Refusal::Order);
+                };
+                let complete = self.workspace.as_mut().ok_or(Refusal::Order)?.pack_graph(
+                    &mut packing,
+                    offset as usize,
+                    &mut self.outgoing,
+                )?;
+                if complete {
+                    self.read = 0;
+                    Ok(Response::Blob {
+                        bytes: self.outgoing.len() as u32,
+                    })
+                } else {
+                    self.graph_reply = Some(GraphReply::Pack(packing));
+                    Ok(Response::Ready)
+                }
             }
             Request::Read { offset, maximum } => {
                 if offset as usize != self.read || self.read >= self.outgoing.len() {

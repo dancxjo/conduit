@@ -25,7 +25,39 @@ fn call(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
             &mut transfer,
         )?;
     }
-    let Response::Blob { bytes } = state.execute(Request::Commit, &mut transfer)? else {
+    if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
+        assert_eq!(
+            state.execute(Request::Preflight, &mut transfer)?,
+            Response::Ready
+        );
+    }
+    let mut response = state.execute(Request::Commit, &mut transfer)?;
+    if matches!(command, Command::Graph { .. }) {
+        assert_eq!(response, Response::Ready);
+        assert_eq!(
+            state.execute(Request::GraphSerialize, &mut transfer)?,
+            Response::Ready
+        );
+        assert_eq!(
+            state.execute(Request::GraphValidate, &mut transfer)?,
+            Response::Ready
+        );
+        for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
+            response = state.execute(
+                Request::GraphPack {
+                    offset: offset as u32,
+                },
+                &mut transfer,
+            )?;
+            if matches!(response, Response::Blob { .. }) {
+                break;
+            }
+        }
+    }
+    let Response::Blob { bytes } = response else {
         return Err(Refusal::Malformed);
     };
     let mut output = Vec::new();
@@ -48,6 +80,8 @@ fn terminal(state: &mut State) {
     assert!(state.models.is_none());
     assert!(state.preparing.is_none());
     assert!(state.projection.is_none());
+    assert!(state.pending_target.is_none());
+    assert!(state.graph_reply.is_none());
     assert!(state.refused);
     assert!(matches!(
         call(state, &Command::FinishInit),
@@ -184,6 +218,13 @@ fn exact_target_coverage_and_selected_position_survive_staging() {
             Ok(Reply::Prepared)
         ));
         assert!(state.models.is_none());
+        assert!(state.pending_target.is_some());
+        assert!(matches!(
+            call(&mut state, &Command::FinishTarget { slot: 0, target }),
+            Ok(Reply::Prepared)
+        ));
+        assert!(state.pending_target.is_none());
+        assert!(state.graph_reply.is_none());
     }
     call(&mut state, &Command::FinishInit).unwrap();
     assert_eq!(
@@ -219,6 +260,7 @@ fn wrong_target_order_kind_and_duplicate_fail_without_model_publication() {
                 },
             )
             .unwrap();
+            call(&mut state, &Command::FinishTarget { slot: 0, target: 1 }).unwrap();
         }
         let invalid = if case == 1 {
             Command::PrepareTour { slot: 0 }
@@ -259,6 +301,10 @@ fn selected_unfilled_target_cannot_finish() {
         },
     )
     .unwrap();
+    assert!(matches!(
+        call(&mut state, &Command::FinishTarget { slot: 0, target: 1 }),
+        Ok(Reply::Prepared)
+    ));
     assert!(matches!(
         call(&mut state, &Command::FinishInit),
         Err(Refusal::Order)
@@ -307,4 +353,121 @@ fn projection_during_staging_and_repeat_finish_are_terminal() {
     terminal(&mut state);
 }
 
+mod graph_reply;
 mod projection;
+
+#[test]
+fn target_is_private_until_matching_finish_and_interleaving_is_terminal() {
+    let declaration = manifest([
+        Some(InitSlot::Patchbay {
+            targets: 0b0010,
+            selected: 1,
+        }),
+        None,
+        None,
+        None,
+    ]);
+    let mut state = State::default();
+    call(&mut state, &declaration).unwrap();
+    call(
+        &mut state,
+        &Command::PrepareTarget {
+            slot: 0,
+            target: 1,
+            value: small_target(),
+        },
+    )
+    .unwrap();
+    assert!(state.models.is_none());
+    assert!(state.pending_target.is_some());
+    assert!(matches!(
+        call(&mut state, &Command::FinishTarget { slot: 0, target: 1 }),
+        Ok(Reply::Prepared)
+    ));
+    assert!(state.pending_target.is_none());
+    assert!(state.graph_reply.is_none());
+    assert!(matches!(
+        call(&mut state, &Command::FinishInit),
+        Ok(Reply::Initialized)
+    ));
+
+    for bad in [
+        Command::FinishTarget { slot: 0, target: 0 },
+        Command::FinishInit,
+        Command::PrepareTour { slot: 1 },
+    ] {
+        let mut state = State::default();
+        call(&mut state, &declaration).unwrap();
+        call(
+            &mut state,
+            &Command::PrepareTarget {
+                slot: 0,
+                target: 1,
+                value: small_target(),
+            },
+        )
+        .unwrap();
+        assert!(matches!(call(&mut state, &bad), Err(Refusal::Order)));
+        terminal(&mut state);
+    }
+}
+
+#[test]
+fn completed_preflight_rejects_later_writes_and_latches_refusal() {
+    let mut state = State::default();
+    call(
+        &mut state,
+        &manifest([
+            Some(InitSlot::Patchbay {
+                targets: 0b0010,
+                selected: 1,
+            }),
+            None,
+            None,
+            None,
+        ]),
+    )
+    .unwrap();
+    let encoded = data::encode_command(&Command::PrepareTarget {
+        slot: 0,
+        target: 1,
+        value: small_target(),
+    })
+    .unwrap();
+    let mut transfer = vec![0; crate::memory::TRANSFER_BYTES];
+    state
+        .execute(
+            Request::Begin {
+                bytes: encoded.len() as u32,
+            },
+            &mut transfer,
+        )
+        .unwrap();
+    for (index, chunk) in encoded.chunks(transfer.len()).enumerate() {
+        transfer[..chunk.len()].copy_from_slice(chunk);
+        state
+            .execute(
+                Request::Write {
+                    offset: (index * transfer.len()) as u32,
+                    bytes: chunk.len() as u32,
+                },
+                &mut transfer,
+            )
+            .unwrap();
+    }
+    assert_eq!(
+        state.execute(Request::Preflight, &mut transfer),
+        Ok(Response::Ready)
+    );
+    assert_eq!(
+        state.execute(
+            Request::Write {
+                offset: encoded.len() as u32,
+                bytes: 1,
+            },
+            &mut transfer
+        ),
+        Err(Refusal::Order)
+    );
+    terminal(&mut state);
+}

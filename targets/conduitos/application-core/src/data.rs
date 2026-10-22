@@ -138,6 +138,11 @@ pub enum Command {
         target: u8,
         value: Target,
     },
+    /// Construct the staged target on a separate protected entry.
+    FinishTarget {
+        slot: u8,
+        target: u8,
+    },
     PrepareTutorial {
         slot: u8,
         evidence: BodyBiographyEvidence,
@@ -211,5 +216,9 @@ pub enum Refusal {
     Application,
 }
 mod codec;
+pub(crate) use codec::Packing as GraphPacking;
 mod transport_codec;
-pub use codec::{MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode, encode_command};
+pub use codec::{
+    GRAPH_PACK_BYTES, MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode,
+    encode_command,
+};

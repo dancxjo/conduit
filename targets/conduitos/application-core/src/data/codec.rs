@@ -1,9 +1,12 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+mod graph_reply;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
+pub use graph_reply::PACK_BYTES as GRAPH_PACK_BYTES;
+pub(crate) use graph_reply::Packing;
 use miniz_oxide::{
     deflate::core::{
         CompressorOxide, TDEFLFlush, TDEFLStatus, compress, create_comp_flags_from_zip_params,
@@ -100,6 +103,23 @@ impl Workspace {
     }
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
         transport_codec::decode(decoded_json(bytes, &mut self.json)?)
+    }
+    /// For large target/projection commands, do decompression and complete framing
+    /// preflight in their own protected entry. State freezes incoming bytes
+    /// until the following Commit, so verified allocation hints stay trusted.
+    pub(crate) fn preflight_command(&mut self, bytes: &[u8]) -> Result<usize, Refusal> {
+        let length = {
+            let decoded = decoded_json(bytes, &mut self.json)?;
+            transport_codec::preflight(decoded)?;
+            decoded.len()
+        };
+        if !bytes.starts_with(MAGIC) {
+            self.json[..length].copy_from_slice(bytes);
+        }
+        Ok(length)
+    }
+    pub(crate) fn decode_preflighted_command(&self, length: usize) -> Result<Command, Refusal> {
+        transport_codec::decode_validated(self.json.get(..length).ok_or(Refusal::Bounds)?)
     }
     /// While a full graph is retained, reject every other command tag before
     /// decoding any second payload into the same fixed grant.

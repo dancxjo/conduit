@@ -124,7 +124,41 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
             )
             .unwrap();
     }
-    let Response::Blob { bytes } = state.execute(Request::Commit, transfer).unwrap() else {
+    if matches!(
+        command,
+        Command::PrepareTarget { .. } | Command::PrepareGraphProjection { .. }
+    ) {
+        assert_eq!(
+            state.execute(Request::Preflight, transfer),
+            Ok(Response::Ready)
+        );
+    }
+    let mut response = state.execute(Request::Commit, transfer).unwrap();
+    if matches!(command, Command::Graph { .. }) {
+        assert_eq!(response, Response::Ready);
+        assert_eq!(
+            state.execute(Request::GraphSerialize, transfer),
+            Ok(Response::Ready)
+        );
+        assert_eq!(
+            state.execute(Request::GraphValidate, transfer),
+            Ok(Response::Ready)
+        );
+        for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
+            response = state
+                .execute(
+                    Request::GraphPack {
+                        offset: offset as u32,
+                    },
+                    transfer,
+                )
+                .unwrap();
+            if matches!(response, Response::Blob { .. }) {
+                break;
+            }
+        }
+    }
+    let Response::Blob { bytes } = response else {
         panic!("missing reply");
     };
     drop(input);
@@ -201,6 +235,17 @@ pub fn run() {
                         });
                         assert!(matches!(
                             exchange(&mut state, &component, &mut transfer),
+                            Reply::Prepared
+                        ));
+                        assert!(matches!(
+                            exchange(
+                                &mut state,
+                                &Command::FinishTarget {
+                                    slot: slot as u8,
+                                    target: target as u8,
+                                },
+                                &mut transfer,
+                            ),
                             Reply::Prepared
                         ));
                     }
