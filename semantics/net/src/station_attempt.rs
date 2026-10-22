@@ -127,3 +127,26 @@ pub async fn restore_access_point(
         Err(_) => Err(StationFailure::Deadline),
     }
 }
+
+/// Guard each work poll with an independently supplied absolute-deadline check.
+/// The surrounding clock provider must still arrange a wake at expiry. This
+/// prevents effectful first polls after expiry and rejects late synchronous
+/// completion; it cannot preempt synchronous native work inside one poll.
+pub async fn guard_operation_deadline<T>(
+    work: impl Future<Output = T>,
+    mut expired: impl FnMut() -> bool,
+) -> Result<T, DeadlineExpired> {
+    let mut work = core::pin::pin!(work);
+    core::future::poll_fn(|cx| {
+        if expired() {
+            return core::task::Poll::Ready(Err(DeadlineExpired));
+        }
+        let result = work.as_mut().poll(cx);
+        if expired() {
+            core::task::Poll::Ready(Err(DeadlineExpired))
+        } else {
+            result.map(Ok)
+        }
+    })
+    .await
+}

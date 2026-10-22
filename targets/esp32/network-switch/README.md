@@ -49,3 +49,26 @@ Physical station withdrawal/restoration is still unproved.
 A real installation still needs the private page mailbox connected through admitted `network/credentials` and `network/join`
 Host Calls, current Body lifecycle, actual station-service ownership, and physical
 success/failure/link-loss proof. No placeholder service implementation is shipped.
+
+`Esp32NetworkJoinProvider` now connects the actual controller/stack/service
+adapter to the portable selected Host Call owner. Root prepares the SDK station
+configuration before Play, including its heap-backed password String. The runtime
+credential request must match that private configuration before radio effects;
+the wrapper neither creates a new String nor logs credentials during execution.
+It returns the reserved attachment record only after association and a current
+station address succeed. SDK internal memory/work still require separate finite
+Root admission; cross-compilation does not establish that budget or physical
+network success.
+
+The entire withdrawal, association and DHCP attempt shares one absolute deadline.
+A guard checks time before each work poll and after it, rejecting work started
+expired and synchronous completion after expiry. The timer still supplies expiry
+wakes, and synchronous native work remains non-preemptible. Deterministic guard
+regressions run through `cargo xtask prove environment network`.
+
+Cleanup has a separately admitted duration. Its absolute deadline is established
+on first cleanup, which can follow a long-lived successful station attachment;
+cancellation or another cleanup call cannot reset it. All AP addressing, link and
+service acknowledgements must complete within it. No retry or new credential
+selection is hidden in the provider. Actual offer/capability issuance, the private
+page route, station HTTP/mDNS ownership and physical join/fallback remain open.

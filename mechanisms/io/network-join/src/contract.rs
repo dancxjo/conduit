@@ -8,7 +8,10 @@ use conduit_plan_lowering::selected_operation::SelectedOperationContract;
 /// join must quiesce pending work. Root owes bounded cleanup after failure or
 /// cancellation, and when a successful attachment is retired. A successful join
 /// may outlive its configuration Play if Root retains this actual owner and its
-/// attachment resources. Neither method may allocate during Play.
+/// attachment resources. Neither method may grow storage beyond Root's admitted
+/// finite native reservation. Any SDK allocator must be confined to that budget;
+/// it cannot fall back to unadmitted storage. The Host Call owner itself reserves
+/// its recurring buffers before Play.
 pub trait NetworkJoinProvider {
     fn join(
         &mut self,

@@ -5,6 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [dependencies]
+conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
 conduit-net = { path = "../../../semantics/net" }
 esp-radio = { version = "=0.18.0", features = ["wifi", "esp32", "unstable"] }
 esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }

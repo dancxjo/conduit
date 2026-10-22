@@ -1,6 +1,7 @@
 #![no_std]
 //! ESP32 mode/address mechanics for an independently admitted network Host Call.
 //! No offer, credential policy, retry, attachment or Body lifecycle is minted.
+mod host_call;
 use conduit_net::{
     AccessPointSwitchOperations, DeadlineExpired, OperationDeadline, StationFailure,
     StationOperations,
@@ -11,6 +12,7 @@ use embassy_time::{with_deadline, Instant};
 use esp_radio::wifi::{
     ap::AccessPointConfig, sta::StationConfig, Config, WifiController, WifiError,
 };
+pub use host_call::{Esp32JoinPreparationRefusal, Esp32NetworkJoinProvider};
 
 /// Services remain owned by Root. Withdrawal must retire existing AP requests;
 /// restoration returns only after the actual DHCP/HTTP services are ready.
@@ -26,9 +28,13 @@ pub trait AccessPointServices {
 pub struct Esp32Deadline(pub Instant);
 impl OperationDeadline for Esp32Deadline {
     async fn run<T>(&mut self, work: impl Future<Output = T>) -> Result<T, DeadlineExpired> {
-        with_deadline(self.0, work)
-            .await
-            .map_err(|_| DeadlineExpired)
+        let deadline = self.0;
+        with_deadline(
+            deadline,
+            conduit_net::guard_operation_deadline(work, || Instant::now() >= deadline),
+        )
+        .await
+        .map_err(|_| DeadlineExpired)?
     }
 }
 

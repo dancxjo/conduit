@@ -95,10 +95,18 @@ name = "conduit-esp32-network-switch"
 version = "0.1.0"
 dependencies = [
  "conduit-net",
+ "conduit-network-join-call",
  "embassy-net",
  "embassy-time",
  "esp-hal",
  "esp-radio",
+]
+
+[[package]]
+name = "conduit-kernel"
+version = "0.1.0"
+dependencies = [
+ "conduit-assigned-plan",
 ]
 
 [[package]]
@@ -108,6 +116,24 @@ dependencies = [
  "conduit-core",
  "conduit-plot",
  "serde",
+]
+
+[[package]]
+name = "conduit-network-join-call"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-net",
+ "conduit-plan-lowering",
+]
+
+[[package]]
+name = "conduit-plan-lowering"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
 ]
 
 [[package]]

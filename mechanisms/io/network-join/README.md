@@ -7,7 +7,9 @@ actual network Kind. Neither proof initializes a physical radio or installs a Bo
 
 Root supplies real provider ownership, a current opaque capability, an exact
 Plan/Play binding, one reserved attachment generation and independently admitted
-SDK memory, work and deadlines. The owner checks the existing
+SDK memory, work and deadlines. The owner reserves its own recurring storage
+before Play. An SDK allocator requires a separately admitted finite native pool;
+CPU zero-allocation tests do not prove physical SDK memory bounds. The owner checks the existing
 `authority/network-configurator` subject through the shared rich or constrained
 binder. It grants no authority from serialized assignment metadata.
 

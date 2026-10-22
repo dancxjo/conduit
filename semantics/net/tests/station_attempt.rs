@@ -233,3 +233,55 @@ fn root_can_restore_after_link_loss_under_a_fresh_finite_cleanup_budget() {
         ]
     );
 }
+
+#[test]
+fn deadline_guard_refuses_expired_work_before_first_effectful_poll() {
+    let effects = core::cell::Cell::new(0);
+    assert_eq!(
+        run(guard_operation_deadline(
+            async {
+                effects.set(1);
+                42
+            },
+            || true
+        )),
+        Err(DeadlineExpired)
+    );
+    assert_eq!(effects.get(), 0);
+}
+#[test]
+fn deadline_guard_rejects_late_completion_and_drops_pending_work_without_retry() {
+    for completes in [true, false] {
+        let expired = core::cell::Cell::new(false);
+        let polls = core::cell::Cell::new(0);
+        let dropped = core::cell::Cell::new(false);
+        struct DropGuard<'a>(&'a core::cell::Cell<bool>);
+        impl Drop for DropGuard<'_> {
+            fn drop(&mut self) {
+                self.0.set(true);
+            }
+        }
+        let work = async {
+            let _guard = DropGuard(&dropped);
+            polls.set(polls.get() + 1);
+            expired.set(true);
+            if !completes {
+                pending::<()>().await;
+            }
+            42
+        };
+        assert_eq!(
+            run(guard_operation_deadline(work, || expired.get())),
+            Err(DeadlineExpired)
+        );
+        assert_eq!(polls.get(), 1);
+        assert!(dropped.get());
+    }
+}
+#[test]
+fn deadline_guard_preserves_timely_results() {
+    assert_eq!(
+        run(guard_operation_deadline(async { 42 }, || false)),
+        Ok(42)
+    );
+}
