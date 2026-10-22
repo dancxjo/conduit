@@ -7,6 +7,10 @@ use conduit_face::FaceBasis;
 use core::cell::RefCell;
 use critical_section::Mutex;
 mod mask;
+mod seven_segment;
+pub use seven_segment::{
+    seven_segment_snapshot, SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,
+};
 struct Publication {
     face: PreparedObservationFace,
     ap_ready: bool,

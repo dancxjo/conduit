@@ -267,6 +267,7 @@ dependencies = [
  "conduit-core",
  "conduit-environment-face",
  "conduit-face",
+ "conduit-seven-segment-mask",
  "critical-section",
  "heapless 0.8.0",
 ]

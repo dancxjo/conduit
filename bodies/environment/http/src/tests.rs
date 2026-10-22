@@ -41,6 +41,18 @@ fn http_mask_consumes_exact_face_revisions_without_allocating() {
         let current = response(1000, true);
         publish(1, &[], 2000);
         let failed = response(2000, true);
+        let unavailable = seven_segment_snapshot(
+            2000,
+            conduit_seven_segment_mask::SevenSegmentSelection::Temperature,
+            &fixture_display_profile(),
+        )
+        .unwrap();
+        assert_eq!(
+            unavailable.disposition,
+            conduit_seven_segment_mask::MaskDisposition::Unavailable(
+                conduit_seven_segment_mask::MaskUnavailable::Sensor,
+            )
+        );
         assert!(body(&response(2000, false)).contains("Last known reading"));
         (current, response(31001, true), failed)
     });
@@ -84,4 +96,49 @@ fn http_mask_consumes_exact_face_revisions_without_allocating() {
     });
     let negative: serde_json::Value = serde_json::from_str(body(&response(33000, true))).unwrap();
     assert_eq!(negative["temperature_f"], 14);
+    use conduit_seven_segment_mask::{
+        MaskDisposition, MaskUnavailable, SevenSegmentSelection as Select,
+    };
+    let ((show, stale_show), allocation) = allocation_probe::observe(|| {
+        let show =
+            seven_segment_snapshot(33000, Select::Temperature, &fixture_display_profile()).unwrap();
+        let stale_show =
+            seven_segment_snapshot(63001, Select::Temperature, &fixture_display_profile()).unwrap();
+        (show, stale_show)
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    assert_eq!(
+        core::str::from_utf8(&show.face_identity).unwrap(),
+        negative["face_identity"].as_str().unwrap()
+    );
+    assert_eq!(
+        show.face_revision,
+        negative["face_revision"].as_u64().unwrap()
+    );
+    assert!(matches!(
+        show.disposition,
+        MaskDisposition::Temperature { .. }
+    ));
+    assert_eq!(
+        stale_show.disposition,
+        MaskDisposition::Unavailable(MaskUnavailable::Stale)
+    );
+    assert_ne!(show.face_identity, stale_show.face_identity);
+}
+
+fn fixture_display_profile() -> conduit_seven_segment_mask::Tm1637Profile {
+    use conduit_seven_segment_mask::{DigitWiring, Tm1637Profile, WireBit};
+    Tm1637Profile {
+        digits: core::array::from_fn(|i| DigitWiring {
+            address: i as u8,
+            segment_bits: [0, 1, 2, 3, 4, 5, 6],
+        }),
+        decimal_points: core::array::from_fn(|i| {
+            Some(WireBit {
+                address: i as u8,
+                bit: 7,
+            })
+        }),
+        colon: Some(WireBit { address: 4, bit: 0 }),
+    }
 }

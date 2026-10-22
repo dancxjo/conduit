@@ -75,6 +75,7 @@ dependencies = [
  "conduit-core",
  "conduit-environment-face",
  "conduit-face",
+ "conduit-seven-segment-mask",
  "critical-section",
  "heapless",
  "serde_json",
@@ -132,6 +133,15 @@ dependencies = [
  "conduit-core",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
+ "conduit-plot",
 ]
 
 [[package]]

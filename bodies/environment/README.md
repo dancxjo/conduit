@@ -218,17 +218,14 @@ explicit stale Shows. This proves autonomous short sampling and optional
 inspection, not a full overnight history, an installed Body workload, radio
 coexistence or a connected browser store. The latest observation per outcome is
 retained; the historical store and AP/browser composition are the next integration.
-The physical TM1637 wiring is deferred at the user's request.
+The physical TM1637 attachment awaits connection and an attended display test.
 
-Proposed TM1637 attachment: CLK → GP3 (physical 5), DIO → GP4 (physical 6),
-both through an open-drain-compatible bidirectional level shifter. The user
-identified the display supply as 5 V: VCC → USB VBUS (physical 40),
-GND → shared ground (physical 8). The shifter's low supply uses 3V3 (physical 36)
-and its high supply uses USB VBUS. No GPIO is assigned for enable; GP5 remains
-free while the replacement shifter awaits identification. Disconnect USB before
-wiring. Never connect 5 V display pull-ups directly to Pico GPIO. These are
-proposed physical Host facts, not an installed driver offer or confirmation
-that the display is wired. DHT11 DATA remains on GP2.
+The user has selected 3.3 V operation for the TM1637 module: VCC (even if
+labelled “5V”) → Pico 3V3 OUT (physical 36), GND → common ground (physical 38),
+CLK → GP3 (physical 5), DIO → GP4 (physical 6). This bypasses the level shifter;
+all signal pull-ups must reference that 3.3 V supply. DHT11 DATA remains on GP2.
+Disconnect USB before wiring. These are selected physical attachment facts,
+not confirmation of wiring or an installed display offer.
 
 The portable `mechanisms/io/tm1637` transport now supplies finite open-drain
 wire sequencing for Source-encoded packets, including byte ACKs, STOP on NACK,
@@ -307,3 +304,10 @@ records now pin numeric count/cadence as well as graph and computation records,
 so a re-digested assignment cannot replace Source configuration. Authentication,
 real Body/Wake integration, target memory admission and physical installation
 remain necessary before this construction material becomes an appliance.
+
+The prepared Face owner also exposes a fixed seven-segment Show snapshot through
+the existing Fahrenheit Mask and a caller-selected hardware profile. HTTP and
+seven-segment output retain the same Face identity and revision; physical I/O
+happens outside the Face lock. Freshness loss renders the Mask's unavailable
+Show. The snapshot path allocates nothing. It does not yet install or acknowledge
+a TM1637 Host Call.

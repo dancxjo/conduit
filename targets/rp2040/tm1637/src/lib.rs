@@ -20,8 +20,9 @@ impl<'d> PicoTm1637<'d> {
         (self.clock.is_high(), self.data.is_high())
     }
     /// Consumes the selected pin ownership. The environment profile selects
-    /// GP3 for CLK and GP4 for DIO. External pull-ups and a suitable 3.3V/5V
-    /// bidirectional level shifter are required for the user's 5V display.
+    /// GP3 for CLK and GP4 for DIO. Direct wiring uses a display powered at
+    /// 3.3V with pull-ups to 3.3V (on the module or external). A display with
+    /// pull-ups to 5V instead requires suitable bidirectional translation.
     pub fn new(clock: Peri<'d, impl Pin>, data: Peri<'d, impl Pin>) -> Self {
         Self {
             clock: released_pin(clock),
