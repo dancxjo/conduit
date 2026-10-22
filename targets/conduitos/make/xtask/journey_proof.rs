@@ -496,7 +496,7 @@ fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, Conduito
     }
     for marker in [
         "CONDUIT_HOME_CHECKPOINT plot-opened patchbay",
-        "CONDUIT_WORKSPACE_FACE shown",
+        "CONDUIT_NATIVE_READING ",
         "CONDUIT_WORKSPACE_VIEW ",
     ] {
         if !serial.contains(marker) {
