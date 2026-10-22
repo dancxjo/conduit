@@ -1,0 +1,41 @@
+{
+  "schema": "conduit.audit/canonical-export-check@1",
+  "source_commit": "95bd7a776ebe67a597a69dc88b758196b86ce3fa",
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6063-canonical-export",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "check",
+    "canonical-export"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target",
+    "CARGO_BUILD_JOBS": "4",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "RUST_MIN_STACK": null,
+  "started_utc": "2026-10-22T04:38:15.636754+00:00",
+  "seconds": 337.1551055290038,
+  "exit_code": 0,
+  "status": "passed",
+  "passed_test_groups": [
+    6,
+    14
+  ],
+  "expected_test_groups": [
+    6,
+    14
+  ],
+  "tests_passed": 20,
+  "strict_steps_expected": 2,
+  "strict_steps_complete": true,
+  "source_head_after": "95bd7a776ebe67a597a69dc88b758196b86ce3fa",
+  "source_clean_after": true,
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6063-95bd-canonical-export.log",
+  "raw_bytes": 24004,
+  "raw_sha256": "016740526f480c54f588dd7d020b9c470e0f9951304062086a4e2c2f3d1e41cd",
+  "scope": "Hosted canonical export behavior and suite strict checks only; no native/QEMU, PR or CI claim."
+}
