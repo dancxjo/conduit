@@ -71,52 +71,22 @@ fn tutorial_initial_view_and_event_cross_the_same_production_kernel() {
 }
 
 #[test]
-fn patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority() {
+fn patchbay_uses_the_canonical_fore_and_refuses_legacy_events() {
     let (prepared, mut play) = kernel();
     let tour = index(&prepared, NativePlot::Tour);
     let patchbay = index(&prepared, NativePlot::Patchbay);
+    assert!(play.has_patchbay_fore(patchbay));
     play.select_patchbay_target(patchbay, tour).unwrap();
-    let initial = play.take_application_view(patchbay).unwrap();
-    assert!(
-        initial
-            .nodes
-            .iter()
-            .any(|node| node.key == "plot" && node.text == "tour")
+    assert_eq!(play.patchbay_graph(patchbay).unwrap().plot_name, "tour");
+    assert!(play.take_application_view(patchbay).is_none());
+    assert_eq!(
+        play.application_event(patchbay, &[]),
+        Err(PlayRefusal::InputOwnership)
     );
-    let inspect = conduit_face::ApplicationEvent {
-        revision: initial.revision,
-        action: patchbay_application::INSPECT_NEXT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &inspect.encode(&initial).unwrap())
-        .unwrap();
-    let inspected = play.take_application_view(patchbay).unwrap();
-    assert_eq!(inspected.revision, initial.revision + 1);
-    let edit = conduit_face::ApplicationEvent {
-        revision: inspected.revision,
-        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &edit.encode(&inspected).unwrap())
-        .unwrap();
     assert!(matches!(
-        play.take_application_request(patchbay),
-        Some(native_workset::NativeApplicationRequest::EditCurrent(
-            patchbay_application::PatchbayApplicationRequest::EditCurrent { .. }
-        ))
+        play.applications.apply(patchbay, &[]),
+        Err(conduitos_application_core::data::Refusal::Order)
     ));
-    let latest = play.take_application_view(patchbay).unwrap();
-    let repeated_edit = conduit_face::ApplicationEvent {
-        revision: latest.revision,
-        action: patchbay_application::EDIT_CURRENT_ACTION_ID.into(),
-        kind: conduit_face::ApplicationEventKind::Activate,
-        value: alloc::vec::Vec::new(),
-    };
-    play.application_event(patchbay, &repeated_edit.encode(&latest).unwrap())
-        .unwrap();
-    play.cancel().unwrap();
     assert!(play.take_application_request(patchbay).is_none());
 }
 #[test]

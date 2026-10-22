@@ -28,6 +28,8 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
                 .any(|plot| plot.name == "thermostat/main")
             {
                 "thermostat/main".to_string()
+            } else if checked.plots.len() == 1 {
+                checked.plots[0].name.clone()
             } else {
                 super::executable_entry(&checked).unwrap()
             };
@@ -59,11 +61,7 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
                     protected_resource_grants: &[],
                     line_offers: &[],
                 },
-                &if entry == "thermostat/main" {
-                    crate::installed_browser::thermostat_scan_offer::fore_bounds()
-                } else {
-                    BTreeMap::new()
-                },
+                &crate::installed_browser::patchbay_owner_installation::fore_bounds(&authoring),
             )
             .unwrap()
         })

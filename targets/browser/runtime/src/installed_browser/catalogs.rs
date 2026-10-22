@@ -123,6 +123,7 @@ fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, Strin
     conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
+    super::patchbay_owner_installation::install_catalogs(&mut startup, &mut profile)?;
     super::tutorial_presenter::install_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
