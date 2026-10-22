@@ -204,10 +204,8 @@ fn port(bytes: &[u8]) -> Result<OnnxPort, Refusal> {
         }
         Ok(())
     })?;
-    // Existing Data TensorValue requires rank >= 1; never silently reshape scalars.
-    if dimensions.is_empty() {
-        return Err(Refusal::Unsupported);
-    }
+    // An explicitly present empty shape is a scalar. The shape Option above
+    // still refuses absent/unknown shapes rather than coercing them to rank zero.
     Ok(OnnxPort {
         name: name.ok_or(Refusal::MissingField)?,
         element: element.ok_or(Refusal::MissingField)?,

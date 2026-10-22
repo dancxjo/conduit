@@ -36,8 +36,9 @@ depth is fixed by the supported schema paths. All preparation allocations are
 bounded by these limits. There is no Play implementation in this component.
 
 The initial profile accepts dense i8/u8/i16/u16/i32/u32/i64/u64/f32/f64 tensor
-ports. Scalar rank zero, unknown dimensions, zero dimensions, string/bool/half
-tensors, optional/sequence/map/sparse/opaque port types, node attributes,
+ports. An explicitly declared empty shape is a rank-zero scalar: exactly one
+element, zero axes and exactly its dtype width. An absent shape remains unknown
+and refuses. Unknown dimensions, zero dimensions, string/bool/half tensors, optional/sequence/map/sparse/opaque port types, node attributes,
 multi-device node configurations, sparse initializers, training graphs and
 local functions refuse. Every top-level initializer is inspected for external
 storage. Attributes and other nested graph/tensor carriers refuse entirely so
@@ -81,9 +82,22 @@ covered at their owning boundaries. The supported model-inference suite passes
 `996cefe6e85c2991f51a773cfcad5b2494d21bd4`.
 
 This is held, unmerged preparation for #5219. Its original portable scope still
-needs explicit resolution of rank-zero scalars, optional/model-defined inputs
+needs acceptance of the rank-zero scalar prerequisite, optional/model-defined inputs
 and a numeric finite-only policy when required downstream. Approved external
 file admission and rendered Patchbay inspection also remain unsupported here.
 The initial profile refuses external tensor references without opening files.
 Actual ORT realization remains separate #5220; fixture execution does not prove
 ORT execution, current-source CI/Integration, publication or whole #5219 closure.
+
+
+The #6210 rank-zero prerequisite extends the existing Tensor/ModelSignature
+contracts and expands their finite axis bounds to 0..=8. A scalar's empty shape
+has an empty product of one element; it is distinct from rank one of length one.
+The raw tensor codec, canonical Native bundle and borrowed view check the same
+exact dtype width. Checked-in I64 and F32 Identity graphs and authored Source
+exercise the ordinary imported preparation and selected Plan inspection in
+`model_infer_onnx_scalar`; focused scalar storage and refusal cases accompany
+those fixtures. The supported model-inference suite passed 68 tests across 24 targets at clean
+Source `9cacd3ca8d8ae486112ba81d1f35b692c25505f1`; the source-bound receipt is in
+`docs/audits/evidence/rank-zero-imported-model-20261021`. CI/Integration/merge
+remain delivery gates.

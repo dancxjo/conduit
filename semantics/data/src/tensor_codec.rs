@@ -48,7 +48,7 @@ impl TensorValue {
         }
         let element = decode_element(cursor.u8()?)?;
         let rank = usize::from(cursor.u8()?);
-        if rank == 0 || rank > MAXIMUM_TENSOR_RANK {
+        if rank > MAXIMUM_TENSOR_RANK {
             return Err(TensorRefusal::RankOutOfBounds);
         }
         let dimensions = BoundedSequence::try_from_iter(
