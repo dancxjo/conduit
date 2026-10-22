@@ -179,6 +179,8 @@ usb-hid-mouse-proof = ["usb-hid-endpoint-proof"]
 native-compositor = ["dep:fontdue", "native-owner-network"]
 # Selected only by the explicit native latency observation entrance.
 native-latency-observation = ["native-compositor"]
+# Matched observation appliance only; ordinary product retention is unchanged.
+native-cache-zero-retention = ["native-latency-observation"]
 # The product's invitation-bound owner exchange uses the same bounded network
 # machinery as the isolated transport proof, without selecting its entrypoint.
 native-owner-network = ["dep:conduitos-tls-core", "dep:conduitos-network-core", "dep:embedded-io", "dep:embedded-tls", "dep:embedded-websocket", "dep:rand_chacha", "dep:rand_core", "dep:serde-json-core", "dep:smoltcp"]
