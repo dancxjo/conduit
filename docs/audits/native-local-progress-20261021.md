@@ -1415,3 +1415,19 @@ reuse the region lifecycle while admitting only the actual selected ports/effect
 Explicit DATA Save/reopen belongs to #6192; namespace and cold-reboot durability
 remain #6193/#6195. Patchbay's truthful unadmitted-editor refusal stays in place
 until the real editor can be selected. No QEMU, CI or user enactment is claimed.
+
+The freestanding x86_64 native-compositor library check passed for the canonical
+owner/Root transport checkpoint. No protected runtime or QEMU enactment follows
+from that compilation. The existing cold service builds completed in the same
+original check; the final-source warm check also passed.
+
+Document-only region preparation now omits the serial scope/capability altogether.
+The legacy text/Morse paths retain their exact paired scope and handle. A serial
+presentation without that explicit binding refuses before entering the effect
+path. The common preparation validates the sealed Body Plan, current Host/Boot/
+offer generation, and captures the exact Body Plan for activation; removing a
+serial dependency must not remove those identity checks. More than one retained
+editor in a partition refuses rather than aliasing its single private state slot.
+Canonical document gears are recognized by the existing protected-region planning
+and preparation selection, without advertising an unfinished state/editor Back.
+The final freestanding x86_64 library check passes; no new test/proof campaign.

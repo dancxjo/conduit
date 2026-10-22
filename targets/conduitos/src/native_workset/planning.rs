@@ -126,7 +126,9 @@ pub(crate) fn prepare_exact(
                 .any(|p| {
                     matches!(
                         p.kind_id.as_str(),
-                        conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+                        conduit_text::TEXT_UPPER_KIND
+                            | conduit_semantic_catalog::TEXT_EDIT_KIND
+                            | conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
                     )
                 });
             if protected {
@@ -322,12 +324,14 @@ fn plan_plots_inner(
             &limits,
         )
         .map_err(|_| WorksetRefusal::Plan)?;
-        // The connected keyboard chain stays one region; Root delivers input
-        // and admits face while its pure implementations run protected.
+        // Retained text and its connected input/presentation chain stay in the
+        // selected region. Document ownership does not imply a serial grant.
         let plan = if plan.fragments[0].placements.iter().any(|placement| {
             matches!(
                 placement.kind_id.as_str(),
-                conduit_text::TEXT_UPPER_KIND | conduit_semantic_catalog::TEXT_EDIT_KIND
+                conduit_text::TEXT_UPPER_KIND
+                    | conduit_semantic_catalog::TEXT_EDIT_KIND
+                    | conduit_semantic_catalog::TEXT_EDIT_DOCUMENT_KIND
             )
         }) {
             crate::execution_region::seal_execution_region(plan, advertisement, fixed)
