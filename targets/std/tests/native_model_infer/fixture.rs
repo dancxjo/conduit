@@ -102,3 +102,31 @@ pub const BIT_CONTROLS: [u32; 19] = [
     0xffc54321, 0x7f800001, 0xff800001, 0x00000001, 0x80000001, 0x007fffff, 0x807fffff, 0x00800000,
     0x80800000, 0x7f7fffff, 0xff7fffff,
 ];
+
+pub fn reference(bits: u32) -> NamedTensorBundle {
+    let bytes = bits.to_le_bytes();
+    let digest = tensor_content_digest(&bytes);
+    NamedTensorBundle::from_values(vec![NamedTensor {
+        name: "scalar".into(),
+        value: TensorValue {
+            element: TensorElement::F32,
+            dimensions: BoundedSequence::new(),
+            axes: BoundedSequence::new(),
+            content_digest: digest,
+            backing: TensorBacking::Resource(BoundedResourceRef {
+                identity: ResourceSemanticIdentity::from_digest(digest),
+                content_profile: "tensor/elements-ieee754-f32-le@1".into(),
+                access_class: "proof/ungranted-scalar-storage".into(),
+                extent: ResourceExtent {
+                    bytes: 4,
+                    items: Some(1),
+                },
+                lifetime: ResourceLifetime {
+                    version: ResourceVersionIdentity::from_digest([9; 32]),
+                    expires_at: None,
+                },
+            }),
+        },
+    }])
+    .unwrap()
+}

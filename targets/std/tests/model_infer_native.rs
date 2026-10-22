@@ -11,6 +11,8 @@ mod allocation;
 mod common;
 #[path = "native_model_infer/fixture.rs"]
 mod fixture;
+#[path = "native_model_infer/planning_offer.rs"]
+mod planning_offer;
 use conduit_ai::{
     imported_back_admission::ImportedBackAdmissionReceipt,
     imported_model_descriptor::ImportedModelInspection, ModelComputeRuntimeIdentity,
@@ -65,6 +67,16 @@ fn actual_native_identity_preserves_source_plan_play_bits_without_parent_growth(
             )
             .unwrap();
         let inspection = ImportedModelInspection::from_planned_gear(placement).unwrap();
+        assert_eq!(
+            inspection.back_profile_identity,
+            "std/ort-cpu-inline-scalar-f32@1"
+        );
+        assert!(placement.authority.is_empty());
+        assert_eq!(placement.host_calls.len(), 1);
+        assert_eq!(
+            placement.host_calls[0].contract_id.as_str(),
+            conduit_std_host::hosted_model_infer::MODEL_INFER_OPERATION
+        );
         assert_eq!(inspection.admission_identity, admission.identity());
         assert_eq!(inspection.checkpoint, *admission.checkpoint());
         assert_eq!(inspection.inputs[0].semantic_port, "scalar");
@@ -112,7 +124,7 @@ fn actual_native_identity_preserves_source_plan_play_bits_without_parent_growth(
         };
         let output_bits = u32::from_le_bytes(actual_bytes.as_slice().try_into().unwrap());
         assert_eq!(output_bits, bits);
-        receipts.push(serde_json::json!({"input_bits":bits,"output_bits":output_bits,"source":plan.source_document_id.as_str(),"plan":plan.plan_id.as_str(),"play":kernel.active_play_id.as_str(),"graph":inspection.checkpoint.graph,"sidecar":inspection.checkpoint.sidecar,"admission":inspection.admission_identity,"parent_play_allocations":probe.calls,"parent_play_requested_bytes":probe.bytes}));
+        receipts.push(serde_json::json!({"input_bits":bits,"output_bits":output_bits,"source":plan.source_document_id.as_str(),"plan":plan.plan_id.as_str(),"play":kernel.active_play_id.as_str(),"graph":inspection.checkpoint.graph,"sidecar":inspection.checkpoint.sidecar,"admission":inspection.admission_identity,"back_profile":inspection.back_profile_identity,"materialized_input":"inline scalar F32","tensor_read_authority":false,"runtime":{"provider":actual_runtime.provider_name,"name":actual_runtime.runtime_name,"version":actual_runtime.runtime_version,"build":actual_runtime.runtime_build_identity,"precision":actual_runtime.precision_profile},"parent_play_allocations":probe.calls,"parent_play_requested_bytes":probe.bytes}));
     }
     println!(
         "{}",
@@ -163,4 +175,68 @@ fn native_admission_failures_propagate_before_host_capability_publication() {
             .unwrap(),
         )
     });
+}
+
+/// This negative exercises the production prepared Host Call owner directly;
+/// the 19 positive cases above separately execute the complete Source kernel.
+#[test]
+#[ignore = "explicit installed runtime required; cargo xtask check model-native-inference"]
+fn resource_reference_without_authority_leaves_native_call_capacity_untouched() {
+    use conduit_std_host::hosted_model_work::{HostedModelWorkAdapter, ModelWorkTerminal};
+    let mut runtime = fixture::profile();
+    runtime.maximum_calls = 1;
+    let mut actual = None;
+    let (_planning_host, plan) = common::host_plan(fixture::SOURCE, |signature| {
+        let prepared = prepare_native_model(
+            fixture::model(signature),
+            fixture::worker(),
+            runtime.clone(),
+            fixture::grant(),
+        )
+        .unwrap();
+        let offer = planning_offer::PlanningOffer::from_prepared(&prepared);
+        actual = Some(prepared);
+        Box::new(offer)
+    });
+    let mut prepared = actual.unwrap();
+    let placement = &plan.fragments[0].placements[0];
+    assert!(placement.authority.is_empty());
+    assert_eq!(placement.host_calls.len(), 1);
+    assert_eq!(
+        placement.host_calls[0].contract_id.as_str(),
+        conduit_std_host::hosted_model_infer::MODEL_INFER_OPERATION
+    );
+    let inspection = ImportedModelInspection::from_planned_gear(placement).unwrap();
+    assert_eq!(
+        inspection.back_profile_identity,
+        "std/ort-cpu-inline-scalar-f32@1"
+    );
+    let bits = 0x7fc1_2345;
+    let reference = fixture::reference(bits).encode().unwrap();
+    let inline = fixture::scalar(bits).encode().unwrap();
+    let mut output = Vec::with_capacity(262144);
+    let (refusal, reference_allocations, reference_bytes) =
+        allocation::measure(|| prepared.execute(placement, &reference, &mut output));
+    assert_eq!(refusal, ModelWorkTerminal::Refused);
+    assert!(output.is_empty());
+    assert_eq!((reference_allocations, reference_bytes), (0, 0));
+    // Only one native invocation is available. Its success after the reference
+    // refusal proves that the reference never reached native execution.
+    let (success, inline_allocations, inline_bytes) =
+        allocation::measure(|| prepared.execute(placement, &inline, &mut output));
+    assert_eq!(success, ModelWorkTerminal::Produced);
+    assert_eq!(
+        NamedTensorBundle::decode(&output).unwrap(),
+        fixture::scalar(bits)
+    );
+    assert_eq!((inline_allocations, inline_bytes), (0, 0));
+    let (capacity, capacity_allocations, capacity_bytes) =
+        allocation::measure(|| prepared.execute(placement, &inline, &mut output));
+    assert_eq!(capacity, ModelWorkTerminal::Refused);
+    assert!(output.is_empty());
+    assert_eq!((capacity_allocations, capacity_bytes), (0, 0));
+    println!(
+        "{}",
+        serde_json::json!({"proof":"native-reference-without-authority","proof_class":"direct production prepared Host Call boundary","plan":plan.plan_id.as_str(),"back_profile":inspection.back_profile_identity,"tensor_read_authority":false,"reference_refused_without_output":true,"single_native_call_remained_available":true,"capacity_then_refused_without_output":true,"parent_host_boundary_allocation_calls":0,"parent_host_boundary_requested_bytes":0})
+    );
 }

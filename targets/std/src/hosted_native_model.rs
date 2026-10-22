@@ -117,7 +117,9 @@ impl ModelComputeAdapter for NativeCpuModelAdapter {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         };
         let TensorBackingView::Inline(payload) = input.backing else {
-            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+            // A reference carries no tensor-read permission. This installed
+            // profile owns only materialized inline I/O; never open storage.
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedFormat);
         };
         if inputs.next().is_some()
             || input.name != "scalar"

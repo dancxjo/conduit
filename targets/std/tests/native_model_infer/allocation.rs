@@ -100,3 +100,12 @@ impl ExternalForeOutputAdapter for Sink {
         Ok(())
     }
 }
+
+pub fn measure<T>(operation: impl FnOnce() -> T) -> (T, usize, usize) {
+    CALLS.with(|v| v.set(0));
+    BYTES.with(|v| v.set(0));
+    ENABLED.with(|v| v.set(true));
+    let result = operation();
+    stop();
+    (result, CALLS.with(Cell::get), BYTES.with(Cell::get))
+}

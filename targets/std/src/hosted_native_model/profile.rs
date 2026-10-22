@@ -3,7 +3,7 @@ use conduit_ai::{imported_back_admission::*, imported_onnx::*, onnx_metadata::On
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::*;
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
-pub(super) const ARTIFACT: &str = "adapter/std-ort-1.23.2-cpu-scalar-f32@1";
+pub(super) const ARTIFACT: &str = "adapter/std-ort-1.23.2-cpu-inline-scalar-f32@1";
 const DETERMINISM: &str = "deterministic/ieee754-f32-identity@1";
 pub(super) fn validate_model(model: &ImportedOnnxResource) -> Result<(), ModelComputeRefusal> {
     let signature = model.resource().signature();
@@ -53,7 +53,7 @@ pub(super) fn runtime(digest: [u8; 32]) -> ModelComputeRuntimeIdentity {
 }
 pub(super) fn offer(bytes: u64) -> ModelComputeOffer {
     ModelComputeOffer {
-        identity: "std/ort-cpu-scalar-f32@1".into(),
+        identity: "std/ort-cpu-inline-scalar-f32@1".into(),
         supported_operations: vec![ModelComputeOperation::Inference],
         accepted_formats: vec![ONNX_FORMAT_PROFILE.into()],
         supported_elements: vec![TensorElement::F32],
@@ -126,7 +126,7 @@ pub(super) fn exact(
     runtime: &ModelComputeRuntimeIdentity,
 ) -> ExactImportedBackProfile {
     ExactImportedBackProfile {
-        profile_identity: "std/ort-cpu-scalar-f32@1".into(),
+        profile_identity: "std/ort-cpu-inline-scalar-f32@1".into(),
         implementation_identity: crate::hosted_model_infer::MODEL_INFER_IMPLEMENTATION.into(),
         adapter_artifact_identity: ARTIFACT.into(),
         runtime: runtime.clone(),
