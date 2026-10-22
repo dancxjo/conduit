@@ -1588,3 +1588,15 @@ This is owner/publication infrastructure for #6201 and #5994. The installed
 native Source still selects `native-retained.conduit`; canonical Fore selection,
 ordinary native publication/input dispatch and adapter retirement remain open.
 No QEMU/browser campaign, CI acceptance, release or parent closure is claimed.
+
+The corrected positive native Mask test now passes. Its Body, Wake, combined
+BodyPlan and active Play are produced by the ordinary native planner/kernel and
+canonical lifecycle transitions. The retained Patchbay actor receives the exact
+current contribution basis; the complete publication crosses `encode_command`
+and the existing workspace command decoder. Actual Mask scanout acknowledgement
+then typed submission produces the exact Edit proposal and one actor revision
+advance. Replaying the consumed Show and republishing it refuse without another
+advance. This is deterministic CPU/native Mask evidence, not installed QEMU
+execution. The canonical fragment query also uses an immutable owner accessor:
+Root sends it through the same live service with transport sequencing and
+quarantine, rather than caching another projection/actor truth.
