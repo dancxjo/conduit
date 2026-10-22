@@ -136,11 +136,14 @@ try {
   for (const name of ["owner-face-component.mjs", "owner-face-look.css"]) {
     await copyFile(path.resolve(ROOT, "../handbook", name), path.join(stageRoot, name));
   }
-  const patchbayFile = path.join(stageRoot, "browser-sdk-patchbay.mjs");
-  const patchbayModule = await readFile(patchbayFile, "utf8");
-  await writeFile(patchbayFile, patchbayModule.replace("'../handbook/owner-face-component.mjs'", "'./owner-face-component.mjs'"));
-  const bodyFaceFile = path.join(stageRoot, "browser-sdk-body-face.mjs");
-  await writeFile(bodyFaceFile, (await readFile(bodyFaceFile, "utf8")).replace("'../handbook/owner-face-component.mjs'", "'./owner-face-component.mjs'"));
+  for (const name of ["browser-sdk-patchbay.mjs", "browser-sdk-body-face.mjs"]) {
+    const file = path.join(stageRoot, name);
+    const source = await readFile(file, "utf8");
+    const relocated = source
+      .replaceAll("'../handbook/owner-face-component.mjs'", '"./owner-face-component.mjs"')
+      .replaceAll('"../handbook/owner-face-component.mjs"', '"./owner-face-component.mjs"');
+    await writeFile(file, relocated);
+  }
   const sdkModule = await readFile(path.join(stageRoot, "browser-sdk.mjs"), "utf8");
   await writeFile(path.join(stageRoot, "browser-sdk.mjs"), sdkModule.replace(
     '"../host/assets/browser-body-host.mjs"', '"./host/assets/browser-body-host.mjs"',
