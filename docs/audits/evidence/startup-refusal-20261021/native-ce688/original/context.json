@@ -1,0 +1,15 @@
+{
+  "source_commit": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "requested_viewport": "default normal profile; no viewport flag",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "graphical-profile-proof",
+    "--locked"
+  ],
+  "started_utc": "2026-10-22T04:50:34.277569+00:00",
+  "boundary": "Canonical normal graphical-profile proof through live_media ProductHost; ce688 has no viewport flag. No EDID override; actual captured extent is authoritative. Current startup positive, not per-stage QEMU failure injection."
+}

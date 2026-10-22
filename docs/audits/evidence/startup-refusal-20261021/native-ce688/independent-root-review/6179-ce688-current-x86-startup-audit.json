@@ -1,0 +1,219 @@
+{
+  "status": "x86-journey-verified-full-command-pending",
+  "source": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+  "image_sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+  "native_birth": {
+    "accepted_effects": 1,
+    "after": {
+      "active_play_id": null,
+      "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+      "boot_id": "99f1d2a692a3ea3f457996ad4c8ad0f4f0997d3d19f2d628071b786c3f92f424",
+      "born_sign_id": "conduitos/product/born/99f1d2a692a3ea3f457996ad4c8ad0f4f0997d3d19f2d628071b786c3f92f424/1",
+      "checked_plot_id": "ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab",
+      "cord_ids": [],
+      "expanded_plot_id": "b741c1c52dca2fe25ab1d83fc97cbf0222119800b35a7e320a6899c635ef3c28",
+      "friendly_name": "Amin ibn Abbas al-Zahra",
+      "fulfilled_sign_id": null,
+      "gear_ids": [],
+      "host_id": "e66662f7184772c1b3a6d1803a930b9d13efeb90680bcc0e3436418f3285308f",
+      "input_count": 0,
+      "input_sign_id": null,
+      "kernel_sign_gap": null,
+      "last_request_id": "conduitos/creche/birth/99f1d2a692a3ea3f457996ad4c8ad0f4f0997d3d19f2d628071b786c3f92f424/5",
+      "loss_kind": null,
+      "loss_sign_id": null,
+      "lull_sign_id": null,
+      "mask": null,
+      "offer_generation": 1,
+      "part_id": "a8c95c82cef73a6da20f9b1f1f4359e3e566c5630451d1e40a305ab3a330e42f",
+      "partition_plan_id": null,
+      "plan_id": null,
+      "plan_sign_id": null,
+      "play_sign_id": null,
+      "port_ids": [],
+      "result": null,
+      "result_omitted_bytes": 0,
+      "result_sign_id": null,
+      "revision": 3,
+      "source_document_id": "aa98b04cce0746f84fc8965cd59890e2d45cf79677e17b7a4eb908e8bff212b3",
+      "status": "born-lulled",
+      "text_editor_active": false,
+      "text_editor_label": null,
+      "wake_id": null,
+      "wake_sign_id": null,
+      "workload_capacity_available": false,
+      "workload_revision": 0,
+      "workload_sign_id": null
+    },
+    "before": {
+      "active_play_id": null,
+      "body_id": null,
+      "boot_id": "99f1d2a692a3ea3f457996ad4c8ad0f4f0997d3d19f2d628071b786c3f92f424",
+      "born_sign_id": null,
+      "checked_plot_id": null,
+      "cord_ids": [],
+      "expanded_plot_id": null,
+      "friendly_name": null,
+      "fulfilled_sign_id": null,
+      "gear_ids": [],
+      "host_id": "e66662f7184772c1b3a6d1803a930b9d13efeb90680bcc0e3436418f3285308f",
+      "input_count": 0,
+      "input_sign_id": null,
+      "kernel_sign_gap": null,
+      "last_request_id": null,
+      "loss_kind": null,
+      "loss_sign_id": null,
+      "lull_sign_id": null,
+      "mask": null,
+      "offer_generation": 1,
+      "part_id": null,
+      "partition_plan_id": null,
+      "plan_id": null,
+      "plan_sign_id": null,
+      "play_sign_id": null,
+      "port_ids": [],
+      "result": null,
+      "result_omitted_bytes": 0,
+      "result_sign_id": null,
+      "revision": 1,
+      "source_document_id": null,
+      "status": "world",
+      "text_editor_active": false,
+      "text_editor_label": null,
+      "wake_id": null,
+      "wake_sign_id": null,
+      "workload_capacity_available": false,
+      "workload_revision": null,
+      "workload_sign_id": null
+    },
+    "disposition": {
+      "Accepted": {
+        "operation_request_id": "conduitos/creche/birth/99f1d2a692a3ea3f457996ad4c8ad0f4f0997d3d19f2d628071b786c3f92f424/5"
+      }
+    },
+    "face_id": "0106c1e4fe81d32a2bdf6c42bc20166f6ec312415d6f588c0bab6aa72be34bfd",
+    "face_revision": 5,
+    "interaction": {
+      "action_id": "creche.birth",
+      "arguments": [],
+      "face_id": "0106c1e4fe81d32a2bdf6c42bc20166f6ec312415d6f588c0bab6aa72be34bfd",
+      "face_revision": 5,
+      "identity": "b999a561c80bab0d249b2c04b5ba2ed120866905fcee6e1531cceff55fea985d",
+      "sequence": 48,
+      "show_id": "show/c725bcf6558e4aad0228996e928811813b107bbffc00702dffb13660f255083b",
+      "target": "birth/conduitos/creche/current/navigation"
+    },
+    "requested_intent": "conduit.intent/creche.birth@1",
+    "schema": "conduit.native-action/v1",
+    "show_id": "show/c725bcf6558e4aad0228996e928811813b107bbffc00702dffb13660f255083b"
+  },
+  "stages": [
+    [
+      379,
+      [
+        "wake",
+        "begin"
+      ]
+    ],
+    [
+      464,
+      [
+        "wake",
+        "accepted"
+      ]
+    ],
+    [
+      465,
+      [
+        "plan",
+        "begin"
+      ]
+    ],
+    [
+      586,
+      [
+        "plan",
+        "accepted"
+      ]
+    ],
+    [
+      587,
+      [
+        "play",
+        "begin"
+      ]
+    ],
+    [
+      610,
+      [
+        "play",
+        "accepted"
+      ]
+    ]
+  ],
+  "lifecycle": [
+    {
+      "status": "born-lulled",
+      "revision": 3,
+      "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+      "wake_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "line": 375
+    },
+    {
+      "status": "awake",
+      "revision": 4,
+      "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+      "wake_id": "3914d6e597a5e0cbad4841f18b6690b6948da5422bc5828db4202448e4928672",
+      "plan_id": "body-plan/sha256:60d165236bcf846338c64c84d91ad178d2a4916570e876199936e12e42dab185",
+      "active_play_id": null,
+      "line": 462
+    },
+    {
+      "status": "planned",
+      "revision": 5,
+      "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+      "wake_id": "3914d6e597a5e0cbad4841f18b6690b6948da5422bc5828db4202448e4928672",
+      "plan_id": "body-plan/sha256:60d165236bcf846338c64c84d91ad178d2a4916570e876199936e12e42dab185",
+      "active_play_id": null,
+      "line": 584
+    },
+    {
+      "status": "quiescent-awaiting-input",
+      "revision": 6,
+      "body_id": "954f6d0e2af28f8b11a49ba58793111baa40ca36ed675d4880dfd61880a836f3",
+      "wake_id": "3914d6e597a5e0cbad4841f18b6690b6948da5422bc5828db4202448e4928672",
+      "plan_id": "body-plan/sha256:60d165236bcf846338c64c84d91ad178d2a4916570e876199936e12e42dab185",
+      "active_play_id": "body-play/sha256:8eb076678458b0ff6339a2c0f57bd8555459ad10b3f4ba50dec89e784e213521",
+      "line": 607
+    }
+  ],
+  "observer_command_interval": {
+    "start_qmp_line": 114,
+    "end_qmp_line": 118,
+    "nanoseconds": 4249989562,
+    "seconds": 4.249989562,
+    "scope": "Birth Enter QMP key-down command to body-playing screendump command; includes observer overhead. Not ACK latency, capture-end duration or speedup."
+  },
+  "original_files": {
+    "journey-serial.log": {
+      "bytes": 1089182,
+      "sha256": "c1fd4df67826a3f071481cf9c1f2473922a2469d679840381720e2146c8dcd2d"
+    },
+    "journey-qmp.log": {
+      "bytes": 61554,
+      "sha256": "a6db7ecefc2715dffe754362987a1d6d0ac67e39cd3fedc95242a27b9bcda272"
+    },
+    "journey-proof.json": {
+      "bytes": 23954,
+      "sha256": "9625f7a8521fbebfb4099907b917dbdc452e52d2f69c7694c0bada704216e10f"
+    },
+    "journey-frames/manifest.json": {
+      "bytes": 413977,
+      "sha256": "51b71b714941290824ffe65d7b2025247b1396fe2d61ece5b5254a8ce659f54e"
+    }
+  },
+  "scope": "Completed normal x86 QEMU journey only. Full supported graphical-profile command is still running its four other-architecture asset checks; no whole-command exit0, Candidate, Integration, physical/human or full issue closure claim."
+}
