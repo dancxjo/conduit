@@ -194,6 +194,30 @@ pub fn run() {
         )
     };
     assert_eq!(mapped as usize, memory::METADATA);
+    // Exercise cross-word runs, aligned placement, fragmented reuse and full
+    // heap reuse through the production allocator before retaining controllers.
+    let layouts = [
+        Layout::from_size_align(63 * 32, 32).unwrap(),
+        Layout::from_size_align(3 * 32, 32).unwrap(),
+        Layout::from_size_align(129_539, 4096).unwrap(),
+    ];
+    let pointers = layouts.map(|layout| unsafe { PrivateHeap.alloc(layout) });
+    assert_eq!(pointers[0] as usize, memory::HEAP_START);
+    assert_eq!(pointers[1] as usize, memory::HEAP_START + 63 * 32);
+    assert!(!pointers[2].is_null());
+    assert_eq!(pointers[2] as usize % 4096, 0);
+    unsafe { PrivateHeap.dealloc(pointers[1], layouts[1]) };
+    let replacement = unsafe { PrivateHeap.alloc(layouts[1]) };
+    assert_eq!(replacement, pointers[1]);
+    unsafe {
+        PrivateHeap.dealloc(replacement, layouts[1]);
+        PrivateHeap.dealloc(pointers[0], layouts[0]);
+        PrivateHeap.dealloc(pointers[2], layouts[2]);
+    }
+    let entire = Layout::from_size_align(memory::HEAP_BYTES, 32).unwrap();
+    let pointer = unsafe { PrivateHeap.alloc(entire) };
+    assert_eq!(pointer as usize, memory::HEAP_START);
+    unsafe { PrivateHeap.dealloc(pointer, entire) };
     let LegacyFixture::Init { applications } = data::decode(FIXTURE).unwrap();
     let Some(Initial::Patchbay { targets, selected }) = &applications[0] else {
         panic!("Patchbay fixture");
