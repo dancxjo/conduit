@@ -205,6 +205,22 @@
       "original_sha256": "a8c3a27d9cc424207246ae110be607df11a43990f6b457f621ce0c35932ce60c",
       "original_bytes": 14392,
       "encoding": "gzip"
+    },
+    {
+      "path": "negative-text-0f221/serial-drain-diagnostic.json",
+      "sha256": "75a62c6b4bb9d718067f8ca79480477895dcce1a2a49df8cfe85020462bb676d",
+      "bytes": 1055,
+      "original_sha256": "75a62c6b4bb9d718067f8ca79480477895dcce1a2a49df8cfe85020462bb676d",
+      "original_bytes": 1055,
+      "encoding": "identity"
+    },
+    {
+      "path": "negative-text-0f221/serial-drain-no-exit-device.log.gz",
+      "sha256": "437335be54cde1b1f696223196d086a00a82dc725927bba3247224d70f4fb215",
+      "bytes": 353,
+      "original_sha256": "6e7675208bf5c37b91c12dd883fb4a35231010787d8358a531c50ca24bbfc762",
+      "original_bytes": 778,
+      "encoding": "gzip"
     }
   ],
   "omitted_artifacts": {
@@ -222,5 +238,13 @@
     "command": "cargo +stable clippy --locked -p conduitos --all-targets --features hosted-tools,native-compositor -- -D warnings",
     "status": "passed",
     "exit_code": 0
+  },
+  "negative_text_diagnostic_custody": {
+    "source": "0f2218d1a32dd0577b71b577536281c842b78a88",
+    "legacy_serial_alias": "negative-text-0f221/ordinary-domain-proof.log.gz",
+    "accurately_named_serial": "negative-text-0f221/serial-drain-no-exit-device.log.gz",
+    "command_record": "negative-text-0f221/serial-drain-diagnostic.json",
+    "interpretation": "unchanged ISO diagnostic without isa-debug-exit; terminated with SIGTERM after full refusal capture; recorded returncode 0 is not accepted proof",
+    "original_failed_supported_run_output": "negative-text-0f221/build-and-failure.log.gz"
   }
 }

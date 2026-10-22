@@ -37,11 +37,20 @@ Original retention records may list additional local historical artifacts;
   [build/proof output](current/build-proof.log.gz) retain successes and terminal
   completion together. Build/image records and dependency/link inventory/map are
   beside them; link observation is not an isolation proof by itself.
-- [Text admission diagnostic](negative-text-0f221/ordinary-domain-proof.log.gz)
+- [Text admission diagnostic](negative-text-0f221/serial-drain-no-exit-device.log.gz)
   preserves source `0f2218d1a32dd0577b71b577536281c842b78a88`: the selected actual
   Face binding allows 256 completion bytes, while the migrated broker rejected it
-  under an obsolete zero-output assumption. The original raw diagnostic and
-  kernel refusal are retained.
+  under an obsolete zero-output assumption. The [exact diagnostic command and
+  termination record](negative-text-0f221/serial-drain-diagnostic.json) identify a
+  separate run of the unchanged ISO **without the isa-debug-exit device**. The
+  harness sent SIGTERM after capturing the complete terminal refusal. Its
+  recorded returncode 0 is not supported-proof success or acceptance. The older
+  `ordinary-domain-proof.log.gz` filename is retained unchanged as a byte-identical
+  legacy alias of this diagnostic serial, not the original supported-run serial.
+  [build-and-failure.log.gz](negative-text-0f221/build-and-failure.log.gz) preserves
+  the original failed supported command output and truncated serial. Existing
+  bytes and original custody metadata remain unchanged; the accurate filename
+  and diagnostic command record clarify their distinct roles.
 - [Morse failure](negative-morse-f306/ordinary-domain-proof.log.gz) preserves
   source `f30633a9d`: ordinary HELLO and hostile gate checks progressed, then
   `morse-product-prepare` refused. It is not a completed backend proof. The same
