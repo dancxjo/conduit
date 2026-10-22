@@ -237,3 +237,19 @@ fn invalid_scalar_provider_replies_emit_no_output() {
         assert!(outputs.0.is_empty(), "case={case}");
     }
 }
+
+#[test]
+fn scalar_only_offer_admits_zero_rank_and_refuses_rank_one() {
+    let mut offer = common::offer();
+    offer.limits.maximum_rank = 0;
+    let mut requirement = common::requirement();
+    requirement.rank = 0;
+    offer.validate().unwrap();
+    requirement.validate().unwrap();
+    assert_eq!(offer.admits(&requirement), Ok(()));
+    requirement.rank = 1;
+    assert_eq!(
+        offer.admits(&requirement),
+        Err(conduit_ai::ModelComputeRefusal::UnsupportedShape)
+    );
+}
