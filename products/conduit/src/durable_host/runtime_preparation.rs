@@ -160,7 +160,7 @@ fn prepare_runtime_with_composition(
     .with_selected_speech_equipment(selected_equipment);
     // Cold reviewed inventory and compiled contracts belong to preparation,
     // before clients can spend their finite control budget on an interaction.
-    crate::plot_source::prepare_standard_catalogs()?;
+    crate::plot_source::standard_catalogs()?;
     if installation.body_state.is_none() && installation.joined_body_state.is_none() {
         runtime.prepare_birth_encounter(state_dir)?;
     }
