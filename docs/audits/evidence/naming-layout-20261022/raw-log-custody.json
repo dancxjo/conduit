@@ -1,0 +1,90 @@
+[
+  {
+    "file": "6158-9900-existing-actual-creche.log.gz",
+    "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "raw_bytes": 4165,
+    "raw_sha256": "06ed528af6de8b93b6f55a771f92f516f184590d570f51e597916f0cca12bb6d",
+    "gzip_bytes": 1161,
+    "gzip_sha256": "7a0f6f9f4d077e0e858808ecd5e12aff0c798ebe7ea3b72cdb68aceebed5be9b"
+  },
+  {
+    "file": "6158-9900-existing-creche-navigation.log.gz",
+    "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "raw_bytes": 967,
+    "raw_sha256": "6a5d16c0c07c9d8b5137fb816e886270f99348c649f6d71eccff78d2cd5096da",
+    "gzip_bytes": 493,
+    "gzip_sha256": "7d6a1efe86ecedc1b534dac330a5cb5b9b3f512f6ce3843bdb87d5f802bbd2ec"
+  },
+  {
+    "file": "6158-9900-existing-field-clusters.log.gz",
+    "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "raw_bytes": 1800,
+    "raw_sha256": "77e473679eff01a09229480db9edc619e24627d21a26acb5921bcd6dac98b93b",
+    "gzip_bytes": 718,
+    "gzip_sha256": "25aae0aa53918b861b0756a6cd8002834c1d855682b6dc250875ea76141a8b1b"
+  },
+  {
+    "file": "6158-9900-existing-strict-clippy.log.gz",
+    "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "raw_bytes": 15779,
+    "raw_sha256": "9fb0c6ddec873fd5e9ff0f5a5a3855ed0d33f333a58b4c5f1354b5521073676b",
+    "gzip_bytes": 1673,
+    "gzip_sha256": "71492061b0981fc77f93aa6b4af2636919a28fabc909d3df9200df3fa196e584"
+  },
+  {
+    "file": "6158-9900-naming-acceptance.log.gz",
+    "source_commit": "9900ecde5bc38df782caf8e321267295b4ec642a",
+    "raw_bytes": 178766,
+    "raw_sha256": "c0cb7102e7ff3b5db7905bbec9db4e115d2dc16546bb084937729803ab2e32ea",
+    "gzip_bytes": 14928,
+    "gzip_sha256": "c4023a57c530fe926c577f186de0d2c28fd9c9c7c0c558840cda8c4a07490855"
+  },
+  {
+    "file": "6158-ad089-actual-creche.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 4165,
+    "raw_sha256": "66894595b5c53a6cf26e1436ed9ca657a99aa2a7d59144a45923bf6cab37627b",
+    "gzip_bytes": 1162,
+    "gzip_sha256": "9129d7064b0b6914b1e114925b7e9120b91f2c51bf12673b1da1e233d80beb19"
+  },
+  {
+    "file": "6158-ad089-creche-navigation.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 967,
+    "raw_sha256": "87619ffc54839e82975ac8b66b49bf06d0e8b6c7450893151492010f2bf987e9",
+    "gzip_bytes": 494,
+    "gzip_sha256": "7ffe8658c2ea76fa67914a24901708e57ebe6d365b7753ee91184f436d160cf2"
+  },
+  {
+    "file": "6158-ad089-field-clusters.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 1123,
+    "raw_sha256": "257a0ef31b4cc03d9c512be0f0c69e7c4638997804c47b45b811fef7277f8514",
+    "gzip_bytes": 541,
+    "gzip_sha256": "56eb26ad048db7007faf63ab0c55adbb5ba9c8d36ebfecbf87424bbdea5ccc0a"
+  },
+  {
+    "file": "6158-ad089-fmt.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 0,
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "gzip_bytes": 20,
+    "gzip_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "file": "6158-ad089-naming-acceptance.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 165296,
+    "raw_sha256": "8866ad241aa946c79b62f82f0d783c0d8ccf9316a5a7434a33afacd3fc7406c0",
+    "gzip_bytes": 13894,
+    "gzip_sha256": "398b706134ef5f88e10bfb208182afc4221a328a1c97d296dc1c2d8fb0817485"
+  },
+  {
+    "file": "6158-ad089-strict-clippy.log.gz",
+    "source_commit": "ad089dab112f9efa935a229dc34cc65137c536a3",
+    "raw_bytes": 222,
+    "raw_sha256": "9593014cdf3923a0f60ad91898165ad4cceef3d321cf812a6f69245b92a023cb",
+    "gzip_bytes": 191,
+    "gzip_sha256": "65ef03e2706aed8a77fde9b07c3cc426dbf8aa1dbebf7bb80759c23295aef713"
+  }
+]
