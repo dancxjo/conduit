@@ -1,0 +1,12 @@
+{
+  "source_commit": "b1e18996c4e18a78a93ffc596514f8da78d5fa05",
+  "png_count": 24,
+  "checks": [
+    "file length",
+    "file SHA256",
+    "IHDR dimensions",
+    "independent stdlib zlib and PNG filter decoding",
+    "decoded RGBA SHA256"
+  ],
+  "status": "passed"
+}
