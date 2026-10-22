@@ -315,12 +315,12 @@ and admit the native return route before F5 activation. The resume file contains
 exactly `continue` followed by a newline. An unavailable/read-only return route
 refuses this option instead of reporting successful appearance selection.
 
-After arrival, the producer sends four real Shift+F7/F6/F7/F6 requests. These
-select compact editorial, spacious editorial, spacious engineering and compact
-engineering within the existing four-refresh transport budget. It waits for
+After arrival, the producer sends three real Shift+F7/F6/F7 requests. These
+select compact editorial, spacious editorial and spacious engineering. Activation
+and those three replacements fit the existing four-refresh transport budget. It waits for
 actual owner Show acknowledgements, validates each complete typed Face and
 MaskShow, checks unchanged checked component/recipe and independently rereads the
-installed Owner's complete Todo Face after each swap. It captures four PNGs and
+installed Owner's complete Todo Face after each swap. It captures three transition PNGs and
 retains their hashes alongside the observations under `look_selection` in
 `owner-todo-face-proof.json`. A changed Face, missing acknowledgement, reused
 Show, unexpected Body action, palette/scale mismatch, diagnostic pressure or
@@ -332,3 +332,13 @@ Preparing a fresh installed Owner through the supported Linux release command
 requires the documented AArch64 C/C++ cross-toolchain as well as native tools;
 use `cargo xtask doctor linux-release` to inspect these prerequisites and
 `cargo xtask setup linux-release` to install them where authorized.
+
+For the complementary accessibility scenario, add `--user-overrides` together
+with `--look-selection`. Its three replacements select compact editorial,
+require 200% text through F9, then enable platform forced colors through
+Shift+F9 while retaining 200% text. The existing exact Face, component, recipe,
+owner acknowledgement, focus and full action-order checks apply to every
+replacement. Motion must remain disabled. The scenario changes only the proof
+key sequence; it does not extend the grant or mutate the Body. Running it is
+required before claiming actual native override enactment; the option alone
+is not evidence of that result.

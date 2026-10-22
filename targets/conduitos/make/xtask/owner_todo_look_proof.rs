@@ -68,26 +68,73 @@ pub(super) fn exercise(
     let mut origin: Option<Value> = None;
     let mut prior_show: Option<MaskShow> = None;
     let mut transitions = Vec::new();
-    for (key, density, palette, scale, checkpoint) in [
-        ("f7", "compact", "editorial", 100, "todo-editorial-compact"),
-        (
-            "f6",
-            "spacious",
-            "editorial",
-            125,
-            "todo-editorial-spacious",
-        ),
-        (
-            "f7",
-            "spacious",
-            "phosphor",
-            125,
-            "todo-engineering-spacious",
-        ),
-    ] {
+    let selections = if args.user_overrides {
+        [
+            (
+                "f7",
+                true,
+                "compact",
+                "editorial",
+                100,
+                false,
+                "todo-override-editorial",
+            ),
+            (
+                "f9",
+                false,
+                "compact",
+                "editorial",
+                200,
+                false,
+                "todo-override-large-text",
+            ),
+            (
+                "f9",
+                true,
+                "compact",
+                "editorial",
+                200,
+                true,
+                "todo-override-forced-colors",
+            ),
+        ]
+    } else {
+        [
+            (
+                "f7",
+                true,
+                "compact",
+                "editorial",
+                100,
+                false,
+                "todo-editorial-compact",
+            ),
+            (
+                "f6",
+                true,
+                "spacious",
+                "editorial",
+                125,
+                false,
+                "todo-editorial-spacious",
+            ),
+            (
+                "f7",
+                true,
+                "spacious",
+                "phosphor",
+                125,
+                false,
+                "todo-engineering-spacious",
+            ),
+        ]
+    };
+    for (key, shift, density, palette, scale, forced, checkpoint) in selections {
         let count = bounded_records(&bounded_serial(serial)?, COMPONENT, 65_536)?.len();
-        hid_qmp::send_named_keys(stream, reader, &["shift", key], true, "todo-look-select")?;
-        hid_qmp::send_named_keys(stream, reader, &[key, "shift"], false, "todo-look-select")?;
+        let pressed = if shift { vec!["shift", key] } else { vec![key] };
+        let released = if shift { vec![key, "shift"] } else { vec![key] };
+        hid_qmp::send_named_keys(stream, reader, &pressed, true, "todo-look-select")?;
+        hid_qmp::send_named_keys(stream, reader, &released, false, "todo-look-select")?;
         let deadline = Instant::now() + Duration::from_secs(120);
         let record = loop {
             let text = bounded_serial(serial)?;
@@ -125,6 +172,8 @@ pub(super) fn exercise(
             || expression["density"] != density
             || expression["palette"] != palette
             || expression["text_scale_percent"] != scale
+            || record["expression"]["platform_forced_colors"] != forced
+            || (args.user_overrides && expression["motion"] != "none")
             || config["component"].is_null()
             || config["recipe"].is_null()
             || config["host_id"] != json!(show.show.host_id)
@@ -175,7 +224,7 @@ pub(super) fn exercise(
         prior_show = Some(show);
     }
     Ok(
-        json!({"schema":"conduit.conduitos/native-owner-todo-look-proof@1",
+        json!({"schema":"conduit.conduitos/native-owner-todo-look-proof@1", "user_overrides":args.user_overrides,
         "status":"passed","input":"real-qmp-keyboard-look-and-focus","owner_before":owner_before,
         "transitions":transitions,"baseline_focus_order":baseline_order,
         "body_actions":0,"mutations":0,
