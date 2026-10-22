@@ -60,16 +60,16 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["http"] {
+    if arguments == ["http"] || arguments == ["network-owner"] {
+        let manifest = if arguments == ["http"] {
+            "bodies/environment/http/Cargo.toml"
+        } else {
+            "mechanisms/io/network-join/Cargo.toml"
+        };
         return execute(
             Command::new("cargo")
                 .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/http/Cargo.toml",
-                ])
+                .args(["test", "--locked", "--manifest-path", manifest])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
@@ -376,7 +376,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

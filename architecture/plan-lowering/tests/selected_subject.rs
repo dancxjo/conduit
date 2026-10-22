@@ -55,7 +55,7 @@ fn separate_subject_requires_independent_expected_target_and_exact_current_bindi
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
-    let (table, claim) = possession(scope);
+    let (table, _handle, claim) = possession(scope);
     let definition = || SelectedOperationContract {
         kind: &kind,
         call: "call/join",
@@ -138,7 +138,7 @@ fn separate_subject_requires_independent_expected_target_and_exact_current_bindi
     let mut wrong_scope = native_possession::scope(subject.as_str());
     wrong_scope.plan_id = wrong_plan.plan_id.clone();
     wrong_scope.active_play_id = wrong_active.active_play_id.clone();
-    let (wrong_table, wrong_claim) = possession(wrong_scope);
+    let (wrong_table, _wrong_handle, wrong_claim) = possession(wrong_scope);
     assert_eq!(
         bind_selected_operation_for_subject(
             &wrong_table,
@@ -178,7 +178,7 @@ fn ordinary_subject_keeps_the_existing_binding_contract() {
         fixture::selected(&scope, &kind, "call/join", 256, "radio", "join");
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
-    let (table, claim) = possession(scope);
+    let (table, _handle, claim) = possession(scope);
     assert_eq!(
         bind_selected_operation(
             &table,

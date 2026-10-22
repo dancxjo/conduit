@@ -24,7 +24,13 @@ pub fn scope(subject: &str) -> BaseCapabilityScope {
         maximum_operations: 1,
     }
 }
-pub fn possession(scope: BaseCapabilityScope) -> (BaseCapabilityTable, BaseOperationClaim) {
+pub fn possession(
+    scope: BaseCapabilityScope,
+) -> (
+    BaseCapabilityTable,
+    BaseCapabilityHandle,
+    BaseOperationClaim,
+) {
     let claim = BaseOperationClaim {
         host_id: scope.host_id.clone(),
         boot_id: scope.boot_id.clone(),
@@ -72,8 +78,8 @@ pub fn possession(scope: BaseCapabilityScope) -> (BaseCapabilityTable, BaseOpera
         1,
     )
     .unwrap();
-    let _handle = table
+    let handle = table
         .issue(CapabilityIssueRequest { scope, authority })
         .unwrap();
-    (table, claim)
+    (table, handle, claim)
 }

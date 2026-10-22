@@ -27,6 +27,7 @@ conduit-plot = { path = "../../../architecture/plot" }
 serde_json = "1"
 
 [dev-dependencies]
+conduit-network-join-call = { path = "../../../mechanisms/io/network-join" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
 conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }

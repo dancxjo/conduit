@@ -45,7 +45,7 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
     let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
-    let (table, claim) = possession::possession(scope);
+    let (table, handle, claim) = possession::possession(scope);
     let image = e::generate_embedded_plan(
         &fragment,
         &lowered,
@@ -198,4 +198,83 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
         ),
         Ok(lowered.nodes[0].node)
     );
+    let contract = conduit_network_join_call::PreparedJoinContract::prepare();
+    let effects = core::cell::Cell::new(0);
+    let (owner, allocation) = allocation_probe::observe(|| unsafe {
+        conduit_network_join_call::NetworkJoinHostCall::bind_assigned(
+            table,
+            handle,
+            claim,
+            Provider(&effects),
+            9,
+            conduit_network_join_call::AssignedJoinSelection {
+                contract: &contract,
+                native: native(),
+                plan: selected(),
+            },
+        )
+    });
+    let mut owner = owner.unwrap();
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    assert_eq!(effects.get(), 0);
+    let mut request = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
+    let length = conduit_net::encode_network_join_request(
+        conduit_net::NetworkJoinRequest {
+            ssid: b"fixture-net",
+            credential: b"fixture-password",
+        },
+        &mut request,
+    )
+    .unwrap();
+    let (generation, allocation) = allocation_probe::observe(|| {
+        let output = ready(owner.invoke(
+            lowered.nodes[0].node,
+            conduit_kernel::HostCallId(0),
+            conduit_kernel::RequestId(0),
+            &request[..length],
+        ))
+        .unwrap();
+        conduit_net::decode_network_attachment(output)
+            .unwrap()
+            .generation
+    });
+    assert_eq!(generation, 9);
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    assert_eq!(effects.get(), 1);
+    assert!(owner.cleanup_required());
+}
+
+/// A CPU provider establishes no physical attachment truth.
+struct Provider<'a>(&'a core::cell::Cell<usize>);
+impl conduit_network_join_call::NetworkJoinProvider for Provider<'_> {
+    async fn join(
+        &mut self,
+        _: conduit_net::NetworkJoinRequest<'_>,
+    ) -> Result<conduit_network_join_call::AttachmentRecord, conduit_net::StationAttemptFailure>
+    {
+        self.0.set(self.0.get() + 1);
+        conduit_network_join_call::AttachmentRecord::encode(conduit_net::NetworkAttachmentInfo {
+            attachment_id: "attachment/fixture",
+            host_id: "host/network",
+            boot_id: "boot/current",
+            resource_pool_id: "pool/radio",
+            generation: 9,
+        })
+        .map_err(|_| conduit_net::StationAttemptFailure {
+            phase: conduit_net::StationPhase::ConfigureAddress,
+            reason: conduit_net::StationFailure::ProviderUnavailable,
+        })
+    }
+    async fn cleanup(&mut self) -> Result<(), conduit_net::StationFailure> {
+        Ok(())
+    }
+}
+fn ready<T>(future: impl core::future::Future<Output = T>) -> T {
+    let mut future = core::pin::pin!(future);
+    match future.as_mut().poll(&mut core::task::Context::from_waker(
+        core::task::Waker::noop(),
+    )) {
+        core::task::Poll::Ready(value) => value,
+        core::task::Poll::Pending => panic!("fixture provider unexpectedly pending"),
+    }
 }
