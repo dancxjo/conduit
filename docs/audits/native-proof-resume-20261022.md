@@ -260,3 +260,12 @@ The next bounded harness enacts the actually offered idempotent current-Plot
 selection and explicitly records `cross_plot_selection_enacted: false`.
 Positive browser Edit-handler preparation now also covers Handbook's real
 source-opening handler; it remains unearned until Chromium enactment.
+
+The `075388e7d` rerun enacted current-Plot selection and observed the exact
+ExistingDraft refusal, then failed the changed-frame assertion. Visual review
+confirmed the replacement Show restores primary page 1/3, without the diagnostic
+on that page. Its negative packet is preserved separately under `/tmp`.
+The corrected harness now opens actual Details, traverses every bounded page
+under the same Face/Show, retains each drawn page in a separate manifest and
+returns before the Mask action. This prepares reachable diagnostic proof;
+compilation passes, but no passing rerun is implied by this harness correction.

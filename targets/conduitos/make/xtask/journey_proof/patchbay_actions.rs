@@ -95,7 +95,7 @@ pub(super) fn exercise(
             "Patchbay Edit did not explicitly preserve the existing draft",
         ));
     }
-    artifacts.capture(qmp, reader, "patchbay-existing-draft-refused", true)?;
+    let refusal_details = read_refusal(serial, child, qmp, reader, &after_edit)?;
 
     let mask_face = decode(&after_edit)?;
     let mask = mask_face
@@ -128,6 +128,7 @@ pub(super) fn exercise(
         "cross_plot_selection_enacted":false, "selected_face":after_select,
         "edit_request":edit_request, "edit_outcome":"native-editor-existing-draft",
         "successful_edit_handoff_enacted":false, "edit_refusal_face":after_edit,
+        "refusal_details":refusal_details,
         "mask_request":mask_request, "replanned_face":after_mask,
         "limits":"idempotent selection only; existing draft refusal; no cross-Plot selection, successful Source editor handoff or Save/reopen"}),
     )
@@ -304,4 +305,104 @@ fn submit(
         },
     )?;
     Ok(receipt.clone())
+}
+
+// A separate finite page packet preserves every actually drawn Details page;
+// it does not enlarge the ordinary journey's admitted checkpoint gallery.
+fn read_refusal(
+    serial: &Path,
+    child: &mut Child,
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    prior: &Value,
+) -> Result<Value, ConduitosError> {
+    let directory = serial
+        .parent()
+        .ok_or_else(|| refusal("Patchbay serial has no evidence directory"))?
+        .join("patchbay-refusal-details");
+    fs::create_dir(&directory).map_err(io_error)?;
+    let mut reading = read_key(serial, child, qmp, reader, "f2", 59, prior)?;
+    let pages = reading["pages"]
+        .as_u64()
+        .filter(|pages| (1..=128).contains(pages))
+        .ok_or_else(|| refusal("Patchbay Details page count exceeds the 128-page proof bound"))?;
+    if reading["details"] != true || reading["diagram"] != false || reading["page"] != 0 {
+        return Err(refusal("Patchbay Details did not start at its first page"));
+    }
+    let mut captures = Vec::with_capacity(pages as usize);
+    for page in 0..pages {
+        if reading["page"] != page || reading["pages"] != pages || reading["details"] != true {
+            return Err(refusal(
+                "Patchbay Details did not traverse every page in order",
+            ));
+        }
+        let name = format!("details-{:03}", page + 1);
+        let (image, health) = super::super::qmp_display::capture(qmp, reader, &directory, &name)?;
+        if let Some(error) = health {
+            return Err(error);
+        }
+        captures.push(json!({"reading":reading,"image":image}));
+        if page + 1 < pages {
+            reading = read_key(serial, child, qmp, reader, "pgdn", 78, prior)?;
+        }
+    }
+    let returned = read_key(serial, child, qmp, reader, "f2", 59, prior)?;
+    if returned["details"] != false || returned["diagram"] != false {
+        return Err(refusal(
+            "Patchbay did not return from Details before Mask action",
+        ));
+    }
+    let packet = json!({"schema":"conduit.conduitos/patchbay-refusal-details@1",
+        "face_id":prior["face"]["identity"],"face_revision":prior["face"]["revision"],
+        "show_id":prior["show"]["show_id"],"page_count":pages,"captures":captures,
+        "returned":returned,"diagnostic":"native-editor-existing-draft",
+        "visual_review":"required; all drawn Details pages retained without pixel-change assertion"});
+    fs::write(
+        directory.join("manifest.json"),
+        serde_json::to_vec_pretty(&packet).map_err(|error| refusal(error.to_string()))?,
+    )
+    .map_err(io_error)?;
+    Ok(packet)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn read_key(
+    serial: &Path,
+    child: &mut Child,
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+    key: &str,
+    usage: u8,
+    prior: &Value,
+) -> Result<Value, ConduitosError> {
+    let count = records(serial, "CONDUIT_NATIVE_READING ")?.len();
+    journey_input::held_key(
+        |down| hid_qmp::send_named_keys(qmp, reader, &[key], down, "patchbay-read-refusal"),
+        || {
+            journey_input::wait_for_record(
+                serial,
+                child,
+                "patchbay-refusal-reading-timeout",
+                "patchbay-refusal-reading",
+                |text| {
+                    Ok(
+                        face_correspondence::records(text, "CONDUIT_NATIVE_READING ")?.len()
+                            > count,
+                    )
+                },
+            )
+        },
+    )?;
+    let reading = records(serial, "CONDUIT_NATIVE_READING ")?
+        .pop()
+        .ok_or_else(|| refusal("Patchbay reading receipt is absent"))?;
+    if reading["usage"] != usage
+        || reading["face_id"] != prior["face"]["identity"]
+        || reading["face_revision"] != prior["face"]["revision"]
+        || reading["show_id"] != prior["show"]["show_id"]
+        || reading["disposition"] != "mask-local-input-acknowledged-and-drawn"
+    {
+        return Err(refusal("Patchbay refusal reading changed its Face or Show"));
+    }
+    Ok(reading)
 }
