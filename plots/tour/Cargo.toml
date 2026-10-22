@@ -9,6 +9,8 @@ conduit-core = { path = "../../architecture/core" }
 conduit-face = { path = "../../semantics/face", default-features = false }
 conduit-semantic-catalog = { path = "../../semantics/catalog", default-features = false }
 
+serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
+
 [dev-dependencies]
 conduit-plot = { path = "../../architecture/plot" }
 conduit-semantic-catalog = { path = "../../semantics/catalog", features = ["plot-catalog"] }

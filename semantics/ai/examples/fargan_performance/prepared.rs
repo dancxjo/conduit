@@ -83,10 +83,15 @@ fn retain_frame(
         "expression_calls":result.work.expression_calls,"signs":result.signs.len(),"signs_file":signs_file,"signs_sha256":artifact::digest(signs.as_bytes()),
         "outputs_file":values_file,"outputs_sha256":artifact::digest(&std::fs::read(output.join(&values_file))?),
         "owner_preparation_ns":timing::ns(result.preparation),"kernel_play_ns":timing::ns(result.execution),
-        "canonical_intermediates_avoided":result.work.compact_values,
-        "canonical_bytes_avoided":result.work.compact_logical_bytes,
+        "canonical_intermediates_avoided":result.work.compact_values + result.work.owned_values,
+        "canonical_bytes_avoided":result.work.compact_logical_bytes + result.work.owned_logical_bytes,
         "canonical_values":result.work.canonical_values,"canonical_bytes":result.work.canonical_bytes,
-        "native_values":result.work.compact_values,"native_bytes":result.work.compact_bytes,
+        "native_values":result.work.compact_values + result.work.owned_values,
+        "native_bytes":result.work.compact_bytes + result.work.owned_bytes,
+        "publication_copied_values":result.work.compact_values,
+        "publication_copied_bytes":result.work.compact_bytes,
+        "publication_owned_values":result.work.owned_values,
+        "publication_owned_bytes":result.work.owned_bytes,
         "logical_invocations":result.work.logical_invocations,"physical_decisions":result.work.physical_decisions,
         "local_expression_calls":result.work.local_expression_calls,
         "kernel_step_ns":timing::ns(result.work.kernel_steps),
@@ -194,12 +199,12 @@ pub(super) fn run(
         });
         raw.row(&json!({"phase":"initial-input-encoding","repetition":repetition,"metrics":initial_input}))?;
         let (mut retained, preparation) = timing::measure(|| {
-            runtime::session::PreparedTrajectory::new(
-                candidate,
-                resources,
-                initial,
-                oracle.cases.len(),
-            )
+            let prepare = if profile.owned() {
+                runtime::session::PreparedTrajectory::new_owned_compact
+            } else {
+                runtime::session::PreparedTrajectory::new
+            };
+            prepare(candidate, resources, initial, oracle.cases.len())
         });
         raw.row(&json!({"phase":"cold-prepared-trajectory","repetition":repetition,"metrics":preparation,"invocation_reservation":oracle.cases.len(),"sign_slots_per_invocation":32768}))?;
         let address = retained.kernel_address();

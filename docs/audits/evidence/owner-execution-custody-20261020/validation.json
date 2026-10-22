@@ -1,0 +1,237 @@
+{
+  "source": "f8aaabeb829469016a52341a5358eae358133ff9",
+  "source_after": "f8aaabeb829469016a52341a5358eae358133ff9",
+  "clean_before": true,
+  "clean_after": true,
+  "results": [
+    {
+      "name": "todo-durability",
+      "command": [
+        "cargo",
+        "xtask",
+        "check",
+        "todo-durability"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          7,
+          0,
+          0
+        ],
+        [
+          8,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          0
+        ],
+        [
+          9,
+          0,
+          0
+        ],
+        [
+          19,
+          0,
+          1
+        ],
+        [
+          12,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 58,
+      "valid": true,
+      "log": "../6102-final-owner-durability.log"
+    },
+    {
+      "name": "format",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "products/conduit/src/body_owner/checkpoint_once.rs",
+        "products/conduit/src/body_owner/checkpoint_once_tests.rs",
+        "products/conduit/src/body_owner/continuing.rs",
+        "products/conduit/src/body_owner/controller.rs",
+        "products/conduit/src/body_owner/controller/birth.rs",
+        "products/conduit/src/body_owner/execution_retention.rs",
+        "products/conduit/src/body_owner/mod.rs",
+        "products/conduit/src/body_owner/owner_execution_custody_tests.rs",
+        "products/conduit/src/body_owner/state.rs",
+        "products/conduit/src/body_owner/state_archive_tests.rs",
+        "products/conduit/src/body_owner/state_execution_custody.rs",
+        "products/conduit/src/body_owner/state_execution_custody_tests.rs",
+        "products/conduit/src/body_owner/state_tests.rs",
+        "products/conduit/src/body_owner/thermostat_worker.rs",
+        "products/conduit/src/body_owner/todo_continuity_tests.rs",
+        "products/conduit/src/body_owner/todo_read.rs",
+        "products/conduit/src/body_owner/todo_waiting.rs",
+        "tools/xtask/src/suites/todo.rs"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-format.log"
+    },
+    {
+      "name": "product-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "conduit",
+        "--bin",
+        "conduit",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-product-clippy.log"
+    },
+    {
+      "name": "parsec-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "installed_std::body_kernel::parsec_live_fore_tests",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          4,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 4,
+      "valid": true,
+      "log": "../6102-final-parsec-regressions.log"
+    },
+    {
+      "name": "cancellation-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "pending_keyboard_cancellation_releases_the_whole_workload_for_another_play",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 1,
+      "valid": true,
+      "log": "../6102-final-cancellation-regressions.log"
+    },
+    {
+      "name": "release-regressions",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "conduit-std-host",
+        "--lib",
+        "release_failure_retains_the_original_pre_play_refusal",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 1,
+      "valid": true,
+      "log": "../6102-final-release-regressions.log"
+    },
+    {
+      "name": "verify-plan-replacement-custody",
+      "command": [
+        "python3",
+        "proof/performance/verify-plan-replacement-custody.py",
+        "../6102-final-owner-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-verify-plan-replacement-custody.log"
+    },
+    {
+      "name": "check-plan-replacement-custody-negatives",
+      "command": [
+        "python3",
+        "proof/performance/check-plan-replacement-custody-negatives.py",
+        "../6102-final-owner-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-check-plan-replacement-custody-negatives.log"
+    },
+    {
+      "name": "verify-owner-execution-custody",
+      "command": [
+        "python3",
+        "proof/performance/verify-owner-execution-custody.py",
+        "../6102-final-owner-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-verify-owner-execution-custody.log"
+    },
+    {
+      "name": "check-owner-execution-custody-negatives",
+      "command": [
+        "python3",
+        "proof/performance/check-owner-execution-custody-negatives.py",
+        "../6102-final-owner-durability.log"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../6102-final-check-owner-execution-custody-negatives.log"
+    }
+  ],
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "3"
+  }
+}

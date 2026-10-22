@@ -11,7 +11,7 @@ mod projection;
 #[cfg(test)]
 mod tests;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BirthFaceBasis {
     pub host_id: HostId,
     pub boot_id: BootId,

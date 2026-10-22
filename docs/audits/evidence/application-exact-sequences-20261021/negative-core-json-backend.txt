@@ -1,0 +1,51 @@
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6207-init-stream/targets/conduitos/application-core)
+    Finished `test` profile [unoptimized] target(s) in 2.74s
+     Running unittests src/lib.rs (/home/dancxjo/conduit/target/debug/deps/conduitos_application_core-a31eb01973310924)
+
+running 24 tests
+test data::codec::tests::compressed_values_keep_every_byte_through_the_decoded_ceiling ... ok
+test data::codec::tests::framing_checksum_trailing_bytes_and_expansion_claims_refuse ... ok
+test data::codec::tests::hostile_json_depth_strings_and_counts_refuse_before_initialization ... ok
+test data::codec::tests::incompressible_data_cannot_expand_the_wire_limit ... ok
+test data::codec::tests::malformed_compressed_commit_cannot_partially_initialize_models ... ok
+test data::codec::tests::nested_byte_fields_use_standard_json_sequences_even_in_small_raw_values ... ok
+test data::codec::tests::refused_uploads_are_terminal_and_never_expose_partial_models ... ok
+test data::codec::tests::reusable_workspace_preserves_exact_wire_and_graph_custody_bytes ... ok
+test data::codec::tests::small_raw_bytes_and_exact_wire_boundary_remain_unchanged ... ok
+test data::codec::transport_tests::real_staged_targets_and_graph_replies_keep_exact_canonical_custody ... ok
+test data::transport_codec::tests::byte_and_depth_limits_are_finite_without_narrowing_the_json_profile ... ok
+test data::transport_codec::tests::malformed_counts_versions_json_and_extents_refuse_before_typed_decode ... ok
+test data::transport_codec::tests::mixed_enums_structs_maps_options_tuples_and_arrays_round_trip ... FAILED
+test data::transport_codec::tests::ordinary_large_byte_vector_gets_its_exact_initial_reservation ... ok
+test data::transport_codec::tests::serialize_bytes_uses_the_same_verified_array_contract ... ok
+test data::transport_codec::tests::tuple_arity_is_checked_independently_of_valid_sequence_framing ... ok
+test data::transport_codec::tests::unknown_or_false_serialize_lengths_never_produce_an_admitted_frame ... FAILED
+test state::tests::exact_target_coverage_and_selected_position_survive_staging ... ok
+test state::tests::finish_moves_prepared_controllers_only_after_complete_acknowledgement ... ok
+test state::tests::invalid_manifest_is_rejected_before_controller_construction ... ok
+test state::tests::missing_duplicate_out_of_order_and_early_use_are_terminal ... ok
+test state::tests::projection_during_staging_and_repeat_finish_are_terminal ... ok
+test state::tests::selected_unfilled_target_cannot_finish ... ok
+test state::tests::wrong_target_order_kind_and_duplicate_fail_without_model_publication ... ok
+
+failures:
+
+---- data::transport_codec::tests::mixed_enums_structs_maps_options_tuples_and_arrays_round_trip stdout ----
+
+thread 'data::transport_codec::tests::mixed_enums_structs_maps_options_tuples_and_arrays_round_trip' (3860541) panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-json-core-0.6.0/src/ser/mod.rs:594:9:
+internal error: entered unreachable code
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- data::transport_codec::tests::unknown_or_false_serialize_lengths_never_produce_an_admitted_frame stdout ----
+
+thread 'data::transport_codec::tests::unknown_or_false_serialize_lengths_never_produce_an_admitted_frame' (3860545) panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-json-core-0.6.0/src/ser/mod.rs:697:9:
+internal error: entered unreachable code
+
+
+failures:
+    data::transport_codec::tests::mixed_enums_structs_maps_options_tuples_and_arrays_round_trip
+    data::transport_codec::tests::unknown_or_false_serialize_lengths_never_produce_an_admitted_frame
+
+test result: FAILED. 22 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.46s
+
+error: test failed, to rerun pass `-p conduitos-application-core --lib`

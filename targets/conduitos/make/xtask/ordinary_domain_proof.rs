@@ -9,6 +9,11 @@ use crate::cli::GlobalOpts;
 
 use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 
+mod compositor;
+mod compositor_hostile;
+mod compositor_recovery;
+mod service_memory;
+
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
@@ -33,7 +38,11 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "-cpu",
             "max",
             "-m",
-            "64M",
+            // This appliance also owns the 19 MiB private compositor-service
+            // slot. Limine retains the loaded image while reserving the 16 MiB
+            // runtime arena; the former 64 MiB guest refuses before entry.
+            // This is an explicit fixture profile, not a product minimum.
+            "128M",
             "-smp",
             "1",
             "-display",
@@ -96,6 +105,10 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ConduitosError::refusal("ordinary-domain-proof-sign-invalid", error.to_string())
     })?;
     sign["protected_standing_timer"] = timer;
+    sign["service_memory_fixture"] = service_memory::validate(&transcript)?;
+    let compositor_guest = compositor::validate(&transcript)?;
+    sign["compositor_hostile_fixture"] = compositor_hostile::validate(&transcript)?;
+    sign["compositor_copy_recovery_fixture"] = compositor_recovery::validate(&transcript)?;
     if sign["status"] != "completed"
         || sign["proof_class"] != "freestanding-emulator"
         || sign["architecture"] != "x86_64"
@@ -210,8 +223,104 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             cost.to_string(),
         ));
     }
+    let build: serde_json::Value =
+        serde_json::from_slice(&fs::read(paths.target.join("build.json")).map_err(|error| {
+            ConduitosError::refusal("service-memory-build-record-unavailable", error.to_string())
+        })?)
+        .map_err(|error| {
+            ConduitosError::refusal("service-memory-build-record-invalid", error.to_string())
+        })?;
+    let elf_sha256 = super::report::sha256_file(&paths.kernel)?;
+    if build["elf_sha256"] != elf_sha256 || build["artifact_role"] != "architecture-proof-appliance"
+    {
+        return Err(ConduitosError::refusal(
+            "service-memory-build-record-mismatch",
+            "requires the actual fixture appliance ELF",
+        ));
+    }
+    let receipt = serde_json::json!({
+        "schema": "conduit.conduitos/service-memory-evidence@1",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+        "build": build, "observations": sign["service_memory_fixture"],
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+    });
+    let bytes = serde_json::to_vec_pretty(&receipt).map_err(|error| {
+        ConduitosError::refusal("service-memory-receipt-invalid", error.to_string())
+    })?;
+    fs::write(
+        paths.target.join("service-memory-fixture-proof.json"),
+        bytes,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal("service-memory-receipt-write-failed", error.to_string())
+    })?;
+    let compositor_receipt = serde_json::json!({
+        "schema": "conduit.conduitos/compositor-guest-evidence@2",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+        "build": build, "observations": compositor_guest,
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+    });
+    fs::write(
+        paths.target.join("compositor-guest-fixture-proof.json"),
+        serde_json::to_vec_pretty(&compositor_receipt).map_err(|error| {
+            ConduitosError::refusal("compositor-guest-receipt-invalid", error.to_string())
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal("compositor-guest-receipt-write-failed", error.to_string())
+    })?;
+    let recovery_receipt = serde_json::json!({
+        "schema": "conduit.conduitos/compositor-copy-recovery-evidence@4",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+        "build": build, "observations": sign["compositor_copy_recovery_fixture"],
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+    });
+    fs::write(
+        paths
+            .target
+            .join("compositor-copy-recovery-fixture-proof.json"),
+        serde_json::to_vec_pretty(&recovery_receipt).map_err(|error| {
+            ConduitosError::refusal(
+                "compositor-copy-recovery-receipt-invalid",
+                error.to_string(),
+            )
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal(
+            "compositor-copy-recovery-receipt-write-failed",
+            error.to_string(),
+        )
+    })?;
+    let hostile_receipt = serde_json::json!({
+        "schema": "conduit.conduitos/compositor-hostile-broker-evidence@1",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "machine": {"emulator": "qemu-system-x86_64", "model": "q35",
+            "cpu": "max", "memory_mib": 128, "vcpus": 1},
+        "build": build, "observations": sign["compositor_hostile_fixture"],
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+    });
+    fs::write(
+        paths
+            .target
+            .join("compositor-hostile-broker-fixture-proof.json"),
+        serde_json::to_vec_pretty(&hostile_receipt).map_err(|error| {
+            ConduitosError::refusal("compositor-hostile-receipt-invalid", error.to_string())
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal("compositor-hostile-receipt-write-failed", error.to_string())
+    })?;
     if !opts.quiet && !opts.json {
-        println!("PROVED checked ordinary text computation in x86_64 CPL3");
+        println!(
+            "PROVED checked ordinary text computation and service-memory/compositor guest fixtures in x86_64 CPL3"
+        );
     }
     Ok(())
 }

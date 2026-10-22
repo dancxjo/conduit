@@ -28,6 +28,9 @@ mod input;
 #[path = "native_face_mask/preparation.rs"]
 mod preparation;
 
+#[path = "native_face_mask/encounter.rs"]
+mod encounter;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeFaceMaskError {
     Plan,
@@ -99,6 +102,7 @@ pub struct NativeFaceMask {
     visual_expression: Option<conduit_face::AdmittedVisualExpression>,
     visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
+    encounter_pending: bool,
 }
 
 impl NativeFaceMask {
@@ -199,6 +203,7 @@ impl NativeFaceMask {
             self.surface_admitted = false;
         }
         self.scene = None;
+        self.encounter_pending = false;
         Ok(())
     }
 
@@ -254,7 +259,7 @@ impl NativeFaceMask {
         ),
         NativeFaceMaskError,
     > {
-        let fallback;
+        let mut fallback = None;
         let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.expression.canonical_value(),
         )
@@ -268,15 +273,31 @@ impl NativeFaceMask {
         .map_err(|_| NativeFaceMaskError::Plan)?;
         let scene = match conduit_face::prepare_component_recipe(recipe, face) {
             Ok(prepared) => {
-                fallback = None;
-                NativeFaceScene::prepare_configured(
+                let configured = NativeFaceScene::prepare_configured(
                     face.clone(),
                     width,
                     height,
                     interaction_admitted,
                     &prepared,
                     &expression,
-                )
+                );
+                match configured {
+                    Err(
+                        error @ (FaceSceneError::InvalidExtent
+                        | FaceSceneError::DocumentBound
+                        | FaceSceneError::SceneBound),
+                    ) => {
+                        fallback = Some(alloc::format!("ConfiguredLayout({error:?})"));
+                        NativeFaceScene::prepare_visual_fallback(
+                            face.clone(),
+                            width,
+                            height,
+                            interaction_admitted,
+                            &expression,
+                        )
+                    }
+                    result => result,
+                }
             }
             Err(error) => {
                 fallback = Some(alloc::format!("{error:?}"));
@@ -308,7 +329,7 @@ impl NativeFaceMask {
         })?;
         let width = u16::try_from(format.width).map_err(|_| NativeFaceMaskError::Face)?;
         let height = u16::try_from(format.height).map_err(|_| NativeFaceMaskError::Face)?;
-        let scene = if let Some(configuration) = &self.component_configuration {
+        let mut scene = if let Some(configuration) = &self.component_configuration {
             let (scene, expression, fallback) = Self::prepare_component_scene(
                 configuration,
                 &face,
@@ -324,6 +345,7 @@ impl NativeFaceMask {
             NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
                 .map_err(NativeFaceMaskError::Scene)?
         };
+        self.restore_pending_encounter(&mut scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face
             .subjects
@@ -366,6 +388,9 @@ impl NativeFaceMask {
         };
         if !self.surface_admitted {
             self.compositor
+                .reacquire_namespace()
+                .map_err(NativeFaceMaskError::Compositor)?;
+            self.compositor
                 .admit_surface(&self.surface_id, bounds, 0)
                 .map_err(NativeFaceMaskError::Compositor)?;
             self.surface_admitted = true;
@@ -395,13 +420,15 @@ impl NativeFaceMask {
         self.compositor
             .compose_frame(display)
             .map_err(NativeFaceMaskError::Compositor)?;
-        let acknowledgement = self
-            .compositor
-            .scanout_acknowledgement(&composition, published.face.revision)
-            .ok_or(NativeFaceMaskError::Face)?;
-        let session = pending
-            .complete_render(&acknowledgement)
-            .map_err(NativeFaceMaskError::Mask)?;
+        let session = {
+            let acknowledgement = self
+                .compositor
+                .scanout_acknowledgement(&composition, published.face.revision)
+                .ok_or(NativeFaceMaskError::Face)?;
+            pending
+                .complete_render(&acknowledgement)
+                .map_err(NativeFaceMaskError::Mask)?
+        }; // Release the shared renderer guard before exclusive focus/scanout.
         self.compositor
             .focus_surface(&self.surface_id)
             .map_err(NativeFaceMaskError::Compositor)?;
@@ -421,6 +448,10 @@ impl NativeFaceMask {
         &mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.compositor
+            .validate_active_session()
+            .map_err(NativeFaceMaskError::Compositor)?;
         if !self.interaction_admitted {
             return Err(NativeFaceMaskError::InputUnavailable);
         }

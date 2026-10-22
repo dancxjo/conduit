@@ -65,6 +65,16 @@ impl PresenterError {
 }
 
 impl FrontDoorPresenter {
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    pub(crate) fn attach_display_owner(
+        &mut self,
+        owner: crate::protected_compositor::display_owner::SharedDisplayOwner,
+    ) -> Result<(), PresenterError> {
+        self.compositor
+            .attach_display_owner(owner)
+            .map_err(PresenterError::Compositor)
+    }
+
     pub const fn compositor_frame_sequence(&self) -> u64 {
         self.compositor.frame_sequence()
     }
@@ -253,6 +263,9 @@ impl FrontDoorPresenter {
                 .map_err(PresenterError::Compositor)?;
         } else {
             self.compositor
+                .reacquire_namespace()
+                .map_err(PresenterError::Compositor)?;
+            self.compositor
                 .admit_surface(SURFACE_ID, bounds, 0)
                 .map_err(PresenterError::Compositor)?;
             self.surface_admitted = true;
@@ -393,6 +406,12 @@ mod tests {
             InputRoute::NoTarget => panic!("front-door surface must receive pointer input"),
         };
         assert_eq!((pointer.local_x, pointer.local_y), (100, 50));
+        presenter.validate_pointer_route(&pointer).unwrap();
+        assert_eq!(
+            presenter.compositor.reacquire_namespace(),
+            Err(NativeCompositorError::ServiceBusy)
+        );
+        // A refused handoff must not revoke the still-owned surface.
         presenter.validate_pointer_route(&pointer).unwrap();
         assert!(matches!(
             presenter.route_keyboard().unwrap(),

@@ -32,6 +32,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+pub mod numerical_fore;
 mod numerical_host;
 pub mod relay_client;
 pub mod remote_emergency;
@@ -58,6 +59,11 @@ pub mod flow_activation;
 pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
+mod reluctant_replan;
+pub use reluctant_replan::{
+    StdReluctantReplanError, StdReluctantReplanOutcome, StdReluctantReplanRefusal,
+    StdReluctantReplanRequest, STD_REPLAN_PREVIOUS_EVIDENCE_CAPACITY,
+};
 pub mod hosted_audio;
 mod hosted_body_conversation_context;
 pub use hosted_body_conversation_context::{
@@ -171,6 +177,11 @@ pub mod isolated_http_base;
 pub use isolated_http_base::provider_main as isolated_http_provider_main;
 pub mod kernel_multivalue;
 mod kernel_preparation;
+pub use kernel_preparation::{
+    InitializedRegionService, RegionAdvance, RegionExecution, RegionRoundState,
+    RegionServiceConfig, RegionServiceRetirement, RegionWorkerCommand, RegionWorkerError,
+    RegionWorkerEvidence, RegionWorkerReply,
+};
 mod kernel_signal;
 mod local_model_observation;
 mod local_model_pool_member;

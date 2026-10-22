@@ -22,6 +22,7 @@ fn item(text: &str, region: Option<u8>) -> document::Item {
         region,
         region_order: region.map(usize::from),
         checkbox: None,
+        icon: None,
     }
 }
 fn end(row: &Row) -> i32 {
@@ -212,6 +213,9 @@ fn measured_unicode_command_pressure_retains_every_byte_and_reserves_panel_outli
             .unwrap();
         }
         for row in rows.iter().filter(|row| row.page == page) {
+            append_panel_chrome(&mut scene, row, screen(1280, 800)).unwrap();
+        }
+        for row in rows.iter().filter(|row| row.page == page) {
             append_row_chrome(&mut scene, row, screen(1280, 800), row.paint, false, false).unwrap();
             crate::native_face_scene::boolean_choice::append(&mut scene, row, screen(1280, 800))
                 .unwrap();
@@ -359,4 +363,20 @@ fn nonmonotonic_pages_include_later_visual_pages_and_preserve_turning() {
     }
     scene.turn_page(true);
     assert_eq!(scene.page(), maximum);
+}
+
+#[test]
+fn chrome_valid_tiny_panel_extent_refuses_without_arithmetic_panic() {
+    assert!(matches!(
+        admit_configured(
+            vec![item("Visible", Some(0))],
+            screen(640, 127),
+            12,
+            2,
+            100,
+            SPACE_SM,
+            Some([0, 1])
+        ),
+        Err(FaceSceneError::InvalidExtent)
+    ));
 }

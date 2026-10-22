@@ -8,6 +8,7 @@ mod face_correspondence;
 mod face_input;
 mod failure_stack;
 mod keyboard_domain;
+mod look_selection;
 mod timing_interactions;
 
 use std::{
@@ -129,7 +130,7 @@ pub(super) fn execute_supplied_observed(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(if observe { 32 } else { 23 })?;
+    .with_capture_limit(if observe { 32 } else { 27 })?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;
@@ -147,6 +148,19 @@ pub(super) fn execute_supplied_observed(
             "journey-arrival-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
+        journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
+        artifacts.capture(&mut qmp, &mut reader, "creche-ready", false)?;
+        let look_selection = if observe {
+            json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
+        } else {
+            look_selection::exercise(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?
+        };
 
         creche_choices::exercise(
             &serial_path,
@@ -156,36 +170,32 @@ pub(super) fn execute_supplied_observed(
             &mut artifacts,
         )?;
         journey_input::birth_from_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
-        artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
-        for (key, status, frame) in [
-            ("f4", "awake", "body-woken"),
-            ("f5", "planned", "body-planned"),
-            ("f6", "quiescent-awaiting-input", "body-playing"),
-        ] {
-            if key == "f5" {
-                journey_input::key_until_status(
-                    &mut qmp,
-                    &mut reader,
-                    &serial_path,
-                    &mut child,
-                    key,
-                    status,
-                )?;
-            } else {
-                journey_input::key_pair(&mut qmp, &mut reader, key, "journey-lifecycle")?;
-                journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
-            }
-            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
-            if key == "f4" {
-                face_input::unavailable_wake(
-                    &serial_path,
-                    &mut child,
-                    &mut qmp,
-                    &mut reader,
-                    &mut artifacts,
-                )?;
-            }
+        // Birth is the only user lifecycle activation. The default policy
+        // must produce separate Wake/Plan/Play evidence without F4/F5/F6.
+        for status in ["awake", "planned", "quiescent-awaiting-input"] {
+            journey_input::wait_status_retaining_guest(&serial_path, &mut child, status)?;
         }
+        hid_qmp::wait_for_stage(
+            &serial_path,
+            &mut child,
+            "CONDUIT_CRECHE_CHECKPOINT body-playing",
+            "commons-arrival-timeout",
+        )?;
+        artifacts.capture(&mut qmp, &mut reader, "body-playing", true)?;
+        journey_input::open_hub_plot(
+            &mut qmp,
+            &mut reader,
+            &serial_path,
+            &mut child,
+            conduitos::native_workset::NativePlot::Tour,
+        )?;
+        face_input::unavailable_wake(
+            &serial_path,
+            &mut child,
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
+        )?;
 
         let keyboard_identity =
             keyboard_domain::exercise(&serial_path, &mut child, &mut qmp, &mut reader)?;
@@ -211,19 +221,12 @@ pub(super) fn execute_supplied_observed(
             "journey-home-timeout",
         )?;
         artifacts.capture(&mut qmp, &mut reader, "home", true)?;
-        journey_input::key_pair(&mut qmp, &mut reader, "tab", "journey-select-patchbay")?;
-        hid_qmp::wait_for_stage(
+        journey_input::open_hub_plot(
+            &mut qmp,
+            &mut reader,
             &serial_path,
             &mut child,
-            "CONDUIT_HOME_STATE launcher 1",
-            "journey-patchbay-selection-timeout",
-        )?;
-        journey_input::key_pair(&mut qmp, &mut reader, "ret", "journey-open-patchbay")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_HOME_CHECKPOINT patchbay-opened",
-            "journey-patchbay-timeout",
+            conduitos::native_workset::NativePlot::Patchbay,
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-workspace", true)?;
 
@@ -325,8 +328,9 @@ pub(super) fn execute_supplied_observed(
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
             "committed_edit_receipt": "memory-lantern-native-edit.json",
-            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","unavailable-wake-refused","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
+            "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","commons-hub","commons-workshop","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
+            "look_selection":look_selection,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,
@@ -455,7 +459,7 @@ fn validate(records: &[Value], serial: &str) -> Result<JourneyIdentity, Conduito
         previous = Some(index);
     }
     for marker in [
-        "CONDUIT_HOME_CHECKPOINT patchbay-opened",
+        "CONDUIT_HOME_CHECKPOINT plot-opened patchbay",
         "CONDUIT_WORKSPACE_FACE shown",
         "CONDUIT_WORKSPACE_VIEW ",
     ] {

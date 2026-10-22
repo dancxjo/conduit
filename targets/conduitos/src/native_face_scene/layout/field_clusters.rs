@@ -42,6 +42,7 @@ pub(super) fn text_width(
 ) -> Result<u16, FaceSceneError> {
     width
         .checked_sub(padding * 2)
+        .and_then(|width| width.checked_sub(super::super::semantic_icons::inset(item.icon)))
         .and_then(|width| {
             width.checked_sub(if item.checkbox.is_some() {
                 super::super::boolean_choice::INSET

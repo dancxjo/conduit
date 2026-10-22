@@ -5,7 +5,7 @@ use conduit_face::ApplicationEventKind;
 
 use crate::{BirthDraft, BirthDraftRefusal, BirthSelection, names::MAX_FRIENDLY_NAME_BYTES};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum BirthActionOutcome {
     Changed,
     /// A selection for the owning lifecycle boundary, not a born Body.

@@ -1,9 +1,11 @@
 //! Exact initial native workset preparation, before ordinary kernel admission.
 mod application_delivery;
 mod catalog;
+mod eligibility;
 mod keyboard_delivery;
 mod planning;
 mod play;
+mod preparation;
 mod text_state;
 mod tutorial_application;
 
@@ -12,6 +14,7 @@ pub use catalog::{
     NATIVE_CANDIDATE_CAPACITY, NATIVE_PLOT_CAPACITY, NativePlot, NativePlotProfile,
     candidate_inventory, checked, inventory, profile, resident, resolve,
 };
+pub use eligibility::eligibility;
 pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub(crate) use planning::{prepare_exact, propose_partitions};
 pub use play::{NativeFace, NativeWorksetPlay, PlayRefusal};
@@ -28,6 +31,7 @@ pub enum WorksetRefusal {
     Capability,
     Lowering,
     Kernel,
+    Application(conduitos_application_core::data::Refusal),
 }
 
 impl WorksetRefusal {
@@ -42,6 +46,23 @@ impl WorksetRefusal {
             Self::Capability => "native-body-capability-capacity-exceeded",
             Self::Lowering => "native-body-kernel-tables-exceeded",
             Self::Kernel => "native-body-kernel-preparation-refused",
+            Self::Application(error) => match error {
+                conduitos_application_core::data::Refusal::Bounds => {
+                    "native-body-application-bounds-refused"
+                }
+                conduitos_application_core::data::Refusal::Malformed => {
+                    "native-body-application-message-malformed"
+                }
+                conduitos_application_core::data::Refusal::Order => {
+                    "native-body-application-order-refused"
+                }
+                conduitos_application_core::data::Refusal::Capacity => {
+                    "native-body-application-capacity-exceeded"
+                }
+                conduitos_application_core::data::Refusal::Application => {
+                    "native-body-application-initialization-refused"
+                }
+            },
         }
     }
 }

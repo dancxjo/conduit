@@ -17,6 +17,7 @@ mod host_install;
 mod host_rendezvous;
 mod inspection;
 mod native_package_install;
+mod numerical_run;
 #[cfg(test)]
 mod parsec_cross_mask_counterexample_tests;
 #[cfg(test)]
@@ -129,6 +130,19 @@ fn run_with_placements(
             return Err("Thermostat stdin Play currently accepts local source without placement or Body overrides".into());
         }
         return thermostat_run::run(&source, &authoring, report_path, artifact_directory);
+    }
+    if source
+        .syntax
+        .plots
+        .last()
+        .is_some_and(|plot| plot.name.text == "quantity-projection/main")
+    {
+        if placements_path.is_some() || body_path.is_some() {
+            return Err(
+                "numerical stdin Fore uses its exact local Source-selected Body Plan".into(),
+            );
+        }
+        return numerical_run::run(&source, report_path, artifact_directory);
     }
     let plot = source.expand_entry()?;
     let body_product = body_path.map(body_product::prepare).transpose()?;

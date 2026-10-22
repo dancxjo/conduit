@@ -114,28 +114,22 @@ fn audit_zero_body_names_face_action_and_native_context_difference() {
     assert_eq!(door.face().unwrap(), face);
 }
 #[test]
-fn audit_home_tiles_are_shared_context_with_exact_current_body_face() {
+fn audit_home_picker_has_one_level_and_the_current_body_face() {
     let mut door = body(NativePlot::MemoryLantern);
-    door.open_home().unwrap();
+    open_picker(&mut door);
     let face = door.face().unwrap();
     let scene = scene(&door);
     assert_eq!(face.revision, door.revision());
     assert_eq!(face.basis.body_id, door.journey.as_ref().unwrap().body_id);
     assert!(
-        face.subjects
-            .iter()
-            .any(|subject| subject.identity == "conduitos/shell/home")
-    );
-    assert!(
         face.properties
             .iter()
             .any(|property| property.name == "view"
-                && property.value == FacePropertyValue::Text("launcher".into()))
+                && property.value == FacePropertyValue::Text("plots".into()))
     );
-    for destination in conduit_home_model::HomeDestination::ALL {
-        assert!(shown(&scene, destination.label()));
-    }
-    // Separate shared ApplicationView context exists; no renderer-owned Body.
+    assert!(shown(&scene, "Text editor"));
+    assert!(!shown(&scene, "Workshop"));
+    assert!(!shown(&scene, "PROMPT"));
     door.home_application_view()
         .unwrap()
         .unwrap()
@@ -202,27 +196,28 @@ fn home_key(door: &mut FrontDoor, usage: u8) -> HomeInput {
 }
 
 #[test]
-fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority() {
+fn home_reading_content_is_the_active_workset_without_an_ambient_command_bar() {
     let mut door = body(NativePlot::MemoryLantern);
-    let original_actions = door.face().unwrap().actions;
-    door.open_home().unwrap();
-    let face = door.face().unwrap();
-    for destination in conduit_home_model::HomeDestination::ALL {
-        assert!(
-            face.text
-                .iter()
-                .any(|text| text.text == destination.label())
-        );
-    }
-    home_key(&mut door, 79);
-    home_key(&mut door, 79);
-    home_key(&mut door, 40);
-    let face = door.face().unwrap();
+    open_picker(&mut door);
+    let original = door.face().unwrap();
     assert!(
-        face.text
+        original
+            .text
             .iter()
-            .any(|text| text.text
-                == format!("Installed Plot: {}", NativePlot::MemoryLantern.title()))
+            .any(|text| text.text == "Active Plot: Text editor")
+    );
+    for usage in [26, 4, 14, 8, 41] {
+        home_key(&mut door, usage);
+    }
+    assert_eq!(door.home_view(), Some(HomeView::Plots));
+    let face = door.face().unwrap();
+    assert_eq!(face.actions, original.actions);
+    assert_eq!(face.basis, original.basis);
+    assert!(
+        !face
+            .properties
+            .iter()
+            .any(|property| property.name == "command")
     );
     for plot in native_workset::inventory()
         .into_iter()
@@ -232,69 +227,9 @@ fn home_reading_content_tracks_launcher_plots_and_prompt_without_new_authority()
             !face
                 .text
                 .iter()
-                .any(|text| text.text == format!("Installed Plot: {}", plot.title()))
+                .any(|text| text.text == format!("Active Plot: {}", plot.title()))
         );
     }
-    home_key(&mut door, 41);
-    // Opening the Prompt with an empty command must still produce a valid Face.
-    for _ in 0..3 {
-        home_key(&mut door, 79);
-    }
-    home_key(&mut door, 40);
-    assert_eq!(door.home_view(), Some(HomeView::Prompt));
-    let blank = door.face().unwrap();
-    assert!(
-        blank
-            .properties
-            .iter()
-            .any(|property| property.name == "command-empty"
-                && property.value == FacePropertyValue::Flag(true))
-    );
-    assert!(
-        !blank
-            .properties
-            .iter()
-            .any(|property| property.name == "command")
-    );
-    // Typing enters the local Prompt; an unavailable command remains visible.
-    for usage in [26, 4, 14, 8] {
-        home_key(&mut door, usage);
-    }
-    let face = door.face().unwrap();
-    assert!(
-        face.properties
-            .iter()
-            .any(|property| property.name == "command"
-                && property.value == FacePropertyValue::Text("wake".into()))
-    );
-    assert_eq!(home_key(&mut door, 40), HomeInput::Changed);
-    let face = door.face().unwrap();
-    assert!(
-        face.text
-            .iter()
-            .any(|text| text.text.contains("no lifecycle authority"))
-    );
-    assert!(
-        face.properties
-            .iter()
-            .any(|property| property.name == "command-empty"
-                && property.value == FacePropertyValue::Flag(true))
-    );
-    assert!(
-        !face
-            .properties
-            .iter()
-            .any(|property| property.name == "command")
-    );
-    assert!(
-        face.properties
-            .iter()
-            .all(|property| !matches!(&property.value,
-        FacePropertyValue::Text(value) if value.is_empty()))
-    );
-    assert!(face.text.iter().all(|text| !text.text.is_empty()));
-    assert_eq!(face.actions, original_actions);
-    assert_eq!(face.basis.body_id, door.journey.as_ref().unwrap().body_id);
 }
 
 #[test]
@@ -340,7 +275,7 @@ fn resident_face_names_and_describes_the_exact_foreground_plot() {
 #[test]
 fn one_resident_home_scene_face_and_model_share_actual_body_membership() {
     let mut door = body(NativePlot::MemoryLantern);
-    door.open_home().unwrap();
+    open_picker(&mut door);
     home_key(&mut door, 79);
     home_key(&mut door, 79);
     home_key(&mut door, 40);
@@ -352,13 +287,13 @@ fn one_resident_home_scene_face_and_model_share_actual_body_membership() {
     let face = door.face().unwrap();
     let resident = native_workset::resident(NativePlot::MemoryLantern).unwrap();
     for (name, value) in [
-        ("installed-plot-count", FacePropertyValue::Count(1)),
+        ("active-plot-count", FacePropertyValue::Count(1)),
         (
-            "installed-plot/0/source-document-id",
+            "active-plot/0/source-document-id",
             FacePropertyValue::Identity(resident.source_document_id.as_str().into()),
         ),
         (
-            "installed-plot/0/checked-plot-id",
+            "active-plot/0/checked-plot-id",
             FacePropertyValue::Identity(resident.checked_plot_id.as_str().into()),
         ),
     ] {
@@ -384,7 +319,7 @@ fn one_resident_home_scene_face_and_model_share_actual_body_membership() {
             !face
                 .text
                 .iter()
-                .any(|text| text.text == format!("Installed Plot: {}", plot.title()))
+                .any(|text| text.text == format!("Active Plot: {}", plot.title()))
         );
     }
     // Cycling cannot manufacture an index into the Host's larger catalog.
@@ -396,21 +331,36 @@ fn one_resident_home_scene_face_and_model_share_actual_body_membership() {
 }
 
 #[test]
-fn absent_home_destinations_remain_local_unavailable_requests() {
+fn a_stopped_play_has_no_active_picker_targets() {
     let mut door = body(NativePlot::MemoryLantern);
-    let original_actions = door.face().unwrap().actions;
-    let original_body = door.face().unwrap().basis.body_id;
     door.open_home().unwrap();
-    for destination in ["Tour", "Patchbay"] {
-        assert_eq!(home_key(&mut door, 40), HomeInput::Changed);
-        let face = door.face().unwrap();
-        let reason =
-            format!("{destination} is unavailable: this Body has no installed {destination} Plot.");
-        assert!(face.text.iter().any(|text| text.text == reason));
-        assert!(shown(&scene(&door), &reason));
-        assert_eq!(face.actions, original_actions);
-        assert_eq!(face.basis.body_id, original_body);
-        assert_eq!(door.home_installed_plots().len(), 1);
-        home_key(&mut door, 79);
-    }
+    assert!(door.home_active_plots().is_empty());
+    assert_eq!(home_key(&mut door, 40), HomeInput::Unchanged);
+    assert!(shown(&scene(&door), "No active plots."));
+}
+
+fn open_picker(door: &mut FrontDoor) {
+    // A static owner observation, distinct from actual Plan/Play execution proof.
+    let body = conduit_body::Body::born_with_plots(
+        conduit_body::BodyWorkset::from_plots(
+            door.home_installed_plots()
+                .iter()
+                .map(|plot| plot.plot.clone()),
+        )
+        .unwrap(),
+        1,
+        "born/audit".into(),
+    )
+    .unwrap();
+    let (_, wake) = body.wake(1, "wake/audit".into()).unwrap();
+    let journey = door.journey.as_mut().unwrap();
+    assert_eq!(journey.body_id.as_ref(), Some(&body.body_id));
+    journey.status = crate::product_journey::JourneyStatus::QuiescentAwaitingInput;
+    journey.wake_id = Some(wake.wake_id);
+    journey.expanded_plot_id = Some("expanded/audit".into());
+    journey.plan_id = Some("plan/audit".into());
+    journey.active_play_id = Some("play/audit".into());
+    door.open_home().unwrap();
+    assert_eq!(door.home_view(), Some(HomeView::Plots));
+    assert_eq!(door.commons_place(), Some("commons/hub"));
 }

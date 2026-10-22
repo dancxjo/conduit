@@ -162,18 +162,19 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for fragment in &report.fragments {
         let _ = writeln!(
             output,
-            "fragment plan={} fragment={} host={} boot={}",
+            "fragment plan={} fragment={} host={} boot={} sealed_admission={:?}",
             fragment.plan_id.as_str(),
             fragment.fragment_id.as_str(),
             fragment.host_id.as_str(),
-            fragment.boot_id.as_str()
+            fragment.boot_id.as_str(),
+            fragment.admission
         );
     }
     let _ = writeln!(output, "placements {}", report.placements.len());
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_calls={:?} resources={:?} authority={:?} logical={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_calls={:?} resources={:?} authority={:?} logical={:?} sealed_admission={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -187,7 +188,8 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.host_calls,
             placement.resources,
             placement.authority,
-            placement.logical_gear
+            placement.logical_gear,
+            placement.admission
         );
     }
     let _ = writeln!(output, "connections {}", report.connections.len());

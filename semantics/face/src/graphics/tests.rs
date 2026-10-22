@@ -6,6 +6,8 @@ fn interaction_state_paints_round_trip_and_unknown_paints_refuse() {
         GraphicsPaintRole::Focus,
         GraphicsPaintRole::Hovered,
         GraphicsPaintRole::Selected,
+        GraphicsPaintRole::Surface,
+        GraphicsPaintRole::Border,
     ] {
         let mut scene = GraphicsScene::empty();
         scene
@@ -17,7 +19,57 @@ fn interaction_state_paints_round_trip_and_unknown_paints_refuse() {
             Ok(scene)
         );
     }
-    assert_eq!(decode_paint(12), Err(GraphicsError::MalformedEncoding));
+    assert_eq!(decode_paint(14), Err(GraphicsError::MalformedEncoding));
+    assert_eq!(decode_paint(255), Err(GraphicsError::MalformedEncoding));
+}
+
+#[test]
+fn paint_extension_preserves_existing_tags_and_command_storage() {
+    for (tag, paint) in (1..=13).zip([
+        GraphicsPaintRole::Background,
+        GraphicsPaintRole::Foreground,
+        GraphicsPaintRole::Accent,
+        GraphicsPaintRole::Status,
+        GraphicsPaintRole::Muted,
+        GraphicsPaintRole::Success,
+        GraphicsPaintRole::Warning,
+        GraphicsPaintRole::Danger,
+        GraphicsPaintRole::Focus,
+        GraphicsPaintRole::Hovered,
+        GraphicsPaintRole::Selected,
+        GraphicsPaintRole::Surface,
+        GraphicsPaintRole::Border,
+    ]) {
+        assert_eq!(decode_paint(tag), Ok(paint));
+        assert_eq!(GraphicsPaintRoleForm::encode(paint), [tag]);
+    }
+    let scene = |paint| {
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    rect(0, 10),
+                    rect(0, 10),
+                    paint,
+                    GraphicsShapeStyle::RoundedFill,
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        scene
+    };
+    let before = scene(GraphicsPaintRole::Background);
+    let after = scene(GraphicsPaintRole::Surface);
+    assert_eq!(before.encoded_len(), after.encoded_len());
+    assert_eq!(
+        before
+            .encode()
+            .iter()
+            .zip(after.encode())
+            .filter(|(a, b)| **a != *b)
+            .count(),
+        1
+    );
 }
 
 #[test]

@@ -24,16 +24,34 @@ pub(super) struct Row {
     pub region_start: bool,
     pub padding: u16,
     pub checkbox: Option<bool>,
+    pub icon: Option<conduit_face::FaceIconKey>,
     pub panel_bounds: Option<LayoutRect>,
 }
 
 impl Row {
+    /// Source-owned primary disclosure becomes a filled action only while available.
+    pub fn emphasized(&self) -> bool {
+        self.role == GraphicsTextRole::Heading
+            && self.paint == GraphicsPaintRole::Accent
+            && self
+                .control
+                .is_some_and(|control| control.argument.is_none())
+    }
+
+    pub fn text_paint(&self) -> GraphicsPaintRole {
+        if self.emphasized() {
+            GraphicsPaintRole::Background
+        } else {
+            self.paint
+        }
+    }
+
     pub fn text_bounds(&self) -> LayoutRect {
         let inset = if self.checkbox.is_some() {
             super::boolean_choice::INSET
         } else {
             0
-        };
+        } + super::semantic_icons::inset(self.icon);
         LayoutRect {
             x: self.bounds.x + self.padding as i16 + inset as i16,
             y: self.bounds.y + self.padding as i16,
@@ -41,6 +59,24 @@ impl Row {
             height: self.bounds.height - self.padding * 2,
         }
     }
+}
+
+/// Draw panel surfaces before any rows: authored geometry order may differ
+/// from the source reading order restored after layout admission.
+pub(super) fn append_panel_chrome(
+    scene: &mut GraphicsScene,
+    row: &Row,
+    screen: LayoutRect,
+) -> Result<(), FaceSceneError> {
+    if let Some(bounds) = row.panel_bounds {
+        for (paint, shape) in [
+            (GraphicsPaintRole::Surface, GraphicsShapeStyle::RoundedFill),
+            (GraphicsPaintRole::Border, GraphicsShapeStyle::RoundedStroke),
+        ] {
+            push(scene, GraphicsCommand::rect(bounds, screen, paint, shape))?;
+        }
+    }
+    Ok(())
 }
 
 /// Row-local drawing belongs with its measured bounds. A heading marker and
@@ -53,17 +89,6 @@ pub(super) fn append_row_chrome(
     showing_details: bool,
     focused: bool,
 ) -> Result<(), FaceSceneError> {
-    if !showing_details && let Some(bounds) = row.panel_bounds {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                bounds,
-                screen,
-                GraphicsPaintRole::Muted,
-                GraphicsShapeStyle::Stroke,
-            ),
-        )?;
-    }
     if !showing_details && row.region_start {
         push(
             scene,
@@ -83,7 +108,22 @@ pub(super) fn append_row_chrome(
     if row.control.is_some() {
         push(
             scene,
-            GraphicsCommand::rect(row.bounds, screen, outline, GraphicsShapeStyle::Stroke),
+            GraphicsCommand::rect(
+                row.bounds,
+                screen,
+                if row.emphasized() {
+                    GraphicsPaintRole::Accent
+                } else if focused || row.paint == GraphicsPaintRole::Muted {
+                    outline
+                } else {
+                    GraphicsPaintRole::Border
+                },
+                if row.emphasized() {
+                    GraphicsShapeStyle::RoundedFill
+                } else {
+                    GraphicsShapeStyle::RoundedStroke
+                },
+            ),
         )?;
     }
     // A second inset outline distinguishes focus even with identical paints
@@ -99,7 +139,15 @@ pub(super) fn append_row_chrome(
                     height: row.bounds.height - 6,
                 },
                 screen,
-                outline,
+                // Filled primary actions need an interior contrast against
+                // Accent, including white fills under forced colors. Keep the
+                // outer focus outline, but use the same contrasting paint as
+                // the primary label for this independent inset marker.
+                if row.emphasized() {
+                    GraphicsPaintRole::Background
+                } else {
+                    outline
+                },
                 GraphicsShapeStyle::Stroke,
             ),
         )?;
@@ -110,6 +158,22 @@ pub(super) fn append_row_chrome(
             GraphicsTextRole::Title | GraphicsTextRole::Heading
         )
     {
+        if row.emphasized() {
+            push(
+                scene,
+                GraphicsCommand::rect(
+                    row.bounds,
+                    screen,
+                    if focused {
+                        outline
+                    } else {
+                        GraphicsPaintRole::Border
+                    },
+                    GraphicsShapeStyle::RoundedStroke,
+                ),
+            )?;
+            return Ok(());
+        }
         push(
             scene,
             GraphicsCommand::rect(
@@ -161,6 +225,12 @@ pub(super) fn admit_with_expression(
         .ok_or(FaceSceneError::InvalidExtent)?;
     let chrome = chrome::Chrome::prepare(screen, text_scale_percent)?;
     let bottom = chrome.bottom;
+    let padding = fit_padding(
+        items.iter(),
+        bottom - chrome.top,
+        text_scale_percent,
+        padding,
+    );
     let maximum_height = bottom
         .checked_sub(chrome.top)
         .and_then(|height| height.checked_sub(padding * 2))
@@ -248,6 +318,7 @@ pub(super) fn admit_with_expression(
                 region_start,
                 padding,
                 checkbox: item.checkbox,
+                icon: item.icon,
                 panel_bounds: None,
                 bounds: LayoutRect {
                     x: (gutter + column * (width + gutter) + inset) as i16,
@@ -303,8 +374,26 @@ pub(super) fn admit_configured(
     }
 }
 
+/// Density-derived spacing is preferred geometry, not an authored hard minimum.
+/// At a constrained extent retain the requested text scale and the existing
+/// admitted minimum padding. If even that cannot fit, ordinary admission refuses.
+fn fit_padding<'a>(
+    items: impl Iterator<Item = &'a document::Item>,
+    available: u16,
+    scale: u16,
+    preferred: u16,
+) -> u16 {
+    let needs_minimum = items.filter(|item| !item.text.is_empty()).any(|item| {
+        TextLayout::new_scaled("", item.role.into(), 1, scale).is_ok_and(|layout| {
+            layout.finish_height() + u32::from(preferred) * 2 > u32::from(available)
+        })
+    });
+    if needs_minimum { SPACE_SM } else { preferred }
+}
+
 fn row_commands(item: &document::Item, region_start: bool) -> usize {
-    1 + 2 * usize::from(item.checkbox.is_some())
+    1 + usize::from(item.icon.is_some())
+        + 2 * usize::from(item.checkbox.is_some())
         + usize::from(item.control.is_some())
         + usize::from(region_start)
         + usize::from(matches!(

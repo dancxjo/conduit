@@ -24,14 +24,14 @@ fn arrival() -> (GuestBootSign, Value) {
     let journey = json!({
         "status": "world", "profile_id": boot.profile_id, "build_id": boot.build_id,
         "image_id": boot.image_binding, "host_id": boot.host_id, "boot_id": boot.boot_id,
-        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "presenter_implementation_id": "presenter/native-graphical@1",
         "body_id": null, "plan_id": null, "active_play_id": null,
     });
     (boot, journey)
 }
 
 #[test]
-fn exact_product_arrives_at_zero_body_creche() {
+fn exact_product_arrives_at_zero_body_commons() {
     let (boot, journey) = arrival();
     validate(
         &journey,
@@ -44,22 +44,27 @@ fn exact_product_arrives_at_zero_body_creche() {
 }
 
 #[test]
-fn arrival_refuses_the_retired_ordinary_creche_renderer() {
-    let (boot, mut journey) = arrival();
-    journey["presenter_implementation_id"] = json!("face/renderer-conduitos-native@1");
-    let error = validate(
-        &journey,
-        &boot,
-        "profile/exact",
-        "build/exact",
-        "image/exact",
-    )
-    .unwrap_err()
-    .to_string();
-    assert!(
-        error.contains("journey.presenter_implementation_id"),
-        "{error}"
-    );
+fn arrival_refuses_creche_renderers_before_commons() {
+    for implementation in [
+        "face/renderer-conduitos-native@1",
+        "face/renderer-conduitos-component@1",
+    ] {
+        let (boot, mut journey) = arrival();
+        journey["presenter_implementation_id"] = json!(implementation);
+        let error = validate(
+            &journey,
+            &boot,
+            "profile/exact",
+            "build/exact",
+            "image/exact",
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(
+            error.contains("journey.presenter_implementation_id"),
+            "{error}"
+        );
+    }
 }
 
 #[test]

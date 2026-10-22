@@ -4,7 +4,7 @@ use conduit_body::{BodyWorkset, MAX_BODY_PLOTS, ResidentPlot};
 
 use crate::names::{MAX_FRIENDLY_NAME_BYTES, NameSuggestion, NamingCatalog, NamingRefusal};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BirthPlotChoice {
     pub title: String,
     /// Searchable names and required kinds from the checked plot inventory.
@@ -27,7 +27,7 @@ pub struct BirthDraft {
     search: String,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BirthSelection {
     pub revision: u32,
     pub friendly_name: String,

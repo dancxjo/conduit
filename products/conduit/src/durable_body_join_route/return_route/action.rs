@@ -2,10 +2,21 @@
 
 use super::*;
 
-pub(super) fn fit_response(mut response: Response) -> Result<Response, String> {
+#[cfg(test)]
+pub(super) fn fit_response(response: Response) -> Result<Response, String> {
+    fit_response_with_maximum(
+        response,
+        super::super::response_document::MAX_OWNER_DOCUMENT_BYTES,
+    )
+}
+
+pub(super) fn fit_response_with_maximum(
+    mut response: Response,
+    maximum: usize,
+) -> Result<Response, String> {
     let bytes = serde_json::to_vec(&response)
         .map_err(|error| format!("encode native return response: {error}"))?;
-    if bytes.len() > super::super::response_document::MAX_OWNER_DOCUMENT_BYTES {
+    if bytes.len() > maximum {
         response.face = None;
         if response.accepted {
             response.code = "accepted-face-pressure";

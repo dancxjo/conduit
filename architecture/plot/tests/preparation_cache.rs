@@ -262,3 +262,6 @@ fn changed_back_owner_is_not_hidden_by_a_cached_primitive_expansion() {
 
 #[path = "preparation_cache/dependencies.rs"]
 mod dependencies;
+
+#[path = "preparation_cache/observations.rs"]
+mod observations;

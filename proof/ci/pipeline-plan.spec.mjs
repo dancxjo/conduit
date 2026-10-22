@@ -1,9 +1,23 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
-import { FAMILIES, UNIT_SHARDS, planChanges } from "../../tools/ci/pipeline/plan.mjs";
+import { candidateBrowserProofRequired, FAMILIES, UNIT_SHARDS, planChanges } from "../../tools/ci/pipeline/plan.mjs";
 
 const all = { docsOnly: false, families: [...FAMILIES], unitShards: [...UNIT_SHARDS], conduitosProof: true };
+
+test("a browser harness modification must select real browser product proof in Candidate", () => {
+  for (const path of [
+    "tools/ci/pipeline/targets/browser.mjs", "targets/browser/host/index.mjs",
+    "proof/browser/workspace-arrival.spec.mjs", "site/index.html",
+  ]) assert.equal(candidateBrowserProofRequired([path]), true, path);
+  for (const path of [
+    "docs/contributing/ci.md", "tools/ci/pipeline/targets/common.mjs",
+    "products/conduit/src/main.rs", "targets/conduitos/src/lib.rs",
+  ]) assert.equal(candidateBrowserProofRequired([path]), false, path);
+  assert.equal(candidateBrowserProofRequired([
+    "tools/ci/pipeline/targets/browser.mjs", "docs/contributing/ci.md",
+  ]), true);
+});
 
 test("only recognized prose can omit target lanes", () => {
   assert.deepEqual(planChanges(["README.md", "STATUS.md", "docs/contributing/ci.md"]), {

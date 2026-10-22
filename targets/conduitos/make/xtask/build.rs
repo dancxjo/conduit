@@ -17,8 +17,10 @@ use super::{
 
 pub(super) mod aarch64_domain;
 mod backbone;
+pub(super) mod compositor_semantic_recovery;
 pub(super) mod ia32_domain;
 pub(super) mod loongarch64_domain;
+mod privilege_inventory;
 pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
@@ -57,6 +59,20 @@ fn execute_profile_for_role(
     opts: &GlobalOpts,
     timing: bool,
 ) -> Result<BuildRecord, ConduitosError> {
+    let extra = if timing {
+        &["native-latency-observation"][..]
+    } else {
+        &[]
+    };
+    execute_profile_with_features(manifest, artifact_role, opts, extra)
+}
+
+fn execute_profile_with_features(
+    manifest: &BuildManifest,
+    artifact_role: ArtifactRole,
+    opts: &GlobalOpts,
+    extra_features: &[&'static str],
+) -> Result<BuildRecord, ConduitosError> {
     let arch = super::target_backend::select(&manifest.target)?.arch;
     let product_artifact = if artifact_role == ArtifactRole::ProductHost {
         Some(
@@ -75,9 +91,7 @@ fn execute_profile_for_role(
         .map_err(|error| ConduitosError::refusal("build-output-unavailable", error.to_string()))?;
     let generated = paths.target.join("make-record.rs");
     let mut lowering = target_lowering::lower(manifest)?;
-    if timing {
-        lowering.cargo_features.push("native-latency-observation");
-    }
+    lowering.cargo_features.extend_from_slice(extra_features);
     let source = format!(
         "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, face_surface_slots: {surface_slots}, face_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::make::MAKE_SCHEMA,
@@ -109,6 +123,7 @@ fn execute_profile_for_role(
             generated: &generated,
             build_id: &manifest.build_id,
             image_binding: &manifest.image_id,
+            manifest: Some(manifest),
         }),
         artifact_role,
         product_artifact,
@@ -313,8 +328,12 @@ fn execute_with_features(
     );
     if opts.dry_run {
         println!(
-            "cargo build -p conduitos --bin {binary} --target {target} --release --features {}",
-            features.join(",")
+            "cargo rustc -p conduitos --bin {binary} --target {target} --release --features {} -- -C link-arg=-Map={}",
+            features.join(","),
+            paths
+                .built_binary(target, binary)
+                .with_extension("map")
+                .display(),
         );
         return dry_record(arch, &paths, artifact_role);
     }
@@ -340,7 +359,7 @@ fn execute_with_features(
     let mut command = Command::new("cargo");
     command
         .args([
-            "build",
+            "rustc",
             "-p",
             "conduitos",
             "--bin",
@@ -352,6 +371,9 @@ fn execute_with_features(
         .current_dir(&paths.root)
         .env("CONDUITOS_BUILD_ID", build_id)
         .env("CONDUITOS_IMAGE_ID", image_binding);
+    if let Some(manifest) = make.and_then(|item| item.manifest) {
+        super::headless_profile::configure_symbols(&mut command, manifest, artifact_role);
+    }
     if arch == ConduitosArch::Ia32 {
         let linker = ia32_a0::rust_lld(&paths.root)?;
         command.env(
@@ -385,6 +407,7 @@ fn execute_with_features(
     if opts.locked {
         command.arg("--locked");
     }
+    let link_map = privilege_inventory::configure_link_map(&mut command, &paths, target, binary);
     let status = command.status().map_err(|error| {
         ConduitosError::refusal(
             "toolchain-unavailable",
@@ -414,7 +437,7 @@ fn execute_with_features(
         },
         elf_sha256: sha256_file(&paths.kernel)?,
     };
-    write_json(&paths.target.join("build.json"), &record)?;
+    privilege_inventory::publish(&paths, &record, features, &link_map)?;
     if !opts.quiet && !opts.json {
         println!("ConduitOS ELF: {}", paths.kernel.display());
     }
@@ -461,6 +484,7 @@ struct ProfileMake<'a> {
     generated: &'a Path,
     build_id: &'a str,
     image_binding: &'a str,
+    manifest: Option<&'a BuildManifest>,
 }
 
 fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> {
@@ -506,13 +530,6 @@ fn assert_elf(arch: ConduitosArch, paths: &Paths) -> Result<(), ConduitosError> 
         ));
     }
     Ok(())
-}
-
-fn write_json(path: &std::path::Path, value: &BuildRecord) -> Result<(), ConduitosError> {
-    let bytes = serde_json::to_vec_pretty(value)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))?;
-    fs::write(path, bytes)
-        .map_err(|error| ConduitosError::refusal("build-record-failed", error.to_string()))
 }
 
 fn dry_record(

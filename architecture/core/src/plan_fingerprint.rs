@@ -3,6 +3,7 @@
 //! This module encodes admitted truth. It neither selects realizations nor
 //! executes or mutates Plans.
 
+mod execution_regions;
 mod semantic_contract;
 use semantic_contract::push_semantic_contract;
 
@@ -39,30 +40,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     push_string(&mut canonical, fragment.host_id.as_str());
     push_string(&mut canonical, fragment.boot_id.as_str());
     push_u64(&mut canonical, fragment.offer_generation.0);
-    push_u32(&mut canonical, fragment.execution_regions.len() as u32);
-    for region in &fragment.execution_regions {
-        push_string(&mut canonical, region.region_id.as_str());
-        push_u32(&mut canonical, region.admitted_placements.len() as u32);
-        for placement in &region.admitted_placements {
-            push_string(&mut canonical, placement.as_str());
-        }
-        push_string(&mut canonical, region.execution_profile_id.as_str());
-        canonical.push(region.scheduling as u8);
-        push_u32(&mut canonical, region.lane_count);
-        push_resource_binding(&mut canonical, &region.lane_resource);
-        push_string(&mut canonical, region.lane_base_id.as_str());
-        push_u32(&mut canonical, region.requirements.runtime_memory_bytes);
-        push_u32(&mut canonical, region.requirements.timer_slots);
-        push_u32(&mut canonical, region.requirements.cord_item_capacity);
-        push_u32(&mut canonical, region.requirements.cord_byte_capacity);
-        push_u32(
-            &mut canonical,
-            u32::from(region.requirements.mandatory_sign_items),
-        );
-        push_u32(&mut canonical, region.requirements.mandatory_sign_bytes);
-        canonical.push(u8::from(region.preemption_required));
-        canonical.push(u8::from(region.isolation_required));
-    }
+    execution_regions::push_canonical(&mut canonical, &fragment.execution_regions);
     execution_fusion::push_canonical(&mut canonical, &fragment.execution_fusions);
     push_u32(&mut canonical, fragment.placements.len() as u32);
     for gear in &fragment.placements {

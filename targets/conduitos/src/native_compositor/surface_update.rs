@@ -265,41 +265,8 @@ impl NativeCompositor {
 }
 
 #[cfg(feature = "native-compositor")]
-fn visual_paint(
-    format: crate::display::DisplayFormat,
-    role: conduit_face::GraphicsPaintRole,
-    expression: Option<&conduit_face::AdmittedVisualExpression>,
-) -> u32 {
-    use crate::display::{ACCENT, BACKGROUND, DANGER, FOREGROUND, MUTED, SUCCESS, WARNING};
-    use conduit_face::{GraphicsPaintRole as Role, VisualPalette};
-    let color = if expression.is_some_and(|value| value.platform_forced_colors) {
-        match role {
-            Role::Background => (0, 0, 0),
-            Role::Focus | Role::Hovered | Role::Selected => (255, 255, 0),
-            _ => (255, 255, 255),
-        }
-    } else if expression.is_some_and(|value| value.expression.palette == VisualPalette::Editorial) {
-        match role {
-            Role::Background => (255, 249, 238),
-            Role::Foreground => (36, 32, 47),
-            Role::Muted => (81, 75, 95),
-            Role::Accent | Role::Selected => (85, 51, 116),
-            Role::Status | Role::Warning => (110, 62, 0),
-            Role::Success => (0, 85, 45),
-            Role::Danger => (140, 20, 35),
-            Role::Focus | Role::Hovered => (0, 67, 140),
-        }
-    } else {
-        match role {
-            Role::Background => BACKGROUND,
-            Role::Foreground => FOREGROUND,
-            Role::Accent | Role::Selected => ACCENT,
-            Role::Muted => MUTED,
-            Role::Status | Role::Warning => WARNING,
-            Role::Success => SUCCESS,
-            Role::Danger => DANGER,
-            Role::Focus | Role::Hovered => (255, 204, 51),
-        }
-    };
-    format.pixel(color.0, color.1, color.2)
-}
+use super::paint::visual_paint;
+
+#[cfg(all(test, feature = "native-compositor"))]
+#[path = "surface_update/paint_tests.rs"]
+mod paint_tests;

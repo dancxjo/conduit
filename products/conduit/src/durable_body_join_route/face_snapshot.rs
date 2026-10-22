@@ -90,7 +90,13 @@ pub(super) fn serve_optional_face_snapshot(
     if !selected {
         grant = None;
     }
-    response_document::send(line, &response)?;
+    response_document::send_for_profile(
+        line,
+        &response,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+            &receipt.host_advertisement,
+        ),
+    )?;
     if let Some(grant) = &grant {
         send(line, grant)?;
     }

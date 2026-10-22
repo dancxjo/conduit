@@ -1,0 +1,40 @@
+{
+  "source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "stages": [
+    {
+      "name": "build",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-x86_64-pc.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5992-headless-current-1/image",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 234.50396609306335
+    },
+    {
+      "name": "headless",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "conduitos",
+        "headless-proof",
+        "/home/dancxjo/Documents/Codex/2026-10-20/goal-bypass-the-standard-proof-and/work/5992-headless-current-1/image",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 1.9200329780578613
+    }
+  ],
+  "success": true,
+  "scope": "final headless product ELF/font exclusion and two actual unsupported-startup boots",
+  "final_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "source_clean": true,
+  "source_unchanged": true
+}

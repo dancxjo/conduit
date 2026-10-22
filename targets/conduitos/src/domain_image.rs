@@ -1,5 +1,6 @@
-//! Validate an independently compiled, immutable implementation artifact.
-//! No inherited Root mappings or writable/executable segments are admitted.
+//! Validate independently compiled implementation artifacts.
+//! No writable/executable segments or inherited Root mappings are admitted.
+//! Ordinary images are immutable; a service may supply one explicit private-data grant.
 
 pub const USER_TEXT_START: u64 = 0x0040_0000;
 // IA-32 Root boots at low physical/virtual addresses. Its linked image spans
@@ -28,6 +29,21 @@ impl ImageSegment<'_> {
     }
 }
 
+/// An explicit private RW/NX initialization grant, separate from image storage.
+/// Only service-profile admission supplies this window; ordinary image parsing
+/// never admits writable LOADs.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct PrivateDataWindow {
+    pub start: u64,
+    pub bytes: u64,
+}
+#[derive(Clone, Copy, Debug)]
+pub struct PrivateDataSegment<'a> {
+    pub address: u64,
+    pub bytes: &'a [u8],
+    pub memory_bytes: u64,
+}
+
 pub struct DomainImage<'a> {
     pub entry: u64,
     pub segments: [ImageSegment<'a>; 2],
@@ -35,7 +51,38 @@ pub struct DomainImage<'a> {
 
 impl<'a> DomainImage<'a> {
     pub fn parse(bytes: &'a [u8], machine: u16) -> Result<Self, ImageRefusal> {
+        let start = if machine == 3 {
+            IA32_USER_TEXT_START
+        } else {
+            USER_TEXT_START
+        };
+        Self::parse_in_window(bytes, machine, start, MAXIMUM_IMAGE_BYTES)
+    }
+
+    pub(crate) fn parse_in_window(
+        bytes: &'a [u8],
+        machine: u16,
+        text_start: u64,
+        maximum_bytes: u64,
+    ) -> Result<Self, ImageRefusal> {
+        Self::parse_service(bytes, machine, text_start, maximum_bytes, None).map(|(image, _)| image)
+    }
+
+    pub(crate) fn parse_service(
+        bytes: &'a [u8],
+        machine: u16,
+        text_start: u64,
+        maximum_bytes: u64,
+        private: Option<PrivateDataWindow>,
+    ) -> Result<(Self, Option<PrivateDataSegment<'a>>), ImageRefusal> {
         use ImageRefusal as Refusal;
+        if maximum_bytes == 0
+            || !maximum_bytes.is_multiple_of(PAGE_BYTES)
+            || !text_start.is_multiple_of(PAGE_BYTES)
+            || text_start.checked_add(maximum_bytes).is_none()
+        {
+            return Err(Refusal::InvalidMapping);
+        }
         let class = if machine == 3 { 1 } else { 2 };
         if bytes.get(..4) != Some(b"\x7fELF")
             || bytes.get(4) != Some(&class)
@@ -58,21 +105,44 @@ impl<'a> DomainImage<'a> {
         } else {
             (field64(bytes, 24)?, field64(bytes, 32)?, 56, 54, 56)
         };
-        if field16(bytes, size_field)? != header_size as u16 || field16(bytes, count_field)? != 2 {
+        let count = field16(bytes, count_field)? as usize;
+        if field16(bytes, size_field)? != header_size as u16
+            || (count != 2 && !(count == 3 && private.is_some() && class == 2 && machine == 62))
+        {
             return Err(Refusal::Malformed);
+        }
+        if let Some(window) = private
+            && (class != 2
+                || machine != 62
+                || window.bytes != PAGE_BYTES
+                || !window.start.is_multiple_of(PAGE_BYTES)
+                || window.start < text_start + maximum_bytes
+                || window
+                    .start
+                    .checked_add(window.bytes)
+                    .is_none_or(|end| end > 0x0000_8000_0000_0000))
+        {
+            return Err(Refusal::InvalidMapping);
         }
         let offset = usize::try_from(offset).map_err(|_| Refusal::Malformed)?;
         let end = offset
-            .checked_add(2 * header_size)
+            .checked_add(count * header_size)
             .ok_or(Refusal::Malformed)?;
         let headers = bytes.get(offset..end).ok_or(Refusal::Malformed)?;
-        let text_start = if machine == 3 {
-            IA32_USER_TEXT_START
-        } else {
-            USER_TEXT_START
-        };
-        let first = segment(bytes, &headers[..header_size], class, text_start)?;
-        let second = segment(bytes, &headers[header_size..], class, text_start)?;
+        let first = segment(
+            bytes,
+            &headers[..header_size],
+            class,
+            text_start,
+            maximum_bytes,
+        )?;
+        let second = segment(
+            bytes,
+            &headers[header_size..2 * header_size],
+            class,
+            text_start,
+            maximum_bytes,
+        )?;
         if !first.executable
             || second.executable
             || entry < first.address
@@ -81,10 +151,22 @@ impl<'a> DomainImage<'a> {
         {
             return Err(Refusal::InvalidMapping);
         }
-        Ok(Self {
-            entry,
-            segments: [first, second],
-        })
+        let data = if count == 3 {
+            Some(private_segment(
+                bytes,
+                &headers[2 * header_size..],
+                private.ok_or(Refusal::InvalidMapping)?,
+            )?)
+        } else {
+            None
+        };
+        Ok((
+            Self {
+                entry,
+                segments: [first, second],
+            },
+            data,
+        ))
     }
 }
 
@@ -93,6 +175,7 @@ fn segment<'a>(
     header: &[u8],
     class: u8,
     text_start: u64,
+    maximum_bytes: u64,
 ) -> Result<ImageSegment<'a>, ImageRefusal> {
     use ImageRefusal as Refusal;
     let (flags, offset, address, length, memory_length, alignment) = if class == 1 {
@@ -117,14 +200,14 @@ fn segment<'a>(
     if field32(header, 0)? != 1
         || !matches!(flags, 4 | 5)
         || length == 0
-        || length > MAXIMUM_IMAGE_BYTES
+        || length > maximum_bytes
         || memory_length != length
         || alignment != PAGE_BYTES
-        || address % PAGE_BYTES != 0
+        || !address.is_multiple_of(PAGE_BYTES)
         || address < text_start
         || address
             .checked_add(length.div_ceil(PAGE_BYTES) * PAGE_BYTES)
-            .is_none_or(|end| end > text_start + MAXIMUM_IMAGE_BYTES)
+            .is_none_or(|end| end > text_start + maximum_bytes)
     {
         return Err(Refusal::InvalidMapping);
     }
@@ -135,6 +218,40 @@ fn segment<'a>(
         address,
         bytes: bytes.get(start..end).ok_or(Refusal::Malformed)?,
         executable: flags == 5,
+    })
+}
+
+fn private_segment<'a>(
+    bytes: &'a [u8],
+    header: &[u8],
+    window: PrivateDataWindow,
+) -> Result<PrivateDataSegment<'a>, ImageRefusal> {
+    use ImageRefusal as E;
+    let offset = field64(header, 8)?;
+    let address = field64(header, 16)?;
+    let files = field64(header, 32)?;
+    let memory = field64(header, 40)?;
+    if field32(header, 0)? != 1
+        || field32(header, 4)? != 6
+        || address != window.start
+        || !offset.is_multiple_of(PAGE_BYTES)
+        || field64(header, 48)? != PAGE_BYTES
+        || memory == 0
+        || files > memory
+        || memory > window.bytes
+        || address
+            .checked_add(memory)
+            .is_none_or(|end| end > window.start + window.bytes)
+    {
+        return Err(E::InvalidMapping);
+    }
+    let offset = usize::try_from(offset).map_err(|_| E::Malformed)?;
+    let files = usize::try_from(files).map_err(|_| E::Malformed)?;
+    let end = offset.checked_add(files).ok_or(E::Malformed)?;
+    Ok(PrivateDataSegment {
+        address,
+        bytes: bytes.get(offset..end).ok_or(E::Malformed)?,
+        memory_bytes: memory,
     })
 }
 

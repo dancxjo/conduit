@@ -1,0 +1,71 @@
+> Preparation: exact-sequence transport passes the local fixed-grant regression and the preceding parent normal native journey. A later restacked journey exposed single-entry graph-projection work exhaustion; the prepare/finish follow-up needs fresh source/image-bound acceptance. Preserve the earlier [failed checkpoint](../../../docs/audits/evidence/application-entry-budget-20261021/README.md) as negative evidence.
+
+# Canonical native application owner
+
+One Models owner contains at most four canonical resident Tutorial, Tour and
+Patchbay controllers. Tutorial is the same biography-derived reducer moved out
+of Root; Tour and Patchbay call the existing portable application ports. Root
+provides already projected immutable Patchbay graphs, never a serialized planner.
+Existing Patchbay open and the projected-graph entrance use the same constructor.
+
+Initialization uses a fixed manifest followed by strictly ordered PrepareTarget,
+PrepareTutorial or PrepareTour components and FinishInit. At most 22 commands
+cover all four slots and their declared target positions. The previous aggregate
+Init command is not accepted. Prepared acknowledges private custody only; no
+model query, projection or effect proposal is admitted during staging. FinishInit
+moves existing controllers into Models only after complete coverage, valid
+selection and successful Initialized reply encoding.
+
+The remaining closed command vocabulary is Apply, Refresh, Select, Topology,
+CompleteTour, Graph, PrepareGraphProjection, FinishGraphProjection and
+ProjectTutorial. Only Apply may return an external-effect proposal. Views
+remain the existing 3072-byte ApplicationView encoding and events remain limited
+to 128 bytes. Chunked serialized DTOs are limited to 128 KiB; no Rust layout or
+pointer crosses the explicit versioned exchange protocol. Small DTOs retain raw
+JSON. Larger DTOs use a versioned, checksummed zlib frame with an explicit decoded
+length capped at 1 MiB. A fixed output slice bounds compression; decompression
+requires exact declared length, complete stream consumption and checksum validity.
+No compressed size or decompressed length changes the private metadata grant.
+
+Private Command/Reply JSON has a separate `CAPSEQ1` envelope. Each array carries
+its exact element count, checked by an allocation-free syntax/count preflight
+before typed deserialization sees a reservation hint. Unknown sequence lengths,
+wrong versions and malformed extents refuse; there is no unframed fallback.
+Framing shares the existing decoded-byte ceiling and admitted workspace. Canonical
+graph serialization and graph-facts custody digests keep their existing encoding.
+
+Structured configuration custody validates values against the normalized schema
+without constructing an additional owned semantic value tree. Every transport
+refusal terminalizes the instance; Root quarantines it. Failed preparation never installs
+Models before the final reply is encoded. Missing, duplicate, reordered and
+undeclared components terminalize the complete transaction. Private allocator exhaustion is latched and
+terminal, including infallible typed-deserialization allocations. The service
+reports Capacity only for its validated current request, then abandons its state.
+
+The Linux x86_64 `private_heap` package regression executes the production bitmap
+allocator in the exact 2 MiB metadata grant (24 KiB header, 32-byte units), including
+staged initialization, retained biography, all selected graphs, replies and repeated replacement.
+This host allocator proof does not replace source/image-pinned native lifecycle
+acceptance. The fixture and its custody hashes are described under tests/fixtures.
+
+Root retains genuine input provenance and current read-only view/basis snapshots,
+reviewed graph identities and current topology. It independently admits proposals
+against those grants. The service cannot create a Body, select an arbitrary Play,
+replace Root metadata, access drivers or acknowledge a physical Show.
+
+ProjectTutorial projects the current Root biography and Playing/Lulled mode through
+the same canonical projection used by retained Tutorial initialization. It is
+available before and after Models initialization and changes no retained model.
+Its reply echoes the exact Body ID, outer Root revision, record revision and mode.
+It cannot return a proposal. Root checks that scope and the encoded view revision.
+
+A readonly graph query uses two explicit commands. PrepareGraphProjection moves
+the decoded graph and scope into one private pending query and returns only
+Prepared. FinishGraphProjection consumes it once, validates the unchanged
+canonical graph digest and produces GraphFacts. Initialization and all other
+semantic commands refuse while a query is pending; their payloads are not
+allocated as a second retained graph. Any refusal drops the pending query and
+terminalizes the instance. These steps separate decoding from canonical custody
+validation and projection without increasing the work grant for either entry.
+The cold and retained Root service paths use the same synchronous protocol and
+independently validate the returned contribution against their original graph.

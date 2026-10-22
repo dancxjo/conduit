@@ -1,0 +1,19 @@
+{
+  "implementation_source": "821abe1f388aa14e6ab8bd98d66008395a4fb677",
+  "supported_command": "cargo xtask prove resource-frame",
+  "exit_code": 0,
+  "actual_tests_passed": 47,
+  "failed": 0,
+  "ignored": 0,
+  "focused_command": "cargo test --locked -p conduit-std-host --test execution_region_admission --test reluctant_replan_execution",
+  "focused_tests_passed": 8,
+  "strict_command": "cargo clippy --locked -p conduit-std-host --lib --test execution_region_admission -- -D warnings",
+  "strict_scope": "same Rust bytes before committing; supported suite includes the later entrance registration",
+  "proof_class": "hosted installed execution/refusal conformance; not physical lane execution",
+  "sha256": {
+    "5563-region-after.log.gz": "0d0c06c82576e3db19293deb48a72ac38190f4d14c9357b439c3fa1fb74de399",
+    "5563-region-before.log.gz": "d2a253ec257fface36e5d72d3eb5dcfbb4a30fcfede08829d3a3f1c99fc741ca",
+    "5563-region-clippy.log.gz": "c59dc5670247eb69a5139e999f7ab704b488f5bdc623a17c71f037d2d3aff27e",
+    "5563-resource-frame.log.gz": "fb96659ad7d4b3cbf9d03e2a2f66973943f324cbffc7d4ede92cde0503938722"
+  }
+}

@@ -1,91 +1,61 @@
 //! Admitted native implementations for the portable application Plot seam.
 
-use alloc::{boxed::Box, format, vec};
+use alloc::{format, vec};
 use conduit_core::{CapabilityOffer, HostCallRequirement, resource_requirement};
+pub use conduitos_application_core::data::Proposal as NativeApplicationRequest;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(super) type NativeApplications = crate::protected_application::Owner;
+#[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+pub(super) type NativeApplications = conduitos_application_core::models::Models;
 
-pub(super) enum NativeApplication {
-    Tutorial(super::tutorial_application::TutorialApplication),
-    Tour(Box<conduit_tour_model::TourApplicationPort>),
-    Patchbay(PatchbayTargets),
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum NativeApplicationRequest {
-    Tutorial(super::tutorial_application::TutorialAction),
-    RunTour { chapter: u8, stage: u8 },
-    OpenPatchbay,
-    EditCurrent(patchbay_application::PatchbayApplicationRequest),
-}
-
-pub(super) struct PatchbayTargets {
-    ports:
-        [Option<Box<patchbay_application::PatchbayApplicationPort>>; super::NATIVE_PLOT_CAPACITY],
-    selected: usize,
-}
-
-impl PatchbayTargets {
-    pub(super) fn selected_graph(&self) -> Option<&patchbay_graph::PatchbayGraph> {
-        Some(self.ports.get(self.selected)?.as_ref()?.graph())
+pub(super) fn initial(
+    prepared: &super::PreparedNativeWorkset,
+    evidence: Option<&conduit_body::BodyBiographyEvidence>,
+) -> Result<
+    [Option<conduitos_application_core::data::Initial>; super::NATIVE_PLOT_CAPACITY],
+    super::WorksetRefusal,
+> {
+    use conduitos_application_core::data::{Initial, Target};
+    let mut initial = core::array::from_fn(|_| None);
+    for (slot, planned) in prepared.plan.plots.iter().enumerate() {
+        let Some(placement) = planned.plan.fragments[0]
+            .placements
+            .iter()
+            .find(|p| p.implementation_id.as_str() == STATE_IMPLEMENTATION)
+        else {
+            continue;
+        };
+        initial[slot] = Some(
+            match super::tutorial_application::selected_application(placement)? {
+                "tutorial" => Initial::Tutorial {
+                    evidence: evidence.ok_or(super::WorksetRefusal::Plan)?.clone(),
+                },
+                "tour" => Initial::Tour,
+                "patchbay" => {
+                    let mut targets = core::array::from_fn(|_| None);
+                    for (index, planned) in prepared.plan.plots.iter().enumerate() {
+                        if index == slot {
+                            continue;
+                        }
+                        let expanded = super::checked(super::resolve(&planned.plot)?)?;
+                        let graph = patchbay_graph::PatchbayGraph::from_expanded(&expanded)
+                            .map_err(|_| super::WorksetRefusal::Plan)?;
+                        targets[index] = Some(Target {
+                            graph,
+                            plan: planned.plan.plan_id.clone(),
+                            body: prepared.plan.plan_id.clone(),
+                        });
+                    }
+                    Initial::Patchbay {
+                        targets,
+                        selected: if slot == 0 { 1 } else { 0 },
+                    }
+                }
+                _ => return Err(super::WorksetRefusal::Plan),
+            },
+        );
     }
-
-    pub(super) fn prepare(
-        prepared: &super::PreparedNativeWorkset,
-        patchbay: usize,
-    ) -> Result<Self, super::WorksetRefusal> {
-        let mut selected = 0;
-        if selected == patchbay {
-            selected = 1;
-        }
-        let mut ports = core::array::from_fn(|_| None);
-        for (index, planned) in prepared.plan.plots.iter().enumerate() {
-            if index == patchbay {
-                continue;
-            }
-            let native = super::resolve(&planned.plot)?;
-            let expanded = super::checked(native)?;
-            ports[index] = Some(Box::new(
-                patchbay_application::PatchbayApplicationPort::open(
-                    &expanded,
-                    planned.plan.plan_id.clone(),
-                    prepared.plan.plan_id.clone(),
-                )
-                .map_err(|_| super::WorksetRefusal::Plan)?
-                // This admitted 3 KiB native view presents exact text inspection.
-                // It does not consume the browser's inline graph payload; native
-                // Tour graph scenes have their own projection/rendering path.
-                .with_canvas_delivery(patchbay_application::PatchbayCanvasDelivery::TextInspection),
-            ));
-        }
-        Ok(Self { ports, selected })
-    }
-
-    pub(super) fn select(&mut self, target: usize) -> Result<(), super::play::PlayRefusal> {
-        if self.ports.get(target).is_none_or(Option::is_none) {
-            return Err(super::play::PlayRefusal::Foreground);
-        }
-        self.selected = target;
-        Ok(())
-    }
-
-    pub(super) fn apply(
-        &mut self,
-        input: &[u8],
-    ) -> Result<patchbay_application::PatchbayApplicationOutput, super::play::PlayRefusal> {
-        self.ports[self.selected]
-            .as_mut()
-            .ok_or(super::play::PlayRefusal::Kernel)?
-            .apply(input)
-            .map_err(|_| super::play::PlayRefusal::Kernel)
-    }
-
-    pub(super) fn set_mask_topology(
-        &mut self,
-        topology: &patchbay_application::PatchbayMaskTopology,
-    ) {
-        for port in self.ports.iter_mut().flatten() {
-            port.set_mask_topology(topology.clone());
-        }
-    }
+    Ok(initial)
 }
 
 pub(super) const EVENT_IMPLEMENTATION: &str = "conduitos/application-event-delivery@1";
@@ -181,11 +151,22 @@ mod tests {
             .iter()
             .position(|plot| plot.plot == resident)
             .unwrap();
-        let mut targets = PatchbayTargets::prepare(&prepared, index).unwrap();
-        for port in targets.ports.iter_mut().flatten() {
-            let count = port.graph().subject_identities().count();
+        let born = conduit_body::Body::born_with_plots(wake.workset.clone(), 1, "sign/born".into())
+            .unwrap();
+        let membership = conduit_body::BodyMembership::new(born.body_id.clone()).unwrap();
+        let evidence =
+            conduit_body::BodyBiographyEvidence::born(born, membership, "Test Body".into())
+                .unwrap();
+        let initial = initial(&prepared, Some(&evidence)).unwrap();
+        let mut targets = conduitos_application_core::models::Models::new(initial).unwrap();
+        for target in 0..super::super::NATIVE_PLOT_CAPACITY {
+            if target == index {
+                continue;
+            }
+            targets.select(index, target).unwrap();
+            let count = targets.graph(index).unwrap().subject_identities().count();
             for _ in 0..count {
-                let output = port.apply(&[]).unwrap();
+                let (output, _) = targets.apply(index, &[]).unwrap();
                 assert!(
                     output.view.len() <= VIEW_BYTES as usize,
                     "native inspector emitted {} bytes beyond admitted {}",
@@ -207,7 +188,7 @@ mod tests {
                     kind: ApplicationEventKind::Activate,
                     value: alloc::vec::Vec::new(),
                 };
-                port.apply(&event.encode(&view).unwrap()).unwrap();
+                targets.apply(index, &event.encode(&view).unwrap()).unwrap();
             }
         }
     }

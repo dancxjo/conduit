@@ -1,0 +1,129 @@
+{
+  "source": "c93a4cca2ac48405415ce813e43e973d93005bad",
+  "source_after": "c93a4cca2ac48405415ce813e43e973d93005bad",
+  "clean_before": true,
+  "clean_after": true,
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "3"
+  },
+  "results": [
+    {
+      "name": "source-inspection",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-patchbay-workbench",
+        "--test",
+        "pure_chain_fusion",
+        "--test",
+        "sealed_admission"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 2,
+      "valid": true,
+      "log": "../5545-source-inspection.log",
+      "file": "source-inspection.log.gz",
+      "sha256": "81f66b5f2ec5f3c49bd495de7046dd3dcaa5fc33046bb3ed35d1f1661a118a7c",
+      "raw_sha256": "8da1fb042234bb3da4cc29ef6611448fda06bd2fbef1847f1534b03bc8a536a0",
+      "raw_bytes": 16893
+    },
+    {
+      "name": "topology",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-patchbay-workbench",
+        "--lib",
+        "topology::tests"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          8,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 8,
+      "valid": true,
+      "log": "../5545-topology.log",
+      "file": "topology.log.gz",
+      "sha256": "94adca7412526576a3a009f2427aefa545d894f295942867f6cb5dc6d38ba8a9",
+      "raw_sha256": "5cd15f4e36503c72e511f6ee1a4a46b9df8e1d7e78d5347e59d5042e5cb732dd",
+      "raw_bytes": 1149
+    },
+    {
+      "name": "observatory",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-observatory",
+        "--lib"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          53,
+          0,
+          0
+        ]
+      ],
+      "expected_passed": 53,
+      "valid": true,
+      "log": "../5545-observatory.log",
+      "file": "observatory.log.gz",
+      "sha256": "9c57f09c67911bf1c91b595799e8ee04ca293328bac261fc737e526ed783512e",
+      "raw_sha256": "6d74410e74999d12d85d2099f83d5ca9b93247542e5f739c31ab68100f31510f",
+      "raw_bytes": 12682
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-observatory",
+        "--all-targets",
+        "-p",
+        "conduit-patchbay-workbench",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "expected_passed": null,
+      "valid": true,
+      "log": "../5545-clippy.log",
+      "file": "clippy.log.gz",
+      "sha256": "e5dfc415fc84c770dd59814968c18f5f3220689ec65982b6c18bc971d56f0a29",
+      "raw_sha256": "3119d47c047337564ff9e0fa38f889c03e4e236c434062d29a6e491346d840ec",
+      "raw_bytes": 15562
+    }
+  ],
+  "scope": "Current dev implementation acceptance; publication is not asserted"
+}

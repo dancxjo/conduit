@@ -2,7 +2,7 @@ use super::*;
 use alloc::vec;
 use conduit_face::{BodyFace, FaceContext, FaceFocus};
 
-struct Display;
+pub(super) struct Display;
 
 impl PixelTarget for Display {
     fn format(&self) -> crate::display::DisplayFormat {

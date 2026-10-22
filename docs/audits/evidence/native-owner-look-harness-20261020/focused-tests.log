@@ -1,0 +1,12 @@
+
+running 7 tests
+test commands::conduitos::owner_action_proof::todo_look::tests::owner_look_requires_the_installed_product_from_the_exact_guest_source ... ok
+test commands::conduitos::owner_action_proof::observation::tests::qemu_option_replacement_survives_singleton_flags ... ok
+test commands::conduitos::owner_action_proof::validation::tests::action_proof_correlates_refreshed_show_after_standby ... ok
+test commands::conduitos::owner_action_proof::validation::tests::action_proof_rejects_stale_basis_and_unaccepted_return ... ok
+test commands::conduitos::owner_action_proof::todo_look::tests::owner_look_records_wait_for_completion_and_refuse_pressure_or_corruption ... ok
+test commands::conduitos::owner_action_proof::observation::tests::action_records_remain_exact_and_bounded ... ok
+test commands::conduitos::owner_action_proof::todo_action::tests::checkpoint_inventory_distinguishes_a_changed_fork_and_refuses_symlinks ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 583 filtered out; finished in 0.00s
+

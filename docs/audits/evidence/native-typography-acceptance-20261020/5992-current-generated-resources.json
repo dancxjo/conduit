@@ -1,0 +1,22 @@
+[
+  {
+    "directory": "target/x86_64-unknown-none/release/build/conduitos-35f5f48901d36388/out",
+    "files": {
+      "native_coverage.bin": {
+        "sha256": "40e2501492b27bdeff988866ced595e310b8753935af43bb773ea8121dfb0370",
+        "bytes": 761651,
+        "matches_retained": true
+      },
+      "native_typography.rs": {
+        "sha256": "8386f66424c5a48e63077fb63c396901603ac3cd6da1c39b3c251dffcd7e8eef",
+        "bytes": 512970,
+        "matches_retained": true
+      },
+      "native_typography_resources.tsv": {
+        "sha256": "b1cbb5dd8ca08682e9f5d2ef25e1169f9a1a1a69eb85971747c473b859e2dca5",
+        "bytes": 319,
+        "matches_retained": true
+      }
+    }
+  }
+]

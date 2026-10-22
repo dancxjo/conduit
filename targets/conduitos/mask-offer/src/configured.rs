@@ -9,7 +9,11 @@ pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource
 const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, expression = expression)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
 
 pub fn configured_resource_renderer_kind() -> Kind {
-    let component = component_mask_kind(MASK_BYTES as u32);
+    configured_resource_renderer_kind_for_profile(NativeMaskStorageProfile::Standard)
+}
+
+fn configured_resource_renderer_kind_for_profile(profile: NativeMaskStorageProfile) -> Kind {
+    let component = component_mask_kind(profile.bytes());
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_COMPONENT_RENDERER_KIND);
     kind.kind_contract_revision =
@@ -20,19 +24,25 @@ pub fn configured_resource_renderer_kind() -> Kind {
 }
 
 pub fn configured_resource_renderer_offer() -> CapabilityOffer {
-    BackOfferBuilder::new(
-        configured_resource_renderer_kind(),
+    configured_resource_renderer_offer_for_profile(NativeMaskStorageProfile::Standard)
+}
+
+pub(super) fn configured_resource_renderer_offer_for_profile(
+    profile: NativeMaskStorageProfile,
+) -> CapabilityOffer {
+    let mut offer = BackOfferBuilder::new(
+        configured_resource_renderer_kind_for_profile(profile),
         Back {
             capability_id: CapabilityId::from("renderer-conduitos-component"),
-            execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
+            execution_profile_id: ExecutionProfileId::from(profile.execution_profile()),
             implementation_id: ImplementationId::from("face/renderer-conduitos-component@1"),
             artifact_id: ArtifactId::from("conduitos/native-compositor@1"),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from("conduit.host/present@1"),
                 target_kind: Some(kind_id("face/base/conduitos-surface@1")),
                 maximum_in_flight: 1,
-                maximum_input_bytes: MASK_BYTES as u32,
-                maximum_output_bytes: MASK_BYTES as u32,
+                maximum_input_bytes: profile.bytes(),
+                maximum_output_bytes: profile.bytes(),
             }],
             resource_requirements: vec![],
             authority_requirements: vec![present_authority_requirement(kind_id(
@@ -40,7 +50,11 @@ pub fn configured_resource_renderer_offer() -> CapabilityOffer {
             ))],
         },
     )
-    .build()
+    .build();
+    if profile == NativeMaskStorageProfile::Collection {
+        offer.limits.max_queue_bytes = profile.renderer_queue_bytes();
+    }
+    offer
 }
 
 pub fn prepare_component_stage(
@@ -66,10 +80,19 @@ pub fn prepare_component_stage_from_offer(
     look: ComponentMaskLook,
     recipe: TodoComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_selected_component_stage_from_offer(host, look.into(), recipe)
+}
+
+pub fn prepare_selected_component_stage_from_offer(
+    host: &HostAdvertisement,
+    selection: ComponentVisualSelection,
+    recipe: TodoComponentRecipe,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
     prepare_component_document(
         host,
         TODO_COMPONENT_MASK_SOURCE,
-        todo_component_mask_root(look, recipe),
+        selection.todo_root(recipe),
+        NativeMaskStorageProfile::Standard,
     )
 }
 
@@ -77,20 +100,29 @@ pub fn prepare_creche_stage_from_offer(
     host: &HostAdvertisement,
     recipe: CrecheComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    prepare_component_document(host, CRECHE_COMPONENT_MASK_SOURCE, recipe.root())
+    prepare_selected_creche_stage_from_offer(host, recipe, ComponentVisualSelection::default())
 }
 
-fn prepare_component_document(
+pub fn prepare_selected_creche_stage_from_offer(
+    host: &HostAdvertisement,
+    recipe: CrecheComponentRecipe,
+    selection: ComponentVisualSelection,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    prepare_component_document(
+        host,
+        CRECHE_COMPONENT_MASK_SOURCE,
+        selection.creche_root(recipe),
+        NativeMaskStorageProfile::Standard,
+    )
+}
+
+pub(super) fn prepare_component_document(
     host: &HostAdvertisement,
     source: &str,
     root: &str,
+    profile: NativeMaskStorageProfile,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    if host.protocol_version != PROTOCOL_VERSION
-        || host.profile.as_str() != "conduitos/mask-host@1"
-        || host.offer_generation.0 == 0
-    {
-        return Err(MaskOfferError::InvalidPlan);
-    }
+    profile.admit_host(host, "renderer-conduitos-component")?;
     let mut catalog = ProfileCatalog::new();
     for projection in [
         face_interaction_kind_projection(),
@@ -102,8 +134,8 @@ fn prepare_component_document(
     }
     for kind in [
         show_resource_source_kind(),
-        configured_resource_renderer_kind(),
-        component_mask_kind(MASK_BYTES as u32),
+        configured_resource_renderer_kind_for_profile(profile),
+        component_mask_kind(profile.bytes()),
     ] {
         catalog
             .insert_kind(kind)
@@ -130,7 +162,7 @@ fn prepare_component_document(
     let mut backs = CanonicalBackCatalog::new();
     backs
         .insert(
-            &component_mask_kind(MASK_BYTES as u32),
+            &component_mask_kind(profile.bytes()),
             &back,
             "native-component-back",
         )
@@ -161,7 +193,7 @@ fn prepare_component_document(
                 byte_capacity: if name == "interaction" {
                     MAX_FACE_INTERACTION_BYTES as u32
                 } else {
-                    MASK_BYTES as u32
+                    profile.bytes()
                 },
             },
         )
@@ -181,7 +213,7 @@ fn prepare_component_document(
         connection_bases: &empty,
         line_candidates: &lines,
         connection_item_capacity: 1,
-        connection_byte_capacity: MASK_BYTES as u32,
+        connection_byte_capacity: profile.bytes(),
         authority_grants: &grants,
         protected_resource_grants: &[],
         line_offers: &[],
@@ -307,5 +339,66 @@ mod tests {
             prepare_creche_stage_from_offer(&foreign, CrecheComponentRecipe::ResponsiveColumns)
                 .is_err()
         );
+    }
+    #[test]
+    fn selection_axes_reproduce_one_checked_component_in_both_domains() {
+        let host = host();
+        for creche in [false, true] {
+            for grouped in [false, true] {
+                let mut baseline: Option<ConfiguredMaskConfiguration> = None;
+                let mut plan_ids = Vec::new();
+                for density in [VisualDensity::Compact, VisualDensity::Spacious] {
+                    for palette in [VisualPalette::Phosphor, VisualPalette::Editorial] {
+                        let selection = ComponentVisualSelection { density, palette };
+                        let (stage, configuration) = if creche {
+                            prepare_selected_creche_stage_from_offer(
+                                &host,
+                                if grouped {
+                                    CrecheComponentRecipe::ResponsiveColumns
+                                } else {
+                                    CrecheComponentRecipe::SingleColumn
+                                },
+                                selection,
+                            )
+                        } else {
+                            prepare_selected_component_stage_from_offer(
+                                &host,
+                                selection,
+                                if grouped {
+                                    TodoComponentRecipe::Grouped
+                                } else {
+                                    TodoComponentRecipe::Flat
+                                },
+                            )
+                        }
+                        .unwrap();
+                        let expression = visual_expression_from_info(
+                            StructuredInfoValue::from_canonical_bytes(
+                                configuration.expression.canonical_value(),
+                            )
+                            .unwrap(),
+                        )
+                        .unwrap();
+                        assert_eq!((expression.density, expression.palette), (density, palette));
+                        assert_eq!(
+                            expression.text_scale_percent,
+                            if density == VisualDensity::Compact {
+                                100
+                            } else {
+                                125
+                            }
+                        );
+                        if let Some(first) = &baseline {
+                            assert_eq!(first.component, configuration.component);
+                            assert_eq!(first.recipe, configuration.recipe);
+                        } else {
+                            baseline = Some(configuration);
+                        }
+                        assert!(!plan_ids.contains(&stage.planned_mask.plan.plan_id));
+                        plan_ids.push(stage.planned_mask.plan.plan_id);
+                    }
+                }
+            }
+        }
     }
 }

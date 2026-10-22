@@ -18,6 +18,8 @@ use crate::{
 
 mod biography;
 mod birth;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod graph_facts;
 mod projection;
 mod proposal;
 mod tutorial;

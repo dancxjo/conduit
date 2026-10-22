@@ -79,7 +79,10 @@ impl NativeFaceScene {
                 LayoutRect {
                     x: SPACE_XL as i16,
                     y: (chrome.top - 4) as i16,
-                    width: self.screen.width - SPACE_XL * 2,
+                    width: (((u64::from(self.screen.width - SPACE_XL * 2))
+                        * (self.page + 1) as u64
+                        / self.pages() as u64)
+                        .max(1)) as u16,
                     height: 2,
                 },
                 self.screen,
@@ -95,6 +98,11 @@ impl NativeFaceScene {
             && !self.showing_details
             && !self.showing_diagram
             && text_editor::append(&mut scene, &self.face, self.screen, self.text_scale_percent)?;
+        if !editor_visible && !self.showing_diagram && !self.showing_details {
+            for row in self.rows().iter().filter(|row| row.page == self.page) {
+                layout::append_panel_chrome(&mut scene, row, self.screen)?;
+            }
+        }
         let mut focus_marked = false;
         for row in self
             .rows()
@@ -123,9 +131,10 @@ impl NativeFaceScene {
             )?;
             focus_marked |= focused;
             super::boolean_choice::append(&mut scene, row, self.screen)?;
+            super::semantic_icons::append(&mut scene, row, self.screen)?;
             push(
                 &mut scene,
-                GraphicsCommand::text(row.text_bounds(), self.screen, row.paint, &row.text)
+                GraphicsCommand::text(row.text_bounds(), self.screen, row.text_paint(), &row.text)
                     .and_then(|command| command.with_text_role(row.role)),
             )?;
             if available {
@@ -164,6 +173,8 @@ impl NativeFaceScene {
                 "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay".into()
             } else if !self.interaction_admitted {
                 "Read only · PgUp/PgDn pages · F2 facts".into()
+            } else if self.showing_details && self.has_diagram() {
+                "Alt+Left/Right subjects · PgUp/PgDn · F3 graph".into()
             } else if self.showing_details {
                 "PgUp/PgDn pages · Tab next · F2 return".into()
             } else if self.has_diagram() {
@@ -183,7 +194,7 @@ impl NativeFaceScene {
                     height: 2,
                 },
                 self.screen,
-                GraphicsPaintRole::Muted,
+                GraphicsPaintRole::Border,
                 GraphicsShapeStyle::Fill,
             ),
         )?;
@@ -191,7 +202,7 @@ impl NativeFaceScene {
         push(
             &mut scene,
             GraphicsCommand::text(bounds, self.screen, GraphicsPaintRole::Muted, &footer)
-                .and_then(|command| command.with_text_role(GraphicsTextRole::Muted)),
+                .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
         )?;
         Ok(FaceFrame {
             scene,

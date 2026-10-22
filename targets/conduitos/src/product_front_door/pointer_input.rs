@@ -76,6 +76,8 @@ pub(super) fn dispatch(
     face_workspace: &mut super::FaceWorkspace,
     display: &mut impl crate::display::PixelTarget,
     make: &crate::make::MakeRecord,
+    identities: &crate::identity::BootIdentities,
+    offer: &crate::offer::HostOffer<'_>,
 ) -> Result<(), &'static str> {
     if state.retired {
         return Ok(());
@@ -114,11 +116,17 @@ pub(super) fn dispatch(
         if let super::FaceArrivalInput::Born =
             face_arrival.accept_pointer(x, y, front_door, journey, presenter, display, make)?
         {
-            let (observation, play) = face_arrival.next_publication_sequences();
-            face_workspace.continue_after_birth(observation, play);
-            if journey.foreground_text_editor_active() {
-                face_workspace.enter_editor(front_door, presenter, display)?;
-            }
+            super::startup::after_birth(
+                face_arrival,
+                front_door,
+                journey,
+                presenter,
+                face_workspace,
+                display,
+                identities,
+                offer,
+                make,
+            )?;
         }
     }
     Ok(())

@@ -29,10 +29,14 @@ mod document;
 mod frame;
 #[path = "native_face_scene/input.rs"]
 mod input;
+#[path = "native_face_scene/inspection.rs"]
+mod inspection;
 #[path = "native_face_scene/layout.rs"]
 mod layout;
 #[path = "native_face_scene/ports.rs"]
 mod ports;
+#[path = "native_face_scene/semantic_icons.rs"]
+mod semantic_icons;
 #[path = "native_face_scene/text_editor.rs"]
 mod text_editor;
 #[path = "native_face_scene/text_field.rs"]
@@ -113,6 +117,7 @@ pub struct NativeFaceScene {
     input: input::InputState,
     interaction_admitted: bool,
     local_notice: Option<String>,
+    inspected_subject: Option<usize>,
 }
 
 impl NativeFaceScene {
@@ -150,6 +155,7 @@ impl NativeFaceScene {
             input: input::InputState::default(),
             interaction_admitted,
             local_notice: None,
+            inspected_subject: None,
         })
     }
 
@@ -475,3 +481,10 @@ mod creche_navigation_tests;
 #[cfg(test)]
 #[path = "native_face_scene/observation_tests.rs"]
 mod observation_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/look_tests.rs"]
+mod look_tests;
+
+#[path = "native_face_scene/encounter.rs"]
+mod encounter;

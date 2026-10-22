@@ -104,6 +104,8 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
     for look in [
         conduit_face::ComponentMaskLook::Compact,
         conduit_face::ComponentMaskLook::Spacious,
+        conduit_face::ComponentMaskLook::CompactEditorial,
+        conduit_face::ComponentMaskLook::SpaciousPhosphor,
     ] {
         for recipe in [
             conduit_face::TodoComponentRecipe::Flat,
@@ -533,5 +535,65 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
         owner.face_wardrobe.as_ref().unwrap().plan().plan_id,
         joint_plan
     );
+    exercise_independent_component_selection(&mut owner, &request, &receipt, native_show);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn exercise_independent_component_selection(
+    owner: &mut Owner,
+    request: &conduit_face::OwnerFaceSnapshotRequest,
+    receipt: &conduit_body::PortableAdmissionReceipt,
+    mut previous: conduit_face::MaskShow,
+) {
+    use conduit_face::{ComponentMaskLook as Look, TodoComponentRecipe as Recipe};
+    let face = owner.local_face_snapshot().unwrap();
+    let mut sequence = previous.show.play_sequence;
+    for recipe in [Recipe::Flat, Recipe::Grouped] {
+        for look in [
+            Look::CompactEditorial,
+            Look::Spacious,
+            Look::SpaciousPhosphor,
+            Look::Compact,
+        ] {
+            let stale = previous.clone();
+            let route = owner
+                .select_native_component_mask(request, &previous, receipt, look, recipe)
+                .unwrap();
+            assert_eq!(owner.local_face_snapshot().unwrap(), face);
+            assert!(owner.validate_native_mask_show(request, &stale).is_err());
+            assert!(owner
+                .select_native_component_mask(request, &stale, receipt, look, recipe)
+                .is_err());
+            sequence += 1;
+            let placement = route.planned_mask.show_placement();
+            let play = conduit_core::bind_active_play(
+                &route.planned_mask.plan.plan_id,
+                &placement.host_id,
+                &placement.boot_id,
+                sequence,
+            );
+            let fresh = conduit_face::MaskShow::prepared(
+                &route.planned_mask,
+                &face,
+                play,
+                face.subjects[0].identity.clone(),
+                "native/test/component-swap".into(),
+                "sign/test/component-prepared".into(),
+            )
+            .unwrap()
+            .transition(
+                conduit_face::ManifestationLifecycle::Available,
+                "sign/test/component-available".into(),
+            )
+            .unwrap();
+            // Available pixels claimed by a caller are insufficient until the owner ACKs this Show.
+            assert!(owner
+                .select_native_component_mask(request, &fresh, receipt, look, recipe)
+                .is_err());
+            owner.acknowledge_native_mask_show(request, &fresh).unwrap();
+            owner.validate_native_mask_show(request, &fresh).unwrap();
+            assert_ne!(fresh.show_id, stale.show_id);
+            previous = fresh;
+        }
+    }
 }

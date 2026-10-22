@@ -20,6 +20,13 @@ mod value_pair;
 pub use value_pair::PreparedValuePairFactory;
 
 mod local_expression;
+mod near_each;
+mod near_quantity;
+pub use near_each::{
+    install_pure_near_each, near_each_offer, MAXIMUM_ITEMS as NEAR_EACH_MAXIMUM_ITEMS,
+};
+pub(crate) use near_each::{owns_offer as owns_near_each_offer, validate_near_each};
+pub use near_quantity::NearQuantityFactory;
 mod native_u64_expression;
 pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
 pub use native_u64_expression::PreparedNativeU64ExpressionBack;
@@ -91,6 +98,7 @@ pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     let mut registry = KernelOperationRegistry::new();
     registry.install(TodoCombineFactory)?;
     registry.install(ThermostatCombineFactory)?;
+    registry.install(NearQuantityFactory)?;
     registry.install(LocalExpressionFactory)?;
     Ok(registry)
 }
@@ -144,8 +152,8 @@ pub fn install_planned_activation(
     PreparedPlannedActivationComposite::prepare(plan, activation_id, children).map_err(Box::new)
 }
 
-/// Exact reusable scan handoff; no one-shot fallback or registry lookup at Play.
-pub fn install_reusable_planned_scan(
+/// Exact reusable Value activation handoff; no one-shot fallback or registry lookup at Play.
+pub fn install_reusable_planned_activation(
     plan: &Plan,
     prepared: &mut PreparedPlan,
     activation_id: &str,

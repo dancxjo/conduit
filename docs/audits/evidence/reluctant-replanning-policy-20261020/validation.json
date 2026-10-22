@@ -1,0 +1,173 @@
+{
+  "source": "d5525ef5ed5c7dbfa147aae08cede4c19e32a577",
+  "source_after": "d5525ef5ed5c7dbfa147aae08cede4c19e32a577",
+  "clean_before": true,
+  "clean_after": true,
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "3"
+  },
+  "results": [
+    {
+      "name": "resource-frame",
+      "command": [
+        "cargo",
+        "xtask",
+        "prove",
+        "resource-frame"
+      ],
+      "exit_code": 0,
+      "test_summaries": [
+        [
+          6,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0
+        ],
+        [
+          8,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          6,
+          0,
+          0
+        ],
+        [
+          4,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          2,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          3,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "file": "resource-frame.log.gz",
+      "sha256": "d8b5311605afdeeb5ca401ab2f0ec63871db8a05b47533613fcfbd42bd2e829a",
+      "raw_sha256": "8117c9b1d258a79cc980f8b809f447d2a43e38c23c2fc62530edbf8932e09fdd",
+      "raw_bytes": 35121
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "conduit-planner",
+        "--lib",
+        "-p",
+        "conduit-std-host",
+        "--test",
+        "reluctant_replan_policy",
+        "--test",
+        "resource_replacement_cost",
+        "--test",
+        "resource_replacement_scope",
+        "--example",
+        "resource_replacement_cost",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "file": "clippy.log.gz",
+      "sha256": "c7e35103ff6735a078e8fa7c752c612fcf1aba2a10659ecb41564a1229a9e7ef",
+      "raw_sha256": "fe112a4281d0e3631864f83536d96f7cff54828d1d941896606f5a73d2d512a5",
+      "raw_bytes": 8226
+    },
+    {
+      "name": "format",
+      "command": [
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "architecture/planner/src/resource_cost.rs",
+        "architecture/planner/src/resource_cost/replan_policy.rs",
+        "targets/std/tests/reluctant_replan_policy.rs",
+        "targets/std/tests/resource_common/replan_policy.rs",
+        "targets/std/examples/resource_replacement_cost/fixture.rs",
+        "tools/xtask/src/suites/resource_frame.rs"
+      ],
+      "exit_code": 0,
+      "test_summaries": [],
+      "file": "format.log.gz",
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_bytes": 0
+    }
+  ],
+  "scope": "Partial #5568 policy conformance, not measured product replacement or release proof"
+}

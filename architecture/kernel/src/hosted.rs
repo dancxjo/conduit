@@ -3,6 +3,8 @@ use alloc::vec::Vec;
 use super::{StorageError, ValueRef, ValueStorage};
 mod compact_f32;
 mod native_values;
+mod owned_compact_f32;
+mod sign_storage;
 mod value_admission;
 
 struct HostedValueSlot {
@@ -17,6 +19,8 @@ pub struct HostedValueStore {
     slots: Vec<HostedValueSlot>,
     native_words: Vec<Option<u64>>,
     compact_f32_lengths: Vec<Option<core::num::NonZeroU32>>,
+    owned_compact_slots: Vec<Option<owned_compact_f32::OwnedSlot>>,
+    owned_compact_identity: Option<alloc::boxed::Box<u8>>,
     maximum_value_bytes: usize,
     byte_capacity: u32,
     used_items: u16,
@@ -31,6 +35,32 @@ pub struct HostedValueStore {
 }
 
 impl HostedValueStore {
+    /// Canonical-only backing required before allocation, including slot
+    /// metadata. Optional native representations are separate preparation.
+    pub fn canonical_storage_bytes(
+        capacities: impl IntoIterator<Item = u32>,
+    ) -> Result<usize, StorageError> {
+        let mut count = 0usize;
+        let mut payload = 0u32;
+        for capacity in capacities {
+            if capacity == 0 {
+                return Err(StorageError::InvalidBudget);
+            }
+            count = count.checked_add(1).ok_or(StorageError::InvalidBudget)?;
+            payload = payload
+                .checked_add(capacity)
+                .ok_or(StorageError::InvalidBudget)?;
+        }
+        if count == 0 || count > usize::from(u16::MAX) {
+            return Err(StorageError::InvalidBudget);
+        }
+        let payload = usize::try_from(payload).map_err(|_| StorageError::InvalidBudget)?;
+        count
+            .checked_mul(core::mem::size_of::<HostedValueSlot>())
+            .and_then(|metadata| metadata.checked_add(payload))
+            .ok_or(StorageError::InvalidBudget)
+    }
+
     pub fn new(
         item_capacity: u16,
         maximum_value_bytes: u32,
@@ -87,6 +117,8 @@ impl HostedValueStore {
             slots,
             native_words: Vec::new(),
             compact_f32_lengths: Vec::new(),
+            owned_compact_slots: Vec::new(),
+            owned_compact_identity: None,
             uniform_slots,
             free_search_start: 0,
             has_retired_slots: false,
@@ -112,6 +144,7 @@ impl HostedValueStore {
             + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
             + self.compact_f32_lengths.capacity()
                 * core::mem::size_of::<Option<core::num::NonZeroU32>>()
+            + self.owned_compact_backing_bytes()
     }
 
     pub fn allocation_capacities(&self) -> (usize, usize) {
@@ -123,7 +156,8 @@ impl HostedValueStore {
                 .sum::<usize>()
                 + self.native_words.capacity() * core::mem::size_of::<Option<u64>>()
                 + self.compact_f32_lengths.capacity()
-                    * core::mem::size_of::<Option<core::num::NonZeroU32>>(),
+                    * core::mem::size_of::<Option<core::num::NonZeroU32>>()
+                + self.owned_compact_backing_bytes(),
         )
     }
 
@@ -150,6 +184,52 @@ impl HostedValueStore {
 }
 
 impl ValueStorage for HostedValueStore {
+    fn preflight_owned_compact_f32_outputs(
+        &self,
+        requests: &[(crate::scheduler::CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
+    ) -> Result<(), StorageError> {
+        HostedValueStore::preflight_owned_compact_f32_outputs(
+            self,
+            requests,
+            canonical_reservations,
+        )
+    }
+    fn prepare_owned_compact_f32_outputs(
+        &mut self,
+        requests: &[(crate::scheduler::CompactF32Layout, u16)],
+        canonical_reservations: &[u32],
+    ) -> Result<Vec<crate::PreparedCompactF32Output>, StorageError> {
+        HostedValueStore::prepare_owned_compact_f32_outputs(self, requests, canonical_reservations)
+    }
+    fn owned_compact_f32_available(
+        &self,
+        owner: &crate::PreparedCompactF32Output,
+    ) -> Result<bool, StorageError> {
+        HostedValueStore::owned_compact_f32_available(self, owner)
+    }
+    fn swap_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        bytes: &mut Vec<u8>,
+    ) -> Result<crate::PendingCompactF32Publication, StorageError> {
+        HostedValueStore::swap_owned_compact_f32(self, owner, bytes)
+    }
+    fn commit_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        pending: &mut crate::PendingCompactF32Publication,
+    ) -> Result<ValueRef, StorageError> {
+        HostedValueStore::commit_owned_compact_f32(self, owner, pending)
+    }
+    fn restore_owned_compact_f32(
+        &mut self,
+        owner: &crate::PreparedCompactF32Output,
+        pending: &mut crate::PendingCompactF32Publication,
+        bytes: &mut Vec<u8>,
+    ) -> Result<(), StorageError> {
+        HostedValueStore::restore_owned_compact_f32(self, owner, pending, bytes)
+    }
     fn compact_f32_available(&self, logical_bytes: u32) -> (u16, u32) {
         self.available_compact_f32(logical_bytes)
     }
@@ -238,11 +318,12 @@ impl ValueStorage for HostedValueStore {
                 *word = None;
             }
             self.clear_compact_layout(value.slot);
+            self.clear_owned_pending(usize::from(value.slot));
             self.used_items -= 1;
             self.used_bytes -= len;
             if self.slots[usize::from(value.slot)].generation == u16::MAX {
                 self.has_retired_slots = true;
-            } else if self.uniform_slots {
+            } else if self.uniform_slots && !self.is_owned_compact(usize::from(value.slot)) {
                 self.free_search_start = self.free_search_start.min(usize::from(value.slot));
             }
         }
@@ -257,6 +338,7 @@ impl ValueStorage for HostedValueStore {
         }
         self.native_words.fill(None);
         self.compact_f32_lengths.fill(None);
+        self.reset_owned_pending();
         self.used_items = 0;
         self.used_bytes = 0;
         self.free_search_start = 0;

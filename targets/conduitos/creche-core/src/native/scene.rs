@@ -1,0 +1,249 @@
+//! Native layout of the shared Crèche state; geometry belongs to this renderer.
+use super::Controller;
+use crate::wire::Refusal;
+const SPACING: [u16; 5] = [4, 8, 12, 24, 32];
+use alloc::format;
+use conduit_birth_plot::BirthWidgetFace;
+use conduit_face::{
+    ActionAvailability, FaceIconKey, FaceMechanism, FieldKind, GraphicsCommand, GraphicsPaintRole,
+    GraphicsScene, GraphicsShapeStyle, GraphicsTextRole, LayoutRect,
+};
+
+impl Controller {
+    pub(crate) fn scene(&self, width: u16, height: u16) -> Result<GraphicsScene, Refusal> {
+        if width < 480 || height < 480 {
+            return Err(Refusal::Projection);
+        }
+        let screen = LayoutRect {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+        let card_width = width.saturating_sub(SPACING[4] * 2).min(640);
+        let x = i16::try_from((width - card_width) / 2).map_err(|_| Refusal::Projection)?;
+        let y = i16::try_from((height - 448) / 2).map_err(|_| Refusal::Projection)?;
+        let mut scene = GraphicsScene::empty();
+        scene
+            .push(
+                GraphicsCommand::rect(
+                    screen,
+                    screen,
+                    GraphicsPaintRole::Background,
+                    GraphicsShapeStyle::Fill,
+                )
+                .map_err(|_| Refusal::Projection)?,
+            )
+            .map_err(|_| Refusal::Projection)?;
+        let mut line = |row: i16, value: &str, focused: bool, typography: GraphicsTextRole| {
+            let bounds = LayoutRect {
+                x,
+                y: y + row,
+                width: card_width,
+                height: 32,
+            };
+            let paint = match typography {
+                GraphicsTextRole::Heading | GraphicsTextRole::Action | GraphicsTextRole::Title => {
+                    GraphicsPaintRole::Accent
+                }
+                GraphicsTextRole::Code | GraphicsTextRole::Status | GraphicsTextRole::Warning => {
+                    if typography == GraphicsTextRole::Warning {
+                        GraphicsPaintRole::Warning
+                    } else {
+                        GraphicsPaintRole::Status
+                    }
+                }
+                GraphicsTextRole::Muted => GraphicsPaintRole::Muted,
+                _ => GraphicsPaintRole::Foreground,
+            };
+            let paint = if focused {
+                GraphicsPaintRole::Accent
+            } else {
+                paint
+            };
+            if !value.is_empty() {
+                scene
+                    .push(
+                        GraphicsCommand::text(bounds, screen, paint, value)
+                            .and_then(|command| command.with_text_role(typography))
+                            .map_err(|_| Refusal::Projection)?,
+                    )
+                    .map_err(|_| Refusal::Projection)?;
+            }
+            if focused {
+                let frame = LayoutRect {
+                    x: bounds.x - 8,
+                    y: bounds.y - 2,
+                    width: bounds.width + 16,
+                    height: 32,
+                };
+                scene
+                    .push(
+                        GraphicsCommand::rect(
+                            frame,
+                            screen,
+                            GraphicsPaintRole::Accent,
+                            GraphicsShapeStyle::Stroke,
+                        )
+                        .map_err(|_| Refusal::Projection)?,
+                    )
+                    .map_err(|_| Refusal::Projection)?;
+            }
+            Ok::<(), Refusal>(())
+        };
+        line(0, "Conduit / Crèche", false, GraphicsTextRole::Muted)?;
+        let view = self.draft.widget_face().map_err(|_| Refusal::Projection)?;
+        let mut choice_count = 0;
+        let mut selected_title = None;
+        let mut review_title = None;
+        for node in &view.root.children {
+            match (&*node.key, &node.mechanism) {
+                ("creche-heading", FaceMechanism::Heading { text }) => {
+                    line(30, text, false, GraphicsTextRole::Title)?
+                }
+                ("body-name", FaceMechanism::FormField(field)) => {
+                    line(72, &field.help, false, GraphicsTextRole::Body)?;
+                    line(108, &field.label, false, GraphicsTextRole::Label)?;
+                    let value = if field.value.is_empty() {
+                        "Name required"
+                    } else {
+                        &field.value
+                    };
+                    line(132, value, self.focus == 0, GraphicsTextRole::Heading)?;
+                }
+                ("name-system", FaceMechanism::FormField(field)) => {
+                    let FieldKind::NamedSelect { options } = &field.kind else {
+                        return Err(Refusal::Projection);
+                    };
+                    let selected = options
+                        .iter()
+                        .find(|option| option.identity == field.value)
+                        .ok_or(Refusal::Projection)?;
+                    line(
+                        176,
+                        &format!("{}: {}", field.label, selected.label),
+                        self.focus == 1,
+                        GraphicsTextRole::Label,
+                    )?;
+                }
+                ("suggest-name", FaceMechanism::Action(action)) => {
+                    line(
+                        208,
+                        &format!("{}  ·  F2", action.label),
+                        self.focus == 2,
+                        GraphicsTextRole::Action,
+                    )?;
+                }
+                ("plot-search", FaceMechanism::FormField(field)) => {
+                    line(
+                        232,
+                        &format!("{}: {}", field.label, field.value),
+                        self.focus == 3,
+                        GraphicsTextRole::Code,
+                    )?;
+                }
+                ("initial-plots", FaceMechanism::ChoiceGroup { label, options, .. }) => {
+                    line(256, label, false, GraphicsTextRole::Label)?;
+                    for (index, choice) in options.iter().enumerate() {
+                        line(
+                            280 + index as i16 * 20,
+                            &format!(
+                                "{}  {}{}",
+                                if choice.selected { "●" } else { "○" },
+                                choice.label,
+                                if matches!(
+                                    choice.change_action.availability,
+                                    ActionAvailability::Available
+                                ) {
+                                    ""
+                                } else {
+                                    " / unavailable"
+                                }
+                            ),
+                            self.focus == index + 4,
+                            GraphicsTextRole::Body,
+                        )?;
+                    }
+                    choice_count = options.len();
+                }
+                ("initial-plots", FaceMechanism::Status { title, detail, .. }) => {
+                    line(256, title, false, GraphicsTextRole::Status)?;
+                    if !detail.is_empty() {
+                        line(280, detail, false, GraphicsTextRole::Muted)?;
+                    }
+                    choice_count = 0;
+                }
+                ("selected-plots", FaceMechanism::Status { title, .. }) => {
+                    selected_title = Some(title.as_str());
+                }
+                ("birth-review", FaceMechanism::Status { title, .. }) => {
+                    review_title = Some(title.as_str());
+                }
+                ("birth-body", FaceMechanism::Action(action)) => {
+                    line(
+                        392,
+                        &format!("{}  ·  Enter / F3", action.label),
+                        self.focus == choice_count + 4,
+                        GraphicsTextRole::Action,
+                    )?;
+                }
+                _ => return Err(Refusal::Projection),
+            }
+        }
+        match (selected_title, review_title) {
+            (Some(selected), Some(review)) => line(
+                368,
+                &format!("{selected} · {review}"),
+                false,
+                GraphicsTextRole::Status,
+            )?,
+            (Some(selected), None) => line(368, selected, false, GraphicsTextRole::Status)?,
+            (None, Some(review)) => line(368, review, false, GraphicsTextRole::Status)?,
+            (None, None) => {}
+        }
+        if let Some(refusal) = self.refusal.as_deref() {
+            line(368, refusal, true, GraphicsTextRole::Warning)?;
+        }
+        line(
+            416,
+            "Tab moves  ·  Arrows choose",
+            false,
+            GraphicsTextRole::Muted,
+        )?;
+        if self.refusal.as_deref().is_some() {
+            scene
+                .push(
+                    GraphicsCommand::icon(
+                        LayoutRect {
+                            x: x - 24,
+                            y: y + 368,
+                            width: 16,
+                            height: 16,
+                        },
+                        screen,
+                        GraphicsPaintRole::Warning,
+                        FaceIconKey::Warning,
+                    )
+                    .map_err(|_| Refusal::Projection)?,
+                )
+                .map_err(|_| Refusal::Projection)?;
+        }
+        scene
+            .push(
+                GraphicsCommand::icon(
+                    LayoutRect {
+                        x: x - 24,
+                        y: y + 392,
+                        width: 16,
+                        height: 16,
+                    },
+                    screen,
+                    GraphicsPaintRole::Success,
+                    FaceIconKey::Confirm,
+                )
+                .map_err(|_| Refusal::Projection)?,
+            )
+            .map_err(|_| Refusal::Projection)?;
+        Ok(scene)
+    }
+}

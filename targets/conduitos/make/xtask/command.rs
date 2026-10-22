@@ -14,6 +14,15 @@ mod todo_action_command_tests {
     use clap::Parser;
 
     #[test]
+    fn workshop_commands_need_no_host_argument() {
+        for command in ["workshop", "workshop-boot"] {
+            assert!(
+                Cli::try_parse_from(["xtask", "make", "conduitos", command, "--locked"]).is_ok()
+            );
+        }
+    }
+
+    #[test]
     fn native_todo_action_requires_explicit_isolated_checkpoint_contract() {
         let args = [
             "xtask",
@@ -85,6 +94,10 @@ pub(super) enum ConduitosCommand {
     Live(LiveArgs),
     /// Boot the canonical live artifact without building a parallel demo image.
     LiveBoot(LiveArgs),
+    /// Build the graphical Commons/Workshop product in an isolated local directory.
+    Workshop,
+    /// Boot the previously built Workshop artifact in visible QEMU.
+    WorkshopBoot,
     /// Boot one private owner-provisioned x86 product ISO with its exact VirtIO route.
     LiveOwnerBoot(LiveOwnerBootArgs),
     /// Prove one typed native clock action through a live installed owner.
@@ -159,6 +172,11 @@ pub(super) enum ConduitosCommand {
     HotplugProof,
     /// Prove one low-level local rescue request and real fresh boot.
     RescueProof(PreparedProofArgs),
+    /// Verify one exact headless product IMAGE and bounded unsupported startup.
+    HeadlessProof {
+        /// Directory containing the final target build manifest and IMAGE.
+        output: std::path::PathBuf,
+    },
     /// Prove the x86_64 emergency callback enters a terminal CPU halt.
     EmergencyHaltProof,
     /// Prove one exact native OPL2 musical realization on QEMU AdLib.
@@ -167,6 +185,8 @@ pub(super) enum ConduitosCommand {
     IsolationProof,
     /// Run checked ordinary text Source with its production kernel and CPL3 implementation.
     OrdinaryDomainProof,
+    /// Prove semantic compositor recovery under the normal native Make profile.
+    CompositorSemanticRecoveryProof,
     /// Prove ordinary IA-32 ring-3 execution and independent hostile entries.
     Ia32OrdinaryDomainProof,
     /// Prove ordinary AArch64 EL0 execution and independent boundary checks.
@@ -337,5 +357,19 @@ mod endpoint_command_tests {
             "--prepared-image"
         ])
         .is_err());
+    }
+}
+
+#[cfg(test)]
+mod headless_command_tests {
+    use crate::cli::Cli;
+    use clap::Parser;
+
+    #[test]
+    fn headless_proof_requires_exact_output_directory() {
+        assert!(
+            Cli::try_parse_from(["xtask", "make", "conduitos", "headless-proof", "image"]).is_ok()
+        );
+        assert!(Cli::try_parse_from(["xtask", "make", "conduitos", "headless-proof"]).is_err());
     }
 }

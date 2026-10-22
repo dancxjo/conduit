@@ -22,7 +22,7 @@ function selectedSource(bundled, names) {
 }
 
 test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
-  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
+  test.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
@@ -83,12 +83,14 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   expect((await identity()).body_id).toBe(first.body_id);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
+  await waitForWorkspacePreparation(page, { expectedState: "Lulled" });
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await expect(page.getByRole("button", { name: "wake body", exact: true })).toBeVisible();
   expect((await identity()).active_play_id).toBeUndefined();
 });
 
 test("a failed started-state save cancels the real Play before dispatching effects", async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await observeRealAudio(page);
   await page.addInitScript(() => {
     const put = IDBObjectStore.prototype.put;

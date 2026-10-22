@@ -19,6 +19,11 @@ pub use execution::PreparedFaceSnapshot;
 /// Explicit native forwarding profile: one value on each of two Fore cords.
 /// Larger semantic Faces need a separately admitted storage profile.
 pub const MAX_SNAPSHOT_BYTES: usize = 48 * 1024;
+/// Explicit collection profile, separate from the existing default and route limits.
+pub const COLLECTION_SNAPSHOT_BYTES: usize =
+    conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection.bytes() as usize;
+pub type NativeFaceSnapshotProducer = BoundedFaceSnapshotProducer<MAX_SNAPSHOT_BYTES>;
+pub type CollectionFaceSnapshotProducer = BoundedFaceSnapshotProducer<COLLECTION_SNAPSHOT_BYTES>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FaceSnapshotRefusal {
@@ -37,7 +42,7 @@ pub enum FaceSnapshotRefusal {
     PlaySequence,
 }
 
-pub struct NativeFaceSnapshotProducer {
+pub struct BoundedFaceSnapshotProducer<const BYTES: usize> {
     plan: Plan,
     last_play_sequence: Option<u64>,
     lowered: conduit_plan_lowering::lowering::LoweredPlanFragment,
@@ -62,6 +67,22 @@ pub struct FaceSnapshotReceipt {
     pub value_sha256: [u8; 32],
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection_storage: Option<FaceSnapshotStorageBudget>,
+}
+
+/// Actual reserved relay backing; excludes Face/Plan heaps and preparation
+/// serializer temporaries. This is an allocation ledger, not whole-product peak.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+pub struct FaceSnapshotStorageBudget {
+    pub maximum_value_bytes: u32,
+    pub value_slots: usize,
+    pub reserved_value_payload_bytes: usize,
+    pub reserved_value_storage_bytes: usize,
+    pub encoded_input_capacity: usize,
+    pub observed_output_capacity: usize,
+    pub scheduler_inline_bytes: usize,
+    pub prepared_inline_bytes: usize,
 }
 
 /// Publication is returned only after the actual output was delivered and its
@@ -71,7 +92,7 @@ pub struct PublishedFaceSnapshot {
     pub receipt: FaceSnapshotReceipt,
 }
 
-impl NativeFaceSnapshotProducer {
+impl<const BYTES: usize> BoundedFaceSnapshotProducer<BYTES> {
     pub fn plan(&self) -> &Plan {
         &self.plan
     }

@@ -21,7 +21,7 @@ struct ComponentSelection<'a> {
     sequence: u8,
     request: OwnerFaceSnapshotRequest,
     show: &'a MaskShow,
-    look: &'static str,
+    look: conduit_face::ComponentMaskLook,
     recipe: &'static str,
 }
 
@@ -91,10 +91,6 @@ impl NativeOwnerReturnRoute {
         request.last_seen_revision = Some(prior.face().revision);
         request.last_seen_identity = Some(prior.face().identity.clone());
         let length = if let Some((show, look, recipe)) = selection {
-            let look = match look {
-                conduit_face::ComponentMaskLook::Compact => "compact",
-                conduit_face::ComponentMaskLook::Spacious => "spacious",
-            };
             let recipe = match recipe {
                 conduit_face::TodoComponentRecipe::Flat => "flat",
                 conduit_face::TodoComponentRecipe::Grouped => "grouped",
@@ -141,6 +137,9 @@ impl NativeOwnerReturnRoute {
                     line,
                     &self.action_storage[..length],
                     &mut self.frame_storage,
+                    conduit_conduitos_mask_offer::NativeMaskStorageProfile::owner_document_profile(
+                        &self.receipt.host_advertisement,
+                    ),
                 )
             },
         )
@@ -168,9 +167,10 @@ fn exchange_refresh(
     line: &mut dyn BinaryWebSocketIo,
     encoded: &[u8],
     frame: &mut [u8],
+    profile: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
 ) -> Result<RefreshResponse, &'static str> {
     send_chunks(line, encoded, frame)?;
-    native_owner_document::receive(line, MAX_RETURN_ACTION_BYTES)
+    native_owner_document::receive_for_profile(line, profile)
         .map_err(|_| "native-owner-refresh-response-invalid")
 }
 

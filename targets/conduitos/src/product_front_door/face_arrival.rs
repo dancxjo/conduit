@@ -132,39 +132,6 @@ impl FaceArrival {
         Ok(fresh)
     }
 
-    fn replace_owner_mask(
-        &mut self,
-        fresh: &crate::native_guest_face::NativeGuestFace,
-        display: &mut impl PixelTarget,
-    ) -> Result<(), &'static str> {
-        let context = &self.preparation;
-        let mut replacement = NativeFaceMask::prepare_with_owner_route(
-            context.host_id.clone(),
-            context.boot_id.clone(),
-            context.generation,
-            &context.build_id,
-            context.display_base_id.clone(),
-            "conduitos/creche/face",
-            &context.provider,
-            fresh.route(),
-        )
-        .map_err(|error| error.as_str())?;
-        replacement
-            .set_visual_user_constraints(
-                context.forced_colors,
-                true,
-                context.minimum_text_scale_percent,
-            )
-            .map_err(|error| error.as_str())?;
-        self.mask.suspend().map_err(|error| error.as_str())?;
-        self.mask = replacement;
-        self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
-        self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
-        // Keep owner Face identity/revision and independent Mask publication counters.
-        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
-        Ok(())
-    }
-
     pub(super) fn toggle_owner_text_scale(
         &mut self,
         prior: &crate::native_guest_face::NativeGuestFace,
@@ -198,6 +165,10 @@ impl FaceArrival {
             conduit_face::TodoComponentRecipe::Flat,
         ));
         self.select_owner_component(identities, prior, route, look, recipe, display)
+    }
+
+    pub(super) fn suspend(&mut self) -> Result<(), &'static str> {
+        self.mask.suspend().map_err(|error| error.as_str())
     }
 
     pub(super) fn route_keyboard(&self) -> Result<bool, &'static str> {
@@ -453,9 +424,12 @@ impl FaceArrival {
         door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = door
-            .creche_face(&self.basis)
-            .map_err(|error| error.as_str())?;
+        let face = crate::native_observation::Progress::result(
+            crate::native_observation::Phase::FaceConstruction,
+            "creche",
+            || door.creche_face(&self.basis),
+        )
+        .map_err(|error| error.as_str())?;
         self.present(face, display)
     }
 
@@ -494,3 +468,7 @@ impl FaceArrival {
 mod input;
 #[cfg(all(test, feature = "native-compositor"))]
 mod tests;
+
+mod look_selection;
+
+mod owner_selection;

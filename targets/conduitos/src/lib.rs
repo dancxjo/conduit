@@ -17,6 +17,18 @@ pub mod bounded_host_calls;
 #[cfg(feature = "native-owner-network")]
 pub(crate) mod bounded_websocket;
 pub mod composition;
+#[cfg(test)]
+#[path = "protected_compositor/display_grant.rs"]
+mod compositor_display_grant_tests;
+#[cfg(test)]
+#[path = "protected_compositor/frame_grant.rs"]
+mod compositor_frame_grant_tests;
+#[cfg(test)]
+#[path = "protected_compositor/raster_staging.rs"]
+mod compositor_raster_staging_tests;
+#[cfg(test)]
+#[path = "protected_compositor/session_owner.rs"]
+mod compositor_session_owner_tests;
 pub mod cooperative_timer_lane;
 pub mod cryptographic_entropy;
 pub mod current_sample;
@@ -153,13 +165,29 @@ pub mod pc_speaker_play;
 pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) mod protected_application;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub mod protected_compositor;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub mod protected_creche;
 pub mod protected_line_support;
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_network;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
 pub mod protected_relay_support;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) mod protected_runtime;
 #[cfg(conduitos_protected_execution)]
 mod protected_timer;
 pub mod protected_wire_session;
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+mod protected_workspace_mask;
 pub mod protection_domain;
 mod protocol_call_refusal;
 pub mod protocol_host_calls;
@@ -167,10 +195,17 @@ pub mod protocol_operations;
 mod pure_protocol_owner;
 pub mod pure_protocol_play;
 pub mod serial_base;
+pub mod service_memory;
 #[cfg(target_arch = "x86_64")]
 pub mod source_keyboard_batch;
 pub mod source_pointer_sample;
 
+#[cfg(all(
+    feature = "native-owner-network",
+    target_arch = "x86_64",
+    target_os = "none"
+))]
+pub(crate) mod protected_tls;
 pub mod protocol_artifact;
 pub mod protocol_play;
 pub mod protocol_source;
@@ -370,3 +405,17 @@ pub mod riscv64_domain_proof;
     feature = "ordinary-domain-proof"
 ))]
 pub mod loongarch64_domain_proof;
+
+#[cfg(all(
+    feature = "ordinary-domain-proof",
+    feature = "compositor-semantic-recovery-proof"
+))]
+compile_error!(
+    "ordinary-domain-proof and compositor-semantic-recovery-proof require separate admitted profiles"
+);
+#[cfg(all(
+    target_os = "none",
+    target_arch = "x86_64",
+    feature = "compositor-semantic-recovery-proof"
+))]
+pub mod compositor_semantic_recovery_proof;

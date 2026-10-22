@@ -1,0 +1,24 @@
+
+running 19 tests
+test native_workset::eligibility::tests::current_input_absence_refuses_installed_candidates ... ok
+test native_workset::eligibility::tests::installed_candidates_are_selectable_but_external_source_is_not ... ok
+test native_workset::tests::profile_capacity_is_the_finite_native_workset_bound ... ok
+test native_workset::eligibility::tests::selection_eligibility_does_not_claim_resource_admission ... ok
+test native_workset::play::tests::body_activation_rejects_wrong_plan_forged_play_replay_and_cancelled_restart ... ok
+test native_workset::tests::native_inventory_preserves_existing_plots_and_adds_the_canonical_tour_identity ... ok
+test native_workset::tests::canonical_memory_plans_as_an_exact_native_body_partition_before_play ... ok
+test native_workset::tutorial_application::tests::selected_application_is_exact_and_never_defaults_to_legacy_tour ... ok
+test native_workset::tests::visible_checked_candidate_does_not_widen_installed_workset_authority ... ok
+test native_workset::tests::pre_birth_review_checks_each_exact_plot_without_a_body_or_play ... ok
+test native_workset::play::tests::unread_face_pressure_refuses_input_without_overwriting_it ... ok
+test native_workset::application_delivery::tests::every_native_patchbay_inspection_fits_the_admitted_view_value ... ok
+test native_workset::play::tests::release_keeps_press_owner_and_cancel_retires_every_pending_request ... ok
+test native_workset::play::tests::tutorial_initial_view_and_event_cross_the_same_production_kernel ... ok
+test native_workset::play::tests::thousands_of_interactions_reuse_fixed_storage_and_disclose_sign_eviction ... ok
+test native_workset::play::tests::switching_plots_keeps_independent_state_and_repeated_input_in_one_kernel ... ok
+test native_workset::tests::four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard ... ok
+test native_workset::play::tests::retained_editing_reaches_its_exact_bound_and_reports_capacity_failure ... ok
+test native_workset::play::tests::patchbay_inspects_the_selected_plot_and_emits_bounded_edit_authority ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 1229 filtered out; finished in 49.36s
+

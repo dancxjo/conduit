@@ -19,12 +19,15 @@ mod armv6_rpi_physical;
 mod build;
 mod command;
 mod compositor_performance;
+mod compositor_semantic_recovery_proof;
 mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
 mod front_door_proof;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
+mod headless_profile;
+mod headless_proof;
 mod hid_proof;
 mod hid_qmp;
 mod hid_run;
@@ -62,6 +65,7 @@ mod loongarch64_entropy_input;
 mod loongarch64_product_boot;
 mod make_resolution;
 mod native_latency;
+mod native_progress;
 mod native_timing;
 mod opl2_proof;
 #[path = "../../../orange-pi/make/xtask/orange_pi_5_image.rs"]
@@ -241,6 +245,9 @@ struct LiveOwnerActionProofArgs {
 struct LiveOwnerTodoFaceProofArgs {
     #[command(flatten)]
     route: LiveOwnerActionProofArgs,
+    /// Exercise four independently selected native Looks through the owner route.
+    #[arg(long)]
+    look_selection: bool,
     /// Body expected in the exact installed Owner admission receipt.
     #[arg(long)]
     expected_body_id: String,
@@ -481,6 +488,8 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         }
         ConduitosCommand::Live(args) => live_media::build(args.host, opts),
         ConduitosCommand::LiveBoot(args) => live_media::boot(args.host, opts),
+        ConduitosCommand::Workshop => live_media::workshop(opts, false),
+        ConduitosCommand::WorkshopBoot => live_media::workshop(opts, true),
         ConduitosCommand::LiveOwnerBoot(args) => owner_boot::execute(
             &args.spore,
             &args.candidate_id,
@@ -596,11 +605,15 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::PrepareProofImage => prepared_proof_image::prepare(opts),
         ConduitosCommand::PcSpeakerProof => pc_speaker_proof::execute(opts),
         ConduitosCommand::HotplugProof => hotplug_proof::execute(opts),
+        ConduitosCommand::HeadlessProof { output } => headless_proof::execute(output, opts),
         ConduitosCommand::RescueProof(args) => rescue_proof::execute(args.prepared_image, opts),
         ConduitosCommand::EmergencyHaltProof => emergency_halt_proof::execute(opts),
         ConduitosCommand::Opl2Proof => opl2_proof::execute(opts),
         ConduitosCommand::IsolationProof => isolation_proof::execute(opts),
         ConduitosCommand::OrdinaryDomainProof => ordinary_domain_proof::execute(opts),
+        ConduitosCommand::CompositorSemanticRecoveryProof => {
+            compositor_semantic_recovery_proof::execute(opts)
+        }
         ConduitosCommand::Ia32OrdinaryDomainProof => ia32_domain_proof::execute(opts),
         ConduitosCommand::Aarch64OrdinaryDomainProof => aarch64_domain_proof::execute(opts),
         ConduitosCommand::Riscv64OrdinaryDomainProof => riscv64_domain_proof::execute(opts),

@@ -1,8 +1,6 @@
 //! Compile the pure implementation independently of the privileged image.
+use super::image_validation as image;
 use std::{env, path::PathBuf, process::Command};
-#[allow(dead_code)]
-#[path = "../src/domain_image.rs"]
-mod image;
 
 pub fn generate() {
     for source in [
@@ -30,6 +28,7 @@ pub fn generate() {
         "domain/frame.rs",
         "domain/layout.rs",
         "domain/probes.rs",
+        "domain/service_probe.rs",
         "domain/probes_ia32.rs",
         "domain/probes_aarch64.rs",
         "domain/probes_riscv64.rs",

@@ -98,6 +98,15 @@ pub(super) const TODO_DURABILITY_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
+        "todo-durability.replacement-custody",
+        "Retain old Plan/Play output custody through provider loss, cancellation and separately admitted replacement",
+        "cargo",
+        &[
+            "test", "--locked", "-p", "conduit-std-host", "--test",
+            "replacement_fore_custody", "--", "--nocapture",
+        ],
+    ),
+    Step::new(
         "todo-durability.read",
         "Prove exact selected reads and namespace, schema, generation and authority refusals",
         "cargo",
@@ -124,6 +133,13 @@ pub(super) const TODO_DURABILITY_STEPS: &[Step] = &[
             "checkpoint_once::tests",
             "--",
             "--test-threads=1",
+            "--nocapture",
         ],
+    ),
+    Step::new(
+        "todo-durability.execution-custody",
+        "Prove finite historical owner receipt retention, replay and corruption/capacity refusal",
+        "cargo",
+        &["test", "--locked", "-p", "conduit", "--bin", "conduit", "durable_host::owner::state::", "--", "--test-threads=1"],
     ),
 ];

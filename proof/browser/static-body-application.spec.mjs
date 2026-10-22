@@ -54,7 +54,8 @@ function renewed(first, next) {
 }
 
 test("static Handbook applications retain independent local Bodies through use, navigation, exclusion, reset and browser restart", async ({}, testInfo) => {
-  testInfo.setTimeout(180_000);
+  // Nine fresh realizations across first use, replacement, reload, reset and restart.
+  testInfo.setTimeout(20_000 + 9 * BROWSER_COLD_PREPARATION_MS);
   const journey = await beginHandbookJourney();
   const site = await stageStaticApplications();
   const origin = new URL(site.url).origin;
@@ -367,7 +368,8 @@ test("an existing two-lesson Handbook gains new choices without resetting its Bo
 
 
 test("malformed packaged Handbook Plot leaves an editable recovery route into a real Body", async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
+  // Recovery and applying the repaired lesson each prepare a fresh realization.
+  testInfo.setTimeout(20_000 + 2 * BROWSER_COLD_PREPARATION_MS);
   const site = await stageStaticApplications({ malformedLessonSource: true });
   const session = await openStaticProfile(testInfo.outputPath("broken-package-profile"), new URL(site.url).origin);
   try {
@@ -393,6 +395,9 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
       .toHaveValue(repaired);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect(page.locator("[data-check]")).toHaveText("Checked convert-pitch-demo.");
+    // A successful check precedes replacement preparation; observe completion once.
+    await expect(page.getByRole("button", { name: "Try in my Handbook", exact: true }))
+      .toBeEnabled({ timeout: BROWSER_COLD_PREPARATION_MS });
     await expect(page.locator(".handbook-show [data-resident-plot]:visible"))
       .toContainText("Exactly 1000 Hz");
     session.assertClean();

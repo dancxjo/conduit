@@ -381,6 +381,20 @@ pub trait StepBack<const PORTS: usize> {
     fn compact_f32_output(&self) -> Option<(PortId, CompactF32Layout)> {
         None
     }
+    /// Exact prepared raw-buffer ownership support. The default has no transfer
+    /// permission. Once staged, the buffer stays available through commit or
+    /// rollback; a rejected Step must not consume the producer's pending value.
+    #[cfg(feature = "alloc")]
+    fn owns_compact_f32_output(&self, _port: PortId) -> bool {
+        false
+    }
+    #[cfg(feature = "alloc")]
+    fn prepared_compact_f32_output_mut(
+        &mut self,
+        _port: PortId,
+    ) -> Option<&mut alloc::vec::Vec<u8>> {
+        None
+    }
     /// Physical bytes staged by prepared or admitted compact publication. The storage
     /// belongs to this already-prepared Back and must remain unchanged until
     /// `step_committed`; the scheduler copies it into admitted value storage
@@ -2055,6 +2069,26 @@ where
                 maximum = maximum.min(self.admission_maximum(*spec, state)?);
                 any = true;
             }
+            #[cfg(feature = "alloc")]
+            if self
+                .compact_f32_output_binding(node)
+                .is_some_and(|(p, _)| usize::from(p.0) == port)
+            {
+                if let Some(owner) = self
+                    .compact_f32_bindings
+                    .as_deref()
+                    .and_then(|bindings| bindings.owned.as_deref())
+                    .and_then(|owners| owners[node].as_ref())
+                {
+                    match self.values.owned_compact_f32_available(owner) {
+                        Ok(false) => maximum = 0,
+                        // A completed producer may still drain normally. A new
+                        // publication itself reports permanent generation refusal.
+                        Ok(true) | Err(StorageError::GenerationExhausted) => {}
+                        Err(error) => return Err(error.into()),
+                    }
+                }
+            }
             if any && maximum > 0 {
                 *output_maximum = Some(maximum);
             }
@@ -2181,39 +2215,32 @@ where
                 .checked_add(usize::from(io.host_cancellation.is_some()))
                 .and_then(|count| count.checked_add(complete_sign_records))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            let generated = self.materialize_step_output(node, &mut io)?;
+            let mut generated = self.materialize_step_output(node, &mut io)?;
             let mut sign_records =
                 match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
                 {
                     Ok(count) => count,
                     Err(error) => {
-                        if let Some(value) = generated {
-                            let _ = self.values.release(value);
-                        }
+                        self.rollback_generated_output(node, generated.take())?;
                         return Err(error);
                     }
                 };
             sign_records = match sign_records.checked_add(host_sign_records) {
                 Some(count) => count,
                 None => {
-                    if let Some(value) = generated {
-                        let _ = self.values.release(value);
-                    }
+                    self.rollback_generated_output(node, generated.take())?;
                     return Err(SchedulerError::InvalidPlan);
                 }
             };
             if let Err(error) = self.ensure_sign_capacity(sign_records) {
-                if let Some(value) = generated {
-                    let _ = self.values.release(value);
-                }
+                self.rollback_generated_output(node, generated.take())?;
                 return Err(error);
             }
             if let Err(error) = self.commit(node, io.staged_step()) {
-                if let Some(value) = generated {
-                    let _ = self.values.release(value);
-                }
+                self.rollback_generated_output(node, generated.take())?;
                 return Err(error);
             }
+            self.commit_generated_output(node, generated.take())?;
             self.drivers[node].step_committed();
             if let Some(source) = projected_recovery {
                 self.projected_recovery_source[node] = Some(source);

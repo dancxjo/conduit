@@ -1,3 +1,8 @@
+> Historical four-atlas resource description retained for provenance. The current
+> native-compositor product uses make-generated five-profile tables from
+> `build/typography.rs` and pinned sources under `assets/fonts/dejavu/`.
+> This manifest is not the active runtime atlas or a claim about the new ensemble.
+
 # Default native graphical profile
 
 `conduitos/graphical/dejavu-v1` is the compiled profile for the canonical x86_64

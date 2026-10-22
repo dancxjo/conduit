@@ -35,6 +35,8 @@ mod checkpoint_once;
 pub(crate) use checkpoint_once::tests::published_fixture as published_todo_test_fixture;
 #[path = "continuing.rs"]
 mod continuing;
+#[path = "execution_retention.rs"]
+mod execution_retention;
 pub(crate) use continuing::RunWorker;
 mod birth;
 #[path = "clock_interval.rs"]
@@ -187,10 +189,11 @@ pub(crate) struct Owner {
     resident_name: Option<String>,
     clock_interval_ms: Option<u64>,
     last_execution: Option<serde_json::Value>,
+    execution_persistence_pending: bool,
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
-    invited_mask_offers: BTreeMap<conduit_core::HostId, String>,
+    invited_mask_offers: BTreeMap<conduit_core::HostId, native_mask_route::InvitedMaskOffer>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
@@ -294,6 +297,7 @@ impl Owner {
             resident_name: None,
             clock_interval_ms: None,
             last_execution: None,
+            execution_persistence_pending: false,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
@@ -322,6 +326,7 @@ impl Owner {
             resident_name: None,
             clock_interval_ms: None,
             last_execution: None,
+            execution_persistence_pending: false,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
@@ -337,14 +342,16 @@ impl Owner {
         })
     }
     pub(crate) fn persist(&mut self, root: &Path) -> Result<(), String> {
-        state::retain_session(
+        let result = state::retain_session(
             root,
             &mut self.session,
             self.last_execution.as_ref(),
             self.admissions.as_ref(),
             None,
             None,
-        )
+        );
+        self.execution_persistence_pending = result.is_err() && self.last_execution.is_some();
+        result
     }
     /// A readable name may enter only with the checked source for the exact
     /// resident identity. It is rederived after Boot, never treated as a
@@ -366,11 +373,12 @@ impl Owner {
     }
     pub(super) fn restore_execution(&mut self, root: &Path) -> Result<(), String> {
         self.last_execution = state::execution(root)?;
+        self.execution_persistence_pending = false;
         self.admissions = state::admissions(root, &self.session.evidence().body_id)?;
         Ok(())
     }
     pub(crate) fn truth(&self) -> serde_json::Value {
-        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution})
+        serde_json::json!({"schema":"conduit.body/owner-truth@1", "host":self.host.advertisement(), "biography":self.session.evidence(), "realization":self.session.realization(), "last_execution":self.last_execution, "execution_persistence_pending":self.execution_persistence_pending})
     }
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
@@ -637,6 +645,7 @@ impl Owner {
                 self.last_execution = Some(
                     serde_json::json!({"host_id":host.host_id, "boot_id":host.boot_id, "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id, "wake_id":proposed.wake.wake_id, "play":report.play, "wake_at_start":report.wake_at_start, "terminal":report.terminal, "failure":report.failure, "cleanup_failure":report.cleanup_failure, "terminal_sign":report.terminal_sign, "output_utf8":String::from_utf8_lossy(&output.0)}),
                 );
+                self.execution_persistence_pending = true;
                 self.session
                     .lull(&host.host_id, &host.boot_id, Some(&report.play))
                     .map_err(debug)?;
@@ -646,6 +655,7 @@ impl Owner {
                 self.last_execution = Some(
                     serde_json::json!({"host_id":self.host.advertisement().host_id, "boot_id":self.host.advertisement().boot_id, "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id, "wake_id":proposed.wake.wake_id, "play":null, "pre_play_refusal":error, "refusal_scope":"untyped-host-admission"}),
                 );
+                self.execution_persistence_pending = true;
                 // The Host API returns an untyped error. Keep the failed proposal
                 // and exact durable refusal; do not invent resource rejection facts.
                 Err(error)

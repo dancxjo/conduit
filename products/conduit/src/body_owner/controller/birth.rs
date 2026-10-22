@@ -106,6 +106,7 @@ impl Owner {
             resident_name: None,
             clock_interval_ms: None,
             last_execution: None,
+            execution_persistence_pending: false,
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,

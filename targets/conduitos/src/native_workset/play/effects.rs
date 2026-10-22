@@ -122,43 +122,15 @@ impl NativeWorksetPlay {
                 Ok(())
             }
             Effect::Application => {
-                let application = self.applications[plot]
-                    .as_mut()
-                    .ok_or(PlayRefusal::Kernel)?;
-                let (view, authority_request) = match application {
-                    NativeApplication::Tutorial(application) => application.apply(input)?,
-                    NativeApplication::Tour(application) => {
-                        let output = application.apply(input).map_err(|_| PlayRefusal::Kernel)?;
-                        let request = match output.request {
-                            Some(conduit_tour_model::TourWorkspaceRequest::Run {
-                                chapter,
-                                stage,
-                            }) => Some(super::super::NativeApplicationRequest::RunTour {
-                                chapter,
-                                stage,
-                            }),
-                            Some(conduit_tour_model::TourWorkspaceRequest::OpenPatchbay) => {
-                                Some(super::super::NativeApplicationRequest::OpenPatchbay)
-                            }
-                            None => None,
-                        };
-                        (output.view, request)
-                    }
-                    NativeApplication::Patchbay(application) => {
-                        let output = application.apply(input)?;
-                        (
-                            output.view,
-                            output
-                                .request
-                                .map(super::super::NativeApplicationRequest::EditCurrent),
-                        )
-                    }
-                };
+                let result = self.applications.apply(plot, input);
+                let (snapshot, authority_request) = self.application_result(result)?;
+                let view = snapshot.view;
                 if authority_request.is_some() && self.application_requests[plot].is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
+                self.output(request, Some(&view))?;
                 self.application_requests[plot] = authority_request;
-                self.output(request, Some(&view))
+                Ok(())
             }
             Effect::ApplicationFace => {
                 let view = conduit_face::ApplicationView::decode(input)
@@ -177,7 +149,19 @@ impl NativeWorksetPlay {
         request: HostCallRequest,
         bytes: Option<&[u8]>,
     ) -> Result<(), PlayRefusal> {
-        if self.cancelled {
+        let result = self.output_inner(request, bytes);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.fence_runtime_failure();
+        }
+        result
+    }
+    fn output_inner(
+        &mut self,
+        request: HostCallRequest,
+        bytes: Option<&[u8]>,
+    ) -> Result<(), PlayRefusal> {
+        if self.cancelled || !self.applications_live() {
             return Err(PlayRefusal::Cancelled);
         }
         let output = bytes
@@ -220,7 +204,8 @@ impl NativeWorksetPlay {
         code: FailureCode,
         detail: u16,
     ) -> Result<(), PlayRefusal> {
-        self.scheduler
+        let result = self
+            .scheduler
             .complete_host_call(
                 request.node,
                 request.request,
@@ -230,7 +215,12 @@ impl NativeWorksetPlay {
                     failure: Some(Failure { code, detail }),
                 },
             )
-            .map_err(|_| PlayRefusal::Kernel)
+            .map_err(|_| PlayRefusal::Kernel);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        if result.is_err() {
+            self.fence_runtime_failure();
+        }
+        result
     }
 
     pub fn input_lost(&mut self) -> Result<(), PlayRefusal> {

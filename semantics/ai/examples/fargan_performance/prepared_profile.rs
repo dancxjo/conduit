@@ -5,6 +5,7 @@ pub(crate) enum Profile {
     Standard,
     CompactLocal,
     MatrixLocal,
+    OwnedMatrixLocal,
     MatrixSourceCache,
 }
 impl Profile {
@@ -13,6 +14,7 @@ impl Profile {
             "prepared" => Ok(Self::Standard),
             "prepared-compact-local" => Ok(Self::CompactLocal),
             "prepared-matrix-local" => Ok(Self::MatrixLocal),
+            "prepared-owned-matrix-local" => Ok(Self::OwnedMatrixLocal),
             "prepared-matrix-source-cache" => Ok(Self::MatrixSourceCache),
             _ => Err("unknown prepared owner profile"),
         }
@@ -22,6 +24,7 @@ impl Profile {
             Self::Standard => "prepared",
             Self::CompactLocal => "prepared-compact-local",
             Self::MatrixLocal => "prepared-matrix-local",
+            Self::OwnedMatrixLocal => "prepared-owned-matrix-local",
             Self::MatrixSourceCache => "prepared-matrix-source-cache",
         }
     }
@@ -32,10 +35,13 @@ impl Profile {
         match self {
             Self::Standard => None,
             Self::CompactLocal => Some(NumericProfile::CompactDagLocalExpressions),
-            Self::MatrixLocal | Self::MatrixSourceCache => {
+            Self::MatrixLocal | Self::OwnedMatrixLocal | Self::MatrixSourceCache => {
                 Some(NumericProfile::CompactMatrixDagLocalExpressions)
             }
         }
+    }
+    pub(super) fn owned(self) -> bool {
+        self == Self::OwnedMatrixLocal
     }
     pub(super) fn source_cache(self) -> bool {
         self == Self::MatrixSourceCache
@@ -44,7 +50,7 @@ impl Profile {
         match self {
             Self::Standard => 0,
             Self::CompactLocal => 140,
-            Self::MatrixLocal | Self::MatrixSourceCache => 236,
+            Self::MatrixLocal | Self::OwnedMatrixLocal | Self::MatrixSourceCache => 236,
         }
     }
     pub(super) fn schema(self) -> &'static str {
@@ -52,6 +58,7 @@ impl Profile {
             Self::Standard => "conduit.fargan-prepared-performance@1",
             Self::CompactLocal => "conduit.fargan-compact-local-performance@1",
             Self::MatrixLocal => "conduit.fargan-matrix-local-performance@1",
+            Self::OwnedMatrixLocal => "conduit.fargan-owned-matrix-local-performance@1",
             Self::MatrixSourceCache => "conduit.fargan-matrix-source-cache-performance@1",
         }
     }

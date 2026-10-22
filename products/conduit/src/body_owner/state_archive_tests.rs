@@ -115,6 +115,7 @@ fn archive_transaction_replays_before_active_biography_and_refuses_corruption() 
             biography: biography.clone(),
             installation,
             last_execution: None,
+            execution_custody: None,
             admissions: None,
             source: None,
             archives: segments.clone(),

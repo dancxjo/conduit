@@ -303,3 +303,32 @@ owner Show and same-Play speaker WAV. The shared Ollama service stays running.
 The route and control socket are producer equipment, not authored Plot facts.
 An existing installation that selected Ollama directly remains valid for
 listener-speech proof but cannot make this owner-provider-loss claim.
+
+## Independent native Todo appearance
+
+The existing coordinated `cargo xtask make conduitos live-owner-todo-face-proof`
+accepts `--look-selection` in addition to its exact Body, installed Owner,
+expected Todo count/status, provisioned spore and private output arguments.
+Keep the installed owner and invitation listener running, and use the existing
+`native-standby.json` / `resume-native-activation` coordination contract to select
+and admit the native return route before F5 activation. The resume file contains
+exactly `continue` followed by a newline. An unavailable/read-only return route
+refuses this option instead of reporting successful appearance selection.
+
+After arrival, the producer sends four real Shift+F7/F6/F7/F6 requests. These
+select compact editorial, spacious editorial, spacious engineering and compact
+engineering within the existing four-refresh transport budget. It waits for
+actual owner Show acknowledgements, validates each complete typed Face and
+MaskShow, checks unchanged checked component/recipe and independently rereads the
+installed Owner's complete Todo Face after each swap. It captures four PNGs and
+retains their hashes alongside the observations under `look_selection` in
+`owner-todo-face-proof.json`. A changed Face, missing acknowledgement, reused
+Show, unexpected Body action, palette/scale mismatch, diagnostic pressure or
+fallback fails this proof. Unsubmitted encounter/accessibility certification is
+still separate. This option cannot be combined with the Todo action producer.
+
+The option's implementation and hosted checks alone are not a live capture.
+Preparing a fresh installed Owner through the supported Linux release command
+requires the documented AArch64 C/C++ cross-toolchain as well as native tools;
+use `cargo xtask doctor linux-release` to inspect these prerequisites and
+`cargo xtask setup linux-release` to install them where authorized.

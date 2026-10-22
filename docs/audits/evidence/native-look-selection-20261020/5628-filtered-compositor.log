@@ -1,0 +1,22 @@
+
+running 17 tests
+test native_compositor::frame_composition::differential::span_compositor_performance ... ignored, manual optimized compositor performance observation
+test native_compositor::raster_reuse::performance::retained_raster_performance ... ignored, manual optimized retained raster observation
+test native_compositor::surface_buffer::retained_tests::reads_exact_stored_color_and_refuses_row_aliasing ... ok
+test native_compositor::surface_update::paint_tests::surface_border_and_text_paints_survive_real_raster_and_forced_colors ... ok
+test native_compositor::raster_reuse::tests::unchanged_scene_does_no_raster_work_and_local_edit_keeps_distant_pixels ... ok
+test native_compositor::raster_reuse::tests::failed_render_does_not_produce_success_receipt ... ok
+test native_compositor::frame_composition::tests::cursor_bitmap_has_outline_fill_stem_and_exact_hotspot ... ok
+test native_compositor::raster_reuse::tests::edited_public_fields_that_break_canonical_scene_refuse_reuse ... ok
+test native_compositor::raster_reuse::tests::raster_reuse_and_scene_eligibility_allocate_no_storage ... ok
+test native_compositor::surface_update::paint_tests::smooth_geometry_blends_background_and_clipped_redraw_matches_full ... ok
+test native_compositor::frame_composition::differential::focus_and_cursor_edges_keep_surface_interiors_on_the_span_path ... ok
+test native_compositor::raster_reuse::tests::palette_and_scale_change_force_full_raster_under_new_exact_receipt ... ok
+test native_compositor::raster_reuse::tests::failed_scene_invalidates_old_pixels_and_cannot_advance_revision ... ok
+test native_compositor::frame_composition::differential::invalid_damage_refuses_without_scanout ... ok
+test native_compositor::raster_reuse::tests::reuse_keeps_revision_identity_and_resize_fences ... ok
+test native_compositor::raster_reuse::tests::incremental_pixels_match_fresh_raster_across_edits_order_clips_and_blending ... ok
+test native_compositor::frame_composition::differential::spans_match_reference_pixels_coverage_and_partial_failure ... ok
+
+test result: ok. 15 passed; 0 failed; 2 ignored; 0 measured; 1220 filtered out; finished in 11.22s
+

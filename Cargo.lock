@@ -1587,6 +1587,7 @@ dependencies = [
  "conduit-body-make",
  "conduit-browser-mask-offer",
  "conduit-chat",
+ "conduit-commons-plot",
  "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",
@@ -1912,6 +1913,14 @@ dependencies = [
  "serde-json-core",
  "serde_json",
  "sha2 0.10.9",
+]
+
+[[package]]
+name = "conduit-commons-plot"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -2754,6 +2763,7 @@ dependencies = [
  "conduit-face",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "serde",
 ]
 
 [[package]]
@@ -2825,6 +2835,7 @@ dependencies = [
  "conduit-audio",
  "conduit-birth-plot",
  "conduit-body",
+ "conduit-commons-plot",
  "conduit-composite",
  "conduit-conduitos-mask-offer",
  "conduit-core",
@@ -2850,6 +2861,13 @@ dependencies = [
  "conduit-tutorial-plot",
  "conduit-web",
  "conduit-wire",
+ "conduitos-application-core",
+ "conduitos-compositor-core",
+ "conduitos-creche-core",
+ "conduitos-mask-core",
+ "conduitos-network-core",
+ "conduitos-runtime-core",
+ "conduitos-tls-core",
  "ed25519-dalek",
  "embedded-io 0.7.1",
  "embedded-tls",
@@ -2866,6 +2884,82 @@ dependencies = [
  "serde_json",
  "sha2 0.10.9",
  "smoltcp",
+]
+
+[[package]]
+name = "conduitos-application-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-tour-model",
+ "conduit-tutorial-plot",
+ "miniz_oxide 0.8.9",
+ "patchbay-application",
+ "patchbay-graph",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+]
+
+[[package]]
+name = "conduitos-compositor-core"
+version = "0.1.0"
+
+[[package]]
+name = "conduitos-creche-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-birth-plot",
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-home-model",
+ "conduit-human",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+]
+
+[[package]]
+name = "conduitos-mask-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-face",
+ "conduit-human",
+ "serde",
+ "serde-json-core",
+ "serde_json",
+]
+
+[[package]]
+name = "conduitos-network-core"
+version = "0.1.0"
+dependencies = [
+ "embedded-websocket",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
+]
+
+[[package]]
+name = "conduitos-runtime-core"
+version = "0.1.0"
+dependencies = [
+ "conduit-kernel",
+]
+
+[[package]]
+name = "conduitos-tls-core"
+version = "0.1.0"
+dependencies = [
+ "embedded-io 0.7.1",
+ "embedded-io-async",
+ "embedded-tls",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
 ]
 
 [[package]]
@@ -6824,6 +6918,7 @@ dependencies = [
  "conduit-human",
  "conduit-plot",
  "conduit-semantic-catalog",
+ "serde",
 ]
 
 [[package]]
@@ -10733,6 +10828,7 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "conduit-plot-library",
  "conduit-r1-network-conformance",
  "conduit-robotics",
  "conduit-rp2040-network-realization",

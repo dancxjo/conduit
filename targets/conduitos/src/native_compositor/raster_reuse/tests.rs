@@ -33,6 +33,20 @@ fn scene(variant: usize) -> GraphicsScene {
             .unwrap();
     }
     let commands = [
+        GraphicsCommand::rect(
+            rect(18, 17, 30, 26),
+            extent,
+            Paint::Surface,
+            GraphicsShapeStyle::RoundedFill,
+        )
+        .unwrap(),
+        GraphicsCommand::rect(
+            rect(18, 17, 30, 26),
+            extent,
+            Paint::Border,
+            GraphicsShapeStyle::RoundedStroke,
+        )
+        .unwrap(),
         GraphicsCommand::text(
             rect(2, 3, 28, 25),
             extent,

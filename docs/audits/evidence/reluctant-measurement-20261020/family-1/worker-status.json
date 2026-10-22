@@ -1,0 +1,13 @@
+{
+  "arch": "x86_64",
+  "cpu_model": "model name\t: 12th Gen Intel(R) Core(TM) i7-12700",
+  "error": null,
+  "final_source": "70e89ed3244602c65fee21f3052e2281012d037b",
+  "os": "linux",
+  "physical_os_boot": "3d9d4c86-1e0b-4b16-8d7b-b3f02bb2192b\n",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "schema": "conduit.reluctant-replan-worker@1",
+  "source": "70e89ed3244602c65fee21f3052e2281012d037b",
+  "source_custody": true,
+  "success": true
+}

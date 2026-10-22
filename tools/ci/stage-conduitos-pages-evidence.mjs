@@ -9,21 +9,24 @@ import { cp, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { validateNativeTextEditReceipt } from './conduitos-text-edit-receipt.mjs';
 import { validateNativePointerReceipt } from './conduitos-pointer-receipt.mjs';
+import { validateNativeLookReceipt } from './conduitos-look-receipt.mjs';
 
 const STEPS = Object.freeze([
-  step('front-door-ready', 'Arrive at Crèche', 'Crèche is open before any Body exists.', 'The user sees a name field and locally available Plots.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
+  step('front-door-ready', 'Arrive at Commons', 'Commons Hub is open before any Body exists.', 'The zero-Body Hub offers entry to the Birth encounter.', 'A fresh Host and Boot have presented the first Face.', 'First boot'),
+  step('creche-ready', 'Enter Crèche', 'The user enters Crèche from Commons Hub.', 'A name field and locally available Plots await an explicit Birth.', 'No Body exists yet.', 'Enter', false),
+  step('creche-editorial-compact', 'Select compact editorial expression', 'Crèche retains the same Face under compact editorial expression.', 'The user presses F7.', 'A fresh locally acknowledged Show preserves the checked component, recipe and zero-Body Face; no Body action occurs.', 'F7'),
+  step('creche-editorial-spacious', 'Select spacious editorial expression', 'The same Face uses spacious density and 125% text scale.', 'The user presses F6.', 'The presentation changes while source meaning and actions remain identical.', 'F6'),
+  step('creche-engineering-spacious', 'Select spacious phosphor expression', 'The same spacious Face selects the phosphor palette.', 'The user presses F7.', 'The source-bound expression changes without a Body effect or a different component recipe.', 'F7'),
+  step('creche-engineering-compact', 'Select compact phosphor expression', 'Crèche returns to compact density and 100% text scale under phosphor.', 'The user presses F6.', 'A fresh Show returns to the initial Mask plan while preserving the same Face and checked component.', 'F6'),
   step('creche-three-selected', 'Change a checked Plot', 'Three starting Plots are selected.', 'The user focuses the first Plot and presses Space.', 'The current typed Boolean action is accepted by Birth and a fresh Show displays its new value.', 'Tab to Plot · Space'),
   step('creche-four-restored', 'Restore the Plot', 'All four starting Plots are selected again.', 'The user presses Enter on the same checked source action.', 'A new current Show supplies the restored selection before Birth.', 'Enter'),
   step('creche-fourth-checked', 'Reach the fourth checked Plot', 'The fourth named checkbox is checked on its disclosed page.', 'The user follows keyboard focus to the fourth Plot.', 'The same checked Source inventory remains reachable across pages.', 'Tab to the fourth Plot'),
   step('creche-pointer-three-selected', 'Click a checked Plot', 'Three Plots remain selected after a real mouse press.', 'The user moves the mouse to the observed checkbox and presses its primary button.', 'A typed Boolean false reaches the Source owner; held motion across the fresh Show causes no duplicate edit.', 'Move mouse · press'),
   step('creche-pointer-four-restored', 'Restore with a fresh click', 'Four Plots are selected again.', 'The user releases, then presses the same control again.', 'A new typed Boolean true is accepted through the current Show.', 'Release · press · release'),
-  step('body-born', 'Birth a Body', 'The selected Body is born and resting.', 'The user activates Birth after reviewing the Crèche Face.', 'Birth retains the Body without silently starting a Play.', 'Birth'),
-  step('body-woken', 'Wake it', 'The same Body has accepted Wake.', 'The user presses F4.', 'Wake is a distinct lifecycle transition.', 'F4'),
-  step('wake-refused', 'Refuse an unavailable Wake', 'The current refusal remains inspectable after the application surface returns.', 'The user presses F4 again while the Body is already Awake.', 'The owner refuses the unavailable action without changing the Body or its lifecycle state.', 'F4', false),
-  step('body-planned', 'Plan its work', 'An exact Plan now names gears, ports, and cords.', 'The user presses F5.', 'The graph comes from the admitted Plan rather than a gallery specimen.', 'F5'),
-  step('body-playing', 'Start Play', 'The Body awaits keyboard input in its admitted Play.', 'The user presses F6.', 'The Body identity persists across Wake, Plan, and Play.', 'F6'),
+  step('body-playing', 'Birth and start a Body', 'Commons Hub opens over the living Body and its admitted Play.', 'The user activates Birth once after reviewing the Crèche Face.', 'Separate Birth, Wake, Plan and Play receipts retain the same Body; the default policy requests each stage through its current Face and acknowledged Show.', 'Birth'),
+  step('wake-refused', 'Refuse an unavailable Wake', 'The current refusal remains inspectable after the application surface returns.', 'The user presses F4 while the Body is already playing.', 'The owner refuses the unavailable action without changing the Body or its lifecycle state.', 'F4', false),
   step('protected-keyboard-canvas', 'Type into Keyboard canvas', 'Keyboard canvas presents an uppercase A.', 'The user selects Keyboard canvas and presses A.', 'The checked keyboard Plot executes within the same admitted Body Plan and Play.', 'Tab · A'),
-  step('protected-memory-lantern', 'Edit retained text', 'Memory Lantern retains café with a native focus border and insertion caret.', 'The user selects Memory Lantern, edits text, then types café using the authored Right Alt mapping.', 'The editor retains bounded private state; the captured receipt records the committed Unicode bytes.', 'Tab · A · Backspace · C · A · F · Right Alt+E'),
+  step('protected-memory-lantern', 'Edit retained text', 'Text editor retains café with a native focus border and insertion caret.', 'The user selects Text editor, edits text, then types café using the authored Right Alt mapping.', 'The editor retains bounded private state; the captured receipt records the committed Unicode bytes.', 'Tab · A · Backspace · C · A · F · Right Alt+E'),
   step('home', 'Go Home', 'Home opens while the Body continues to exist.', 'The user presses Escape.', 'Navigation changes the Face, not the Body identity.', 'Escape'),
   step('patchbay-workspace', 'Open Patchbay', 'The resident Patchbay becomes the foreground application.', 'The user selects Patchbay in Home and presses Enter.', 'The same Body and Plan remain current.', 'Tab · Enter'),
   step('patchbay-face', 'Inspect the Face', 'The native Mask presents the current semantic Face.', 'The user presses F2.', 'Content, actions, and structural relationships are projected from the running application.', 'F2'),
@@ -32,7 +35,7 @@ const STEPS = Object.freeze([
   step('patchbay-diagram-returned', 'Return to the diagram', 'The same live planned graph is visible again.', 'The user presses F3.', 'Returning from details preserves the exact inspected Face and graph.', 'F3'),
   step('body-stopped', 'Stop the Play', 'The same Body is resting after Stop.', 'The user requests Stop through the Face with F8.', 'Stop leaves the Body available for a later Wake.', 'F8'),
   step('home-returned', 'Return Home', 'Home opens after the Play stops.', 'The user leaves Face inspection and presses Escape.', 'The original Body and born Sign remain retained.', 'Escape · Escape'),
-  step('patchbay-reentered', 'Reenter Patchbay', 'The same resident Patchbay opens again.', 'The user selects Patchbay from Home.', 'Reentry preserves the original Body without another Birth.', 'Tab · Enter'),
+  step('patchbay-reentered', 'Reenter Patchbay', 'The same resident Patchbay opens again.', 'The user returns from the empty active-Plot picker to the stopped read-only Face.', 'Reentry preserves the original Body without another Birth or restarted Play.', 'Escape'),
 ]);
 
 const [evidenceRoot, siteRoot, commit] = process.argv.slice(2);
@@ -81,6 +84,7 @@ if (serial.length < 64 || serial.length > 16 * 1024 * 1024
   || !serial.includes(proof.boot_id) || !serial.includes(proof.body_id)) {
   throw new Error('ConduitOS journey serial transcript does not match the captured Body and Boot');
 }
+validateNativeLookReceipt(proof, manifest, serial);
 
 const pairedBytes = await readFile(path.join(evidenceRoot, '..', 'native-shell-paired-linear.json'));
 if (pairedBytes.length > 32 * 1024 * 1024) throw new Error('ConduitOS paired evidence exceeds its retained bound');

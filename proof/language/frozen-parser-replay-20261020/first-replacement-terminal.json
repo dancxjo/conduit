@@ -1,0 +1,19 @@
+{
+  "source": "26b13d753200a291768949a02b0c4dfe88276c0f",
+  "binary_sha256": "ed2cb512abe6cd8f18b610e89509c7ec63cbfa17f5b9cc4eaf314afaa29946ef",
+  "manifest_sha256": "421e1eb34d814415b960903c1658b003302ce509b5099a370a39ba7dbf7442d5",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-19/please-finish-and-close-https-github/work/frozen-parser-worker/worker",
+    "--exact",
+    "external_matched_candidates_follow_same_frozen_source_histories",
+    "--ignored",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "scope": "One complete34 replacement diagnostic; original29 never mixed; no model or terminal schedule mutation",
+  "returncode": 101,
+  "wall_seconds": 16791.011142788106,
+  "child_user_seconds": 16723.398393,
+  "child_system_seconds": 49.806239,
+  "child_max_rss_kib": 1191712
+}

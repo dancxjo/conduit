@@ -18,6 +18,7 @@ pub(super) struct Item {
     pub region: Option<u8>,
     pub region_order: Option<usize>,
     pub checkbox: Option<bool>,
+    pub icon: Option<conduit_face::FaceIconKey>,
 }
 
 fn item(text: String, role: GraphicsTextRole) -> Item {
@@ -31,6 +32,7 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
         region: None,
         region_order: None,
         checkbox: None,
+        icon: None,
     }
 }
 
@@ -77,7 +79,19 @@ pub(super) fn prepare(
         }
     }
     for clause in &plan.clauses {
-        let mut detail = item(clause.text.clone(), GraphicsTextRole::Body);
+        let detail_role = match &clause.provenance {
+            Provenance::Property(value) => match &face
+                .properties
+                .get(*value.index() as usize)
+                .ok_or(FaceSceneError::InvalidFace)?
+                .value
+            {
+                FacePropertyValue::Identity(_) => GraphicsTextRole::Code,
+                _ => GraphicsTextRole::Body,
+            },
+            _ => GraphicsTextRole::Body,
+        };
+        let mut detail = item(clause.text.clone(), detail_role);
         let action_name = match &clause.provenance {
             Provenance::Action(value) => Some((value.identity(), None)),
             Provenance::ActionArgument(value) => {
@@ -176,6 +190,7 @@ pub(super) fn prepare(
             subject.name.clone()
         };
         let mut heading = item(name, role);
+        heading.icon = super::semantic_icons::for_role(&subject.role);
         heading.paint = match subject.role {
             FaceRole::Diagnostic => GraphicsPaintRole::Warning,
             FaceRole::Status => GraphicsPaintRole::Foreground,
@@ -272,6 +287,7 @@ pub(super) fn prepare(
                 region: None,
                 region_order: None,
                 checkbox,
+                icon: None,
             });
             if !available && super::text_field::current(face, index).is_none() {
                 continue;
@@ -315,6 +331,7 @@ pub(super) fn prepare(
                     region: None,
                     region_order: None,
                     checkbox: None,
+                    icon: None,
                 });
             }
         }

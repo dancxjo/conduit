@@ -69,6 +69,7 @@ impl Owner {
                 "Thermostat scan requires an idle exact resident and bounded duration".into(),
             );
         }
+        self.ensure_execution_retained(root)?;
         let bytes =
             super::super::super::bounded_read(&root.join("body/source.conduit"), 256 * 1024)?;
         let source = crate::plot_source::parse(std::str::from_utf8(&bytes).map_err(debug)?)?;
@@ -78,6 +79,7 @@ impl Owner {
         self.set_resident_plot_name(&checked)?;
         self.plan_with_source(&source, &checked)?;
         self.persist(root)?;
+        state::require_execution_capacity(root)?;
         let proposed = self
             .session
             .realization()
@@ -323,6 +325,7 @@ impl ThermostatWorker {
             "body_id":proposed.wake.body_id, "plan_id":proposed.plan.plan_id,
             "play":report.play, "terminal":report.terminal, "terminal_sign":report.terminal_sign,
             "failure":report.failure, "cleanup_failure":report.cleanup_failure,
+            "fore_pending_output":report.fore_pending_output.as_ref().map(|pending|pending.metadata()),
             "live_fore_status":report.live_fore_status.map(|status| serde_json::json!({
                 "queue_accepted":status.queue_accepted,"kernel_admitted":status.kernel_admitted,
                 "queued":status.queued,"close_requested":status.close_requested,
@@ -333,16 +336,7 @@ impl ThermostatWorker {
             "scan_cancellation_failed":report.scan_cancellation_failed,
             "scan_output_completion_failed":report.scan_output_completion_failed,
         });
-        state::retain_session(
-            root,
-            &mut next,
-            Some(&receipt),
-            owner.admissions.as_ref(),
-            None,
-            None,
-        )?;
-        owner.session = next;
-        owner.last_execution = Some(receipt);
+        owner.retain_execution(root, next, receipt)?;
         owner.thermostat_live = None;
         Ok(true)
     }

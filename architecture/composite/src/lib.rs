@@ -18,7 +18,9 @@ mod bounded_activation;
 mod bounded_fold_activation;
 mod bounded_scan_activation;
 mod child;
+mod region_kernel;
 pub use child::{ChildExecutionError, ChildTerminalError, ChildTransportError};
+pub use region_kernel::{PreparedRegionKernel, RegionMemoryReceipt};
 mod current_sample;
 mod definition;
 mod flow_singleton;
@@ -33,6 +35,7 @@ pub use value_pair::ValuePairBack;
 mod kernel_executor;
 mod operation;
 mod planned_activation;
+mod reusable_value_pool;
 mod seeded_state;
 #[cfg(test)]
 mod test_support;
@@ -50,5 +53,7 @@ pub use operation::*;
 pub use planned_activation::*;
 pub use seeded_state::SeededStateBack;
 
+mod kernel_each_back;
 mod kernel_scan_back;
+pub use kernel_each_back::KernelEachBack;
 pub use kernel_scan_back::KernelScanBack;

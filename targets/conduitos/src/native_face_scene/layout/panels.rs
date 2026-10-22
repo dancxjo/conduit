@@ -165,6 +165,12 @@ pub(super) fn admit(
 ) -> Result<Vec<Row>, FaceSceneError> {
     let items = ordering::prepare(items, groups)?;
     let mut flow = Flow::new(screen, gutter, scale, groups)?;
+    let padding = fit_padding(
+        items.iter().map(|(_, item)| item),
+        (flow.bottom - flow.top).saturating_sub(EDGE * 2),
+        scale,
+        padding,
+    );
     let mut rows = Vec::new();
     let mut reading_order = Vec::new();
     let mut bytes = 0usize;
@@ -220,7 +226,7 @@ pub(super) fn admit(
                 flow.y(lane),
                 bottom,
                 flow.count,
-                flow.commands + usize::from(flow.new_panel(lane)),
+                flow.commands + 2 * usize::from(flow.new_panel(lane)),
             ) {
                 flow.next_page(lane, &mut rows);
             }
@@ -232,11 +238,12 @@ pub(super) fn admit(
             let (end, height) =
                 measure_prefix(remaining, item.role, text_width, maximum_height, scale)?;
             let height = height + padding * 2;
-            // Reserve the actual panel outline before admitting its first row.
-            let mut cost = row_commands(&item, region_start) + usize::from(flow.new_panel(lane));
+            // Reserve the actual panel fill and outline before admitting its first row.
+            let mut cost =
+                row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
             if !flow.fits(lane, height, cost) {
                 flow.next_page(lane, &mut rows);
-                cost = row_commands(&item, region_start) + usize::from(flow.new_panel(lane));
+                cost = row_commands(&item, region_start) + 2 * usize::from(flow.new_panel(lane));
                 if !flow.fits(lane, height, cost) {
                     return Err(FaceSceneError::InvalidExtent);
                 }
@@ -257,6 +264,7 @@ pub(super) fn admit(
                 region_start,
                 padding,
                 checkbox: item.checkbox,
+                icon: item.icon,
                 panel_bounds: None,
                 bounds,
             });

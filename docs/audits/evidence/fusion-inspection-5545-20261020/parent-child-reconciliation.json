@@ -1,0 +1,141 @@
+{
+  "observed_at": "2026-10-20T22:53:36.648279+00:00",
+  "dev_source": "c93a4cca2ac48405415ce813e43e973d93005bad",
+  "issues": [
+    {
+      "number": 6090,
+      "state": "closed",
+      "closed_at": "2026-10-20T12:00:36Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6090"
+    },
+    {
+      "number": 6091,
+      "state": "closed",
+      "closed_at": "2026-10-20T10:46:17Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6091"
+    },
+    {
+      "number": 6093,
+      "state": "closed",
+      "closed_at": "2026-10-20T10:46:20Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6093"
+    },
+    {
+      "number": 6094,
+      "state": "closed",
+      "closed_at": "2026-10-20T14:27:55Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6094"
+    },
+    {
+      "number": 6095,
+      "state": "closed",
+      "closed_at": "2026-10-20T16:03:21Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6095"
+    },
+    {
+      "number": 6096,
+      "state": "closed",
+      "closed_at": "2026-10-20T17:21:05Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6096"
+    },
+    {
+      "number": 6097,
+      "state": "closed",
+      "closed_at": "2026-10-20T21:28:57Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6097"
+    },
+    {
+      "number": 6098,
+      "state": "closed",
+      "closed_at": "2026-10-20T21:28:59Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6098"
+    },
+    {
+      "number": 6099,
+      "state": "closed",
+      "closed_at": "2026-10-20T22:26:17Z",
+      "url": "https://github.com/dancxjo/conduit/issues/6099"
+    }
+  ],
+  "merges": [
+    {
+      "pr": 6143,
+      "merged": true,
+      "merged_at": "2026-10-20T10:43:57Z",
+      "merge_sha": "68dcb89876395a2105b7a43f7023e189f3376415",
+      "head_sha": "00c10b9973162f42039a852f8fccde7ebfee022c",
+      "url": "https://github.com/dancxjo/conduit/pull/6143",
+      "merge_is_ancestor_of_dev": false,
+      "ancestry_exit": 1,
+      "remote_full_graph_comparison": {
+        "base": "68dcb89876395a2105b7a43f7023e189f3376415",
+        "head": "c93a4cca2ac48405415ce813e43e973d93005bad",
+        "status": "ahead",
+        "behind_by": 0,
+        "ahead_by": 212,
+        "merge_base": "68dcb89876395a2105b7a43f7023e189f3376415"
+      },
+      "local_ancestry_limit": "Local shallow graph returned 1; full GitHub comparison proves ancestry."
+    },
+    {
+      "pr": 6146,
+      "merged": true,
+      "merged_at": "2026-10-20T11:57:51Z",
+      "merge_sha": "f473831399d66a384be1f20395a94996128fc3a9",
+      "head_sha": "6c3d7dce302667c17c9c0144f0c4a177e5f2268f",
+      "url": "https://github.com/dancxjo/conduit/pull/6146",
+      "merge_is_ancestor_of_dev": false,
+      "ancestry_exit": 1,
+      "remote_full_graph_comparison": {
+        "base": "f473831399d66a384be1f20395a94996128fc3a9",
+        "head": "c93a4cca2ac48405415ce813e43e973d93005bad",
+        "status": "ahead",
+        "behind_by": 0,
+        "ahead_by": 196,
+        "merge_base": "f473831399d66a384be1f20395a94996128fc3a9"
+      },
+      "local_ancestry_limit": "Local shallow graph returned 1; full GitHub comparison proves ancestry."
+    },
+    {
+      "pr": 6150,
+      "merged": true,
+      "merged_at": "2026-10-20T14:26:54Z",
+      "merge_sha": "54a579d9a9ab8deb522b3888fd9182beee3e9618",
+      "head_sha": "0289608188d9a4a17de2a65b4dbb553143c75429",
+      "url": "https://github.com/dancxjo/conduit/pull/6150",
+      "merge_is_ancestor_of_dev": true,
+      "ancestry_exit": 0
+    },
+    {
+      "pr": 6152,
+      "merged": true,
+      "merged_at": "2026-10-20T16:03:04Z",
+      "merge_sha": "7c6defe20d5c0ef344d96d9b5abf0fb6131ade49",
+      "head_sha": "7b5061f78a225ab979829d8bf09415032903b71e",
+      "url": "https://github.com/dancxjo/conduit/pull/6152",
+      "merge_is_ancestor_of_dev": true,
+      "ancestry_exit": 0
+    },
+    {
+      "pr": 6153,
+      "merged": true,
+      "merged_at": "2026-10-20T17:19:15Z",
+      "merge_sha": "80bf55640ae789952bd98f54258b0c02d0d5bd5d",
+      "head_sha": "04638235a6f74899579275c84132f0e146c3f715",
+      "url": "https://github.com/dancxjo/conduit/pull/6153",
+      "merge_is_ancestor_of_dev": true,
+      "ancestry_exit": 0
+    },
+    {
+      "pr": 6168,
+      "merged": true,
+      "merged_at": "2026-10-20T22:25:23Z",
+      "merge_sha": "5bd95bf04cb6f6347339f4e7d3c69489b6eaa02f",
+      "head_sha": "20b81f317531539ee0a2962f9f8ce371df8b8191",
+      "url": "https://github.com/dancxjo/conduit/pull/6168",
+      "merge_is_ancestor_of_dev": true,
+      "ancestry_exit": 0
+    }
+  ],
+  "release_acceptance": "Not established by closed implementation states or dev ancestry. Current main f78adef760e9906272c2a64b3562c3506aec4cd9 lacks the fusion-inspection delta."
+}

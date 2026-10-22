@@ -1,4 +1,5 @@
 import { cpSync, existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { cargo, command, digest, xtask } from './common.mjs';
 import { assembleSite } from './site.mjs';
@@ -25,6 +26,74 @@ const SPECS = [
   'rp2040-browser-deployment', 'esp32-browser-deployment',
 ];
 
+// These source-owned browser journeys dominate measured serial Chromium time.
+// Keep them intact as files; batch by verified workload rather than test count.
+// Two independent one-worker processes use distinct static-server ports and
+// Playwright output directories. The retained evidence readers recursively
+// verify the complete union after BOTH batches have succeeded.
+const SLOW_CHROMIUM_SPECS = new Set([
+  'static-body-application', 'workspace-arrival', 'workspace-membership',
+]);
+
+function chromiumBatches() {
+  const requested = process.env.CONDUIT_CI_BROWSER_BATCHES || '1';
+  if (requested !== '1' && requested !== '2') {
+    throw new Error('CONDUIT_CI_BROWSER_BATCHES must be 1 or 2');
+  }
+  if (requested === '1') return [SPECS];
+  const slow = SPECS.filter(spec => SLOW_CHROMIUM_SPECS.has(spec));
+  const remaining = SPECS.filter(spec => !SLOW_CHROMIUM_SPECS.has(spec));
+  if (slow.length !== SLOW_CHROMIUM_SPECS.size || !remaining.length
+      || slow.length + remaining.length !== SPECS.length) {
+    throw new Error('Chromium batches must partition the exact reviewed spec inventory');
+  }
+  return [slow, remaining];
+}
+
+function runChromiumBatch(specs, index, count, product, releases) {
+  const label = count === 1 ? 'default' : `ci-${index + 1}`;
+  const port = String(4173 + index);
+  const env = {
+    ...process.env,
+    RUSTUP_TOOLCHAIN: process.env.RUSTUP_TOOLCHAIN || 'stable',
+    CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product,
+    CONDUIT_BROWSER_RUNTIME_WASM: path.resolve(releases, 'runtime.wasm'),
+    CONDUIT_BROWSER_HOST_PORT: port,
+    CONDUIT_BROWSER_PROOF_SHARD: label,
+  };
+  const args = ['proof/browser/node_modules/@playwright/test/cli.js', 'test',
+    '--config', 'proof/browser/playwright.config.mjs', '--project', 'chromium',
+    '--workers', '1', '--retries', '0', ...specs.map(spec => `${spec}.spec.mjs`)];
+  const started = performance.now();
+  console.log(`Chromium batch ${index + 1}/${count}: ${specs.length} specs, port ${port}, zero retries`);
+  return new Promise((resolve, reject) => {
+    const child = spawn('node', args, { env, stdio: 'inherit' });
+    child.on('error', reject);
+    child.on('close', (code, signal) => {
+      const durationSeconds = Math.round((performance.now() - started) / 1000);
+      console.log(`Chromium batch ${index + 1}/${count}: ${durationSeconds}s, exit ${code ?? signal}`);
+      if (code === 0) resolve({ label, port, specs, durationSeconds });
+      else reject(new Error(`Chromium batch ${index + 1}/${count} failed (${code ?? signal})`));
+    });
+  });
+}
+
+async function proveChromium(product, releases) {
+  const batches = chromiumBatches();
+  const started = performance.now();
+  // Do not fail fast: wait for every concurrent process to settle, so an
+  // incomplete batch cannot be mistaken for a complete product acceptance.
+  const results = await Promise.allSettled(batches.map((specs, i) =>
+    runChromiumBatch(specs, i, batches.length, product, releases)));
+  const failures = results.filter(result => result.status === 'rejected');
+  if (failures.length) {
+    throw new Error(`Chromium proof failed: ${failures.map(result => result.reason.message).join('; ')}`);
+  }
+  const elapsedSeconds = Math.round((performance.now() - started) / 1000);
+  console.log(`Chromium ${SPECS.length} reviewed specs complete across ${batches.length} batches in ${elapsedSeconds}s (one worker per batch, zero retries)`);
+  return { elapsedSeconds, batches: results.map(result => result.value) };
+}
+
 function inventory(directory, prefix = '') {
   return readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const name = prefix + entry.name;
@@ -34,7 +103,7 @@ function inventory(directory, prefix = '') {
   }).sort(([a], [b]) => a.localeCompare(b));
 }
 
-export function browser(directory) {
+export async function browser(directory) {
   publicationHistorySnapshot('browser-start');
   retainedTodoBrowserDevelopmentEvidence(undefined, process.env.CONDUIT_CHECKOUT_SHA);
   console.log('PASS: retained Todo browser ancestry before browser build');
@@ -66,13 +135,7 @@ export function browser(directory) {
     'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'physical-host-workflow',
     'creche-release-catalog',
   ].map(name => `proof/browser/${name}.test.mjs`)]);
-  command('node', ['proof/browser/node_modules/@playwright/test/cli.js', 'test',
-    '--config', 'proof/browser/playwright.config.mjs', '--project', 'chromium',
-    '--workers', '1', '--retries', '0', ...SPECS.map(name => `${name}.spec.mjs`)], {
-    env: { ...process.env, RUSTUP_TOOLCHAIN: process.env.RUSTUP_TOOLCHAIN || 'stable',
-      CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product,
-      CONDUIT_BROWSER_RUNTIME_WASM: path.resolve(releases, 'runtime.wasm') },
-  });
+  const chromiumProof = await proveChromium(product, releases);
   retainExactQuantityEvidence('proof/browser/test-results', path.join(directory, 'exact-quantity'),
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
   retainNativeValueEvidence('proof/browser/test-results', path.join(directory, 'native-value-types'),
@@ -94,7 +157,9 @@ export function browser(directory) {
     { recursive: true, errorOnExist: true, force: false });
   command('node', ['proof/browser/verify-public-site.mjs', site, path.join(directory, 'site-proof')]);
   writeFileSync(path.join(directory, 'proof-scope.json'), JSON.stringify({
-    product: 'workspace/', project: 'chromium', workers: 1, retries: 0, specs: SPECS,
+    product: 'workspace/', project: 'chromium', workers: 1, workersPerBatch: 1, retries: 0, specs: SPECS,
+    chromiumProof: { batchCount: chromiumProof.batches.length,
+      batches: chromiumProof.batches.map(({ label, port, specs }) => ({ label, port, specs })) },
     additionalProof: 'Workspace WCAG 2.2 AA and local asset/link smoke',
     website: 'Homepage, durable static Handbook with resident Patchbay and live source editing, journeys, Field Station captures, shared navigation and responsive layout',
     excluded: 'Cross-target download/deployment, standalone Patchbay workbench, physical/HIL, other browser projects; mixed-membership requires the absent browser-parts-capstone binary',

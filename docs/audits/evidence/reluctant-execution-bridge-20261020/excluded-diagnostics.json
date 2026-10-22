@@ -1,0 +1,24 @@
+{
+  "disposition": "EXCLUDED: uncommitted debug-profile exploratory diagnostics; not source-pinned acceptance, admitted forecasts or a speedup claim",
+  "producer_snapshot": "The retained producer is the later two-alternative diagnostic; the first diagnostic has no separate exact producer snapshot.",
+  "artifacts": [
+    {
+      "file": "exploratory-tape.json.gz",
+      "sha256": "28ea29ee115bc2e9f2df9dd513a4be4153470e1c336e3f99878a84be12e3ad5c",
+      "raw_sha256": "71a9e3aae1264871ea9102154992b3f2acf168c2d980773821231cd2382b5f98",
+      "raw_bytes": 95926
+    },
+    {
+      "file": "exploratory-alternatives.json.gz",
+      "sha256": "be7cf6263e90d1450df8c1ca56498bc4d80c3bd5805e80a3bd448f8552fa85d1",
+      "raw_sha256": "870e788e22bed85c113e38d215b0138509d9317298216eef25fad1f23dace1c9",
+      "raw_bytes": 193822
+    },
+    {
+      "file": "exploratory-producer.rs.gz",
+      "sha256": "fff39d3c2713c0bbc347ad10ff9f6bab928ee7919c70854a69f467ce7fda68d6",
+      "raw_sha256": "4553e8b91b64f8509c9a44096f9f25d470b8d85fdc52f1b1f78653ad402453a7",
+      "raw_bytes": 5226
+    }
+  ]
+}

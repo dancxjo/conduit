@@ -1,0 +1,23 @@
+{
+  "issue": 6172,
+  "repair_head": "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782",
+  "tested_merge": "e3fc8593ce0d42aa7f65cb60fa9b5c644c73522b",
+  "tested_merge_parents": [
+    "c93a4cca2ac48405415ce813e43e973d93005bad",
+    "9ef231be7b4bd2227b86dd0d0fd9b6c323ba1782"
+  ],
+  "run": 39510280635,
+  "job": 118931140312,
+  "artifact": 12307079878,
+  "archive_sha256": "1c9802615db939d1668a3e55090382e5998dee80b3b659e467882b1f74ef87d8",
+  "verified_inventory_files": 1095,
+  "chromium_actual_passed": 263,
+  "reviewed_specs": 31,
+  "batch_count": 1,
+  "workers": 1,
+  "retries": 0,
+  "current_source": "6a8e127b48c66b04ec0801cc4778c8762f36de72",
+  "current_focused_actual_passed": 18,
+  "combined_integration": "not asserted; explicit user CI convention bypass",
+  "source_limit": "Candidate proof is the tested synthetic merge, not current combined dev or stable release"
+}

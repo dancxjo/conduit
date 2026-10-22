@@ -3,13 +3,13 @@
 use super::SemanticAction;
 use alloc::{string::String, vec::Vec};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct SelectOption {
     pub identity: String,
     pub label: String,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub enum FieldKind {
     Text,
     Select { options: Vec<String> },
@@ -17,7 +17,7 @@ pub enum FieldKind {
     TextArea,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct FormField {
     pub label: String,
     pub help: String,

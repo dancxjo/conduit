@@ -6,6 +6,17 @@ use conduit_face::{Face, FaceInteraction, MaskShow};
 use serde_json::{Value, json};
 
 fn emit(prefix: &[u8], record: &Value) -> Result<(), &'static str> {
+    emit_with_limit(prefix, record, 96 * 1024)
+}
+
+pub(super) fn emit_with_limit(
+    prefix: &[u8],
+    record: &Value,
+    limit: usize,
+) -> Result<(), &'static str> {
+    if limit == 0 || limit > 96 * 1024 {
+        return Err("native-action-evidence-bound");
+    }
     #[cfg(feature = "native-latency-observation")]
     let observed = crate::native_observation::counter_ticks().map(|ticks| {
         let mut observed = record.clone();
@@ -15,7 +26,7 @@ fn emit(prefix: &[u8], record: &Value) -> Result<(), &'static str> {
     #[cfg(feature = "native-latency-observation")]
     let record = observed.as_ref().unwrap_or(record);
     let bytes = serde_json::to_vec(record).map_err(|_| "native-action-evidence-encoding")?;
-    if bytes.len() > 96 * 1024 {
+    if bytes.len() > limit {
         return Err("native-action-evidence-bound");
     }
     #[cfg(not(test))]
