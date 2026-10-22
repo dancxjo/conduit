@@ -31,3 +31,43 @@ formatting and whitespace checks pass. Fresh ordinary QEMU enactment is pending.
 Scene-pressure/large-graph acceptance, combined-head integration and normal
 merge remain separate requirements; this observation does not grant authority
 or claim that pressure/fallback was exercised.
+
+## Ordinary QEMU result and ledger
+
+Clean Source `461770828` passes the supported ordinary command:
+
+```
+cargo +stable xtask make conduitos creche-controls-proof --viewport 640x480
+```
+
+The [original packet and independent ledger](evidence/native-prepared-frame-budget-qemu-20261022/)
+retain all 247 focus observations, complete serial/QMP logs, exact product build
+manifest, two focused CPU logs and 17 original captures. Every observation has
+valid exact-limit cost fields. Independently recomputed peaks match the receipt:
+
+| Prepared Mask-frame measurement | Observed peak | Existing limit |
+| --- | ---: | ---: |
+| Graphics commands | 32 | 48 |
+| Largest command payload (bytes) | 192 | 192 |
+| Sum of frame command payloads (bytes) | 680 | No separate observed-total limit claimed |
+
+These independent maxima need not occur in the same frame. The ledger retains
+exact observation indices, Face/revision/Show and page identities for each peak.
+The existing eight-surface contract is linked as a static admission fact;
+actual retained surface count remains explicitly unobserved.
+
+All 17 PNG lengths, hashes, chunk CRCs, dimensions and independently decoded
+RGBA hashes pass. Visual inspection confirms the exact accented name, focus
+and four selected Plot controls remain readable at 640×480. Natural incomplete
+input refuses visibly without owner effects; the same guest completes exact
+Unicode naming, two-way traversal before/after editing, primary/Details page
+traversal, naming choice, supported pointer focus and restoration. Outer command
+exit is zero. No new observation record, frame render or bound increase was
+needed for the accounting.
+
+This reaches the actual 192-byte command-payload boundary in prepared native
+frames. It is not deliberate over-capacity scene execution, scanout history,
+retained-surface measurement, physical evidence or a performance benchmark.
+Combined-head CI/normal merge and the remaining original #5608/#5994 acceptance
+stay open. Inactive appliance compilation caches were cleaned separately,
+recovering about 3.5 GiB net headroom; unique source/evidence/ELF/ISO were retained.
