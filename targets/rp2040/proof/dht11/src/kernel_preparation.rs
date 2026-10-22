@@ -127,3 +127,25 @@ pub(super) fn observation_witnesses() -> alloc::vec::Vec<Observed> {
 pub(super) fn vacant_backs<'a>() -> Box<[Option<Back<'a>>; N]> {
     Box::new(core::array::from_fn(|_| None))
 }
+
+// Native contract preparation has large temporary witnesses. Keep them off
+// Root's poll stack while the independently admitted network service runs.
+#[inline(never)]
+pub(super) fn bind_owner<T: conduit_pulse_capture::owner::PulseReadProvider>(
+    ready: conduit_pulse_capture::installation::ReadyPulseBase<T>,
+    identity: &PulseNativeIdentity,
+    plan_id: &c::PlanId,
+    active: &c::ActivePlayIdentity,
+    selection: conduit_plan_lowering::selected_operation::SelectedOperationPlan<'_>,
+) -> conduit_pulse_capture::owner::PulseHostCall<T> {
+    let (table, handle, claim) = crate::kernel_authority::possession(identity, plan_id, active);
+    ready
+        .bind_selected(
+            table,
+            handle,
+            claim,
+            &conduit_pulse_capture::PulseReadContract::prepare().unwrap(),
+            selection,
+        )
+        .unwrap()
+}

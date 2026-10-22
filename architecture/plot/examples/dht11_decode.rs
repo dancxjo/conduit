@@ -50,7 +50,7 @@ fn capture(ty: &StructuredInfoType, wire: &[Value]) -> Result<Vec<u8>, Box<dyn E
         .diagnostic()?;
         octets.push(StructuredInfoValue::leaf(element.clone(), vec![value]).diagnostic()?);
     }
-    Ok(StructuredInfoValue::record(
+    StructuredInfoValue::record(
         ty.clone(),
         vec![
             StructuredFieldValue::new(
@@ -68,7 +68,7 @@ fn capture(ty: &StructuredInfoType, wire: &[Value]) -> Result<Vec<u8>, Box<dyn E
     )
     .diagnostic()?
     .canonical_bytes()
-    .diagnostic()?)
+    .diagnostic()
 }
 
 fn observation(

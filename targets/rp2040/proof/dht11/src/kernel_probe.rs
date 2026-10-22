@@ -172,22 +172,18 @@ pub async fn run(
         .node_for_placement(&pulse_gear.placement_id)
         .unwrap();
     progress(link, "bind-real-native-owner").await;
-    let (table, handle, claim) =
-        crate::kernel_authority::possession(&identity, &plan.plan_id, &active);
-    let mut owner = ready
-        .bind_selected(
-            table,
-            handle,
-            claim,
-            &PulseReadContract::prepare().unwrap(),
-            conduit_plan_lowering::selected_operation::SelectedOperationPlan {
-                fragment,
-                lowered: &lowered,
-                active: &active,
-                placement_id: &pulse_gear.placement_id,
-            },
-        )
-        .unwrap();
+    let mut owner = preparation::bind_owner(
+        ready,
+        &identity,
+        &plan.plan_id,
+        &active,
+        conduit_plan_lowering::selected_operation::SelectedOperationPlan {
+            fragment,
+            lowered: &lowered,
+            active: &active,
+            placement_id: &pulse_gear.placement_id,
+        },
+    );
     let mut routes = k::FixedRoutes::<R, C>::new(P as u16);
     for route in &lowered.routes {
         routes
