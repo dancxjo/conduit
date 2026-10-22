@@ -510,6 +510,19 @@ export class BrowserPlay {
     if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
     return this.#checkedPatchbayObservation(this.#adapter.patchbayObservation());
   }
+  /** Submit an exact prepared-route envelope; Rust owns Show and argument admission. */
+  acknowledgePatchbayFace(message) {
+    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+    return this.#checkedPatchbayObservation(this.#adapter.acknowledgePatchbayFace(message));
+  }
+  submitPatchbayInteraction(message) {
+    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+    return this.#checkedPatchbayObservation(this.#adapter.submitPatchbayInteraction(message));
+  }
+  refreshPatchbayFace(message) {
+    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
+    return this.#checkedPatchbayObservation(this.#adapter.refreshPatchbayFace(message));
+  }
   #checkedPatchbayObservation(observation) {
     if (observation?.schema !== 'conduit.browser/patchbay-observation@1'
         || observation.mask_show !== null || observation.interaction_admitted !== false

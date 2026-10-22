@@ -1151,3 +1151,20 @@ suite, CI, DOM/QEMU or artifact rebuild ran.
 SDK/Host rendering and planner selection, complete Host-memory admission, actual
 Editor/Mask-change fulfillment, legacy adapter retirement and native Edit remain
 unfinished. Host acknowledgement in these CPU cases is a fixture.
+
+### Combined-dev reconciliation and browser transport
+
+Synced the preserved Patchbay branch with omnibus #6203. Conflict resolution
+retains protected native application-service ownership, source provenance and
+pending-request checks before mutation. Native graph reading uses the existing
+bounded hit regions rather than the newly overlapping inspection implementation.
+Source spans and connection-origin classifications now serialize with the graph
+for the protected service boundary; checked identity remains separate.
+
+The browser runtime bridge, Host facade and SDK expose exact acknowledgement,
+typed interaction and explicit refresh envelopes. Canonical requests retain the
+Rust 8 KiB bound; legacy disposition remains 4 KiB. SDK responses still validate
+Body Plan/Play scope, and Rust remains authoritative for admission. JavaScript
+syntax checks pass. These transport methods do not render a Show, select a
+canonical route, fulfill owner effects or retire legacy adapters. Platform proof
+and CI campaigns remain deferred tonight.

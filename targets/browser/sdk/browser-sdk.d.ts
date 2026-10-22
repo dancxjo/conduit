@@ -358,7 +358,7 @@ export interface PatchbayRequestDisposition {
   readonly evidence_id: string;
 }
 
-/** Read-only canonical meaning; unavailable actions grant no interaction route. */
+/** Owner observation; any prepared canonical route is separately admitted by Rust. */
 export interface PatchbayObservation {
   readonly schema: "conduit.browser/patchbay-observation@1";
   readonly owner_checked_plot_id: string;
@@ -371,9 +371,25 @@ export interface PatchbayObservation {
     application_revision: number;
     request: PatchbayOwnerRequest;
   }>;
+  readonly publication?: null | Readonly<Record<string, unknown>>;
   readonly mask_show: null;
   readonly interaction_admitted: false;
   readonly reason_code: "patchbay-canonical-ingress-not-admitted";
+}
+
+/** Exact Rust Mask envelopes; preparation and an actual rendered Show remain required. */
+export interface PatchbayAcknowledgement {
+  show_id: string; manifestation_id: string; mask_plan_id: string;
+  active_play_id: string; placement_id: string; face_id: string; face_revision: number;
+}
+export interface PatchbayInteraction {
+  show_id: string; face_id: string; face_revision: number; action_id: string;
+  target: string; sequence: number;
+  arguments: readonly Readonly<{ name: string; value_kind: string; value: readonly number[] }>[];
+}
+export interface PatchbayPublicationTarget {
+  body_plan_id: string; active_play_id: string; show_id: string;
+  face_id: string; face_revision: number;
 }
 
 export class BrowserPlay {
@@ -385,6 +401,9 @@ export class BrowserPlay {
   readonly state: "playing" | "terminal" | "failed";
   readonly receipts: readonly Readonly<Record<string, unknown>>[];
   patchbayObservation(): PatchbayObservation;
+  acknowledgePatchbayFace(message: PatchbayAcknowledgement): PatchbayObservation;
+  submitPatchbayInteraction(message: PatchbayInteraction): PatchbayObservation;
+  refreshPatchbayFace(message: PatchbayPublicationTarget): PatchbayObservation;
   reportPatchbayRequestDisposition(options: {
     observation: PatchbayObservation;
     outcome: PatchbayRequestDisposition["outcome"];
