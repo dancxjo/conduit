@@ -1,0 +1,10 @@
+{
+  "tested_preview": "9ba03bb2ad6dd5fad609b8cc9e40d915174527be",
+  "published_head": "596aab0e980bb697748d44281c3ed4955f510982",
+  "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-596-admission-final-failure.log",
+  "original_bytes": 1095025,
+  "original_sha256": "1685d0e5692357fa02a22bb017df39791fb748322054b168f5daf3c5d7f3a917",
+  "stored": "candidate-39779112554-admission-119826159371.log.gz",
+  "stored_sha256": "9ebb92c9c8c87ef9928acf5a8c83773c22873fe214b87ad59bc79652f723e443",
+  "boundary": "Original mixed hosted admission failure; membership140 above139 and prebirth storage-slot exhaustion, plus unrelated native failures. No local execution or successful repair claim."
+}

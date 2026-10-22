@@ -48,6 +48,10 @@ mod tests {
         let local = crate::installed_browser::advertisement(host, boot);
         let execution = crate::installed_browser::execution_capability_ids();
         assert_eq!(execution.len(), local.capabilities.len());
+        let patchbay = super::super::patchbay_ingress::offer();
+        assert!(advertised.capabilities.contains(&patchbay));
+        assert!(execution.contains(&patchbay.capability_id));
+        assert_eq!(advertised.capabilities.len(), 140);
         let component = super::super::dom_mask::configured_offer();
         assert!(advertised.capabilities.contains(&component));
         assert!(
