@@ -135,14 +135,21 @@ pub(crate) fn mask_scheduler(
     bindings
         .seal()
         .map_err(|error| format!("seal browser Mask host calls: {error:?}"))?;
-    // One closing Show lifecycle creates exactly three distinct values: the
-    // supplied Face, acknowledged Show and emitted interaction. Kernel queues
-    // and Host Calls retain references to those same values, not new payloads.
-    // Reserve all three simultaneously; table capacity is not a payload count.
-    const VALUE_SLOTS: u16 = 3;
-    let values =
-        HostedValueStore::new(VALUE_SLOTS, MASK_BYTES, MASK_BYTES * u32::from(VALUE_SLOTS))
-            .map_err(|error| format!("prepare browser Mask values: {error:?}"))?;
+    // Every admitted input queue item may own a distinct Face. While that
+    // queue is refilled, the active Host Call can retain a consumed Face,
+    // its Show and an interaction. Admit those three lifecycle values in
+    // addition to the exact planned input queue capacity.
+    let value_slots = lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == PortDirection::Input)
+        .try_fold(3u16, |total, port| total.checked_add(port.item_capacity))
+        .ok_or("browser Mask value item budget overflow")?;
+    let value_bytes = MASK_BYTES
+        .checked_mul(u32::from(value_slots))
+        .ok_or("browser Mask value byte budget overflow")?;
+    let values = HostedValueStore::new(value_slots, MASK_BYTES, value_bytes)
+        .map_err(|error| format!("prepare browser Mask values: {error:?}"))?;
     const SIGN_ITEMS: u16 = 256;
     let sign_bytes = u32::from(SIGN_ITEMS)
         .checked_mul(core::mem::size_of::<conduit_kernel::KernelEvent>() as u32)
