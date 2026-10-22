@@ -55,6 +55,15 @@ pub(super) fn execute_supplied(
     execute_supplied_observed(opts, image_path, image_sha256, false, None)
 }
 
+pub(super) fn execute_supplied_viewport(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport)
+}
+
 pub(super) fn execute_supplied_observed(
     opts: &GlobalOpts,
     image_path: &Path,

@@ -562,7 +562,9 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             journey_proof::execute_viewport(opts, args.viewport)
         }
         ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(&args, opts),
-        ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
+        ConduitosCommand::GraphicalProfileProof(args) => {
+            graphical_profile_proof::execute_viewport(opts, args.viewport)
+        }
         ConduitosCommand::Run(target) => {
             target.arch.require_boot_backend()?;
             require_make_target(target.arch, target.board)?;

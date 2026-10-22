@@ -133,7 +133,7 @@ pub(super) enum ConduitosCommand {
     /// Observe instrumented graphical startup and the real native journey.
     NativeLatencyProof(native_latency::NativeLatencyArgs),
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.
-    GraphicalProfileProof,
+    GraphicalProfileProof(proof_viewport::JourneyArgs),
     /// Boot one architecture proof appliance and validate its bounded terminal Sign.
     Run(TargetArgs),
     /// Prove compile/link/image/boot truth and fresh boot identities.

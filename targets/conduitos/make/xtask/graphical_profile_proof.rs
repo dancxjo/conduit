@@ -5,7 +5,10 @@ use super::{
 use crate::cli::GlobalOpts;
 use std::fs;
 
-pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub(super) fn execute_viewport(
+    opts: &GlobalOpts,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
             "graphical-proof-requires-boot",
@@ -20,7 +23,19 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .root
         .join("target/conduitos/live/x86_64-pc/conduitos-x86_64.iso");
     let digest = sha256_file(&image)?;
-    journey_proof::execute_supplied(opts, &image, digest.clone())?;
+    let viewport_build = if viewport.is_some() {
+        let manifest: serde_json::Value = serde_json::from_slice(
+            &fs::read(image.with_file_name("build-manifest.json")).map_err(io_error)?,
+        )
+        .map_err(|error| {
+            ConduitosError::refusal("graphical-viewport-build-invalid", error.to_string())
+        })?;
+        validate_viewport_build(&manifest, &source_commit, &digest)?;
+        Some(manifest)
+    } else {
+        None
+    };
+    journey_proof::execute_supplied_viewport(opts, &image, digest.clone(), viewport)?;
     let serial = fs::read_to_string(paths.target.join("journey-serial.log")).map_err(io_error)?;
     let profiles = serial
         .lines()
@@ -46,7 +61,14 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "source changed while building or proving the product images",
         ));
     }
-    let proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":source_commit, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless});
+    let mut proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":source_commit, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless});
+    if let Some(manifest) = viewport_build {
+        proof["viewport_build_manifest"] = manifest;
+        let (width, height) = viewport
+            .expect("manifest exists only for explicit viewport")
+            .dimensions();
+        proof["requested_viewport"] = serde_json::json!({"width":width,"height":height});
+    }
     fs::write(
         paths.target.join("graphical-profile-proof.json"),
         serde_json::to_vec_pretty(&proof).map_err(|error| {
@@ -82,4 +104,36 @@ fn clean_head(root: &std::path::Path) -> Result<String, ConduitosError> {
         ));
     }
     super::report::git_head(root)
+}
+
+fn validate_viewport_build(
+    manifest: &serde_json::Value,
+    source: &str,
+    digest: &str,
+) -> Result<(), ConduitosError> {
+    if manifest["schema"] != "conduit.host/target-build-manifest@3"
+        || manifest["artifact_role"] != "product-host"
+        || manifest["source_identity"] != source
+        || manifest["image"]["sha256"] != digest
+    {
+        return Err(ConduitosError::refusal(
+            "graphical-viewport-build-invalid",
+            "viewport proof requires the exact canonical product-host image metadata",
+        ));
+    }
+    Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn viewport_rejects_appliance_stale_source_or_wrong_image_metadata() {
+        let manifest = serde_json::json!({"schema":"conduit.host/target-build-manifest@3","artifact_role":"product-host","source_identity":"source","image":{"sha256":"digest"}});
+        assert!(validate_viewport_build(&manifest, "source", "digest").is_ok());
+        let mut appliance = manifest.clone();
+        appliance["artifact_role"] = serde_json::json!("architecture-proof-appliance");
+        assert!(validate_viewport_build(&appliance, "source", "digest").is_err());
+        assert!(validate_viewport_build(&manifest, "foreign", "digest").is_err());
+        assert!(validate_viewport_build(&manifest, "source", "foreign").is_err());
+    }
 }
