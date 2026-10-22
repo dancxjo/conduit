@@ -12,7 +12,7 @@ fn records(serial: &Path) -> Result<Vec<Value>, ConduitosError> {
     let bytes = fs::read(serial).map_err(io_error)?;
     face_correspondence::records(journey_input::complete_records(&bytes)?, PREFIX)
 }
-fn press(
+pub(super) fn press(
     serial: &Path,
     child: &mut Child,
     stream: &mut UnixStream,

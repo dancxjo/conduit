@@ -8,7 +8,7 @@ use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 fn refusal(detail: impl Into<String>) -> ConduitosError {
     ConduitosError::refusal("journey-keyboard-domain", detail)
 }
-fn latest(serial: &Path) -> Result<Value, ConduitosError> {
+pub(super) fn latest(serial: &Path) -> Result<Value, ConduitosError> {
     let bytes = fs::read(serial).map_err(|error| refusal(error.to_string()))?;
     journey_records::decode(journey_input::complete_records(&bytes)?)?
         .pop()
@@ -149,27 +149,45 @@ fn exercise_plot(
     let expected =
         conduitos::native_workset::resident(plot).map_err(|error| refusal(format!("{error:?}")))?;
     let initial = latest(serial)?;
-    let selection = format!("{} selection", plot.title());
-    let selection_label = match plot {
-        conduitos::native_workset::NativePlot::MemoryLantern => "journey-select-memory-lantern",
-        _ => "journey-select-keyboard-canvas",
-    };
-    for _ in 0..conduitos::native_workset::NATIVE_PLOT_CAPACITY {
-        let current = latest(serial)?;
-        if current["checked_plot_id"] == expected.checked_plot_id.as_str() {
-            break;
-        }
-        let revision = current["revision"]
+    if initial["checked_plot_id"] != expected.checked_plot_id.as_str() {
+        // An active editor Mask owns its keyboard input. Return through the
+        // ordinary Home surface and select the exact resident Source there;
+        // Tab is not a cross-Plot control while that Mask is active.
+        let before = super::stage_count(serial, "CONDUIT_HOME_CHECKPOINT returned")?;
+        journey_input::held_key(
+            |down| {
+                super::super::hid_qmp::send_named_keys(
+                    stream,
+                    reader,
+                    &["esc"],
+                    down,
+                    "journey-select-plot-home",
+                )
+            },
+            || {
+                super::super::hid_qmp::wait_for_stage_count(
+                    serial,
+                    child,
+                    "CONDUIT_HOME_CHECKPOINT returned",
+                    before + 1,
+                    "journey-select-plot-home-timeout",
+                )
+            },
+        )?;
+        let revision = initial["revision"]
             .as_u64()
             .ok_or_else(|| refusal("missing revision"))?;
-        journey_input::key_pair(stream, reader, "tab", selection_label)?;
-        journey_input::wait_for_record(
-            serial,
-            child,
-            "journey-plot-selection-timeout",
-            &selection,
-            |text| selection_observed(text, revision, plot.title()),
-        )?;
+        journey_input::open_hub_plot(stream, reader, serial, child, plot)?;
+        let bytes = fs::read(serial).map_err(|error| refusal(error.to_string()))?;
+        if !selection_observed(
+            journey_input::complete_records(&bytes)?,
+            revision,
+            plot.title(),
+        )? {
+            return Err(refusal(
+                "Plot picker did not produce a fresh selection record",
+            ));
+        }
     }
     let selected = latest(serial)?;
     if selected["checked_plot_id"] != expected.checked_plot_id.as_str()
@@ -301,7 +319,7 @@ pub(super) fn validate_cost(
         || cost["driver_isolation"] != false
     {
         return Err(refusal(
-            "Body domain did not execute and retire its bounded keyboard effect",
+            "Body domain did not execute and retire its exact bounded text workload",
         ));
     }
     Ok(cost)
@@ -336,6 +354,12 @@ mod tests {
             );
         }
         assert!(validate_cost(&line(&cost), &identity, 5, 1).is_err());
+        let mut document = cost.clone();
+        document["entries"] = json!(7);
+        document["base_gate_transitions"] = json!(0);
+        validate_cost(&line(&document), &identity, 7, 0).unwrap();
+        document["base_gate_transitions"] = json!(1);
+        assert!(validate_cost(&line(&document), &identity, 7, 0).is_err());
     }
 
     fn terminal_sign() -> String {
