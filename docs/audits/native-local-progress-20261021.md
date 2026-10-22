@@ -1873,3 +1873,20 @@ negative/positive logs are under `evidence/native-local-post-6158-20261022/`.
 This records the observed cache invalidation repair, not a new product semantic
 change or substitute for protected native/guest acceptance. Patchbay and the
 remaining #5994 route remain open.
+
+### 2026-10-22: exact Cord origins reach dev independently
+
+PR6234 delivered the existing Plot-only Source-provenance prerequisite to dev
+6b0f026ab, with three explicit outside test-fixture initializer adaptations.
+The reviewed/tested0cfc3afea and dev have identical trees. The local prerequisite
+checks comprise20 focused cases, the owning Plot all-target check and changed
+Rust formatting. Its separate audit retains exact scope, sources and logs.
+CI was deliberately skipped, including the merge subject; no platform campaign
+or parent acceptance was claimed. #6201/#5994 remain open.
+
+This branch now includes delivered dev. The sole add/add test-file conflict
+was resolved by verifying that the incoming file retains every existing test
+byte and adds the root Fore mapping refusal case. All three origin cases pass
+again on the combined native-local branch; the retained local log is under
+`evidence/native-local-origin-sync-20261022/`. No production semantic conflict
+or additional runtime/Mask truth was introduced by the synchronization.

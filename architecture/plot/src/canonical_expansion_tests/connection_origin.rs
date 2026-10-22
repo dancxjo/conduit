@@ -94,3 +94,48 @@ fn connection_origin_fanout_and_mutation_are_bound_to_exact_graph() {
     changed.connection_provenance.pop();
     assert!(changed.validate_expansion().is_err());
 }
+
+#[test]
+fn connection_origin_root_fore_keeps_its_cord_and_refuses_rewritten_mapping() {
+    let (startup, profile) = catalogs();
+    let source = "plot main (\n input: test/value >> output: test/value\n) {\n worker: test/pass\n input >> worker >> output\n}\n";
+    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let baseline = crate::expand_canonical_plot_for_authoring(&checked, "main", &profile).unwrap();
+    baseline.validate_boundary_provenance().unwrap();
+    for binding in baseline
+        .input_bindings
+        .iter()
+        .chain(&baseline.output_bindings)
+    {
+        let origin = binding
+            .source_origin
+            .as_ref()
+            .expect("authored Cord origin");
+        assert_eq!(
+            source[origin.source_span.start..origin.source_span.end].trim(),
+            "input >> worker >> output"
+        );
+        assert_eq!(origin.origin, crate::ExpandedConnectionOrigin::CordStages);
+    }
+    assert_eq!(baseline.input_bindings.len(), 1);
+    assert_eq!(baseline.output_bindings.len(), 1);
+    let mut changed = baseline.clone();
+    changed.input_bindings[0]
+        .source_origin
+        .as_mut()
+        .unwrap()
+        .source_span
+        .line += 1;
+    assert!(changed.validate_boundary_provenance().is_err());
+    changed.expanded.validate_expansion().unwrap();
+    assert_eq!(
+        changed.expanded.expanded_plot_id,
+        baseline.expanded.expanded_plot_id
+    );
+    let mut changed = baseline.clone();
+    changed.output_bindings[0].track = conduit_core::ConnectionTrack::NormalClose;
+    assert!(changed.validate_boundary_provenance().is_err());
+    let mut changed = baseline.clone();
+    changed.input_bindings[0].source_origin = None;
+    assert!(changed.validate_boundary_provenance().is_err());
+}
