@@ -23,3 +23,26 @@ checked edits succeed in the same guest. Physical/human evidence, arbitrary
 grapheme editing, search-filtered/>4-Plot inventory, provider-loss enactment,
 combined-head CI and normal merge are not claimed. Original observed names
 remain evidence; the final name is the explicitly committed probe.
+
+## Post-edit traversal within unchanged proof bounds
+
+Source `f9ad41a71` passes the same real QEMU entrance with
+`Café Llanfairpwllgwyngyll long Body name`. This slightly shorter, still
+accented probe fits the existing 256-record collector: 247 focus receipts.
+The [second original packet](evidence/native-unicode-reflow-qemu-20261022/)
+checks the exact same source control inventory after committing the name,
+complete forward/reverse focus cycles, every primary page and clamped endpoints,
+then genuine naming choice, supported pointer focus and exact name restoration.
+All 17 captures independently pass PNG length/hash/CRC/dimensions/decoded-RGBA
+verification. The focused field was visually inspected and displays its full
+value and hint on one line; this shorter probe has three primary pages.
+The earlier longer probe retains its independently passing four-page/wrapped
+capture; complete post-edit focus cycles are not claimed for that longer probe.
+
+The first extended run on `6fb3e6750` reached focus record 257 and honestly
+refused at the collector's existing 256-record limit. Its
+[negative packet](evidence/native-unicode-reflow-bound-20261022/) retains original
+observations and captures and excludes the stale prior control receipt. The
+subsequent shorter probe does not raise any runtime, scene or proof limit.
+No new Actions campaign was queued. Combined-head admission and remaining
+#5608 provider/search/inventory cases remain open.
