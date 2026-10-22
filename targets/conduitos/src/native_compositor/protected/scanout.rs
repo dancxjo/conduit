@@ -74,76 +74,84 @@ impl NativeCompositor {
             Response::Refused(error) => return Err(core_error(error)),
             _ => return Err(NativeCompositorError::ServiceProtocol),
         };
-        let (maximum_steps, expected_pixels) = validate_plan(plan, format)?;
-        let mut written = 0u32;
-        let mut completed = None;
-        for _ in 0..maximum_steps {
-            let response = owner
-                .sessions
-                .with_frame_step(
-                    session,
-                    plan.sequence,
-                    conduitos_compositor_core::MAX_CHUNK as u32,
-                    |span, pixels| {
-                        copy_span(target, format, span, pixels)?;
-                        Ok::<_, DisplayError>(span)
+        // Idle polls returned above. Observe only a real selected frame's
+        // bounded validated copies and acknowledgement, including refusals.
+        crate::native_observation::Progress::result(
+            crate::native_observation::Phase::Scanout,
+            "compositor",
+            || {
+                let (maximum_steps, expected_pixels) = validate_plan(plan, format)?;
+                let mut written = 0u32;
+                let mut completed = None;
+                for _ in 0..maximum_steps {
+                    let response = owner
+                        .sessions
+                        .with_frame_step(
+                            session,
+                            plan.sequence,
+                            conduitos_compositor_core::MAX_CHUNK as u32,
+                            |span, pixels| {
+                                copy_span(target, format, span, pixels)?;
+                                Ok::<_, DisplayError>(span)
+                            },
+                        )
+                        .map_err(owner_error)?;
+                    let span = response.map_err(core_error)??;
+                    written = written
+                        .checked_add(span.pixels)
+                        .ok_or(NativeCompositorError::InvalidBounds)?;
+                    if written > expected_pixels {
+                        return Err(NativeCompositorError::ServiceProtocol);
+                    }
+                    if span.complete {
+                        completed = Some(span);
+                        break;
+                    }
+                }
+                let final_span = completed.ok_or(NativeCompositorError::ServiceProtocol)?;
+                if written != expected_pixels {
+                    return Err(NativeCompositorError::ServiceProtocol);
+                }
+                // Successful validated copies, not guest completion, establish scanout.
+                match response(
+                    owner
+                        .sessions
+                        .request(
+                            session,
+                            Request::AcknowledgeScanout {
+                                sequence: plan.sequence,
+                            },
+                        )
+                        .map_err(owner_error)?,
+                )? {
+                    Response::Unit => {}
+                    _ => return Err(NativeCompositorError::ServiceProtocol),
+                }
+                record_frame(&owner, ordinal, plan.sequence, written, plan.count);
+                let mut damage_rects = [DamageRect::default(); MAX_DAMAGE_RECTS];
+                for (target, source) in damage_rects.iter_mut().zip(plan.rects) {
+                    *target = DamageRect {
+                        x: source.x,
+                        y: source.y,
+                        width: source.width,
+                        height: source.height,
+                    };
+                }
+                Ok((
+                    FrameReceipt {
+                        frame_sequence: ordinal,
+                        surfaces_composed: final_span.selected_mask.count_ones() as u8,
+                        pixels_written: written,
+                        damage_count: plan.count,
+                        damage_rects,
+                        conservative_fallback: plan.conservative_fallback,
+                        cursor_visible: plan.cursor_visible,
+                        focus_visible: plan.focus_visible,
                     },
-                )
-                .map_err(owner_error)?;
-            let span = response.map_err(core_error)??;
-            written = written
-                .checked_add(span.pixels)
-                .ok_or(NativeCompositorError::InvalidBounds)?;
-            if written > expected_pixels {
-                return Err(NativeCompositorError::ServiceProtocol);
-            }
-            if span.complete {
-                completed = Some(span);
-                break;
-            }
-        }
-        let final_span = completed.ok_or(NativeCompositorError::ServiceProtocol)?;
-        if written != expected_pixels {
-            return Err(NativeCompositorError::ServiceProtocol);
-        }
-        // Successful validated copies, not guest completion, establish scanout.
-        match response(
-            owner
-                .sessions
-                .request(
-                    session,
-                    Request::AcknowledgeScanout {
-                        sequence: plan.sequence,
-                    },
-                )
-                .map_err(owner_error)?,
-        )? {
-            Response::Unit => {}
-            _ => return Err(NativeCompositorError::ServiceProtocol),
-        }
-        record_frame(&owner, ordinal, plan.sequence, written, plan.count);
-        let mut damage_rects = [DamageRect::default(); MAX_DAMAGE_RECTS];
-        for (target, source) in damage_rects.iter_mut().zip(plan.rects) {
-            *target = DamageRect {
-                x: source.x,
-                y: source.y,
-                width: source.width,
-                height: source.height,
-            };
-        }
-        Ok((
-            FrameReceipt {
-                frame_sequence: ordinal,
-                surfaces_composed: final_span.selected_mask.count_ones() as u8,
-                pixels_written: written,
-                damage_count: plan.count,
-                damage_rects,
-                conservative_fallback: plan.conservative_fallback,
-                cursor_visible: plan.cursor_visible,
-                focus_visible: plan.focus_visible,
+                    Some(final_span.coverage),
+                ))
             },
-            Some(final_span.coverage),
-        ))
+        )
     }
     pub fn scanout_acknowledgement(
         &self,

@@ -29,8 +29,11 @@ pub fn execute_architecture_proof(
     assemble_architecture_proof(arch, opts)
 }
 
-pub(super) fn execute_native_latency(opts: &GlobalOpts) -> Result<ImageRecord, ConduitosError> {
-    let build = build::execute_native_latency(opts)?;
+pub(super) fn execute_native_latency(
+    opts: &GlobalOpts,
+    mode: super::native_latency::CacheMode,
+) -> Result<ImageRecord, ConduitosError> {
+    let build = build::execute_native_latency(opts, mode)?;
     build
         .artifact_role
         .require(ArtifactRole::ArchitectureProofAppliance)?;
