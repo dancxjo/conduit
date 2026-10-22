@@ -183,6 +183,10 @@ pub mod protected_region;
 pub mod protected_relay_support;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) mod protected_runtime;
+// Exercise the Root loan boundary on hosted CPUs without installing a service.
+#[cfg(test)]
+#[path = "protected_runtime/ledger.rs"]
+mod protected_runtime_ledger_tests;
 #[cfg(conduitos_protected_execution)]
 mod protected_timer;
 pub mod protected_wire_session;

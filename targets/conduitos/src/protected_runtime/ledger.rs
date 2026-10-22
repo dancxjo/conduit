@@ -147,11 +147,15 @@ impl Ledger {
                 result.outgoing[slot / PORTS] |= 1 << cord;
             }
         }
-        // The unchanged Edit Back emits one admitted empty value before its
-        // first Host Call. Its only effect grant is empty text on reviewed routes.
+        // Initialize only Root-known bytes on each Back's reviewed output
+        // routes. Opaque guest references cannot expand or replenish this loan.
+        // Document's eight bytes are revision zero plus empty UTF-8 text; an
+        // empty legacy Edit value is not a canonical document or edit.
         for node in 0..usize::from(admission.active_nodes) {
-            if admission.backs[node] == BackKind::Edit {
-                result.publish(node, None, &[])?;
+            match admission.backs[node] {
+                BackKind::Edit => result.publish(node, None, &[])?,
+                BackKind::Document => result.publish(node, None, &[0; 8])?,
+                _ => {}
             }
         }
         Ok(result)
@@ -263,3 +267,7 @@ impl Ledger {
         self.len.fill(0);
     }
 }
+
+#[cfg(test)]
+#[path = "ledger_tests.rs"]
+mod tests;
