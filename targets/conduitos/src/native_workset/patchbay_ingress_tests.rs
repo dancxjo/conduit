@@ -10,16 +10,23 @@ fn canonical_patchbay_fore_uses_actual_combined_native_indices() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_catalogs(&mut startup, &mut profile).unwrap();
+    let mut advertisement = prepared.advertisement().clone();
+    advertisement.capabilities.push(super::offer("build"));
     let checked = conduit_plot::check_syntax_document(
-        &conduit_plot::parse_syntax_document(include_str!(
-            "../../../../plots/patchbay/main.conduit"
-        )),
+        &conduit_plot::parse_syntax_document(
+            r#"plot patchbay (
+  >> interaction: FaceInteraction...|
+) {
+  owner: patchbay/accept-interaction
+  interaction >> owner.interaction
+}"#,
+        ),
         &startup,
     )
     .unwrap();
     let authored =
         conduit_plot::expand_canonical_plot_for_authoring(&checked, "patchbay", &profile).unwrap();
-    let canonical = plan(&authored, prepared.advertisement()).unwrap();
+    let canonical = plan(&authored, &advertisement).unwrap();
     let parts = conduit_plan_lowering::fragment_set::lower_local_fragment_set_from_plans(
         &[&prepared.plan().plots[0].plan, &canonical],
         conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
