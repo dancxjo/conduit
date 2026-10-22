@@ -82,6 +82,8 @@ impl Scheduler {
         }
         Ok(result)
     }
+}
+impl<const BYTES: usize> Broker<BYTES> {
     pub(super) fn refresh_stats(
         &mut self,
         request: Request,

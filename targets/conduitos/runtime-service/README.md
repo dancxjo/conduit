@@ -73,3 +73,35 @@ exact binding checks, initial literal and completed-value loans, and receipt
 acceptance. Stats remains the existing additive counter query, with mode-specific
 96Sign/4pending ceilings. ProtectedTimer is unchanged: that production path
 already owns its canonical timer scheduler in its private TextDomain.
+
+Canonical Face transport has a separate prepared specialization:
+`InitFace` (tag 10) selects `FaceScheduler` with an 8192-byte per-value envelope.
+The legacy native scheduler remains 3072 bytes; text and Morse specializations
+retain their own limits. All use the same kernel, fixed node/cord/value counts,
+and 24,576-byte aggregate native value budget. The Face specialization reserves
+finite remote Sign storage explicitly. This does not advertise a new native
+Patchbay Back or change its retained production Source by itself.
+
+`AdmitRemote` (tag 11) carries an exact admitted endpoint, cord, sequence and
+transfer length. Only the Face specialization accepts it. Its distinct
+`RemoteAdmission` response reports Accepted or Full with the same sequence;
+Full is live pressure and consumes neither a value nor a sequence. Legacy,
+text and Morse owners refuse the command. Root's separate Face broker retains
+only exact admitted Fore custody receipts and publishes byte loans after guest
+acceptance. Unknown routes, stale sequences and oversized inputs refuse before
+entry; uncertain transport results quarantine the broker without replay.
+
+Initialized Document output has its own one-shot Root loan of exactly eight
+zero bytes. It grants no empty edit and no second initial publication. Subsequent
+Editor/Document values require the existing exact Root-completed value loans.
+Hosted deterministic ledger specifications cover that boundary independently of
+any claim about executing the protected service.
+
+The current linked release image reserves 501,128 bytes in Runtime::execute,
+195,160 in Face admission construction, and 190,936 in the nested 8192-byte
+scheduler constructor (local reservations, excluding saved registers and further
+callees). These observations do not establish complete peak stack fit or timing
+within the unchanged 1 MiB native stack. Unoptimized hosted Runtime tests need
+an explicitly larger test thread stack; that is not a native stack change or a
+substitute for native enactment. Native canonical Patchbay integration and
+platform acceptance remain incomplete.

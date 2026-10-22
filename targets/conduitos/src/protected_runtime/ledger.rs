@@ -10,20 +10,20 @@ use conduitos_runtime_core::{
     *,
 };
 #[derive(Clone, Copy)]
-struct Loan {
+struct Loan<const BYTES: usize> {
     value: Option<ValueRef>,
     len: usize,
-    bytes: [u8; VALUE_BYTES],
+    bytes: [u8; BYTES],
 }
-impl Loan {
+impl<const BYTES: usize> Loan<BYTES> {
     fn new(value: Option<ValueRef>, bytes: &[u8]) -> Result<Self, SchedulerError> {
-        if bytes.len() > VALUE_BYTES {
+        if bytes.len() > BYTES {
             return Err(SchedulerError::HostCallOutputExceeded);
         }
         let mut result = Self {
             value,
             len: bytes.len(),
-            bytes: [0; VALUE_BYTES],
+            bytes: [0; BYTES],
         };
         result.bytes[..bytes.len()].copy_from_slice(bytes);
         Ok(result)
@@ -34,7 +34,8 @@ impl Loan {
             && bytes == &self.bytes[..self.len]
     }
 }
-pub(super) struct Ledger {
+pub(super) type Ledger = CustodyLedger<VALUE_BYTES>;
+pub(super) struct CustodyLedger<const BYTES: usize> {
     kinds: [BackKind; NODES],
     incoming: [Option<u16>; NODES],
     outgoing: [u16; NODES],
@@ -42,10 +43,13 @@ pub(super) struct Ledger {
     capacity: [u16; CORDS],
     head: [u16; CORDS],
     len: [u16; CORDS],
-    loans: [Option<Loan>; CORDS * 2],
+    loans: [Option<Loan<BYTES>>; CORDS * 2],
     initial: [bool; NODES],
+    ingress: [Option<RemoteEndpointId>; CORDS],
+    ingress_limit: [u32; CORDS],
+    ingress_sequence: [u64; CORDS],
 }
-impl Ledger {
+impl<const BYTES: usize> CustodyLedger<BYTES> {
     pub fn new(admission: &Admission) -> Result<Self, SchedulerError> {
         if admission.active_nodes == 0
             || usize::from(admission.active_nodes) > NODES
@@ -63,6 +67,9 @@ impl Ledger {
             len: [0; CORDS],
             loans: [None; CORDS * 2],
             initial: [false; NODES],
+            ingress: [None; CORDS],
+            ingress_limit: [0; CORDS],
+            ingress_sequence: [0; CORDS],
         };
         let mut occupied = [false; CORDS];
         let mut loan_start = 0;
@@ -88,6 +95,17 @@ impl Ledger {
                 || cord.track != conduit_kernel::scheduler::AssignedConnectionTrack::Payload
             {
                 return Err(SchedulerError::InvalidPlan);
+            }
+            if let CordEndpoint::Remote(endpoint) = cord.source {
+                // Legacy text/event brokers do not gain a remote input route.
+                if BYTES != FACE_VALUE_BYTES || !matches!(cord.sink, CordEndpoint::Local { .. }) {
+                    return Err(SchedulerError::InvalidPlan);
+                }
+                result.ingress[index] = Some(endpoint);
+                result.ingress_limit[index] = cord
+                    .maximum_value_bytes
+                    .min(cord.byte_capacity)
+                    .min(BYTES as u32);
             }
             let end = usize::from(cord.slot_start)
                 .checked_add(usize::from(cord.item_capacity))
@@ -261,9 +279,58 @@ impl Ledger {
         }
         Ok(())
     }
+    /// Root-issued bytes are a custody receipt, not a guest-selected value grant.
+    pub fn preflight_ingress(
+        &self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        bytes: &[u8],
+    ) -> Result<(), SchedulerError> {
+        let index = usize::from(cord.0);
+        if self.ingress.get(index).copied().flatten() != Some(endpoint) {
+            return Err(SchedulerError::InvalidRemoteCordAccess);
+        }
+        if self.ingress_sequence[index] != sequence || sequence.checked_add(1).is_none() {
+            return Err(SchedulerError::RemoteSequenceRejected);
+        }
+        if bytes.len() > self.ingress_limit[index] as usize {
+            return Err(SchedulerError::QueueByteCapacityExceeded);
+        }
+        if self.len[index] >= self.capacity[index] {
+            return Err(SchedulerError::OutputBlocked);
+        }
+        Ok(())
+    }
+    /// Called only after exact guest acceptance. A Full response creates no loan
+    /// and consumes no sequence; a later uncertain failure fences the broker.
+    pub fn accepted_ingress(
+        &mut self,
+        endpoint: RemoteEndpointId,
+        cord: CordId,
+        sequence: u64,
+        bytes: &[u8],
+    ) -> Result<(), SchedulerError> {
+        self.preflight_ingress(endpoint, cord, sequence, bytes)?;
+        let index = usize::from(cord.0);
+        let at = (self.head[index] + self.len[index]) % self.capacity[index];
+        let slot = usize::from(self.start[index] + at);
+        if self.loans.get(slot).is_none_or(Option::is_some) {
+            return Err(SchedulerError::ValueOwnershipViolation);
+        }
+        self.loans[slot] = Some(Loan::new(None, bytes)?);
+        self.len[index] += 1;
+        self.ingress_sequence[index] = sequence
+            .checked_add(1)
+            .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        Ok(())
+    }
     pub fn clear(&mut self) {
         self.loans.fill(None);
         self.initial.fill(false);
+        self.ingress.fill(None);
+        self.ingress_limit.fill(0);
+        self.ingress_sequence.fill(0);
         self.len.fill(0);
     }
 }

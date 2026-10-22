@@ -143,3 +143,80 @@ fn editor_without_document_back_does_not_receive_an_initial_document_grant() {
     assert!(ledger.accept(request, &[0; 8]).is_err());
     kernel.cancel().unwrap();
 }
+
+#[test]
+fn canonical_fore_receipts_bind_exact_bytes_route_and_sequence_without_new_grants() {
+    use conduit_kernel::scheduler::CordCapacity;
+    let mut admission = Admission::new(1, 1);
+    admission.backs[0] = BackKind::Face;
+    admission.nodes[0].input_cords[0] = Some(CordId(0));
+    admission.cords[0] = conduit_kernel::scheduler::CordSpec::remote_ingress(
+        CordId(0),
+        RemoteEndpointId(4),
+        (NodeId(0), PortId(0)),
+        CordCapacity {
+            slot_start: 0,
+            item_capacity: 1,
+            byte_capacity: FACE_VALUE_BYTES as u32,
+            pressure_policy: Default::default(),
+        },
+    )
+    .with_maximum_value_bytes(FACE_VALUE_BYTES as u32);
+    assert!(
+        Ledger::new(&admission).is_err(),
+        "legacy broker cannot gain a Fore route"
+    );
+    let mut ledger = CustodyLedger::<FACE_VALUE_BYTES>::new(&admission).unwrap();
+    let payload = [7; FACE_VALUE_BYTES];
+    assert_eq!(
+        ledger.preflight_ingress(RemoteEndpointId(3), CordId(0), 0, &payload),
+        Err(SchedulerError::InvalidRemoteCordAccess)
+    );
+    ledger
+        .accepted_ingress(RemoteEndpointId(4), CordId(0), 0, &payload)
+        .unwrap();
+    assert_eq!(
+        ledger.preflight_ingress(RemoteEndpointId(4), CordId(0), 0, &payload),
+        Err(SchedulerError::RemoteSequenceRejected)
+    );
+    ledger
+        .accepted_ingress(RemoteEndpointId(4), CordId(0), 1, &payload)
+        .unwrap();
+    assert_eq!(
+        ledger.preflight_ingress(RemoteEndpointId(4), CordId(0), 2, &payload),
+        Err(SchedulerError::OutputBlocked)
+    );
+    let value = ValueRef {
+        slot: 0,
+        generation: 1,
+        byte_len: FACE_VALUE_BYTES as u32,
+    };
+    let call = HostCallRequest {
+        node: NodeId(0),
+        request: RequestId(0),
+        call: HostCallId(0),
+        input: BoundedValueRef::new(value, FACE_VALUE_BYTES as u32).unwrap(),
+    };
+    let mut forged = payload;
+    forged[0] = 8;
+    assert_eq!(
+        ledger.accept(call, &forged),
+        Err(SchedulerError::ValueOwnershipViolation)
+    );
+    ledger.accept(call, &payload).unwrap();
+    // Rejected pressure did not consume sequence2. Its exact next receipt fits.
+    ledger
+        .accepted_ingress(RemoteEndpointId(4), CordId(0), 2, &payload)
+        .unwrap();
+    ledger.accept(call, &payload).unwrap();
+    ledger.accept(call, &payload).unwrap();
+    assert_eq!(
+        ledger.accept(call, &payload),
+        Err(SchedulerError::ValueOwnershipViolation)
+    );
+    ledger.clear();
+    assert_eq!(
+        ledger.preflight_ingress(RemoteEndpointId(4), CordId(0), 3, &payload),
+        Err(SchedulerError::InvalidRemoteCordAccess)
+    );
+}
