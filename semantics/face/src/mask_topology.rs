@@ -189,7 +189,7 @@ fn validate_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     if p.inputs.len() != 1 || p.inputs[0].value_kind.as_str() != FACE_VALUE_KIND {
         return Err(MaskTopologyError::InvalidStageContract);
     }
-    if has_show_boundary(p) {
+    if p.kind_id.as_str() != RENDERER_KIND && has_show_boundary(p) {
         let output = |kind, temporal| {
             p.outputs
                 .iter()
