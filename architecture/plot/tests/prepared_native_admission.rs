@@ -235,7 +235,7 @@ fn preparation_reports_granted_limits_and_actual_storage_without_runtime_growth(
 #[test]
 fn checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth() {
     let d = check_syntax_document(
-        &parse_syntax_document("type Inner = U64 where . >= 2\ntype Outer = Inner where . <= 7\n"),
+        &parse_syntax_document("type Inner = U64 where . >= 2\ntype Outer = Inner in 0..=7\n"),
         &StartupCatalog::new(),
     )
     .unwrap();
@@ -263,7 +263,7 @@ fn checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth() 
         .unwrap();
         let mut admission = PreparedNativeAdmission::new(&d, &outer.identity, bounds()).unwrap();
         assert_eq!(admission.scope_count(), 2);
-        assert_eq!(admission.capacity_report().prepared_evaluators, 2);
+        assert_eq!(admission.capacity_report().prepared_evaluators, 1);
         let (result, observation) = allocation_probe::observe(|| {
             admission.begin(&bytes).unwrap();
             complete(&mut admission)
@@ -271,18 +271,23 @@ fn checked_nested_nominal_aliases_execute_inner_and_outer_laws_without_growth() 
         assert_eq!(observation.allocations, 0);
         assert_eq!(observation.reallocations, 0);
         if let Some(expected) = expected_failure {
-            let PreparedNativeRefusal::Invariant {
-                scope,
-                invariant: 0,
-            } = result.unwrap_err()
-            else {
-                panic!("wrong refusal")
+            let scope = match result.unwrap_err() {
+                PreparedNativeRefusal::Invariant {
+                    scope,
+                    invariant: 0,
+                } if number == 1 => {
+                    assert_eq!(admission.invariant_output(scope, 0), Some([0u8].as_slice()));
+                    scope
+                }
+                PreparedNativeRefusal::Contract {
+                    scope, contract: 0, ..
+                } if number == 9 => scope,
+                reason => panic!("wrong refusal: {reason:?}"),
             };
             assert_eq!(
                 admission.scope_native_type(scope).unwrap().identity,
                 expected.identity
             );
-            assert_eq!(admission.invariant_output(scope, 0), Some([0u8].as_slice()));
             assert!(admission.admitted().is_err());
         } else {
             result.unwrap();
