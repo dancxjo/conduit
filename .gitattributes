@@ -20,5 +20,5 @@ docs/audits/evidence/native-baseline-recovery-20261021/journey-serial.log whites
 docs/audits/evidence/native-proof-resume-20261022/**/journey-serial.log whitespace=cr-at-eol
 
 # Retained debugger output and source patches are byte-exact evidence.
-docs/audits/evidence/startup-refusal-20261021/**/*-prologue.txt -text -diff
-docs/audits/evidence/startup-refusal-20261021/**/source.patch -text -diff
+docs/audits/evidence/startup-refusal-20261021/**/*-prologue.txt -text whitespace=-trailing-space,-blank-at-eof
+docs/audits/evidence/startup-refusal-20261021/**/source.patch -text whitespace=-trailing-space,-blank-at-eof
