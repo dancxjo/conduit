@@ -14,6 +14,10 @@ required-features = ["fixture-registry-preparation"]
 name = "flow_select"
 required-features = ["fixture-registry-preparation"]
 
+[[test]]
+name = "canonical_export"
+required-features = ["fixture-registry-preparation"]
+
 [dependencies]
 conduit-core = { path = "../core" }
 conduit-plot = { path = "../plot" }
