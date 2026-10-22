@@ -88,3 +88,13 @@ Two physical boots on 22 October retained the hardware label and produced distin
 boot nonces. Both resumed valid sensor readings and acknowledged display writes;
 HTTP after the second boot returned fresh 68.36°F and 53% RH. Startup waited for
 actual DHCP and HTTP socket readiness. Service stop/restore remains unproved.
+
+The AP bench retains distinct AP and station network stacks with four socket
+slots each and two statically allocated interface runner tasks. The station
+starts without an IPv4 configuration; DHCP is enabled only by the switch
+operation. The composition root retains the controller, both stacks and the
+actual AP configuration/address. This does not establish a station attachment
+or admit a network Host Call. Physical startup with both runners on 22 October
+reported 66,896 free heap bytes after radio initialization and resumed valid
+68.36°F/53% RH readings with acknowledged display writes. Station association,
+link-loss recovery and sustained coexistence remain unproved.

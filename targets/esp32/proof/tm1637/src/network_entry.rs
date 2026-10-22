@@ -17,7 +17,12 @@ async fn main(spawner: Spawner) {
     let mut pins = crate::electrical::DisplayPins::new(p.GPIO18, p.GPIO19);
     let mut live = crate::live::Live::prepare();
     let seed = u64::from(esp_hal::rng::Rng::new().random());
-    let _controller = crate::network::start(spawner, p.WIFI, seed);
+    let crate::network::Radio {
+        controller: _controller,
+        stacks: _stacks,
+        ap_address: _ap_address,
+        ap_config: _ap_config,
+    } = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("radio entropy must be initialized");
     boot.print();
     let mut services = crate::services::control();
