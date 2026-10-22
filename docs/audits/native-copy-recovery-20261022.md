@@ -39,3 +39,31 @@ Read-only merge preflight against #6252 found seventeen overlapping files; no
 branch merge or source mutation was applied. #6252 advanced to `f58ff6206` with
 Candidate 39841239143 while this appliance built; prior-head results are not
 acceptance for that head.
+
+## Clean outer invocation on later exact Source
+
+Clean Source `8cb316cab` completes the same supported
+`cargo +stable xtask make conduitos compositor-semantic-recovery-proof`
+entrance with **outer exit zero**. The collector requires actual QEMU guest
+exit 33 and the unique exact completed semantic receipt before publication.
+The [new original packet](evidence/native-copy-recovery-clean-qemu-20261022/independent-validation.json)
+retains the full build/proof log, original serial and receipt, source-bound
+ELF/image identity and independent checks. ELF and transcript hashes, unique
+observation, all twelve semantic conditions, all four explicit nonclaims and
+Make profile/build/image correspondence independently match. The admitted arena
+and ceiling remain exactly 268,435,456 bytes; no timeout, retry or limit changed.
+
+The current ordinary Source `2c3d0411b` ELF/ISO/manifests were preserved before
+the separate appliance build; the new appliance ELF/ISO are retained separately.
+The earlier 70ed packet and its outer-143 qualification are unchanged. This
+successful invocation does not explain that earlier outer termination or claim
+repeated-run reliability.
+
+The scope remains explicit: real freestanding QEMU running the production native
+Mask/proxy and protected compositor owner against an intentionally failing
+counting scanout target. It proves Show/input retirement and atomic semantic
+recovery through a fresh service, not physical display disconnection or the
+ordinary product's automatic provider-loss UI. Scene pressure, missing-provider
+product cases not already earned, larger Patchbay continuation, combined-head
+checks and normal merge retain their original gates. No parent issue closes
+from this clean appliance result alone.
