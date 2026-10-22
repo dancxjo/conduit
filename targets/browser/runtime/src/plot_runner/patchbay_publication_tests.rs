@@ -6,7 +6,7 @@ use patchbay_application::EDIT_CURRENT_ACTION_ID;
 
 #[test]
 fn prepared_mask_show_and_typed_fore_reach_current_source_owner_once() {
-    let source = include_str!("../../../../../plots/patchbay/main.conduit");
+    let source = include_str!("../../../../../plots/patchbay/native-retained.conduit");
     let mut request = body_start::tests::request_from_sources(&[source]);
     request.source = source.into();
     seal_publication_masks(&mut request);
@@ -275,7 +275,16 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     let mut request = body_start::tests::request_from_sources(&[source]);
     request.source = source.into();
     seal_publication_masks(&mut request);
-    let (mut session, _) = body_start::prepare(request).unwrap();
+    let input_plan = request.plan.plots[0].plan.plan_id.clone();
+    let (mut session, started) = body_start::prepare(request).unwrap();
+    assert!(matches!(started.progress, TourProgress::Waiting { .. }));
+    assert!(session
+        .patchbay_publication
+        .as_ref()
+        .unwrap()
+        .publication
+        .is_resident());
+    let capacities = session.scheduler.values().allocation_capacities();
     let owner_node = session.patchbay_face.as_ref().unwrap().owner_node;
     let Some(application_state::PreparedApplication::Patchbay(owner)) = session
         .scheduler
@@ -292,6 +301,7 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     );
     assert_eq!(owner.port.revision(), revision);
     assert!(owner.execute(&[]).is_ok());
+    assert!(session.scheduler.has_patchbay_fore(owner_node));
     let before = session.patchbay_observation().unwrap();
     assert_eq!(before["publication"]["interaction_admitted"], false);
     assert_eq!(before["publication"]["view"]["show_state"], "prepared");
@@ -338,6 +348,14 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         true
     );
     let accepted = session.patchbay_interact(input()).unwrap();
+    assert_eq!(
+        accepted["publication"]["dispatch"]["ingress_plan_id"],
+        input_plan.as_str()
+    );
+    assert_eq!(
+        session.scheduler.values().allocation_capacities(),
+        capacities
+    );
     let Some(application_state::PreparedApplication::Patchbay(owner)) = session
         .scheduler
         .applications
@@ -438,6 +456,14 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     assert_eq!(
         edited["pending_owner_request"]["request"]["kind"],
         "EditCurrent"
+    );
+    assert_eq!(
+        edited["publication"]["dispatch"]["ingress_plan_id"],
+        input_plan.as_str()
+    );
+    assert_eq!(
+        session.scheduler.values().allocation_capacities(),
+        capacities
     );
     let pending = edited["pending_owner_request"].clone();
     let target = publication_target(&session);

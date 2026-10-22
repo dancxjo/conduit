@@ -51,7 +51,7 @@ fn missing_optional_biography_does_not_break_legacy_patchbay_startup() {
 
 #[test]
 fn exact_owner_is_selected_when_two_patchbay_residents_are_prepared() {
-    let first = include_str!("../../../../../plots/patchbay/main.conduit");
+    let first = include_str!("../../../../../plots/patchbay/native-retained.conduit");
     let second = first.replacen("plot patchbay", "plot another_patchbay", 1);
     let mut request = body_start::tests::request_from_sources(&[first, &second]);
     request.source = serde_json::json!({
@@ -103,7 +103,7 @@ fn sole_patchbay_owner_remains_observable_when_another_resident_starts_foregroun
             .iter()
             .flat_map(|fragment| &fragment.placements)
             .any(|placement| {
-                placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
+                placement.kind_id.as_str() == patchbay_application::PATCHBAY_INTERACTION_KIND
             })
     };
     let owner = request

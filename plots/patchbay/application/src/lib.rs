@@ -31,6 +31,7 @@ mod entrance;
 mod entrance_equivalence;
 mod face_layout;
 pub mod graph_face;
+mod interaction_contract;
 mod learned_watch;
 #[cfg(test)]
 mod learned_watch_tests;
@@ -40,17 +41,20 @@ mod parts_projection;
 mod portable_composition;
 mod portable_graphics;
 mod portable_layout;
-mod interaction_contract;
-pub use interaction_contract::{patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION};
+pub use interaction_contract::{
+    patchbay_interaction_contract, PATCHBAY_INTERACTION_KIND, PATCHBAY_INTERACTION_REVISION,
+};
 mod resident_actions;
 pub use resident_actions::PatchbayFaceProjectionError;
 mod projected_open;
 mod resident_canvas;
-mod resident_face;
-mod resident_execution;
 mod resident_command;
+mod resident_execution;
+mod resident_face;
 pub use resident_command::contribution_matches as patchbay_face_contribution_matches;
-pub use resident_command::{PatchbayResidentCommand, PreparedPatchbayCommand, PatchbayCommandRefusal};
+pub use resident_command::{
+    PatchbayCommandRefusal, PatchbayResidentCommand, PreparedPatchbayCommand,
+};
 mod resident_view;
 pub use mask::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology, CHANGE_MASKS_ACTION_ID};
 mod inspection;

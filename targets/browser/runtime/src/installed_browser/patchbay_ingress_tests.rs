@@ -75,6 +75,8 @@ fn canonical_sink_matches_mask_output_and_refuses_legacy_or_widened_admission() 
 fn sealed_ingress_plan_has_exact_finite_local_fore_and_requires_offered_back() {
     let mut host =
         crate::installed_browser::advertisement("ingress-host".into(), "ingress-boot".into());
+    host.capabilities
+        .retain(|back| back.kind_id.as_str() != patchbay_application::PATCHBAY_INTERACTION_KIND);
     assert!(PlannedPatchbayIngress::prepare(&host).is_err());
     host.capabilities.push(offer());
     let planned = PlannedPatchbayIngress::prepare(&host).unwrap();

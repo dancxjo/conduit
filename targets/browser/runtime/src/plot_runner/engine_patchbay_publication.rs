@@ -1,6 +1,6 @@
 //! Prepare canonical delivery only for an exact scheduler-owned resident/Mask plan.
 use crate::patchbay_ingress::{
-    offer, PatchbayPublication, PlannedPatchbayIngress, PreparedPatchbayIngress,
+    PatchbayPublication, PlannedPatchbayIngress, PreparedPatchbayIngress,
 };
 use crate::plot_runner::{engine::TourScheduler, patchbay_face::PatchbayObservation};
 use crate::workspace_mask::BrowserMaskEffect;
@@ -38,12 +38,6 @@ pub(in crate::plot_runner) fn prepare_publication(
         .publication_value_budget
         .as_ref()
         .ok_or("canonical publication has no prepared parent value budget")?;
-    // Install this Back for the exact retained-owner route during preparation.
-    // It is not a general browser offer or a conversion of the legacy Fore.
-    let mut installation = crate::installed_browser::advertisement(host.clone(), boot.clone());
-    installation.capabilities.push(offer());
-    let ingress =
-        PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&installation)?)?;
     let basis = FaceContributionBasis {
         checked_plot_id: context.resident.checked_plot_id.clone(),
         plan_id: context.plan.plan_id.clone(),
@@ -55,7 +49,16 @@ pub(in crate::plot_runner) fn prepare_publication(
         .map_err(|error| format!("canonical Patchbay Face: {error:?}"))?;
     let face = context.project_fragment(fragment, owner.port.revision())?;
     let (mask, effect) = context.prepare_mask(face, host.clone(), boot.clone(), sequence)?;
-    let publication = PatchbayPublication::prepare(mask, ingress, basis, budget)?;
+    let publication = if scheduler.has_patchbay_fore(context.owner_node) {
+        scheduler.validate_patchbay_fore(context.owner_node, &mask.observation().mask_show)?;
+        PatchbayPublication::prepare_resident(mask, basis, budget)?
+    } else {
+        // Legacy fixture/profile compatibility; canonical Source uses its root Fore.
+        let installation = crate::installed_browser::advertisement(host.clone(), boot.clone());
+        let ingress =
+            PreparedPatchbayIngress::prepare(PlannedPatchbayIngress::prepare(&installation)?)?;
+        PatchbayPublication::prepare(mask, ingress, basis, budget)?
+    };
     Ok(Some(PreparedPatchbayPublication {
         publication,
         effect,
@@ -70,6 +73,9 @@ pub(in crate::plot_runner) fn interact_publication(
     publication: &mut PatchbayPublication,
     input: &crate::patchbay_ingress::BrowserMaskInteraction,
 ) -> Result<(), String> {
+    if publication.is_resident() {
+        return interact_resident(scheduler, node, publication, input);
+    }
     match scheduler
         .applications
         .get_mut(usize::from(node.0))
@@ -81,6 +87,52 @@ pub(in crate::plot_runner) fn interact_publication(
         }
         _ => Err("canonical interaction has no exact prepared Patchbay owner".into()),
     }
+}
+
+fn interact_resident(
+    scheduler: &mut TourScheduler,
+    node: conduit_kernel::NodeId,
+    publication: &mut PatchbayPublication,
+    input: &crate::patchbay_ingress::BrowserMaskInteraction,
+) -> Result<(), String> {
+    let current = publication.observation();
+    scheduler.validate_patchbay_fore(node, &current.mask_show)?;
+    let bytes = match scheduler
+        .applications
+        .get_mut(usize::from(node.0))
+        .and_then(|app| app.as_deref_mut())
+    {
+        Some(super::super::super::application_state::PreparedApplication::Patchbay(owner)) => {
+            publication.emit_resident(owner, input)?
+        }
+        _ => return Err("resident Patchbay actor absent".into()),
+    };
+    let call = scheduler.admit_patchbay_fore(node, &bytes)?;
+    let plan = scheduler.patchbay_input_plan(node)?;
+    let delivered = scheduler
+        .kernel
+        .host_value(call.input.value)
+        .map_err(super::super::debug_error)?;
+    let owner = match scheduler
+        .applications
+        .get_mut(usize::from(node.0))
+        .and_then(|app| app.as_deref_mut())
+    {
+        Some(super::super::super::application_state::PreparedApplication::Patchbay(owner)) => owner,
+        _ => return Err("resident Patchbay actor absent".into()),
+    };
+    let (mut receipt, outcome) = crate::patchbay_ingress::apply_to_owner(
+        plan,
+        owner,
+        delivered,
+        &current.body_plan.body_id,
+        publication.basis(),
+        &current.face,
+        &current.mask_show,
+    )?;
+    receipt.transport_completion = scheduler.complete_patchbay_fore(call, outcome);
+    publication.record_resident(receipt);
+    Ok(())
 }
 
 pub(in crate::plot_runner) struct RetainedPatchbayDispatch {

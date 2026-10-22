@@ -11,10 +11,10 @@ use std::cell::RefCell;
 #[path = "workspace_refusal.rs"]
 mod refusal;
 use refusal::Refusal;
-#[path = "workspace_workset.rs"]
-mod workset;
 #[path = "workspace_patchbay_planning.rs"]
 pub(crate) mod patchbay_planning;
+#[path = "workspace_workset.rs"]
+mod workset;
 use workset::WorksetEdit;
 
 const HOST_OFFERS_BYTES: usize =

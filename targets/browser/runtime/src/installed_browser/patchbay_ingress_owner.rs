@@ -56,6 +56,30 @@ pub fn dispatch_to_owner(
 ) -> Result<PatchbayIngressDispatch, String> {
     ingress.validate_local_show(show)?;
     let input = ingress.pending_input()?;
+    let (mut dispatch, outcome) = apply_to_owner(
+        ingress.planned().plan().plan_id.clone(),
+        owner,
+        input,
+        body,
+        basis,
+        face,
+        show,
+    )?;
+    dispatch.transport_completion = ingress.complete(outcome);
+    Ok(dispatch)
+}
+
+/// Apply bytes delivered by an exact admitted kernel call. Transport completion
+/// is separate so the resident root Fore can retain its sequence across Shows.
+pub(crate) fn apply_to_owner(
+    ingress_plan_id: conduit_core::PlanId,
+    owner: &mut impl PatchbayIngressOwner,
+    input: &[u8],
+    body: &BodyId,
+    basis: &FaceContributionBasis,
+    face: &Face,
+    show: &MaskShow,
+) -> Result<(PatchbayIngressDispatch, HostCallOutcome), String> {
     let owner_result = owner
         .port()?
         .apply_face_interaction(input, body, basis, face, show);
@@ -85,22 +109,22 @@ pub fn dispatch_to_owner(
             }),
         ),
     };
-    let transport_completion = ingress.complete(HostCallOutcome {
+    let outcome = HostCallOutcome {
         disposition,
         output: None,
         failure,
-    });
+    };
     let request_delivery = if matches!(&owner_result, Ok(Some(_))) {
         PatchbayRequestDelivery::Returned
     } else {
         PatchbayRequestDelivery::NotRequested
     };
     let mut dispatch = PatchbayIngressDispatch {
-        ingress_plan_id: ingress.planned().plan().plan_id.clone(),
+        ingress_plan_id,
         owner_result,
         request_delivery,
-        transport_completion,
+        transport_completion: Err("owner result retained before transport completion".into()),
     };
     owner.record_dispatch(&mut dispatch);
-    Ok(dispatch)
+    Ok((dispatch, outcome))
 }

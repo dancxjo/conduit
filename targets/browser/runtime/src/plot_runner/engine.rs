@@ -8,6 +8,8 @@ mod attempt;
 mod completions;
 #[path = "engine_input_effects.rs"]
 mod inputs;
+#[path = "engine_patchbay_fore.rs"]
+mod patchbay_fore;
 #[path = "engine_thermostat.rs"]
 pub(super) mod thermostat;
 pub(super) use completions::{complete_host_effect, complete_host_effect_with_output};
@@ -87,6 +89,7 @@ pub(super) struct TourScheduler {
         Vec<Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>>,
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
     thermostat: Option<thermostat::ThermostatFore>,
+    patchbay_fore: Vec<patchbay_fore::PatchbayFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -405,7 +408,11 @@ fn drive_with_boundary<'a>(
                     pending_effects: scheduler.pending_host_call_count(),
                 });
             }
-            SchedulerStatus::Idle if allow_remote_wait || scheduler.thermostat.is_some() => {
+            SchedulerStatus::Idle
+                if allow_remote_wait
+                    || scheduler.thermostat.is_some()
+                    || !scheduler.patchbay_fore.is_empty() =>
+            {
                 return Ok(DriveStatus::Quiescent)
             }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),

@@ -438,7 +438,8 @@ test("selected Patchbay rendering starts without legacy output and ignores an in
   const part = f.proposal.plan.plots[0];
   part.plot = { checked_plot_id: "checked/patchbay" };
   Object.assign(part.plan.fragments[0].placements[0], {
-    kind_id: "application/retained", configuration: [{ key: "application", value: { Text: "patchbay" } }],
+    kind_id: legacyOutput ? "application/retained" : "patchbay/accept-interaction",
+    configuration: legacyOutput ? [{ key: "application", value: { Text: "patchbay" } }] : [],
   });
   f.proposal.plan.mask_topologies = [{ face: { plot: part.plot }, chains: [{ plan: { fragments: [{
     host_id: "host", boot_id: "boot", offer_generation: 1, placements: [{
@@ -455,7 +456,7 @@ test("selected Patchbay rendering starts without legacy output and ignores an in
     }, progress: legacyOutput ? { effect_kind: "manifestation", host_id: "host", boot_id: "boot",
       active_play_id: "play", plan_id: "partition", placement_id: "placement-0", request_sequence: 0,
       checked_plot_id: "checked/patchbay", face_kind: "face/application-view", application_view: [255],
-    } : { schema: "conduit.tour/manifestation-receipt@3", disposition: "completed", active_play_id: "play" } });
+    } : { schema: "conduit.browser/pending-effects@1", disposition: "externally_admitted_input", active_play_id: "play", pending_effects: 0 } });
     return 0;
   };
   f.api.conduit_browser_patchbay_observation = () => {
@@ -468,10 +469,18 @@ test("selected Patchbay rendering starts without legacy output and ignores an in
   assert.equal(f.outputRoot.children.length, 0);
   assert.equal(f.count().starts, 0);
   let rendered = 0;
+  let presented;
+  const presentation = new Promise(resolve => { presented = resolve; });
   const owner = acquireBrowserBodyHost({ ...f, onPatchbayPublication: ({ root, signal }) => {
-    rendered++; assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);
+    rendered++; presented(); assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);
   } });
-  try { owner.start(1); await owner.run(); assert.equal(rendered, 1); }
+  try {
+    owner.start(1);
+    const running = owner.run();
+    if (legacyOutput) await running;
+    else { await presentation; owner.close(); await running; }
+    assert.equal(rendered, 1);
+  }
   finally { owner.close(); }
   }
 });

@@ -1,5 +1,5 @@
-//! Explicit preparation primitive for the canonical Patchbay sink.
-//! Installed by exact resident preparation; absent from the general browser offer.
+//! Canonical Patchbay sink installed for authored resident input Fores.
+//! Its exact scheduler placement binds the authoritative retained owner.
 use conduit_core::{Back, BackOfferBuilder, CapabilityOffer, HostCallRequirement, PlannedGear};
 use conduit_kernel::scheduler::StepBack;
 
@@ -65,6 +65,7 @@ pub use kernel::PreparedPatchbayIngress;
 
 #[path = "patchbay_ingress_owner.rs"]
 mod owner;
+pub(crate) use owner::apply_to_owner;
 pub use owner::{
     dispatch_to_owner, PatchbayIngressDispatch, PatchbayIngressOwner, PatchbayRequestDelivery,
 };

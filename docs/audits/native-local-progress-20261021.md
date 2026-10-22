@@ -1361,3 +1361,31 @@ implicitly passing a foreign one. The full canonical selection/Edit/refresh CPU
 case also passes. Formatting/whitespace checks pass. This strengthens the current
 transport seam; it does not complete Source/Fore bootstrap retirement, native
 editing, complete storage admission or platform enactment. No platform/CI run.
+
+### Canonical Source and resident root Fore (#6201)
+
+Browser `plots/patchbay/main.conduit` now authors the existing typed
+`FaceInteraction` input into `patchbay/accept-interaction`. The installed browser
+catalog, exact finite offer and factory prepare the same retained Patchbay actor
+at that actual sink node. Native deliberately retains the byte-identical former
+Source as `native-retained.conduit`; its legacy 3 KiB route is not silently changed.
+
+Canonical publication no longer prepares another ingress Plan/kernel per Show.
+It borrows the root Plan's exact lowered local Fore and admitted value storage.
+The root Fore stays open across successive acknowledged Shows; each Show remains
+single-use. A monotonically increasing input sequence and exact owner-node/Host/
+Boot/generation custody survive publication refresh. Only the matching owner Host
+Call is dispatched; other pending calls remain undispatched. Finite root scheduling
+settles the actual completed call before returning its sole input slot. Uncertain
+admission/dispatch or terminal refusal cannot reopen the route for implicit replay.
+The original detached ingress remains an explicit compatibility/test entrance.
+
+The focused two-Show CPU case exposed and corrected retained-input slot pressure
+on the second interaction. It now exercises canonical root selection, fresh Show,
+Edit request retention, stale rejection and unchanged prepared value capacities.
+The Host bridge's 24 tests pass, including canonical Source startup while waiting
+for external input and no legacy initial application-view manifestation. Earlier
+trials also found the closed-root fixture assumption and missing/extraneous Fore
+queue limits; production planning now admits exact open-root bounds and inventory
+expansion. These are CPU/bridge checks, not browser/QEMU or native Source migration
+acceptance. #6192 native Source editing and #6201 platform enactment remain open.

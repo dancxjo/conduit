@@ -471,6 +471,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         stroke_captures,
         applications,
         thermostat,
+        patchbay_fore: super::patchbay_fore::prepare(partitions)?,
         attempts,
         comparisons,
         snapshots,

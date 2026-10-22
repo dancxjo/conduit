@@ -48,3 +48,34 @@ pub(crate) fn is_owner(placement: &PlannedGear) -> Result<bool, String> {
             && super::application::application_id(placement)? == "patchbay",
     )
 }
+
+/// Finite resident Fore bounds are preparation facts, never authored Host facts.
+pub(crate) fn fore_bounds(
+    plot: &conduit_plot::ExpandedAuthoringPlot,
+) -> std::collections::BTreeMap<
+    conduit_planner::ForeBoundaryKey,
+    conduit_planner::ConnectionQueueLimits,
+> {
+    let mut bounds = super::thermostat_scan_offer::fore_bounds();
+    bounds.insert(
+        conduit_planner::ForeBoundaryKey {
+            direction: conduit_core::PortDirection::Input,
+            front_port_id: conduit_core::port_id("interaction"),
+            track: conduit_core::ConnectionTrack::Payload,
+        },
+        conduit_planner::ConnectionQueueLimits {
+            item_capacity: 1,
+            byte_capacity: conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
+        },
+    );
+    bounds.retain(|key, _| {
+        let bindings = match key.direction {
+            conduit_core::PortDirection::Input => &plot.input_bindings,
+            conduit_core::PortDirection::Output => &plot.output_bindings,
+        };
+        bindings
+            .iter()
+            .any(|binding| binding.front_port_id == key.front_port_id && binding.track == key.track)
+    });
+    bounds
+}

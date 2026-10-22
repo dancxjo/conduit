@@ -1,7 +1,7 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
-mod unary;
 mod sink;
+mod unary;
 use sink::FaceBack;
 use unary::UnaryBack;
 
@@ -381,7 +381,6 @@ impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
         StepOutcome::Complete
     }
 }
-
 
 struct InactiveBack;
 

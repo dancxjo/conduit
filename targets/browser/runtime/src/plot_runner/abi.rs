@@ -4,13 +4,13 @@
 mod body;
 #[path = "abi_effects.rs"]
 mod effects;
+#[cfg(feature = "creche-surface")]
+#[path = "abi_patchbay.rs"]
+mod patchbay;
 #[path = "abi_profiles.rs"]
 mod profiles;
 #[path = "abi_projection.rs"]
 mod projection;
-#[cfg(feature = "creche-surface")]
-#[path = "abi_patchbay.rs"]
-mod patchbay;
 #[path = "abi_thermostat.rs"]
 mod thermostat;
 
