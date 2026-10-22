@@ -23,6 +23,15 @@ test('numerical certificates and cancellation retain shared boundary tests', () 
 });
 test('native ownership and isolation require native proof, including either rename side', () => {
   for (const name of ['targets/conduitos/Cargo.toml', 'targets/conduitos/build.rs', 'targets/conduitos/domain/gate.rs', 'targets/conduitos/src/usb.rs', 'targets/conduitos/proof/usb-bot/verify_cancellation.py', 'targets/conduitos/make/xtask/ia32_product_boot.rs', 'targets/conduitos/make/xtask/ia32_firmware.rs', 'targets/conduitos/make/xtask/target_build.rs']) assert.equal(nativeRisk([name]), true);
+  // Protected service code is embedded into the normal native product. Package
+  // tests cannot substitute for its mandatory hosted target/journey lanes.
+  for (const service of ['application', 'compositor', 'creche', 'mask', 'network', 'runtime', 'tls']) {
+    for (const crate of ['core', 'service']) {
+      for (const file of ['Cargo.toml', 'src/lib.rs', 'tests/bounds.rs']) {
+        assert.equal(nativeRisk([`targets/conduitos/${service}-${crate}/${file}`]), true);
+      }
+    }
+  }
   assert.equal(nativeRisk(['targets/conduitos/domain/old.rs', 'products/new.rs']), true);
   assert.equal(nativeRisk(['products/conduit/tests/installed_screen_free_birth.rs']), false);
 });
