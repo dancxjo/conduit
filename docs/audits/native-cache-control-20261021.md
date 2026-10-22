@@ -102,3 +102,31 @@ accepted dev `84dac6d02` produced `2eda544dc` with the exact same tree
 `74a10c946a2b22a6dbda04871d3d593b8682caca`. This audit is a later documentation
 successor, not a relabelled measured image. Candidate, merged Integration and
 applicable publication acceptance remain pending.
+
+### Attribution and no-gain boundaries
+
+Boot-entry to first framebuffer commit medians were 7,543,036,800 retained versus
+8,008,262,470 control raw ticks; boot-entry to actual first usable input ACK was
+10,247,523,404 versus 10,912,109,252 ticks. These are approximately 5.8% and 6.1%
+lower in this experiment, not seconds or the full-journey reduction. Median
+aggregate nested check ticks were 1,208,877,386 versus 36,461,846,898, expansion
+1,726,322,856 versus 61,514,272,822; both have five versus 104 actual cold scopes.
+Catalog installation remains one per trial in both arms. Do not add nested
+phase costs into exclusive CPU time.
+
+Typing observation medians (three trials per arm), in milliseconds:
+
+| Input row | ACK retained/control | Capture retained/control |
+| --- | ---: | ---: |
+| 1: a | 96.401 / 100.999 | 264.937 / 270.693 |
+| 2: Backspace | 91.855 / 92.570 | 261.723 / 267.521 |
+| 3: c | 100.273 / 101.481 | 273.298 / 277.474 |
+| 4: a | 101.800 / 95.580 | 281.535 / 274.630 |
+| 5: f | 100.788 / 97.338 | 282.160 / 282.025 |
+| 6: AltGr+e | 192.421 / 192.636 | 374.674 / 375.443 |
+
+The last input commits the Unicode editor result `café`. These are host-observed
+command-to-ACK/capture intervals including polling, not physical keyboard or
+scanout latency. Results are mixed: no consistent typing responsiveness gain
+is established. Cache retention reduces repeated preparation; it does not
+establish a general interaction, redraw or scheduling improvement.
