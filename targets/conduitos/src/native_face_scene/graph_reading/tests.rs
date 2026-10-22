@@ -269,3 +269,42 @@ fn explicitly_leaving_graph_reading_cancels_restore_request() {
     restored.frame().unwrap();
     assert_eq!(restored.face(), &face);
 }
+
+#[test]
+fn narrow_details_preserve_long_labels_direction_and_source_provenance() {
+    let mut face = specimen();
+    let subject = face
+        .subjects
+        .iter_mut()
+        .find(|subject| subject.role == FaceRole::Gear)
+        .unwrap();
+    subject.name = "Élan-源-label-".repeat(24);
+    let identity = subject.identity.clone();
+    let label = subject.name.clone();
+    let basis = face.basis.clone();
+    face = face.with_basis(basis).unwrap();
+    let mut scene = NativeFaceScene::prepare(face.clone(), 520, 400).unwrap();
+    scene
+        .inspect_subject(&face.identity, face.revision, &identity)
+        .unwrap();
+    let text: String = scene.details.iter().map(|row| row.text.as_str()).collect();
+    assert!(text.contains(&label));
+    for property in face.properties.iter().filter(|property| {
+        property.name == "direction"
+            || property.name == "source-plot"
+            || property.name == "source-port"
+    }) {
+        assert!(text.contains(&property.name));
+        match &property.value {
+            conduit_face::FacePropertyValue::Text(value)
+            | conduit_face::FacePropertyValue::Identity(value) => assert!(text.contains(value)),
+            _ => panic!("fixture provenance must have a legible value"),
+        }
+    }
+    for _ in 0..scene.pages() {
+        let frame = scene.frame().unwrap();
+        assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
+        scene.turn_page(true);
+    }
+    assert_eq!(scene.face(), &face);
+}
