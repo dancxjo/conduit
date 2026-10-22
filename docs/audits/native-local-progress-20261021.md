@@ -1258,3 +1258,9 @@ precedes the refusal so a journey revision change cannot immediately clear it.
 The helper is separate from the large controller; no keyboard sample, Source
 mutation or editor success is invented. This corrects refusal behavior, not the
 unfinished native Source editor; full document/editor admission remains required.
+
+The branch now includes current dev through #6205/#6218. Layout merge resolution
+keeps selected typography parameters and the new continuation-width regression.
+The first in-flight compile encountered temporary merge markers; after resolving
+them, the owning native-compositor library check passed on the resolved source.
+No new native runtime or layout-execution result is claimed from that check.
