@@ -149,39 +149,39 @@ fn exercise_plot(
     let expected =
         conduitos::native_workset::resident(plot).map_err(|error| refusal(format!("{error:?}")))?;
     let initial = latest(serial)?;
-    let selection = format!("{} selection", plot.title());
-    let selection_label = match plot {
-        conduitos::native_workset::NativePlot::MemoryLantern => "journey-select-memory-lantern",
-        _ => "journey-select-keyboard-canvas",
-    };
-    for _ in 0..conduitos::native_workset::NATIVE_PLOT_CAPACITY {
-        let current = latest(serial)?;
-        if current["checked_plot_id"] == expected.checked_plot_id.as_str() {
-            break;
-        }
-        let revision = current["revision"]
-            .as_u64()
-            .ok_or_else(|| refusal("missing revision"))?;
+    if initial["checked_plot_id"] != expected.checked_plot_id.as_str() {
+        let before = super::stage_count(serial, "CONDUIT_HOME_CHECKPOINT returned")?;
         journey_input::held_key(
             |down| {
                 super::super::hid_qmp::send_named_keys(
                     stream,
                     reader,
-                    &["tab"],
+                    &["esc"],
                     down,
-                    selection_label,
+                    "journey-open-plot-picker",
                 )
             },
             || {
-                journey_input::wait_for_record(
+                super::super::hid_qmp::wait_for_stage_count(
                     serial,
                     child,
-                    "journey-plot-selection-timeout",
-                    &selection,
-                    |text| selection_observed(text, revision, plot.title()),
+                    "CONDUIT_HOME_CHECKPOINT returned",
+                    before + 1,
+                    "journey-open-picker-timeout",
                 )
             },
         )?;
+        journey_input::open_hub_plot(stream, reader, serial, child, plot)?;
+        let text = fs::read_to_string(serial).map_err(|error| refusal(error.to_string()))?;
+        if !selection_observed(
+            &text,
+            initial["revision"]
+                .as_u64()
+                .ok_or_else(|| refusal("missing revision"))?,
+            plot.title(),
+        )? {
+            return Err(refusal("Home selection lacks a current journey receipt"));
+        }
     }
     let selected = latest(serial)?;
     if selected["checked_plot_id"] != expected.checked_plot_id.as_str()
