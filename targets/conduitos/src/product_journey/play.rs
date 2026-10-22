@@ -110,6 +110,7 @@ impl ProductJourney {
         )));
         self.input_count = next_count;
         self.advance()?;
+        self.source_request_authorization = None;
         if application_request == Some(native_workset::NativeApplicationRequest::OpenPatchbay) {
             let patchbay = native_workset::resident(native_workset::NativePlot::Patchbay)
                 .map_err(JourneyError::Workset)?;
@@ -120,6 +121,12 @@ impl ProductJourney {
                     native_workset::PlayRefusal::InputPressure,
                 ));
             }
+            self.source_request_authorization = match &application_request {
+                Some(native_workset::NativeApplicationRequest::EditCurrent(request)) => {
+                    super::source_edit::request_digest(request).map(|digest| (digest, self.revision))
+                }
+                _ => None,
+            };
             self.application_request = application_request;
         }
         Ok(true)
@@ -259,6 +266,7 @@ impl ProductJourney {
         self.loss_sign_id = None;
         self.retained_kernel_sign_gap = None;
         self.application_request = None;
+        self.source_request_authorization = None;
         self.input_owners = input_owners;
         self.kernel = Some(kernel);
         self.status = JourneyStatus::Planned;
@@ -395,6 +403,7 @@ impl ProductJourney {
         };
         self.kernel = None;
         self.application_request = None;
+        self.source_request_authorization = None;
         if self.current_wake().is_some() {
             self.session
                 .as_mut()

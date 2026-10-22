@@ -62,6 +62,18 @@ impl ProductJourney {
         request: PatchbayApplicationRequest,
         identities: &BootIdentities,
     ) -> Result<SourceEditReceipt, SourceEditError> {
+        // Membership is visibility, not an edit grant. The finite digest binds
+        // only the request actually emitted by the owner at this revision.
+        let expected = request_digest(&request).map(|digest| (digest, self.revision));
+        if expected.is_none() || self.source_request_authorization != expected {
+            if self.source_request_authorization.take().is_some() {
+                self.application_request = None;
+                return refuse(SourceEditRefusal::WrongOwner);
+            }
+            return refuse(SourceEditRefusal::WrongTarget);
+        }
+        self.source_request_authorization = None;
+        self.application_request = None;
         if self.status != JourneyStatus::QuiescentAwaitingInput
             || self.kernel.is_none()
             || self.current_play().is_none()
@@ -274,4 +286,28 @@ fn exact_span(
         (Some(origin), None) => Ok(Some((origin.source_span.start, origin.source_span.end))),
         _ => refuse(SourceEditRefusal::SourceSpan),
     }
+}
+
+/// A fixed receipt of the exact issued fields, without another heap-owned copy
+/// of the subject or another document/owner model. Length prefixes prevent
+/// ambiguous concatenation; the tag separates this action from other requests.
+pub(super) fn request_digest(request: &PatchbayApplicationRequest) -> Option<[u8; 32]> {
+    use sha2::{Digest, Sha256};
+    let PatchbayApplicationRequest::EditCurrent {
+        expanded_plot_id,
+        subject_identity,
+    } = request
+    else {
+        return None;
+    };
+    if subject_identity.len() > 256 || expanded_plot_id.as_str().len() > 256 {
+        return None;
+    }
+    let mut hash = Sha256::new();
+    hash.update(b"conduitos/issued-source-edit@1");
+    for field in [expanded_plot_id.as_str(), subject_identity.as_str()] {
+        hash.update((field.len() as u64).to_le_bytes());
+        hash.update(field.as_bytes());
+    }
+    Some(hash.finalize().into())
 }

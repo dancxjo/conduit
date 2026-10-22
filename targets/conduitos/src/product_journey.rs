@@ -210,6 +210,7 @@ pub struct ProductJourney {
     retained_kernel_sign_gap: Option<conduit_kernel::SignRetentionGap>,
     last_request_id: Option<String>,
     application_request: Option<native_workset::NativeApplicationRequest>,
+    source_request_authorization: Option<([u8; 32], u64)>,
     mask_control: Option<crate::mask_control::MaskControl>,
     surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
 }
@@ -310,6 +311,7 @@ impl ProductJourney {
             retained_kernel_sign_gap: None,
             last_request_id: None,
             application_request: None,
+            source_request_authorization: None,
             mask_control: None,
             surface_provider: None,
         })

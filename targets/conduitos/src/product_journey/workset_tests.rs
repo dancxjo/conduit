@@ -436,3 +436,6 @@ fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
     assert_eq!(waiting.status, JourneyStatus::Awake);
     assert!(waiting.plan_id.is_some() && waiting.active_play_id.is_none());
 }
+
+#[path = "source_edit_tests.rs"]
+mod source_edit_tests;
