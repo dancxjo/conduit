@@ -84,7 +84,7 @@ impl PreparedNativeModel {
         let ready: Prepared =
             protocol::receive(&mut output).map_err(|error| classify(&mut guard.child, error))?;
         let ledger = match ready {
-            Prepared::Ready(v) => v,
+            Prepared::Ready(v) => *v,
             Prepared::Refused(e) => return Err(e),
         };
         ledger.validate(grant)?;

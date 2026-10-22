@@ -13,7 +13,7 @@ pub struct Bootstrap {
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub enum Prepared {
-    Ready(BackingLedger),
+    Ready(Box<BackingLedger>),
     Refused(NativeBackingRefusal),
 }
 pub fn send<T: Serialize>(writer: &mut impl Write, value: &T) -> Result<(), NativeBackingRefusal> {

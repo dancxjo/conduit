@@ -162,8 +162,8 @@ fn prepare_and_run(context: &WorkerContext) -> Result<(), NativeBackingRefusal> 
     ledger.validate(context.bootstrap.grant)?;
     unsafe { snapshot.prefault() };
     // Prepare serialization before freeze; fixed execution buffers are stack-owned.
-    let ready =
-        serde_json::to_vec(&Prepared::Ready(ledger)).map_err(|_| NativeBackingRefusal::Protocol)?;
+    let ready = serde_json::to_vec(&Prepared::Ready(Box::new(ledger)))
+        .map_err(|_| NativeBackingRefusal::Protocol)?;
     if ready.len() > protocol::MAX_FRAME {
         return Err(NativeBackingRefusal::Protocol);
     }
@@ -182,7 +182,7 @@ fn prepare_and_run(context: &WorkerContext) -> Result<(), NativeBackingRefusal> 
     input
         .read_exact(&mut ack)
         .map_err(|_| NativeBackingRefusal::Io)?;
-    if ack != [b'G'] {
+    if ack != *b"G" {
         unsafe { libc::_exit(2) }
     }
     for sequence in 1..=context.bootstrap.profile.maximum_calls {
@@ -226,7 +226,7 @@ fn prepare_and_run(context: &WorkerContext) -> Result<(), NativeBackingRefusal> 
         input
             .read_exact(&mut ack)
             .map_err(|_| NativeBackingRefusal::Io)?;
-        if ack != [b'C'] {
+        if ack != *b"C" {
             unsafe { libc::_exit(5) }
         }
     }
