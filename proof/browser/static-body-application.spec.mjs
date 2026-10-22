@@ -38,7 +38,7 @@ async function current(page) {
 async function ready(page) {
   // The retained Candidate trace reached a real Playing Body after the default
   // five-second assertion budget expired during cold SDK/WASM acquisition.
-  await expect(page.getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
   const state = await current(page);
   for (const key of ["hostId", "bootId", "bodyId", "planId", "playId"]) expect(state[key], key).toBeTruthy();
@@ -221,15 +221,15 @@ test("static Handbook applications retain independent local Bodies through use, 
     inspected = await current(page);
     await page.screenshot({ path: testInfo.outputPath("02b-edited-clock-patchbay.png"), fullPage: true });
 
-    await page.getByRole("button", { name: "Lull", exact: true }).click();
-    await expect(page.getByRole("button", { name: "Wake", exact: true })).toBeEnabled();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true }).click();
+    await expect(page.locator(".handbook-controls").getByRole("button", { name: "Wake", exact: true })).toBeEnabled();
     const lulled = await current(page);
     expect(lulled.bodyId).toBe(first.bodyId);
     expect(lulled.playId ?? null).toBeNull();
     await journey.capture(page, { id: "lull", title: "Bring the Body to rest",
       action: "After checking that the edit survives switching lessons and inspecting the new graph, press Lull.",
       observation: "Execution ends and Wake becomes available. The Body retains the edited clock without an active Play." });
-    await page.getByRole("button", { name: "Wake", exact: true }).click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Wake", exact: true }).click();
     const awake = await ready(page);
     expect(awake.playId).not.toBe(inspected.playId);
     await page.reload();
@@ -246,7 +246,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     const competitor = await session.context.newPage();
     await competitor.goto(application);
     await competitor.getByText(/already open|open in another (tab|window)/i).waitFor();
-    await expect(competitor.getByRole("button", { name: "Lull", exact: true })).toBeDisabled();
+    await expect(competitor.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true })).toBeDisabled();
     expect((await current(page)).bodyId).toBe(first.bodyId);
 
     const second = await session.context.newPage();
@@ -533,7 +533,7 @@ test("refused Handbook recovery preserves original state until explicit replacem
     const page = await session.context.newPage();
     await page.goto(new URL("handbook/", site.url).href);
     const original = await ready(page);
-    await page.getByRole("button", { name: "Lull", exact: true }).click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true }).click();
     const retained = await page.evaluate(async () => {
       const store = globalThis.__conduitBrowserApplication.storage;
       const record = await store.readJson("body-continuity");
