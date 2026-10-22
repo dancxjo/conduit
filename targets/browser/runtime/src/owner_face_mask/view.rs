@@ -191,6 +191,16 @@ fn project_view(
                             value_name: argument.value_name.clone(),
                             value_kind: argument.contract.value_kind.as_str().into(),
                             maximum_bytes: argument.contract.maximum_bytes,
+                            minimum_bytes: argument
+                                .contract
+                                .constraints
+                                .iter()
+                                .filter_map(|constraint| match constraint {
+                                    ValueConstraint::ByteLength { minimum, .. } => Some(*minimum),
+                                    _ => None,
+                                })
+                                .max()
+                                .unwrap_or(0),
                             choices: argument
                                 .contract
                                 .constraints

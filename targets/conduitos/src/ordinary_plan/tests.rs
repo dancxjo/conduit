@@ -289,3 +289,81 @@ fn oversized_text_is_refused_during_source_checking() {
     );
     assert!(conduit_plot::check_syntax_document(&malformed, &startup).is_err());
 }
+
+#[test]
+fn actual_ordinary_text_bindings_match_the_shared_native_contract() {
+    use crate::text_planned_kernel::contract::validate;
+    use conduit_kernel::{HostCallBinding, HostCallId, NodeId};
+    let (identities, offer) = fixture();
+    let prepared = prepare(&identities, &offer, "build").unwrap();
+    let fragment = &prepared.plan.fragments[0];
+    let lowered = lower_plan_fragment(fragment).unwrap();
+    let role = |kind: &str| {
+        NodeId(
+            fragment
+                .placements
+                .iter()
+                .position(|p| p.kind_id.as_str() == kind)
+                .unwrap() as u16,
+        )
+    };
+    let roles = [
+        role(conduit_text::TEXT_LITERAL_KIND),
+        role(conduit_text::TEXT_UPPER_KIND),
+        role(conduit_semantic_catalog::TEXT_FACE_KIND),
+    ];
+    let mut bindings: [Option<HostCallBinding>; 3] = [None; 3];
+    for operation in &lowered.host_calls {
+        assert!(
+            bindings[usize::from(operation.node.0)]
+                .replace(operation.binding)
+                .is_none()
+        );
+    }
+    let upper = usize::from(roles[1].0);
+    let face = usize::from(roles[2].0);
+    assert_eq!(
+        bindings[face].unwrap().maximum_output_bytes,
+        conduit_core::MAX_FACE_COMPLETION_BYTES
+    );
+    validate(roles, &bindings).unwrap();
+    // The actual Source-selected requirement is retained exactly, rather than
+    // rewritten to the obsolete zero-output assumption at the guest boundary.
+    for output in [0, conduit_core::MAX_FACE_COMPLETION_BYTES + 1] {
+        let mut wrong = bindings;
+        wrong[face].as_mut().unwrap().maximum_output_bytes = output;
+        assert_eq!(
+            validate(roles, &wrong),
+            Err(conduit_kernel::scheduler::SchedulerError::InvalidPlan)
+        );
+    }
+    for index in [upper, face] {
+        let mut missing = bindings;
+        missing[index] = None;
+        assert!(validate(roles, &missing).is_err());
+        let mut wrong_call = bindings;
+        wrong_call[index].as_mut().unwrap().call = HostCallId(1);
+        assert!(validate(roles, &wrong_call).is_err());
+        let mut wrong_input = bindings;
+        wrong_input[index].as_mut().unwrap().maximum_input_bytes += 1;
+        assert!(validate(roles, &wrong_input).is_err());
+    }
+    for output in [0, conduit_text::MAX_TEXT_BYTES + 1] {
+        let mut wrong = bindings;
+        wrong[upper].as_mut().unwrap().maximum_output_bytes = output;
+        assert!(validate(roles, &wrong).is_err());
+    }
+    let mut literal_call = bindings;
+    literal_call[usize::from(roles[0].0)] = bindings[upper];
+    assert!(validate(roles, &literal_call).is_err());
+    for (slot, replacement) in [
+        (0, roles[1]),
+        (1, roles[2]),
+        (2, roles[0]),
+        (0, NodeId(u16::MAX)),
+    ] {
+        let mut wrong = roles;
+        wrong[slot] = replacement;
+        assert!(validate(wrong, &bindings).is_err());
+    }
+}

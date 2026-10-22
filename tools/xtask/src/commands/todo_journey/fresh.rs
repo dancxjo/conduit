@@ -260,15 +260,7 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
-            .arg(if args.count_matrix {
-                "count-matrix"
-            } else if args.direct_speech {
-                "cross-mask-speech"
-            } else if args.cross_mask_actions {
-                "cross-mask"
-            } else {
-                "first-add"
-            })
+            .arg(args.browser_scenario())
             .current_dir(repository);
         let browser_command = capture(&output, "browser-add", &mut browser, None)?;
         let browser_receipt: Value = serde_json::from_slice(
