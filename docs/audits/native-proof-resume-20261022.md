@@ -172,3 +172,25 @@ while rejecting regressing revisions, identity/revision mismatch and reused
 Shows. Its focused regression executes and passes, including revisions above
 JavaScript's exact integer range. The other filtered test targets execute zero
 cases and are not counted. A fresh live fallback result remains owed.
+
+The installed owner at `4449f87ce` also completed an actual idle waiting-Play
+cancellation: the operator requested Lull, the terminal cancellation was
+retained, a subsequent owner Face request succeeded, and checkpoint files
+were unchanged. The small retained receipt distinguishes this from an already
+lulled no-op. Its verified prior generation was explicitly selected in an
+isolated fork before native action proof; the original residence is preserved.
+
+The required-item harness now explicitly selects the ordinary checked component
+before requiring a configured realization: the initial generic owner Mask has
+no such configuration. It waits for the first complete acknowledgement rather
+than treating absence during an in-flight selection as failure. The complete
+scenario uses exactly four bounded refresh requests: activation, ordinary
+component, required-item component, and final ordinary comparison. Typed action
+responses return their fresh Faces separately.
+
+The audit also found and repaired a real native cache defect: authenticated
+owner action responses now update the retained current owner Face before a
+later component selection. Otherwise the final selection would submit the
+pre-action Face despite the fresh displayed Show. No local state is invented;
+the retained value comes from the authenticated owner response. Live fallback
+completion is still pending the fresh-source run.

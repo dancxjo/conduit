@@ -410,6 +410,7 @@ fn run_controller(
                                     owner_action_evidence::emit(&show, &interaction, &outcome);
                                     let refreshed = outcome.face.is_some();
                                     if let Some(face) = outcome.face {
+                                        current_owner_face = Some(face.clone());
                                         face_arrival.present_owner_face(
                                             face.into_face(),
                                             admitted,
