@@ -38,6 +38,7 @@ fn bounds() -> PreparedNativeBounds {
         canonical_bytes: 16384,
         scopes: 32,
         invariants: 32,
+        contracts: 32,
     }
 }
 fn bytes(d: &CheckedSyntaxDocument, holder: &str, start: u64, end: u64) -> Vec<u8> {

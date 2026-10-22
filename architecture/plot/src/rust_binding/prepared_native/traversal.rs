@@ -115,7 +115,7 @@ pub(super) fn prepare<'d>(
 }
 // Core owns the complete T? schema. Equality to its constructor is required;
 // merely recognizing a schema label or matching some/none names is insufficient.
-fn exact_core_optional(ty: &StructuredInfoType) -> bool {
+pub(super) fn exact_core_optional(ty: &StructuredInfoType) -> bool {
     let Shape::Variant { cases, .. } = ty.shape() else {
         return false;
     };
@@ -126,12 +126,12 @@ fn exact_core_optional(ty: &StructuredInfoType) -> bool {
         .is_ok_and(|expected| &expected == ty)
 }
 
-enum Selection<'a> {
+pub(super) enum Selection<'a> {
     Value(ValidatedCanonicalStructuredValue<'a>),
     /// This alternative cannot exist; carry to an earlier enclosing Each.
     MissingBefore(usize),
 }
-fn select<'a>(
+pub(super) fn select<'a>(
     mut value: ValidatedCanonicalStructuredValue<'a>,
     path: &[Part],
     indices: &[u16],
@@ -163,7 +163,7 @@ fn select<'a>(
     }
     Ok(Selection::Value(value))
 }
-fn advance(
+pub(super) fn advance(
     path: &[Part],
     indices: &mut [u16],
     before: usize,
@@ -199,7 +199,11 @@ pub(super) fn step(
             scope.latest_generation = admission.generation;
             scope.checked_invariants = 0;
             admission.latest_scope = Some(index);
-            if admission.occurrences == admission.occurrence_limit {
+            let total = admission
+                .occurrences
+                .checked_add(admission.contract_occurrences)
+                .ok_or(PreparedNativeRefusal::Bounds)?;
+            if total >= admission.occurrence_limit {
                 return Err(PreparedNativeRefusal::Bounds);
             }
             admission.occurrences += 1;

@@ -95,6 +95,7 @@ fn bounds() -> PreparedNativeBounds {
         canonical_bytes: 16384,
         scopes: 64,
         invariants: 64,
+        contracts: 64,
     }
 }
 fn run(
@@ -196,4 +197,134 @@ fn actual_occurrence_budget_exhaustion_never_truncates_or_relabels_previous_outp
     assert!(admission.invariant_output(occurrence.scope, 0).is_none());
     assert!(admission.admitted().is_err());
     assert_eq!(admission.retained_bytes(), input);
+}
+
+#[test]
+fn later_primitive_contract_failure_retains_exact_collection_occurrence() {
+    let doc = refined_document();
+    let input = bytes(&doc, &[&[Some((1, 2)), None], &[None, Some((2, 10))]]);
+    let mut admission =
+        PreparedNativeAdmission::new(&doc, &native(&doc, "Batch").identity, bounds()).unwrap();
+    let (result, observation) = allocation_probe::observe(|| run(&mut admission, &input));
+    let reason = result.unwrap_err();
+    assert!(matches!(reason, PreparedNativeRefusal::Contract { .. }));
+    assert_eq!(observation.allocations, 0);
+    assert_eq!(observation.reallocations, 0);
+    assert_eq!(observation.deallocations, 0);
+    let occurrence = admission.latest_contract_occurrence().unwrap();
+    let indices: Vec<_> = occurrence
+        .path
+        .iter()
+        .zip(occurrence.indices)
+        .filter_map(|(part, index)| matches!(part, NativePathStep::Each).then_some(*index))
+        .collect();
+    assert_eq!(indices, vec![1, 1]);
+    assert!(occurrence.checked);
+    let source = &admission
+        .scope_native_type(occurrence.scope)
+        .unwrap()
+        .value_contracts[occurrence.contract];
+    assert_eq!(source.representation_path, ".rows[].cells[]?some.end");
+    assert_eq!(admission.retained_bytes(), input);
+    assert!(admission.admitted().is_err());
+    assert_eq!(admission.step(), Err(reason));
+}
+
+fn refined_document() -> CheckedSyntaxDocument {
+    check_syntax_document(
+        &parse_syntax_document("type Interval = {\n start: U64 in 0..=9\n end: U64 in 0..=9\n where .start <= .end\n}\ntype Row = {\n cells: sequence Interval? <= 64\n}\ntype Batch = {\n rows: sequence Row <= 128\n}\n"),
+        &StartupCatalog::new(),
+    ).unwrap()
+}
+#[test]
+fn contract_work_is_cooperative_bounded_cancellable_and_reusable_without_heap_activity() {
+    let doc = refined_document();
+    let identity = &native(&doc, "Batch").identity;
+    let input = bytes(&doc, &[&[Some((1, 2)), None], &[None, Some((2, 9))]]);
+    let mut admission = PreparedNativeAdmission::new(&doc, identity, bounds()).unwrap();
+    let report = admission.capacity_report();
+    assert_eq!(report.prepared_contracts, 6);
+    assert!(report.contract_index_capacity > 0);
+    let (result, observation) = allocation_probe::observe(|| {
+        admission.begin(&input)?;
+        loop {
+            let before = admission.actual_contract_occurrences();
+            let progress = admission.step()?;
+            assert!(admission.actual_contract_occurrences() - before <= 1);
+            if progress == PreparedNativeProgress::Admitted {
+                break;
+            }
+        }
+        Ok::<_, PreparedNativeRefusal>(())
+    });
+    result.unwrap();
+    assert_eq!(
+        (
+            observation.allocations,
+            observation.reallocations,
+            observation.deallocations
+        ),
+        (0, 0, 0)
+    );
+    assert_eq!(admission.actual_contract_occurrences(), 12);
+    assert_eq!(admission.actual_occurrences(), 5);
+    assert_eq!(admission.capacity_report(), report);
+    admission.retire_admitted().unwrap();
+    assert!(admission.latest_contract_occurrence().is_none());
+    let absent = bytes(&doc, &[&[None], &[]]);
+    run(&mut admission, &absent).unwrap();
+    assert_eq!(admission.actual_contract_occurrences(), 0);
+    assert!(admission.latest_contract_occurrence().is_none());
+    assert_eq!(admission.capacity_report(), report);
+
+    let mut limited =
+        PreparedNativeAdmission::new_with_occurrence_limit(&doc, identity, bounds(), 1).unwrap();
+    let (result, observation) = allocation_probe::observe(|| run(&mut limited, &input));
+    assert_eq!(result, Err(PreparedNativeRefusal::Bounds));
+    assert_eq!(
+        (
+            observation.allocations,
+            observation.reallocations,
+            observation.deallocations
+        ),
+        (0, 0, 0)
+    );
+    assert_eq!(limited.actual_contract_occurrences(), 1);
+    assert_eq!(limited.actual_occurrences(), 0);
+    assert!(!limited.latest_contract_occurrence().unwrap().checked);
+    assert_eq!(limited.retained_bytes(), input);
+    limited.cancel();
+    assert_eq!(limited.step(), Err(PreparedNativeRefusal::Bounds));
+    assert!(limited.admitted().is_err());
+
+    let mut cancelled = PreparedNativeAdmission::new(&doc, identity, bounds()).unwrap();
+    let (result, observation) = allocation_probe::observe(|| {
+        cancelled.begin(&input).unwrap();
+        assert_eq!(cancelled.step().unwrap(), PreparedNativeProgress::Pending);
+        assert_eq!(cancelled.actual_contract_occurrences(), 1);
+        cancelled.cancel();
+        cancelled.step()
+    });
+    assert_eq!(result, Err(PreparedNativeRefusal::Cancelled));
+    assert_eq!(
+        (
+            observation.allocations,
+            observation.reallocations,
+            observation.deallocations
+        ),
+        (0, 0, 0)
+    );
+    assert_eq!(cancelled.actual_contract_occurrences(), 1);
+    assert!(cancelled.latest_contract_occurrence().unwrap().checked);
+    assert_eq!(cancelled.retained_bytes(), input);
+    assert!(cancelled.admitted().is_err());
+    assert!(PreparedNativeAdmission::new(
+        &doc,
+        identity,
+        PreparedNativeBounds {
+            contracts: 5,
+            ..bounds()
+        }
+    )
+    .is_err());
 }

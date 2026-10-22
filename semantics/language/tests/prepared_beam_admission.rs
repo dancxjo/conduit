@@ -19,6 +19,7 @@ fn bounds() -> PreparedNativeBounds {
         canonical_bytes: BYTES,
         scopes: 4096,
         invariants: 4096,
+        contracts: 4096,
     }
 }
 fn field<'a>(

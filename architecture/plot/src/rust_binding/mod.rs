@@ -8,9 +8,9 @@ mod native_contracts;
 mod prepared_native;
 pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
 pub use prepared_native::{
-    AdmittedNativeCanonical, NativeOccurrence, NativePathStep, PreparedNativeAdmission,
-    PreparedNativeBounds, PreparedNativeCapacityReport, PreparedNativeProgress,
-    PreparedNativeRefusal, MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
+    AdmittedNativeCanonical, NativeContractOccurrence, NativeOccurrence, NativePathStep,
+    PreparedNativeAdmission, PreparedNativeBounds, PreparedNativeCapacityReport,
+    PreparedNativeProgress, PreparedNativeRefusal, MAXIMUM_PREPARED_NATIVE_OCCURRENCES,
 };
 mod generate;
 mod generate_conversion;

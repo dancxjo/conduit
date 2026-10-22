@@ -12,6 +12,7 @@ fn bounds() -> PreparedNativeBounds {
         canonical_bytes: 16384,
         scopes: 64,
         invariants: 64,
+        contracts: 64,
     }
 }
 fn native<'a>(doc: &'a CheckedSyntaxDocument, name: &str) -> &'a CheckedNativeType {

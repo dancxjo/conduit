@@ -1,5 +1,4 @@
 //! Retained, bounded Native admission. Shape alone never yields a witness.
-use super::validate_native_contracts_borrowed;
 use crate::{CheckedNativeType, CheckedSyntaxDocument, PreparedPortableExpressionEvaluator};
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
@@ -48,12 +47,13 @@ struct Scope<'d> {
     native: &'d CheckedNativeType,
     evaluators: Vec<PreparedPortableExpressionEvaluator>,
 }
-/// A finite admission profile; exceeding either bound refuses preparation.
+/// A finite admission profile; exceeding any bound refuses preparation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PreparedNativeBounds {
     pub canonical_bytes: usize,
     pub scopes: usize,
     pub invariants: usize,
+    pub contracts: usize,
 }
 /// Granted limits and actual prepared storage counts; these are not total heap bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -62,6 +62,11 @@ pub struct PreparedNativeCapacityReport {
     pub occurrence_limit: usize,
     pub prepared_scopes: usize,
     pub prepared_evaluators: usize,
+    pub prepared_contracts: usize,
+    /// Allocated u16 slots across current and retained contract cursors.
+    pub contract_index_capacity: usize,
+    /// Allocated NativePathStep slots across prepared contract paths.
+    pub contract_path_step_capacity: usize,
     pub canonical_input_capacity: usize,
     pub canonical_scratch_capacity: usize,
     pub evaluator_output_capacity: usize,
@@ -97,6 +102,17 @@ pub struct NativeOccurrence<'a> {
     pub indices: &'a [u16],
     pub checked_invariants: usize,
 }
+/// Latest actual primitive contract occurrence, including its full root path.
+pub struct NativeContractOccurrence<'a> {
+    pub scope: usize,
+    pub contract: usize,
+    pub path: &'a [NativePathStep],
+    pub indices: &'a [u16],
+    /// Whether validation was attempted; false on occurrence pressure.
+    pub checked: bool,
+}
+#[path = "prepared_native/contracts.rs"]
+mod contracts;
 #[path = "prepared_native/traversal.rs"]
 mod traversal;
 pub struct PreparedNativeAdmission<'d> {
@@ -104,6 +120,10 @@ pub struct PreparedNativeAdmission<'d> {
     native: &'d CheckedNativeType,
     shape: PreparedStructuredValueValidator,
     scopes: Vec<Scope<'d>>,
+    contracts: Vec<contracts::ContractCursor<'d>>,
+    next_contract: usize,
+    contract_occurrences: usize,
+    latest_contract: Option<usize>,
     input: Vec<u8>,
     scratch: Vec<u8>,
     maximum: usize,
@@ -138,7 +158,11 @@ impl<'d> PreparedNativeAdmission<'d> {
         if occurrence_limit == 0 || occurrence_limit > MAXIMUM_PREPARED_NATIVE_OCCURRENCES {
             return Err(PreparedNativeRefusal::Bounds);
         }
-        if bounds.scopes == 0 || bounds.scopes > 4096 || bounds.invariants > 4096 {
+        if bounds.scopes == 0
+            || bounds.scopes > 4096
+            || bounds.invariants > 4096
+            || bounds.contracts > 4096
+        {
             return Err(PreparedNativeRefusal::Bounds);
         }
         let native = traversal::lookup(document, identity)?;
@@ -155,7 +179,12 @@ impl<'d> PreparedNativeAdmission<'d> {
             bounds,
             &mut count,
         )?;
+        let contracts = contracts::prepare(&scopes, bounds)?;
         Ok(Self {
+            contracts,
+            next_contract: 0,
+            contract_occurrences: 0,
+            latest_contract: None,
             document,
             native,
             shape,
@@ -184,6 +213,9 @@ impl<'d> PreparedNativeAdmission<'d> {
             granted: self.bounds,
             occurrence_limit: self.occurrence_limit,
             prepared_scopes: self.scopes.len(),
+            prepared_contracts: self.contracts.len(),
+            contract_index_capacity: self.contracts.iter().map(|v| v.index_capacity()).sum(),
+            contract_path_step_capacity: self.contracts.iter().map(|v| v.path.capacity()).sum(),
             prepared_evaluators: self.scopes.iter().map(|scope| scope.evaluators.len()).sum(),
             canonical_input_capacity: self.input.capacity(),
             canonical_scratch_capacity: self.scratch.capacity(),
@@ -223,6 +255,23 @@ impl<'d> PreparedNativeAdmission<'d> {
             checked_invariants: scope.checked_invariants,
         })
     }
+    pub fn latest_contract_occurrence(&self) -> Option<NativeContractOccurrence<'_>> {
+        let cursor = self.contracts.get(self.latest_contract?)?;
+        if !self.active || cursor.latest_generation != self.generation {
+            return None;
+        }
+        Some(NativeContractOccurrence {
+            scope: cursor.scope,
+            contract: cursor.contract,
+            path: &cursor.path,
+            indices: &cursor.latest,
+            checked: cursor.checked,
+        })
+    }
+    pub fn actual_contract_occurrences(&self) -> usize {
+        self.contract_occurrences
+    }
+    /// Native-law occurrences; primitive contract work is counted separately.
     pub fn actual_occurrences(&self) -> usize {
         self.occurrences
     }
@@ -252,6 +301,10 @@ impl<'d> PreparedNativeAdmission<'d> {
         self.generation = generation;
         self.latest_scope = None;
         self.occurrences = 0;
+        self.contract_occurrences = 0;
+        self.next_contract = 0;
+        self.latest_contract = None;
+        contracts::reset(&mut self.contracts);
         if let Some(scope) = self.scopes.first_mut() {
             scope.indices.fill(0);
         }
@@ -267,9 +320,12 @@ impl<'d> PreparedNativeAdmission<'d> {
         Err(reason)
     }
     pub fn cancel(&mut self) {
-        self.failure = Some(PreparedNativeRefusal::Cancelled);
+        if self.failure.is_none() {
+            self.failure = Some(PreparedNativeRefusal::Cancelled);
+        }
     }
-    /// One actual Native occurrence or bounded path backtrack per call; all Source programs were prepared before begin.
+    /// One Native-law/primitive-contract occurrence or bounded path backtrack.
+    /// Canonical envelope validation and projection retain their finite scan bounds.
     pub fn step(&mut self) -> Result<PreparedNativeProgress, PreparedNativeRefusal> {
         if let Some(reason) = &self.failure {
             return Err(reason.clone());
@@ -277,11 +333,16 @@ impl<'d> PreparedNativeAdmission<'d> {
         if !self.active {
             return Err(PreparedNativeRefusal::State);
         }
-        if self.next == self.scopes.len() {
+        if self.finished() {
             return Ok(PreparedNativeProgress::Admitted);
         }
-        match traversal::step(self) {
-            Ok(()) => Ok(if self.next == self.scopes.len() {
+        let result = if self.next_contract < self.contracts.len() {
+            contracts::step(self)
+        } else {
+            traversal::step(self)
+        };
+        match result {
+            Ok(()) => Ok(if self.finished() {
                 PreparedNativeProgress::Admitted
             } else {
                 PreparedNativeProgress::Pending
@@ -289,10 +350,13 @@ impl<'d> PreparedNativeAdmission<'d> {
             Err(reason) => self.fail(reason),
         }
     }
+    fn finished(&self) -> bool {
+        self.next_contract == self.contracts.len() && self.next == self.scopes.len()
+    }
     /// Explicitly retire a successful admission before reusing its prepared storage.
     /// Failure/cancellation evidence cannot be silently reset by this entrance.
     pub fn retire_admitted(&mut self) -> Result<(), PreparedNativeRefusal> {
-        if !self.active || self.next != self.scopes.len() || self.failure.is_some() {
+        if !self.active || !self.finished() || self.failure.is_some() {
             return Err(PreparedNativeRefusal::State);
         }
         self.input.clear();
@@ -300,13 +364,15 @@ impl<'d> PreparedNativeAdmission<'d> {
         self.next = 0;
         self.active = false;
         self.latest_scope = None;
+        self.latest_contract = None;
+        self.next_contract = 0;
         Ok(())
     }
     pub fn admitted(&self) -> Result<AdmittedNativeCanonical<'_>, PreparedNativeRefusal> {
         if let Some(reason) = &self.failure {
             return Err(reason.clone());
         }
-        if !self.active || self.next != self.scopes.len() {
+        if !self.active || !self.finished() {
             return Err(PreparedNativeRefusal::State);
         }
         Ok(AdmittedNativeCanonical {
@@ -323,19 +389,6 @@ fn validate_scope(
     maximum: usize,
     index: usize,
 ) -> Result<(), PreparedNativeRefusal> {
-    if let Err(reason) = validate_native_contracts_borrowed(value, &scope.native.value_contracts) {
-        let contract = scope
-            .native
-            .value_contracts
-            .iter()
-            .position(|v| v.representation_path == reason.representation_path)
-            .ok_or(PreparedNativeRefusal::Shape)?;
-        return Err(PreparedNativeRefusal::Contract {
-            scope: index,
-            contract,
-            refusal: reason.refusal,
-        });
-    }
     if value
         .type_bytes()
         .len()
