@@ -45,3 +45,12 @@ This is hosted CPU test, strict lint and formatting evidence. It does not establ
 ## Accepted-baseline refresh (2026-10-22 UTC)
 
 Clean source `9cd8a6c07d20447fcfe56220a999b9b56b943b8d` merges accepted baseline `84dac6d02fc48078b22a8e33744d1b1039fcff77` without changing the adapter, AI bridge or suite implementation. The supported `cargo +stable xtask check canonical-export` passed again: six generic cases, fourteen categorical cases and both strict Clippy checks. [Exact-source receipt](evidence/canonical-export-20261022/6063-merged-source-check.json) and [original log](evidence/canonical-export-20261022/6063-84dac-canonical-export-check.log.gz) retain exit 0 and SHA-256 custody; gzip was independently round-tripped. Earlier positive and negative packets are unchanged. This documentation successor is not relabelled as the executed source; Candidate, merged Integration and applicable publication gates remain pending.
+
+## Refreshed combined-dev validation
+
+Clean `f79d280e7c56f8bd5dd108b6102e84816026b782` includes reviewed dev
+`f3e582ce98ede25394a392de4ed06e0b6b086133`. The supported canonical-export
+check passes all six generic and fourteen categorical controls and both strict
+Clippy steps. [Exact command, raw log and receipt](evidence/canonical-export-20261022/fresh-f79d/README.md).
+This is fresh focused hosted proof; Candidate and required delivery gates
+remain pending. Older Source-bound positive and negative evidence is unchanged.
