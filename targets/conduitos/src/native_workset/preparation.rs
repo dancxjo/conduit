@@ -160,28 +160,30 @@ pub(super) fn with_plot<T>(
 ) -> Result<T, WorksetRefusal> {
     let _timing =
         crate::native_observation::Interval::begin(crate::native_observation::Stage::PlotBuild);
-    // Preparation is outside kernel Steps. Do not spin, retry, or block input
-    // if another preparation owns the cache: use the ordinary finite cold path.
-    if PREPARATION
-        .locked
-        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
-        .is_err()
-    {
-        let expanded = NativePreparation::new()?.observed(plot, true)?;
-        return Ok(visit(&expanded.expanded));
-    }
-    let _guard = Guard(&PREPARATION.locked);
-    // SAFETY: the guard exclusively owns value, including initialization, until
-    // after visit returns an owned result. No reference to value is published.
-    let preparation = unsafe { &mut *PREPARATION.value.get() };
-    if preparation.is_none() {
-        *preparation = Some(NativePreparation::new()?);
-    }
-    let expanded = preparation
-        .as_mut()
-        .expect("initialized above")
-        .observed(plot, false)?;
-    Ok(visit(&expanded.expanded))
+    Progress::result(Phase::PlotBuild, plot.name(), || {
+        // Preparation is outside kernel Steps. Do not spin, retry, or block input
+        // if another preparation owns the cache: use the ordinary finite cold path.
+        if PREPARATION
+            .locked
+            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            let expanded = NativePreparation::new()?.observed(plot, true)?;
+            return Ok(visit(&expanded.expanded));
+        }
+        let _guard = Guard(&PREPARATION.locked);
+        // SAFETY: the guard exclusively owns value, including initialization, until
+        // after visit returns an owned result. No reference to value is published.
+        let preparation = unsafe { &mut *PREPARATION.value.get() };
+        if preparation.is_none() {
+            *preparation = Some(NativePreparation::new()?);
+        }
+        let expanded = preparation
+            .as_mut()
+            .expect("initialized above")
+            .observed(plot, false)?;
+        Ok(visit(&expanded.expanded))
+    })
 }
 
 #[cfg(test)]

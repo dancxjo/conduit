@@ -40,7 +40,17 @@ profile/build and fresh Host/Boot identity. The existing eleven-field progress
 schema, 512-byte/2048-record bounds and all required phases remain unchanged.
 Hits emit no manufactured parsing/checking/expansion spans.
 
-No VM family has been run for this change. Before any causal reduction claim,
+The first retained-arm attempt on `550247205` completed its functional journey
+(24 receipt steps and 29 captured checkpoints), but the family failed the
+unchanged required progress gate: `plot-build` and `scanout` were absent. Trials
+1 and 2 were excluded and the zero-retention arm was not started. This is a
+failed measurement, not accepted timing or a matched comparison. The preserved
+packet remains unchanged. The correction brackets actual native preparation
+and nonidle protected framebuffer copies plus acknowledgement; idle compositor
+polls do not manufacture scanout phases. Existing parser, span and record bounds
+remain unchanged. Corrected-source families are still pending.
+
+Before any causal reduction claim,
 retain both complete three-process families at the same clean Source and tools,
 explicitly preserve the different mode/image identities, compare exact canonical
 meaning and action/typed-result/refusal behavior using their original receipts,
