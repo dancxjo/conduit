@@ -1805,6 +1805,7 @@ dependencies = [
  "conduit-body",
  "conduit-body-make",
  "conduit-browser-host",
+ "conduit-browser-mask-offer",
  "conduit-core",
  "conduit-face",
  "conduit-kernel",

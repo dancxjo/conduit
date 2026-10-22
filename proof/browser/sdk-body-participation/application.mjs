@@ -43,6 +43,15 @@ try {
       play = started.play;
       return Object.freeze({ wakeAtStart: started.wakeAtStart, play: play.identity });
     },
+    showBodyFace: coordinator => preparation.showBodyFace({ coordinator,
+      root: document.querySelector('#body-owner-face'),
+      transport: async (url, options = {}) => {
+        const request = { url: String(url), method: options.method ?? 'GET',
+          body: typeof options.body === 'string' ? Array.from(new TextEncoder().encode(options.body)) : Array.from(options.body ?? []) };
+        const response = await globalThis.__conduitBodyOwnerCarrier(request);
+        return new Response(new Uint8Array(response.bytes), { status: response.status });
+      },
+    }),
     begin() {
       completion = play.dispatch().catch((error) => { dispatchFailure = error; });
     },

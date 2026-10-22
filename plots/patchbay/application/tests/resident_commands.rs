@@ -116,6 +116,10 @@ fn selection_and_explicit_edit_execute_once_against_exact_owner_evidence() {
         Err(PatchbayCommandRefusal::StaleState)
     );
     let current = face(&port, &body, &basis);
+    assert!(!current
+        .text
+        .iter()
+        .any(|text| text.text.contains("no authority was inferred")));
     let current_show = mask_fixture::available_mask_show(&current);
     let subject = port.graph().subject_identities().next().unwrap().to_owned();
     let edit = interaction(
@@ -136,6 +140,12 @@ fn selection_and_explicit_edit_execute_once_against_exact_owner_evidence() {
             subject_identity: subject
         })
     );
+    let requested = face(&port, &body, &basis);
+    assert!(requested.text.iter().any(|text| {
+        text.subject.starts_with("patchbay/document/")
+            && text.text
+                == "Edit requested against the exact inspected subject; no authority was inferred."
+    }));
 }
 
 #[test]

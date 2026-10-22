@@ -140,6 +140,7 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
         })
         .collect();
     BodyStartRequest {
+        owner_face_revision: None,
         foreground_checked_plot_id: plan.plots[0].plot.checked_plot_id.as_str().into(),
         source: String::new(),
         local_host_id: host.host_id.clone(),
