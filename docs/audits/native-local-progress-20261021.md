@@ -1923,3 +1923,17 @@ missing-endpoint fixtures. The retained log is under
 `evidence/native-local-consumer-sync-20261022/`. This remains CPU adapter evidence;
 resident input/effect routes and their original platform/acknowledgement/bounds
 acceptance remain open under #6201/#5518/#5994. CI was deliberately skipped.
+
+### 2026-10-22: native runtime profiles reach dev
+
+PR6237 delivered the runtime-core prerequisite at deve42a09e3b; its tree equals
+locally tested80788a740. All six owning-package hosted cases, all-target check,
+freestanding x86_64 library check and formatting pass. The dedicated audit records
+explicit Face versus legacy bounds, initialized document flow and additive wire
+semantics. Source, Root custody and production caller selection remain unchanged.
+
+This branch includes delivered dev without conflicts. Its runtime-core subtree
+is byte-identical to dev, so no redundant profile tests were rerun. The hosted
+8 MiB debug fixture stack does not establish native stack/peak fit or actual
+protected-service execution. CI was deliberately skipped; #6201/#5994 stay open
+for exact Root custody and retained-owner publication/consume integration.
