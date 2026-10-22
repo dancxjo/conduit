@@ -1973,3 +1973,9 @@ On retained source0e5ae6cbe, all17 Patchbay-filtered native-compositor CPU tests
 Merged #6243 on dev910532c9a; exact tested/merged trees match. Installed Source/browser runtime/SDK/Handbook and native FrontDoor now use canonical checked interaction.55 focused Rust and146 Node cases pass, plus freestanding native and WASM compilation. See patchbay-installed-cutover-20261022.md. Original product enactment/CI acceptance remains open per tonight’s deferral.
 
 Retained sync c9c775d0e preserves pending graph reading/selected Looks while taking the command-draft extraction. A duplicate FrontDoor module and inline methods were removed; owner-selection module conflict kept the existing pending implementation. Two actual installed keyboard/typed Patchbay Source-editor CPU regressions pass after synchronization. No new browser/QEMU/image/ZIP proof.
+
+## Exact graph reading delivered (22 October, #6244 / closed #5516)
+
+Merged #6244 on dev24d8e4428; exact tested/merged trees match.13 unique focused graph/diagram CPU checks and freestanding native-compositor compilation pass. #5516’s three scoped criteria are checked and the issue is closed; #5994 step13 is updated. QEMU/cross-Mask/parent acceptance remains open. See patchbay-exact-graph-reading-20261022.md.
+
+Retained sync943ce816a preserves selected typography in the geometry-fit check and extracted draft preview, while taking the reviewed long-label/provenance test. All7 graph-reading checks pass after synchronization. Pending Look/typography code remains outside dev; no new QEMU/browser/physical proof or CI claim.
