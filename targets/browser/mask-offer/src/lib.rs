@@ -336,14 +336,7 @@ pub fn configured_mask_configuration(
         return Ok(None);
     }
     let root = planned.mask.plot_name.as_str();
-    if ![
-        "todo-mask-flat-compact",
-        "todo-mask-flat-spacious",
-        "todo-mask-grouped-compact",
-        "todo-mask-grouped-spacious",
-    ]
-    .contains(&root)
-    {
+    if conduit_face::ComponentVisualSelection::from_todo_root(root).is_none() {
         return Err("unknown configured component source root".into());
     }
     let budget = |direction, id: &conduit_core::PortId| -> Result<u32, String> {

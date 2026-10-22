@@ -2,7 +2,7 @@
 use crate::{
     VisualDensity, VisualDensityPreference, VisualExpression, VisualExpressionInfo,
     VisualExpressionRefusal, VisualMotion, VisualMotionPreference, VisualPalette,
-    VisualPalettePreference,
+    VisualPalettePreference, VisualTypography, VisualTypographyPreference,
 };
 use conduit_core::{StructuredInfoType, StructuredInfoValue};
 use conduit_plot::rust_binding::NativeRustBinding;
@@ -30,6 +30,10 @@ pub fn visual_expression_info(
             VisualPalette::Editorial => VisualPalettePreference::Editorial,
         },
         expression.text_scale_percent,
+        match expression.typography {
+            VisualTypography::Editorial => VisualTypographyPreference::Editorial,
+            VisualTypography::Engineering => VisualTypographyPreference::Engineering,
+        },
         expression.version,
     )
     .map_err(|_| VisualExpressionRefusal::Encoding)?
@@ -46,6 +50,10 @@ pub fn visual_expression_from_info(
         .map_err(|_| VisualExpressionRefusal::Encoding)?;
     let expression = VisualExpression {
         version: *value.version(),
+        typography: match value.typography() {
+            VisualTypographyPreference::Editorial => VisualTypography::Editorial,
+            VisualTypographyPreference::Engineering => VisualTypography::Engineering,
+        },
         identity: value.identity().clone(),
         density: match value.density() {
             VisualDensityPreference::Compact => VisualDensity::Compact,

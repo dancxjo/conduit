@@ -84,9 +84,10 @@ impl NativeFaceScene {
     }
 
     fn diagram_geometry_fits(&self) -> bool {
-        chrome::Chrome::prepare(self.screen, self.text_scale_percent).is_ok_and(|chrome| {
-            chrome.top == layout::HEADER && self.screen.height - chrome.bottom == layout::FOOTER
-        })
+        chrome::Chrome::prepare_selected(self.screen, self.text_scale_percent, self.typography)
+            .is_ok_and(|chrome| {
+                chrome.top == layout::HEADER && self.screen.height - chrome.bottom == layout::FOOTER
+            })
     }
 
     /// Unfit topology furniture falls back to the complete measured Face reader.
