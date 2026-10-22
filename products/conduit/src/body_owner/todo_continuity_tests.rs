@@ -385,24 +385,31 @@ fn reselect_prior_published_version(collect_failure: bool, corrupt_witness: bool
     worker.request_lull().unwrap();
     if collect_failure {
         loop {
-            match worker.progress(&mut owner, &root) {
-                Err(error) => {
-                    assert_eq!(error, "Todo waiting Play did not commit one checkpoint");
-                    break;
-                }
-                Ok(None) => {
-                    assert!(Instant::now() < deadline);
-                    std::thread::sleep(Duration::from_millis(5));
-                }
-                Ok(Some(_)) => panic!("cancelled command must not publish"),
+            assert!(worker.progress(&mut owner, &root).unwrap().is_none());
+            if worker.is_finished() {
+                break;
             }
+            assert!(Instant::now() < deadline);
+            std::thread::sleep(Duration::from_millis(5));
         }
     }
     drop(worker);
     if collect_failure {
         assert!(owner.todo_verified.is_none());
         assert!(owner.todo_verified_read_receipt().is_none());
+        assert!(owner.current_play_id().is_none());
+        assert!(!owner.host.is_playing());
+        // A stopped idle encounter is retained without publishing a checkpoint
+        // or inventing a successful command. Owner reads remain available.
+        owner.local_face_snapshot().unwrap();
         let failed = owner.last_execution.as_mut().unwrap();
+        assert_eq!(
+            failed["terminal"],
+            serde_json::json!({"Cancelled":{"reason":"OperatorRequested"}})
+        );
+        assert_eq!(failed["committed_fore_count"], 0);
+        assert!(failed["interaction_id"].is_null());
+        assert!(failed["host_call_request"].is_null());
         assert_eq!(failed["retained_verified_read"], read);
         assert!(failed["retained_verified_read"]["write"]["retained_verified_read"].is_null());
         if corrupt_witness {
@@ -460,6 +467,25 @@ fn reselect_prior_published_version(collect_failure: bool, corrupt_witness: bool
     assert_ne!(
         recovered["read_play"]["active_play_id"],
         read["read_play"]["active_play_id"]
+    );
+    drop(owner);
+    // The first fresh Boot may replace the resident with the checkpoint reader.
+    // Its retained Source must describe that actual resident on another Boot.
+    let owner = installed::owner::resume_service(
+        resumed_todo_host_on_boot(&root, "boot/todo-interrupted/published-again"),
+        &root,
+    )
+    .unwrap();
+    assert_eq!(owner.session.evidence().body_id, body);
+    assert_eq!(&owner.todo_verified.as_ref().unwrap().1, &expected);
+    let source = std::fs::read_to_string(root.join("body/source.conduit")).unwrap();
+    let checked = crate::plot_source::parse(&source)
+        .unwrap()
+        .expand_entry_for_authoring()
+        .unwrap();
+    assert_eq!(
+        checked.expanded.checked_plot_id,
+        owner.resident.as_ref().unwrap().checked_plot_id
     );
     drop(owner);
     std::fs::remove_dir_all(root).unwrap();

@@ -265,7 +265,9 @@ impl Owner {
             &mut staged,
             Some(&write_receipt),
             self.admissions.as_ref(),
-            if fresh_boot {
+            // A fresh Boot may re-encounter an interrupted write Plot. Retain
+            // the Source whenever this transition changes its resident identity.
+            if self.resident.as_ref() == Some(&read_resident) {
                 None
             } else {
                 Some(READ_SOURCE.as_bytes())

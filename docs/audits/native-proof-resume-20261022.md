@@ -93,3 +93,43 @@ graph has three Cords; it does not prove more-than-twelve-link continuation.
 Current required CI remains separate from this local emulator result. No
 cross-architecture asset matrix, release bundle, physical or human proof is
 claimed by these commands.
+
+## Installed-owner proof prerequisites found on resumption
+
+The repaired 124-executor/140-offer membership admitted actual pinned Chromium
+against an installed owner at `3564ed5e9`. Three items, including `Café first
+item`, were committed through the offered browser Todo action and independently
+matched to the owner Face. The original checkpoint directory is protected; a
+separate copied residence explicitly selects the retained verified published
+generation. No checkpoint contents or owner receipts were manufactured.
+
+With a route-name-matching P-256 certificate, the real guest verified the
+admission receipt and displayed the authenticated owner Todo Face. This was
+not a successful Look proof: its independent local snapshot exceeded the old
+512 KiB harness envelope (930575 bytes with three Hosts). That complete local
+snapshot now has a separate finite 2 MiB bound. The native Face, scene and
+runtime envelopes are unchanged. Failed attempts remain private because they
+contain route and admission evidence.
+
+Two installed-owner lifecycle defects also blocked a fresh re-encounter:
+clean operator cancellation of an idle next-command Play terminated the owner,
+and a fresh read transition from an interrupted write resident retained the old
+Source. Clean cancellation now retires only a worker with no staged/admitted
+action, queued command, Host request or output; its actual cancelled receipt
+survives and no commit is claimed. Admitted-action uncertainty still refuses.
+The read transition now retains its matching Source whenever resident identity
+changes. Regression coverage includes a second fresh Boot after explicit
+published-generation reselection; automatic selection of an older generation
+is not introduced.
+
+A separately observed browser CI packaging failure measured the existing
+`browser-body-host` module at 40187 source bytes against a stale 32768-byte
+workspace package entry. That exact static module entry now admits 49152 bytes.
+This is a package-file allowance, not a change to executor, advertisement,
+Face, resource-pool or runtime storage admission. Required CI is still owed.
+
+`cargo +stable xtask check todo-durability` passes after these repairs: 59
+executed cases pass and one existing case is ignored. The cancellation,
+corrupted-witness refusal and second-fresh-Boot regressions execute successfully.
+This is local hosted execution evidence, separate from the pending live guest
+Look and fallback scenarios. The full command log is retained locally.
