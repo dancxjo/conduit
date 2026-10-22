@@ -36,10 +36,11 @@ async function current(page) {
   }
 }
 
-async function ready(page) {
+async function ready(page, { handbook = true } = {}) {
   // The retained Candidate trace reached a real Playing Body after the default
   // five-second assertion budget expired during cold SDK/WASM acquisition.
-  await expect(page.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
+  const controls = handbook ? page.locator(".handbook-controls") : page;
+  await expect(controls.getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
   await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
   const state = await current(page);
   for (const key of ["hostId", "bootId", "bodyId", "planId", "playId"]) expect(state[key], key).toBeTruthy();
@@ -191,11 +192,11 @@ test("static Handbook applications retain independent local Bodies through use, 
 
     const second = await session.context.newPage();
     await second.goto(otherApplication);
-    const independent = await ready(second);
+    const independent = await ready(second, { handbook: false });
     expect(independent.hostId).toBe(first.hostId);
     expect(independent.bodyId).not.toBe(first.bodyId);
     await second.reload();
-    renewed(independent, await ready(second));
+    renewed(independent, await ready(second, { handbook: false }));
 
     await page.locator('.handbook-application').getByText("Your body and browser", { exact: true }).click();
     await Promise.all([

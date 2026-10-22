@@ -252,6 +252,14 @@ export async function startApplication(application) {
       root.querySelector('[data-flow-label]').textContent = session.evidence()?.foreground_flow ?? 'Not yet planned';
       for (const button of activities.querySelectorAll('[data-checked-plot-id]')) button.setAttribute('aria-pressed', String(button.dataset.checkedPlotId === selected));
       const visible = new Set(partition?.plan.fragments.flatMap(fragment => fragment.placements.map(placement => placement.placement_id)) ?? []);
+      const topologies = session.evidence()?.realization?.plan.mask_topologies ?? [];
+      for (const topology of topologies.filter(item => item.face?.plot?.checked_plot_id === selected)) {
+        for (const chain of topology.chains.slice(0, 1)) {
+          for (const fragment of chain.plan.fragments) {
+            for (const placement of fragment.placements) visible.add(placement.placement_id);
+          }
+        }
+      }
       for (const output of root.querySelectorAll('[data-plot-output] > output')) output.hidden = !visible.has(output.dataset.placementId);
       for (const button of strip.querySelectorAll('[data-inspect="plot"], [data-inspect="flow"]')) button.disabled = !plot;
     };

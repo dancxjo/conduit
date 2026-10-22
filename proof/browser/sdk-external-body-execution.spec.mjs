@@ -26,7 +26,15 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
   });
   try {
     await page.evaluate(() => globalThis.__conduitSdkParticipation.begin());
-    await expect(page.locator("#external-body-output output")).toHaveCount(3);
+    const facePlacements = [
+      ...journey.proposal.plan.plots.flatMap(({ plan }) => plan.fragments.flatMap(({ placements }) => placements)),
+      ...journey.proposal.plan.mask_topologies.flatMap(({ chains }) => chains.slice(0, 1)
+        .flatMap(({ plan }) => plan.fragments.flatMap(({ placements }) => placements))),
+    ].filter(({ resources }) => resources.some(({ class_id }) => class_id === "conduit.resource/face-slot@1"));
+    await expect(page.locator("#external-body-output output")).toHaveCount(facePlacements.length);
+    expect(await page.locator("#external-body-output output").evaluateAll(outputs =>
+      outputs.map(output => output.dataset.placementId).sort()))
+      .toEqual(facePlacements.map(({ placement_id }) => placement_id).sort());
     await expect(page.locator("#external-body-output")).toContainText("3");
     await page.getByRole("group", { name: "External Body Play input", exact: true }).hover();
     await page.mouse.down();
