@@ -7,6 +7,7 @@ use conduit_face::FaceBasis;
 use core::cell::RefCell;
 use critical_section::Mutex;
 mod mask;
+pub mod network_setup;
 mod seven_segment;
 pub use seven_segment::{
     seven_segment_snapshot, SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,
@@ -79,3 +80,6 @@ pub fn publish(index: usize, bytes: &[u8], now: u64) {
 extern crate std;
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod network_setup_tests;

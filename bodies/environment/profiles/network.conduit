@@ -1,0 +1,9 @@
+# One finite configuration request. Volatile credentials enter through the
+# selected Host Call at Play time, never through Source or Plan configuration.
+plot environment-network-setup {
+    credentials: network/credentials
+    join: network/join
+    attached: network/attachment-sign
+    credentials.request >> join.request
+    join.attachment >> attached.attachment
+}

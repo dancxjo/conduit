@@ -2,7 +2,7 @@ use super::*;
 use conduit_core::Quantity;
 use conduit_environment_face::SensorStatus;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+pub(super) mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn body(response: &str) -> &str {

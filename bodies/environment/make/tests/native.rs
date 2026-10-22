@@ -26,11 +26,11 @@ mod appliance_support;
 mod pulse;
 use conduit_core as c;
 use conduit_embedded_build as e;
+use conduit_environment_make::{NativeApplianceLimits, PreparedNativeAppliance};
 use conduit_environment_runtime::{
     assigned::{AssignedKernelTables, ResidentLayout},
     construction,
 };
-use conduit_environment_make::{NativeApplianceLimits, PreparedNativeAppliance};
 const N: usize = 15;
 const C: usize = 14;
 const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;

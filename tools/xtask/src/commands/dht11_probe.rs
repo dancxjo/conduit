@@ -16,6 +16,25 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["network"] {
+        for (manifest, test) in [
+            ("bodies/environment/http/Cargo.toml", "network_setup_tests"),
+            ("bodies/environment/make/Cargo.toml", "network_setup"),
+        ] {
+            let mut command = Command::new("cargo");
+            command
+                .current_dir(&root)
+                .args(["test", "--locked", "--manifest-path", manifest]);
+            if manifest.contains("/make/") {
+                command.args(["--test", test]);
+            } else {
+                command.arg(test);
+            }
+            command.env("CARGO_TARGET_DIR", root.join("target"));
+            execute(&mut command)?;
+        }
+        return Ok(());
+    }
     if arguments == ["native-construction"] {
         return execute(
             Command::new("cargo")
@@ -285,7 +304,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, native-construction, mask, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

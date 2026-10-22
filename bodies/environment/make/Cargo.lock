@@ -140,6 +140,7 @@ dependencies = [
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-kernel",
+ "conduit-net",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",

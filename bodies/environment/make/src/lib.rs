@@ -2,6 +2,9 @@
 //! Source checker, planner and embedded image producer. No provider is invented.
 //! The result is construction material; Root must still authenticate it, admit
 //! current possession and storage, and advance the real Body/Wake before Play.
+mod network;
+pub use network::compile_network_setup;
+
 use conduit_core as c;
 use conduit_embedded_build as e;
 use conduit_environment_runtime::construction::ApplianceSource;

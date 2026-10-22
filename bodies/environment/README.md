@@ -311,3 +311,34 @@ seven-segment output retain the same Face identity and revision; physical I/O
 happens outside the Face lock. Freshness loss renders the Mask's unavailable
 Show. The snapshot path allocates nothing. It does not yet install or acknowledge
 a TM1637 Host Call.
+
+
+## Network setup construction
+
+`profiles/network.conduit` is a finite three-gear control Plot using the existing
+`network/credentials`, `network/join` and `network/attachment-sign` contracts.
+It carries no SSID, password, radio identity or transport facts. Make checks and
+expands it with the ordinary network bootstrap catalogue.
+
+The HTTP library now supplies a private, bounded form decoder and one-slot
+`NetworkSetupMailbox` for the credentials Host Call. The caller supplies the
+selected implementation's credential limits. This uses the existing nonempty
+credential contract; open-network joining is not admitted by that contract.
+Duplicate/unknown fields, malformed escapes, invalid UTF-8 SSIDs, capacity
+pressure and exhausted submission budgets refuse before configuration work.
+A submission becomes consumable only after its exact local acknowledgement;
+the HTTP caller must flush the response first. Small output buffers preserve it;
+successful transfer consumes it once. Cancellation and Drop zeroize the owned
+buffers. The input and mailbox have no Debug, Clone or serialization API.
+The HTTP request and admitted output buffers have separate caller-owned lifetimes.
+
+```sh
+cargo xtask prove environment network
+```
+
+This establishes Source checking and zero-allocation private input transfer,
+not an installed credentials offer, a rendered setup page, or a radio transition.
+The mailbox grants no authority. Root must plan and admit the existing network
+operations against its actual initialized radio and current Boot, bound both
+association and address configuration, and restore the AP on failure or link
+loss. Those physical transition and browser interactions remain integration work.
