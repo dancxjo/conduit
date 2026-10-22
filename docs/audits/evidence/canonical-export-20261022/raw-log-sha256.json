@@ -1,0 +1,26 @@
+{
+  "proof_source": "12af867766057f58fc1a80db820b85496cc944dd",
+  "predecessor_format_log_note": "Original preparation format log retained; exact source was not recorded with that empty log. Corrected format success is bound by the positive trial summary.",
+  "logs": {
+    "6063-canonical-export-corrected-check.log.gz": {
+      "source": "12af867766057f58fc1a80db820b85496cc944dd",
+      "uncompressed_bytes": 16753,
+      "uncompressed_sha256": "faed0d0e6217ba5b0d32fd435c1c7d767253a60aa55a86aa071fc8cdd5ec968f"
+    },
+    "6063-canonical-export-06e36-failed.log.gz": {
+      "source": "06e36ea8001db55264208fc41ac22d18cf9a7427",
+      "uncompressed_bytes": 31573,
+      "uncompressed_sha256": "21219c7b64eb69c56c060f7d0d722dd7ffbe53ffde9cbea6cacbe9aab73137ce"
+    },
+    "6063-corrected-workspace-format-check.log.gz": {
+      "source": "12af867766057f58fc1a80db820b85496cc944dd",
+      "uncompressed_bytes": 0,
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "6063-workspace-format-check.log.gz": {
+      "source": null,
+      "uncompressed_bytes": 0,
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}
