@@ -22,7 +22,7 @@ Prepared negative cases cover foreign Source, all three Plan identities, missing
 
 The AI regression independently constructs canonical checked Source from the installed generic small categorical profile, seals its finite Fores, and reaches `prepare_canonical → submit → step → output ACK`. It checks moved request custody, exact canonical input/output, Plan/Play correlation, remote lifecycle Signs, held receipt pressure, and foreign Source/misbound-definition refusal. No parser policy or currentness authority is introduced.
 
-The supported entrance is `cargo +stable xtask check canonical-export`: generic behavioral tests, the two focused canonical numerical-channel cases, focused strict Composite test lint and strict AI library/channel-test lint with the numerical operation-owner feature. No Language dependency is needed for this check.
+The supported entrance is `cargo +stable xtask check canonical-export`: generic behavioral tests, the existing categorical custody integration target including both new canonical-channel cases, focused strict Composite test lint and strict AI library/channel-test lint with the numerical operation-owner feature. No Language dependency is needed for this check.
 
 ## Acceptance boundary
 
