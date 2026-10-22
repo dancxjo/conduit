@@ -1,0 +1,9 @@
+# A true rank-zero Identity model; names and Back belong to preparation.
+plot linear-model (
+    >> inputs: NamedTensorBundle <= 262144B
+    outputs: NamedTensorBundle <= 262144B >>
+) {
+    model: model/infer(signature = { identity: "test/imported-scalar-f32@1", compatibility_version: 1, operations: [infer(empty)], inputs: [{ identity: "scalar", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [], maximum_bytes: 4 } }) }], outputs: [{ identity: "scalar", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [], maximum_bytes: 4 } }) }] })
+    inputs >> model.inputs
+    model.outputs >> outputs
+}.

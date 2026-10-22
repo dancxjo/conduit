@@ -105,7 +105,7 @@ fn resource_backing_preserves_tensor_meaning_without_host_placement() {
 fn malformed_shape_axis_payload_and_reference_cases_refuse_exactly() {
     let mut value = inline();
     value.dimensions = BoundedSequence::new();
-    assert_eq!(value.validate(), Err(TensorRefusal::RankOutOfBounds));
+    assert_eq!(value.validate(), Err(TensorRefusal::AxisCountMismatch));
     value = inline();
     value.dimensions[0] = 0;
     assert_eq!(value.validate(), Err(TensorRefusal::ZeroDimension));

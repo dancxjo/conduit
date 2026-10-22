@@ -83,9 +83,10 @@ impl TensorValue {
     }
 
     pub fn element_count(&self) -> Result<u64, TensorRefusal> {
-        if self.dimensions.is_empty() || self.dimensions.len() > MAXIMUM_TENSOR_RANK {
+        if self.dimensions.len() > MAXIMUM_TENSOR_RANK {
             return Err(TensorRefusal::RankOutOfBounds);
         }
+        // The empty product is one element: an exact scalar has no axes.
         self.dimensions.iter().try_fold(1_u64, |count, dimension| {
             if *dimension == 0 {
                 return Err(TensorRefusal::ZeroDimension);
