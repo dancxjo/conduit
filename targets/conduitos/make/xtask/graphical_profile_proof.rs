@@ -4,6 +4,7 @@ use super::{
 };
 use crate::cli::GlobalOpts;
 use std::fs;
+mod no_graphics;
 
 pub(super) fn execute_viewport(
     opts: &GlobalOpts,
@@ -98,6 +99,14 @@ pub(super) fn execute_controls(
             "a real canonical image and guest are required",
         ));
     }
+    if args.scenario == super::proof_viewport::ControlScenario::NoGraphics
+        && args.viewport.is_some()
+    {
+        return Err(ConduitosError::refusal(
+            "no-graphics-conflicts-with-viewport",
+            "missing graphics provider cannot realize a requested viewport",
+        ));
+    }
     let paths = Paths::new(ConduitosArch::X86_64)?;
     let source = clean_head(&paths.root)?;
     live_media::build(live_media::LiveHost::X86_64, opts)?;
@@ -121,8 +130,12 @@ pub(super) fn execute_controls(
     let resolved = serde_json::to_value(resolved).map_err(|error| {
         ConduitosError::refusal("creche-controls-build-invalid", error.to_string())
     })?;
-    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved, "proof_scenario":match args.scenario { super::proof_viewport::ControlScenario::Layout => "layout", super::proof_viewport::ControlScenario::Search => "search" }});
-    journey_proof::execute_controls(opts, &image, digest, args.viewport, &metadata)?;
+    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved, "proof_scenario":match args.scenario { super::proof_viewport::ControlScenario::Layout => "layout", super::proof_viewport::ControlScenario::Search => "search", super::proof_viewport::ControlScenario::NoGraphics => "no-graphics" }});
+    if args.scenario == super::proof_viewport::ControlScenario::NoGraphics {
+        no_graphics::exercise(&paths, &image, &digest, &source, &metadata)?;
+    } else {
+        journey_proof::execute_controls(opts, &image, digest, args.viewport, &metadata)?;
+    }
     if clean_head(&paths.root)? != source {
         return Err(ConduitosError::refusal(
             "creche-controls-source-changed",

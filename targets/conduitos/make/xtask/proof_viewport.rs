@@ -26,6 +26,7 @@ pub struct ControlsArgs {
 pub enum ControlScenario {
     Layout,
     Search,
+    NoGraphics,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Viewport {
