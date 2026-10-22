@@ -1,0 +1,24 @@
+{
+  "source_commit": "9f865823c12092c5a6967f98378749f0dbd5c727",
+  "status": "acceptance-controls-not-complete",
+  "passed_cpu_controls": 25,
+  "aborted_cpu_controls": 1,
+  "abort": "replaced_show_and_changed_unobserved_owner_refuse_before_effect: test-thread stack overflow/SIGABRT, exit101; no semantic assertion result",
+  "strict_all_target_clippy": "passed",
+  "workspace_fmt": "passed",
+  "freestanding_compile": "passed",
+  "qemu_failure_injection": false,
+  "unchanged_retry": false,
+  "source_modified": false,
+  "cache_released": true,
+  "receipts": [
+    {
+      "path": "work/6179-9f865-checks.json",
+      "sha256": "25506cf74e6efdd31a1326f79ae2cd46e95e4e41a564b35015630be7560e8f99"
+    },
+    {
+      "path": "work/6179-9f865-acceptance-controls.json",
+      "sha256": "8e16a9b05c4737e31e5bc8d63718afe0542a785c7b811ce6872e9879675d8ba3"
+    }
+  ]
+}
