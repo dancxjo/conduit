@@ -1,0 +1,151 @@
+{
+  "source_commit": "ac82545031d10044a9341f01066289e759cb0e13",
+  "scope": "One source-pinned freestanding QEMU appliance run; no optimization, calibrated latency, physical result or normal product speed claim.",
+  "machine": {
+    "accelerator": "qemu-default",
+    "arguments": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "256M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-monitor",
+      "none",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-setup-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "isa-debug-exit,iobase=0xf4,iosize=0x04",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-setup-native-artifacts/x86_64/conduitos.iso",
+      "-boot",
+      "d"
+    ],
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1,
+    "version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)\nCopyright (c) 2003-2025 Fabrice Bellard and the QEMU Project developers\n"
+  },
+  "cpuid": {
+    "calibrated": false,
+    "component_attribution": false,
+    "counter_pair_ticks": [
+      22668,
+      12814,
+      11082
+    ],
+    "cpuid1_eax": 1635,
+    "cpuid1_ecx": 4143460875,
+    "cpuid1_edx": 265026557,
+    "fixture_capacity": 256,
+    "invariant_tsc": false,
+    "records": 20,
+    "schema": "conduit.conduitos/service-baseline@1",
+    "setup_component_records": 14,
+    "units": "raw-tsc"
+  },
+  "elf_sha256": "0be04966469c97244aae65fdc0321ddaa18ef3ae8f802066c7d742820a19b0fa",
+  "iso_sha256": "64fd9b8a94786713b9ac18ffb376cf318ece2439ced1679ec8140237104b3dd3",
+  "transcript_sha256": "41282f2e7702df94ff1049a468095f4f65a6cf68cb77bf1be2c70d474acd8d79",
+  "samples": 20,
+  "setup_components": 14,
+  "setup_clearing_fraction": {
+    "min": 0.9353041014158008,
+    "median": 0.9650747550307794,
+    "max": 0.966607195066776
+  },
+  "counter_overhead_included": true,
+  "root_interrupt_time_not_independently_removed": true,
+  "checks": {
+    "formatter_passed": 3,
+    "reader_passed": 3,
+    "supported_native_exit": 0,
+    "all_five_protection_receipts_bind_same_source_elf_and_transcript": true
+  },
+  "measured_objects": {
+    "targets/conduitos/src/arch/x86_64/service_memory.rs": "6d99e86909628b4830a0cd2a80d701675ca5da7e",
+    "targets/conduitos/src/arch/x86_64/service_memory/storage.rs": "06e64b493227408ba718d82f4baa3e7e45fd7aff",
+    "targets/conduitos/src/arch/x86_64/service_domain.rs": "1e5ca1466137212a47dc707387bc380fc6966af1",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "937e22ef06acaa85f75036934c57823c187ea554",
+    "targets/conduitos/src/native_observation/raw_counter.rs": "e73b650b1ba3f5167e78354c9b5137bd2d485d40",
+    "targets/conduitos/src/ordinary_domain_baseline_format.rs": "19e4f61d18085253a8a62409c49811c93fae5a4f",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/baseline.rs": "82b569a263c6f90e9813f0e122c425b251a38bec",
+    "targets/conduitos/make/xtask/ordinary_domain_proof/baseline.rs": "b385a34dd1aae520d8b2fc714071f5532f48bdb6"
+  },
+  "retained": [
+    {
+      "file": "ordinary-domain-proof.log.gz",
+      "raw_bytes": 37968,
+      "raw_sha256": "41282f2e7702df94ff1049a468095f4f65a6cf68cb77bf1be2c70d474acd8d79",
+      "stored_bytes": 5832,
+      "stored_sha256": "26b28fa1116b3d1c8609371d0f772191f1c0f8ccfc014880f8baf3804b8243f9"
+    },
+    {
+      "file": "compositor-copy-recovery-fixture-proof.json.gz",
+      "raw_bytes": 1630,
+      "raw_sha256": "80d7e7383d32f5f18afae828dd2c25e01f68cfb23cdddac80347cf9e2a5b4223",
+      "stored_bytes": 727,
+      "stored_sha256": "3ffb5d46035444de2e31263200813d43c8d90c4ac0b0b7c5339f6c550c462f30"
+    },
+    {
+      "file": "compositor-guest-fixture-proof.json.gz",
+      "raw_bytes": 1546,
+      "raw_sha256": "733d3725e381bd56300b8e4669efe11d1208d57b298d89b4ee689316862651cd",
+      "stored_bytes": 728,
+      "stored_sha256": "bae38174be3a12167d21e0c737883e839b98c3d2003f955a8374f11705795c70"
+    },
+    {
+      "file": "compositor-hostile-broker-fixture-proof.json.gz",
+      "raw_bytes": 2423,
+      "raw_sha256": "2c840a3258aa463ed66594d5d2e3b3bcc41d5f0540ab5151f347910785eeaa92",
+      "stored_bytes": 850,
+      "stored_sha256": "a5346d3d4f2532c98e4a2eac8a2adbe4123714b5231d8dfe2c3381a306135634"
+    },
+    {
+      "file": "service-baseline-proof.json.gz",
+      "raw_bytes": 12190,
+      "raw_sha256": "7b227b8a831aea584e61cf9a76c11a2fd773e5c9760b75f3da0783a7b34ce112",
+      "stored_bytes": 2340,
+      "stored_sha256": "4b31b700ab7498e704478ecdcaeaa7ce8c956d3eb5f8c2d2b042c318d860b516"
+    },
+    {
+      "file": "service-memory-fixture-proof.json.gz",
+      "raw_bytes": 1169,
+      "raw_sha256": "6ebffb31855c584abcce7a9c17dc47e9b21eec415f9e21eaf076bc03a830e171",
+      "stored_bytes": 562,
+      "stored_sha256": "ce93b9dab2d5996603a8176ba4848428760182f6a3f12e2d6d504424260022d3"
+    },
+    {
+      "file": "6183-setup-native-first.log.gz",
+      "raw_bytes": 168381,
+      "raw_sha256": "9cde4639b13c8b7c0ad7cfd6f565b12d89ae6d7709a3a2d6e549e3fe21154cd3",
+      "stored_bytes": 18072,
+      "stored_sha256": "5b178f293570bac505189040c908271a97ceb387fc5ba47362fe99f0a7c49427"
+    },
+    {
+      "file": "6183-setup-format-tests-first.log.gz",
+      "raw_bytes": 18832,
+      "raw_sha256": "7d849c5d5fad3dd6b0921f7ba7644835a38cf95cb23ec50577c3976b5684c535",
+      "stored_bytes": 3202,
+      "stored_sha256": "44e0ceaa1c5c5e9d456ea427e4f445d74f11336e244781bd406a5727c59bc0c1"
+    },
+    {
+      "file": "6183-setup-reader-tests-first.log.gz",
+      "raw_bytes": 21860,
+      "raw_sha256": "55856c9b2da1ffcd0f8616968c95ce9241329b7a3001128fd01e8a11d92cf7d0",
+      "stored_bytes": 3332,
+      "stored_sha256": "d09908b94de22cdfdecc5fc1a33ba9e8934ea0ea79859f39d70a31d374f14816"
+    }
+  ],
+  "artifact_directory": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-setup-native-artifacts/x86_64",
+  "remaining": "Larger transfer-window/staged IPC, independent trap/CR3/register/interrupt timing and overhead controls, demonstrated optimization plus paired protection and normal responsive-journey comparison. Candidate/merge/relevant Integration not claimed."
+}

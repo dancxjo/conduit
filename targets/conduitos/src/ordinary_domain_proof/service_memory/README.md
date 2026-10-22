@@ -8,6 +8,13 @@ completed the real x86_64 appliance at q35/max/one vCPU/256 MiB and published al
 full #6183 acceptance remains open. See the source/image-bound
 [packet](../../../../../docs/audits/evidence/service-entry-baseline-20261022/README.md).
 
+The later [setup-clearing extension](../../../../../docs/audits/evidence/service-setup-attribution-20261022/README.md)
+adds 14 exact-instance observations around the actual service pool's existing
+clearing call. Clean `ac82545031d10044a9341f01066289e759cb0e13` passed the same
+full appliance: clearing occupied 93.5–96.7% of the observed setup interval.
+These uncalibrated ratios include counter overhead and leave entry/trap/CR3
+attribution, optimization and normal-product comparison open.
+
 Historical `a77945244721f7ebf4a25ea69bacef789f76610f` compiled and linked,
 but its 128 MiB profile refused `runtime-arena-unavailable` before protected
 entry. Later 256 MiB admission failures and the exact text-binding diagnostic
