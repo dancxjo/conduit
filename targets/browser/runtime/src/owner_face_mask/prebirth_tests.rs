@@ -309,18 +309,31 @@ fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() 
     let interaction =
         execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)
             .unwrap();
+    // Valid JSON whitespace preserves this exact Face while making a single
+    // payload occupy more than half the actual sealed queue byte capacity.
+    // Pressure then precedes value-slot exhaustion without changing either grant.
+    let mut pressured_face = original.clone();
+    let pressure_bytes = original.len().max(input.byte_capacity as usize / 2 + 1);
+    pressured_face.resize(pressure_bytes, b' ');
+    assert!(pressured_face.len() <= input.byte_capacity as usize);
+    assert!(pressured_face.len() <= MASK_BYTES as usize);
+    assert!(pressured_face.len() * 2 > input.byte_capacity as usize);
+    assert_eq!(
+        serde_json::from_slice::<Face>(&pressured_face).unwrap(),
+        face
+    );
     let mut scheduler = execution::mask_scheduler(fragment, &lowered).unwrap();
     assert_eq!(
         scheduler
-            .admit_remote_input(input.endpoint, input.cord, 0, &original)
+            .admit_remote_input(input.endpoint, input.cord, 0, &pressured_face)
             .unwrap(),
         RemoteIngressOutcome::Accepted { sequence: 0 }
     );
-    // Fill the actual planned Fore capacity; do not assume a one-item queue.
+    // Fill the actual planned Fore byte capacity; retain its four-item limit.
     let mut pressured_sequence = None;
     for sequence in 1..=64 {
         match scheduler
-            .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+            .admit_remote_input(input.endpoint, input.cord, sequence, &pressured_face)
             .unwrap()
         {
             RemoteIngressOutcome::Accepted { sequence: actual } => assert_eq!(actual, sequence),
@@ -334,7 +347,7 @@ fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() 
     let sequence = pressured_sequence.expect("finite planned Face queue must apply pressure");
     assert_eq!(
         scheduler
-            .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+            .admit_remote_input(input.endpoint, input.cord, sequence, &pressured_face)
             .unwrap(),
         RemoteIngressOutcome::Full { sequence }
     );
