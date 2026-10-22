@@ -317,3 +317,21 @@ all four focused canonical cases pass again, including unused-extra-front
 refusals. Strict owning-package Clippy stops on the pre-existing
 `PreparedApplication::Patchbay` large-enum variant in `application_state.rs`;
 the negative log is retained. No enum/storage change is folded into this fix.
+
+The fresh `efe8c3efa` Chromium run gets past Birth. It still fails both scenarios:
+Handbook's offered Inspect actions are inside its closed Body disclosure (test
+must open it), and Workspace Wake explicitly refuses because its low-level Host
+caller omits the selected browser Face renderer. These are distinct from the
+fixed Birth review. The second negative batch is preserved at
+`/tmp/conduit-patchbay-browser-failed-efe8-20261022`.
+
+Workspace now uses the existing selected Patchbay renderer and a shared checked
+Play adapter extracted from the SDK. Both callers reread authoritative runtime
+Face/Show and validate the actual started Body/Plan/Play; there is no second
+retained Face or newly inferred edit handler. Adapter replacement, retirement
+and abort revoke the presentation route. Both browser tests open actual Body
+disclosure before Inspect. Exact package import graphs include the shared
+modules; 58 focused Node checks and two resource/producer checks pass, including
+undersized-package refusal. Only Workspace play's module fetch bound grows from
+8192 to 12288 bytes for its measured 8600 bytes; runtime storage/global bounds
+are unchanged. Fresh sealed-product Chromium enactment remains owed.

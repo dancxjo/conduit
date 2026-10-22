@@ -118,6 +118,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
     const graph = page.locator(".handbook-show conduit-owner-face:visible");
     const inspectClock = graph.getByRole("button", { name: /^Inspect (clock-demo|A ticker you can stop)$/i });
+    await graph.locator('details[data-body-menu] > summary').click();
     await expect(inspectClock).toBeEnabled();
     await inspectClock.click();
     const editForm = graph.locator('[data-owner-action="patchbay.edit.current"]');
@@ -128,6 +129,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     expect(disclosure[2]).toBe(`plot/${example.selectedPlot}`);
     await expect(graph.locator('li').filter({ hasText: `body-plan-id: ${example.planId}` })).toHaveCount(1);
     await expect(graph.locator('li').filter({ hasText: `observed-body-play-id: ${example.playId}` })).toHaveCount(1);
+    await graph.getByText('Inspect other Face subjects', { exact: true }).click();
     const clockGear = graph.locator('[data-face-role="Gear"]').filter({
       has: page.getByRole("heading", { name: / Gear · time\/every$/ }),
     });
@@ -201,6 +203,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(editor).toHaveValue(editedSource);
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
+    await graph.locator('details[data-body-menu] > summary').click();
     await expect(inspectClock).toBeEnabled();
     await inspectClock.click();
     await expect(editForm).toBeVisible();

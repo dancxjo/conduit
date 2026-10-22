@@ -10,6 +10,7 @@ test("every shipped Workspace module fits its declared finite package bound", as
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   for (const resource of template.resources.filter(value => value.kind === "module")) {
     const candidates = [
+      ...(resource.source ? [path.resolve("targets/browser/workspace", resource.source)] : []),
       resource.path.replace("/browser-deployment/", "/deployment/browser/"),
       path.join("targets/browser/workspace", resource.path),
       path.join("targets/browser/host/assets", resource.path),

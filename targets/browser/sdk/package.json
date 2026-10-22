@@ -21,6 +21,7 @@
     "browser-sdk-face.mjs",
     "browser-sdk-face-actions.mjs",
     "browser-sdk-patchbay.mjs",
+    "browser-sdk-patchbay-play.mjs",
     "owner-face-component.mjs",
     "owner-face-look.css",
     "browser-sdk-owner-show-state.mjs",

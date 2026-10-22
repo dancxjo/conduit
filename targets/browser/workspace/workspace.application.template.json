@@ -364,11 +364,19 @@
       "role": "workspace-play",
       "kind": "module",
       "path": "workspace-play.mjs",
-      "maximum_bytes": 8192,
+      "maximum_bytes": 12288,
       "dependencies": [
         {
           "role": "browser-body-host",
           "specifier": "../../../targets/browser/host/assets/browser-body-host.mjs"
+        },
+        {
+          "role": "browser-sdk-patchbay-play",
+          "specifier": "../sdk/browser-sdk-patchbay-play.mjs"
+        },
+        {
+          "role": "browser-sdk-patchbay",
+          "specifier": "../sdk/browser-sdk-patchbay.mjs"
         }
       ]
     },
@@ -634,6 +642,56 @@
       "kind": "module",
       "path": "workspace-surface.mjs",
       "maximum_bytes": 4096,
+      "dependencies": []
+    },
+    {
+      "role": "browser-sdk-patchbay-play",
+      "kind": "module",
+      "path": "browser-sdk-patchbay-play.mjs",
+      "source": "../sdk/browser-sdk-patchbay-play.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": [
+        {
+          "role": "browser-sdk-face-actions",
+          "specifier": "./browser-sdk-face-actions.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-sdk-face-actions",
+      "kind": "module",
+      "path": "browser-sdk-face-actions.mjs",
+      "source": "../sdk/browser-sdk-face-actions.mjs",
+      "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
+      "role": "browser-sdk-patchbay",
+      "kind": "module",
+      "path": "browser-sdk-patchbay.mjs",
+      "source": "../sdk/browser-sdk-patchbay.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "owner-face-component",
+          "specifier": "../handbook/owner-face-component.mjs"
+        }
+      ]
+    },
+    {
+      "role": "owner-face-component",
+      "kind": "module",
+      "path": "owner-face-component.mjs",
+      "source": "../handbook/owner-face-component.mjs",
+      "maximum_bytes": 65536,
+      "dependencies": []
+    },
+    {
+      "role": "owner-face-look",
+      "kind": "style",
+      "path": "owner-face-look.css",
+      "source": "../handbook/owner-face-look.css",
+      "maximum_bytes": 16384,
       "dependencies": []
     }
   ]

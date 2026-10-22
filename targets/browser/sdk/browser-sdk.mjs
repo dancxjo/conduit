@@ -1,8 +1,9 @@
 import { renderPatchbayPublication } from "./browser-sdk-patchbay.mjs";
+import { createPatchbayPlay } from "./browser-sdk-patchbay-play.mjs";
 import { acknowledgeOwnerFaceShow, clearOwnerFaceShow, selectOwnerFaceComponent, prepareOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
-import { checkedAcknowledgedOwnerFaceArguments, checkedPatchbayFaceArguments } from "./browser-sdk-face-actions.mjs";
+import { checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
 import { checkedOwnerWardrobeReport, checkedOwnerWardrobeAction } from "./browser-sdk-wardrobe.mjs";
 const PACKAGE_SCHEMA = "conduit.browser/sdk-package@1";
 const DISTRIBUTION_SCHEMA = "conduit.browser/reviewed-distribution@1";
@@ -496,6 +497,7 @@ function freezeSdkJson(value) {
 export class BrowserPlay {
   #started;
   #adapter;
+  #patchbay;
   #completion = null;
   #terminal = null;
   #failure = null;
@@ -503,6 +505,8 @@ export class BrowserPlay {
     if (key !== BROWSER_HOST_KEY) throw new TypeError("BrowserPlay values come from an admitted runtime start");
     this.#started = started;
     this.#adapter = adapter;
+    this.#patchbay = createPatchbayPlay({ adapter, identity: started.play,
+      isCurrent: () => this.state === "playing" });
     Object.freeze(this);
   }
   get schema() { return "conduit.browser/play@1"; }
@@ -511,68 +515,14 @@ export class BrowserPlay {
   get plan() { return Object.freeze({ planId: this.#started.play.plan_id, wakeId: this.#started.play.wake_id, bodyId: this.#started.play.body_id }); }
   get state() { return this.#terminal ? "terminal" : this.#failure ? "failed" : "playing"; }
   get receipts() { return Object.freeze(this.#terminal ? [this.#terminal] : []); }
-  /** Read canonical resident Patchbay meaning; this does not publish or acknowledge a Show. */
-  patchbayObservation() {
-    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    return this.#checkedPatchbayObservation(this.#adapter.patchbayObservation());
-  }
-  /** Submit an exact prepared-route envelope; Rust owns Show and argument admission. */
-  acknowledgePatchbayFace(message) {
-    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    return this.#checkedPatchbayObservation(this.#adapter.acknowledgePatchbayFace(message));
-  }
-  async submitPatchbayFaceAction({ view, actionId, target, arguments: actionArguments = [], sequence }) {
-    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    const current = this.patchbayObservation().publication?.view;
-    if (!current || current.interactions_admitted !== true || current.show_state !== 'available'
-        || current.body_id !== this.#started.play.body_id
-        || view?.show_id !== current.show_id || view?.face_id !== current.face_id
-        || view?.face_revision !== current.face_revision) throw new Error('Current acknowledged Patchbay Show is required');
-    if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
-    const action = current.actions.find(candidate => candidate.identity === actionId && candidate.target === target);
-    if (!action || action.availability !== 'available') throw new Error('Patchbay action is unavailable');
-    const checked = checkedPatchbayFaceArguments(current, view, actionId, target, actionArguments);
-    return this.submitPatchbayInteraction({ show_id: current.show_id, face_id: current.face_id,
-      face_revision: Number(current.face_revision), action_id: actionId, target, arguments: checked, sequence });
-  }
-  async submitPatchbayInteraction(message) {
-    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    return this.#checkedPatchbayObservation(await this.#adapter.submitPatchbayInteraction(message));
-  }
-  refreshPatchbayFace(message) {
-    if (this.state !== 'playing') throw new Error('Patchbay Play is unavailable');
-    return this.#checkedPatchbayObservation(this.#adapter.refreshPatchbayFace(message));
-  }
-  #checkedPatchbayObservation(observation) {
-    if (observation?.schema !== 'conduit.browser/patchbay-observation@1'
-        || observation.mask_show !== null || observation.interaction_admitted !== false
-        || observation.active_play_id !== this.id
-        || observation.body_plan_id !== this.#started.play.plan_id
-        || observation.face?.basis?.body_id !== this.#started.play.body_id) {
-      throw new Error('Patchbay observation differs from this Body Play');
-    }
-    return observation;
-  }
-  /** Report the Host's disposition; this does not execute or prove an owner effect. */
-  reportPatchbayRequestDisposition({ observation, outcome, evidenceId }) {
-    const current = this.patchbayObservation();
-    if (!['Completed', 'Rejected', 'Cancelled', 'Uncertain'].includes(outcome)
-        || typeof evidenceId !== 'string' || evidenceId.trim().length < 1
-        || encoder.encode(evidenceId).length > 256) throw new TypeError('Invalid Patchbay request disposition');
-    if (!current.pending_owner_request || !observation?.pending_owner_request
-        || observation.body_plan_id !== current.body_plan_id
-        || observation.active_play_id !== current.active_play_id
-        || observation.owner_checked_plot_id !== current.owner_checked_plot_id
-        || observation.pending_owner_request.application_revision !== current.pending_owner_request.application_revision
-        || JSON.stringify(observation.pending_owner_request.request) !== JSON.stringify(current.pending_owner_request.request)) {
-      throw new Error('Current exact pending Patchbay owner request is required');
-    }
-    return this.#checkedPatchbayObservation(this.#adapter.patchbayRequestDisposition({
-      body_id: this.#started.play.body_id, body_plan_id: current.body_plan_id,
-      active_play_id: current.active_play_id, owner_checked_plot_id: current.owner_checked_plot_id,
-      application_revision: current.pending_owner_request.application_revision, outcome, evidence_id: evidenceId,
-    }));
-  }
+  /** Read canonical resident meaning without acknowledging a Show. */
+  patchbayObservation() { return this.#patchbay.patchbayObservation(); }
+  acknowledgePatchbayFace(message) { return this.#patchbay.acknowledgePatchbayFace(message); }
+  async submitPatchbayFaceAction(message) { return this.#patchbay.submitPatchbayFaceAction(message); }
+  async submitPatchbayInteraction(message) { return this.#patchbay.submitPatchbayInteraction(message); }
+  refreshPatchbayFace(message) { return this.#patchbay.refreshPatchbayFace(message); }
+  /** Report the Host's disposition; this does not execute an owner effect. */
+  reportPatchbayRequestDisposition(message) { return this.#patchbay.reportPatchbayRequestDisposition(message); }
   /** Read the contributed Face of this Play's admitted Thermostat scan. */
   thermostatFace() {
     if (this.state !== 'playing') throw new Error('Thermostat Play is unavailable');

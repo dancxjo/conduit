@@ -1,3 +1,5 @@
+import { createPatchbayPlay } from "../sdk/browser-sdk-patchbay-play.mjs";
+import { renderPatchbayPublication } from "../sdk/browser-sdk-patchbay.mjs";
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
 export function openWorkspacePlay({ host, session, storage, source, planningLines, inputTarget, outputRoot, foregroundPlot, onState,
@@ -38,12 +40,22 @@ export function openWorkspacePlay({ host, session, storage, source, planningLine
         proposal = await session.propose(source, planningLines(), authorizeAudio);
         publish('Preparing', 'Acquiring the required capabilities');
         external = await prepareExternal(proposal);
+        let renderingPlay, renderingBinding;
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
           inputTarget, outputRoot, foregroundPlot, faceRootFor, onApplicationEvent,
           onTutorialPresenterRequest, storage,
+          onPatchbayPublication: request => {
+            if (!renderingBinding || adapter !== renderingBinding.adapter || terminal !== null) {
+              throw new Error("Patchbay renderer has no current started Workspace Play");
+            }
+            renderingPlay ??= createPatchbayPlay({ ...renderingBinding,
+              isCurrent: () => adapter === renderingBinding.adapter && terminal === null && !request.signal.aborted });
+            return renderPatchbayPublication({ ...request, play: renderingPlay });
+          },
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
+        renderingBinding = Object.freeze({ adapter, identity: Object.freeze({ ...started.play }) });
         await external?.updateContext?.();
         publish('Playing', 'Plots are awake');
         const running = adapter;

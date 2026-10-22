@@ -60,6 +60,7 @@ test("resident canonical Patchbay inspects a typed subject and retains an unhand
   const patchbay = visiblePlotOutput(page);
   const canonical = patchbay.locator("conduit-owner-face");
   await expect(canonical).toBeVisible();
+  await canonical.locator('details[data-body-menu] > summary').click();
   const inspectButton = canonical.getByRole("button", { name: "Inspect Memory Lantern", exact: true });
   await expect(inspectButton).toBeEnabled();
   const before = await patchbayObservation(page);

@@ -65,3 +65,38 @@ test("finishing retires a play first and publishes one irreversible terminal sta
   assert.equal(state, "FULFILLED");
   assert.equal(states.at(-1), "Fulfilled");
 });
+
+test("Workspace canonical renderer acknowledges only its actually started current Play", async () => {
+  const identity = {body_id:"body/current", plan_id:"plan/current", active_play_id:"body-play"};
+  const effect = {show_id:"show", manifestation_id:"manifestation", mask_plan_id:"mask-plan",
+    mask_play:{active_play_id:"mask-play"}, placement_id:"slot", face_id:"face", face_revision:1};
+  const prepared = {schema:"conduit.browser/patchbay-observation@1", mask_show:null,
+    interaction_admitted:false, body_plan_id:identity.plan_id, active_play_id:identity.active_play_id,
+    face:{basis:{body_id:identity.body_id}}, publication:{effect, view:{show_state:"prepared", show_id:"show"}}};
+  let render, acknowledgement;
+  const controller = new AbortController();
+  const component = {isConnected:true, disabled:true, checkVisibility:()=>true,
+    show(view) { this.view = view; }};
+  const root = {isConnected:true, querySelector:selector=>selector==="conduit-owner-face"?component:{},
+    ownerDocument:{defaultView:{}}};
+  const request = {observation:prepared, root, signal:controller.signal};
+  const session = {current:()=>({state:"AWAKE"}), propose:async()=>({}), started:async()=>{},
+    lull:async()=>{}, evidence:()=>({}), persistenceFailure:()=>null};
+  const adapter = {start:()=>({play:identity}),
+    acknowledgePatchbayFace(message) { acknowledgement = message;
+      return {...prepared, publication:{effect, view:{show_state:"available", show_id:"show"}}}; },
+    run:async()=>{ await render(request); return {disposition:"quiescent_awaiting_input"}; },
+    close:()=>({receipt:terminal("cancelled")})};
+  const play = openWorkspacePlay({host:{runtime:{},hostId:"host",bootId:"boot"}, session,
+    source:"catalog", planningLines:()=>[], inputTarget:{}, outputRoot:{}, onState:()=>{},
+    acquireBody(options) { render = options.onPatchbayPublication;
+      assert.equal(options.onPatchbayOwnerRequest, undefined, "Workspace gains no editor handler");
+      assert.throws(()=>render(request), /no current started/, "preparation cannot acknowledge before start");
+      return adapter; }});
+  await play.wake(); await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(component.view.show_state, "available");
+  assert.equal(acknowledgement.show_id, effect.show_id);
+  assert.equal(acknowledgement.active_play_id, effect.mask_play.active_play_id);
+  await play.lull();
+  assert.throws(()=>render(request), /no current started/);
+});
