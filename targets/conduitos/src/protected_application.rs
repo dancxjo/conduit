@@ -1,9 +1,21 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
+#[path = "protected_application/authority.rs"]
 mod authority;
+#[path = "protected_application/canonical_patchbay.rs"]
 mod canonical_patchbay;
+#[path = "protected_application/graph_facts.rs"]
 mod graph_facts;
 pub(crate) use graph_facts::project_graph;
+#[path = "protected_application/projection.rs"]
 mod projection;
+#[cfg(test)]
+#[path = "protected_application/return_tests.rs"]
+mod return_tests;
+#[cfg(not(test))]
+#[path = "protected_application/transport.rs"]
+mod transport;
+#[cfg(test)]
+#[path = "protected_application/fixture_transport.rs"]
 mod transport;
 use alloc::boxed::Box;
 use conduit_face::ApplicationView;

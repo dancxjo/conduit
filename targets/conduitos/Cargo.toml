@@ -297,3 +297,8 @@ required-features = ["native-compositor"]
 name = "native_compositor_scanout"
 path = "tests/native_compositor_scanout.rs"
 required-features = ["native-compositor"]
+
+[[test]]
+name = "canonical_root_returns"
+path = "tests/canonical_root_returns.rs"
+required-features = ["native-compositor"]

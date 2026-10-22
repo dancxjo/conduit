@@ -104,3 +104,10 @@ that condition; independent fixture chains or counts across Plot definitions
 do not substitute. Root hostile substituted-service-return integration,
 remaining narrow/failure/provider and Look/accessibility acceptance retain
 their separate scopes. Prior packets remain attributed to their own Sources.
+
+## Root return-admission follow-up
+
+[The production Root CPU integration](native-root-return-admission-20261022.md)
+now passes six tests with two genuine paths and 19 substituted return cases.
+It closes the decoded service-return admission test gap recorded above;
+actual protected malicious guest execution/confinement is still not claimed.
