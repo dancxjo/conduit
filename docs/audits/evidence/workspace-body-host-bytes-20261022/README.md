@@ -1,0 +1,9 @@
+# Workspace Body host package accounting
+
+Clean executed Source `357fc81424dd513cda74b42f4817ab89d231c37e` changes only the Workspace `browser-body-host` resource declaration from 32768 to 49152 bytes and its resource tests. Canonical Patchbay owner support added 7508 source bytes in `9e6bb1286`, taking this already shipped module from 32679 to 40187 bytes (SHA-256 `9a253937044133229222e2a94eac4d8571cc00119d2fa5a1aef9efe4e1365b1c`). The supported staging script copies these exact bytes; there is no existing minification step or missing import module.
+
+Four Node cases passed on the clean source: every shipped Workspace module fits, the real storage module producer/refusal, the actual Body host recursive dependency closure with every resource hash/declaration retained and old32768/actual-length-minus-one/omitted-import refusals, and shared Face stylesheet producer/refusal across consumers. The first three-case working-tree pass is separately retained; its source files became the tested commit without content changes. No failed local run was retried.
+
+The package still has 85 resources. Total declared bytes change from22368256 to22384640, below the unchanged32MiB global grant. Loader limits remain96 resources,16MiB ordinary resource,20MiB runtime and48KiB manifest. The producer still hashes exact bytes and binds declarations/dependencies into the package digest; the loader still streams bounded reads and verifies hashes. No production logic, import mapping, global bound or runtime grant changed.
+
+The original hosted failure at preview `2329fab856690fdd00b34ae1a9a7a68bc1f04fa0`, Candidate39787413371/browser119855037627, is retained losslessly. `checks.json` records original byte lengths/hashes and exact clean-source command. This is packaging-boundary Node proof, not full application staging, browser rendering, Cargo/CI or QEMU evidence. The complete staged application still requires its actual runtime and release artifacts.
