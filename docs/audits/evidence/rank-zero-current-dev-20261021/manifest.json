@@ -53,6 +53,18 @@
       "exit_code": 0,
       "raw_sha256": "ef18a7749879e313db43b82198cc47802d99799742f2977e668494c09f2f14d4",
       "gzip_sha256": "c3d5f86aefa891cbbeb887eda76e8fa3c1eae64a68b055f7dd4a969e3b00c232"
+    },
+    {
+      "file": "all-changed-tests-clippy.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "5a3c8ec71d15de4768c5c648b7ae41a7a5e75c805ba1d0a35069e57e3b858474",
+      "gzip_sha256": "af9176f2e6edba4dd646ab8dc763989ad1f4141643480af4f24779307d670647"
+    },
+    {
+      "file": "negative-scalar-ci-lint.log.gz",
+      "exit_code": 1,
+      "raw_sha256": "609fe96cac2b16155e12479f0bdf8a5c6226528b7cf51b792260558005bce374",
+      "gzip_sha256": "b1bc3bc7befa65d1c0d5b71e6af6194a4349d30868f64fa23ceb2d26e5af7b22"
     }
   ],
   "negative_notes": [
@@ -66,5 +78,12 @@
     "clippy_exit_code": 0,
     "refusal_tests_passed": 2,
     "note": "Changes after full suite share one fixture profile module and format its import; no production behavior changes. Whole workspace formatting and diff checks pass."
+  },
+  "scalar_ci_lint_followup": {
+    "source": "1a30320a6",
+    "fix": "Use equivalent 2..=4 pattern in negative test fixture; no production behavior change.",
+    "command": "cargo +stable clippy --locked -p conduit-ai --test onnx_metadata -p conduit-data --test tensor --test tensor_scalar -p conduit-std-host --test model_infer_onnx_scalar --test model_infer_imported_refusals -- -D warnings",
+    "exit_code": 0,
+    "note": "Earlier focused Clippy covered prerequisite refusals only. This follow-up checks every changed AI/Data/std test target before publication."
   }
 }
