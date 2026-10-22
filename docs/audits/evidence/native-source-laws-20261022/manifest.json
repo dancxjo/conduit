@@ -1,0 +1,146 @@
+{
+  "source_head": "b3baad60b95c62f88d7a38dca39ecb15f2c82876",
+  "base": "a56001540",
+  "files": {
+    "architecture/core/src/structured_info/borrowed/record.rs": "a238b0e889d9fca1be0aea5ac6f21d25c6df8898f5d8337477f98898548dfed6",
+    "architecture/core/tests/borrowed_projection.rs": "c5b9f696ed1a2be6b7ea8bbf04676e93210edf3c728900da40fcde1b95c6e06b",
+    "architecture/plot/src/rust_binding/mod.rs": "5474232a5b55956d2d14d5d527e982b3defdce08c6fdd8bf26595b900275136b",
+    "architecture/plot/src/rust_binding/prepared_native.rs": "53048ae6c4e2fede29ed274f29a1c9293130afb7c42a83290cc21c6ae6fd64f9",
+    "architecture/plot/src/rust_binding/prepared_native/traversal.rs": "9664a48e06b0afc01b75f5fcd0a881a797d849ddf26691d4e7db1f42db2d6136",
+    "architecture/plot/tests/prepared_native_admission.rs": "c7789fa7e6842d1069ae2c1208b43b0da366d552a437639eb3763f7ff087e75f",
+    "architecture/plot/tests/prepared_native_occurrences.rs": "2eaa4ef7744cd9bb6241750f8e224040bb2dabb806b6b24f15d162f7bc811194",
+    "architecture/plot/tests/prepared_native_optional.rs": "4330234f1ea275a6800280cbe6978f105e1ab7257b986bd4956363a6bc37c647",
+    "semantics/language/tests/prepared_beam_admission.rs": "a7be6fa111b41bf9e93a2fdf0e677b58a559046f943d0b441b718723668bcb09",
+    "tools/xtask/src/commands/check.rs": "d99a7d09af2e49bc2c40c658bb109571eeda97d5c873d52e955332eae7784c23",
+    "tools/xtask/src/commands/check/cli.rs": "ff9cae16733e0730bf5d173e6e899d264615145dcfa81cff7b6d4d3f81f520ab",
+    "tools/xtask/src/suites/native_source_laws.rs": "11a032a7777b9abd22de8ecea35c8354a187e73299d85a8fc6c9dad3688af527"
+  },
+  "status": "local full scoped supported proof PASS15 tests; owning strict PASS; unrestricted inherited-base strict negative retained; hosted gates pending",
+  "nested_profile": "Outer scalar contract in0..=7; Inner actual Source invariant >=2. Nested outer literal where law refused by existing checker CND-FRM-058, no compiler change.",
+  "command": "cargo +stable xtask check native-source-laws",
+  "logs": {
+    "6064-supported-first.log": {
+      "raw_sha256": "44a0a85bee0a01235683d3505f691c37fcb16c0cd39292c1b8864f8a789c2bcd",
+      "bytes": 35812
+    },
+    "6064-supported-final.log": {
+      "raw_sha256": "0c63ce6ca2b763b99d7af163d6ba09bec449b14771eb28cefe2ab0a67f656ecd",
+      "bytes": 15613
+    },
+    "6064-supported-corrected.log": {
+      "raw_sha256": "f436504b0dfee38857760c462192cddfb41dc65cae162fd0273f869cf8ae8c3f",
+      "bytes": 9881
+    },
+    "6064-nested-first.log": {
+      "raw_sha256": "8d1416ea0248524fbdd72f5ff9d3c0aae4526f92a37e9120c74c5655d4b7e7a4",
+      "bytes": 1477
+    },
+    "6064-nested-corrected.log": {
+      "raw_sha256": "b84a13fa0339d50f91ad15c8ce4280892f0cd63364b325fcc1d06b84442b0516",
+      "bytes": 619
+    },
+    "6064-supported-complete.log": {
+      "raw_sha256": "c1e630ffc0e67df6a7acf7df240dbb39339de2231c0eb8a9286a53db5f364cbc",
+      "bytes": 23656
+    },
+    "6064-plot-strict.log": {
+      "raw_sha256": "d375b1a17c2f3862ceb29a531116b691e9f62e0cbb43133823a588e96b3dc7f3",
+      "bytes": 1139
+    },
+    "6064-beam-strict.log": {
+      "raw_sha256": "a5b13ee6f80a7d3bc533a64066fac5bdbf527aba1207ae3885e05b48dbf62140",
+      "bytes": 8155
+    },
+    "6064-core-complete-strict.log": {
+      "raw_sha256": "78a918c403ae774b9c14bc95f1bc3d98f68ccd4ad01e9cfed9bcc5183c0d436f",
+      "bytes": 370
+    },
+    "6064-plot-complete-strict.log": {
+      "raw_sha256": "7ef93a74d815c442a3a8de18d6f64ca744f666b658470317af8d778377b2b9a3",
+      "bytes": 366
+    },
+    "6064-beam-own-complete-strict.log": {
+      "raw_sha256": "f41f75c6eaffb2ddc096f0963eb8f81219659c072fc87b343c5da63555653600",
+      "bytes": 7117
+    }
+  },
+  "beam_runtime_seconds": 183.32,
+  "executables": {
+    "borrowed_projection-6b0dd170d6665ab4-b3baad60b": "4da06c6b84ed70754ff9d03fd26e8be1fda4ef2e93952eba06d12d95e0a2bb7e",
+    "prepared_native_admission-1c28d0aee7f8ed53-b3baad60b": "c9ccdce9d5771f2cb6c71cc48a68fe53a859ea274db4388dc975cffc349e094d",
+    "prepared_native_occurrences-17430676315b6405-b3baad60b": "bba9d829b5853ee6e8d2e93fd7ff592cecbe508feab09e5ad3398ed32283be66",
+    "prepared_native_optional-d9c23082d71a1d07-b3baad60b": "20cb53505058d6865f218d49cd5027dca8a61627fc1077ce2e7daaf0db0ec377",
+    "prepared_beam_admission-05389a383d2348ad-b3baad60b": "9c426a6030ad71d663a462352ffb89b2613d771a4b762068e93d4d35a5d778d2"
+  },
+  "strict": {
+    "core": {
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-core",
+        "--lib",
+        "--test",
+        "borrowed_projection",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "plot": {
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "--test",
+        "prepared_native_admission",
+        "--test",
+        "prepared_native_occurrences",
+        "--test",
+        "prepared_native_optional",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    "beam-own": {
+      "exit_code": 0,
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--no-deps",
+        "--locked",
+        "-p",
+        "conduit-language",
+        "--test",
+        "prepared_beam_admission",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    }
+  },
+  "proof_classes": {
+    "local": "15 tests PASS,0failures/ignored; core and plot strict -Dwarnings; Beam owning strict --no-deps -Dwarnings",
+    "negative": "unrestricted Beam strict inherited Ingress.plan_id warning; invalid/absent source fixtures retained",
+    "not_claimed": [
+      "hosted Candidate",
+      "merge",
+      "Integration",
+      "shared publication",
+      "generated Rust materialization",
+      "installed Current lifecycle",
+      "hostile-code confinement of trusted StartupCatalog configuration"
+    ]
+  },
+  "executables_custody": "Locally preserved in work/6064-proof-packet/executables-complete; hashes below, binaries not in public packet."
+}

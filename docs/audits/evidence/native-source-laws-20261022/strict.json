@@ -1,0 +1,57 @@
+{
+  "core": {
+    "exit_code": 0,
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-core",
+      "--lib",
+      "--test",
+      "borrowed_projection",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "plot": {
+    "exit_code": 0,
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "-p",
+      "conduit-plot",
+      "--lib",
+      "--test",
+      "prepared_native_admission",
+      "--test",
+      "prepared_native_occurrences",
+      "--test",
+      "prepared_native_optional",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  },
+  "beam-own": {
+    "exit_code": 0,
+    "command": [
+      "cargo",
+      "+stable",
+      "clippy",
+      "--no-deps",
+      "--locked",
+      "-p",
+      "conduit-language",
+      "--test",
+      "prepared_beam_admission",
+      "--",
+      "-D",
+      "warnings"
+    ]
+  }
+}
