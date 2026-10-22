@@ -209,14 +209,18 @@ fn has_show_boundary(p: &PlannedGear) -> bool {
 }
 
 fn is_terminal(p: &PlannedGear) -> bool {
-    p.kind_id.as_str() == RENDERER_KIND || has_show_boundary(p)
+    match p.kind_id.as_str() {
+        RENDERER_KIND => true,
+        PRESENTER_STAGE_KIND => false,
+        _ => has_show_boundary(p),
+    }
 }
 
 fn validate_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     if p.inputs.len() != 1 || p.inputs[0].value_kind.as_str() != FACE_VALUE_KIND {
         return Err(MaskTopologyError::InvalidStageContract);
     }
-    if p.kind_id.as_str() != RENDERER_KIND && has_show_boundary(p) {
+    if !matches!(p.kind_id.as_str(), PRESENTER_STAGE_KIND | RENDERER_KIND) && has_show_boundary(p) {
         let output = |kind, temporal| {
             p.outputs
                 .iter()

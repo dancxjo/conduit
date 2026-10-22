@@ -138,3 +138,44 @@ fn sealed_show_with_wrong_temporal_contract_refuses_instead_of_disappearing() {
         Err(MaskTopologyError::InvalidStageContract)
     );
 }
+
+#[test]
+fn legacy_presenter_contract_cannot_be_reinterpreted_as_a_terminal_mask() {
+    let mut malformed = kind();
+    malformed.kind_id = kind_id(conduit_face::PRESENTER_STAGE_KIND);
+    malformed.kind_contract_revision =
+        KindIdentity::from(conduit_face::PRESENTER_STAGE_CONTRACT_REVISION);
+    let mut catalog = ProfileCatalog::new();
+    catalog.insert_kind(malformed.clone()).unwrap();
+    let plot = conduit_plot::parse(
+        "plot malformed {\n mask: face/presenter-stage\n}\n",
+        &catalog,
+    )
+    .unwrap();
+    let mut host = host();
+    host.capabilities[0].kind_id = malformed.kind_id;
+    host.capabilities[0].kind_contract_revision = malformed.kind_contract_revision;
+    let choices = conduit_planner::PlacementChoices {
+        by_gear: BTreeMap::from([(
+            conduit_core::GearId::from("malformed/mask"),
+            conduit_planner::PlacementChoice {
+                host_id: host.host_id.clone(),
+                capability_id: host.capabilities[0].capability_id.clone(),
+            },
+        )]),
+    };
+    let plan = conduit_planner::plan(
+        &plot,
+        &[host],
+        &choices,
+        &[conduit_core::BaseImplementationId::from(
+            "conduit.base/local@1",
+        )],
+    )
+    .unwrap();
+    assert!(conduit_core::verify_plan(&plan));
+    assert_eq!(
+        MaskTopologyAdmission::from_plan(&plan),
+        Err(MaskTopologyError::IncompatibleType)
+    );
+}
