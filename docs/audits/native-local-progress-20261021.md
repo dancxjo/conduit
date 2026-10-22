@@ -1711,3 +1711,35 @@ rather than claiming an alternate projection is installed. No bound or validator
 was weakened. Editor Source remains limited to its admitted 256 bytes, and the
 existing receipt still truthfully reports selection_enacted=false. Save/reopen,
 real-QEMU/protected-service execution and parent acceptance remain separate gaps.
+
+### 2026-10-22: choose an Edit subject without typing its identifier
+
+For bounded graph subject sets, Patchbay now publishes the exact legal subject
+membership in its existing checked text argument contract. This exposes values
+the owner already required; it creates no widget Kind, renderer authority or
+second selection model. Sets beyond the portable membership carrier retain the
+existing bounded typed entry and owner membership check. Unknown values in the
+finite case refuse as a typed constraint violation before owner effects.
+
+The native Mask reuses its existing bounded text-choice buffer for provisional
+command arguments as well as committed fields. Left/Right selects a draft from
+the complete checked contract; Enter submits it through the same current Show
+and resident Fore. No committed field value is inferred without its explicit
+Source association. Existing 32-choice/2 KiB Mask limits remain unchanged;
+unsupported/larger choice sets retain their complete contract and typed entry.
+
+Navigation no longer executes command-argument drafts. Leaving their action,
+opening reading/diagram/pages, or clicking background cancels the draft. Source
+TextEntry fields retain their existing blur-commit behavior. Role and checked
+contracts drive this mechanical distinction; no Patchbay action-name heuristic
+was added to generic Mask input, and Look does not own it.
+
+Focused local results: five resident canonical command/refusal tests pass; nine
+native text-field/choice tests pass, including draft-only browsing and reading/
+pointer cancellation. The existing text-field Tab-commit/stale-Show regression
+passes. The ordinary installed Patchbay keyboard choice -> typed Edit -> actual
+Source editor path passes, including Tab cancellation before explicit Enter.
+Current dev 624baf562 (#6225) is merged, and freestanding compilation of the
+combined source passes. This remains CPU enactment/compilation; native stack,
+private heap, QEMU/protected-service, browser/platform and release acceptance
+are not inferred from these checks.
