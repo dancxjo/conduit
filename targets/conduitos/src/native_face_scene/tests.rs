@@ -515,7 +515,7 @@ fn primary_action_names_bounded_text_choices_from_current_face_contract() {
         2,
         vec![ValueConstraint::CanonicalMembership {
             members: (0u8..33)
-                .map(|value| alloc::format!("{value}").into_bytes())
+                .map(|value| alloc::format!("{value:02}").into_bytes())
                 .collect(),
             negated: false,
         }],
