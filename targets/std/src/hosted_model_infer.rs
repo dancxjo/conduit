@@ -7,6 +7,11 @@ use conduit_ai::model_infer_catalog::{model_infer_contract, signature_configurat
 use conduit_ai::{AdmittedModelResource, ModelComputeOperation, ModelComputeRequirement};
 use conduit_core::*;
 
+mod imported;
+pub use imported::ImportedModelPrepareRefusal;
+mod resource_custody;
+use resource_custody::ModelCustody;
+
 pub const MODEL_INFER_OPERATION: &str = "conduit.host/model-infer@1";
 pub const MODEL_INFER_IMPLEMENTATION: &str = "std/model-compute@1";
 pub const MODEL_INFER_PROFILE: &str = "conduit.model/named-inference@1";
@@ -15,11 +20,12 @@ pub const MODEL_INFER_MAXIMUM_BYTES: u32 = MAXIMUM_STRUCTURED_CANONICAL_BYTES as
 /// This owner is prepared once. It never discovers models or selects a provider
 /// while Play is advancing. The existing adapter retains its compute session.
 pub struct PreparedModelInfer<A: ModelComputeAdapter> {
-    model: AdmittedModelResource,
+    model: ModelCustody,
     adapter: A,
     requirement: ModelComputeRequirement,
     maximum_input_bytes: u64,
     capability: CapabilityOffer,
+    signature_profile: KindId,
     resource: ResourceOffer,
     next_request: u32,
     cancelled: bool,
@@ -31,6 +37,24 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
 impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
     pub fn prepare(
         model: AdmittedModelResource,
+        adapter: A,
+        requirement: ModelComputeRequirement,
+        adapter_artifact: ArtifactId,
+    ) -> Result<Self, String> {
+        Self::prepare_owned(
+            ModelCustody::Native(model),
+            adapter,
+            requirement,
+            adapter_artifact,
+        )
+    }
+
+    pub fn imported_model(&self) -> Option<&conduit_ai::imported_onnx::ImportedOnnxResource> {
+        self.model.imported()
+    }
+
+    fn prepare_owned(
+        model: ModelCustody,
         mut adapter: A,
         requirement: ModelComputeRequirement,
         adapter_artifact: ArtifactId,
@@ -96,9 +120,10 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         else {
             return Err("model signature is not structured".into());
         };
+        let signature_profile = property.profile().clone();
         let kind = model_infer_contract()?;
         let identity = model
-            .descriptor_identity()
+            .selection_identity()
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect::<String>();
@@ -159,6 +184,7 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
             maximum_input_bytes: requirement.input_bytes,
             requirement,
             capability,
+            signature_profile,
             resource: ResourceOffer {
                 pool_id: format!("model/infer/{identity}").into(),
                 class_id: class.into(),
@@ -202,7 +228,13 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
             || placement.artifact_id != self.capability.implementation.artifact_id
             || placement.implementation_id.as_str() != MODEL_INFER_IMPLEMENTATION
             || configuration.key != "signature"
-            || self.capability.realization_properties.first() != Some(signature)
+            || placement.realization_properties != self.capability.realization_properties
+            || self
+                .capability
+                .realization_properties
+                .iter()
+                .find(|p| p.profile() == &self.signature_profile)
+                != Some(signature)
         {
             return ModelWorkTerminal::Refused;
         }
@@ -215,6 +247,9 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         if self.signature_io.validate_inputs(&inputs).is_err() {
             return ModelWorkTerminal::MalformedInput;
         }
+        let Ok(mut imported_symbols) = self.model.input_symbols(&inputs) else {
+            return ModelWorkTerminal::MalformedInput;
+        };
         let bytes = inputs.tensor_bytes();
         if bytes > self.maximum_input_bytes {
             return ModelWorkTerminal::Refused;
@@ -242,9 +277,14 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
                 };
                 if result.request_identity != identity
                     || result.artifact_identity != self.model.artifact().content_identity()
+                    || self
+                        .model
+                        .imported_runtime()
+                        .is_some_and(|runtime| result.runtime != runtime)
                     || result.inputs_identity != inputs_identity
                     || result.checkpoint_identity.is_some()
                     || self.signature_io.validate_outputs(&outputs).is_err()
+                    || imported_symbols.outputs(&outputs).is_err()
                     || outputs.tensor_bytes() > self.requirement.output_bytes
                 {
                     return ModelWorkTerminal::Failed;

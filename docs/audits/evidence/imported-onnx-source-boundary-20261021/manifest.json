@@ -1,0 +1,33 @@
+{
+  "testedSource": "1202b49c01baea35017d93d578ca2b8717d4f775",
+  "suite": {
+    "passed": 50,
+    "targets": 19,
+    "failed": 0,
+    "ignored": 0
+  },
+  "symbolUnit": {
+    "passed": 1
+  },
+  "boundaries": [
+    "portable exact fixture Back",
+    "no ORT/native/release claim",
+    "unmerged preparation"
+  ],
+  "files": {
+    "negative-first-compile.txt": "852d7ec4b9c75f0403e80d1827e14b6f04fae9f00c5d932bc6d02adec91cf8f2",
+    "negative-dependency-clippy.txt": "65e84188628dbfb044a4928c84b428a21d0913ad5fe77aac7fda56488eb5ac81",
+    "negative-package-clippy.txt": "35f0e1732cd5e94531cffccac44eaea5949a366e92ac0ebcc09c23699328f7b0",
+    "suite.txt.gz": {
+      "raw_sha256": "46ef0baa3e1ea5aca9440ea58f23b48c97d8b7cc0d38490f3c10e2b7102cdfcc",
+      "gzip_sha256": "0ed2b19ff8231e559d1ff5beec90ccaa259d6788ca97d6f5b9068a11dc4cf344"
+    },
+    "symbol-unit.txt.gz": {
+      "raw_sha256": "fd820c1cbec5719e9020882b3c1db83413d35d7003bc31599a0c547cff624e61",
+      "gzip_sha256": "b27014877c835542207bffb93f1dd67a03a945c22509bdee25b29e7e83ad1891"
+    }
+  },
+  "format": "passed",
+  "strictClippy": "blocked by unchanged core execution enum and std kernel-preparation lints; both negative logs retained",
+  "retention_note": "Raw logs gzip-compressed byte-for-byte during current-dev recovery; historical tested source and raw hashes remain unchanged."
+}
