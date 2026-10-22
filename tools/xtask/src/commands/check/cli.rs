@@ -62,6 +62,8 @@ pub enum CheckSuite {
     ModelInference,
     /// Prove an explicit installed CPU profile has finite native backing and fail-closed pressure.
     ModelNativeBacking,
+    /// Prove actual native CPU named inference through Source/Plan/Play and finite parent storage.
+    ModelNativeInference,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
     AngleReference,
     /// Prove first-class physical values, derived quantities and installed Plan/Play.
