@@ -448,3 +448,29 @@ The following are implementation obligations, not installed capabilities:
 The current 4096-slot Host request is still a construction request and must be
 reconciled with the concrete chunk realization before live recorder admission.
 The compact quantity codec alone supplies neither chunk commit nor recovery.
+
+`runtime::recording::PreparedRecordingChunk` now prepares one bounded immutable
+JSON snapshot content value with up to 64 committed producer events. The status
+projection and its byte discriminants are authored in `profiles/recording.conduit`
+and generated through the ordinary Type/Form compiler. Available events pack
+canonical observations through the existing quantity Forms. Failed events carry
+no quantities, so the last valid temperature cannot silently become a new sample.
+This projects sensor status rather than retaining the producer's full raw capture
+or failure payload.
+
+Preparation binds caller-supplied Host, Boot, Plan and Play identities, the exact
+observation Type digest and all three Form identities. Identity strings use
+reversible UTF-8 hex inside JSON. Each record contains one common committed event
+sequence, producer-boot milliseconds, the status Form and the quantity Forms.
+Independent publication endpoint counters are not interchangeable with that
+common sequence. Identity bounds and complete metadata extent refuse before Play
+if a full chunk could exceed the selected 4096-byte content envelope.
+
+Append detects identical replay within this chunk, conflicting sequence reuse,
+out-of-order input, reversed boot time and gaps between accepted entries. The
+first entry makes no claim about history before recording began. Full chunks
+refuse further new samples. Seal creates stable JSON bytes and forbids mutation;
+append and seal allocate nothing after preparation. No API labels a chunk as
+committed, chooses a Resource generation, writes IndexedDB, retries or retires
+content. A validated reader, cross-chunk recovery, actual publication completion,
+finite generation admission and the producer Line remain integration work.

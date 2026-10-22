@@ -8,6 +8,7 @@ pub mod assigned;
 pub mod construction;
 pub mod observation;
 pub mod publication;
+pub mod recording;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{
