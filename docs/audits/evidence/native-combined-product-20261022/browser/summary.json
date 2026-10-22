@@ -1,0 +1,23 @@
+{
+  "source_identity": "50aaeb07f5bcb6ef99d06b36bf051c34ffd1a756",
+  "stats": {
+    "startTime": "2026-10-22T22:51:55.415Z",
+    "duration": 544733.3729999999,
+    "expected": 49,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "unhandled_errors": [],
+  "workers": 1,
+  "retries": 0,
+  "product_inventory_files": {
+    "workspace": 110,
+    "handbook": 157,
+    "clock": 68,
+    "release": 14
+  },
+  "all_four_inventories_unchanged": true,
+  "report_sha256": "54015528378c07ba8e40bb7072c73d31cee40a25383365deb7c9730ad188d02e",
+  "proof_exit": 0
+}

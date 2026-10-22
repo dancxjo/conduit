@@ -1,0 +1,11 @@
+{
+  "source_identity": "50aaeb07f5bcb6ef99d06b36bf051c34ffd1a756",
+  "outer_exit": 1,
+  "reason": "face-journey-io: File exists",
+  "exact_conflicting_directory": "patchbay-refusal-details",
+  "conflicting_directory_was_preexisting": "retained separately with the prior product packet",
+  "product_failure_claimed": false,
+  "full_journey_passed": false,
+  "source_or_limits_changed": false,
+  "rerun_reason": "fresh exclusive output after preserving both old and partial packets"
+}
