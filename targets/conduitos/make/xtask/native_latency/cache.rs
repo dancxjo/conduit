@@ -25,6 +25,9 @@ pub(super) fn parse(
     };
     let mut retained = [0u64; 2];
     for line in serial.split_inclusive('\n') {
+        if line.starts_with("CONDUIT_NATIVE_TIMING ") && !line.ends_with('\n') {
+            return Err(refusal("incomplete PlotBuild timing custody"));
+        }
         if line.starts_with("CONDUIT_NATIVE_CACHE_REFUSAL ") {
             return Err(refusal("guest cache observer refused"));
         }
@@ -139,6 +142,19 @@ pub(super) fn parse(
                 .ok_or_else(|| refusal("cache counter overflow"))?;
         }
         records.push(record);
+    }
+    // Every with_plot owns exactly one existing PlotBuild timing interval. An
+    // independent completed interval count detects omitted final snapshots too.
+    let timing = super::super::native_timing::parse(serial)?;
+    let calls = timing["records"].as_array().map_or(0, |rows| {
+        rows.iter()
+            .filter(|row| row["stage"] == "plot-build")
+            .count()
+    });
+    if calls != records.len() {
+        return Err(refusal(
+            "cache snapshots do not cover actual PlotBuild calls",
+        ));
     }
     if records.is_empty()
         || custody == 0

@@ -13,7 +13,8 @@ by this observation entrance. No ordinary profile has a disabling option.
 Both arms retain exactly the same installed catalogs. The control only disables
 canonical checked Source and expanded Plot retention, using the existing
 `SourcePreparationCache` zero-limit cold path. This comparison cannot attribute
-total catalog-installation reuse versus pre-#6191 code. Current Host offer
+total catalog-installation reuse versus pre-#6191 code. Preparation failure may exclude a trial; this accounting parser does not certify
+arbitrary rejected-Source recovery. Current Host offer
 planning, lowering, admission, kernel execution, and finite workload remain in
 their existing paths. Historical measurements are context, not a matched arm.
 
@@ -27,6 +28,8 @@ saturation/reset or formatting exhaustion refuses the observation rather than
 changing the operation's outcome. A fallback remains the existing finite cold
 path and cannot spin, retry or block preparation.
 
+Every cache call already owns exactly one PlotBuild timing interval; the parser
+requires equal completed interval/snapshot counts, including the final call.
 Mode and limits must match the guest. The parser verifies Source digests against
 the exact tool source, rejects absent families, sequence gaps, reordered/stale/foreign records, false
 hits and retained entries in the zero-retention arm, and correlates every Face

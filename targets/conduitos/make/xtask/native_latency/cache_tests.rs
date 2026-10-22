@@ -10,10 +10,18 @@ fn serial(rows: &[Value]) -> String {
     let mut result = String::from(
         "CONDUIT_NATIVE_FACE {\"show\":{\"host_id\":\"host\",\"boot_id\":\"boot\"}}\n",
     );
-    for row in rows {
+    result.push_str(&timing(0, "boot-entry"));
+    for (index, row) in rows.iter().enumerate() {
         result.push_str(&format!("{PREFIX}{row}\n"));
+        result.push_str(&timing(index + 1, "plot-build"));
     }
     result
+}
+fn timing(sequence: usize, stage: &str) -> String {
+    format!(
+        "CONDUIT_NATIVE_TIMING {}\n",
+        json!({"schema":"conduit.conduitos/native-timing@1","sequence":sequence,"stage":stage,"clock":"x86-tsc-lfence","frequency_hz":null,"start_ticks":sequence,"end_ticks":sequence,"counter_reversed":false})
+    )
 }
 fn retained() -> Vec<Value> {
     vec![
@@ -76,6 +84,26 @@ fn refuses_foreign_stale_reordered_omitted_and_authority_upgraded_records() {
         );
     }
     assert!(parse(&serial(&good[1..]), CacheMode::Retained, "host", "boot").is_err());
+    let mut all_zero = good.clone();
+    for row in &mut all_zero {
+        row["retained"] = json!([0, 0]);
+    }
+    assert!(parse(&serial(&all_zero), CacheMode::Retained, "host", "boot").is_err());
+    let valid_prefix_extra_call = serial(&good) + &timing(3, "plot-build");
+    assert!(parse(
+        &valid_prefix_extra_call,
+        CacheMode::Retained,
+        "host",
+        "boot"
+    )
+    .is_err());
+    let omitted_last = serial(&good)
+        .lines()
+        .filter(|line| !line.starts_with(PREFIX) || !line.contains("\"sequence\":1"))
+        .collect::<Vec<_>>()
+        .join("\n")
+        + "\n";
+    assert!(parse(&omitted_last, CacheMode::Retained, "host", "boot").is_err());
     assert!(parse(&serial(&good[..1]), CacheMode::Retained, "host", "boot").is_err());
     assert!(parse(&serial(&good), CacheMode::Retained, "host", "foreign").is_err());
     assert!(parse(
