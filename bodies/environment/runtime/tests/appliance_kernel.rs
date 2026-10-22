@@ -64,11 +64,28 @@ fn run(scenario: usize) {
     let source = compile(1, 0).unwrap();
     let (ready, effects) = pulse::ready(scenario);
     let host = appliance_support::advertisement(&source, &ready);
-    let plan = source
-        .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
-        .unwrap();
+    let (plan, planning_memory) = allocation_probe::observe(|| {
+        source
+            .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+            .unwrap()
+    });
     assert!(c::verify_plan(&plan));
-    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    let (lowered, lowering_memory) = allocation_probe::observe(|| {
+        conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap()
+    });
+    if scenario == 0 {
+        // Isolate copies from Source checking's large transient catalogue. These
+        // are host heap observations, not an MCU memory-admission claim.
+        let (graph_copy, graph_memory) = allocation_probe::observe(|| source.expanded.clone());
+        let (host_copy, host_memory) = allocation_probe::observe(|| host.clone());
+        let (plan_copy, plan_memory) = allocation_probe::observe(|| plan.clone());
+        drop((graph_copy, host_copy, plan_copy));
+        eprintln!(
+            "environment_appliance_host_heap graph_copy_peak={} host_copy_peak={} plan_copy_peak={} ordinary_planning_peak={} lowering_peak={}",
+            graph_memory.peak_bytes, host_memory.peak_bytes, plan_memory.peak_bytes,
+            planning_memory.peak_bytes, lowering_memory.peak_bytes,
+        );
+    }
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let (mut owner, pulse_node) = pulse::bind(ready, &plan, &lowered).unwrap();
     let mut capacities = [1024; 32];
