@@ -31,3 +31,21 @@ result to other modules or the earlier RP2040 provider. The other decimal points
 and any independent/shared colon mapping still require separate verification.
 Production integration must admit the actual electrical work and resource
 ownership before calling this provider from a planned display operation.
+
+## Capture integration fixture
+
+`cargo xtask prove environment capture-esp32` builds the same attended fixture
+with the new ESP32 pulse provider on GPIO27/D27. It samples once per complete
+three-pattern cycle using the explicit DHT11 capture-request test vector and
+prints complete octets on UART. No native checksum or sensor decoder is added.
+A rejecting global allocator admits no heap; unexpected capture-time allocation
+would fail rather than silently create storage. This is physical capture evidence,
+not execution of the Source decoder or a live temperature Show.
+
+On the connected board the initial capture was `[106,0,40,4,151]`; subsequent
+captures were `[53,0,20,2,75]`. The transport reported complete five-octet captures,
+and all display transactions remained acknowledged. Preserve the initial frame
+as evidence too; completeness is not sensor validity. The real Source decoder
+must validate checksum and range and publish explicit failure when appropriate.
+Radio coexistence, full appliance installation, AP/HTTP and a sensor-driven
+Fahrenheit Show remain integration work.

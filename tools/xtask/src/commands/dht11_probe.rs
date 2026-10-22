@@ -71,7 +71,10 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["display-esp32"] || arguments == ["pulse-esp32"] {
+    if arguments == ["display-esp32"]
+        || arguments == ["pulse-esp32"]
+        || arguments == ["capture-esp32"]
+    {
         let pulse = arguments == ["pulse-esp32"];
         let package = root.join(if pulse {
             "targets/esp32/pulse-capture"
@@ -98,6 +101,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
             .env("CARGO_TARGET_DIR", root.join("target/environment-esp32"));
         if pulse {
             command.args(["--features", "host-call"]);
+        } else if arguments == ["capture-esp32"] {
+            command.args(["--features", "capture"]);
         }
         return execute(&mut command);
     }
@@ -342,7 +347,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

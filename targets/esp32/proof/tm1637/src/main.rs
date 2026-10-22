@@ -4,17 +4,23 @@
 use conduit_tm1637_wire::{transmit, Packet};
 use esp_backtrace as _;
 use esp_hal::{delay::Delay, main};
+#[cfg(feature = "capture")]
+mod capture;
 mod electrical;
 esp_bootloader_esp_idf::esp_app_desc!();
 #[main]
 fn main() -> ! {
     let p = esp_hal::init(esp_hal::Config::default());
     let delay = Delay::new();
+    #[cfg(feature = "capture")]
+    let mut sensor = conduit_esp32_pulse_capture::Esp32PulseCapture::new(p.GPIO27);
     let mut pins = electrical::DisplayPins::new(p.GPIO18, p.GPIO19);
     delay.delay_millis(3000);
     esp_println::println!("{{\"event\":\"display-probe\",\"fixture\":true,\"clk_gpio\":18,\"dio_gpio\":19,\"supply\":\"3V3\"}}");
     pins.check_drive();
     loop {
+        #[cfg(feature = "capture")]
+        capture::probe(&mut sensor);
         for (label, registers) in [
             ("all-segments", [0xff, 0xff, 0xff, 0xff, 0xff, 0xff]),
             ("1234", [0x06, 0x5b, 0x4f, 0x66, 0, 0]),
