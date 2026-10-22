@@ -277,9 +277,13 @@ mod tests {
             face,
             project_body_workbench_face(8, &original, &reviewed).unwrap()
         );
+        let changed_source = attachment("source/changed");
+        assert!(project_body_workbench_face(7, &changed_source, &reviewed).is_err());
+        let mut changed_inventory = reviewed.clone();
+        changed_inventory[0].source_document_id = "source/changed".into();
         assert_ne!(
             face,
-            project_body_workbench_face(7, &attachment("source/changed"), &reviewed).unwrap()
+            project_body_workbench_face(7, &changed_source, &changed_inventory).unwrap()
         );
         let mut duplicate = reviewed.clone();
         duplicate.extend(reviewed);
