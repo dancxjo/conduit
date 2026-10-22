@@ -1,0 +1,110 @@
+{
+  "source_commit": "52f76743743d72ca5a54bdb37feb4349ace759a0",
+  "source_clean_before": true,
+  "source_clean_after": true,
+  "source_unchanged": true,
+  "base_commit": "596aab0e980bb697748d44281c3ed4955f510982",
+  "environment": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUST_MIN_STACK": "unset",
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target"
+  },
+  "commands": [
+    {
+      "command": "cargo +stable xtask check plots bundle-workspace-catalog --output /home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-workspace-catalog-result.json",
+      "exit_code": 0,
+      "log": "6252-52f767-bundle.log.gz"
+    },
+    {
+      "command": "cargo +stable test --locked -p xtask workspace_patchbay_catalog -- --nocapture",
+      "exit_code": 0,
+      "passed": 2,
+      "failed": 0,
+      "log": "6252-52f767-tests.log.gz"
+    },
+    {
+      "command": "cargo +stable test --locked -p xtask workspace_catalog_preserves_memory_lantern_semantic_editor_requirement -- --nocapture",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "log": "6252-52f767-nonregression.log.gz"
+    },
+    {
+      "command": "cargo +stable clippy --locked -p xtask --all-targets -- -D warnings",
+      "exit_code": 101,
+      "log": "6252-52f767-clippy.log.gz",
+      "failure": "inherited owner_todo_action_proof.rs:308 tests precede verify_isolation at358; clippy::items_after_test_module"
+    },
+    {
+      "command": "cargo +stable fmt --all -- --check",
+      "exit_code": 0,
+      "log": "6252-52f767-fmt.log.gz"
+    }
+  ],
+  "catalog_plot_count": 94,
+  "patchbay": {
+    "slug": "patchbay",
+    "title": "Patchbay",
+    "entry": "patchbay",
+    "source": "plot patchbay (\n  >> interaction: FaceInteraction...|\n) {\n  owner: patchbay/accept-interaction\n  interaction >> owner.interaction\n}\n",
+    "source_document_id": "c4e42a73c0ebfd9f92bb8af0b2fa315cdc2e5789afc5e3c55f77e3f37eb7b938",
+    "checked_plot_id": "5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+    "face_profile": 0,
+    "required_kinds": [
+      "patchbay/accept-interaction"
+    ],
+    "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+  },
+  "artifacts": [
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-52f767-bundle.log",
+      "original_bytes": 15182,
+      "original_sha256": "88e601fe57360421a38d636cbeb57f0cea11eb045aaa7771bb30829db64e12b6",
+      "stored": "6252-52f767-bundle.log.gz",
+      "stored_sha256": "9ce3fc2b8e22a6c86052bf2f75ae3f2ffe307e4606d31f698a1986bc6e9402aa"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-52f767-tests.log",
+      "original_bytes": 3692,
+      "original_sha256": "07e236cd3b83e55dd26cbe388c800cf4d4a21d9099e635b21e4ed5ff789a6a2e",
+      "stored": "6252-52f767-tests.log.gz",
+      "stored_sha256": "b72e3ab527aae91e6c8ecd4b2f915a26b59666332a101c0153067e91287ce54e"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-52f767-nonregression.log",
+      "original_bytes": 3143,
+      "original_sha256": "c822b5a4d20cef5fdeb725e23bc2380cdeacad654d9f06eb6823c4a4aaaf9629",
+      "stored": "6252-52f767-nonregression.log.gz",
+      "stored_sha256": "c6221dfc5d04fdbb2d248490b02ad2a1583955a4233131dedeade116b49cbf2a"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-52f767-clippy.log",
+      "original_bytes": 15123,
+      "original_sha256": "3c78ecfddaff745e545850c5a10010475a005846bb0dfeca5e285d534fea260a",
+      "stored": "6252-52f767-clippy.log.gz",
+      "stored_sha256": "d5d4d2fdac487f0f999eab3790e8a25f226e1843f4368b6e1b52314328e57331"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-52f767-fmt.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "6252-52f767-fmt.log.gz",
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-workspace-catalog-result.json",
+      "original_bytes": 113169,
+      "original_sha256": "d2e9881b033f2101a66d035bdf7886f06945524a020add048bce64940dbc9e0b",
+      "stored": "6252-workspace-catalog-result.json.gz",
+      "stored_sha256": "910c1b57daa7f7cdd579bb3a947123e28a894c373a3777c833fd1184965ad4ad"
+    }
+  ],
+  "limits": [
+    "Source checking/catalog bundle only; no browser execution or provider/Host admission proof",
+    "Strict all-target xtask Clippy failed on an inherited unrelated item-order lint; not a full green validation claim",
+    "Original hosted failure remains distinct from local source-bound repair checks; no CI dispatch or PR mutation"
+  ]
+}
