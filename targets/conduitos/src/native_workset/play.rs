@@ -28,6 +28,7 @@ const PLOTS: usize = super::NATIVE_PLOT_CAPACITY;
 const NODES: usize = 14;
 const CORDS: usize = 10;
 
+mod observation;
 mod refusal;
 pub use refusal::PlayRefusal;
 
@@ -403,7 +404,8 @@ impl NativeWorksetPlay {
     ) -> Result<T, PlayRefusal> {
         match result {
             Ok(value) => Ok(value),
-            Err(_) => {
+            Err(error) => {
+                observation::refused("application", &error);
                 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
                 self.fence_runtime_failure();
                 Err(PlayRefusal::Kernel)
@@ -447,9 +449,12 @@ impl NativeWorksetPlay {
                         return Err(PlayRefusal::Kernel);
                     }
                 } else if binding.effect == Effect::Editor {
-                    self.present_editor(usize::from(binding.plot), request)?;
+                    self.present_editor(usize::from(binding.plot), request)
+                        .inspect_err(|error| observation::refused("editor", error))?;
                 } else {
-                    self.apply(request, binding)?;
+                    self.apply(request, binding).inspect_err(|error| {
+                        observation::refused("host-effect", &(request.node, binding.effect, error))
+                    })?;
                 }
             }
             match self.scheduler.step().map_err(PlayRefusal::Scheduler)? {
@@ -462,7 +467,18 @@ impl NativeWorksetPlay {
                     return Ok(());
                 }
                 SchedulerStatus::Cancelled => return Err(PlayRefusal::Cancelled),
-                _ => return Err(PlayRefusal::Kernel),
+                status => {
+                    observation::refused(
+                        "scheduler-status",
+                        &(
+                            status,
+                            self.plot_count,
+                            self.pending.map(|p| p.is_some()),
+                            self.patchbay_inputs.each_ref().map(|p| p.is_some()),
+                        ),
+                    );
+                    return Err(PlayRefusal::Kernel);
+                }
             }
         }
         Err(PlayRefusal::WorkBound)
