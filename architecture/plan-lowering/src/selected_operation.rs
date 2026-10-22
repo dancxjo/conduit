@@ -1,7 +1,8 @@
 //! Shared preparation checks for exact admitted single-call machine Backs.
 use crate::lowering::LoweredPlanFragment;
 use conduit_core::{
-    ActivePlayIdentity, BaseCapabilityTable, BaseOperationClaim, Kind, PlacementId, PlanFragment,
+    ActivePlayIdentity, BaseCapabilityTable, BaseOperationClaim, Kind, KindId, PlacementId,
+    PlanFragment,
 };
 use conduit_kernel::{HostCallId, NodeId, PortId};
 
@@ -30,6 +31,22 @@ pub fn bind_selected_operation(
     table: &BaseCapabilityTable,
     claim: &BaseOperationClaim,
     definition: SelectedOperationContract<'_>,
+    selection: SelectedOperationPlan<'_>,
+) -> Result<NodeId, SelectedCallRefusal> {
+    let subject = &definition.kind.kind_id;
+    bind_selected_operation_for_subject(table, claim, definition, subject, selection)
+}
+
+/// Bind a Back whose authority subject differs from its semantic gear Kind.
+/// The trusted native implementation supplies the expected subject; it must not
+/// be inferred from an incoming Plan or claim. All planned, lowered, granted and
+/// possessed target identities must agree with this independently chosen value.
+/// The ordinary binder above continues to require the gear Kind as subject.
+pub fn bind_selected_operation_for_subject(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    subject: &KindId,
     selection: SelectedOperationPlan<'_>,
 ) -> Result<NodeId, SelectedCallRefusal> {
     let SelectedOperationPlan {
@@ -90,7 +107,7 @@ pub fn bind_selected_operation(
         || gear.implementation_id != claim.implementation_id
         || base.provider_instance_id != claim.base_instance_id
         || base.provider_generation != claim.base_provider_generation
-        || claim.subject_kind.as_str() != expected.kind_id.as_str()
+        || &claim.subject_kind != subject
         || claim.operation_contract_id.as_str() != definition.call
     {
         return Err(SelectedCallRefusal::WrongBinding);
@@ -121,7 +138,7 @@ pub fn bind_selected_operation(
         return Err(SelectedCallRefusal::WrongBinding);
     };
     if required.contract_id.as_str() != definition.call
-        || required.target_kind.as_ref() != Some(&expected.kind_id)
+        || required.target_kind.as_ref() != Some(subject)
         || required.maximum_in_flight != 1
         || required.maximum_input_bytes != definition.input_bytes
         || required.maximum_output_bytes != definition.output_bytes
