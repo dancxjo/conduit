@@ -1,3 +1,4 @@
+import { inspectHandbookPlot } from "./handbook-patchbay-route.mjs";
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
@@ -116,7 +117,7 @@ test("static Handbook applications retain independent local Bodies through use, 
       action: "Restore the clock source and press Try in my Handbook.",
       observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
-    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A ticker you can stop/i }).click();
+    await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
     const graph = page.locator(".handbook-show [data-checked-plot-id]:visible");
     await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
     await expect(graph.getByRole("group", { name: "Resident plot gears, ports, and cords" })).toBeVisible();
@@ -164,7 +165,7 @@ test("static Handbook applications retain independent local Bodies through use, 
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(editor).toHaveValue(editedSource);
     await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
-    await page.locator(".handbook-show").getByRole("button", { name: /clock-demo|A ticker you can stop/i }).click();
+    await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
     await expect(graph).toHaveAttribute("data-checked-plot-id", example.selectedPlot);
     await expect(graph).toHaveAttribute("data-body-plan-id", example.planId);
     await expect(graph).toHaveAttribute("data-active-play-id", example.playId);
