@@ -41,6 +41,7 @@ fn select(journey: &mut ProductJourney, plot: NativePlot) {
         .unwrap();
 }
 
+#[cfg(feature = "native-compositor")]
 fn request_mask_change(
     journey: &mut ProductJourney,
 ) -> patchbay_application::PatchbayApplicationRequest {
@@ -128,6 +129,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
     assert_eq!(journey.projection(), before);
 }
 
+#[cfg(feature = "native-compositor")]
 #[test]
 fn resident_patchbay_replans_its_own_graphical_and_speech_masks() {
     let (ids, offer, mut journey) = born();
@@ -403,9 +405,11 @@ fn foreground_selection_before_admission_does_not_invent_a_plan_or_play() {
     assert!(waiting.plan_id.is_some() && waiting.active_play_id.is_none());
 }
 
+#[cfg(feature = "native-compositor")]
 #[path = "source_edit_tests.rs"]
 mod source_edit_tests;
 
+#[cfg(feature = "native-compositor")]
 #[test]
 fn resident_patchbay_mask_replan_requires_exact_one_use_owner_request() {
     use patchbay_application::{PatchbayApplicationRequest, PatchbayMaskMode};
