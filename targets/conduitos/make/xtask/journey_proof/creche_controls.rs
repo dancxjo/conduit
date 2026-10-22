@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod custody;
 mod evidence;
+mod frame_budget;
 mod input_refusal;
 mod navigation;
 mod recipe_selection;
@@ -174,6 +175,7 @@ pub(super) fn exercise(
             "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
         }),
         json!({
+        "prepared_frame_budget":frame_budget::summarize(&final_text)?,
         "observations":run.observations,"captures":run.captures,"capture_limit":27,"screenshots":"journey-frames/manifest.json",
         "capture_custody":"original QMP PNG and complete serial-prefix offsets/hashes via existing Artifacts",
         "page_capture_policy":"first/middle/last original PNG per primary and Details view; every page and clamped endpoints retain focus receipts; unsampled pages have no pixel claim",

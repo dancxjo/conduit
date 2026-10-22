@@ -105,6 +105,7 @@ pub(super) fn exercise(
         "empty_change":empty_change, "empty_acknowledged_face":empty.record, "empty_pages":empty_pages,
         "clear_change":clear_change, "restored_acknowledged_face":restored.record,
         "restored_forward_focus":restored_forward, "restored_reverse_focus":restored_reverse,
+        "prepared_frame_budget":frame_budget::summarize(&final_text)?,
         "observations":run.observations, "captures":run.captures, "capture_limit":27,
         "input":"real keyboard replacement drafts and Enter; explicit Backspace stages empty query",
         "draft_custody":"every pre-submit keystroke retains the exact source Face and acknowledged Show",
