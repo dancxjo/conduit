@@ -1,5 +1,5 @@
 {
-  "identity": "1191f2238216bfe88e0c3d1fe580e19f7bf378d7da3095752cea2ae6949f1369",
+  "identity": "b0779bdc01c63b56e195b3d70b3cab43ee4e4917b31abdcefa5d050c31eb90ff",
   "revision": 1,
   "basis": {
     "body_id": "0b0de524d645eeae327aa9dd7db15af525dcc2411666cae9b28b52b4880b3868",
@@ -904,9 +904,9 @@
     },
     {
       "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
-      "name": "direction",
+      "name": "port-id",
       "value": {
-        "Text": "outgoing"
+        "Identity": "text"
       }
     },
     {
@@ -918,6 +918,20 @@
     },
     {
       "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "direction",
+      "value": {
+        "Text": "outgoing"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
       "name": "value-contract",
       "value": {
         "ValueContract": {
@@ -925,13 +939,6 @@
           "maximum_bytes": 256,
           "constraints": []
         }
-      }
-    },
-    {
-      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
-      "name": "temporal",
-      "value": {
-        "Text": "Value"
       }
     },
     {
@@ -1174,9 +1181,9 @@
     },
     {
       "subject": "port/port/hello/show/input/text",
-      "name": "direction",
+      "name": "port-id",
       "value": {
-        "Text": "receiving"
+        "Identity": "text"
       }
     },
     {
@@ -1188,6 +1195,20 @@
     },
     {
       "subject": "port/port/hello/show/input/text",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "direction",
+      "value": {
+        "Text": "receiving"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
       "name": "value-contract",
       "value": {
         "ValueContract": {
@@ -1195,13 +1216,6 @@
           "maximum_bytes": 256,
           "constraints": []
         }
-      }
-    },
-    {
-      "subject": "port/port/hello/show/input/text",
-      "name": "temporal",
-      "value": {
-        "Text": "Value"
       }
     },
     {
@@ -1353,9 +1367,9 @@
     },
     {
       "subject": "port/port/hello/upper/input/source",
-      "name": "direction",
+      "name": "port-id",
       "value": {
-        "Text": "receiving"
+        "Identity": "source"
       }
     },
     {
@@ -1367,6 +1381,20 @@
     },
     {
       "subject": "port/port/hello/upper/input/source",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "direction",
+      "value": {
+        "Text": "receiving"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
       "name": "value-contract",
       "value": {
         "ValueContract": {
@@ -1374,13 +1402,6 @@
           "maximum_bytes": 256,
           "constraints": []
         }
-      }
-    },
-    {
-      "subject": "port/port/hello/upper/input/source",
-      "name": "temporal",
-      "value": {
-        "Text": "Value"
       }
     },
     {
@@ -1392,9 +1413,9 @@
     },
     {
       "subject": "port/port/hello/upper/output/text",
-      "name": "direction",
+      "name": "port-id",
       "value": {
-        "Text": "outgoing"
+        "Identity": "text"
       }
     },
     {
@@ -1406,6 +1427,20 @@
     },
     {
       "subject": "port/port/hello/upper/output/text",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "direction",
+      "value": {
+        "Text": "outgoing"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
       "name": "value-contract",
       "value": {
         "ValueContract": {
@@ -1413,13 +1448,6 @@
           "maximum_bytes": 256,
           "constraints": []
         }
-      }
-    },
-    {
-      "subject": "port/port/hello/upper/output/text",
-      "name": "temporal",
-      "value": {
-        "Text": "Value"
       }
     },
     {
@@ -1448,6 +1476,90 @@
       "name": "value-kind",
       "value": {
         "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-origin",
+      "value": {
+        "Identity": "cord-stages"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-document-id",
+      "value": {
+        "Identity": "7b1e5b2e2eb39faa766fe5bfd8b57ae9aa738f34bfc4b9207a65d64920dee403"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "checked-source-plot-id",
+      "value": {
+        "Identity": "900bb4c38ea032d7495d7d1a66f1a57b683846c64751c7beb7972509852a0b80"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-plot",
+      "value": {
+        "Identity": "hello"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-instance-path",
+      "value": {
+        "Text": "5:hello"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-byte-start",
+      "value": {
+        "Count": 143
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-byte-end",
+      "value": {
+        "Count": 175
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-line",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-column",
+      "value": {
+        "Count": 5
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-end-line",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-end-column",
+      "value": {
+        "Count": 37
       }
     },
     {
@@ -1539,6 +1651,90 @@
       "name": "value-kind",
       "value": {
         "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "temporal",
+      "value": {
+        "Text": "value"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-origin",
+      "value": {
+        "Identity": "cord-stages"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-document-id",
+      "value": {
+        "Identity": "7b1e5b2e2eb39faa766fe5bfd8b57ae9aa738f34bfc4b9207a65d64920dee403"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "checked-source-plot-id",
+      "value": {
+        "Identity": "900bb4c38ea032d7495d7d1a66f1a57b683846c64751c7beb7972509852a0b80"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-plot",
+      "value": {
+        "Identity": "hello"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-instance-path",
+      "value": {
+        "Text": "5:hello"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-byte-start",
+      "value": {
+        "Count": 143
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-byte-end",
+      "value": {
+        "Count": 175
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-line",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-column",
+      "value": {
+        "Count": 5
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-end-line",
+      "value": {
+        "Count": 6
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-end-column",
+      "value": {
+        "Count": 37
       }
     },
     {
