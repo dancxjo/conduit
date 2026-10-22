@@ -20,6 +20,42 @@ fn text(value: &str) -> RevisionText<'_> {
     RevisionText::new(value).unwrap()
 }
 
+// Re-admit the exact checked Source result before requesting the next prefix.
+fn admitted_after_commit(result: &LanguageParserBeamCommitResult) -> LanguageParserAdmittedBeam {
+    assert!(*result.accepted());
+    let candidate = |raw: &LanguageParserRawHypothesis| {
+        let state = raw.state();
+        LanguageParserHypothesis::new(
+            *raw.active(),
+            *raw.identity(),
+            *raw.score(),
+            LanguageParserState::new(
+                state.basis().clone(),
+                *state.committed(),
+                *state.depth(),
+                *state.heads(),
+                state.relation0().clone(),
+                state.relation1().clone(),
+                state.relation2().clone(),
+                state.relation3().clone(),
+                *state.stack(),
+                *state.token_count(),
+                *state.unread(),
+            )
+            .unwrap(),
+        )
+        .unwrap()
+    };
+    LanguageParserAdmittedBeam::new(
+        result.frontier().basis().clone(),
+        candidate(result.candidate0()),
+        candidate(result.candidate1()),
+        candidate(result.candidate2()),
+        candidate(result.candidate3()),
+    )
+    .unwrap()
+}
+
 #[test]
 fn distinct_snapshots_survive_receipt_drop_and_atomic_publication_refusals() {
     let execution = fixture::Prepared::new();
@@ -43,9 +79,9 @@ fn distinct_snapshots_survive_receipt_drop_and_atomic_publication_refusals() {
     let receipt0 =
         PreparedCommittedDependency::prepare(&f.lexical, &root, &request0, &result0).unwrap();
     let request1 = LanguageParserBeamCommitRequest::new(
-        request0.beam().clone(),
+        admitted_after_commit(&result0),
         false,
-        LanguageParserRawFrontier::new(request0.beam().basis().clone(), 1, 2).unwrap(),
+        result0.frontier().clone(),
         false,
         2,
     )
