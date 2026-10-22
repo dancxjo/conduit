@@ -80,6 +80,7 @@ mod owner_model_route;
 mod pc_speaker_proof;
 mod prepared_proof_image;
 mod product_journey_gate;
+mod proof_viewport;
 mod product_observatory;
 mod product_patchbay;
 mod product_readiness_matrix;
@@ -557,7 +558,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ),
         ConduitosCommand::Demo(target) => demo::execute(target.arch.into(), opts),
         ConduitosCommand::FrontDoorProof => front_door_proof::execute(opts),
-        ConduitosCommand::JourneyProof => journey_proof::execute(opts),
+        ConduitosCommand::JourneyProof(args) => journey_proof::execute_viewport(opts, args.viewport),
         ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(&args, opts),
         ConduitosCommand::GraphicalProfileProof => graphical_profile_proof::execute(opts),
         ConduitosCommand::Run(target) => {

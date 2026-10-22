@@ -17,11 +17,11 @@ use std::{
     process::{Command, Stdio},
 };
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::{
-    hid_qmp, image, journey_input, journey_records, profile::Paths, report::git_head,
-    ConduitosArch, ConduitosError,
+    ConduitosArch, ConduitosError, hid_qmp, image, journey_input, journey_records, profile::Paths,
+    report::git_head,
 };
 use crate::cli::GlobalOpts;
 
@@ -33,7 +33,10 @@ pub(super) struct JourneyIdentity {
     pub spore_join: Option<Value>,
 }
 
-pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
+pub fn execute_viewport(
+    opts: &GlobalOpts,
+    viewport: Option<super::proof_viewport::Viewport>,
+) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(refusal(
             "a live product journey needs a real image and guest",
@@ -41,7 +44,7 @@ pub fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     }
     let built = image::execute_architecture_proof(ConduitosArch::X86_64, opts)?;
     let paths = Paths::new(ConduitosArch::X86_64)?;
-    execute_supplied(opts, &paths.iso, built.iso_sha256).map(|_| ())
+    execute_with_viewport(opts, &paths.iso, built.iso_sha256, false, None, viewport).map(|_| ())
 }
 
 pub(super) fn execute_supplied(
@@ -58,6 +61,16 @@ pub(super) fn execute_supplied_observed(
     image_sha256: String,
     observe: bool,
     output: Option<&Path>,
+) -> Result<JourneyIdentity, ConduitosError> {
+    execute_with_viewport(opts, image_path, image_sha256, observe, output, None)
+}
+fn execute_with_viewport(
+    opts: &GlobalOpts,
+    image_path: &Path,
+    image_sha256: String,
+    observe: bool,
+    output: Option<&Path>,
+    viewport: Option<super::proof_viewport::Viewport>,
 ) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
         return Err(refusal("a live product journey needs a real guest"));
@@ -82,6 +95,7 @@ pub(super) fn execute_supplied_observed(
             Err(error) => return Err(io_error(error)),
         }
     }
+    let vga_args = viewport.map_or(["-vga", "std"], |viewport| viewport.vga_args());
     let mut command = Command::new("qemu-system-x86_64");
     command
         .args([
@@ -95,8 +109,8 @@ pub(super) fn execute_supplied_observed(
             "1",
             "-display",
             "none",
-            "-vga",
-            "std",
+            vga_args[0],
+            vga_args[1],
             "-monitor",
             "none",
             "-qmp",
@@ -130,7 +144,8 @@ pub(super) fn execute_supplied_observed(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(if observe { 32 } else { 27 })?;
+    .with_capture_limit(if observe { 32 } else { 27 })?
+    .with_viewport(viewport)?;
     let mut child = command
         .spawn()
         .map_err(|error| ConduitosError::refusal("missing-qemu", error.to_string()))?;

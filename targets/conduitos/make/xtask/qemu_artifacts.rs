@@ -1,6 +1,6 @@
 //! Explicit, bounded visual evidence for one ordinary QEMU journey.
-use super::{qmp_display, ConduitosError};
-use serde_json::{json, Value};
+use super::{ConduitosError, qmp_display};
+use serde_json::{Value, json};
 use std::{fs, io::Read, os::unix::net::UnixStream, path::PathBuf, time::Instant};
 
 // The bounded lifecycle, refusal, navigation, and reentry journey plus failure capture.
@@ -17,6 +17,8 @@ pub(super) struct Artifacts {
     capture_limit: usize,
     context: Value,
     previous_pixels: Option<String>,
+    viewport: Option<super::proof_viewport::Viewport>,
+    viewport_focus_seen: bool,
 }
 impl Artifacts {
     pub(super) fn new(
@@ -36,9 +38,32 @@ impl Artifacts {
             capture_limit: DEFAULT_MAX_CHECKPOINTS,
             context,
             previous_pixels: None,
+            viewport: None,
+            viewport_focus_seen: false,
         };
         result.write("running", None)?;
         Ok(result)
+    }
+
+    pub(super) fn with_viewport(
+        mut self,
+        viewport: Option<super::proof_viewport::Viewport>,
+    ) -> Result<Self, ConduitosError> {
+        if let Some(viewport) = viewport {
+            if !self.entries.is_empty() {
+                return Err(ConduitosError::refusal(
+                    "proof-viewport-admission",
+                    "capture already started",
+                ));
+            }
+            let (width, height) = viewport.dimensions();
+            self.viewport = Some(viewport);
+            self.context["visual_contract"]["width"] = json!(width);
+            self.context["visual_contract"]["height"] = json!(height);
+            self.context["viewport_request"] = json!({"width":width,"height":height,"selection":"stdVGA EDID preference; actual boot selection must match", "provider_format":"not serialized; actual Mask display bounds and QMP pixels checked"});
+            self.write("running", None)?;
+        }
+        Ok(self)
     }
 
     pub(super) fn observation_origin(&self) -> Instant {
@@ -106,16 +131,35 @@ impl Artifacts {
         let record = super::journey_records::latest_checkpoint(text)?;
         let boot = super::journey_records::boot(text)?;
         let native = super::journey_records::native_checkpoint(text)?;
+        if let Some(viewport) = self.viewport {
+            let boot = boot.as_ref().ok_or_else(|| {
+                ConduitosError::refusal("proof-viewport-mismatch", "guest Boot identity absent")
+            })?;
+            let custody = viewport.guest(text, boot)?;
+            self.viewport_focus_seen |= custody["focus_records"]
+                .as_array()
+                .is_some_and(|rows| !rows.is_empty());
+            self.context["viewport_guest_evidence"] = custody;
+        }
         let timing = super::native_timing::parse(text)?;
         let frame_request_start_ns = self.started.elapsed().as_nanos();
         let (frame, health_refusal) =
             qmp_display::capture(stream, reader, &self.directory, checkpoint)?;
         let frame_response_end_ns = self.started.elapsed().as_nanos();
         let health_refusal = health_refusal.or_else(|| {
-            if frame["width"] != 1280 || frame["height"] != 800 {
+            if self
+                .viewport
+                .unwrap_or(super::proof_viewport::Viewport::Wide)
+                .capture(&frame)
+                .is_err()
+            {
                 Some(ConduitosError::refusal(
                     "qemu-display-dimensions",
-                    "ordinary journey expects 1280x800",
+                    if self.viewport.is_some() {
+                        "actual capture does not match admitted proof viewport"
+                    } else {
+                        "ordinary journey expects 1280x800"
+                    },
                 ))
             } else if frame["non_background_pixels"].as_u64().unwrap_or(0) < 64 {
                 Some(ConduitosError::refusal(
@@ -169,6 +213,14 @@ impl Artifacts {
     }
 
     pub(super) fn finish(&self, failure: Option<&ConduitosError>) -> Result<(), ConduitosError> {
+        if failure.is_none() && self.viewport.is_some() && !self.viewport_focus_seen {
+            let error = ConduitosError::refusal(
+                "proof-viewport-mismatch",
+                "no acknowledged guest Mask extent evidence",
+            );
+            self.write("failed", Some(&error))?;
+            return Err(error);
+        }
         self.write(
             if failure.is_some() {
                 "failed"
@@ -214,6 +266,21 @@ fn complete_serial_end(serial: &[u8]) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn explicit_viewport_cannot_finish_without_guest_extent_evidence() {
+        let directory =
+            std::env::temp_dir().join(format!("conduit-viewport-artifacts-{}", std::process::id()));
+        let artifacts = Artifacts::new(directory.clone(), directory.join("serial.log"), json!({}))
+            .unwrap()
+            .with_viewport(Some(super::super::proof_viewport::Viewport::Constrained))
+            .unwrap();
+        assert!(artifacts.finish(None).is_err());
+        let manifest: Value =
+            serde_json::from_slice(&fs::read(directory.join("manifest.json")).unwrap()).unwrap();
+        assert_eq!(manifest["status"], "failed");
+        assert_eq!(manifest["context"]["visual_contract"]["width"], 640);
+        fs::remove_dir_all(directory).unwrap();
+    }
     #[test]
     fn live_serial_snapshot_excludes_only_the_uncommitted_tail() {
         let complete = b"CONDUIT_NATIVE_TIMING malformed\n";

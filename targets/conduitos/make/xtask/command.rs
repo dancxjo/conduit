@@ -129,7 +129,7 @@ pub(super) enum ConduitosCommand {
     /// Prove the normal IMAGE zero-body front door and long-lived interaction.
     FrontDoorProof,
     /// Prove the normal IMAGE Body/Wake/Plan/Play product journey.
-    JourneyProof,
+    JourneyProof(proof_viewport::JourneyArgs),
     /// Observe instrumented graphical startup and the real native journey.
     NativeLatencyProof(native_latency::NativeLatencyArgs),
     /// Prove the default graphical profile through the canonical live ISO and retained gallery.
