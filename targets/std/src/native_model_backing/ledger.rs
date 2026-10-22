@@ -26,7 +26,9 @@ pub struct SharedPoolUse {
 pub struct BackingLedger {
     pub profile: String,
     pub private_bytes: u64,
-    /// Unique file-offset spans; aliases do not count immutable backing twice.
+    /// Disjoint image address reservations, including potential relocated private pages.
+    pub image_mapping_bytes: u64,
+    /// Deduplicated source file extent inventory; already covered by image mappings.
     pub immutable_file_bytes: u64,
     pub shared_pool: SharedPoolUse,
     pub fixed_io_bytes: u64,
@@ -35,14 +37,28 @@ pub struct BackingLedger {
     pub execution_stack_span: BackingSpan,
     pub private_mapping_identity: [u8; 32],
     pub immutable_mapping_identity: [u8; 32],
+    pub fixed_mapping_identity: [u8; 32],
     /// Read-only kernel/vDSO/guard mappings, separate from native writable backing.
     pub other_mapping_bytes: u64,
 }
 impl BackingLedger {
     pub fn validate(&self, grant: NativeBackingGrant) -> Result<(), NativeBackingRefusal> {
         grant.validate()?;
+        let (_, io_bytes, stack_bytes) =
+            charge_private_spans(&[self.fixed_io_span, self.execution_stack_span])?;
+        if self.fixed_io_span.role != BackingRole::FixedIo
+            || self.execution_stack_span.role != BackingRole::ExecutionStack
+            || io_bytes != self.fixed_io_bytes
+            || stack_bytes != self.execution_stack_bytes
+            || io_bytes != 4096
+            || stack_bytes != super::profile::STACK_BYTES as u64
+        {
+            return Err(NativeBackingRefusal::InvalidLedger);
+        }
+
         if self.profile != super::profile::PROFILE
             || self.private_bytes == 0
+            || self.shared_pool.capacity_bytes == 0
             || !self.shared_pool.persistent_session_and_metadata
             || !self.shared_pool.execution_scratch_and_metadata
             || self.shared_pool.pool_identity == [0; 32]
@@ -57,11 +73,18 @@ impl BackingLedger {
             return Err(NativeBackingRefusal::InvalidLedger);
         }
         if self.private_bytes > grant.maximum_private_bytes
-            || self.immutable_file_bytes > grant.maximum_file_backing_bytes
+            || self
+                .image_mapping_bytes
+                .checked_add(self.other_mapping_bytes)
+                .ok_or(NativeBackingRefusal::InvalidLedger)?
+                > grant.maximum_fixed_mapping_bytes
         {
             return Err(NativeBackingRefusal::InsufficientBacking {
                 private_required: self.private_bytes,
-                file_required: self.immutable_file_bytes,
+                fixed_mapping_required: self
+                    .image_mapping_bytes
+                    .checked_add(self.other_mapping_bytes)
+                    .ok_or(NativeBackingRefusal::InvalidLedger)?,
             });
         }
         Ok(())
@@ -73,7 +96,9 @@ pub fn charge_private_spans(
 ) -> Result<(u64, u64, u64), NativeBackingRefusal> {
     let mut total = (0u64, 0u64, 0u64);
     for (index, span) in spans.iter().enumerate() {
-        if span.start >= span.end
+        if span.start % 4096 != 0
+            || span.end % 4096 != 0
+            || span.start >= span.end
             || spans[..index]
                 .iter()
                 .any(|p| p.start < span.end && span.start < p.end)

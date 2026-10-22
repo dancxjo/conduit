@@ -65,7 +65,7 @@ impl Snapshot {
                 .ok_or(NativeBackingRefusal::InvalidLedger)?
                 .parse()
                 .map_err(|_| NativeBackingRefusal::InvalidLedger)?;
-            if perms.len() != 4 || (perms[1] == b'w' && perms[3] != b'p') {
+            if perms.len() != 4 || (perms[1] == b'w' && (perms[0] != b'r' || perms[3] != b'p')) {
                 return Err(NativeBackingRefusal::InvalidLedger);
             }
             let region = Region {
@@ -128,12 +128,19 @@ impl Snapshot {
         }
         let mut private = 0u64;
         let mut immutable = 0u64;
+        let mut image = 0u64;
         let mut other = 0u64;
         let mut private_hash = Sha256::new();
         let mut file_hash = Sha256::new();
+        let mut fixed_hash = Sha256::new();
         let mut file_spans = Vec::with_capacity(self.regions.len());
         for r in &self.regions {
             let bytes = r.end - r.start;
+            if !r.private_rw {
+                for value in [r.start, r.end, r.offset, r.device, r.inode] {
+                    fixed_hash.update(value.to_le_bytes());
+                }
+            }
             if r.private_rw {
                 private = private
                     .checked_add(bytes)
@@ -141,6 +148,9 @@ impl Snapshot {
                 private_hash.update(r.start.to_le_bytes());
                 private_hash.update(r.end.to_le_bytes());
             } else if r.file {
+                image = image
+                    .checked_add(bytes)
+                    .ok_or(NativeBackingRefusal::InvalidLedger)?;
                 file_spans.push((
                     r.device,
                     r.inode,
@@ -197,6 +207,7 @@ impl Snapshot {
             profile: super::super::profile::PROFILE.into(),
             private_bytes: private,
             immutable_file_bytes: immutable,
+            image_mapping_bytes: image,
             shared_pool: SharedPoolUse {
                 pool_identity: pool_hash.finalize().into(),
                 capacity_bytes: pool,
@@ -207,6 +218,7 @@ impl Snapshot {
             execution_stack_bytes: stack_bytes,
             private_mapping_identity: mapping,
             immutable_mapping_identity: file_hash.finalize().into(),
+            fixed_mapping_identity: fixed_hash.finalize().into(),
             other_mapping_bytes: other,
             fixed_io_span: io,
             execution_stack_span: stack,
@@ -281,4 +293,80 @@ pub fn freeze() -> Result<(), NativeBackingRefusal> {
     // Prevent allocator cleanup from introducing an unadmitted trim/unmap syscall.
     std::mem::forget(filter);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn immutable_aliases_share_backing_and_native_roles_partition_exact_spans() {
+        let io = BackingSpan {
+            start: 0x2000,
+            end: 0x3000,
+            role: BackingRole::FixedIo,
+        };
+        let stack = BackingSpan {
+            start: 0x4000,
+            end: 0x4000 + super::super::super::profile::STACK_BYTES as u64,
+            role: BackingRole::ExecutionStack,
+        };
+        let private = |start, end| Region {
+            start,
+            end,
+            offset: 0,
+            device: 0,
+            inode: 0,
+            private_rw: true,
+            file: false,
+        };
+        let file = |start| Region {
+            start,
+            end: start + 0x4000,
+            offset: 0,
+            device: 1,
+            inode: 7,
+            private_rw: false,
+            file: true,
+        };
+        let snapshot = Snapshot {
+            regions: vec![
+                private(0x1000, 0x2000),
+                private(io.start, io.end),
+                private(stack.start, stack.end),
+                file(0x100000),
+                file(0x200000),
+            ],
+        };
+        let ledger = snapshot.ledger(io, stack).unwrap();
+        assert_eq!(ledger.shared_pool.capacity_bytes, 4096);
+        assert_eq!(ledger.immutable_file_bytes, 0x4000);
+        assert_eq!(ledger.image_mapping_bytes, 0x8000);
+        let grant = super::super::super::NativeBackingGrant {
+            maximum_private_bytes: ledger.private_bytes,
+            maximum_fixed_mapping_bytes: ledger.image_mapping_bytes + ledger.other_mapping_bytes,
+        };
+        assert_eq!(ledger.validate(grant), Ok(()));
+        assert!(matches!(
+            ledger.validate(super::super::super::NativeBackingGrant {
+                maximum_private_bytes: ledger.private_bytes - 1,
+                ..grant
+            }),
+            Err(NativeBackingRefusal::InsufficientBacking { .. })
+        ));
+        // Source aliases share file extents but each image reservation is charged,
+        // including possible relocated private copies.
+        assert!(matches!(
+            ledger.validate(super::super::super::NativeBackingGrant {
+                maximum_fixed_mapping_bytes: ledger.immutable_file_bytes,
+                ..grant
+            }),
+            Err(NativeBackingRefusal::InsufficientBacking { .. })
+        ));
+        let mut duplicate = ledger.clone();
+        duplicate.shared_pool.capacity_bytes += 4096;
+        assert_eq!(
+            duplicate.validate(grant),
+            Err(NativeBackingRefusal::InvalidLedger)
+        );
+    }
 }

@@ -4,7 +4,7 @@ use super::{
     worker::{file_digest, Snapshot},
     BackingLedger, NativeBackingGrant, NativeBackingRefusal, NativeCpuProfile,
 };
-use conduit_ai::AdmittedModelResource;
+use conduit_ai::imported_onnx::ImportedOnnxResource;
 use sha2::{Digest, Sha256};
 use std::{
     io::{Read, Write},
@@ -17,7 +17,7 @@ pub struct PreparedNativeModel {
     input: ChildStdin,
     output: ChildStdout,
     ledger: BackingLedger,
-    resource: Arc<AdmittedModelResource>,
+    resource: Arc<ImportedOnnxResource>,
     next: u32,
     maximum: u32,
     failed: bool,
@@ -27,12 +27,13 @@ impl PreparedNativeModel {
         executable: &Path,
         profile: NativeCpuProfile,
         grant: NativeBackingGrant,
-        resource: Arc<AdmittedModelResource>,
+        resource: Arc<ImportedOnnxResource>,
     ) -> Result<Self, NativeBackingRefusal> {
         profile.validate()?;
         grant.validate()?;
-        if resource.bytes().len() != 77
-            || Sha256::digest(resource.bytes()).as_slice() != super::profile::MODEL_SHA256
+        if resource.resource().bytes().len() != 77
+            || Sha256::digest(resource.resource().bytes()).as_slice()
+                != super::profile::MODEL_SHA256
         {
             return Err(NativeBackingRefusal::IdentityMismatch);
         }
@@ -77,7 +78,7 @@ impl PreparedNativeModel {
             &Bootstrap {
                 profile,
                 grant,
-                graph: resource.bytes().to_vec(),
+                graph: resource.resource().bytes().to_vec(),
             },
         )?;
         let ready: Prepared =
@@ -113,7 +114,16 @@ impl PreparedNativeModel {
     pub fn ledger(&self) -> &BackingLedger {
         &self.ledger
     }
-    pub fn resource(&self) -> &AdmittedModelResource {
+    pub fn verify_backing(&self) -> Result<(), NativeBackingRefusal> {
+        let observed = Snapshot::capture(self.child.id())?
+            .ledger(self.ledger.fixed_io_span, self.ledger.execution_stack_span)?;
+        if observed == self.ledger {
+            Ok(())
+        } else {
+            Err(NativeBackingRefusal::InvalidLedger)
+        }
+    }
+    pub fn resource(&self) -> &ImportedOnnxResource {
         &self.resource
     }
     pub(crate) fn probe_capacity(&mut self) -> Result<(), NativeBackingRefusal> {
@@ -209,6 +219,9 @@ impl Drop for AdmissionChild {
     }
 }
 fn classify(child: &mut Child, fallback: NativeBackingRefusal) -> NativeBackingRefusal {
+    if !matches!(fallback, NativeBackingRefusal::Io) {
+        return fallback;
+    }
     use std::os::unix::process::ExitStatusExt;
     match child.try_wait() {
         Ok(Some(status)) if status.signal() == Some(libc::SIGSYS) => {

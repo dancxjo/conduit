@@ -5,6 +5,7 @@ use sha2::{Digest, Sha256};
 use std::{
     ffi::{CStr, CString},
     io::Read,
+    os::fd::AsRawFd,
     ptr,
 };
 pub struct NativeSession {
@@ -16,6 +17,9 @@ pub struct NativeSession {
 }
 pub fn file_digest(path: &std::path::Path) -> Result<[u8; 32], NativeBackingRefusal> {
     let mut file = std::fs::File::open(path).map_err(|_| NativeBackingRefusal::Io)?;
+    digest_file(&mut file)
+}
+fn digest_file(file: &mut std::fs::File) -> Result<[u8; 32], NativeBackingRefusal> {
     let mut digest = Sha256::new();
     let mut buf = [0u8; 8192];
     let mut total = 0u64;
@@ -38,10 +42,14 @@ impl NativeSession {
         graph: &[u8],
         io: *mut f32,
     ) -> Result<Self, NativeBackingRefusal> {
-        if file_digest(std::path::Path::new(&profile.runtime_library))? != profile.runtime_sha256 {
+        // Pin the verified inode across loading; replacement of the configured path
+        // cannot substitute an unchecked runtime between hashing and dlopen.
+        let mut runtime =
+            std::fs::File::open(&profile.runtime_library).map_err(|_| NativeBackingRefusal::Io)?;
+        if digest_file(&mut runtime)? != profile.runtime_sha256 {
             return Err(NativeBackingRefusal::IdentityMismatch);
         }
-        let path = CString::new(profile.runtime_library.as_bytes())
+        let path = CString::new(format!("/proc/self/fd/{}", runtime.as_raw_fd()))
             .map_err(|_| NativeBackingRefusal::UnsupportedProfile)?;
         let library = unsafe { libc::dlopen(path.as_ptr(), libc::RTLD_NOW | libc::RTLD_LOCAL) };
         if library.is_null() {

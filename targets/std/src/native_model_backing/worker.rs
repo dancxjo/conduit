@@ -10,6 +10,9 @@ pub(super) use ort_api::file_digest;
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 pub fn worker_main() -> Result<(), NativeBackingRefusal> {
+    if std::env::args().nth(1).as_deref() == Some("--prove") {
+        return super::proof::prove_from_environment();
+    }
     unsafe {
         libc::mallopt(libc::M_ARENA_MAX, 1);
         libc::mallopt(libc::M_MMAP_MAX, 0);
@@ -147,6 +150,13 @@ fn prepare_and_run(context: &WorkerContext) -> Result<(), NativeBackingRefusal> 
         .map_err(|_| NativeBackingRefusal::BackingPreparation)?;
     seed.resize(super::profile::HEAP_SEED_BYTES, 0u8);
     drop(seed);
+    if std::fs::read_dir("/proc/self/task")
+        .map_err(|_| NativeBackingRefusal::Io)?
+        .count()
+        != 1
+    {
+        return Err(NativeBackingRefusal::UnsupportedProfile);
+    }
     let snapshot = Snapshot::capture(std::process::id())?;
     let ledger = snapshot.ledger(io_span, context.stack)?;
     ledger.validate(context.bootstrap.grant)?;

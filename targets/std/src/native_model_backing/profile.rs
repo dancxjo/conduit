@@ -40,15 +40,17 @@ impl NativeCpuProfile {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct NativeBackingGrant {
+    /// Actual write-prefaulted private mappings, including the single shared pool.
     pub maximum_private_bytes: u64,
-    pub maximum_file_backing_bytes: u64,
+    /// Image address reservations plus other fixed mappings; file extents are not added twice.
+    pub maximum_fixed_mapping_bytes: u64,
 }
 impl NativeBackingGrant {
     pub fn validate(self) -> Result<(), NativeBackingRefusal> {
         if self.maximum_private_bytes == 0
             || self.maximum_private_bytes > 256 * 1024 * 1024
-            || self.maximum_file_backing_bytes == 0
-            || self.maximum_file_backing_bytes > 512 * 1024 * 1024
+            || self.maximum_fixed_mapping_bytes == 0
+            || self.maximum_fixed_mapping_bytes > 512 * 1024 * 1024
         {
             return Err(NativeBackingRefusal::UnsupportedProfile);
         }
@@ -61,7 +63,7 @@ pub enum NativeBackingRefusal {
     IdentityMismatch,
     InsufficientBacking {
         private_required: u64,
-        file_required: u64,
+        fixed_mapping_required: u64,
     },
     InvalidLedger,
     BackingPreparation,

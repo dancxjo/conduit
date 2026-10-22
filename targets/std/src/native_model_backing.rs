@@ -1,6 +1,7 @@
 //! Exact hosted CPU native-memory admission; ordinary model Gear integration is separate.
 mod ledger;
 mod profile;
+mod proof;
 mod protocol;
 mod supervisor;
 mod worker;
