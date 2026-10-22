@@ -57,3 +57,38 @@ A clean-source corrected full run remains required.
 
 The corrected harness compiles and both focused Todo Look controls pass.
 Formatting/whitespace pass; all proof/service/browser processes are reaped.
+
+## Corrected exact-source full run passed
+
+Clean Source `2c3d0411b` completed the normal native product build, sealed Linux
+owner release (including its AArch64 companion) and static Handbook through the
+supported entrances. A pinned single Chromium participant joined the recovered
+installed owner and deliberately preferred its admitted native route. The same
+four-item Todo Face includes accented/combining and long Unicode text. QEMU then
+completed all three actual replacements: compact editorial at 100%, minimum
+200% text, and forced colors while retaining 200% text. Motion remains disabled.
+The complete coordinator and native proof both exit zero.
+
+Independent receipt checks confirm unchanged complete owner Face, component,
+recipe, sealed configuration and Plan, three distinct acknowledged Shows, and
+identical ordered traversal of nine primary controls and fourteen Details
+controls at every transition. The original focused Open Plots library action is
+retained. The installed owner is independently reread at every transition.
+No Body action is dispatched and no Todo value changes. Both protected original
+checkpoint inventories remain byte-exact. Owner/service, invitation listener,
+browser and QEMU are stopped and reaped after completion.
+
+[Original receipt, five captures and independent validation](evidence/native-owner-overrides-qemu-20261022/manifest.json)
+retain exact Source and hashes. All five PNG lengths, file hashes, dimensions,
+chunk CRCs and independently decoded RGBA hashes pass. Visual inspection confirms
+actual 200% reflow and white/yellow-on-black forced-color rendering. Captures
+show the first of two pages; complete control reachability is proved through
+actual current-Show primary/Details traversal. They do not visually certify
+every Unicode glyph or all continuation-page text, physical platform colors,
+human usability, hostile-code confinement or universal accessibility.
+
+The earlier failed 8c run is retained above and is not relabelled. This earns
+local installed-owner/browser plus native-emulator override/focus evidence for
+#5629/#5994. Relevant combined-head checks, normal merge, scene-pressure/provider
+proof and larger Source/Patchbay continuation remain separate requirements.
+No parent issue closes from this packet alone.
