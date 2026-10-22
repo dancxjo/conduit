@@ -1,0 +1,294 @@
+{
+  "source": "0dad64726989f01b79de8f4bb4cd990b2787f040",
+  "tree": "fdbe4c281847658942cd0233e815c28f11b9ce09",
+  "source_clean": true,
+  "focused_cases": 9,
+  "catalog_cases": 3,
+  "sdk_cases": 6,
+  "application_core_cases": 45,
+  "resource_cases": 4,
+  "total_fresh_cases": 67,
+  "fixed_grant_host_executable": {
+    "grant_bytes": 2072576,
+    "init_peak_bytes": 1863488,
+    "graph_peak_bytes": 2042464,
+    "canonical_peak_bytes": 1909952,
+    "combined_headroom_bytes": 30112
+  },
+  "catalog_plots": 94,
+  "patchbay_source_document_id": "c4e42a73c0ebfd9f92bb8af0b2fa315cdc2e5789afc5e3c55f77e3f37eb7b938",
+  "patchbay_checked_plot_id": "5d99d714593ed6b00c08e81bb35467b80bca219512b49a86e181afd85e7a4b07",
+  "prior_negatives": [
+    {
+      "source": "373527c72ae571b5f17a03903e11b2aef7a70502",
+      "meaning": "renamed owner choice test selected zero cases; runner refused pass; product did not fail",
+      "receipt": "prior-selection/6252-373527c72-focused-checks.json"
+    }
+  ],
+  "files": [
+    {
+      "file": "6252-0dad64726-focused-checks.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-focused-checks.json",
+      "raw_bytes": 6517,
+      "raw_sha256": "5780a8b68bfbea7c9c1d8d8a6e81a7ed269a701227da10d3f878c0e7a6a65488",
+      "stored_bytes": 6517,
+      "stored_sha256": "5780a8b68bfbea7c9c1d8d8a6e81a7ed269a701227da10d3f878c0e7a6a65488"
+    },
+    {
+      "file": "6252-0dad64726-cycles.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-cycles.log",
+      "raw_bytes": 470,
+      "raw_sha256": "463aa7e64580f57fee83497dc3229c8b2a322bfc920803ad5ba9f50756d2d27a",
+      "stored_bytes": 341,
+      "stored_sha256": "b1fcba62adc9c9583813bba2d2c480badbd4e2e1badd19e773a484e141d8125b"
+    },
+    {
+      "file": "6252-0dad64726-large-graph.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-large-graph.log",
+      "raw_bytes": 461,
+      "raw_sha256": "5d3d4a63c76aaf6de48bfb12bee02f1b15e0b4c1096ee7b07e52fd5eb8a17fe2",
+      "stored_bytes": 338,
+      "stored_sha256": "a2aebd9ae291a4c4bc1423fd5eeaedefd26235eba2dd39dbd47f7b84220939fb"
+    },
+    {
+      "file": "6252-0dad64726-choices.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-choices.log",
+      "raw_bytes": 543,
+      "raw_sha256": "f181a86c4120b304d9a73c7e5e7f8f77685579d96ff6dbf81c62f323a93ebe47",
+      "stored_bytes": 358,
+      "stored_sha256": "84fd71ed63ff9444b2a7906d4e8c711b147c1ba97ce9490535a2bd23cb91c040"
+    },
+    {
+      "file": "6252-0dad64726-cold.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-cold.log",
+      "raw_bytes": 459,
+      "raw_sha256": "1ad1ec41f9851337da183efbe389c801f92cced20fc8c6b54bdca6680f7448ca",
+      "stored_bytes": 335,
+      "stored_sha256": "10324d07b2b88873a759301ee5ac195c100fe8b87b513fd68fa558f64cbb4f82"
+    },
+    {
+      "file": "6252-0dad64726-release.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-release.log",
+      "raw_bytes": 468,
+      "raw_sha256": "9985c03776f37da1c1256a00f8ed81e5420a7120cdb658e289f0ad5a522e6a66",
+      "stored_bytes": 342,
+      "stored_sha256": "9a62d0f350cc3438c7507da32c0b9f7deac76f9b8b08b4fa2c59a3deefbcdaf5"
+    },
+    {
+      "file": "6252-0dad64726-service-release.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-service-release.log",
+      "raw_bytes": 482,
+      "raw_sha256": "7b0f658ce62e82d9befd9f838b9cf5f08cec78e7843cb36c08c29e574f6041a1",
+      "stored_bytes": 351,
+      "stored_sha256": "4d87ec213a740186c61527d927994d260626427600fcd4580ed9736f0919e3ff"
+    },
+    {
+      "file": "6252-0dad64726-membership.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-membership.log",
+      "raw_bytes": 481,
+      "raw_sha256": "b75b7d59be9d4e7e3b72e08066c8c89a591d6638a1e9068090d1563b7e3c65d8",
+      "stored_bytes": 338,
+      "stored_sha256": "1c80c5f4ebe28aec87af84a455fe61dd4f293be49019086a0f64792ba886aada"
+    },
+    {
+      "file": "6252-0dad64726-prebirth-cancel.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-prebirth-cancel.log",
+      "raw_bytes": 478,
+      "raw_sha256": "b065eeafdcd780cefe26c44db2afd4218018713c8eb4d20a9afcb89c8c1ca452",
+      "stored_bytes": 347,
+      "stored_sha256": "4bbf1566e6fe6bc24585ad3a9bfd6d39dc67792773925ce1d0f6e181421fe5f6"
+    },
+    {
+      "file": "6252-0dad64726-candidate-boundary.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-candidate-boundary.log",
+      "raw_bytes": 422,
+      "raw_sha256": "d812a7be14aba5e590c0c9eecbc322ded8cf04fba3c2d889aee9aa54f9adab53",
+      "stored_bytes": 309,
+      "stored_sha256": "d0b055c2d4fdf453abc618e95ef3079c5d89755c5af2679b3c215205d0f8285f"
+    },
+    {
+      "file": "6252-0dad64726-catalog-checks.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-catalog-checks.json",
+      "raw_bytes": 1697,
+      "raw_sha256": "a85ec90cc3ece105d822ca557fc65af9f444a32db517b2cd79272d315862699c",
+      "stored_bytes": 1697,
+      "stored_sha256": "a85ec90cc3ece105d822ca557fc65af9f444a32db517b2cd79272d315862699c"
+    },
+    {
+      "file": "6252-0dad64726-catalog.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-catalog.log",
+      "raw_bytes": 8358,
+      "raw_sha256": "bb23eae2fcf73f7b3e9975231b987a191d409e4b1cc1e2f81c4d5cba45540881",
+      "stored_bytes": 950,
+      "stored_sha256": "f0fbbbd7c237acb81f28c52ddf16598c278c12e1323a358711a87bfc759a738b"
+    },
+    {
+      "file": "6252-0dad64726-catalog-refusals.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-catalog-refusals.log",
+      "raw_bytes": 3688,
+      "raw_sha256": "fccede09da9f5f15177736e3d89ca70dd98a2ee26c240ff37c272b121db204b2",
+      "stored_bytes": 815,
+      "stored_sha256": "9a95e942cf96e1cb4cca24ed5b874d28b054f165a85c9c4ea99da91d3a887a74"
+    },
+    {
+      "file": "6252-0dad64726-catalog-regression.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-catalog-regression.log",
+      "raw_bytes": 3143,
+      "raw_sha256": "4e1d1424eab01cf42bf2a9d09f1408d0f642705e10017293cdaedfa38bc35b85",
+      "stored_bytes": 661,
+      "stored_sha256": "a3829a2c5fcb8e4865dfd0e46af0d545599e37bf35a6ea3d8017fe801491a40d"
+    },
+    {
+      "file": "6252-0dad64726-strict-checks.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-strict-checks.json",
+      "raw_bytes": 993,
+      "raw_sha256": "e2ec83f2b653401898df789a8d759feb8edb8b685bfffaa76340bbb20c0700a2",
+      "stored_bytes": 993,
+      "stored_sha256": "e2ec83f2b653401898df789a8d759feb8edb8b685bfffaa76340bbb20c0700a2"
+    },
+    {
+      "file": "6252-0dad64726-fmt.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-fmt.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "file": "6252-0dad64726-strict-packages.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-strict-packages.log",
+      "raw_bytes": 7725,
+      "raw_sha256": "1c7153cecd950470b3dc23b1553ecdc572ec2a5dbcfaf15e8b4a747e1871c746",
+      "stored_bytes": 836,
+      "stored_sha256": "a2c6098cc5871b151dbdc36666451d70e41dc910d405b07deb8d91db45fde58c"
+    },
+    {
+      "file": "6252-0dad64726-sdk-check.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-sdk-check.json",
+      "raw_bytes": 323,
+      "raw_sha256": "0a0903c2e1cc7a34f794f7fa8ae57378e8f241e763d5b8708c1a72dc05b1e2f8",
+      "stored_bytes": 323,
+      "stored_sha256": "0a0903c2e1cc7a34f794f7fa8ae57378e8f241e763d5b8708c1a72dc05b1e2f8"
+    },
+    {
+      "file": "6252-0dad64726-sdk-errors.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-sdk-errors.log",
+      "raw_bytes": 684,
+      "raw_sha256": "8334c7efd7ea4b89fffce757836958ed71302dcfc6cbd8eac77879e10a8140ef",
+      "stored_bytes": 439,
+      "stored_sha256": "63b34d5cc09252b9238eb9ad29c2887b11924ce5f952b819193831bd7d7585ef"
+    },
+    {
+      "file": "6252-0dad64726-catalog.json.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-catalog.json",
+      "raw_bytes": 113169,
+      "raw_sha256": "d2e9881b033f2101a66d035bdf7886f06945524a020add048bce64940dbc9e0b",
+      "stored_bytes": 30956,
+      "stored_sha256": "910c1b57daa7f7cdd579bb3a947123e28a894c373a3777c833fd1184965ad4ad"
+    },
+    {
+      "file": "6252-run-0dad-focused.py",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-run-0dad-focused.py",
+      "raw_bytes": 3521,
+      "raw_sha256": "137513fd8a40297bef7ff6eddb34f1a09b2fee012c73845bd8316a2513cd2f31",
+      "stored_bytes": 3521,
+      "stored_sha256": "137513fd8a40297bef7ff6eddb34f1a09b2fee012c73845bd8316a2513cd2f31"
+    },
+    {
+      "file": "6252-run-0dad-catalog-and-strict.py",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-run-0dad-catalog-and-strict.py",
+      "raw_bytes": 3078,
+      "raw_sha256": "06edff377be6c9bc038430044a3f2cc13e4d6335a25cbc45a9a2c7fda5365d19",
+      "stored_bytes": 3078,
+      "stored_sha256": "06edff377be6c9bc038430044a3f2cc13e4d6335a25cbc45a9a2c7fda5365d19"
+    },
+    {
+      "file": "6252-run-0dad-strict.py",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-run-0dad-strict.py",
+      "raw_bytes": 1743,
+      "raw_sha256": "bcbadba6683e0aad0b5ab1768e0ab8bb768d7654c252f464f921e888a396af2c",
+      "stored_bytes": 1743,
+      "stored_sha256": "bcbadba6683e0aad0b5ab1768e0ab8bb768d7654c252f464f921e888a396af2c"
+    },
+    {
+      "file": "6252-run-0dad-all.py",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-run-0dad-all.py",
+      "raw_bytes": 2986,
+      "raw_sha256": "7bcb55710050e72cc68f7fba4260fbd500929b91ad2874f17cc3ba286210a758",
+      "stored_bytes": 2986,
+      "stored_sha256": "7bcb55710050e72cc68f7fba4260fbd500929b91ad2874f17cc3ba286210a758"
+    },
+    {
+      "file": "6252-native-fixture-peer-review.md",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-native-fixture-peer-review.md",
+      "raw_bytes": 949,
+      "raw_sha256": "3cedc1b850f0538daa5a7d26436adf1dcffc506668074533d3dc5a6e7c727597",
+      "stored_bytes": 949,
+      "stored_sha256": "3cedc1b850f0538daa5a7d26436adf1dcffc506668074533d3dc5a6e7c727597"
+    },
+    {
+      "file": "prior-selection/6252-373527c72-focused-checks.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-focused-checks.json",
+      "raw_bytes": 2250,
+      "raw_sha256": "051185efa6af3a82abb1c923d8f41dec1bc09f8764aad40de3a433d5e390c95d",
+      "stored_bytes": 2250,
+      "stored_sha256": "051185efa6af3a82abb1c923d8f41dec1bc09f8764aad40de3a433d5e390c95d"
+    },
+    {
+      "file": "prior-selection/6252-373527c72-cycles.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-cycles.log",
+      "raw_bytes": 7268,
+      "raw_sha256": "90388ab1d86b030c5c4d51fead5ff3514c90d1d9bc9ae7bbce47f913bdc0b70e",
+      "stored_bytes": 986,
+      "stored_sha256": "9af48e322692246d2eaf0643ef94a5581595ae01d7196b23012655813d3e92ed"
+    },
+    {
+      "file": "prior-selection/6252-373527c72-large-graph.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-large-graph.log",
+      "raw_bytes": 461,
+      "raw_sha256": "1f254fb3c510515fd1edf06a42997c58004531c1b84710516545985590bdf070",
+      "stored_bytes": 338,
+      "stored_sha256": "a4eeb70b0957a0aced1c11276c0345a20cb8b9b41fd7d79977f006580025c0b3"
+    },
+    {
+      "file": "prior-selection/6252-373527c72-choices.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-choices.log",
+      "raw_bytes": 346,
+      "raw_sha256": "e04e911880b958b09473104eeb0f5be90dd0216fa1d6d7ac4db72fa376ae5a9c",
+      "stored_bytes": 266,
+      "stored_sha256": "63f34ca2151649f3bbd750ca8734f3d2043e0c3c4721e9a5de284c2a02dd8543"
+    },
+    {
+      "file": "6252-0dad64726-app-core-check.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-app-core-check.json",
+      "raw_bytes": 428,
+      "raw_sha256": "64c3fb0e0f489c25446fd3d5bc5131aac644d007fdd476a447593e736d660f3f",
+      "stored_bytes": 428,
+      "stored_sha256": "64c3fb0e0f489c25446fd3d5bc5131aac644d007fdd476a447593e736d660f3f"
+    },
+    {
+      "file": "6252-0dad64726-app-core.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-app-core.log",
+      "raw_bytes": 5372,
+      "raw_sha256": "ffae12ebd0995c74155d3d2d7764022ab255a1261f7c349e2ed17a818703e4c5",
+      "stored_bytes": 1858,
+      "stored_sha256": "615b60f4d69e2be1a3243b46634fe6704624e6b5afe818c059b6b3824988b5e9"
+    },
+    {
+      "file": "6252-0dad64726-resource-check.json",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-resource-check.json",
+      "raw_bytes": 351,
+      "raw_sha256": "5573ec9cf0aa2e2330227c71068c07bd4525b86175f30d8422ad80869396cd58",
+      "stored_bytes": 351,
+      "stored_sha256": "5573ec9cf0aa2e2330227c71068c07bd4525b86175f30d8422ad80869396cd58"
+    },
+    {
+      "file": "6252-0dad64726-resource-tests.log.gz",
+      "original_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-resource-tests.log",
+      "raw_bytes": 523,
+      "raw_sha256": "a94b71677b5c239cce9e2721c0059083850b8eaa9020b3380e8ce956f0c7248f",
+      "stored_bytes": 332,
+      "stored_sha256": "156c818f21c90e81ccbf3ebbd844231cab217ee7bb99b4976a8625f3188a3766"
+    }
+  ]
+}

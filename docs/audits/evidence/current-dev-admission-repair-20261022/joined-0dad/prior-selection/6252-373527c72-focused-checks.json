@@ -1,0 +1,71 @@
+{
+  "source": "373527c72ae571b5f17a03903e11b2aef7a70502",
+  "checks": [
+    {
+      "label": "cycles",
+      "test": "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-cycles.log",
+      "seconds": 56.253220319747925
+    },
+    {
+      "label": "large-graph",
+      "test": "native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-large-graph.log",
+      "seconds": 1.6871991157531738
+    },
+    {
+      "label": "choices",
+      "test": "native_face_scene::tests::primary_action_names_bounded_text_choices_from_current_face_contract",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::tests::primary_action_names_bounded_text_choices_from_current_face_contract",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": false,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-373527c72-choices.log",
+      "seconds": 0.3072648048400879
+    }
+  ]
+}

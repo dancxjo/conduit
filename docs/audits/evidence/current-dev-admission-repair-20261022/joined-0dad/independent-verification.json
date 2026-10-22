@@ -1,0 +1,14 @@
+{
+  "source": "0dad64726989f01b79de8f4bb4cd990b2787f040",
+  "indexed_files_verified": 35,
+  "originals_verified": 33,
+  "fresh_harness_cases": 67,
+  "fixed_grant_host_executable": {
+    "grant_bytes": 2072576,
+    "init_peak_bytes": 1863488,
+    "graph_peak_bytes": 2042464,
+    "canonical_peak_bytes": 1909952,
+    "combined_headroom_bytes": 30112
+  },
+  "scope": "Byte/hash/lossless-original verification; no additional runtime/CI/QEMU proof."
+}

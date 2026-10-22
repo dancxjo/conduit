@@ -1,0 +1,198 @@
+{
+  "source": "0dad64726989f01b79de8f4bb4cd990b2787f040",
+  "checks": [
+    {
+      "label": "cycles",
+      "test": "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::connected_layout::tests::cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-cycles.log",
+      "seconds": 0.28965139389038086
+    },
+    {
+      "label": "large-graph",
+      "test": "native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::ports::tests::large_graphs_keep_every_identity_reachable_and_report_omitted_geometry",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-large-graph.log",
+      "seconds": 1.7180986404418945
+    },
+    {
+      "label": "choices",
+      "test": "native_face_scene::tests::primary_action_exposes_only_current_finite_text_choices",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_face_scene::tests::primary_action_exposes_only_current_finite_text_choices",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-choices.log",
+      "seconds": 0.5169837474822998
+    },
+    {
+      "label": "cold",
+      "test": "native_workset::preparation::tests::every_native_source_reuses_exact_cold_meaning_with_finite_entries",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "native_workset::preparation::tests::every_native_source_reuses_exact_cold_meaning_with_finite_entries",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-cold.log",
+      "seconds": 2.4460091590881348
+    },
+    {
+      "label": "release",
+      "test": "product_front_door::workspace_input::tests::tab_and_captured_release_preserve_two_plot_state_and_the_same_play",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "product_front_door::workspace_input::tests::tab_and_captured_release_preserve_two_plot_state_and_the_same_play",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-release.log",
+      "seconds": 1.416717290878296
+    },
+    {
+      "label": "service-release",
+      "test": "product_front_door::workspace_input::service_tests::held_release_after_selection_is_observed_without_repainting_the_new_plot",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "product_front_door::workspace_input::service_tests::held_release_after_selection_is_observed_without_repainting_the_new_plot",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-service-release.log",
+      "seconds": 1.5770070552825928
+    },
+    {
+      "label": "membership",
+      "test": "installed_browser::membership_offer::tests::membership_preserves_every_installed_offer_within_admission_bounds",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "installed_browser::membership_offer::tests::membership_preserves_every_installed_offer_within_admission_bounds",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-membership.log",
+      "seconds": 0.2701849937438965
+    },
+    {
+      "label": "prebirth-cancel",
+      "test": "owner_face_mask::prebirth_tests::cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-browser-runtime",
+        "--lib",
+        "owner_face_mask::prebirth_tests::cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-prebirth-cancel.log",
+      "seconds": 0.37079739570617676
+    },
+    {
+      "label": "candidate-boundary",
+      "test": "wrong_protocol_and_oversized_claim_collections_do_not_enter_inventory",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-body",
+        "--test",
+        "candidate",
+        "wrong_protocol_and_oversized_claim_collections_do_not_enter_inventory",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "pass_verified": true,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6252-0dad64726-candidate-boundary.log",
+      "seconds": 0.17658615112304688
+    }
+  ]
+}
