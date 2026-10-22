@@ -11,7 +11,6 @@ use crate::{
 mod document;
 #[path = "../../domain/frame.rs"]
 mod frame;
-#[path = "ordinary_domain/document.rs"]
 #[path = "ordinary_domain/morse.rs"]
 mod morse;
 #[path = "ordinary_domain/timer.rs"]

@@ -16,12 +16,16 @@ mod probe_gate;
 mod probes;
 #[cfg(all(feature = "proof", target_arch = "x86"))]
 #[path = "probes_ia32.rs"]
+mod probes;
 #[cfg(all(feature = "proof", target_arch = "aarch64"))]
 #[path = "probes_aarch64.rs"]
+mod probes;
 #[cfg(all(feature = "proof", target_arch = "riscv64"))]
 #[path = "probes_riscv64.rs"]
+mod probes;
 #[cfg(all(feature = "proof", target_arch = "loongarch64"))]
 #[path = "probes_loongarch64.rs"]
+mod probes;
 #[cfg(all(feature = "proof", target_arch = "x86_64"))]
 mod service_probe;
 mod timer;
