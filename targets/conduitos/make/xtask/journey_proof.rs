@@ -20,11 +20,11 @@ use std::{
     process::{Command, Stdio},
 };
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::{
-    hid_qmp, image, journey_input, journey_records, profile::Paths, report::git_head,
-    ConduitosArch, ConduitosError,
+    ConduitosArch, ConduitosError, hid_qmp, image, journey_input, journey_records, profile::Paths,
+    report::git_head,
 };
 use crate::cli::GlobalOpts;
 
@@ -342,6 +342,17 @@ fn execute_with_viewport(
             &mut reader,
             &mut artifacts,
         )?;
+        let fresh_source_editor = if observe {
+            json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
+        } else {
+            patchbay_actions::fresh_source_editor(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?
+        };
         let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
         face_correspondence::retain(
             &serial,
@@ -381,6 +392,7 @@ fn execute_with_viewport(
             "paired_reconstruction":"native-shell-paired-linear.json",
             "look_selection":look_selection,
             "patchbay_actions":patchbay_actions,
+            "fresh_source_editor":fresh_source_editor,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,

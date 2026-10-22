@@ -1,9 +1,14 @@
 //! Real offered Patchbay actions, correlated with the guest's current Face/Show.
 use super::super::{qemu_artifacts::Artifacts, qmp};
-use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
+use super::{ConduitosError, face_correspondence, hid_qmp, io_error, journey_input, refusal};
 use conduit_face::Face;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+
+mod selection;
+mod source_editor;
+
+pub(super) use source_editor::exercise as fresh_source_editor;
 
 const ACTION: &str = "CONDUIT_NATIVE_ACTION ";
 const EDITOR: &str = "CONDUIT_NATIVE_SOURCE_EDITOR ";
@@ -36,35 +41,9 @@ pub(super) fn exercise(
         },
     )?;
     let initial = current(serial)?;
-    let face = decode(&initial)?;
-    // The current native owner offers only its already selected graph. Enact
-    // that exact offered action; cross-Plot selection remains a product gap.
-    let select = face
-        .actions
-        .iter()
-        .find(|action| {
-            action.intent == "patchbay/select-plot@1"
-                && face.properties.iter().any(|property| {
-                    property.subject == action.target
-                        && property.name == "patchbay-selected"
-                        && property.value == conduit_face::FacePropertyValue::Flag(true)
-                })
-        })
-        .ok_or_else(|| refusal("Patchbay does not offer its current selected Plot"))?;
-    let target = select.target.clone();
-    let selected = submit(serial, child, qmp, reader, &initial, &select.identity, None)?;
+    let round_trip = selection::round_trip(serial, child, qmp, reader, &initial)?;
     let after_select = current(serial)?;
-    if !decode(&after_select)?.properties.iter().any(|property| {
-        property.subject == target
-            && property.name == "patchbay-selected"
-            && property.value == conduit_face::FacePropertyValue::Flag(true)
-    }) {
-        return Err(refusal("Patchbay did not select the exact offered Plot"));
-    }
-    if selected["before"]["active_play_id"] != selected["after"]["active_play_id"] {
-        return Err(refusal("Patchbay inspection replaced the actor Play"));
-    }
-    artifacts.capture(qmp, reader, "patchbay-inspect-current-plot", false)?;
+    artifacts.capture(qmp, reader, "patchbay-inspected-other-and-returned", false)?;
 
     // The existing editor proof intentionally left café. Edit must preserve
     // that real draft, not overwrite it to make this demonstration succeed.
@@ -123,15 +102,13 @@ pub(super) fn exercise(
         ));
     }
     artifacts.capture(qmp, reader, "patchbay-mask-replanned", true)?;
-    Ok(
-        json!({"select_plot":selected, "selection_kind":"idempotent-current-plot",
-        "cross_plot_selection_enacted":false, "selected_face":after_select,
+    Ok(json!({"cross_plot_selection":round_trip,
+        "cross_plot_selection_enacted":true, "selected_face":after_select,
         "edit_request":edit_request, "edit_outcome":"native-editor-existing-draft",
         "successful_edit_handoff_enacted":false, "edit_refusal_face":after_edit,
         "refusal_details":refusal_details,
         "mask_request":mask_request, "replanned_face":after_mask,
-        "limits":"idempotent selection only; existing draft refusal; no cross-Plot selection, successful Source editor handoff or Save/reopen"}),
-    )
+        "limits":"actual cross-Plot selection; existing draft refusal in the original Play; positive Source handoff follows a separate fresh Play; no Save/reopen"}))
 }
 
 fn decode(record: &Value) -> Result<Face, ConduitosError> {

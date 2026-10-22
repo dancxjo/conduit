@@ -420,3 +420,31 @@ separate renderer conformance. These results do not close #6201: native
 cross-Plot selection and successful fresh-editor handoff remain open, as do
 required combined-head CI/merge, larger graph continuation and the live Look
 focus/override matrix. Parent #5994 remains open.
+
+## Canonical inventory and checked input labels
+
+The native multi-Plot checkpoint is retained separately in
+[native-canonical-selection-20261022.md](native-canonical-selection-20261022.md).
+Its implementation has been brought into this proof branch without changing
+its portable/application-core/Root code. The native catalogue regression also
+passes: every native Patchbay inspection fits the unchanged legacy view value.
+The expanded journey harness compiles; actual cross-Plot and fresh-editor
+execution remain owed. It preserves the existing draft refusal and adds a
+separate real Wake/Plan/Play before testing an empty editor.
+
+Fresh installed-owner setup found a real browser admission regression before
+any Look traversal: stable source-derived input `aria-label`s were rejected by
+the reachability guard's blanket ARIA-label ban. The correction admits an
+input label only when its nonempty name matches the checked argument, while
+still requiring its visible native caption to match. Button/radio overrides,
+`aria-labelledby`, misleading/empty input names, hidden/inert/clipped controls
+and forged enabled states remain refused. All 33 pinned Chromium reachability
+cases pass with one worker and zero retries. Source-matching installed-owner
+and QEMU enactment still require a new sealed product set.
+
+Private failed setup evidence is retained. The recovered owner at its finite
+16-participant bound is not reused for new admissions; an independently
+recovered eight-participant owner is used instead, without raising the bound.
+Product recovery rebinds its copied biography before service startup, and the
+original state/checkpoint file inventory remains unchanged. None of these
+setup refusals is counted as a passed Look or QEMU scenario.
