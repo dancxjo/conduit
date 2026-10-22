@@ -5,7 +5,9 @@ Linux x86_64 glibc CPU profile: ORT 1.23.2 with the reviewed runtime SHA-256,
 F32 scalar Identity graph with the reviewed 77-byte SHA-256, sequential execution,
 one intra/inter-op thread, disabled graph optimizations, CPU arena and memory
 patterns. Unsupported profiles refuse before a prepared resource is returned.
-The parent retains the admitted canonical model resource and its read custody.
+The profile preserves the full scalar IEEE-754 F32 bit domain, including signed
+zeros, infinities, NaN signs/payloads and subnormals. The parent retains the
+admitted canonical model resource and its read custody.
 This is the native storage admission seam; the ordinary Source/Plan/Play adapter
 and broader resource lifecycle remain separate work.
 
@@ -41,7 +43,7 @@ CONDUIT_ORT_LIBRARY=/absolute/path/to/reviewed/libonnxruntime.so.1.23.2 \
   cargo +stable xtask check model-native-backing
 ```
 
-It runs owning unit tests, 1,000 exact CPU outputs, unchanged mapping verification,
+It runs owning unit tests, 1,000 repeated exact CPU outputs plus IEEE-754 boundary bit controls, unchanged mapping verification,
 insufficient-grant refusal before readiness, and forced-capacity failure with no
 returned value. CI's std shard explicitly compiles and tests this optional
 feature; actual CPU acceptance needs the configured installed runtime. Default

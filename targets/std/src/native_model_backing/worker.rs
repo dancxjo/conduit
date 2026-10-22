@@ -212,9 +212,6 @@ fn prepare_and_run(context: &WorkerContext) -> Result<(), NativeBackingRefusal> 
             unsafe { libc::_exit(3) }
         }
         let value = f32::from_bits(u32::from_le_bytes(request[5..].try_into().unwrap()));
-        if !value.is_finite() {
-            unsafe { libc::_exit(4) }
-        }
         let result = native.infer(value)?;
         let mut reply = [0u8; 8];
         reply[..4].copy_from_slice(&u32::from(sequence).to_le_bytes());
