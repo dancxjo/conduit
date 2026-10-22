@@ -6,6 +6,7 @@ pub mod appliance;
 pub mod assigned;
 #[cfg(feature = "construction")]
 pub mod construction;
+pub mod display_packets;
 pub mod observation;
 pub mod publication;
 pub mod recording;

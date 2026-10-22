@@ -493,3 +493,13 @@ The physical initial frame `[106,0,40,4,151]` is unavailable(checksum); subseque
 The Fahrenheit Look renders those quantities as `68.4F` in the host proof. The
 ESP32 cross-check passes; the currently flashed fixture still shows test patterns
 until the live Source/Face/display application is integrated.
+
+`PreparedDisplayPackets` now executes the checked `tm1637-packets` expression.
+Its prepared composers encode register, brightness and enable inputs; its output
+is a fixed owned three-packet batch. Command bytes and brightness refusal remain
+in Source. Native code only validates finite packet geometry and exposes borrowed
+wire slices for the existing electrical transport. The end-to-end host proof now
+covers captured bytes → Source validation → quantities → Face → Fahrenheit Mask
+→ verified digit/dot mapping → Source-encoded TM1637 packets, with no recurring
+allocation. The Root still has to invoke the exact admitted physical Host Call;
+this pure encoder is not permission to drive pins or an installed Body.

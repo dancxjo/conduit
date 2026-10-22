@@ -96,6 +96,21 @@ fn validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask() {
         sign_ids: vec![],
     };
     let mut face = PreparedObservationFace::prepare(basis, 64, 30_000).unwrap();
+    let mut packets =
+        conduit_environment_runtime::display_packets::PreparedDisplayPackets::prepare().unwrap();
+    let profile = conduit_seven_segment_mask::Tm1637Profile {
+        digits: core::array::from_fn(|i| conduit_seven_segment_mask::DigitWiring {
+            address: i as u8,
+            segment_bits: [0, 1, 2, 3, 4, 5, 6],
+        }),
+        decimal_points: [
+            None,
+            Some(conduit_seven_segment_mask::WireBit { address: 1, bit: 7 }),
+            None,
+            None,
+        ],
+        colon: None,
+    };
     let ((), measured) = allocation_probe::observe(|| {
         let result = decoder.decode(5, [53, 0, 20, 2, 75]).unwrap();
         face.publish_result(0, result, 1000).unwrap();
@@ -117,6 +132,16 @@ fn validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask() {
             [0x7d, 0x7f, 0x66, 0x71]
         );
         assert_eq!(*shown.show.decimal_points(), [false, true, false, false]);
+        let registers = profile.map(&shown.show).unwrap();
+        let encoded = packets.encode(registers, 3, true).unwrap();
+        assert_eq!(
+            encoded.packets(),
+            [
+                &[0x40][..],
+                &[0xc0, 0x7d, 0xff, 0x66, 0x71, 0, 0][..],
+                &[0x8b][..]
+            ]
+        );
     });
     assert_eq!((measured.allocations, measured.reallocations), (0, 0));
 }

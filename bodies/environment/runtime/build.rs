@@ -59,6 +59,29 @@ fn main() {
     )
     .unwrap();
     fs::write(out.join("observation-forms.rs"), forms.source).unwrap();
+    let display = "../../../plots/device-protocols/tm1637.conduit";
+    println!("cargo:rerun-if-changed={display}");
+    let syntax = parse_syntax_document(&fs::read_to_string(display).unwrap());
+    assert!(syntax.diagnostics.is_empty());
+    let checked_display = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+    let display = conduit_plot::expand_canonical_plot_for_authoring(
+        &checked_display,
+        "tm1637-packets",
+        &conduit_plot::ProfileCatalog::new(),
+    )
+    .unwrap()
+    .expanded;
+    assert_eq!(display.gears.len(), 1);
+    let conduit_core::ConfigurationValue::Text(encoded) = &display.gears[0].configuration[0].value
+    else {
+        panic!("checked TM1637 expression program");
+    };
+    let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    fs::write(
+        out.join("tm1637-packets.program"),
+        program.canonical_bytes().unwrap(),
+    )
+    .unwrap();
     let recording = "../profiles/recording.conduit";
     println!("cargo:rerun-if-changed={recording}");
     let syntax = parse_syntax_document(&fs::read_to_string(recording).unwrap());
