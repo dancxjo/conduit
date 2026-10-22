@@ -335,3 +335,17 @@ modules; 58 focused Node checks and two resource/producer checks pass, including
 undersized-package refusal. Only Workspace play's module fetch bound grows from
 8192 to 12288 bytes for its measured 8600 bytes; runtime storage/global bounds
 are unchanged. Fresh sealed-product Chromium enactment remains owed.
+
+The `5752f2a3b` runtime and static Handbook packages seal, but Workspace staging
+stops before Chromium: its explicit copy list omitted the five newly declared
+presentation resources. The staging correction copies only their trusted SDK
+and Handbook sources. A focused test verifies every copied byte, admits the
+complete dependency subgraph through the actual producer and checks hashes.
+The full staged application remains a separate required check.
+
+Native Look focus proof preparation now traverses actual primary/Details focus
+rings under the unchanged owner Face, verifies every available offered control,
+and compares exact action/argument order and retained focus across the existing
+three swaps. It holds keys until actual guest acknowledgement and releases on
+failure. Existing four-refresh and owner grant bounds are unchanged. The xtask
+check passes; this is harness preparation, not a new live accessibility result.

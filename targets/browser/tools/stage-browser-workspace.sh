@@ -22,6 +22,10 @@ JAVASCRIPT
 cp targets/browser/workspace/workspace.webmanifest targets/browser/workspace/workspace-icon.svg targets/browser/workspace/workspace-share-target-sw.js "$destination/"
 cp targets/browser/workspace/workspace.css targets/browser/workspace/workspace.mjs targets/browser/workspace/workspace-session.mjs targets/browser/workspace/workspace-membership.mjs targets/browser/workspace/workspace-host-configuration.mjs targets/browser/workspace/workspace-play.mjs targets/browser/workspace/workspace-voice-play.mjs targets/browser/workspace/workspace-tutorial-presenter-play.mjs targets/browser/workspace/workspace-library.mjs targets/browser/workspace/workspace-handoff.mjs targets/browser/workspace/workspace-surface.mjs targets/browser/workspace/body-bootstrap.mjs targets/browser/workspace/reviewed-plot-selection.mjs "$destination/"
 cp targets/browser/workspace/browser-host-configuration.mjs "$destination/browser-host-configuration.mjs"
+for asset in browser-sdk-patchbay-play.mjs browser-sdk-face-actions.mjs browser-sdk-patchbay.mjs; do
+  cp "targets/browser/sdk/$asset" "$destination/$asset"
+done
+cp targets/browser/handbook/owner-face-component.mjs targets/browser/handbook/owner-face-look.css "$destination/"
 for asset in creche-rendezvous.mjs rendezvous-candidate-schedule.mjs rendezvous-cbor.mjs creche-rendezvous-candidates.mjs creche-physical.mjs creche-physical-face.mjs creche-target-catalog.mjs creche-installed-targets.mjs creche-existing-computer.mjs creche-release-catalog.mjs creche-release-bundle.mjs creche-spore-bundle.mjs creche-native-zip.mjs creche-native-disk.mjs; do
   cp "targets/browser/workspace/$asset" "$destination/$asset"
 done
