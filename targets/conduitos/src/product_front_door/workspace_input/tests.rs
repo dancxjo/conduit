@@ -97,6 +97,16 @@ fn tab_and_captured_release_preserve_two_plot_state_and_the_same_play() {
     let selected = journey.projection();
     assert_ne!(selected.checked_plot_id, before.checked_plot_id);
     assert_eq!(
+        selected.checked_plot_id,
+        Some(
+            native_workset::checked(native_workset::NativePlot::MemoryLantern,)
+                .unwrap()
+                .checked_plot_id
+        )
+    );
+    assert!(selected.result.is_some());
+    assert_eq!(selected.active_play_id, before.active_play_id);
+    assert_eq!(
         select(key(43, KeyTransition::Released), &mut journey),
         Ok(Some(false))
     );
@@ -108,7 +118,11 @@ fn tab_and_captured_release_preserve_two_plot_state_and_the_same_play() {
     .unwrap();
     assert!(!journey.owns_key_release(release));
     assert_eq!(journey.projection().input_count, 2);
-    assert!(journey.projection().result.is_none());
+    assert_eq!(journey.projection().result, selected.result);
+    assert_eq!(
+        journey.projection().checked_plot_id,
+        selected.checked_plot_id
+    );
     for _ in 1..native_workset::NATIVE_PLOT_CAPACITY {
         select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
     }

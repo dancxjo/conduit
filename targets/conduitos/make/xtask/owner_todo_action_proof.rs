@@ -304,6 +304,25 @@ pub(super) fn continue_after_arrival(
     }))
 }
 
+fn verify_isolation(isolation: &Isolation) -> Result<(Inventory, Inventory), ConduitosError> {
+    let protected_after = inventory(&isolation.protected)?;
+    let selected_after = inventory(&isolation.selected)?;
+    let protected_metadata = fs::symlink_metadata(&isolation.protected)
+        .map_err(|_| refusal("native-todo-protected-checkpoint-absent"))?;
+    let selected_metadata = fs::symlink_metadata(&isolation.selected)
+        .map_err(|_| refusal("native-todo-selected-checkpoint-absent"))?;
+    if protected_after != isolation.protected_before
+        || (protected_metadata.dev(), protected_metadata.ino())
+            != (isolation.protected_device, isolation.protected_inode)
+        || selected_after == isolation.selected_before
+        || (selected_metadata.dev(), selected_metadata.ino())
+            != (isolation.selected_device, isolation.selected_inode)
+    {
+        return Err(refusal("native-todo-checkpoint-fork-proof-failed"));
+    }
+    Ok((protected_after, selected_after))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -353,23 +372,4 @@ mod tests {
         symlink(original.join("generation.checkpoint"), fork.join("alias")).unwrap();
         assert!(inventory(&fork).is_err());
     }
-}
-
-fn verify_isolation(isolation: &Isolation) -> Result<(Inventory, Inventory), ConduitosError> {
-    let protected_after = inventory(&isolation.protected)?;
-    let selected_after = inventory(&isolation.selected)?;
-    let protected_metadata = fs::symlink_metadata(&isolation.protected)
-        .map_err(|_| refusal("native-todo-protected-checkpoint-absent"))?;
-    let selected_metadata = fs::symlink_metadata(&isolation.selected)
-        .map_err(|_| refusal("native-todo-selected-checkpoint-absent"))?;
-    if protected_after != isolation.protected_before
-        || (protected_metadata.dev(), protected_metadata.ino())
-            != (isolation.protected_device, isolation.protected_inode)
-        || selected_after == isolation.selected_before
-        || (selected_metadata.dev(), selected_metadata.ino())
-            != (isolation.selected_device, isolation.selected_inode)
-    {
-        return Err(refusal("native-todo-checkpoint-fork-proof-failed"));
-    }
-    Ok((protected_after, selected_after))
 }

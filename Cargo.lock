@@ -10862,6 +10862,7 @@ dependencies = [
  "flate2",
  "httparse",
  "libc",
+ "patchbay-application",
  "pulldown-cmark",
  "resvg",
  "rustls",
