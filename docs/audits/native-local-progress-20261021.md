@@ -1991,3 +1991,9 @@ Retained branch merged without conflicts; the exact conformance case passes with
 #6247 repaired the premature RequiredItem wire exposure from #6243; focused product CLI compilation passed. #6248 then delivered the complete typed Look/visual-expression v2, native/browser consumers, exact recipe wire conversions and source-backed required-item component. Dev558c54930 has the exact tested tree.303 Face cases (two existing spoken-fixture ignores),8 browser wire cases,4 selected native cases,2 explicit owner replacement cases and product CLI/freestanding native compilation pass. Six profiles use1020311 coverage bytes under the unchanged4MiB bound.
 
 Retained synchronization changed documentation/evidence only; all selected typography/Face/native consumer source matches delivered dev. No duplicate test run was needed. #5628/#5629/#6190 and remaining #5994 product requirements stay open for fresh source-bound live evidence; historical captures are not relabelled. CI and new browser/QEMU/image/ZIP campaigns deliberately skipped tonight. See selected-typography-v2-delivery-20261022.md.
+
+## Remaining fallback harness delivered (22 October, #6249)
+
+Merged #6249 on deve489e4fdd; exact tested/merged trees match. Four focused xtask parsing/receipt/bounds cases pass; the first filename filter selected only two CLI cases, followed by a final explicit four-case run including both record validators. No QEMU/owner scenario, image/ZIP, checkpoint mutation or installed replay was run or claimed. Original #6190/#5628/#5629/#5994 product evidence stays open.
+
+Retained synchronization changed documentation/evidence only. A full path inventory now finds no remaining retained production or test implementation delta versus dev; residual differences are historical audit/evidence and runtime-service documentation. No duplicate tests were needed for this byte-identical code sync. See required-item-fallback-harness-delivery-20261022.md.
