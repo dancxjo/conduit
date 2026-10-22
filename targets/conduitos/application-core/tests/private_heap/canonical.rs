@@ -55,18 +55,23 @@ pub(super) fn run(applications: &[Option<Initial>; 4], transfer: &mut [u8]) {
     };
     let (face, show, encoded_input) = on_caller(|| {
         let mut subjects = fragment.subjects;
-        subjects.extend([
-            FaceSubject {
-                identity: format!("body/{}", body.as_str()),
-                role: FaceRole::Body,
-                name: "Owner".into(),
-            },
-            FaceSubject {
-                identity: format!("plot/{}", target.graph.checked_plot_id.as_str()),
-                role: FaceRole::Plot,
-                name: "Selected Plot".into(),
-            },
-        ]);
+        subjects.push(FaceSubject {
+            identity: format!("body/{}", body.as_str()),
+            role: FaceRole::Body,
+            name: "Owner".into(),
+        });
+        // The caller's Body supplies every admitted resident identity referenced
+        // by the inventory, including unselected targets offered for inspection.
+        for target in targets.iter().flatten() {
+            let identity = format!("plot/{}", target.graph.checked_plot_id.as_str());
+            if !subjects.iter().any(|subject| subject.identity == identity) {
+                subjects.push(FaceSubject {
+                    identity,
+                    role: FaceRole::Plot,
+                    name: target.graph.plot_name.clone(),
+                });
+            }
+        }
         let face = Face::new_with_semantics_and_temporal(
             u64::from(revision),
             FaceBasis {
