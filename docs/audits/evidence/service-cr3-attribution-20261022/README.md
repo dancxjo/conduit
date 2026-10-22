@@ -1,0 +1,9 @@
+# Proof-only Root CR3 envelope evidence
+
+Exact measured source: `56623af64643ae070e47a0c572855fb995f9ae72`. The fixed-source supported ordinary-domain-proof session 16254 passed. Final authoritative owning checks passed five fixture tests and two reader tests, with no failures or ignored tests. This evidence-only descendant changes none of the nine measured source files (Git and SHA-256 identities in manifest).
+
+The actual x86_64 CPL3 trace retains 20 exactly paired baseline/CR3 observations, the original 20 baseline rows and 14 setup records, and vector-7, timer, fault, Root/sibling and floating-point controls. Six receipts bind the same source, ELF and raw trace; ISO identity is retained. The proof-disabled assembly object is byte-identical to the original 4056-byte extraction object. Both proof0/proof1 source and object artifacts are retained.
+
+Historical boundaries: `6183-cr3-owning-fixture-first.log` and the isolated snapshot/reader sources, binaries and initial compile/test logs precede the final stronger regression test freeze. They remain diagnostic evidence; they do not replace the final seven owning tests or the fixed-source native run. All logs and receipts are compressed losslessly and hash-indexed. Actual ELF/ISO remain in `work/6183-cr3-native-artifacts/x86_64`; final host test executables are preserved in `work/6183-cr3-proof-executables`.
+
+Counters are raw Root write envelopes with matched serialized counter/reconstruction controls; overhead is included and never subtracted. Instrumentation perturbs entry totals. No calibrated time, pure TLB-flush cost, independent trap/register/IRQ cost, performance gain, normal product journey claim or new guest clock authority is established. Profiles, budgets and deadlines remain unchanged. No tests were repeated for packaging, and no PR/CI/closure is claimed.
