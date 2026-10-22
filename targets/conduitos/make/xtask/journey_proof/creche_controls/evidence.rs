@@ -28,6 +28,7 @@ pub(super) fn snapshot(text: &str) -> Result<Snapshot, ConduitosError> {
         serde_json::from_value(record["face"].clone()).map_err(|e| refusal(e.to_string()))?;
     face.validate().map_err(|e| refusal(e.to_string()))?;
     super::super::look_selection::validate_current(&record)?;
+    super::custody::component(&record)?;
     let boot = super::super::journey_records::boot(text)?
         .ok_or_else(|| refusal("controls Boot absent"))?;
     if record["show"]["host_id"] != boot["host_id"] || record["show"]["boot_id"] != boot["boot_id"]
@@ -266,6 +267,7 @@ pub(super) fn validate_change(
         || after.face.identity == before.face.identity
         || before.face.basis != after.face.basis
         || before.record["show"]["show_id"] == after.record["show"]["show_id"]
+        || before.record["show"]["mask_plot"] != after.record["show"]["mask_plot"]
         || ["host_id", "boot_id", "offer_generation"]
             .iter()
             .any(|f| before.record["show"][*f] != after.record["show"][*f])

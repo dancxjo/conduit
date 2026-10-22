@@ -110,7 +110,19 @@ pub(super) fn execute_controls(
     )
     .map_err(|error| ConduitosError::refusal("creche-controls-build-invalid", error.to_string()))?;
     validate_viewport_build(&manifest, &source, &digest)?;
-    journey_proof::execute_controls(opts, &image, digest, viewport)?;
+    let resolved_bytes = fs::read(image.with_file_name("resolved-image.json")).map_err(io_error)?;
+    let resolved: conduit_host_make::HostImage =
+        serde_json::from_slice(&resolved_bytes).map_err(|error| {
+            ConduitosError::refusal("creche-controls-build-invalid", error.to_string())
+        })?;
+    conduit_host_make::verify_image_binding(&resolved, &resolved_bytes).map_err(|error| {
+        ConduitosError::refusal("creche-controls-build-invalid", format!("{error:?}"))
+    })?;
+    let resolved = serde_json::to_value(resolved).map_err(|error| {
+        ConduitosError::refusal("creche-controls-build-invalid", error.to_string())
+    })?;
+    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved});
+    journey_proof::execute_controls(opts, &image, digest, viewport, &metadata)?;
     if clean_head(&paths.root)? != source {
         return Err(ConduitosError::refusal(
             "creche-controls-source-changed",

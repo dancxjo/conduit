@@ -52,7 +52,7 @@ pub fn execute_viewport(
         false,
         None,
         viewport,
-        false,
+        None,
     )
     .map(|_| ())
 }
@@ -71,7 +71,7 @@ pub(super) fn execute_supplied_viewport(
     image_sha256: String,
     viewport: Option<super::proof_viewport::Viewport>,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, false)
+    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, None)
 }
 
 pub(super) fn execute_supplied_observed(
@@ -81,15 +81,24 @@ pub(super) fn execute_supplied_observed(
     observe: bool,
     output: Option<&Path>,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    execute_with_viewport(opts, image_path, image_sha256, observe, output, None, false)
+    execute_with_viewport(opts, image_path, image_sha256, observe, output, None, None)
 }
 pub(super) fn execute_controls(
     opts: &GlobalOpts,
     image_path: &Path,
     image_sha256: String,
     viewport: Option<super::proof_viewport::Viewport>,
+    metadata: &Value,
 ) -> Result<JourneyIdentity, ConduitosError> {
-    execute_with_viewport(opts, image_path, image_sha256, false, None, viewport, true)
+    execute_with_viewport(
+        opts,
+        image_path,
+        image_sha256,
+        false,
+        None,
+        viewport,
+        Some(metadata),
+    )
 }
 #[allow(clippy::too_many_arguments)]
 fn execute_with_viewport(
@@ -99,7 +108,7 @@ fn execute_with_viewport(
     observe: bool,
     output: Option<&Path>,
     viewport: Option<super::proof_viewport::Viewport>,
-    controls: bool,
+    controls: Option<&Value>,
 ) -> Result<JourneyIdentity, ConduitosError> {
     if opts.dry_run {
         return Err(refusal("a live product journey needs a real guest"));
@@ -193,7 +202,7 @@ fn execute_with_viewport(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
         journey_input::enter_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
-        if controls {
+        if let Some(metadata) = controls {
             return creche_controls::exercise(
                 &serial_path,
                 &mut child,
@@ -203,6 +212,7 @@ fn execute_with_viewport(
                 &paths.target,
                 &source,
                 &image_sha256,
+                metadata,
             );
         }
         artifacts.capture(&mut qmp, &mut reader, "creche-ready", false)?;

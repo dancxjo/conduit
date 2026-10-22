@@ -6,6 +6,7 @@ use super::{
 };
 use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
+mod custody;
 mod evidence;
 mod navigation;
 use evidence::*;
@@ -20,6 +21,7 @@ pub(super) fn exercise(
     destination: &Path,
     source: &str,
     image: &str,
+    metadata: &Value,
 ) -> Result<JourneyIdentity, ConduitosError> {
     // Ready alone precedes the final component publication on some boots.
     journey_input::wait_for_record_retaining_guest(
@@ -33,6 +35,9 @@ pub(super) fn exercise(
             Ok(faces.last().zip(journeys.last()).is_some_and(|(f, j)| {
                 j["status"] == "world"
                     && j["body_id"].is_null()
+                    && j["presenter_implementation_id"] == custody::PRESENTER
+                    && f["show"]["manifestation"]["presenter_implementation_id"]
+                        == custody::PRESENTER
                     && j["face_id"] == f["face"]["identity"]
                     && j["manifestation_id"] == f["show"]["manifestation_id"]
             }) && faces
@@ -45,6 +50,13 @@ pub(super) fn exercise(
         },
     )?;
     let initial = snapshot(&text(serial)?)?;
+    let initial_text = text(serial)?;
+    let boot = super::journey_records::boot(&initial_text)?
+        .ok_or_else(|| refusal("controls Boot identity absent"))?;
+    let world = super::journey_records::decode(&initial_text)?
+        .pop()
+        .ok_or_else(|| refusal("controls world absent"))?;
+    custody::validate(metadata, &boot, &world, &initial.record, source, image)?;
     let membership = members(&initial.face)?;
     let original = current(&initial.face, "creche.naming")?;
     let observed_name = current(&initial.face, "creche.name")?;
@@ -106,22 +118,21 @@ pub(super) fn exercise(
             "naming proof failed exact name/tradition/selection/search restoration",
         ));
     }
-    let boot = super::journey_records::boot(&text(run.serial)?)?
-        .ok_or_else(|| refusal("controls Boot identity absent"))?;
-    let journeys = super::journey_records::decode(&text(run.serial)?)?;
-    let world = journeys
-        .iter()
-        .rev()
-        .find(|r| r["status"] == "world")
-        .ok_or_else(|| refusal("controls world receipt absent"))?;
-    if world["host_id"] != boot["host_id"]
-        || world["boot_id"] != boot["boot_id"]
-        || !world["body_id"].is_null()
-    {
-        return Err(refusal("controls world/Boot custody differs"));
+    let final_text = text(run.serial)?;
+    let boots = rows(&final_text, "CONDUIT_BOOT_SIGN ")?;
+    if boots.len() != 1 || boots[0] != boot {
+        return Err(refusal("controls Boot history changed or duplicated"));
     }
+    let journeys = super::journey_records::decode(&final_text)?;
+    for checkpoint in &journeys {
+        custody::validate_world(metadata, &boot, checkpoint, source, image)?;
+    }
+    custody::component(&final_state.record)?;
     let proof = json!({"schema":"conduit.conduitos/creche-controls-proof@1","status":"passed","proof_class":"freestanding-emulator",
         "source_commit":source,"image_sha256":image,"host_id":boot["host_id"],"boot_id":boot["boot_id"],
+        "profile_id":boot["profile_id"],"build_id":boot["build_id"],"logical_image_binding":boot["image_binding"],
+        "final_image_id":metadata["target_build_manifest"]["image_id"],"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
+        "route":"acknowledged component presenter and checked Mask Plot Source; exact initial recipe and visual-fallback configuration are not serialized",
         "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
         "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
         "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
