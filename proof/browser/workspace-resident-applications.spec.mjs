@@ -51,11 +51,36 @@ test("resident Patchbay inspects and begins an exact edit in one browser Body Pl
   await page.locator("[data-checked-plot-id]").filter({ hasText: "Patchbay" }).click();
   const patchbay = visiblePlotOutput(page);
   await expect(patchbay).toContainText("Active plots on this body");
-  await patchbay.getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  await expect(patchbay).toContainText("Memory Lantern");
-  await expect(patchbay).toContainText("Body Plan");
-  await page.getByRole("button", { name: "Inspect next", exact: true }).click();
-  await page.getByRole("button", { name: "Edit current", exact: true }).click();
-  await expect(patchbay.locator('[data-application-key="edit-request"]')).toContainText("no authority was inferred");
+  const component = patchbay.locator('conduit-owner-face');
+  await expect(component).toHaveAttribute('aria-busy', 'false');
+  const menu = component.locator('details[data-body-menu]');
+  await menu.locator(':scope > summary').click();
+  const lantern = page.getByRole('navigation', { name: 'Your plots' })
+    .getByRole('button', { name: 'Memory Lantern', exact: true });
+  const checkedPlotId = await lantern.getAttribute('data-checked-plot-id');
+  expect(checkedPlotId).toMatch(/^[0-9a-f]{64}$/);
+  const inspect = menu.getByRole('button', { name: 'Inspect Memory Lantern', exact: true });
+  await expect(inspect).toBeEnabled();
+  expect(JSON.parse(await inspect.getAttribute('data-owner-focus')))
+    .toEqual([born.body_id, expect.stringMatching(/^patchbay\.plot\.\d+$/), `plot/${checkedPlotId}`, 'submit']);
+  const initialFace = await component.getAttribute('data-face-id');
+  await inspect.click();
+  await expect(component).not.toHaveAttribute('data-face-id', initialFace);
+  await expect(component).toHaveAttribute('aria-busy', 'false');
+  const edit = menu.locator('form[data-owner-action="patchbay.edit.current"]');
+  const subject = edit.getByRole('combobox', { name: 'Subject to edit', exact: true });
+  await expect(subject).toBeEnabled();
+  const subjectId = await subject.locator('option').evaluateAll(options =>
+    options.find(option => option.value && !option.disabled)?.value);
+  expect(subjectId).toBeTruthy();
+  await subject.selectOption(subjectId);
+  const submit = edit.getByRole('button', { name: 'Edit a subject', exact: true });
+  expect(JSON.parse(await submit.getAttribute('data-owner-focus')))
+    .toEqual([born.body_id, 'patchbay.edit.current', `plot/${checkedPlotId}`, 'submit']);
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  await expect(component).toContainText('Edit requested against the exact inspected subject; no authority was inferred.');
+  await page.screenshot({ path: testInfo.outputPath('resident-patchbay-exact-edit.png'), fullPage: true });
+  expect((await current(page)).body_id).toBe(born.body_id);
   expect((await current(page)).active_play_id).toBe(born.active_play_id);
 });

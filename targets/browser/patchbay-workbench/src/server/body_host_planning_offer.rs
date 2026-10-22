@@ -566,7 +566,14 @@ mod tests {
             &planned,
             &server.snapshot.face,
             mask_play,
-            "mask/plot".into(),
+            server
+                .snapshot
+                .face
+                .subjects
+                .first()
+                .unwrap()
+                .identity
+                .clone(),
             "browser/document".into(),
             "sign/prepared".into(),
         )

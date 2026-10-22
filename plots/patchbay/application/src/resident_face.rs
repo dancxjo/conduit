@@ -59,6 +59,14 @@ impl PatchbayApplicationPort {
             temporal_references: Vec::new(),
             temporal_facts: Vec::new(),
         };
+        if self.edit_requested {
+            fragment.text.push(FaceText {
+                subject: root.clone(),
+                text:
+                    "Edit requested against the exact inspected subject; no authority was inferred."
+                        .into(),
+            });
+        }
         if let Some(play) = &self.active_play_id {
             fragment.properties.push(property(
                 &root,
