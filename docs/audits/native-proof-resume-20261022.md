@@ -269,3 +269,37 @@ The corrected harness now opens actual Details, traverses every bounded page
 under the same Face/Show, retains each drawn page in a separate manifest and
 returns before the Mask action. This prepares reachable diagnostic proof;
 compilation passes, but no passing rerun is implied by this harness correction.
+
+## Actual native Patchbay actions and reachable refusal earned
+
+Clean source `26b6e2c9b3ebcd6b39d8d3b63a01118a4da0da03` passes the
+supported live image build and ordinary `make host verify … --journey`.
+Image SHA256 is `9e38c741e00a3ec2ba4b3fe1c12eeb3248ac5905501d49543fdbc8edfbf06f99`.
+The [retained packet](evidence/native-proof-resume-20261022/patchbay-actions/)
+contains 26 main captures and all 19 actual refusal Details pages. Independent
+PNG byte/dimension/decoded RGBA verification passes for all 45 captures.
+Visual inspection of `patchbay-refusal-details/details-007.png` confirms the
+exact `native-editor-existing-draft` diagnostic is readable at page 7/19.
+
+The owner accepts its actually offered current-graph selection without replacing
+Play; this is explicitly idempotent, not cross-Plot selection. The checked Edit
+request preserves the real café draft and yields the explicit refusal, without
+a successful Source editor handoff. The offered Mask request replans the same
+Body to a distinct live Play. Stop and reentry complete afterward. Source-owned
+values and actual predecessor Face/Show receipts remain retained. Cross-Plot
+selection, fresh-editor success, Save/reopen and larger-graph continuation remain
+open. This successful emulator run is not physical/human or CI acceptance.
+
+## Chromium exposes a Birth admission prerequisite
+
+The same clean source seals the browser release and stages Workspace, Handbook
+and a second static application. Pinned Chromium 1.62.0, one worker and zero
+retries runs the two affected production scenarios. Both fail before the new
+Patchbay assertions. Handbook reports `CND-FRM-033`: its installed canonical
+Patchbay has an exact runtime FaceInteraction input, but Crèche review still
+uses closed-root expansion. Its retained trace shows all assets loaded; this
+is not justification to increase a timeout. Workspace never reaches the expected
+post-Birth Wake control. The failed batch/log is preserved under
+`/tmp/conduit-patchbay-browser-failed-26b6-20261022`; no passing browser enactment
+or diagnostic retry is claimed. The owning admission correction must retain
+exact typed, finite ingress planning rather than waive arbitrary open fronts.
