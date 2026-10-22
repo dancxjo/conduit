@@ -1997,3 +1997,9 @@ Retained synchronization changed documentation/evidence only; all selected typog
 Merged #6249 on deve489e4fdd; exact tested/merged trees match. Four focused xtask parsing/receipt/bounds cases pass; the first filename filter selected only two CLI cases, followed by a final explicit four-case run including both record validators. No QEMU/owner scenario, image/ZIP, checkpoint mutation or installed replay was run or claimed. Original #6190/#5628/#5629/#5994 product evidence stays open.
 
 Retained synchronization changed documentation/evidence only. A full path inventory now finds no remaining retained production or test implementation delta versus dev; residual differences are historical audit/evidence and runtime-service documentation. No duplicate tests were needed for this byte-identical code sync. See required-item-fallback-harness-delivery-20261022.md.
+
+## Live goal handoff audit delivered (22 October, #6250)
+
+Merged #6250 on deva56001540: current canonical interaction profile documentation and five-item goal audit. #6055 merge ancestry was verified; live exact issue queries confirm #6158/#5990/#5607/#5992 and #5516/#5518 closed, while original native/owner/Look/fallback/Patchbay product gates remain open. #6201’s implemented Source/caller inventory prerequisite is checked and its old observed boundary is labelled historical. No CI or platform campaign was started.
+
+Retained runtime README synchronization takes the current documented protocol; old unbound stack-number prose remains available in prior remote commits and is not reasserted as current fit evidence. The old retained Fore inventory now has an explicit supersession banner. Production and test implementation still match dev exactly. The user’s proof-deferral instruction remains in force while the asynchronous preference question is pending. No completion or blocked status is claimed.

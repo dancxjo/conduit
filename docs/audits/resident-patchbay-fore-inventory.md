@@ -1,10 +1,17 @@
 # Resident Patchbay typed-boundary inventory
 
+**Historical preparation record.** Installed Source and both callers migrated in
+#6243; #6244/#6246 delivered exact reading and semantic correspondence. The
+[current handoff audit](native-goal-handoff-20261022.md) supersedes the legacy-route
+and unfinished SDK/native statements below. Earlier claims remain as preparation
+history and are not current production acceptance.
+
+
 Implementation prerequisite for #6201 under #5358/#5356. Observed source on
 `codex/native-local-progress`; this is an inventory and migration constraint,
 not a new accepted Fore or an implementation/acceptance claim.
 
-## Current production route
+## Historical production route before #6243
 
 `plots/patchbay/main.conduit` wires `input/application-event` →
 `application/retained(application = application)` → `face/application-view`.
