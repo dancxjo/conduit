@@ -182,7 +182,14 @@ pub fn prepare_source(
     }
     #[allow(unused_mut)]
     let mut kernel = TextPlannedKernel::prepare_with_literal(fragment, &lowered, expected_literal)
-        .map_err(|_| PreparationError::KernelRejected)?;
+        .map_err(|error| {
+            #[cfg(all(feature = "ordinary-domain-proof", target_os = "none"))]
+            crate::arch::early_write(
+                format!("CONDUIT_ORDINARY_KERNEL_DIAGNOSTIC prepare {error:?}\n").as_bytes(),
+            );
+            let _ = error;
+            PreparationError::KernelRejected
+        })?;
     let active_play = new_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id)?;
     #[cfg(conduitos_protected_execution)]
     kernel
