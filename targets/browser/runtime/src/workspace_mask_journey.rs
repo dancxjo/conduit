@@ -306,24 +306,32 @@ pub(super) fn actualize(
         return Err("replacement reused Plan".into());
     }
     let initial_mask = initial.planned_mask.mask.clone();
-    let alternate = initial.alternate.mask.clone();
+    let initial_alternate = initial
+        .alternate
+        .as_ref()
+        .ok_or("Mask journey requires its admitted alternate")?;
+    let replacement_alternate = replacement
+        .alternate
+        .as_ref()
+        .ok_or("Mask replacement requires its admitted alternate")?;
+    let alternate = initial_alternate.mask.clone();
     let initial_routes = plan::admitted_routes(
         &initial.body_plan,
         &initial.planned_mask,
-        &initial.alternate,
+        initial_alternate,
         true,
         true,
     )?;
     let unavailable_routes = plan::admitted_routes(
         &initial.body_plan,
         &initial.planned_mask,
-        &initial.alternate,
+        initial_alternate,
         false,
         false,
     )?;
     let replacement_routes = plan::admitted_routes(
         &replacement.body_plan,
-        &replacement.alternate,
+        replacement_alternate,
         &replacement.planned_mask,
         true,
         true,

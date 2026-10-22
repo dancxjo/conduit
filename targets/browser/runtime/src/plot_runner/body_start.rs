@@ -29,6 +29,10 @@ pub(super) struct BodyStartRequest {
     pub body_evidence: Option<conduit_body::BodyBiographyEvidence>,
     pub source: String,
     pub foreground_checked_plot_id: String,
+    /// Cooperative owner's exact pre-Started snapshot revision, decimal u64.
+    /// Required for a whole-Body Mask; local kernel admission remains separate.
+    #[serde(default)]
+    pub owner_face_revision: Option<String>,
 }
 
 #[derive(serde::Serialize)]
@@ -352,6 +356,14 @@ pub(super) fn prepare(
         })
         .transpose()?
         .flatten();
+    #[cfg(feature = "creche-surface")]
+    let body_face_publication = super::body_face_publication::BodyFaceContext::prepare(
+        &request.plan,
+        &wake_at_start,
+        started_evidence.as_ref(),
+        &request.source,
+        request.owner_face_revision.as_deref(),
+    )?;
     let mut session = TourSession {
         _resource_admissions: Some(resources),
         cancellation: None,
@@ -362,6 +374,8 @@ pub(super) fn prepare(
         terminal_sign_sequence: 2,
         latest_face: None,
         thermostat_face: thermostat_face.map(Box::new),
+        #[cfg(feature = "creche-surface")]
+        body_face_publication: body_face_publication.map(Box::new),
         #[cfg(feature = "creche-surface")]
         patchbay_face: patchbay_face.map(Box::new),
         #[cfg(feature = "creche-surface")]

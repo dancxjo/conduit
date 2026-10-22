@@ -49,6 +49,33 @@ pub(super) fn admitted_routes(
     .map_err(|error| format!("admit browser Mask routes: {error:?}"))
 }
 
+/// One actual selected chain, with no unexecuted fallback advertised as a Show.
+pub(super) fn admitted_selected_route(
+    body_plan: &conduit_body::BodyPlan,
+    mask: &PlannedMaskPlot,
+) -> Result<AdmittedMaskPlotRoutes, String> {
+    AdmittedMaskPlotRoutes::new(
+        body_plan,
+        &[mask.clone()],
+        vec![SealedMaskPlotRoute {
+            route_id: "route/browser-graphical".into(),
+            mask_plot: mask.mask.plot_identity.clone(),
+            plan_id: body_plan.plan_id.clone(),
+            child_mask_plan_id: None,
+            owner_route_seal_id: None,
+            placement_ids: mask
+                .plan
+                .fragments
+                .iter()
+                .flat_map(|fragment| &fragment.placements)
+                .map(|placement| placement.placement_id.clone())
+                .collect(),
+            currently_available: true,
+        }],
+    )
+    .map_err(|error| format!("admit selected browser Mask route: {error:?}"))
+}
+
 #[cfg(test)]
 mod installed_offer_tests {
     use super::*;

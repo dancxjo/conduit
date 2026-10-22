@@ -3,6 +3,8 @@
 pub(crate) mod abi;
 mod application_state;
 mod audio;
+#[cfg(feature = "creche-surface")]
+mod body_face_publication;
 mod body_start;
 mod compact_patchbay;
 mod engine;
@@ -47,6 +49,8 @@ use std::collections::BTreeMap;
 
 struct TourSession {
     thermostat_face: Option<Box<thermostat_face::ThermostatFace>>,
+    #[cfg(feature = "creche-surface")]
+    body_face_publication: Option<Box<body_face_publication::BodyFaceContext>>,
     #[cfg(feature = "creche-surface")]
     patchbay_face: Option<Box<patchbay_face::PatchbayObservation>>,
     #[cfg(feature = "creche-surface")]
@@ -249,6 +253,8 @@ impl TourSession {
             terminal_sign_sequence: 0,
             latest_face: None,
             thermostat_face: None,
+            #[cfg(feature = "creche-surface")]
+            body_face_publication: None,
             #[cfg(feature = "creche-surface")]
             patchbay_face: None,
             #[cfg(feature = "creche-surface")]

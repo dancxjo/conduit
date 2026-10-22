@@ -57,7 +57,7 @@ impl BrowserMaskRuntime {
             body_plan,
             base_plan,
             planned,
-            alternate,
+            Some(alternate),
             play_sequence,
         )
     }
@@ -106,7 +106,54 @@ impl BrowserMaskRuntime {
             body_plan.clone(),
             body_plan,
             planned,
-            alternate,
+            Some(alternate),
+            play_sequence,
+        )
+    }
+
+    /// Execute exactly the already admitted single whole-Body route; no standby is invented.
+    #[cfg(feature = "creche-surface")]
+    pub(crate) fn prepare_selected_in_body_plan(
+        body_id: BodyId,
+        host_id: HostId,
+        boot_id: BootId,
+        face: Face,
+        wake: Wake,
+        body_plan: BodyPlan,
+        play_sequence: u64,
+    ) -> Result<(Self, BrowserMaskEffect), String> {
+        body_plan
+            .validate_for(&wake)
+            .map_err(|error| format!("selected Mask Body Plan: {error:?}"))?;
+        if body_plan.body_id != body_id || face.basis.body_id.as_ref() != Some(&body_id) {
+            return Err("selected Mask Face differs from its Body Plan".into());
+        }
+        let host = crate::installed_browser::membership_advertisement(host_id, boot_id);
+        let planned = plan::planned_mask(&host, plan::MASK_SOURCE, "browser-graphical")?;
+        let mut topologies = body_plan
+            .mask_topologies
+            .iter()
+            .filter(|topology| topology.face.plot.is_none());
+        let topology = topologies
+            .next()
+            .ok_or("selected Mask has no whole Body selector")?;
+        if topologies.next().is_some()
+            || topology.face.source_placement_id.is_some()
+            || topology.chains.len() != 1
+            || topology.chains[0].plan != planned.plan
+        {
+            return Err(
+                "selected Mask differs from the exact single admitted whole Body chain".into(),
+            );
+        }
+        Self::prepare_admitted_route(
+            body_id,
+            face,
+            wake,
+            body_plan.clone(),
+            body_plan,
+            planned,
+            None,
             play_sequence,
         )
     }
@@ -119,10 +166,13 @@ impl BrowserMaskRuntime {
         body_plan: BodyPlan,
         base_plan: BodyPlan,
         planned: PlannedMaskPlot,
-        alternate: PlannedMaskPlot,
+        alternate: Option<PlannedMaskPlot>,
         play_sequence: u64,
     ) -> Result<(Self, BrowserMaskEffect), String> {
-        let routes = plan::admitted_routes(&body_plan, &planned, &alternate, true, true)?;
+        let routes = match &alternate {
+            Some(alternate) => plan::admitted_routes(&body_plan, &planned, alternate, true, true)?,
+            None => plan::admitted_selected_route(&body_plan, &planned)?,
+        };
         let mask = planned.mask.clone();
         let wardrobe = MaskWardrobe::new(MaskWardrobeLifetime::Body, vec![], vec![])
             .map_err(|error| format!("{error:?}"))?;

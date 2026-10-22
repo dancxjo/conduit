@@ -2,6 +2,9 @@
 
 #[path = "abi_body.rs"]
 mod body;
+#[cfg(feature = "creche-surface")]
+#[path = "abi_body_face.rs"]
+mod body_face;
 #[path = "abi_effects.rs"]
 mod effects;
 #[cfg(feature = "creche-surface")]

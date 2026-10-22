@@ -19,7 +19,7 @@ pub struct PatchbayValueStorageBudget {
     ledger: Rc<RefCell<Ledger>>,
 }
 
-pub(super) struct PublicationValueLease {
+pub(crate) struct PublicationValueLease {
     ledger: Rc<RefCell<Ledger>>,
     slot: usize,
 }
@@ -64,7 +64,7 @@ impl PatchbayValueStorageBudget {
         })
     }
 
-    pub(super) fn admit(
+    pub(crate) fn admit(
         &self,
         owner: &PlanId,
         play: &ActivePlayId,
@@ -110,7 +110,7 @@ impl Drop for PatchbayValueStorageBudget {
 }
 
 impl PublicationValueLease {
-    pub(super) fn is_live(&self) -> bool {
+    pub(crate) fn is_live(&self) -> bool {
         let ledger = self.ledger.borrow();
         ledger.live && ledger.publications[self.slot].is_some()
     }
