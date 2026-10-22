@@ -130,3 +130,15 @@ command-to-ACK/capture intervals including polling, not physical keyboard or
 scanout latency. Results are mixed: no consistent typing responsiveness gain
 is established. Cache retention reduces repeated preparation; it does not
 establish a general interaction, redraw or scheduling improvement.
+
+The [pointer supplement](https://github.com/dancxjo/conduit/blob/e3eb6f53846384be19858fe12e6017690bdd08ac/docs/audits/evidence/native-cache-control-20261022/corrected-0d53819e2/pointer-supplement/README.md)
+validates both exact left-button actions across all six trials through press
+edges, accepted typed `creche.plot.3` toggles and new Available Face/Show
+captures, including Host/Boot and serial-prefix custody. Four negative controls
+refuse wrong Show Boot/action Show, a nonpress command and a missing action.
+Command-to-capture upper-bound medians were 637.785/626.666 ms retained versus
+659.862/680.698 ms control for select-three/restore-four. Deliberate held-input
+waits, QMP/serial polling and screenshot work are included. These are not guest
+input/ACK latency or isolated renderer time. Pointer-motion-to-redraw latency
+cannot be established from these packets and remains an explicit responsiveness
+follow-on; no general interactive gain is claimed by the cache comparison.
