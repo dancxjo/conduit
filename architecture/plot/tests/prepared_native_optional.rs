@@ -143,8 +143,13 @@ fn optional_label_wrong_empty_payload_and_unknown_schema_never_exempt_native_met
         startup
             .insert_checked_native_type(imported.name.clone(), &imported)
             .unwrap();
-        let doc = check_syntax_document(&parse_syntax_document(""), &startup).unwrap();
-        assert!(doc.native_types.is_empty());
+        let doc =
+            check_syntax_document(&parse_syntax_document("type CheckedAnchor = U64"), &startup)
+                .unwrap();
+        assert!(doc
+            .native_types
+            .iter()
+            .all(|native| native.identity != identity));
         assert!(matches!(
             PreparedNativeAdmission::new(&doc, &identity, bounds()),
             Err(PreparedNativeRefusal::MissingNativeMetadata)
