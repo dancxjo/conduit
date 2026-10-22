@@ -4,10 +4,13 @@ pub const STEPS: &[Step] = &[
     Step::new("canonical-export.correspondence", "Execute generic wide-payload canonical exports and reject resealed Source/Fore/graph forgeries", "cargo", &[
         "test", "--locked", "-p", "conduit-composite", "--features", "fixture-registry-preparation", "--test", "canonical_export", "--", "--nocapture",
     ]),
+    Step::new("canonical-export.channel", "Execute the canonical numerical submit/output-ACK bridge without Language policy", "cargo", &[
+        "test", "--locked", "-p", "conduit-ai", "--features", "kernel-operation-owners", "--test", "integer_categorical_step", "canonical_channel_cases", "--", "--nocapture", "--test-threads=1",
+    ]),
     Step::new("canonical-export.strict", "Check strict generic export and correspondence regressions", "cargo", &[
         "clippy", "--locked", "-p", "conduit-composite", "--features", "fixture-registry-preparation", "--test", "canonical_export", "--", "-D", "warnings",
     ]),
     Step::new("canonical-export.bridge", "Check strict numerical canonical bridge without Language policy", "cargo", &[
-        "clippy", "--locked", "-p", "conduit-ai", "--features", "kernel-operation-owners", "--lib", "--", "-D", "warnings",
+        "clippy", "--locked", "-p", "conduit-ai", "--features", "kernel-operation-owners", "--lib", "--test", "integer_categorical_step", "--", "-D", "warnings",
     ]),
 ];

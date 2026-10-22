@@ -82,7 +82,7 @@ fn foreign_source_identity_and_freshly_sealed_fores_and_graphs_refuse() {
     .is_err());
     let mut valid_fore = 0;
     let mut valid_graph = 0;
-    for alteration in 0..19 {
+    for alteration in 0..18 {
         let mut plan = fixture.definition.internal_plan.clone();
         match alteration {
             0 => plan.source_document_id = "source/foreign".into(),
@@ -125,21 +125,14 @@ fn foreign_source_identity_and_freshly_sealed_fores_and_graphs_refuse() {
             15 => plan.fragments[0].connections[0].byte_capacity = BYTES + 1,
             16 => plan.fragments[0].fore_ports[0].gear_port_id = port_id("out"),
             17 => plan.fragments[0].connections[0].sink_port_id = port_id("missing"),
-            18 => plan.fragments[0].connections[0].byte_capacity = BYTES - 1,
             _ => unreachable!(),
         }
         let plan = reseal(plan);
-        if alteration == 18 {
-            assert!(
-                verify_plan(&plan),
-                "underbound Cord remains integrity-valid; typed correspondence must refuse it"
-            );
-        }
         if verify_plan(&plan) {
             if (3..=8).contains(&alteration) {
                 valid_fore += 1;
             }
-            if (9..=18).contains(&alteration) {
+            if (9..=17).contains(&alteration) {
                 valid_graph += 1;
             }
         }
@@ -201,4 +194,95 @@ fn checked_input_fore_fanout_is_explicitly_outside_the_initial_profile() {
     assert!(verify_plan(&plan));
     let error = rebuild(&document, &catalog, plan).unwrap_err();
     assert!(error.to_string().contains("missing/extra/fanout Fore"));
+}
+
+#[test]
+fn narrower_internal_cord_retains_its_admitted_bound_and_refuses_only_oversize_execution() {
+    use conduit_composite::{ChildExecutionError, KernelCompositeError};
+    use conduit_kernel::scheduler::SchedulerError;
+    let fixture = Fixture::new();
+    let mut plan = fixture.definition.internal_plan.clone();
+    plan.fragments[0].connections[0].byte_capacity = BYTES - 1;
+    let plan = reseal(plan);
+    assert!(verify_plan(&plan));
+    let definition = fixture.rebuild(plan.clone()).unwrap();
+    assert_eq!(definition.internal_plan, plan);
+    let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(
+        &plan,
+        &plan.fragments[0].fragment_id,
+    )
+    .unwrap();
+    let cord = lowered
+        .cords
+        .iter()
+        .find(|cord| cord.connection_id == plan.fragments[0].connections[0].connection_id)
+        .unwrap();
+    assert_eq!(cord.spec.byte_capacity, BYTES - 1);
+    assert_eq!(cord.spec.maximum_value_bytes, BYTES - 1);
+    assert_eq!(
+        plan.fragments[0].placements[0]
+            .checked_port_front()
+            .value_contract(&FrontValueLocation::Output(port_id("out")))
+            .unwrap()
+            .maximum_bytes,
+        BYTES
+    );
+
+    // The external Fore still admits 256 bytes. The empty internal Cord is
+    // narrower, so the first copy's exact StepIo send refuses before output.
+    let mut oversized = KernelCompositeHost::prepare(definition.clone(), &registry()).unwrap();
+    oversized.start().unwrap();
+    let input = ValuePayload {
+        value_kind: kind_id(BYTES_INFO_ID),
+        encoded: vec![7; BYTES as usize],
+    };
+    assert!(matches!(
+        oversized.admit_input(&port_id("input"), 0, &input).unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    ));
+    assert_eq!(
+        oversized.step(),
+        Err(KernelCompositeError::Execution {
+            child: 0,
+            reason: ChildExecutionError::Scheduler(SchedulerError::OutputBlocked),
+        })
+    );
+    let mut output = ValuePayload {
+        value_kind: input.value_kind.clone(),
+        encoded: Vec::with_capacity(BYTES as usize),
+    };
+    assert_eq!(
+        oversized
+            .output_into(&port_id("output"), &mut output)
+            .unwrap(),
+        None
+    );
+    assert!(output.encoded.is_empty());
+    oversized.cancel().unwrap();
+
+    // A separately prepared runtime with the same exact Plan accepts its
+    // actual admitted maximum; this is not a replay after the failed request.
+    let mut legal = KernelCompositeHost::prepare(definition, &registry()).unwrap();
+    legal.start().unwrap();
+    let input = ValuePayload {
+        value_kind: input.value_kind,
+        encoded: vec![9; (BYTES - 1) as usize],
+    };
+    assert!(matches!(
+        legal.admit_input(&port_id("input"), 0, &input).unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    ));
+    let mut complete = false;
+    for _ in 0..16 {
+        legal.step().unwrap();
+        if let Some(sequence) = legal.output_into(&port_id("output"), &mut output).unwrap() {
+            assert_eq!(sequence, 0);
+            legal.complete_output(&port_id("output"), sequence).unwrap();
+            complete = true;
+            break;
+        }
+    }
+    assert!(complete);
+    assert_eq!(output, input);
+    legal.cancel().unwrap();
 }

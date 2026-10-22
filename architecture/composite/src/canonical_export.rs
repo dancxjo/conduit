@@ -331,21 +331,6 @@ fn verify_authored_graph(
         }) {
             return Err(invalid("canonical internal Cord endpoint mismatch"));
         }
-        // Whole-payload queues must retain the largest admitted source value;
-        // a fresh seal and selected ceiling do not establish that lower bound.
-        let front = source.checked_port_front();
-        if let Some(contract) =
-            front.value_contract(&FrontValueLocation::Output(actual.source_port_id.clone()))
-        {
-            contract
-                .validate_definition()
-                .map_err(|_| invalid("canonical internal Cord source contract invalid"))?;
-            if contract.maximum_bytes > actual.byte_capacity {
-                return Err(invalid(
-                    "canonical internal Cord cannot retain typed payload bound",
-                ));
-            }
-        }
         seen_cords.push(actual.connection_id.clone());
     }
     Ok(())
