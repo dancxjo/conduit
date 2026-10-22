@@ -57,6 +57,24 @@ fn copied_patchbay_kind_does_not_admit_a_different_front_port() {
     )
     .unwrap_err();
     assert!(refusal.contains("unsupported resident Fore"), "{refusal}");
+    for extra in [
+        ">> unused: FaceInteraction...|",
+        "unused: FaceInteraction...| >>",
+    ] {
+        let forged = SOURCE.replace(") {", &format!("  {extra}\n) {{"));
+        // Unused declarations may already be refused by Source checking. If
+        // they are checkable, Birth review must still refuse the extra Fore.
+        match crate::creche::initial_plots::reviewed_inventory(&forged) {
+            Ok(_) => assert!(review(
+                &forged,
+                &selected(&forged, "patchbay"),
+                &[host()],
+                &crate::installed_browser::local_bases()
+            )
+            .is_err()),
+            Err(refusal) => assert!(!refusal.is_empty()),
+        }
+    }
 }
 
 #[test]

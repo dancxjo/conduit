@@ -311,3 +311,9 @@ drop front bindings or admit arbitrary open-front Plots. Ten focused Crèche
 review cases pass, including the actual installed Source, a substituted front
 port, an unrelated open front, a missing offer and a narrowed Host Call offer.
 Browser enactment still requires a freshly sealed product and a new no-retry run.
+
+Final admission hardening explicitly rejects extra declared input/output fronts;
+all four focused canonical cases pass again, including unused-extra-front
+refusals. Strict owning-package Clippy stops on the pre-existing
+`PreparedApplication::Patchbay` large-enum variant in `application_state.rs`;
+the negative log is retained. No enum/storage change is folded into this fix.

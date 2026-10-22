@@ -27,6 +27,8 @@ pub(super) fn review(
         return Err("initial workload requires one canonical Patchbay sink and input Fore".into());
     };
     if gear.kind_id.as_str() != patchbay_application::PATCHBAY_INTERACTION_KIND
+        || authored.front.inputs().len() != 1
+        || !authored.front.outputs().is_empty()
         || !authored.output_bindings.is_empty()
         || binding.front_port_id != conduit_core::port_id("interaction")
         || binding.gear_id != gear.gear_id
