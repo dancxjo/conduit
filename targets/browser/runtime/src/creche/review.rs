@@ -1,4 +1,5 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
+mod canonical_patchbay;
 pub(super) mod queue_plan;
 
 use super::initial_plots::InitialPlotSelection;
@@ -110,36 +111,44 @@ pub(super) fn review_from_inventory(
             &mut profile,
         )?;
         let backs = crate::installed_browser::backs(startup, &profile)?;
-        let expanded =
-            conduit_plot::expand_canonical_plot_with_backs(checked, &plot.name, &profile, &backs)
-                .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?;
+        let (expanded, placements) = if !plot.checked_front().inputs().is_empty()
+            || !plot.checked_front().outputs().is_empty()
+        {
+            canonical_patchbay::review(checked, &plot.name, &profile, &backs, hosts, bases)?
+        } else {
+            let expanded = conduit_plot::expand_canonical_plot_with_backs(
+                checked, &plot.name, &profile, &backs,
+            )
+            .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?;
+            let placements = conduit_planner::default_expanded_placements(&expanded, hosts)
+                .map_err(|error| {
+                    format!(
+                        "initial workload is unrealizable for {:?}: {error}",
+                        plot.name
+                    )
+                })?;
+            queue_plan::plan(
+                &expanded,
+                hosts,
+                &placements,
+                bases,
+                &[],
+                super::PlanningAuthority::default(),
+            )
+            .map_err(|error| {
+                format!(
+                    "initial workload is unrealizable for {:?}: {error}",
+                    plot.name
+                )
+            })?;
+            (expanded, placements)
+        };
         required_kinds.extend(
             expanded
                 .gears
                 .iter()
                 .map(|gear| gear.kind_id.as_str().to_string()),
         );
-        let placements =
-            conduit_planner::default_expanded_placements(&expanded, hosts).map_err(|error| {
-                format!(
-                    "initial workload is unrealizable for {:?}: {error}",
-                    plot.name
-                )
-            })?;
-        queue_plan::plan(
-            &expanded,
-            hosts,
-            &placements,
-            bases,
-            &[],
-            super::PlanningAuthority::default(),
-        )
-        .map_err(|error| {
-            format!(
-                "initial workload is unrealizable for {:?}: {error}",
-                plot.name
-            )
-        })?;
         accumulate_requirements(
             hosts,
             &placements,

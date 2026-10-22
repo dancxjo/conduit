@@ -303,3 +303,11 @@ post-Birth Wake control. The failed batch/log is preserved under
 `/tmp/conduit-patchbay-browser-failed-26b6-20261022`; no passing browser enactment
 or diagnostic retry is claimed. The owning admission correction must retain
 exact typed, finite ingress planning rather than waive arbitrary open fronts.
+
+The Birth review correction now uses authoring expansion only for the exact
+one-sink Patchbay interaction Fore, then runs the existing activation planner,
+installed ingress preparation and lowered finite Fore validation. It does not
+drop front bindings or admit arbitrary open-front Plots. Ten focused Crèche
+review cases pass, including the actual installed Source, a substituted front
+port, an unrelated open front, a missing offer and a narrowed Host Call offer.
+Browser enactment still requires a freshly sealed product and a new no-retry run.
