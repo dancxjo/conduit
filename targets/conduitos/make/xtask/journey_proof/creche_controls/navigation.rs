@@ -233,7 +233,7 @@ mod tests {
             assert!(selected.len() <= 3);
             // Front door + ready + both views + five naming/pointer frames
             // + reserved failure remain within the existing cap.
-            assert!(2 + 2 * selected.len() + 5 + 1 <= 27);
+            assert!(2 + 2 * selected.len() + 5 < 27);
         }
     }
 }
