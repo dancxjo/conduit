@@ -272,6 +272,7 @@ conduitos-compositor-core = { path = "compositor-core" }
 conduitos-creche-core = { path = "creche-core" }
 
 [dev-dependencies]
+conduitos-creche-core = { path = "creche-core" }
 conduitos-compositor-core = { path = "compositor-core" }
 conduit-std-host = { path = "../std" }
 conduit-todo-face = { path = "../../plots/todo/face" }

@@ -1,0 +1,214 @@
+{
+  "status": "passed",
+  "captures": 52,
+  "checks": [
+    {
+      "file": "native-journey/journey-frames/body-playing.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/body-stopped.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-editorial-compact.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-editorial-spacious.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-engineering-compact.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-engineering-spacious.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-four-restored.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-fourth-checked.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-pointer-four-restored.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-pointer-three-selected.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-ready.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/creche-three-selected.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/front-door-ready.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/home-returned.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/home.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-diagram-returned.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-diagram.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-face.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-gear-details.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-inspected-other-and-returned.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-mask-replanned.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-reentered.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-source-editor-loaded.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/patchbay-workspace.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/protected-keyboard-canvas.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/protected-memory-lantern.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/journey-frames/wake-refused.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-001.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-002.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-003.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-004.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-005.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-006.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-007.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-008.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-009.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-010.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-011.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-012.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-013.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-014.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-015.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-016.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-017.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-018.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-019.png",
+      "chunks": 3
+    },
+    {
+      "file": "native-journey/patchbay-refusal-details/details-020.png",
+      "chunks": 3
+    },
+    {
+      "file": "owner-looks/owner-before.png",
+      "chunks": 3
+    },
+    {
+      "file": "owner-looks/owner-standby.png",
+      "chunks": 3
+    },
+    {
+      "file": "owner-looks/todo-editorial-compact.png",
+      "chunks": 3
+    },
+    {
+      "file": "owner-looks/todo-editorial-spacious.png",
+      "chunks": 3
+    },
+    {
+      "file": "owner-looks/todo-engineering-spacious.png",
+      "chunks": 3
+    }
+  ]
+}

@@ -45,3 +45,11 @@ Native product-image execution, hostile substituted service-return integration,
 real QEMU cross-Plot selection and fresh-editor handoff, combined
 head CI and merge remain required. This checkpoint earns no native-stack,
 physical, hosted-acceptance or stable-publication claim. It closes no issue.
+
+## Product enactment follow-up
+
+[The final 22 October proof packet](native-controls-final-proof-20261022.md)
+now enacts real cross-Plot selection/return and fresh Source handoff in normal
+QEMU at clean `3217e783b15a7908747d951e0039f46cab170323`. The earlier
+pre-Birth refusal is retained as unresolved negative evidence; substituted
+service returns and combined-head acceptance remain separate gates.

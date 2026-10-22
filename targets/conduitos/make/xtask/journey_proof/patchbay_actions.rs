@@ -1,8 +1,8 @@
 //! Real offered Patchbay actions, correlated with the guest's current Face/Show.
 use super::super::{qemu_artifacts::Artifacts, qmp};
-use super::{ConduitosError, face_correspondence, hid_qmp, io_error, journey_input, refusal};
+use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::Face;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
 mod selection;

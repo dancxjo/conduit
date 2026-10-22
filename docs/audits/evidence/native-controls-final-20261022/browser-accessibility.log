@@ -1,0 +1,23 @@
+[WebServer] (node:1455794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 12 tests using 1 worker
+
+(node:1455868) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, normal)
+[2/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, normal)
+[3/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, normal)
+[4/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, normal)
+[5/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, forced-colors)
+[6/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, forced-colors)
+[7/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, forced-colors)
+[8/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, forced-colors)
+[9/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (text, reduced-motion)
+[10/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 1 (choice, reduced-motion)
+[11/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (text, reduced-motion)
+[12/12] [chromium] › proof/browser/owner-face-component.spec.mjs:1210:3 › owner actions remain within a narrow Unicode layout at CSS magnification 2 (choice, reduced-motion)
+  12 passed (3.3s)

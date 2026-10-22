@@ -448,3 +448,11 @@ recovered eight-participant owner is used instead, without raising the bound.
 Product recovery rebinds its copied biography before service startup, and the
 original state/checkpoint file inventory remains unchanged. None of these
 setup refusals is counted as a passed Look or QEMU scenario.
+
+## Cross-Plot, fresh Source handoff and retained Look focus
+
+The [22 October final proof follow-up](native-controls-final-proof-20261022.md)
+records a later clean-source ordinary journey and joined-owner Look/focus run
+on `3217e783b15a7908747d951e0039f46cab170323`. It preserves the earlier
+unexplained pre-Birth refusal as negative evidence and keeps >12-Cord,
+combined-head and remaining accessibility/provider acceptance separate.

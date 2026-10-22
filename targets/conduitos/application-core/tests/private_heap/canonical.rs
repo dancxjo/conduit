@@ -7,6 +7,8 @@ use conduit_face::{
 };
 use conduitos_application_core::data::{CanonicalRefusal, Proposal};
 
+// This shared fixture belongs to the Face crate and its Rust edition.
+#[rustfmt::skip]
 #[path = "../../../../../semantics/face/tests/common/mod.rs"]
 mod mask_fixture;
 
