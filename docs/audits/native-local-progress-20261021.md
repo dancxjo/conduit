@@ -1600,3 +1600,19 @@ advance. This is deterministic CPU/native Mask evidence, not installed QEMU
 execution. The canonical fragment query also uses an immutable owner accessor:
 Root sends it through the same live service with transport sequencing and
 quarantine, rather than caching another projection/actor truth.
+
+Native Fore preparation is now explicit: the canonical Kind/catalog and Back
+reserve one 8 KiB input, no output and one in-flight Host Call. Admission takes
+the complete sealed Plan, validates the exact single closing-Flow Fore and sink,
+and preserves actual fragment-set node/Cord/endpoint indices. It rejects Line
+substitution, different contracts/bounds and unsupported activations. Fixed
+Runtime bookkeeping remains in its existing tables; no guessed per-Back memory
+allowance or detached scheduler is introduced. These helpers are prepared, not
+yet selected by the installed Source.
+
+Hosted native-compositor compilation and the final focused positive Mask test
+passed. The freestanding compile caught missing exhaustive refusal-observation
+arms for the new commands; those now carry explicit bounded operation names.
+The subsequent freestanding x86_64 native-compositor compile passed. Final
+complete-Plan helper changes receive the same focused compilation below; no
+broader suite or product proof campaign is added.
