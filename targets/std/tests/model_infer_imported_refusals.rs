@@ -20,6 +20,8 @@ use std::sync::{
 struct LoadProbe {
     inner: LinearF32ModelAdapter,
     loads: Arc<AtomicUsize>,
+    foreign_reply_runtime: Option<ModelComputeRuntimeIdentity>,
+    calls: Arc<AtomicUsize>,
 }
 impl ModelComputeAdapter for LoadProbe {
     fn offer(&self) -> &ModelComputeOffer {
@@ -38,7 +40,14 @@ impl ModelComputeAdapter for LoadProbe {
         self.inner.output_template()
     }
     fn execute(&mut self, input: ModelComputeInvocation<'_>) -> ModelComputeAdapterTerminal<'_> {
-        self.inner.execute(input)
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        let mut terminal = self.inner.execute(input);
+        if let (ModelComputeAdapterTerminal::Produced(reply), Some(runtime)) =
+            (&mut terminal, &self.foreign_reply_runtime)
+        {
+            reply.runtime = runtime;
+        }
+        terminal
     }
     fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal<'_>, ModelComputeRefusal> {
         self.inner.cancel()
@@ -69,6 +78,8 @@ fn unsupported_profiles_and_foreign_custody_never_load_a_provider() {
                     .with_signature(&signature)
                     .unwrap(),
                     loads: loads.clone(),
+                    foreign_reply_runtime: None,
+                    calls: Arc::new(AtomicUsize::new(0)),
                 };
                 let artifact = "adapter/exact-add-sub-fixture/1";
                 let mut profile = profile::exact(
@@ -138,4 +149,90 @@ fn unsupported_profiles_and_foreign_custody_never_load_a_provider() {
             Box::new(fixture::prepare(fixture::imported(signature, false, false)))
         },
     );
+}
+
+#[test]
+fn imported_reply_from_unadmitted_runtime_emits_no_output() {
+    use conduit_core::ConnectionTrack;
+    use conduit_data::{NamedTensor, NamedTensorBundle};
+    use conduit_plot::rust_binding::NativeRustBinding;
+    use conduit_std_host::ExternalForeInput;
+    let loads = Arc::new(AtomicUsize::new(0));
+    let calls = Arc::new(AtomicUsize::new(0));
+    let (mut host, plan) = common::host_plan(
+        include_str!("fixtures/model-multi-linear.conduit"),
+        |signature| {
+            let model = fixture::imported(signature.clone(), false, false);
+            let mut offer = common::offer();
+            offer.accepted_formats = vec![ONNX_FORMAT_PROFILE.into()];
+            let adapter = LoadProbe {
+                inner: LinearF32ModelAdapter::new(
+                    offer,
+                    common::runtime("exact-add-sub-fixture"),
+                    [[1., 1.], [1., -1.]],
+                    [0., 0.],
+                )
+                .unwrap()
+                .with_signature(&signature)
+                .unwrap(),
+                loads: loads.clone(),
+                foreign_reply_runtime: Some(common::runtime("unadmitted-reply-runtime")),
+                calls: calls.clone(),
+            };
+            let artifact = "adapter/exact-add-sub-fixture/1";
+            let profile = profile::exact(
+                &model,
+                adapter.runtime_identity(),
+                artifact,
+                &["Add", "Sub"],
+            );
+            let mut requirement = common::requirement();
+            requirement.model_format = ONNX_FORMAT_PROFILE.into();
+            requirement.model_bytes = model.resource().bytes().len() as u64;
+            Box::new(
+                PreparedModelInfer::prepare_imported(
+                    model,
+                    adapter,
+                    requirement,
+                    artifact.into(),
+                    &profile,
+                )
+                .unwrap(),
+            )
+        },
+    );
+    let mut tensor = common::input([2., 3.]);
+    // Split the ordinary two-element fixture into two declared one-element ports.
+    tensor.dimensions[0] = 1;
+    tensor.backing = conduit_data::TensorBacking::Inline(
+        conduit_plot::rust_binding::BoundedBytes::new(&2_f32.to_le_bytes()).unwrap(),
+    );
+    tensor.content_digest = conduit_data::tensor_content_digest(&2_f32.to_le_bytes());
+    let input = NamedTensorBundle::from_values(vec![
+        NamedTensor {
+            name: "left".into(),
+            value: tensor.clone(),
+        },
+        NamedTensor {
+            name: "right".into(),
+            value: tensor,
+        },
+    ])
+    .unwrap();
+    let mut outputs = common::Outputs::default();
+    let result = host.run_external_plot_to(
+        plan.fragments[0].clone(),
+        &[ExternalForeInput {
+            front_port_id: "inputs".into(),
+            track: ConnectionTrack::Payload,
+            bytes: input.encode().unwrap(),
+        }],
+        &mut outputs,
+        &mut Vec::new(),
+        &mut common::NoTimer,
+    );
+    assert!(result.is_err());
+    assert_eq!(loads.load(Ordering::SeqCst), 1);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+    assert!(outputs.0.is_empty());
 }
