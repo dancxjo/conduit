@@ -141,3 +141,106 @@ fn unread_prepared_reply_cannot_be_overwritten_by_finish() {
     ));
     terminal(&mut state);
 }
+
+fn written_projection() -> (State, Vec<u8>) {
+    let mut state = State::default();
+    let input = data::encode_command(&projection()).unwrap();
+    let mut transfer = vec![0; crate::memory::TRANSFER_BYTES];
+    state
+        .execute(
+            Request::Begin {
+                bytes: input.len() as u32,
+            },
+            &mut transfer,
+        )
+        .unwrap();
+    for (index, chunk) in input.chunks(transfer.len()).enumerate() {
+        transfer[..chunk.len()].copy_from_slice(chunk);
+        state
+            .execute(
+                Request::Write {
+                    offset: (index * transfer.len()) as u32,
+                    bytes: chunk.len() as u32,
+                },
+                &mut transfer,
+            )
+            .unwrap();
+    }
+    (state, transfer)
+}
+
+#[test]
+fn projection_preflight_retains_only_immutable_bytes_until_commit_and_digest_finish() {
+    let command = projection();
+    let Command::PrepareGraphProjection { graph, scope } = command else {
+        unreachable!()
+    };
+    let expected = graph_facts::project(&graph, scope.clone()).unwrap();
+    let (mut state, mut transfer) = written_projection();
+    assert_eq!(
+        state.execute(Request::Preflight, &mut transfer),
+        Ok(Response::Ready)
+    );
+    assert!(state.preflighted.is_some());
+    assert!(state.projection.is_none());
+    assert!(state.models.is_none());
+    assert!(state.outgoing.is_empty());
+    assert!(matches!(
+        state.execute(Request::Commit, &mut transfer),
+        Ok(Response::Blob { .. })
+    ));
+    assert!(state.preflighted.is_none());
+    assert!(state.incoming.is_none());
+    assert!(state.projection.is_some());
+    assert!(matches!(
+        data::decode_reply(&state.outgoing),
+        Ok(Reply::Prepared)
+    ));
+    // Consume the entire Prepared acknowledgement before the next command.
+    while state.read < state.outgoing.len() {
+        assert!(matches!(
+            state.execute(
+                Request::Read {
+                    offset: state.read as u32,
+                    maximum: transfer.len() as u32,
+                },
+                &mut transfer
+            ),
+            Ok(Response::Chunk { .. })
+        ));
+    }
+    let Reply::GraphFacts { contribution } =
+        call(&mut state, &Command::FinishGraphProjection).unwrap()
+    else {
+        panic!("facts")
+    };
+    assert_eq!(
+        data::encode(&contribution).unwrap(),
+        data::encode(&expected).unwrap()
+    );
+    assert_eq!(contribution.scope, scope);
+}
+
+#[test]
+fn projection_preflight_rejects_writes_repeated_preflight_and_premature_read() {
+    for request in [
+        Request::Write {
+            offset: 0,
+            bytes: 1,
+        },
+        Request::Preflight,
+        Request::Read {
+            offset: 0,
+            maximum: 1,
+        },
+        Request::Begin { bytes: 1 },
+    ] {
+        let (mut state, mut transfer) = written_projection();
+        assert_eq!(
+            state.execute(Request::Preflight, &mut transfer),
+            Ok(Response::Ready)
+        );
+        assert_eq!(state.execute(request, &mut transfer), Err(Refusal::Order));
+        terminal(&mut state);
+    }
+}

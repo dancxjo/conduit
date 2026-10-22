@@ -1,9 +1,12 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+mod graph_reply;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
+pub use graph_reply::PACK_BYTES as GRAPH_PACK_BYTES;
+pub(crate) use graph_reply::Packing;
 use miniz_oxide::{
     deflate::core::{
         CompressorOxide, TDEFLFlush, TDEFLStatus, compress, create_comp_flags_from_zip_params,
@@ -101,7 +104,7 @@ impl Workspace {
     pub fn decode_command(&mut self, bytes: &[u8]) -> Result<Command, Refusal> {
         transport_codec::decode(decoded_json(bytes, &mut self.json)?)
     }
-    /// For large target commands, do decompression and the complete framing
+    /// For large target/projection commands, do decompression and complete framing
     /// preflight in their own protected entry. State freezes incoming bytes
     /// until the following Commit, so verified allocation hints stay trusted.
     pub(crate) fn preflight_command(&mut self, bytes: &[u8]) -> Result<usize, Refusal> {
