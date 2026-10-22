@@ -1,0 +1,108 @@
+{
+  "source_commit": "9f865823c12092c5a6967f98378749f0dbd5c727",
+  "proof_boundary": "CPU/frontend/owner fault controls and compile checks; not QEMU failure injection or current-source CI acceptance",
+  "status": "complete",
+  "steps": [
+    {
+      "name": "startup-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 39.29265045700595,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-9f865-startup-tests.log",
+      "sha256": "25d82cdf90081962793139fc8cc90df0318ece61ddae51fb1e55506eb8c19a3b"
+    },
+    {
+      "name": "lifecycle-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 13.586994699959178,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-9f865-lifecycle-tests.log",
+      "sha256": "b455b07b5893f9fd2882c67ee7ed16948cd14c5cbfad573d7231376c844cdecf"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 168.74352010403527,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-9f865-strict-clippy.log",
+      "sha256": "7b9f6a7bc2d19d2351d5ded5c9a9cb3e075cfbbefa5bc0eff65d7e107a803351"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 10.338506187021267,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-9f865-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "freestanding-check",
+      "command": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--target",
+        "x86_64-unknown-none",
+        "--features",
+        "native-compositor"
+      ],
+      "exit_code": 0,
+      "seconds": 557.589743493998,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-9f865-freestanding-check.log",
+      "sha256": "84bf2ebd7b0022836cc4812c08d1af633f061f81e7aa09d9facddddc59be4a34"
+    }
+  ],
+  "source_clean_after": true
+}

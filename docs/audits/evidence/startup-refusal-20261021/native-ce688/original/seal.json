@@ -1,0 +1,309 @@
+{
+  "source_commit": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "requested_viewport": "default normal profile; no viewport flag",
+  "exit_code": 0,
+  "seconds": 2255.9991142760264,
+  "source_clean_after": true,
+  "source_unchanged": true,
+  "hashes": {
+    "build.json": "b39cbb40763c188e0fb92d57970ed63701240cf69ae450af7d6eb838054db49f",
+    "conduitos": "a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb",
+    "conduitos.iso": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+    "context.json": "8cd26852659521d7719c090cdc4078d58e95ce2eb9bfa261075cd9d8b29a848e",
+    "graphical-profile-gallery.html": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e",
+    "graphical-profile-proof.json": "0bda89640afd7fbf0d58be8fe329dc30240296308215c378a03ec300a372d2d2",
+    "image.json": "7fa64ba0805a446c621f74af1dd019c16de6857eb7b787513f2212fb07928282",
+    "journey-frames/body-playing.png": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+    "journey-frames/body-stopped.png": "85895ff4b8e89b653c3bda0c349950bc9ea21b2a5025ce41ba24e95434947124",
+    "journey-frames/creche-editorial-compact.png": "708807b90454fe5abb704b898233d3bc8adfb75b4cdb6de5aaaa2ab264eb1526",
+    "journey-frames/creche-editorial-spacious.png": "0722634423885a57ed90a96f90997cb9b4a2a2b1de53b38afbb9c63377d53337",
+    "journey-frames/creche-engineering-compact.png": "1d18128cafbdb479ee747e9f03cf90d88dcc68bffd1675118825b897913d61f3",
+    "journey-frames/creche-engineering-spacious.png": "acb1f196037e3bb383246ffb59bc67f6d96c5232c5f31dd03c011e5f24d67cab",
+    "journey-frames/creche-four-restored.png": "f49039b65f3913d8d90bacfa1644241e8fd6074ddb64fa6115e0a47ddb56550d",
+    "journey-frames/creche-fourth-checked.png": "4beabf6cec8fec15f3bc191ad37f6e4d952c954eaf9f4a85079d95818f815999",
+    "journey-frames/creche-pointer-four-restored.png": "ba7d88139f28794bda1c14e2cfdad771de91f344041d4d7acae5b860cbf5e277",
+    "journey-frames/creche-pointer-three-selected.png": "b70627a4b6237298a6ee78489e83b0e7056f3787905c8e39f0d87fccca25dd20",
+    "journey-frames/creche-ready.png": "e10e8e32f4a10722fa13de061139436446cb2fb73400d835ca9bb629f3a2fe22",
+    "journey-frames/creche-three-selected.png": "0fe043ecd604fd01cf767d80447222e4e313d6a0f627e60e7f91c59fab6fae4d",
+    "journey-frames/front-door-ready.png": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+    "journey-frames/home-returned.png": "1a3a83169f6468ca894b085417b33f868dffcbf60e366ba88f29bb59889c7c15",
+    "journey-frames/home.png": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+    "journey-frames/manifest.json": "51b71b714941290824ffe65d7b2025247b1396fe2d61ece5b5254a8ce659f54e",
+    "journey-frames/patchbay-diagram-returned.png": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+    "journey-frames/patchbay-diagram.png": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+    "journey-frames/patchbay-face.png": "c6d3deab76534d09e797c44006849aaba73349ee84a79434c8db7b8df4497aad",
+    "journey-frames/patchbay-gear-details.png": "3f88d953fceb0d85a162bbe193544a4719a08b0eddd9b70f5de3c8a1eec01ae8",
+    "journey-frames/patchbay-reentered.png": "9c70688f8defc407a54ee8ccbeea1eb1eaf12504343ad8f78c1206878a81e884",
+    "journey-frames/patchbay-workspace.png": "6fa8c79ec73de5ee912dd44e8fb9534f714e815f827d7574fef907ec6f1401d5",
+    "journey-frames/protected-keyboard-canvas.png": "ca47f4c125b1228393c586d53f9bb2a52bffe0dc61a322fce30ce513baaa59a2",
+    "journey-frames/protected-memory-lantern.png": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd",
+    "journey-frames/wake-refused.png": "59310e4afcc7b9ab1d8af3a4814d692b33f580a8c3231a11ec8d88508aa54c48",
+    "journey-proof.json": "9625f7a8521fbebfb4099907b917dbdc452e52d2f69c7694c0bada704216e10f",
+    "journey-qemu-stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "journey-qmp.log": "a6db7ecefc2715dffe754362987a1d6d0ac67e39cd3fedc95242a27b9bcda272",
+    "journey-serial.log": "c1fd4df67826a3f071481cf9c1f2473922a2469d679840381720e2146c8dcd2d",
+    "live-images/aarch64-virt/build-manifest.json": "c7f62b6e4e149ce522253056b276d59917d6bd730e3c0d5b2cb0feab361e7e44",
+    "live-images/aarch64-virt/conduitos-aarch64.iso": "67eb18b54d0e5ec4e8353aefbb06d38de8727039197193f0a51410657c758fdb",
+    "live-images/aarch64-virt/conduitos-kernel.elf": "9327551fb85bcf387eddce0a1c4ea5f1b2fe804f1c350f4c0fd107945a0e9423",
+    "live-images/aarch64-virt/resolved-image.json": "4853959e11d463cef92d68fbee1c12ebca61df322ccfd1c7c13938bd1929091d",
+    "live-images/ia32-pc/build-manifest.json": "5f94e8b4534d83118611935890f6155fea37d1c0af69333b9465d56cae1b5a58",
+    "live-images/ia32-pc/conduitos-ia32.iso": "d88e1aeb7011a5e48238173d01ab7f4771babc7d25a568df098eaf1238830e73",
+    "live-images/ia32-pc/conduitos-kernel.elf": "e6ba20c85f08249802f5c065527e01fa93235506fb16db8c5646eadf2ce41786",
+    "live-images/ia32-pc/resolved-image.json": "2d13d5205b0a7c2fbe42cece15133e90729202890c3cf4fc033115a834bb6964",
+    "live-images/loongarch64-virt/build-manifest.json": "1acdf360ef79e3b63d8a7290f5830721e300b213e0bb78655e74a37d4655f858",
+    "live-images/loongarch64-virt/conduitos-kernel.elf": "be9660c7609919657d760ca8fc5b8caeaab0df2fcd10207d388c08f42dbafee3",
+    "live-images/loongarch64-virt/conduitos-loongarch64.iso": "ca5ef0553e81b94097afaa8acc19a6af85089f3d9048f122d3156cc16d476f94",
+    "live-images/loongarch64-virt/resolved-image.json": "0f869e9ae55a0c277fb27b5053b783ee90382c6829bf8590723e315645ec0011",
+    "live-images/riscv64-virt/build-manifest.json": "b5e1f8fce83ffe656e9569103441ade1a6300d994d032efaf037791d68186712",
+    "live-images/riscv64-virt/conduitos-kernel.elf": "fbd971fe35d96a5e29f167932aa07623d90c49019d777bcc6ef619caa53350df",
+    "live-images/riscv64-virt/conduitos-riscv64.iso": "ea0bd04ae2df76b4383f4803d574b49d722b8b44ded8999203be4fd6a37b94ea",
+    "live-images/riscv64-virt/resolved-image.json": "f2e306028fe8462a8ee014bc39f5590f240a88c7018f9d8b046bca76a8d7458c",
+    "live-images/x86_64-pc/build-manifest.json": "99086276d9a9ae7f4f3ba5d0e5612f4179c5b304af8cd8608399a6bbc0299a64",
+    "live-images/x86_64-pc/conduitos-kernel.elf": "a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb",
+    "live-images/x86_64-pc/conduitos-x86_64.iso": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+    "live-images/x86_64-pc/resolved-image.json": "105ac41d5a708d94253c80982e27edfa4d97a8f66720dc17c325ca62ae2eb320",
+    "make-record.rs": "ce55e606a4edd3bb6b9948ad2846a756b755532282df1da7db9758cb7e225878",
+    "memory-lantern-native-edit.json": "c44ded2d51ae01bf70b60e9143a10585da3e750f0c9bf96e63c58f7c937142e8",
+    "native-shell-paired-linear.json": "601505af5611fb555a231063bfe381717424138128a2ea0cbaa609201e4949e7",
+    "privilege-inventory-a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb-product-host.json": "8322c9954d806cce8a53b13df25f302fb4c74f8f36559a43f263ddb1e6fedc30",
+    "privilege-inventory-a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb-product-host.map": "55098c4d8d221f43dd23f4e1dc595f1a37a39cfdd88e87a459cf37bfe409adb3",
+    "supported-command.log": "07237c2ff3d298f1786d28309f9934d15707886251d05e11d6c2aebb78240a1a"
+  },
+  "verified_frames": [
+    {
+      "checkpoint": "front-door-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6"
+    },
+    {
+      "checkpoint": "creche-ready",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e10e8e32f4a10722fa13de061139436446cb2fb73400d835ca9bb629f3a2fe22",
+      "pixel_sha256": "f6fa9e016689549a783e85f11441b2ac19586614c23e8104db1bb8539efdc712"
+    },
+    {
+      "checkpoint": "creche-editorial-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "708807b90454fe5abb704b898233d3bc8adfb75b4cdb6de5aaaa2ab264eb1526",
+      "pixel_sha256": "f5aed8d3e881a0390981b3d4d529f856e0c27abf22d83102bb5b121a8bc2ae16"
+    },
+    {
+      "checkpoint": "creche-editorial-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "0722634423885a57ed90a96f90997cb9b4a2a2b1de53b38afbb9c63377d53337",
+      "pixel_sha256": "55879cfc02f2cfe30a495846b34d593eb513b9d06e5bb19ce9dd2d65a13f03b5"
+    },
+    {
+      "checkpoint": "creche-engineering-spacious",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "acb1f196037e3bb383246ffb59bc67f6d96c5232c5f31dd03c011e5f24d67cab",
+      "pixel_sha256": "f6d927a8e943c418a85a2fb370126041b578c3f285a58cf2971bf412f2956edf"
+    },
+    {
+      "checkpoint": "creche-engineering-compact",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "1d18128cafbdb479ee747e9f03cf90d88dcc68bffd1675118825b897913d61f3",
+      "pixel_sha256": "ad17ee6ffad7a235501b1e0a0e592825c8a41b1b6be2cb3ba4585e09b4210f70"
+    },
+    {
+      "checkpoint": "creche-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "0fe043ecd604fd01cf767d80447222e4e313d6a0f627e60e7f91c59fab6fae4d",
+      "pixel_sha256": "9f41d2f53ba7cb16a517987a4c3f24f99d736750b0e4cd67dadfcc66e1c02a11"
+    },
+    {
+      "checkpoint": "creche-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "f49039b65f3913d8d90bacfa1644241e8fd6074ddb64fa6115e0a47ddb56550d",
+      "pixel_sha256": "fc580d05a4aa414a3d9b687f6a2c2e7e652d1281f39bc82ce47f00670e0c2c81"
+    },
+    {
+      "checkpoint": "creche-fourth-checked",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "4beabf6cec8fec15f3bc191ad37f6e4d952c954eaf9f4a85079d95818f815999",
+      "pixel_sha256": "205e5f05c3fdac0347fd0c522c62d883cfc116cd7412c7a5bf6db0c0caf453fc"
+    },
+    {
+      "checkpoint": "creche-pointer-three-selected",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "b70627a4b6237298a6ee78489e83b0e7056f3787905c8e39f0d87fccca25dd20",
+      "pixel_sha256": "cf1029393e1b9df7726c64bf64cc9eb44fe1b6779ad9fa5b0efcfdac510d731f"
+    },
+    {
+      "checkpoint": "creche-pointer-four-restored",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "ba7d88139f28794bda1c14e2cfdad771de91f344041d4d7acae5b860cbf5e277",
+      "pixel_sha256": "f2fc70de46dbd776d372f20d43d1a2d2112069dab1f16719e59310e3c8cefa3a"
+    },
+    {
+      "checkpoint": "body-playing",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "pixel_sha256": "63c972cf6cd123c2a5c7e279fd80412ff52c1f6f23d97984dba4fc2051431986"
+    },
+    {
+      "checkpoint": "wake-refused",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "59310e4afcc7b9ab1d8af3a4814d692b33f580a8c3231a11ec8d88508aa54c48",
+      "pixel_sha256": "441fc22235f2e694a6ab5d21a0a827171f3818daa457b7618849db842fd1b472"
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "ca47f4c125b1228393c586d53f9bb2a52bffe0dc61a322fce30ce513baaa59a2",
+      "pixel_sha256": "72aa85f496f377e981aa2a9e82426d0b07a40d14953190866b9b34e5305053a8"
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd",
+      "pixel_sha256": "d3940ec0562351a3c9200a363c536e87bb7bcaabe9d7f26711780158b81caffd"
+    },
+    {
+      "checkpoint": "home",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "pixel_sha256": "63c972cf6cd123c2a5c7e279fd80412ff52c1f6f23d97984dba4fc2051431986"
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "6fa8c79ec73de5ee912dd44e8fb9534f714e815f827d7574fef907ec6f1401d5",
+      "pixel_sha256": "bdbc6ff4fbf68f7d6541ae243bfb8104ec048f8c79863927944ba4f0b13f7f77"
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "c6d3deab76534d09e797c44006849aaba73349ee84a79434c8db7b8df4497aad",
+      "pixel_sha256": "3bbdfcdc204c5fc0f5cc5008774af6fdc7355af71abd1f5562d1b319f89251c8"
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "pixel_sha256": "3a7ecbba17883ebd863faeac8b763bb18ec38bc467e5a91a00ed2f24ca95e030"
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "3f88d953fceb0d85a162bbe193544a4719a08b0eddd9b70f5de3c8a1eec01ae8",
+      "pixel_sha256": "c9acf42f9cb85e04ca5d0cd4cee3f585a699b47cd83c6884564ab52c53fa50b3"
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "pixel_sha256": "3a7ecbba17883ebd863faeac8b763bb18ec38bc467e5a91a00ed2f24ca95e030"
+    },
+    {
+      "checkpoint": "body-stopped",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "85895ff4b8e89b653c3bda0c349950bc9ea21b2a5025ce41ba24e95434947124",
+      "pixel_sha256": "5fa0921c8ce01d9eafc7305125ce6fc35ac778e28ffdc2e369cf2349e679a392"
+    },
+    {
+      "checkpoint": "home-returned",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "1a3a83169f6468ca894b085417b33f868dffcbf60e366ba88f29bb59889c7c15",
+      "pixel_sha256": "5f9320047ce38308fd4937c83b10c6df200d2d3e8ff44b1f0d4aed44b8bbff06"
+    },
+    {
+      "checkpoint": "patchbay-reentered",
+      "width": 1280,
+      "height": 800,
+      "png_sha256": "9c70688f8defc407a54ee8ccbeea1eb1eaf12504343ad8f78c1206878a81e884",
+      "pixel_sha256": "afd37543a4a55ee0419a897505416e7441d5b44d125915d39238fae739db4cae"
+    }
+  ],
+  "generic_target_snapshot_boundary": "Generic target files may be builder/headless outputs; canonical ProductHost ELF/ISO custody comes exclusively from live-images/x86_64-pc manifest.",
+  "canonical_manifest_source": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "artifact_role": "product-host",
+  "canonical_current_source": true,
+  "headless_evidence_boundary": "Four headless build/image asset-absence checks only; no headless guest runtime claim.",
+  "frame_manifest_status": "complete",
+  "frame_failure": null,
+  "viewport_context": {
+    "capture_contract": {
+      "maximum_checkpoints": 27
+    },
+    "graphical_profile": {
+      "code": "DejaVu Sans Mono",
+      "fallback": "pinned Unifont",
+      "primary": "DejaVu Sans",
+      "primitive": false,
+      "profile": "conduitos/graphical/dejavu-v1"
+    },
+    "image_sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+    "process_stop": {
+      "cause": "harness-stop-after-success",
+      "code": null,
+      "status": "signal: 9 (SIGKILL)"
+    },
+    "qemu_argv": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "std",
+      "-monitor",
+      "none",
+      "-qmp",
+      "unix:/tmp/cj-374606.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-target/x86_64/journey-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+      "-device",
+      "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-native/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ],
+    "source_commit": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+    "visual_contract": {
+      "display": "std-vga",
+      "dynamic_identity_pixels": "allowed",
+      "height": 800,
+      "minimum_non_background_pixels": 64,
+      "mode": "invariant",
+      "width": 1280
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "source": "856b518cc2f480908d9ee11e994e40b0efa4d3a0",
+  "passed_cases": 26,
+  "cpu_checks": [
+    {
+      "name": "startup-tests",
+      "passed": 6,
+      "log_sha256": "3bea1ca3ad92090ab3a31c8dcbbb074c2429ae04e1ee3f45ee311013cdbd4940"
+    },
+    {
+      "name": "lifecycle-tests",
+      "passed": 8,
+      "log_sha256": "af8abfeb985ca10c18baee6f61ac9534232b2b256352a253a896e2284aa725f5"
+    },
+    {
+      "name": "journey-controls",
+      "passed": 6,
+      "log_sha256": "48dac47b45f825c7783149e2b4251ffa51b33d00f7df510e5f760e7a96956ad9"
+    },
+    {
+      "name": "birth-controls",
+      "passed": 4,
+      "log_sha256": "eeee0a126eb8921afe44caf86015e2acd89a7b4a1757c819b71570feb073e758"
+    },
+    {
+      "name": "forged-failed-show",
+      "passed": 1,
+      "log_sha256": "15f5eacd50396c811d3c7ada62e52b8024192fd8c5a0fb1b40ee5e1240856197"
+    },
+    {
+      "name": "replaced-stale-show",
+      "passed": 1,
+      "log_sha256": "331ae597f5f5c1a9900e8fa6a7c3332f447d082ab57a0846bea5244c5a1d4b9c"
+    }
+  ],
+  "strict_clippy": {
+    "status": "failed",
+    "exit_code": 101,
+    "unrelated_owned_path": "targets/conduitos/src/native_workset/patchbay_ingress.rs:72",
+    "reason": "Ingress::plan_id dead_code; identical to current base"
+  },
+  "unstarted": [
+    "workspace formatting",
+    "freestanding check"
+  ],
+  "cache": "released; all own checks terminal",
+  "admission": "held for WIP-two and baseline repair",
+  "scope": "26 hosted controls only; no current QEMU, strict/format/freestanding or CI acceptance claim."
+}

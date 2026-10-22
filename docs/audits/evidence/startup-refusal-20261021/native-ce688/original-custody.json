@@ -1,0 +1,636 @@
+{
+  "schema": "conduit.audit/documentary-original-custody@1",
+  "source_commit": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "original_packet_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved",
+  "files": [
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/build.json",
+      "original_bytes": 319,
+      "original_sha256": "b39cbb40763c188e0fb92d57970ed63701240cf69ae450af7d6eb838054db49f",
+      "stored": "original/build.json",
+      "stored_bytes": 319,
+      "stored_sha256": "b39cbb40763c188e0fb92d57970ed63701240cf69ae450af7d6eb838054db49f",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/context.json",
+      "original_bytes": 564,
+      "original_sha256": "8cd26852659521d7719c090cdc4078d58e95ce2eb9bfa261075cd9d8b29a848e",
+      "stored": "original/context.json",
+      "stored_bytes": 564,
+      "stored_sha256": "8cd26852659521d7719c090cdc4078d58e95ce2eb9bfa261075cd9d8b29a848e",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/graphical-profile-gallery.html",
+      "original_bytes": 2967,
+      "original_sha256": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e",
+      "stored": "original/graphical-profile-gallery.html",
+      "stored_bytes": 2967,
+      "stored_sha256": "7566dbdb81d11cb1fa7a20d6c3222854fb98bff91bee81fd124eebadc142b03e",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/graphical-profile-proof.json",
+      "original_bytes": 1230,
+      "original_sha256": "0bda89640afd7fbf0d58be8fe329dc30240296308215c378a03ec300a372d2d2",
+      "stored": "original/graphical-profile-proof.json",
+      "stored_bytes": 1230,
+      "stored_sha256": "0bda89640afd7fbf0d58be8fe329dc30240296308215c378a03ec300a372d2d2",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/image.json",
+      "original_bytes": 335,
+      "original_sha256": "7fa64ba0805a446c621f74af1dd019c16de6857eb7b787513f2212fb07928282",
+      "stored": "original/image.json",
+      "stored_bytes": 335,
+      "stored_sha256": "7fa64ba0805a446c621f74af1dd019c16de6857eb7b787513f2212fb07928282",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/body-playing.png",
+      "original_bytes": 70458,
+      "original_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "stored": "original/journey-frames/body-playing.png",
+      "stored_bytes": 70458,
+      "stored_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/body-stopped.png",
+      "original_bytes": 202418,
+      "original_sha256": "85895ff4b8e89b653c3bda0c349950bc9ea21b2a5025ce41ba24e95434947124",
+      "stored": "original/journey-frames/body-stopped.png",
+      "stored_bytes": 202418,
+      "stored_sha256": "85895ff4b8e89b653c3bda0c349950bc9ea21b2a5025ce41ba24e95434947124",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-editorial-compact.png",
+      "original_bytes": 172058,
+      "original_sha256": "708807b90454fe5abb704b898233d3bc8adfb75b4cdb6de5aaaa2ab264eb1526",
+      "stored": "original/journey-frames/creche-editorial-compact.png",
+      "stored_bytes": 172058,
+      "stored_sha256": "708807b90454fe5abb704b898233d3bc8adfb75b4cdb6de5aaaa2ab264eb1526",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-editorial-spacious.png",
+      "original_bytes": 149893,
+      "original_sha256": "0722634423885a57ed90a96f90997cb9b4a2a2b1de53b38afbb9c63377d53337",
+      "stored": "original/journey-frames/creche-editorial-spacious.png",
+      "stored_bytes": 149893,
+      "stored_sha256": "0722634423885a57ed90a96f90997cb9b4a2a2b1de53b38afbb9c63377d53337",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-engineering-compact.png",
+      "original_bytes": 170827,
+      "original_sha256": "1d18128cafbdb479ee747e9f03cf90d88dcc68bffd1675118825b897913d61f3",
+      "stored": "original/journey-frames/creche-engineering-compact.png",
+      "stored_bytes": 170827,
+      "stored_sha256": "1d18128cafbdb479ee747e9f03cf90d88dcc68bffd1675118825b897913d61f3",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-engineering-spacious.png",
+      "original_bytes": 148799,
+      "original_sha256": "acb1f196037e3bb383246ffb59bc67f6d96c5232c5f31dd03c011e5f24d67cab",
+      "stored": "original/journey-frames/creche-engineering-spacious.png",
+      "stored_bytes": 148799,
+      "stored_sha256": "acb1f196037e3bb383246ffb59bc67f6d96c5232c5f31dd03c011e5f24d67cab",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-four-restored.png",
+      "original_bytes": 170820,
+      "original_sha256": "f49039b65f3913d8d90bacfa1644241e8fd6074ddb64fa6115e0a47ddb56550d",
+      "stored": "original/journey-frames/creche-four-restored.png",
+      "stored_bytes": 170820,
+      "stored_sha256": "f49039b65f3913d8d90bacfa1644241e8fd6074ddb64fa6115e0a47ddb56550d",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-fourth-checked.png",
+      "original_bytes": 99330,
+      "original_sha256": "4beabf6cec8fec15f3bc191ad37f6e4d952c954eaf9f4a85079d95818f815999",
+      "stored": "original/journey-frames/creche-fourth-checked.png",
+      "stored_bytes": 99330,
+      "stored_sha256": "4beabf6cec8fec15f3bc191ad37f6e4d952c954eaf9f4a85079d95818f815999",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-pointer-four-restored.png",
+      "original_bytes": 99347,
+      "original_sha256": "ba7d88139f28794bda1c14e2cfdad771de91f344041d4d7acae5b860cbf5e277",
+      "stored": "original/journey-frames/creche-pointer-four-restored.png",
+      "stored_bytes": 99347,
+      "stored_sha256": "ba7d88139f28794bda1c14e2cfdad771de91f344041d4d7acae5b860cbf5e277",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-pointer-three-selected.png",
+      "original_bytes": 99249,
+      "original_sha256": "b70627a4b6237298a6ee78489e83b0e7056f3787905c8e39f0d87fccca25dd20",
+      "stored": "original/journey-frames/creche-pointer-three-selected.png",
+      "stored_bytes": 99249,
+      "stored_sha256": "b70627a4b6237298a6ee78489e83b0e7056f3787905c8e39f0d87fccca25dd20",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-ready.png",
+      "original_bytes": 170706,
+      "original_sha256": "e10e8e32f4a10722fa13de061139436446cb2fb73400d835ca9bb629f3a2fe22",
+      "stored": "original/journey-frames/creche-ready.png",
+      "stored_bytes": 170706,
+      "stored_sha256": "e10e8e32f4a10722fa13de061139436446cb2fb73400d835ca9bb629f3a2fe22",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/creche-three-selected.png",
+      "original_bytes": 170699,
+      "original_sha256": "0fe043ecd604fd01cf767d80447222e4e313d6a0f627e60e7f91c59fab6fae4d",
+      "stored": "original/journey-frames/creche-three-selected.png",
+      "stored_bytes": 170699,
+      "stored_sha256": "0fe043ecd604fd01cf767d80447222e4e313d6a0f627e60e7f91c59fab6fae4d",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/front-door-ready.png",
+      "original_bytes": 49977,
+      "original_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "stored": "original/journey-frames/front-door-ready.png",
+      "stored_bytes": 49977,
+      "stored_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/home-returned.png",
+      "original_bytes": 58727,
+      "original_sha256": "1a3a83169f6468ca894b085417b33f868dffcbf60e366ba88f29bb59889c7c15",
+      "stored": "original/journey-frames/home-returned.png",
+      "stored_bytes": 58727,
+      "stored_sha256": "1a3a83169f6468ca894b085417b33f868dffcbf60e366ba88f29bb59889c7c15",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/home.png",
+      "original_bytes": 70458,
+      "original_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "stored": "original/journey-frames/home.png",
+      "stored_bytes": 70458,
+      "stored_sha256": "e8bc9564155bc0454b1e4a29347379fe93ea22c47b8509e1df4959bd2f0d2f74",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/manifest.json",
+      "original_bytes": 413977,
+      "original_sha256": "51b71b714941290824ffe65d7b2025247b1396fe2d61ece5b5254a8ce659f54e",
+      "stored": "original/journey-frames/manifest.json",
+      "stored_bytes": 413977,
+      "stored_sha256": "51b71b714941290824ffe65d7b2025247b1396fe2d61ece5b5254a8ce659f54e",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-diagram-returned.png",
+      "original_bytes": 139149,
+      "original_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "stored": "original/journey-frames/patchbay-diagram-returned.png",
+      "stored_bytes": 139149,
+      "stored_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-diagram.png",
+      "original_bytes": 139149,
+      "original_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "stored": "original/journey-frames/patchbay-diagram.png",
+      "stored_bytes": 139149,
+      "stored_sha256": "e647437c517a63bdc5ab04753166ea680ebb73fc8b039b9f63b6d527efc164ad",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-face.png",
+      "original_bytes": 237209,
+      "original_sha256": "c6d3deab76534d09e797c44006849aaba73349ee84a79434c8db7b8df4497aad",
+      "stored": "original/journey-frames/patchbay-face.png",
+      "stored_bytes": 237209,
+      "stored_sha256": "c6d3deab76534d09e797c44006849aaba73349ee84a79434c8db7b8df4497aad",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-gear-details.png",
+      "original_bytes": 240235,
+      "original_sha256": "3f88d953fceb0d85a162bbe193544a4719a08b0eddd9b70f5de3c8a1eec01ae8",
+      "stored": "original/journey-frames/patchbay-gear-details.png",
+      "stored_bytes": 240235,
+      "stored_sha256": "3f88d953fceb0d85a162bbe193544a4719a08b0eddd9b70f5de3c8a1eec01ae8",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-reentered.png",
+      "original_bytes": 58393,
+      "original_sha256": "9c70688f8defc407a54ee8ccbeea1eb1eaf12504343ad8f78c1206878a81e884",
+      "stored": "original/journey-frames/patchbay-reentered.png",
+      "stored_bytes": 58393,
+      "stored_sha256": "9c70688f8defc407a54ee8ccbeea1eb1eaf12504343ad8f78c1206878a81e884",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/patchbay-workspace.png",
+      "original_bytes": 111128,
+      "original_sha256": "6fa8c79ec73de5ee912dd44e8fb9534f714e815f827d7574fef907ec6f1401d5",
+      "stored": "original/journey-frames/patchbay-workspace.png",
+      "stored_bytes": 111128,
+      "stored_sha256": "6fa8c79ec73de5ee912dd44e8fb9534f714e815f827d7574fef907ec6f1401d5",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/protected-keyboard-canvas.png",
+      "original_bytes": 72110,
+      "original_sha256": "ca47f4c125b1228393c586d53f9bb2a52bffe0dc61a322fce30ce513baaa59a2",
+      "stored": "original/journey-frames/protected-keyboard-canvas.png",
+      "stored_bytes": 72110,
+      "stored_sha256": "ca47f4c125b1228393c586d53f9bb2a52bffe0dc61a322fce30ce513baaa59a2",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/protected-memory-lantern.png",
+      "original_bytes": 64165,
+      "original_sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd",
+      "stored": "original/journey-frames/protected-memory-lantern.png",
+      "stored_bytes": 64165,
+      "stored_sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-frames/wake-refused.png",
+      "original_bytes": 129805,
+      "original_sha256": "59310e4afcc7b9ab1d8af3a4814d692b33f580a8c3231a11ec8d88508aa54c48",
+      "stored": "original/journey-frames/wake-refused.png",
+      "stored_bytes": 129805,
+      "stored_sha256": "59310e4afcc7b9ab1d8af3a4814d692b33f580a8c3231a11ec8d88508aa54c48",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-proof.json",
+      "original_bytes": 23954,
+      "original_sha256": "9625f7a8521fbebfb4099907b917dbdc452e52d2f69c7694c0bada704216e10f",
+      "stored": "original/journey-proof.json",
+      "stored_bytes": 23954,
+      "stored_sha256": "9625f7a8521fbebfb4099907b917dbdc452e52d2f69c7694c0bada704216e10f",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-qemu-stderr.log",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored": "original/journey-qemu-stderr.log.gz",
+      "stored_bytes": 20,
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "encoding": "gzip"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-qmp.log",
+      "original_bytes": 61554,
+      "original_sha256": "a6db7ecefc2715dffe754362987a1d6d0ac67e39cd3fedc95242a27b9bcda272",
+      "stored": "original/journey-qmp.log.gz",
+      "stored_bytes": 4307,
+      "stored_sha256": "814fa57698dce2b4a744550bd188e8ca401adde9efdba11c5a1cba3b07c4cd7b",
+      "encoding": "gzip"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/journey-serial.log",
+      "original_bytes": 1089182,
+      "original_sha256": "c1fd4df67826a3f071481cf9c1f2473922a2469d679840381720e2146c8dcd2d",
+      "stored": "original/journey-serial.log.gz",
+      "stored_bytes": 69348,
+      "stored_sha256": "9e27059ed898e337eb7f20bd087ec269bd85e9ba7b1975cd31436525809f4a3c",
+      "encoding": "gzip"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/aarch64-virt/build-manifest.json",
+      "original_bytes": 3785,
+      "original_sha256": "c7f62b6e4e149ce522253056b276d59917d6bd730e3c0d5b2cb0feab361e7e44",
+      "stored": "original/live-images/aarch64-virt/build-manifest.json",
+      "stored_bytes": 3785,
+      "stored_sha256": "c7f62b6e4e149ce522253056b276d59917d6bd730e3c0d5b2cb0feab361e7e44",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/aarch64-virt/resolved-image.json",
+      "original_bytes": 3740,
+      "original_sha256": "4853959e11d463cef92d68fbee1c12ebca61df322ccfd1c7c13938bd1929091d",
+      "stored": "original/live-images/aarch64-virt/resolved-image.json",
+      "stored_bytes": 3740,
+      "stored_sha256": "4853959e11d463cef92d68fbee1c12ebca61df322ccfd1c7c13938bd1929091d",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/ia32-pc/build-manifest.json",
+      "original_bytes": 3766,
+      "original_sha256": "5f94e8b4534d83118611935890f6155fea37d1c0af69333b9465d56cae1b5a58",
+      "stored": "original/live-images/ia32-pc/build-manifest.json",
+      "stored_bytes": 3766,
+      "stored_sha256": "5f94e8b4534d83118611935890f6155fea37d1c0af69333b9465d56cae1b5a58",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/ia32-pc/resolved-image.json",
+      "original_bytes": 3734,
+      "original_sha256": "2d13d5205b0a7c2fbe42cece15133e90729202890c3cf4fc033115a834bb6964",
+      "stored": "original/live-images/ia32-pc/resolved-image.json",
+      "stored_bytes": 3734,
+      "stored_sha256": "2d13d5205b0a7c2fbe42cece15133e90729202890c3cf4fc033115a834bb6964",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/loongarch64-virt/build-manifest.json",
+      "original_bytes": 3795,
+      "original_sha256": "1acdf360ef79e3b63d8a7290f5830721e300b213e0bb78655e74a37d4655f858",
+      "stored": "original/live-images/loongarch64-virt/build-manifest.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "1acdf360ef79e3b63d8a7290f5830721e300b213e0bb78655e74a37d4655f858",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/loongarch64-virt/resolved-image.json",
+      "original_bytes": 3776,
+      "original_sha256": "0f869e9ae55a0c277fb27b5053b783ee90382c6829bf8590723e315645ec0011",
+      "stored": "original/live-images/loongarch64-virt/resolved-image.json",
+      "stored_bytes": 3776,
+      "stored_sha256": "0f869e9ae55a0c277fb27b5053b783ee90382c6829bf8590723e315645ec0011",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/riscv64-virt/build-manifest.json",
+      "original_bytes": 3794,
+      "original_sha256": "b5e1f8fce83ffe656e9569103441ade1a6300d994d032efaf037791d68186712",
+      "stored": "original/live-images/riscv64-virt/build-manifest.json",
+      "stored_bytes": 3794,
+      "stored_sha256": "b5e1f8fce83ffe656e9569103441ade1a6300d994d032efaf037791d68186712",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/riscv64-virt/resolved-image.json",
+      "original_bytes": 3795,
+      "original_sha256": "f2e306028fe8462a8ee014bc39f5590f240a88c7018f9d8b046bca76a8d7458c",
+      "stored": "original/live-images/riscv64-virt/resolved-image.json",
+      "stored_bytes": 3795,
+      "stored_sha256": "f2e306028fe8462a8ee014bc39f5590f240a88c7018f9d8b046bca76a8d7458c",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/x86_64-pc/build-manifest.json",
+      "original_bytes": 4269,
+      "original_sha256": "99086276d9a9ae7f4f3ba5d0e5612f4179c5b304af8cd8608399a6bbc0299a64",
+      "stored": "original/live-images/x86_64-pc/build-manifest.json",
+      "stored_bytes": 4269,
+      "stored_sha256": "99086276d9a9ae7f4f3ba5d0e5612f4179c5b304af8cd8608399a6bbc0299a64",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/x86_64-pc/resolved-image.json",
+      "original_bytes": 4453,
+      "original_sha256": "105ac41d5a708d94253c80982e27edfa4d97a8f66720dc17c325ca62ae2eb320",
+      "stored": "original/live-images/x86_64-pc/resolved-image.json",
+      "stored_bytes": 4453,
+      "stored_sha256": "105ac41d5a708d94253c80982e27edfa4d97a8f66720dc17c325ca62ae2eb320",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/make-record.rs",
+      "original_bytes": 684,
+      "original_sha256": "ce55e606a4edd3bb6b9948ad2846a756b755532282df1da7db9758cb7e225878",
+      "stored": "original/make-record.rs",
+      "stored_bytes": 684,
+      "stored_sha256": "ce55e606a4edd3bb6b9948ad2846a756b755532282df1da7db9758cb7e225878",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/memory-lantern-native-edit.json",
+      "original_bytes": 5866,
+      "original_sha256": "c44ded2d51ae01bf70b60e9143a10585da3e750f0c9bf96e63c58f7c937142e8",
+      "stored": "original/memory-lantern-native-edit.json",
+      "stored_bytes": 5866,
+      "stored_sha256": "c44ded2d51ae01bf70b60e9143a10585da3e750f0c9bf96e63c58f7c937142e8",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/native-shell-paired-linear.json",
+      "original_bytes": 1798620,
+      "original_sha256": "601505af5611fb555a231063bfe381717424138128a2ea0cbaa609201e4949e7",
+      "stored": "original/native-shell-paired-linear.json",
+      "stored_bytes": 1798620,
+      "stored_sha256": "601505af5611fb555a231063bfe381717424138128a2ea0cbaa609201e4949e7",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/privilege-inventory-a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb-product-host.json",
+      "original_bytes": 65092,
+      "original_sha256": "8322c9954d806cce8a53b13df25f302fb4c74f8f36559a43f263ddb1e6fedc30",
+      "stored": "original/privilege-inventory-a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb-product-host.json",
+      "stored_bytes": 65092,
+      "stored_sha256": "8322c9954d806cce8a53b13df25f302fb4c74f8f36559a43f263ddb1e6fedc30",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/seal.json",
+      "original_bytes": 16175,
+      "original_sha256": "cf1be216c9738be317b92ae3d23bc032d77d7c42727969c9b031e9f9d932a166",
+      "stored": "original/seal.json",
+      "stored_bytes": 16175,
+      "stored_sha256": "cf1be216c9738be317b92ae3d23bc032d77d7c42727969c9b031e9f9d932a166",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/supported-command.log",
+      "original_bytes": 263690,
+      "original_sha256": "07237c2ff3d298f1786d28309f9934d15707886251d05e11d6c2aebb78240a1a",
+      "stored": "original/supported-command.log.gz",
+      "stored_bytes": 25016,
+      "stored_sha256": "988276353aa2582fb62adadd9f84fc6ea282b7778468839c906518863ff2c82e",
+      "encoding": "gzip"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-run-ce688-normal.py",
+      "original_bytes": 5089,
+      "original_sha256": "32382c71ad2de606e4740335e5eca06dee6e36993a4abbe0b89f655857dcdebc",
+      "stored": "verification/6179-run-ce688-normal.py",
+      "stored_bytes": 5089,
+      "stored_sha256": "32382c71ad2de606e4740335e5eca06dee6e36993a4abbe0b89f655857dcdebc",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verify-normal-startup.py",
+      "original_bytes": 7192,
+      "original_sha256": "c0a19e330a7224539a88fa2295d8c2986a120587bb5ac236f4c1ad78fb8727ba",
+      "stored": "verification/6179-verify-normal-startup.py",
+      "stored_bytes": 7192,
+      "stored_sha256": "c0a19e330a7224539a88fa2295d8c2986a120587bb5ac236f4c1ad78fb8727ba",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-normal-verifier-controls.py",
+      "original_bytes": 2347,
+      "original_sha256": "52fcd968d732b861f9a9a373cbb408d0766f357c66aa9ff32c914557e9e2ef8c",
+      "stored": "verification/6179-normal-verifier-controls.py",
+      "stored_bytes": 2347,
+      "stored_sha256": "52fcd968d732b861f9a9a373cbb408d0766f357c66aa9ff32c914557e9e2ef8c",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-audit-current-x86-startup.py",
+      "original_bytes": 4486,
+      "original_sha256": "c91fe4598e5d4704986a8b3a8d4b4b1dcdab19ed0ebee04aaa4044f8f4e944bd",
+      "stored": "verification/6179-audit-current-x86-startup.py",
+      "stored_bytes": 4486,
+      "stored_sha256": "c91fe4598e5d4704986a8b3a8d4b4b1dcdab19ed0ebee04aaa4044f8f4e944bd",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-final-byte-checks.json",
+      "original_bytes": 1622,
+      "original_sha256": "f7d77f3b64300b223445d3c9086b0d4520a22cfaaaccc8072d05cffee50cdc23",
+      "stored": "verification/6179-ce688-normal-final-byte-checks.json",
+      "stored_bytes": 1622,
+      "stored_sha256": "f7d77f3b64300b223445d3c9086b0d4520a22cfaaaccc8072d05cffee50cdc23",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verifier-historical-normal-check.json",
+      "original_bytes": 8872,
+      "original_sha256": "654354505975f13abd2ac968eaed801d21d7963cdfd9f65fc42f5605136655f5",
+      "stored": "verification/6179-verifier-historical-normal-check.json",
+      "stored_bytes": 8872,
+      "stored_sha256": "654354505975f13abd2ac968eaed801d21d7963cdfd9f65fc42f5605136655f5",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6179-ce688-normal-verification.json",
+      "original_bytes": 8870,
+      "original_sha256": "d0d99d3dbc367d1dab46feebcac5ce031d5c2aa0a89d9d09cfaa913c7d922d8a",
+      "stored": "independent-root-review/6179-ce688-normal-verification.json",
+      "stored_bytes": 8870,
+      "stored_sha256": "d0d99d3dbc367d1dab46feebcac5ce031d5c2aa0a89d9d09cfaa913c7d922d8a",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6179-ce688-current-x86-startup-audit.json",
+      "original_bytes": 7358,
+      "original_sha256": "de0f5ac76a03e4bb1175eb81e0a64fe169de4b3ac07355f0413b1cc2b7324321",
+      "stored": "independent-root-review/6179-ce688-current-x86-startup-audit.json",
+      "stored_bytes": 7358,
+      "stored_sha256": "de0f5ac76a03e4bb1175eb81e0a64fe169de4b3ac07355f0413b1cc2b7324321",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6179-normal-verifier-negative-controls.json",
+      "original_bytes": 1896,
+      "original_sha256": "d5101dba76ccf2f4106eae4330b76c2a1216dc6c8295bd3399d5773db0d33588",
+      "stored": "independent-root-review/6179-normal-verifier-negative-controls.json",
+      "stored_bytes": 1896,
+      "stored_sha256": "d5101dba76ccf2f4106eae4330b76c2a1216dc6c8295bd3399d5773db0d33588",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-verify-image-assets.py",
+      "original_bytes": 2172,
+      "original_sha256": "fece1af17e1fd0c20b1719753a9c38899fbbfe155d10f9f4eb6a63407faea360",
+      "stored": "verification/6179-verify-image-assets.py",
+      "stored_bytes": 2172,
+      "stored_sha256": "fece1af17e1fd0c20b1719753a9c38899fbbfe155d10f9f4eb6a63407faea360",
+      "encoding": "original"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6179-ce688-root-image-assets.json",
+      "original_bytes": 1397,
+      "original_sha256": "a230c837a7c66422251cc0b46da0790ced0917c6a60d669dc33a79ed3773e823",
+      "stored": "independent-root-review/6179-ce688-root-image-assets.json",
+      "stored_bytes": 1397,
+      "stored_sha256": "a230c837a7c66422251cc0b46da0790ced0917c6a60d669dc33a79ed3773e823",
+      "encoding": "original"
+    }
+  ],
+  "omitted": [
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/conduitos",
+      "bytes": 77530720,
+      "sha256": "a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/conduitos.iso",
+      "bytes": 81803264,
+      "sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/aarch64-virt/conduitos-aarch64.iso",
+      "bytes": 11898880,
+      "sha256": "67eb18b54d0e5ec4e8353aefbb06d38de8727039197193f0a51410657c758fdb",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/aarch64-virt/conduitos-kernel.elf",
+      "bytes": 7668912,
+      "sha256": "9327551fb85bcf387eddce0a1c4ea5f1b2fe804f1c350f4c0fd107945a0e9423",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/ia32-pc/conduitos-ia32.iso",
+      "bytes": 10164224,
+      "sha256": "d88e1aeb7011a5e48238173d01ab7f4771babc7d25a568df098eaf1238830e73",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/ia32-pc/conduitos-kernel.elf",
+      "bytes": 5879836,
+      "sha256": "e6ba20c85f08249802f5c065527e01fa93235506fb16db8c5646eadf2ce41786",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/loongarch64-virt/conduitos-kernel.elf",
+      "bytes": 6620256,
+      "sha256": "be9660c7609919657d760ca8fc5b8caeaab0df2fcd10207d388c08f42dbafee3",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "bytes": 10883072,
+      "sha256": "ca5ef0553e81b94097afaa8acc19a6af85089f3d9048f122d3156cc16d476f94",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/riscv64-virt/conduitos-kernel.elf",
+      "bytes": 4924712,
+      "sha256": "fbd971fe35d96a5e29f167932aa07623d90c49019d777bcc6ef619caa53350df",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/riscv64-virt/conduitos-riscv64.iso",
+      "bytes": 9138176,
+      "sha256": "ea0bd04ae2df76b4383f4803d574b49d722b8b44ded8999203be4fd6a37b94ea",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/x86_64-pc/conduitos-kernel.elf",
+      "bytes": 77530720,
+      "sha256": "a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/live-images/x86_64-pc/conduitos-x86_64.iso",
+      "bytes": 81803264,
+      "sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    },
+    {
+      "original_absolute_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-ce688-normal-preserved/privilege-inventory-a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb-product-host.map",
+      "bytes": 21500007,
+      "sha256": "55098c4d8d221f43dd23f4e1dc595f1a37a39cfdd88e87a459cf37bfe409adb3",
+      "reason": "large regenerable ELF/ISO/linker-map payload retained locally, omitted from Git"
+    }
+  ]
+}

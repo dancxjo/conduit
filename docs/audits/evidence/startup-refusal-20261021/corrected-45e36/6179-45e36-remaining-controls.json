@@ -1,0 +1,170 @@
+{
+  "source_commit": "45e36bd43562c51ceb620c9fc7775d9e65cf1a8a",
+  "status": "complete",
+  "scope": "Existing named acceptance negatives, not a broad full-suite rerun and not QEMU fault injection",
+  "steps": [
+    {
+      "name": "startup-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 6,
+      "actual_passed_tests": 6,
+      "count_verified": true,
+      "seconds": 9.037703744019382,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-startup-controls.log",
+      "sha256": "5b30cc19d00a4fe3f66dfd1756f9c2cccbf352165efb9054927f1a14bf78db66"
+    },
+    {
+      "name": "lifecycle-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 8,
+      "actual_passed_tests": 8,
+      "count_verified": true,
+      "seconds": 12.808783020998817,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-lifecycle-controls.log",
+      "sha256": "5a86a3dab20d8df9762c8a32f460e360fc6bff3191f7fcaf86a145d400839f99"
+    },
+    {
+      "name": "journey-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 6,
+      "actual_passed_tests": 6,
+      "count_verified": true,
+      "seconds": 15.350052747991867,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-journey-controls.log",
+      "sha256": "1f9a507c3a2b687315f0bdad9e4ec4c586fce48e20d09ad2f3ca627673a5a1de"
+    },
+    {
+      "name": "birth-controls",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::birth::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 4,
+      "actual_passed_tests": 4,
+      "count_verified": true,
+      "seconds": 1.5619810660136864,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-birth-controls.log",
+      "sha256": "4001e5073153f25ab18f0302bf4e3f1e0dd3279fea57abbe2d159d4e5dd5bf22"
+    },
+    {
+      "name": "forged-failed-show",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "expected_passed_tests": 1,
+      "actual_passed_tests": 1,
+      "count_verified": true,
+      "seconds": 1.7638818210107274,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-forged-failed-show.log",
+      "sha256": "478807545750aeaf8313c7b55f3d37adcf85d3cd2af9cba363e84c65ea93237c"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 8.6846486129798,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-strict-clippy.log",
+      "sha256": "b6c1b3f82906b385b3478d08c1e0e07573e2610bbf39d0584db8fc0ec77a2250"
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 10.05366174300434,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_clean_after": true
+}

@@ -1,0 +1,29 @@
+{
+  "source_commit": "45e36bd43562c51ceb620c9fc7775d9e65cf1a8a",
+  "base_tested_source": "9f865823c12092c5a6967f98378749f0dbd5c727",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "hosted-tools,native-compositor",
+    "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect",
+    "--",
+    "--nocapture",
+    "--test-threads=1",
+    "--exact"
+  ],
+  "exit_code": 0,
+  "seconds": 15.619028493005317,
+  "RUST_MIN_STACK": null,
+  "stack_or_grant_increase": false,
+  "markers": [],
+  "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-45e36-exact-stale-show.log",
+  "sha256": "8850ea095de5e1f5925b2ff9a095d87fa3f0e6abddbcf36a58b1823f21f3491d",
+  "source_clean_after": true,
+  "boundary": "Exactly one initial run of test-only boxed fixture source under unchanged default stack; both original assertions and sequence preserved."
+}

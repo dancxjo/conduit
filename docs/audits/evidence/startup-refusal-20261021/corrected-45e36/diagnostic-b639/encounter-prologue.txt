@@ -1,0 +1,32 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos-ff6c8edf1239f389:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000002674a70 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5tests9encounter>:
+ 2674a70:	49 89 e3             	mov    %rsp,%r11
+ 2674a73:	49 81 eb 00 d0 00 00 	sub    $0xd000,%r11
+ 2674a7a:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 2674a81:	48 c7 04 24 00 00 00 	movq   $0x0,(%rsp)
+ 2674a88:	00 
+ 2674a89:	4c 39 dc             	cmp    %r11,%rsp
+ 2674a8c:	75 ec                	jne    2674a7a <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5tests9encounter+0xa>
+ 2674a8e:	48 83 ec 78          	sub    $0x78,%rsp
+ 2674a92:	48 89 bc 24 88 00 00 	mov    %rdi,0x88(%rsp)
+ 2674a99:	00 
+ 2674a9a:	48 89 bc 24 90 00 00 	mov    %rdi,0x90(%rsp)
+ 2674aa1:	00 
+ 2674aa2:	c6 84 24 27 d0 00 00 	movb   $0x0,0xd027(%rsp)
+ 2674aa9:	00 
+ 2674aaa:	c6 84 24 26 d0 00 00 	movb   $0x0,0xd026(%rsp)
+ 2674ab1:	00 
+ 2674ab2:	c6 84 24 23 d0 00 00 	movb   $0x0,0xd023(%rsp)
+ 2674ab9:	00 
+ 2674aba:	c6 84 24 22 d0 00 00 	movb   $0x0,0xd022(%rsp)
+ 2674ac1:	00 
+ 2674ac2:	c6 84 24 25 d0 00 00 	movb   $0x0,0xd025(%rsp)
+ 2674ac9:	00 
+ 2674aca:	c6                   	.byte 0xc6
+ 2674acb:	84 24 24             	test   %ah,(%rsp)
+ 2674ace:	d0 00                	rolb   $1,(%rax)

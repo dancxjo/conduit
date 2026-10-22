@@ -1,0 +1,32 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos-ff6c8edf1239f389:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000002677370 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_63replaced_show_and_changed_unobserved_owner_refuse_before_effect>:
+ 2677370:	49 89 e3             	mov    %rsp,%r11
+ 2677373:	49 81 eb 00 e0 00 00 	sub    $0xe000,%r11
+ 267737a:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 2677381:	48 c7 04 24 00 00 00 	movq   $0x0,(%rsp)
+ 2677388:	00 
+ 2677389:	4c 39 dc             	cmp    %r11,%rsp
+ 267738c:	75 ec                	jne    267737a <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_63replaced_show_and_changed_unobserved_owner_refuse_before_effect+0xa>
+ 267738e:	48 81 ec 18 0d 00 00 	sub    $0xd18,%rsp
+ 2677395:	48 8d 3d 1b 91 52 fe 	lea    -0x1ad6ee5(%rip),%rdi        # ba04b7 <GCC_except_table0+0x186173>
+ 267739c:	be 27 00 00 00       	mov    $0x27,%esi
+ 26773a1:	e8 0a e0 f1 ff       	call   25953b0 <_RNvMs4_NtCsgxBkk5gSRhY_4core3fmtNtB5_9Arguments8from_strCs7rkybaQFxn0_9conduitos>
+ 26773a6:	48 89 c7             	mov    %rax,%rdi
+ 26773a9:	48 89 d6             	mov    %rdx,%rsi
+ 26773ac:	48 8b 05 2d 9a 17 02 	mov    0x2179a2d(%rip),%rax        # 47f0de0 <_DYNAMIC+0xaf58>
+ 26773b3:	ff d0                	call   *%rax
+ 26773b5:	48 8d bc 24 88 43 00 	lea    0x4388(%rsp),%rdi
+ 26773bc:	00 
+ 26773bd:	48 89 bc 24 00 01 00 	mov    %rdi,0x100(%rsp)
+ 26773c4:	00 
+ 26773c5:	e8 a6 d6 ff ff       	call   2674a70 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5tests9encounter>
+ 26773ca:	48                   	rex.W
+ 26773cb:	8d                   	.byte 0x8d
+ 26773cc:	b4 24                	mov    $0x24,%ah
+ 26773ce:	f8                   	clc
+ 26773cf:	6c                   	insb   (%dx),(%rdi)
