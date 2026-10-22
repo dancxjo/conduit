@@ -24,6 +24,7 @@ mod demo;
 mod emergency_halt_proof;
 mod emitted_line;
 mod front_door_proof;
+mod graph_correspondence;
 mod graphical_asset_proof;
 mod graphical_profile_proof;
 mod headless_profile;
@@ -603,6 +604,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
         ConduitosCommand::StdGap => std_gap::execute(opts),
         ConduitosCommand::TimingProfile => timing_profile::execute(opts),
         ConduitosCommand::CompositorPerformance => compositor_performance::execute(opts),
+        ConduitosCommand::GraphCorrespondence => graph_correspondence::execute(opts),
         ConduitosCommand::XhciProof(args) => xhci_proof::execute(args.prepared_image, opts),
         ConduitosCommand::UsbProof(args) => usb_proof::execute(args, opts),
         ConduitosCommand::UsbConfigurationProof => usb_proof::execute_configuration(opts),
