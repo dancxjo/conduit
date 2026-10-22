@@ -71,6 +71,13 @@ try {
   assert(listing.includes("browser-sdk-events.mjs"));
   assert(listing.includes("browser-sdk-face.mjs"));
   assert(listing.includes("browser-sdk-face-actions.mjs"));
+  assert(listing.includes("browser-sdk-patchbay.mjs"));
+  for (const name of ["owner-face-component.mjs", "owner-face-look.css"]) {
+    assert.deepEqual(await readFile(path.join(output, name)), await readFile(path.join(root, "../handbook", name)));
+  }
+  const renderer = await readFile(path.join(output, "browser-sdk-patchbay.mjs"), "utf8");
+  assert(renderer.includes("'./owner-face-component.mjs'"));
+  assert(!renderer.includes("'../handbook/"));
   assert(listing.includes("browser-sdk-owner-show-state.mjs"));
   assert(listing.includes("browser-sdk-wardrobe.mjs"));
   assert(listing.includes("host/assets/browser-membership.js"));

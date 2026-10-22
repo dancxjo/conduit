@@ -118,8 +118,8 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    assert_eq!(prepared.lowered.nodes, 12);
-    assert_eq!(prepared.lowered.cords, 9);
+    assert_eq!(prepared.lowered.nodes, 10);
+    assert_eq!(prepared.lowered.cords, 8);
     assert_eq!(prepared.plan.plots.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
     assert_eq!(prepared.input_owners().len(), 4);

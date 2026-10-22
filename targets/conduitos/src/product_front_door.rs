@@ -21,6 +21,7 @@ use input_actions::{ProductControl, action_for, product_control, resident_applic
 mod journey_sign;
 mod native_action_evidence;
 mod owner_action_evidence;
+mod patchbay_edit;
 pub(crate) mod transient_sign;
 mod workspace_input;
 use workspace_input::refresh_with_face as refresh;
@@ -827,10 +828,8 @@ fn run_controller(
                                 b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-presenters-replanned\n",
                             );
                         }
-                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(_)) => {
-                            arch::early_write(
-                                b"CONDUIT_WORKSPACE_CHECKPOINT patchbay-edit-requested\n",
-                            );
+                        Some(crate::native_workset::NativeApplicationRequest::EditCurrent(request)) => {
+                            patchbay_edit::open_source_editor(&mut front_door, &mut journey, request, identities)?;
                         }
                         Some(crate::native_workset::NativeApplicationRequest::OpenPatchbay) => {
                             return Err("resident-patchbay-request-not-routed");

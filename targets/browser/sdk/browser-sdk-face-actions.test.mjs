@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { checkedOwnerFaceArguments } from './browser-sdk-face-actions.mjs';
+import { checkedOwnerFaceArguments, checkedPatchbayFaceArguments } from './browser-sdk-face-actions.mjs';
 
 const action = {
   identity: 'body/action/name-and-interval', target: 'body/current', availability: 'available',
@@ -119,4 +119,21 @@ test('adversarial adapter admission retains finite typed refusal dispositions', 
     ['ViolatedConstraint', () => submit([valid[0],{...valid[1],value:'750'}])],
   ];
   for (const [code, attempt] of cases) assert.throws(attempt, error => error.code === code);
+});
+
+
+test('Patchbay submission cannot borrow another contributor route or a forged caller intent', () => {
+  const action = { identity: 'action', target: 'subject', availability: 'available', arguments: [],
+    intent: 'body/stop@1' };
+  const acknowledged = { body_id: 'body', show_id: 'show', face_id: 'face', face_revision: '4',
+    show_state: 'available', interactions_admitted: true, actions: [action] };
+  const forged = { ...acknowledged, actions: [{ ...action, intent: 'patchbay/select-plot@1' }] };
+  assert.throws(() => checkedPatchbayFaceArguments(acknowledged, forged, 'action', 'subject', []),
+    error => error.code === 'UnsupportedAction');
+  for (const intent of ['patchbay/select-plot@1', 'patchbay/edit-subject@1', 'patchbay/change-masks@1']) {
+    const current = { ...acknowledged, actions: [{ ...action, intent }] };
+    assert.deepEqual(checkedPatchbayFaceArguments(current, current, 'action', 'subject', []), []);
+    assert.throws(() => checkedPatchbayFaceArguments(current, { ...current, show_id: 'old' }, 'action', 'subject', []),
+      error => error.code === 'StaleShow');
+  }
 });

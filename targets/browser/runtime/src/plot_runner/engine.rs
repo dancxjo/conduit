@@ -1,11 +1,15 @@
 //! Finite generic browser execution envelope for inline Plots.
 
+#[path = "engine_application.rs"]
+pub(super) mod application;
 #[path = "engine_attempt.rs"]
 mod attempt;
 #[path = "engine_completions.rs"]
 mod completions;
 #[path = "engine_input_effects.rs"]
 mod inputs;
+#[path = "engine_patchbay_fore.rs"]
+mod patchbay_fore;
 #[path = "engine_thermostat.rs"]
 pub(super) mod thermostat;
 pub(super) use completions::{complete_host_effect, complete_host_effect_with_output};
@@ -42,51 +46,9 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_plan_lowering::lowering::{lower_plan_fragment_for_profile, LoweredPlanFragment};
 
-type BrowserKernel = FixedScheduler<
-    BrowserBack,
-    HostedValueStore,
-    HostedSignLog,
-    MAXIMUM_BROWSER_GEARS,
-    MAXIMUM_BROWSER_CORDS,
-    BROWSER_PORTS_PER_GEAR,
-    BROWSER_QUEUE_SLOTS,
-    BROWSER_ROUTE_SLOTS,
-    BROWSER_ROUTE_TARGETS,
-    BROWSER_HOST_CALL_BINDINGS,
-    BROWSER_PENDING_REQUESTS,
->;
-
-/// Exact Plan-bound storage receipt prepared before any kernel step.
-#[derive(Debug)]
-pub(super) struct PreparedStorageWitness {
-    pub(super) identities: Vec<(conduit_core::PlanId, conduit_core::FragmentId)>,
-    pub(super) slot_capacities: Vec<u32>,
-    pub(super) reserved_storage_bytes: usize,
-    pub(super) live_byte_quota: u32,
-    pub(super) data_memory_reservation: u64,
-}
-
-impl PreparedStorageWitness {
-    pub(super) fn matches(&self, partitions: &[(&PlanFragment, &LoweredPlanFragment)]) -> bool {
-        self.identities.len() == partitions.len()
-            && self
-                .identities
-                .iter()
-                .zip(partitions)
-                .all(|((plan, fragment), (selected, _))| {
-                    plan == &selected.plan_id && fragment == &selected.fragment_id
-                })
-            && self
-                .slot_capacities
-                .iter()
-                .map(|capacity| u64::from(*capacity))
-                .sum::<u64>()
-                == u64::from(self.live_byte_quota)
-            && self.slot_capacities.len() <= usize::from(BROWSER_VALUE_ITEMS)
-            && self.reserved_storage_bytes as u64 + self.data_memory_reservation
-                <= u64::from(crate::installed_browser::measurement_limits::MEMORY_POOL_BYTES)
-    }
-}
+#[path = "engine_storage.rs"]
+mod storage;
+use storage::{BrowserKernel, PreparedStorageWitness};
 
 /// Host-prepared state accompanies, but never replaces, the production kernel.
 pub(super) struct TourScheduler {
@@ -127,6 +89,7 @@ pub(super) struct TourScheduler {
         Vec<Option<Box<crate::installed_browser::stroke_capture::PreparedStrokeCapture>>>,
     applications: Vec<Option<Box<super::application_state::PreparedApplication>>>,
     thermostat: Option<thermostat::ThermostatFore>,
+    patchbay_fore: Vec<patchbay_fore::PatchbayFore>,
 }
 
 impl core::ops::Deref for TourScheduler {
@@ -445,7 +408,11 @@ fn drive_with_boundary<'a>(
                     pending_effects: scheduler.pending_host_call_count(),
                 });
             }
-            SchedulerStatus::Idle if allow_remote_wait || scheduler.thermostat.is_some() => {
+            SchedulerStatus::Idle
+                if allow_remote_wait
+                    || scheduler.thermostat.is_some()
+                    || !scheduler.patchbay_fore.is_empty() =>
+            {
                 return Ok(DriveStatus::Quiescent)
             }
             SchedulerStatus::Idle => return Err("Tour Play became idle".into()),
@@ -532,3 +499,7 @@ mod resource_effect_tests;
 #[cfg(test)]
 #[path = "engine_editor_observation.rs"]
 mod editor_observation;
+
+#[cfg(all(test, feature = "creche-surface"))]
+#[path = "patchbay_publication_tests.rs"]
+mod publication_tests;
