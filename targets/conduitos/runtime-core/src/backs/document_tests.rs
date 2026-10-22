@@ -1,8 +1,5 @@
 //! Numeric production-kernel regression, not native service/platform proof.
-use crate::{
-    admission::{Admission, BackKind},
-    *,
-};
+use crate::admission::{Admission, BackKind};
 use conduit_kernel::{
     scheduler::{CordCapacity, CordSpec},
     *,
@@ -10,19 +7,24 @@ use conduit_kernel::{
 
 #[test]
 fn initialized_document_reaches_output_before_any_edit_host_request() {
-    let mut admission = Admission::new(2, 2);
+    let mut admission = Admission::new(3, 2);
+    admission.nodes[0].maximum_step_fuel = 16;
+    admission.nodes[1].maximum_step_fuel = 16;
+    admission.nodes[2].maximum_step_fuel = 16;
+    admission.backs[2] = BackKind::Keyboard;
     admission.backs[0] = BackKind::Document;
     admission.backs[1] = BackKind::Face;
     admission.nodes[0].input_cords[0] = Some(CordId(0));
     admission.nodes[1].input_cords[0] = Some(CordId(1));
-    admission.cords[0] = CordSpec::remote_ingress(
+    admission.cords[0] = CordSpec::local(
         CordId(0),
-        RemoteEndpointId(0),
+        (NodeId(2), PortId(0)),
         (NodeId(0), PortId(0)),
         CordCapacity {
             slot_start: 0,
             item_capacity: 1,
             byte_capacity: 272,
+            pressure_policy: Default::default(),
         },
     )
     .with_maximum_value_bytes(272);
@@ -34,6 +36,7 @@ fn initialized_document_reaches_output_before_any_edit_host_request() {
             slot_start: 1,
             item_capacity: 1,
             byte_capacity: 264,
+            pressure_policy: Default::default(),
         },
     )
     .with_maximum_value_bytes(264);
@@ -58,6 +61,22 @@ fn initialized_document_reaches_output_before_any_edit_host_request() {
         maximum_input_bytes: 264,
         maximum_output_bytes: 0,
     });
+    admission
+        .install_route(
+            NodeId(2),
+            PortId(0),
+            RouteRange { start: 1, len: 1 },
+            &[RouteTarget {
+                cord: CordId(0),
+                sink: CordEndpoint::local(NodeId(0), PortId(0)),
+            }],
+        )
+        .unwrap();
+    admission.bindings[2] = Some(HostCallBinding {
+        call: HostCallId(0),
+        maximum_input_bytes: 0,
+        maximum_output_bytes: 272,
+    });
     let mut scheduler = admission.build().unwrap();
     assert!(scheduler.next_host_request().is_none());
     let shown = (0..16)
@@ -80,8 +99,24 @@ fn initialized_document_reaches_output_before_any_edit_host_request() {
         )
         .unwrap();
     // A real empty insertion still carries a full 16-byte canonical edit header.
+    let keyboard = (0..16)
+        .find_map(|_| {
+            scheduler.step().unwrap();
+            scheduler.next_host_request()
+        })
+        .expect("prepared edit source request");
+    assert_eq!(keyboard.node, NodeId(2));
+    let value = scheduler.store_host_value(&[0; 16]).unwrap();
     scheduler
-        .admit_remote_input(RemoteEndpointId(0), CordId(0), 0, &[0; 16])
+        .complete_host_call(
+            keyboard.node,
+            keyboard.request,
+            HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: Some(BoundedValueRef::new(value, 272).unwrap()),
+                failure: None,
+            },
+        )
         .unwrap();
     let edit = (0..16)
         .find_map(|_| {
