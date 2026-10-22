@@ -575,3 +575,23 @@ awaits that acknowledgement instead of sleeping for an assumed startup interval.
 `cargo xtask prove environment http` checks the HTTP/input/control contracts;
 ESP32 and Pico cross-checks pass. These source/CPU proofs do not yet establish a
 physical stop/restore cycle or connect the page to an admitted control Play.
+
+`PreparedNativeAppliance::body_plot_plan` preserves the exact authored Source
+identity and ordinary Plan as a Body workset partition. `propose_to_body` passes
+that partition and explicitly supplied Mask topologies to the existing
+`BodyLifecycleSession`. The owner checks the complete workset and current
+Host/Boot membership before retaining a Wake and sealed Body Plan. Wrong
+worksets, stale Boots and repeated proposals refuse without changing evidence.
+The returned realization has no started Play. Root still owes durable retention,
+MCU memory/resource admission and an attributable start result before the normal
+`started` transition. Multi-Plot callers compose `body_plot_plan` with their other
+partitions rather than discarding them. The public native-construction proof now
+checks this CPU boundary; its membership/provider fixtures are not physical
+admission evidence.
+
+A remaining start boundary is explicit: the selected native-operation binders
+currently verify standalone `bind_active_play` identities for a per-Plot Plan,
+whereas Body execution binds a `BodyPlayIdentity` over the sealed Body Plan and
+Wake. They are different identities. Native installation needs an explicit,
+Root-authorized Body-to-fragment execution binding; relabelling either identity
+or removing checks without replacement is not a valid integration.

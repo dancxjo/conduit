@@ -11,6 +11,7 @@ path = "src/main.rs"
 [workspace]
 
 [dependencies]
+conduit-body = { path = "../../../architecture/body" }
 conduit-net = { path = "../../../semantics/net" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-environment-runtime = { path = "../runtime", features = ["construction"] }

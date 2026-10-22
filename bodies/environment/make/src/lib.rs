@@ -90,6 +90,38 @@ impl PreparedNativeAppliance {
             computations,
         })
     }
+    /// Supply this exact checked Source/Plan partition to the ordinary Body
+    /// owner. Useful when the Body has other Plots; none are implicitly removed.
+    /// This host-side preparation clone confers no presence or execution claim.
+    pub fn body_plot_plan(&self) -> conduit_body::BodyPlotPlan {
+        conduit_body::BodyPlotPlan {
+            plot: conduit_body::ResidentPlot::new(
+                self.plan.source_document_id.clone(),
+                self.plan.checked_plot_id.clone(),
+            ),
+            plan: self.plan.clone(),
+        }
+    }
+    /// Propose the single appliance workload through the existing lifecycle.
+    /// The caller supplies its admitted Mask topology explicitly. The ordinary
+    /// owner checks the complete workset and exact current Host/Boot membership
+    /// before retaining Wake evidence. Refusal leaves that owner unchanged.
+    /// Root must persist the proposal, admit actual MCU resources and obtain
+    /// an attributable start result before calling its existing `started` API.
+    pub fn propose_to_body<'a>(
+        &self,
+        owner: &'a mut conduit_body::BodyLifecycleSession,
+        masks: Vec<conduit_body::BodyMaskTopology>,
+    ) -> Result<&'a conduit_body::BodyLifecycleRealization, conduit_body::BodyLifecycleSessionError>
+    {
+        let fragment = &self.plan.fragments[0]; // prepare admits exactly one
+        owner.propose_with_masks(
+            vec![self.body_plot_plan()],
+            masks,
+            &fragment.host_id,
+            &fragment.boot_id,
+        )
+    }
     pub fn plan(&self) -> &c::Plan {
         &self.plan
     }

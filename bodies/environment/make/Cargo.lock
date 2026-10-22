@@ -131,6 +131,7 @@ dependencies = [
 name = "conduit-environment-make"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-body-make",
  "conduit-core",
  "conduit-embedded-build",
