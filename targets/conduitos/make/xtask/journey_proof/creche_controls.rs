@@ -99,6 +99,13 @@ pub(super) fn exercise(
             "checked probe rename changed unrelated draft state",
         ));
     }
+    let long_name_controls = controls(&baseline.face)?;
+    if long_name_controls != expected {
+        return Err(refusal("long name changed the source control inventory"));
+    }
+    let long_name_forward = run.traverse(&baseline, &long_name_controls, false)?;
+    let long_name_reverse = run.traverse(&baseline, &long_name_controls, true)?;
+    let long_name_pages = run.pages(&baseline, "long-name")?;
     run.naming(&membership, b"welsh", "creche-naming-welsh")?;
     let welsh = snapshot(&text(run.serial)?)?;
     let suggested = current(&welsh.face, "creche.name")?;
@@ -146,6 +153,7 @@ pub(super) fn exercise(
             "arrival_acknowledged_face":arrival.record,"selected_recipe":selected_recipe,
             "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
+            "long_name_forward_focus":long_name_forward,"long_name_reverse_focus":long_name_reverse,"long_name_pages":long_name_pages,
         }),
         json!({
             "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"incomplete_argument_refusal":incomplete_refusal,"restoration_basis":"checked long Unicode probe draft typed through actual HID; original observed name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
