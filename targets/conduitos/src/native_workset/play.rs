@@ -187,6 +187,7 @@ impl NativeWorksetPlay {
         }
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if let Err(error) = self.activate_protection(plan, play) {
+            observation::refused("protection-activation", &error);
             let _ = self.cancel();
             return Err(error);
         }
@@ -371,7 +372,10 @@ impl NativeWorksetPlay {
         self.revoke_protection(crate::protection_domain::KernelRevocationCause::PlayCancelled);
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         self.applications.abort();
-        let result = self.scheduler.cancel().map_err(|_| PlayRefusal::Kernel);
+        let result = self.scheduler.cancel().map_err(|error| {
+            observation::refused("cancel", &error);
+            PlayRefusal::Kernel
+        });
         #[cfg(all(target_arch = "x86_64", target_os = "none"))]
         if result.is_err() {
             self.fence_runtime_failure();
