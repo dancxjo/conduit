@@ -150,8 +150,11 @@ impl Owner {
                 proposal,
                 refusal,
             } => {
-                self.canonical_identity(slot, *returned, *target)?;
+                if usize::from(*returned) != slot {
+                    return Err(Refusal::Malformed);
+                }
                 if refusal.is_some() {
+                    self.canonical_identity(slot, *returned, *target)?;
                     if proposal.is_some() || *revision != publication.revision {
                         Err(Refusal::Malformed)
                     } else {
@@ -159,6 +162,11 @@ impl Owner {
                     }
                 } else {
                     let interaction = interaction.as_ref().map_err(|_| Refusal::Malformed)?;
+                    let expected = selection_target(&self.graphs[slot], &interaction.action_id)
+                        .unwrap_or(usize::from(publication.target));
+                    if usize::from(*target) != expected {
+                        return Err(Refusal::Malformed);
+                    }
                     if Some(*revision) != publication.revision.checked_add(1) {
                         return Err(Refusal::Malformed);
                     }
@@ -167,6 +175,7 @@ impl Owner {
                         self.graph(slot).ok_or(Refusal::Order)?,
                         self.topology.as_deref(),
                         proposal.as_ref(),
+                        selection_target(&self.graphs[slot], &interaction.action_id).is_some(),
                     )
                 }
             }
@@ -174,6 +183,14 @@ impl Owner {
             _ => Err(Refusal::Malformed),
         })();
         self.guard(result)?;
+        if let Reply::PatchbayConsumed {
+            target,
+            refusal: None,
+            ..
+        } = &reply
+        {
+            self.selected[slot] = *target;
+        }
         Ok(reply)
     }
 
@@ -216,10 +233,11 @@ impl Owner {
                     && action.intent == "patchbay/change-masks@1"
                     && action.arguments.is_empty()
                     && self.topology.is_some()
-            } else if action.identity
-                == alloc::format!("{}0", patchbay_application::SELECT_PLOT_ACTION_PREFIX)
-            {
-                action.target == plot
+            } else if let Some(target) = selection_target(&self.graphs[slot], &action.identity) {
+                let selected = self.graphs[slot][target]
+                    .as_deref()
+                    .ok_or(Refusal::Malformed)?;
+                action.target == alloc::format!("plot/{}", selected.checked_plot_id.as_str())
                     && action.intent == "patchbay/select-plot@1"
                     && action.arguments.is_empty()
             } else {
@@ -256,6 +274,7 @@ fn admit_proposal(
     graph: &PatchbayGraph,
     topology: Option<&PatchbayMaskTopology>,
     proposal: Option<&Proposal>,
+    selection: bool,
 ) -> Result<(), Refusal> {
     if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID {
         let subject = input
@@ -287,12 +306,28 @@ fn admit_proposal(
             )) if body_plan_id == &topology.body_plan_id && *mode == topology.next_mode() => Ok(()),
             _ => Err(Refusal::Malformed),
         }
-    } else if input.action_id
-        == alloc::format!("{}0", patchbay_application::SELECT_PLOT_ACTION_PREFIX)
-        && proposal.is_none()
-    {
+    } else if selection && proposal.is_none() {
         Ok(())
     } else {
         Err(Refusal::Malformed)
     }
+}
+
+/// Canonical actor indices enumerate the prepared inventory, retaining sparse
+/// native target slots. A label or a service-returned index grants no selection.
+fn selection_target(graphs: &[Option<Box<PatchbayGraph>>; SLOTS], action: &str) -> Option<usize> {
+    let suffix = action.strip_prefix(patchbay_application::SELECT_PLOT_ACTION_PREFIX)?;
+    if suffix.is_empty()
+        || (suffix.len() > 1 && suffix.starts_with('0'))
+        || !suffix.bytes().all(|byte| byte.is_ascii_digit())
+    {
+        return None;
+    }
+    let index: usize = suffix.parse().ok()?;
+    graphs
+        .iter()
+        .enumerate()
+        .filter(|(_, graph)| graph.is_some())
+        .nth(index)
+        .map(|(target, _)| target)
 }
