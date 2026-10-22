@@ -6,18 +6,40 @@ use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
 use conduit_face::*;
 
 fn actual_face() -> Face {
-    let choices = crate::native_workset::profile()
-        .installed()
-        .iter()
-        .map(|plot| BirthPlotChoice {
-            title: plot.title().into(),
-            search_text: plot.title().into(),
-            plot: crate::native_workset::resident(*plot).unwrap(),
-            refusal: None,
-            selected: true,
+    let (_, offer) = crate::native_workset::tests::fixture();
+    let choices = crate::native_workset::candidate_inventory()
+        .into_iter()
+        .map(|plot| {
+            let refusal = crate::native_workset::eligibility(plot, &offer)
+                .err()
+                .map(|error| error.as_str().into());
+            BirthPlotChoice {
+                title: plot.title().into(),
+                search_text: plot.source().into(),
+                plot: crate::native_workset::resident(plot).unwrap(),
+                selected: refusal.is_none(),
+                refusal,
+            }
         })
         .collect::<Vec<_>>();
-    assert_eq!(choices.len(), 4);
+    assert_eq!(choices.len(), 5);
+    assert_eq!(choices.iter().filter(|choice| choice.selected).count(), 4);
+    assert_eq!(
+        choices
+            .iter()
+            .filter(|choice| choice.refusal.is_some())
+            .count(),
+        1
+    );
+    let unavailable = choices.last().unwrap();
+    assert_eq!(
+        unavailable.plot,
+        crate::native_workset::resident(crate::native_workset::NativePlot::Hello).unwrap()
+    );
+    assert_eq!(
+        unavailable.refusal.as_deref(),
+        Some(crate::native_workset::WorksetRefusal::UnknownPlot.as_str())
+    );
     let mut draft =
         BirthDraft::new("550e8400-e29b-41d4-a716-446655440000".into(), choices).unwrap();
     assert!(draft.naming_systems().any(|(id, _)| id == "welsh"));
