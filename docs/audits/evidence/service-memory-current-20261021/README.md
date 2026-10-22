@@ -65,6 +65,17 @@ service-memory image/layout controls, with zero failures or ignored cases.
 The [service-memory test log](cpu/6181-service-memory-tests.log.gz) was appended
 after its owning process completed; the tested source remains `08a835229`.
 
+The focused strict Clippy command also passed with exit 0 on the same clean
+`08a835229` source:
+
+```sh
+cargo +stable clippy --locked -p conduitos --all-targets --features hosted-tools,native-compositor -- -D warnings
+```
+
+The [raw Clippy log](cpu/6181-focused-clippy.log.gz) and its original/compressed
+hashes are retained. This local lint result is separate from Candidate or
+combined Integration acceptance.
+
 The actual backend fixture in
 `targets/conduitos/src/ordinary_domain_proof/service_memory.rs` checks CPL3,
 exclusive slot ownership, charged memory, stopped-guest transfer staging and

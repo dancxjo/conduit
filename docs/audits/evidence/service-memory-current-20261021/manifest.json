@@ -197,6 +197,14 @@
       "original_sha256": "79a82f9f079030ec634a80f91df3ddabd0a7df44f2c06a9d1726c69a3d1a3f6a",
       "original_bytes": 15077,
       "encoding": "gzip"
+    },
+    {
+      "path": "cpu/6181-focused-clippy.log.gz",
+      "sha256": "41f54254fd69b66c1ee8be9f520bea525c1e01e0f99a435b63d36db8a1c15146",
+      "bytes": 1848,
+      "original_sha256": "a8c3a27d9cc424207246ae110be607df11a43990f6b457f621ce0c35932ce60c",
+      "original_bytes": 14392,
+      "encoding": "gzip"
     }
   ],
   "omitted_artifacts": {
@@ -208,5 +216,11 @@
     "Current packet proves independent backend and named compositor fixtures, not full production retained-compositor isolation",
     "Physical, DMA, driver and other-architecture isolation unproved",
     "No Candidate, Integration or publication acceptance claimed by this local packet"
-  ]
+  ],
+  "strict_clippy": {
+    "tested_source": "08a8352297ec35a18138b5e02e958cce5331d395",
+    "command": "cargo +stable clippy --locked -p conduitos --all-targets --features hosted-tools,native-compositor -- -D warnings",
+    "status": "passed",
+    "exit_code": 0
+  }
 }
