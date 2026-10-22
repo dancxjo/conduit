@@ -22,6 +22,9 @@ it does not rebuild graphs. Inspector selection supplies no Body-focus evidence.
   stale/forged/replayed input refusal, exact Body Plan, finite preparation and
   failed later preparation without partial initialization.
 - Portable resident commands: 5 passed.
+- Freestanding x86_64 library check: passed (`cargo +stable check --locked -p
+  conduitos --lib --target x86_64-unknown-none`), including protected Root.
+  The log retains 46 warnings; this is not a strict lint or product-image receipt.
 - Root inventory-index conformance: 1 passed, including sparse targets and
   signed, padded, overflowing, empty and unknown indices.
 - Production bitmap allocator fixture: passed with the unchanged 2,072,576-byte
@@ -38,7 +41,7 @@ startup fixture and negative logs remain retained locally.
 
 ## Remaining gates
 
-Protected Root freestanding compilation, hostile substituted service-return
-integration, real QEMU cross-Plot selection and fresh-editor handoff, combined
+Native product-image execution, hostile substituted service-return integration,
+real QEMU cross-Plot selection and fresh-editor handoff, combined
 head CI and merge remain required. This checkpoint earns no native-stack,
 physical, hosted-acceptance or stable-publication claim. It closes no issue.
