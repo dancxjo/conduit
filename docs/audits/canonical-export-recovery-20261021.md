@@ -54,3 +54,7 @@ check passes all six generic and fourteen categorical controls and both strict
 Clippy steps. [Exact command, raw log and receipt](evidence/canonical-export-20261022/fresh-f79d/README.md).
 This is fresh focused hosted proof; Candidate and required delivery gates
 remain pending. Older Source-bound positive and negative evidence is unchanged.
+
+## Fresh accepted-descendant check
+
+Clean source `95bd7a776ebe67a597a69dc88b758196b86ce3fa` passed the supported canonical-export check again: six generic and fourteen AI custody tests plus both strict suite steps, exit0. [Exact-source packet](evidence/canonical-export-20261022/fresh-95bd/README.md) retains the original lossless log, command/environment/count/source receipt and hashes. No fresh formatting or no-default-library check is claimed. Earlier positive and negative evidence remains unchanged; this docs-only successor is not the executed source.
