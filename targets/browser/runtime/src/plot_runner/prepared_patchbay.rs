@@ -6,6 +6,7 @@ pub(super) struct PreparedPatchbay {
     pending: Option<PendingRequest>,
     last_disposition: Option<LastDisposition>,
     last_input_refusal: Option<u32>,
+    canonical_input_only: bool,
 }
 struct PendingRequest {
     revision: u32,
@@ -22,6 +23,7 @@ impl PreparedPatchbay {
             pending: None,
             last_disposition: None,
             last_input_refusal: None,
+            canonical_input_only: false,
         }
     }
 
@@ -43,7 +45,15 @@ impl PreparedPatchbay {
         Ok(fragment)
     }
 
+    /// Selected during preparation from the exact captured resident Mask selector.
+    pub(super) fn require_canonical_input(&mut self) {
+        self.canonical_input_only = true;
+    }
+
     pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
+        if self.canonical_input_only && !input.is_empty() {
+            return Err("patchbay-canonical-interaction-required".into());
+        }
         if let Some(pending) = &self.pending {
             if !input.is_empty() {
                 self.last_input_refusal = Some(pending.revision);

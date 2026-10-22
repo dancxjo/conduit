@@ -463,6 +463,9 @@ test("selected Patchbay renderer receives the admitted Mask root instead of an i
       mask_show: null, interaction_admitted: false, publication: { effect: { placement_id: "mask-slot" } },
     }); return 0;
   };
+  assert.throws(() => acquireBrowserBodyHost(f), /canonical Patchbay requires a selected browser Face renderer/);
+  assert.equal(f.outputRoot.children.length, 0);
+  assert.equal(f.count().starts, 0);
   let rendered = 0;
   const owner = acquireBrowserBodyHost({ ...f, onPatchbayPublication: ({ root, signal }) => {
     rendered++; assert.equal(root.dataset.placementId, "mask-slot"); assert.equal(signal.aborted, false);

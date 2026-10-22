@@ -107,6 +107,11 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const maximumPlacements = machinery?.limits?.maximum_gears;
   if (machinery.schema !== "conduit.browser/selected-human-machinery@1" || !Array.isArray(machinery.implementations) || machinery.implementations.length > 64 ||
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
+  const patchbayOwners = new Set(proposal.plan.plots.filter(part =>
+    part.plan.fragments.some(fragment => fragment.placements.some(placement =>
+      placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
+        entry.key === 'application' && entry.value?.Text === 'patchbay'))))
+    .map(part => part.plot.checked_plot_id));
   const placements = [];
   const placementPlots = new Map();
   const matchedExternal = new Set();
@@ -134,6 +139,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   const maskTopologies = proposal.plan.mask_topologies ?? [];
   if (!Array.isArray(maskTopologies) || maskTopologies.length > 16) throw new Error('browser Mask topology bound exceeded');
   for (const topology of maskTopologies) {
+    if (patchbayOwners.has(topology.face?.plot?.checked_plot_id) && typeof onPatchbayPublication !== 'function') {
+      throw new Error('canonical Patchbay requires a selected browser Face renderer');
+    }
     if (!Array.isArray(topology.chains) || topology.chains.length > 8) throw new Error('browser Mask chain bound exceeded');
     // Only the first route is initially active; standby routes require replacement admission.
     for (const chain of topology.chains.slice(0, 1)) {
@@ -265,11 +273,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     return observation;
   };
   let lastPatchbayRequest = null;
-  const patchbayOwners = new Set(proposal.plan.plots.filter(part =>
-    part.plan.fragments.some(fragment => fragment.placements.some(placement =>
-      placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
-        entry.key === 'application' && entry.value?.Text === 'patchbay'))))
-    .map(part => part.plot.checked_plot_id));
+
   // The single WASM owner leases this local preparation slot. Its bounded
   // template storage is initialized by ordinary kernel preparation before Play.
   const templateSlots = new Set();

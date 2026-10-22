@@ -276,6 +276,22 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
     request.source = source.into();
     seal_publication_masks(&mut request);
     let (mut session, _) = body_start::prepare(request).unwrap();
+    let owner_node = session.patchbay_face.as_ref().unwrap().owner_node;
+    let Some(application_state::PreparedApplication::Patchbay(owner)) = session
+        .scheduler
+        .applications
+        .get_mut(usize::from(owner_node.0))
+        .and_then(|app| app.as_deref_mut())
+    else {
+        panic!("owner")
+    };
+    let revision = owner.port.revision();
+    assert_eq!(
+        owner.execute(&[255]).unwrap_err(),
+        "patchbay-canonical-interaction-required"
+    );
+    assert_eq!(owner.port.revision(), revision);
+    assert!(owner.execute(&[]).is_ok());
     let before = session.patchbay_observation().unwrap();
     assert_eq!(before["publication"]["interaction_admitted"], false);
     assert_eq!(before["publication"]["view"]["show_state"], "prepared");
@@ -322,6 +338,23 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         true
     );
     let accepted = session.patchbay_interact(input()).unwrap();
+    let Some(application_state::PreparedApplication::Patchbay(owner)) = session
+        .scheduler
+        .applications
+        .get_mut(usize::from(owner_node.0))
+        .and_then(|app| app.as_deref_mut())
+    else {
+        panic!("owner")
+    };
+    let observation = ApplicationView::decode(&owner.execute(&[]).unwrap()).unwrap();
+    assert!(observation
+        .nodes
+        .iter()
+        .all(|node| node.component != ApplicationComponent::PatchbayCanvas));
+    let revision = owner.port.revision();
+    assert!(owner.execute(&[255]).is_err());
+    assert_eq!(owner.port.revision(), revision);
+
     assert_eq!(accepted["publication"]["dispatch"]["owner_accepted"], true);
     assert_eq!(
         accepted["publication"]["dispatch"]["transport_completed"],

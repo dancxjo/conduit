@@ -1264,3 +1264,32 @@ keeps selected typography parameters and the new continuation-width regression.
 The first in-flight compile encountered temporary merge markers; after resolving
 them, the owning native-compositor library check passed on the resolved source.
 No new native runtime or layout-execution result is claimed from that check.
+
+### Fence resident legacy mutation and stop canonical inline graph production
+
+The prepared browser Patchbay actor now selects its input mode from the exact
+resident selector in the captured Body Plan. With a Body-composed canonical Mask,
+nonempty legacy application events refuse with
+`patchbay-canonical-interaction-required` before actor mutation or pending-request
+handling. Empty observations remain a transitional bootstrap signal. Canonical
+preparation selects the existing TextInspection delivery, so the transitional
+application-view producer no longer constructs the inline graph payload. The
+same retained actor and graph still supply the canonical Face. No canonical Mask
+selector retains the existing legacy delivery/input behavior; unrelated resident
+applications are unchanged.
+
+A canonical Patchbay proposal now requires its selected renderer at Host
+acquisition, before slots are allocated or Play starts. It cannot silently fall
+back to inline controls whose return path is fenced. Handbook supplies that
+renderer. Generic callers selecting a canonical topology must supply it too;
+a built-in reusable canonical rendering default remains necessary for SDK parity.
+This corrects the earlier broad statement that any caller without a callback
+keeps fallback: fallback applies only to proposals without this canonical route.
+
+All 23 Body Host CPU tests pass, including missing-renderer refusal before any
+allocation/start. Ten focused resident Rust tests pass with the input fence;
+the final selection/Edit/refresh test also passes after switching delivery,
+checking no PatchbayCanvas after selection, unchanged revision on legacy input,
+and normal canonical Show admission. Syntax/whitespace checks pass. Source/Fore
+bootstrap retirement, generic renderer defaults, native editor effects, complete
+memory admission and platform enactment remain open. No platform/CI campaign ran.

@@ -354,7 +354,34 @@ impl PreparedApplication {
                         Some(active_play_id.clone()),
                     )
                     .map_err(|error| format!("prepare resident Patchbay: {error:?}"))?;
-                    Ok(Some(Self::Patchbay(super::prepared_patchbay::PreparedPatchbay::new(port))))
+                    let resident = plan
+                        .plots
+                        .iter()
+                        .find(|part| {
+                            part.plan.fragments.iter().any(|fragment| {
+                                fragment
+                                    .placements
+                                    .iter()
+                                    .any(|gear| gear.placement_id == placement.placement_id)
+                            })
+                        })
+                        .ok_or("Patchbay owner is absent from its Body Plan")?;
+                    let canonical = plan.mask_topologies.iter().any(|topology| {
+                        topology.face.plot.as_ref() == Some(&resident.plot)
+                            && topology.face.source_placement_id.is_none()
+                    });
+                    let port = if canonical {
+                        port.with_canvas_delivery(
+                            patchbay_application::PatchbayCanvasDelivery::TextInspection,
+                        )
+                    } else {
+                        port
+                    };
+                    let mut prepared = super::prepared_patchbay::PreparedPatchbay::new(port);
+                    if canonical {
+                        prepared.require_canonical_input();
+                    }
+                    Ok(Some(Self::Patchbay(prepared)))
                 }
             }
             _ => Err(format!("unknown retained application {application:?}")),
