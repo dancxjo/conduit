@@ -10,6 +10,8 @@ use conduit_core::{ActivePlayIdentity, Plan};
 use core::sync::atomic::{AtomicU32, Ordering};
 
 mod chain;
+mod document;
+pub(crate) use document::{ProtectedDocument, ProtectedDocumentError};
 mod effect;
 mod morse;
 pub(crate) use chain::{KeyboardChainError, PureKeyboardOutput};

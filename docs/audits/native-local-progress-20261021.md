@@ -1389,3 +1389,29 @@ trials also found the closed-root fixture assumption and missing/extraneous Fore
 queue limits; production planning now admits exact open-root bounds and inventory
 expansion. These are CPU/bridge checks, not browser/QEMU or native Source migration
 acceptance. #6192 native Source editing and #6201 platform enactment remain open.
+
+### Native canonical document owner prerequisite (#6192, #6201)
+
+The existing protected keyboard editor already uses shared `RetainedText`.
+Command 14 adds canonical document read and revisioned replacement over those
+same private bytes and revision, reusing the exact portable `TextDocument` and
+`TextEdit` codecs. Legacy keyboard editing and canonical replacements share one
+owner. Separate finite edit/document windows are 272/264 bytes; the legacy text
+window and maximum document remain 256 bytes. The shared frame still has a
+compile-time single-page bound. No global text-capacity increase is implied.
+
+Root copies bounded values through the existing admitted region and current
+owner binding. All eight typed replacement refusals remain distinct; malformed
+mechanism responses and impossible successful revisions fault the region rather
+than yielding invented success. No retry or second Root document is introduced.
+The independently linked image's rebuild dependencies now include both the new
+implementation and the shared canonical codec.
+
+This is a protected implementation prerequisite, not a complete native editor.
+The canonical state/face editor Backs, initialized-state/Runtime wire admission,
+Mask editing realization and exact authorized Source handoff remain to implement.
+Document-only admission must not inherit the legacy pipeline's serial Base grant:
+reuse the region lifecycle while admitting only the actual selected ports/effects.
+Explicit DATA Save/reopen belongs to #6192; namespace and cold-reboot durability
+remain #6193/#6195. Patchbay's truthful unadmitted-editor refusal stays in place
+until the real editor can be selected. No QEMU, CI or user enactment is claimed.

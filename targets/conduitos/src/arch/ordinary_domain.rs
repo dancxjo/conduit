@@ -9,6 +9,8 @@ use crate::{
 };
 #[path = "../../domain/frame.rs"]
 mod frame;
+#[path = "ordinary_domain/document.rs"]
+mod document;
 #[path = "ordinary_domain/morse.rs"]
 mod morse;
 #[path = "ordinary_domain/timer.rs"]

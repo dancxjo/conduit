@@ -19,7 +19,9 @@ pub(super) fn execute(
     frame.document_refusal = 0;
     frame.document_output.fill(0);
     let length = frame.document_input_length as usize;
-    if length > frame.document_input.len()
+    if frame.capacity != crate::frame::TEXT_CAPACITY as u32
+        || frame.input_length != 0
+        || length > frame.document_input.len()
         || !matches!(frame.operation, 0 | 1)
         || (frame.operation == 0 && length != 0)
     {
@@ -75,7 +77,9 @@ mod tests {
 
     fn frame() -> TextFrame {
         // Every field is an integer or integer array: zero is a valid value.
-        unsafe { core::mem::zeroed() }
+        let mut frame: TextFrame = unsafe { core::mem::zeroed() };
+        frame.capacity = crate::frame::TEXT_CAPACITY as u32;
+        frame
     }
 
     #[test]
