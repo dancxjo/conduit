@@ -1,0 +1,241 @@
+{
+  "issue": 6229,
+  "measured_positive_source": "7be8b471f0818e93213f912c2d8a8b8d334bc3cf",
+  "current_dev_refresh_source": "bed4142ee991962a64d34086189c1b39907b901c",
+  "current_owned_source_blobs": "All five changed product/proof files byte-identical to measured positive source",
+  "not_claimed": [
+    "broad FPU state equivalence",
+    "physical or other-architecture proof",
+    "production microkernel completion",
+    "Candidate/Integration/stable acceptance"
+  ],
+  "stages": {
+    "negative-before-jump": {
+      "source_commit": "2a34102bd0908a9debe239250f6e26aae46b1584",
+      "result": "origin1/value256; full proof refused",
+      "actual_binary_retained_locally": [
+        {
+          "path": "work/6229-negative-native-artifacts/x86_64/conduitos",
+          "bytes": 61220408,
+          "sha256": "0b7d17cbdfaf9dfe6d83391fe7b4fffd60340522d3f6a7dd1f0021b41c4bb405"
+        },
+        {
+          "path": "work/6229-negative-native-artifacts/x86_64/conduitos.iso",
+          "bytes": 65486848,
+          "sha256": "dbad8c5464e6db26a9d59f6f0c33b445d6c50dd4e21cde5640b05ad2489264c4"
+        }
+      ]
+    },
+    "negative-control-lifecycle": {
+      "source_commit": "e60280f7409dbe201789d96059484d9531cdd378",
+      "result": "origin1/value263 correct; raw-backend self-revocation assumption failed",
+      "actual_binary_retained_locally": [
+        {
+          "path": "work/6229-positive-native-artifacts/x86_64/conduitos",
+          "bytes": 61220408,
+          "sha256": "57d407d47910b0a7710714ae90a7cf664b0261fa018fefe9b3abcbfc0f27356a"
+        },
+        {
+          "path": "work/6229-positive-native-artifacts/x86_64/conduitos.iso",
+          "bytes": 65486848,
+          "sha256": "b1fe1346e8ba459cc0f3a0cb8f20254094faa99102cb5935de055b1e56ab4de1"
+        }
+      ]
+    },
+    "positive": {
+      "source_commit": "7be8b471f0818e93213f912c2d8a8b8d334bc3cf",
+      "result": "full supported proof exit0; vector7 + production lifecycle + sibling controls passed",
+      "actual_binary_retained_locally": [
+        {
+          "path": "work/6229-lifecycle-native-artifacts/x86_64/conduitos",
+          "bytes": 61216448,
+          "sha256": "db3f257c2948063f884fcf154f123182d7902f2363d734e0b1ba0703a3660c9e"
+        },
+        {
+          "path": "work/6229-lifecycle-native-artifacts/x86_64/conduitos.iso",
+          "bytes": 65482752,
+          "sha256": "4102a0194db1d0e16e741a3fe53d55b52c60ca0259aa13a4572800184977303f"
+        }
+      ]
+    }
+  },
+  "files": [
+    {
+      "file": "negative-before-jump/serial.log.gz",
+      "original": "work/6229-negative-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "raw_bytes": 526,
+      "raw_sha256": "65b9bd8de7b9374102604f30d731e49b195923a0feae6ade2036503c03bae2d2",
+      "stored_sha256": "c1793a18af6847a7277d568094ec0ddd312ee3a37d274b0c78d35080df1993a7"
+    },
+    {
+      "file": "negative-before-jump/build-proof.log.gz",
+      "original": "work/6229-negative-ordinary-domain-proof.log",
+      "raw_bytes": 161965,
+      "raw_sha256": "0191099c829d3eab5a779b212a6c8525d429ba1b750cb6e7dd8787f44a96c5ad",
+      "stored_sha256": "b5885b3d2e6aa7b0ada027e8cf8ba2bf086e3eec0d2c144d74b2f75a2df321ab"
+    },
+    {
+      "file": "negative-before-jump/run.json",
+      "original": "work/6229-negative-run.json",
+      "raw_bytes": 729,
+      "raw_sha256": "31852f1a6d7c1a8c37df35d00e6c152ffbb8b8cadb0bf626b96db034bc9e8fe8",
+      "stored_sha256": "31852f1a6d7c1a8c37df35d00e6c152ffbb8b8cadb0bf626b96db034bc9e8fe8"
+    },
+    {
+      "file": "negative-before-jump/build.json",
+      "original": "work/6229-negative-native-artifacts/x86_64/build.json",
+      "raw_bytes": 335,
+      "raw_sha256": "a3fba533b492353bda247e2348750fdaf8ea83b5f67ffb744f81d725633e5cd3",
+      "stored_sha256": "a3fba533b492353bda247e2348750fdaf8ea83b5f67ffb744f81d725633e5cd3"
+    },
+    {
+      "file": "negative-before-jump/image.json",
+      "original": "work/6229-negative-native-artifacts/x86_64/image.json",
+      "raw_bytes": 351,
+      "raw_sha256": "1565d13f5f7c97f9f9912b6e20cfa0fc67d81d04c478cd447686ef7fcfcc3471",
+      "stored_sha256": "1565d13f5f7c97f9f9912b6e20cfa0fc67d81d04c478cd447686ef7fcfcc3471"
+    },
+    {
+      "file": "negative-control-lifecycle/serial.log.gz",
+      "original": "work/6229-positive-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "raw_bytes": 550,
+      "raw_sha256": "70fa5b498f4d7052efae9434cebd9fd811c75703a15f61920fab6dbac5123085",
+      "stored_sha256": "db0f3ced5a2e2ff33af323dac36a440ba0355f611f7766f4f34f028ff93365c6"
+    },
+    {
+      "file": "negative-control-lifecycle/build-proof.log.gz",
+      "original": "work/6229-positive-ordinary-domain-proof.log",
+      "raw_bytes": 176670,
+      "raw_sha256": "bd7fe93e04a6f0a0cff3ad808353e7f5a9787e147216e8ac6f61192fb900b07f",
+      "stored_sha256": "42aeea4a8fcb12d219937c021a1d2f1109ae1780a0807894a29d453f63be7412"
+    },
+    {
+      "file": "negative-control-lifecycle/run.json",
+      "original": "work/6229-positive-run.json",
+      "raw_bytes": 608,
+      "raw_sha256": "b078a18e54ffda5033942e50b5c92e24cf5ab34b7a3734a91893dfc89ff5bbc4",
+      "stored_sha256": "b078a18e54ffda5033942e50b5c92e24cf5ab34b7a3734a91893dfc89ff5bbc4"
+    },
+    {
+      "file": "negative-control-lifecycle/build.json",
+      "original": "work/6229-positive-native-artifacts/x86_64/build.json",
+      "raw_bytes": 335,
+      "raw_sha256": "b109afd8bd50fa4b02648bd038c7881a493077cc6655361793b6f6b9dea62743",
+      "stored_sha256": "b109afd8bd50fa4b02648bd038c7881a493077cc6655361793b6f6b9dea62743"
+    },
+    {
+      "file": "negative-control-lifecycle/image.json",
+      "original": "work/6229-positive-native-artifacts/x86_64/image.json",
+      "raw_bytes": 351,
+      "raw_sha256": "c60db812440941a786e433455f51916222c0692ba58436ac3857a17c721f8387",
+      "stored_sha256": "c60db812440941a786e433455f51916222c0692ba58436ac3857a17c721f8387"
+    },
+    {
+      "file": "positive/serial.log.gz",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/ordinary-domain-proof.log",
+      "raw_bytes": 31070,
+      "raw_sha256": "b49f6daf9f1d3d6d9a4eb5f0c075ca2b10758c6d4f9d44d273b76a2fc8aaac27",
+      "stored_sha256": "11b3e04632d37dd8e721958c0d2d4a3eecaef86d21fe0a509dbdd357678ab177"
+    },
+    {
+      "file": "positive/build-proof.log.gz",
+      "original": "work/6229-lifecycle-ordinary-domain-proof.log",
+      "raw_bytes": 176185,
+      "raw_sha256": "c2b2068872de15a28f8f8cfda32d9cd44d2cba65c6c71d8a1f11498c640e4e7b",
+      "stored_sha256": "ff038672f4213142576fda4bd2da19990fdc3fc8fac3a84480aa506cf7a63824"
+    },
+    {
+      "file": "positive/run.json",
+      "original": "work/6229-lifecycle-run.json",
+      "raw_bytes": 643,
+      "raw_sha256": "0a4f2ee6423a559608fcd8d6cd00214899b052421021830c22ebde577e1de711",
+      "stored_sha256": "0a4f2ee6423a559608fcd8d6cd00214899b052421021830c22ebde577e1de711"
+    },
+    {
+      "file": "positive/build.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/build.json",
+      "raw_bytes": 335,
+      "raw_sha256": "925af14f7da643f415aa43b276a430a757cb1e69543330ff63b2fa6901fe991e",
+      "stored_sha256": "925af14f7da643f415aa43b276a430a757cb1e69543330ff63b2fa6901fe991e"
+    },
+    {
+      "file": "positive/image.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/image.json",
+      "raw_bytes": 351,
+      "raw_sha256": "d577d839685d03c9cd5158e23f709454cf8b26cc17cde8209933450afaf5ac26",
+      "stored_sha256": "d577d839685d03c9cd5158e23f709454cf8b26cc17cde8209933450afaf5ac26"
+    },
+    {
+      "file": "positive/compositor-copy-recovery-fixture-proof.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/compositor-copy-recovery-fixture-proof.json",
+      "raw_bytes": 1630,
+      "raw_sha256": "9d47d9df6807d4b2f63c24efa2776898bfdb45cfa0fc93352850ac3987cff300",
+      "stored_sha256": "9d47d9df6807d4b2f63c24efa2776898bfdb45cfa0fc93352850ac3987cff300"
+    },
+    {
+      "file": "positive/compositor-guest-fixture-proof.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/compositor-guest-fixture-proof.json",
+      "raw_bytes": 1546,
+      "raw_sha256": "0d5d862365a5e82d7fd0b8327ad997eea6fe328d9b5e851462a0f76bdf78be0f",
+      "stored_sha256": "0d5d862365a5e82d7fd0b8327ad997eea6fe328d9b5e851462a0f76bdf78be0f"
+    },
+    {
+      "file": "positive/compositor-hostile-broker-fixture-proof.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/compositor-hostile-broker-fixture-proof.json",
+      "raw_bytes": 2423,
+      "raw_sha256": "c97ce820cbbc9e4ed72074c3c90817a077280400e9c623e5cfb72d7bcaae73fd",
+      "stored_sha256": "c97ce820cbbc9e4ed72074c3c90817a077280400e9c623e5cfb72d7bcaae73fd"
+    },
+    {
+      "file": "positive/service-memory-fixture-proof.json",
+      "original": "work/6229-lifecycle-native-artifacts/x86_64/service-memory-fixture-proof.json",
+      "raw_bytes": 1169,
+      "raw_sha256": "e0d0b24b932bfda3b4af7280f2ed537a3d130fb71036e4d5c42d17ec73377d66",
+      "stored_sha256": "e0d0b24b932bfda3b4af7280f2ed537a3d130fb71036e4d5c42d17ec73377d66"
+    },
+    {
+      "file": "current-dev/format.log.gz",
+      "original": "work/6229-current-format.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stored_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "file": "current-dev/clippy.log.gz",
+      "original": "work/6229-current-clippy.log",
+      "raw_bytes": 18821,
+      "raw_sha256": "01aa9099b8054e4c06bab1ae3312aaa3503e45c7b7946308a755beabfcbd698c",
+      "stored_sha256": "564d4385e06901c4e58c7978a288a241ecc30ecbca5ec0e201dd744d1bfd8203"
+    },
+    {
+      "file": "current-dev/ordinary.log.gz",
+      "original": "work/6229-current-ordinary.log",
+      "raw_bytes": 16526,
+      "raw_sha256": "7a964658b617603aceba40f074b1342d49b58fb1795364582a43215e340e96e1",
+      "stored_sha256": "ad2f4a4d6b2a2e073930d2bf17816c728c2da6dfe74505f3a95a1b9ceb9028b1"
+    },
+    {
+      "file": "current-dev/morse.log.gz",
+      "original": "work/6229-current-morse.log",
+      "raw_bytes": 592,
+      "raw_sha256": "27978ecdabe004584ee21f7d1a3d2b16ba36fa9d870b007771dcdf02bf5f6ee2",
+      "stored_sha256": "3c3a9d2842b82be341902c81148e0211dffcb945455da9df1abd26b858dcb943"
+    },
+    {
+      "file": "current-dev/memory.log.gz",
+      "original": "work/6229-current-memory.log",
+      "raw_bytes": 843,
+      "raw_sha256": "35547af53908d7693f2c05719ee65007fb20b596a3e1c6152991b8afa3ba8a5a",
+      "stored_sha256": "2407e44b1fb747b30065757e8c6b5494e5a4e27873e6b710b4e977b144fca027"
+    },
+    {
+      "file": "current-dev/checks.json",
+      "original": "work/6229-current-checks.json",
+      "raw_bytes": 2334,
+      "raw_sha256": "ffd01b5adf72c87400c787d06adfb6fd0e5fc5bc0230385632fb1502a8abce99",
+      "stored_sha256": "ffd01b5adf72c87400c787d06adfb6fd0e5fc5bc0230385632fb1502a8abce99"
+    }
+  ],
+  "qemu_version_observed_after_execution": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "current_dev_checks": "Formatting, strict all-target hosted Clippy,12 ordinary Plan +2 Morse +5 memory/layout CPU tests passed; original logs retained"
+}

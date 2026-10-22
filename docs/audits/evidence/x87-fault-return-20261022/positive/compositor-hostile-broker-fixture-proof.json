@@ -1,0 +1,74 @@
+{
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "7be8b471f0818e93213f912c2d8a8b8d334bc3cf",
+    "elf_sha256": "db3f257c2948063f884fcf154f123182d7902f2363d734e0b1ba0703a3660c9e",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "observations": {
+    "cases": [
+      {
+        "case": "envelope",
+        "entries": 2,
+        "error": "protocol",
+        "fresh_production_guest": true,
+        "image_sha256": "2a7886cb95c7d96fdb5de02a3e19a70f8bcf33c9ad7731b3ad1582ccff942aa0",
+        "preemptions": 0,
+        "root_sentinel_preserved": true,
+        "sibling_sentinel_preserved": true
+      },
+      {
+        "case": "shape",
+        "entries": 2,
+        "error": "protocol",
+        "fresh_production_guest": true,
+        "image_sha256": "29de3261188e655aef3858075516510f6c62d5f3a205b25d9bab41361120e116",
+        "preemptions": 0,
+        "root_sentinel_preserved": true,
+        "sibling_sentinel_preserved": true
+      },
+      {
+        "case": "fault",
+        "entries": 2,
+        "error": "terminated",
+        "fresh_production_guest": true,
+        "image_sha256": "18351295ad00384f54a8086a7b3352aeb4681a3c6b80ec6f68b0d08889ae3ec2",
+        "preemptions": 0,
+        "root_sentinel_preserved": true,
+        "sibling_sentinel_preserved": true
+      },
+      {
+        "case": "loop",
+        "entries": 2,
+        "error": "terminated",
+        "fresh_production_guest": true,
+        "image_sha256": "d5bd52e7312ae8315285b45a3ed0fc32c461b15dae41d95cec48e525969f11d4",
+        "preemptions": 1,
+        "root_sentinel_preserved": true,
+        "sibling_sentinel_preserved": true
+      }
+    ],
+    "direct_memory_attack": false,
+    "fixture": true,
+    "physical_scanout": false,
+    "production_guest_modified": false,
+    "proof_class": "freestanding-emulator",
+    "schema": "conduit.conduitos/compositor-hostile-broker-fixture@1",
+    "semantic_show_acknowledged": false,
+    "status": "completed"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/compositor-hostile-broker-evidence@1",
+  "transcript_sha256": "b49f6daf9f1d3d6d9a4eb5f0c075ca2b10758c6d4f9d44d273b76a2fc8aaac27"
+}
