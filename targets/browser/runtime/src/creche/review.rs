@@ -1,4 +1,7 @@
 //! Deterministic combined review of a proposed Body workload against Host offers.
+mod patchbay;
+#[cfg(test)]
+mod patchbay_tests;
 pub(super) mod queue_plan;
 
 use super::initial_plots::InitialPlotSelection;
@@ -110,9 +113,29 @@ pub(super) fn review_from_inventory(
             &mut profile,
         )?;
         let backs = crate::installed_browser::backs(startup, &profile)?;
-        let expanded =
-            conduit_plot::expand_canonical_plot_with_backs(checked, &plot.name, &profile, &backs)
-                .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?;
+        // Resident Patchbay owns an explicit typed Fore. Review the same
+        // authored boundary used by Wake; do not erase it to make a closed root.
+        let authoring = if !plot.checked_front().inputs().is_empty()
+            || !plot.checked_front().outputs().is_empty()
+        {
+            let authored = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+                checked, &plot.name, &profile, &backs,
+            )
+            .map_err(|error| format!("expand reviewed resident {:?}: {error:?}", plot.name))?;
+            patchbay::require_resident_fore(&authored)?;
+            Some(authored)
+        } else {
+            None
+        };
+        let expanded = match &authoring {
+            Some(authored) => std::borrow::Cow::Borrowed(&authored.expanded),
+            None => std::borrow::Cow::Owned(
+                conduit_plot::expand_canonical_plot_with_backs(
+                    checked, &plot.name, &profile, &backs,
+                )
+                .map_err(|error| format!("expand reviewed plot {:?}: {error:?}", plot.name))?,
+            ),
+        };
         required_kinds.extend(
             expanded
                 .gears
@@ -126,14 +149,36 @@ pub(super) fn review_from_inventory(
                     plot.name
                 )
             })?;
-        queue_plan::plan(
-            &expanded,
-            hosts,
-            &placements,
-            bases,
-            &[],
-            super::PlanningAuthority::default(),
-        )
+        match &authoring {
+            Some(authored) => conduit_planner::plan_expanded_authoring_with_activations(
+                checked,
+                authored,
+                &profile,
+                &backs,
+                hosts,
+                &placements,
+                bases,
+                conduit_planner::PlanningOptions {
+                    connection_bases: &BTreeMap::new(),
+                    line_candidates: &BTreeMap::new(),
+                    connection_item_capacity: 1,
+                    connection_byte_capacity: 32,
+                    authority_grants: &[],
+                    protected_resource_grants: &[],
+                    line_offers: &[],
+                },
+                &crate::installed_browser::patchbay_owner_installation::fore_bounds(authored),
+            )
+            .map_err(|error| error.to_string()),
+            None => queue_plan::plan(
+                &expanded,
+                hosts,
+                &placements,
+                bases,
+                &[],
+                super::PlanningAuthority::default(),
+            ),
+        }
         .map_err(|error| {
             format!(
                 "initial workload is unrealizable for {:?}: {error}",
