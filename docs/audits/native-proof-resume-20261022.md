@@ -375,3 +375,17 @@ boundary; raw typed interactions remain unchanged. Twelve focused argument and
 adapter tests pass, including non-ASCII bytes and malformed/forged/pre-ACK
 no-effect cases. Sequence review found no reset-to-one defect; it is unchanged.
 A new production Chromium result remains owed.
+
+Clean `40883416d` passes the production Workspace Patchbay scenario: actual
+canonical graph selection and typed Edit retain a pending request, with the
+Body/Plan/Play/workload unchanged. The selected two-test batch still exits with
+one failure: Handbook reaches its real handler but rejects duplicate identical
+Source identity facts from Body/graph composition. This is not identity drift.
+The full mixed-result batch is retained at
+`/tmp/conduit-patchbay-browser-batch-4088-20261022`.
+
+The editor resolver now requires at least one Source identity fact, a nonempty
+exact inventory identity, and agreement of every strictly typed Identity fact.
+Repeated matching composition evidence is accepted; conflicts, missing facts,
+wrong variants and invalid inventories still refuse before editor effects.
+Eight focused resolver cases pass. Successful Handbook enactment remains owed.
