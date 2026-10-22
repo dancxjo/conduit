@@ -18,3 +18,7 @@ targets/conduitos/plots/usb/evidence/**/*.log whitespace=-trailing-space,-blank-
 docs/audits/evidence/native-baseline-recovery-20261021/**/serial.log whitespace=cr-at-eol
 docs/audits/evidence/native-baseline-recovery-20261021/journey-serial.log whitespace=cr-at-eol
 docs/audits/evidence/native-proof-resume-20261022/**/journey-serial.log whitespace=cr-at-eol
+
+# Retained debugger output and source patches are byte-exact evidence.
+docs/audits/evidence/startup-refusal-20261021/**/*-prologue.txt -text -diff
+docs/audits/evidence/startup-refusal-20261021/**/source.patch -text -diff

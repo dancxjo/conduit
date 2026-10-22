@@ -1,0 +1,13 @@
+# Corrected CPU fixture validation, exact45e36
+
+Executed clean source `45e36bd43562c51ceb620c9fc7775d9e65cf1a8a` passes the formerly aborting exact stale-Show/changed-owner control first, then25other named controls (6startup,8owner lifecycle,6journey,4Birthvalidation,1forged/failedShow), with exact counts and0failures/ignores. Strict all-target ConduitOS Clippy and workspacefmt pass. Commands/default-stack boundary/source/log byte hashes remain in receipts; gzip logs decompress to exact originals. No QEMU/CI ran for this correction.
+
+The only new code is test-only: one boxed encounter context with borrowed fields. Original sequence remains: initial Show captured, presentation replaced, old-Show refusal, exact unchanged projection assertion, authoritative owner changed, current-but-old-owner Show refusal, exact unchanged changed projection assertion. No assertion, semantic guard, product path, timeout, grant or test-thread stack was weakened/increased. Untested46b3 formatting predecessor remains in Git history; corrected owning-crate formatting is included in exact45e36.
+
+Original9f865 stack abort remains unchanged in the adjacent fresh packet. A separately committed test-only diagnostic `b639d2e76c5b8a23d34878d587ee974d162833f0` ran exactly once with unchanged profile/default stack and printed only before-encounter, then stack-overflowed/SIGABRT before presentation or either apply/assertion. Its raw negative output, exact source patch and compiled prologues are retained here. This locates fixture construction pressure, not a stale-Show semantic assertion failure.
+
+Exact hosted binary analysis: diagnostic caller reserves60696B; corrected caller43592B (17104B less), encounter53368B and listening35560B unchanged. Box still materializes stack temporaries; prologue reservations are not full nested peak or universal stack-fit proof. Actual test passes unchanged default stack. Original compiled test binaries remain sealed locally; their SHA256 values and prologue bytes are published, not duplicate ELF payloads.
+
+Production source bytes are unchanged by this test repair. Earlier successful freestanding compilation remains scoped to9f865, not relabelled45e36. CPU production-handler refusals and actual normal-QEMU success are separate evidence categories; issue wording does not demand per-stage QEMU injection and none is claimed. Actual normal-product success retains its original source/image identity; final-source reviewed Candidate/Integration and any applicable publication remain acceptance work. This documentary successor does not relabel executed45e36 or establish issue closure.
+
+All older packet bytes/checksums remain unchanged; this directory owns a separate SHA256SUMS. No physical/human or performance claim.

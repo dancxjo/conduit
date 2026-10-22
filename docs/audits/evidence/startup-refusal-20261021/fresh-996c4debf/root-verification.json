@@ -1,0 +1,87 @@
+{
+  "status": "verified",
+  "source": "996c4debf82bbb2af1f91e68320eef2ae1ce8ea1",
+  "passed": 26,
+  "logs": 9,
+  "checks": [
+    {
+      "file": "6179-next-996c4debf-startup-tests.log.gz",
+      "passed": 6,
+      "named_cases": [
+        "product_front_door::startup::tests::automatic_remaining_plan_refusal_retains_the_awake_body_and_visible_stage",
+        "product_front_door::startup::tests::default_startup_keeps_birth_and_listens_with_both_residents_in_one_play",
+        "product_front_door::startup::tests::insufficient_admitted_memory_keeps_birth_without_starting_a_partial_workset",
+        "product_front_door::startup::tests::missing_keyboard_stops_at_wake_and_retains_the_born_body_with_visible_refusal",
+        "product_front_door::startup::tests::restoring_input_requires_explicit_recovery_and_keeps_the_original_birth",
+        "product_front_door::startup::tests::unavailable_play_and_failed_plan_preserve_birth_and_allow_checked_recovery"
+      ]
+    },
+    {
+      "file": "6179-next-996c4debf-lifecycle-tests.log.gz",
+      "passed": 8,
+      "named_cases": [
+        "product_journey::lifecycle_tests::automatic_remaining_play_refusal_retains_birth_and_exposes_the_failing_stage",
+        "product_journey::lifecycle_tests::cancelled_prepared_execution_refuses_play_without_losing_birth_or_claiming_started",
+        "product_journey::lifecycle_tests::changed_offer_cannot_replace_the_sealed_proposal_during_preparation",
+        "product_journey::lifecycle_tests::mask_participant_requires_exact_current_membership_before_wake",
+        "product_journey::lifecycle_tests::native_archive_boundary_refuses_before_wake_without_acknowledging_storage",
+        "product_journey::lifecycle_tests::preparation_preserves_proposal_and_start_records_exact_bound_signs",
+        "product_journey::lifecycle_tests::proof_identifier_cannot_manufacture_peer_membership",
+        "product_journey::lifecycle_tests::refused_wake_preserves_exact_born_evidence_without_a_proposal"
+      ]
+    },
+    {
+      "file": "6179-next-996c4debf-strict-clippy.log.gz",
+      "passed": null,
+      "named_cases": []
+    },
+    {
+      "file": "6179-next-996c4debf-fmt.log.gz",
+      "passed": null,
+      "named_cases": []
+    },
+    {
+      "file": "6179-next-996c4debf-freestanding-check.log.gz",
+      "passed": null,
+      "named_cases": []
+    },
+    {
+      "file": "6179-next-996c4debf-journey-controls.log.gz",
+      "passed": 6,
+      "named_cases": [
+        "product_journey::tests::device_and_line_loss_remain_distinct_from_an_explicit_stop",
+        "product_journey::tests::exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct",
+        "product_journey::tests::exhausted_input_or_revision_preserves_pending_input_and_result",
+        "product_journey::tests::long_session_keeps_one_body_plan_play_and_discloses_bounded_history",
+        "product_journey::tests::missing_current_keyboard_offer_refuses_plan_before_kernel_admission",
+        "product_journey::tests::stale_wrong_and_out_of_order_control_requests_refuse"
+      ]
+    },
+    {
+      "file": "6179-next-996c4debf-birth-controls.log.gz",
+      "passed": 4,
+      "named_cases": [
+        "product_journey::birth::tests::creche_birth_from_world_keeps_exact_workset_name_and_distinct_new_body_identity",
+        "product_journey::birth::tests::direct_plot_birth_still_requires_an_explicit_open",
+        "product_journey::birth::tests::unreviewed_inventory_and_invalid_name_refuse_without_birth",
+        "product_journey::birth::tests::zero_one_and_profile_capacity_worksets_have_explicit_birth_outcomes"
+      ]
+    },
+    {
+      "file": "6179-next-996c4debf-forged-failed-show.log.gz",
+      "passed": 1,
+      "named_cases": [
+        "product_front_door::face_workspace::tests::current_action_rejects_forged_sequence_arguments_and_failed_show"
+      ]
+    },
+    {
+      "file": "6179-next-996c4debf-replaced-stale-show.log.gz",
+      "passed": 1,
+      "named_cases": [
+        "product_front_door::face_workspace::tests::replaced_show_and_changed_unobserved_owner_refuse_before_effect"
+      ]
+    }
+  ],
+  "freestanding_warning_diagnostic_lines": 24,
+  "limits": "26 focused hostedcontrols/hosted strict Clippy/fmt + freestanding compilation; no new QEMU/current CI/merged acceptance."
+}

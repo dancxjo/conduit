@@ -1,0 +1,29 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/lint-target/debug/deps/conduitos-ff6c8edf1239f389:     file format elf64-x86-64
+
+
+Disassembly of section .text:
+
+0000000002678210 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_64current_action_rejects_forged_sequence_arguments_and_failed_show>:
+ 2678210:	49 89 e3             	mov    %rsp,%r11
+ 2678213:	49 81 eb 00 90 00 00 	sub    $0x9000,%r11
+ 267821a:	48 81 ec 00 10 00 00 	sub    $0x1000,%rsp
+ 2678221:	48 c7 04 24 00 00 00 	movq   $0x0,(%rsp)
+ 2678228:	00 
+ 2678229:	4c 39 dc             	cmp    %r11,%rsp
+ 267822c:	75 ec                	jne    267821a <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5testss_64current_action_rejects_forged_sequence_arguments_and_failed_show+0xa>
+ 267822e:	48 81 ec f8 04 00 00 	sub    $0x4f8,%rsp
+ 2678235:	48 8d bc 24 d8 42 00 	lea    0x42d8(%rsp),%rdi
+ 267823c:	00 
+ 267823d:	48 89 7c 24 68       	mov    %rdi,0x68(%rsp)
+ 2678242:	e8 29 c8 ff ff       	call   2674a70 <_RNvNtNtNtCs7rkybaQFxn0_9conduitos18product_front_door14face_workspace5tests9encounter>
+ 2678247:	48 8d b4 24 48 6c 00 	lea    0x6c48(%rsp),%rsi
+ 267824e:	00 
+ 267824f:	48 8d bc 24 80 00 00 	lea    0x80(%rsp),%rdi
+ 2678256:	00 
+ 2678257:	ba e8 18 00 00       	mov    $0x18e8,%edx
+ 267825c:	48 8b 05 d5 de 16 02 	mov    0x216ded5(%rip),%rax        # 47e6138 <memcpy@GLIBC_2.14>
+ 2678263:	48 89 44 24 70       	mov    %rax,0x70(%rsp)
+ 2678268:	ff d0                	call   *%rax
+ 267826a:	48 8b 74 24 68       	mov    0x68(%rsp),%rsi
+ 267826f:	48                   	rex.W

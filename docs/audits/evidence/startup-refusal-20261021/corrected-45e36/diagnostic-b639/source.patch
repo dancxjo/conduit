@@ -1,0 +1,64 @@
+From b639d2e76c5b8a23d34878d587ee974d162833f0 Mon Sep 17 00:00:00 2001
+From: Travis Reed <tdreed@gmail.com>
+Date: Wed, 21 Oct 2026 20:08:07 -0700
+Subject: [PATCH] Diagnose stale Show test stack boundary with test-only
+ markers
+
+---
+ .../src/product_front_door/face_workspace_tests.rs     | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/targets/conduitos/src/product_front_door/face_workspace_tests.rs b/targets/conduitos/src/product_front_door/face_workspace_tests.rs
+index c25da9d92..6b23dcfc3 100644
+--- a/targets/conduitos/src/product_front_door/face_workspace_tests.rs
++++ b/targets/conduitos/src/product_front_door/face_workspace_tests.rs
+@@ -217,17 +217,22 @@ fn current_action_rejects_forged_sequence_arguments_and_failed_show() {
+ 
+ #[test]
+ fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC before-encounter");
+     let (mut journey, mut door, mut workspace, mut display) = encounter();
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC after-encounter");
+     let face = door.face().unwrap();
+     let old = workspace.selected_show.clone().unwrap();
+     let interaction = stop(&face, &old);
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC before-represent");
+     workspace.present_current(&door, &mut display).unwrap();
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC after-represent");
+     let (ids, offer, _) = fixture();
+     let make = MakeRecord {
+         build_id: "build",
+         ..MakeRecord::legacy()
+     };
+     let before = journey.projection();
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC before-old-show-apply");
+     assert_eq!(
+         workspace.apply_interaction(
+             &mut door,
+@@ -241,11 +246,15 @@ fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
+         ),
+         Err("workspace-face-show-not-selected")
+     );
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC after-old-show-apply");
+     assert_eq!(journey.projection(), before);
+     let current = workspace.selected_show.clone().unwrap();
+     let interaction = stop(&face, &current);
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC before-owner-change");
+     journey.select_next_plot(journey.revision()).unwrap();
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC after-owner-change");
+     let changed = journey.projection();
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC before-changed-owner-apply");
+     assert_eq!(
+         workspace.apply_interaction(
+             &mut door,
+@@ -259,6 +268,7 @@ fn replaced_show_and_changed_unobserved_owner_refuse_before_effect() {
+         ),
+         Err("workspace-face-owner-changed")
+     );
++    std::eprintln!("STALE_SHOW_DIAGNOSTIC after-changed-owner-apply");
+     assert_eq!(journey.projection(), changed);
+ }
+ 
+-- 
+2.53.0
+

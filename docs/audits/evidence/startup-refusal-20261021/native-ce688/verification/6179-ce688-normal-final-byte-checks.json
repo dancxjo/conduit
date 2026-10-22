@@ -1,0 +1,41 @@
+{
+  "source_commit": "ce688e5889d4ee18911fee3b5152c76bf92d9995",
+  "command_exit_code": 0,
+  "original_files_rehashed": 62,
+  "original_pngs": 24,
+  "actual_extent": [
+    [
+      1280,
+      800
+    ]
+  ],
+  "canonical_kernel_sha256": "a34dfbec0ba8b7af8f1e9c16931fe405cfb1ece1c4d886be5e741c18e875eceb",
+  "canonical_image_sha256": "202d961074606158f74f02013f75a5ce2560d7cf92ccf7dc0f4399aec5a2a654",
+  "headless_asset_checks": [
+    {
+      "host": "conduitos/ia32/pc",
+      "iso": "work/6179-ce688-normal-preserved/live-images/ia32-pc/conduitos-ia32.iso",
+      "sha256": "d88e1aeb7011a5e48238173d01ab7f4771babc7d25a568df098eaf1238830e73",
+      "markers_absent": true
+    },
+    {
+      "host": "conduitos/aarch64/virt",
+      "iso": "work/6179-ce688-normal-preserved/live-images/aarch64-virt/conduitos-aarch64.iso",
+      "sha256": "67eb18b54d0e5ec4e8353aefbb06d38de8727039197193f0a51410657c758fdb",
+      "markers_absent": true
+    },
+    {
+      "host": "conduitos/riscv64/virt",
+      "iso": "work/6179-ce688-normal-preserved/live-images/riscv64-virt/conduitos-riscv64.iso",
+      "sha256": "ea0bd04ae2df76b4383f4803d574b49d722b8b44ded8999203be4fd6a37b94ea",
+      "markers_absent": true
+    },
+    {
+      "host": "conduitos/loongarch64/virt",
+      "iso": "work/6179-ce688-normal-preserved/live-images/loongarch64-virt/conduitos-loongarch64.iso",
+      "sha256": "ca5ef0553e81b94097afaa8acc19a6af85089f3d9048f122d3156cc16d476f94",
+      "markers_absent": true
+    }
+  ],
+  "scope": "one actual current x86 normal journey; four non-x86 build/image asset-absence checks only, not their runtime or graphics proof"
+}

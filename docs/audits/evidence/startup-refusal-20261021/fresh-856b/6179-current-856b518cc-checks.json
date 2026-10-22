@@ -1,0 +1,72 @@
+{
+  "source_commit": "856b518cc2f480908d9ee11e994e40b0efa4d3a0",
+  "proof_boundary": "CPU/frontend/owner fault controls and compile checks; not QEMU failure injection or current-source CI acceptance",
+  "status": "failed",
+  "steps": [
+    {
+      "name": "startup-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_front_door::startup::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 411.3063700029743,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-current-856b518cc-startup-tests.log",
+      "sha256": "3bea1ca3ad92090ab3a31c8dcbbb074c2429ae04e1ee3f45ee311013cdbd4940"
+    },
+    {
+      "name": "lifecycle-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "product_journey::lifecycle_tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 18.484240085002966,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-current-856b518cc-lifecycle-tests.log",
+      "sha256": "af8abfeb985ca10c18baee6f61ac9534232b2b256352a253a896e2284aa725f5"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "seconds": 229.99747165100416,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-current-856b518cc-strict-clippy.log",
+      "sha256": "2013bc885492772ac98243098b636ef4602ea95da96fee8bbe2393a951b0c7c5"
+    }
+  ]
+}

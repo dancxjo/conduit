@@ -1,0 +1,15 @@
+{
+  "source": "b930dd44c",
+  "tests": 2,
+  "passed": 2,
+  "failed": 0,
+  "stages": [
+    "CONDUIT_STARTUP_STAGE plan begin",
+    "CONDUIT_STARTUP_STAGE plan refused native-body-current-host-unavailable",
+    "CONDUIT_STARTUP_STAGE play begin",
+    "CONDUIT_STARTUP_STAGE play refused native-body-play-preparation-refused"
+  ],
+  "false_accepted_or_body_playing": false,
+  "raw_log_sha256": "4ae573f6f8e0313e2e089a94fb31fe99c96741fb2b3e7fb32fa6a21803725727",
+  "scope": "CPU tests of actual automatic refusal handler with real owner/frontend paths; not QEMU fault injection"
+}
