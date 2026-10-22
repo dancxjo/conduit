@@ -30,3 +30,7 @@ thread stack; strict all-target hosted Clippy and workspace formatting pass.
 This is hosted evidence; native compilation and all earlier negatives retain
 their original Source identities. Current Candidate and delivery gates remain
 pending; no installed guest fault-injection result is asserted.
+
+## Current development merge and fresh hosted proof
+
+Clean `ce688e5889d4ee18911fee3b5152c76bf92d9995` normally merges accepted development `a2300af6e9870680dccf49efde5a80467e73cda1` into the preserved recovery branch. All26 named hosted controls, strict all-target ConduitOS Clippy and fullfmt pass at that exact source. [Fresh packet](evidence/startup-refusal-20261021/fresh-ce688/README.md) preserves raw gzip logs, exact command/source/count receipts, original runner and a separately labelled historical accepted-f3 normal-QEMU startup audit. Its3.98645845s QMP command interval is not ACK latency or a speedup. Earlier failures and proof identities remain unchanged; this docs successor is not relabelled as executed ce688, and fresh CI remains pending.
