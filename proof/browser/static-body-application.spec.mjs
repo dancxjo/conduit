@@ -38,7 +38,8 @@ async function current(page) {
 async function ready(page) {
   // The retained Candidate trace reached a real Playing Body after the default
   // five-second assertion budget expired during cold SDK/WASM acquisition.
-  await expect(page.locator(".handbook-controls").getByRole("button", { name: "Lull", exact: true })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: "Lull", exact: true })
+    .and(page.locator('[data-lull]'))).toBeEnabled({ timeout: 30_000 });
   await page.waitForFunction(() => Boolean(globalThis.__conduitApplication));
   const state = await current(page);
   for (const key of ["hostId", "bootId", "bodyId", "planId", "playId"]) expect(state[key], key).toBeTruthy();
