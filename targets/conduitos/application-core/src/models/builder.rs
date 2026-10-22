@@ -38,6 +38,8 @@ impl Builder {
                     Some(Application::Patchbay(Patchbay {
                         ports: core::array::from_fn(|_| None),
                         selected: selected as usize,
+                        publication: None,
+                        publication_sequence: 0,
                     }))
                 }
                 _ => None,

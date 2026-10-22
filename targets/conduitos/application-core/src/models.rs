@@ -3,11 +3,14 @@ use crate::{EVENT_BYTES, SLOTS, VIEW_BYTES, data::*, tutorial::Tutorial};
 use alloc::boxed::Box;
 use patchbay_application::{PatchbayApplicationPort, PatchbayMaskTopology};
 mod builder;
+mod canonical;
 pub(crate) use builder::Builder;
 use patchbay_graph::PatchbayGraph;
 pub struct Patchbay {
     ports: [Option<Box<PatchbayApplicationPort>>; SLOTS],
     selected: usize,
+    publication: Option<Box<canonical::Publication>>,
+    publication_sequence: u64,
 }
 enum Application {
     Tutorial(Tutorial),
@@ -86,6 +89,7 @@ impl Models {
                 (out.view, request, context)
             }
             Application::Patchbay(p) => {
+                p.publication = None;
                 let out = p.ports[p.selected]
                     .as_mut()
                     .ok_or(Refusal::Order)?
@@ -130,12 +134,14 @@ impl Models {
         if p.ports.get(target).is_none_or(Option::is_none) {
             return Err(Refusal::Bounds);
         }
+        p.publication = None;
         p.selected = target;
         Ok(())
     }
     pub fn topology(&mut self, topology: &PatchbayMaskTopology) -> Result<(), Refusal> {
         for app in self.applications.iter_mut().flatten() {
             if let Application::Patchbay(p) = app {
+                p.publication = None;
                 for port in p.ports.iter_mut().flatten() {
                     port.set_mask_topology(topology.clone());
                 }
@@ -169,6 +175,20 @@ impl Models {
     }
     pub fn execute(&mut self, command: Command) -> Result<Reply, Refusal> {
         match command {
+            Command::PatchbayFragment {
+                slot,
+                body,
+                basis,
+                actions_admitted,
+            } => self.patchbay_fragment(slot, body, basis, actions_admitted),
+            Command::PatchbayPublish {
+                slot,
+                body,
+                basis,
+                face,
+                show,
+            } => self.patchbay_publish(slot, body, basis, face, show),
+            Command::PatchbayConsume { slot, input } => self.patchbay_consume(slot, &input),
             Command::PrepareInit { .. }
             | Command::PrepareTarget { .. }
             | Command::FinishTarget { .. }
