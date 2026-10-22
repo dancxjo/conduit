@@ -6,7 +6,7 @@ its protection receipts. Clean `a04beed4a44405fe3a42369d67afd8d9183c4cf5`
 completed the real x86_64 appliance at q35/max/one vCPU/256 MiB and published all
 20 raw-TSC observations. This is an architecture appliance and an initial matrix;
 full #6183 acceptance remains open. See the source/image-bound
-[packet](../../../../../../docs/audits/evidence/service-entry-baseline-20261022/README.md).
+[packet](../../../../../docs/audits/evidence/service-entry-baseline-20261022/README.md).
 
 Historical `a77945244721f7ebf4a25ea69bacef789f76610f` compiled and linked,
 but its 128 MiB profile refused `runtime-arena-unavailable` before protected
