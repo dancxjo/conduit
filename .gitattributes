@@ -22,3 +22,5 @@ docs/audits/evidence/native-proof-resume-20261022/**/journey-serial.log whitespa
 # Retained debugger output and source patches are byte-exact evidence.
 docs/audits/evidence/startup-refusal-20261021/**/*-prologue.txt -text whitespace=-trailing-space,-blank-at-eof
 docs/audits/evidence/startup-refusal-20261021/**/source.patch -text whitespace=-trailing-space,-blank-at-eof
+# Retain the original native membership control log, including its terminal newline.
+docs/audits/evidence/native-proof-resume-20261022/membership-bound-after.log -text whitespace=-blank-at-eof
