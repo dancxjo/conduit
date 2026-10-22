@@ -3,11 +3,14 @@
 use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_core::{
     verify_plan, BootId, CapabilityId, HostId, ImplementationId, PlacementId, Plan, PlanId,
-    PlannedGear, ResourceBinding,
+    PlannedGear, PortDirection, PortTemporal, ResourceBinding,
 };
 use serde::{Deserialize, Serialize};
 
-use crate::{FACE_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND};
+use crate::{
+    FACE_INTERACTION_VALUE_KIND, FACE_VALUE_KIND, PRESENTER_STAGE_KIND, RENDERER_KIND,
+    SHOW_VALUE_KIND,
+};
 
 pub const MAX_MASK_CHAINS: usize = 8;
 pub const MAX_MASK_STAGES_PER_CHAIN: usize = 8;
@@ -134,7 +137,7 @@ fn walk(
     }
     validate_stage(placement)?;
     path.push(placement.placement_id.clone());
-    if placement.kind_id.as_str() == RENDERER_KIND {
+    if is_terminal(placement) {
         chains.push(PlannedMaskChain {
             stages: path
                 .iter()
@@ -163,12 +166,55 @@ fn walk(
 }
 
 fn is_mask_stage(p: &PlannedGear) -> bool {
-    matches!(p.kind_id.as_str(), PRESENTER_STAGE_KIND | RENDERER_KIND)
+    matches!(p.kind_id.as_str(), PRESENTER_STAGE_KIND | RENDERER_KIND) || has_show_boundary(p)
+}
+
+// An ordinary Mask Back is identified by its typed boundary, independently of
+// the Host's kind name. Recognize malformed candidates too, so validation
+// refuses them instead of silently projecting an empty topology.
+fn has_show_boundary(p: &PlannedGear) -> bool {
+    p.inputs
+        .iter()
+        .any(|port| port.value_kind.as_str() == FACE_VALUE_KIND)
+        && p.outputs
+            .iter()
+            .any(|port| port.value_kind.as_str() == SHOW_VALUE_KIND)
+}
+
+fn is_terminal(p: &PlannedGear) -> bool {
+    p.kind_id.as_str() == RENDERER_KIND || has_show_boundary(p)
 }
 
 fn validate_stage(p: &PlannedGear) -> Result<(), MaskTopologyError> {
     if p.inputs.len() != 1 || p.inputs[0].value_kind.as_str() != FACE_VALUE_KIND {
         return Err(MaskTopologyError::InvalidStageContract);
+    }
+    if has_show_boundary(p) {
+        let output = |kind, temporal| {
+            p.outputs
+                .iter()
+                .filter(|port| {
+                    port.value_kind.as_str() == kind
+                        && port.direction == PortDirection::Output
+                        && port.temporal == temporal
+                        && port.abnormal_kind.is_none()
+                })
+                .count()
+                == 1
+        };
+        if p.inputs[0].direction != PortDirection::Input
+            || p.inputs[0].temporal != PortTemporal::Value
+            || p.inputs[0].abnormal_kind.is_some()
+            || p.outputs.len() != 2
+            || !output(SHOW_VALUE_KIND, PortTemporal::Value)
+            || !output(
+                FACE_INTERACTION_VALUE_KIND,
+                PortTemporal::Flow { closes: true },
+            )
+        {
+            return Err(MaskTopologyError::InvalidStageContract);
+        }
+        return Ok(());
     }
     let final_stage = p.kind_id.as_str() == RENDERER_KIND;
     if (!final_stage
@@ -189,7 +235,16 @@ fn stage(p: &PlannedGear) -> Result<PlannedMaskStage, MaskTopologyError> {
         host_id: p.host_id.clone(),
         boot_id: p.boot_id.clone(),
         input_kind: p.inputs[0].value_kind.clone(),
-        output_kind: p.outputs[0].value_kind.clone(),
+        output_kind: if has_show_boundary(p) {
+            p.outputs
+                .iter()
+                .find(|port| port.value_kind.as_str() == SHOW_VALUE_KIND)
+                .ok_or(MaskTopologyError::InvalidStageContract)?
+                .value_kind
+                .clone()
+        } else {
+            p.outputs[0].value_kind.clone()
+        },
         input_item_capacity: p.limits.max_queue_items,
         input_byte_capacity: p.limits.max_queue_bytes,
         resources: p.resources.clone(),
