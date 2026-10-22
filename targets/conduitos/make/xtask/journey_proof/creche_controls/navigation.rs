@@ -88,7 +88,12 @@ impl Run<'_> {
             if current.focus["page"] != index || current.focus["pages"] != count {
                 return Err(refusal("page traversal lost exact endpoint/count"));
             }
-            self.capture(&format!("creche-controls-{label}-{index}"))?;
+            // Observe every page, but keep original PNGs for first/middle/last.
+            // Two finite 24-page views must leave room for naming/restoration
+            // and the failure frame within the unchanged 27-capture limit.
+            if captured_page(index, count) {
+                self.capture(&format!("creche-controls-{label}-{index}"))?;
+            }
             pages.push(current.focus);
             if index < count {
                 self.press(&["pgdn"])?;
@@ -205,5 +210,30 @@ impl Run<'_> {
         }
         self.observations.push(json!({"checked_change":change}));
         self.capture(capture)
+    }
+}
+
+// Navigation receipts cover all pages; screenshots are explicitly sampled.
+fn captured_page(index: u64, count: u64) -> bool {
+    index == 1 || index == count.div_ceil(2) || index == count
+}
+
+#[cfg(test)]
+mod tests {
+    use super::captured_page;
+
+    #[test]
+    fn both_maximum_page_views_leave_room_for_checked_changes_and_failure() {
+        for count in 1..=24 {
+            let selected = (1..=count)
+                .filter(|index| captured_page(*index, count))
+                .collect::<Vec<_>>();
+            assert_eq!(selected.first(), Some(&1));
+            assert_eq!(selected.last(), Some(&count));
+            assert!(selected.len() <= 3);
+            // Front door + ready + both views + five naming/pointer frames
+            // + reserved failure remain within the existing cap.
+            assert!(2 + 2 * selected.len() + 5 + 1 <= 27);
+        }
     }
 }

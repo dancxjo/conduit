@@ -146,6 +146,7 @@ pub(super) fn exercise(
         json!({
         "observations":run.observations,"captures":run.captures,"capture_limit":27,"screenshots":"journey-frames/manifest.json",
         "capture_custody":"original QMP PNG and complete serial-prefix offsets/hashes via existing Artifacts",
+        "page_capture_policy":"first/middle/last original PNG per primary and Details view; every page and clamped endpoints retain focus receipts; unsampled pages have no pixel claim",
         "rendered_rows_and_lane_wording":"unsupported: product focus receipt exposes hit/page/display bounds, not rendered row commands/text/lane mapping",
         "details_view_state":"F2 command and subsequent focus/page observations retained; no separate product Details-mode flag exists",
         "component_realization_records":rows(&text(run.serial)?,"CONDUIT_NATIVE_COMPONENT_REALIZATION ")?,
