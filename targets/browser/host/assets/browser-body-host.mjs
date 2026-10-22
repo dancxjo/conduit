@@ -109,8 +109,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       !Number.isSafeInteger(maximumPlacements) || maximumPlacements < 1) throw new Error("invalid browser machinery");
   const patchbayOwners = new Set(proposal.plan.plots.filter(part =>
     part.plan.fragments.some(fragment => fragment.placements.some(placement =>
-      placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
-        entry.key === 'application' && entry.value?.Text === 'patchbay'))))
+      placement.kind_id === 'patchbay/accept-interaction' ||
+      (placement.kind_id === 'application/retained' && placement.configuration?.some(entry =>
+        entry.key === 'application' && entry.value?.Text === 'patchbay')))))
     .map(part => part.plot.checked_plot_id));
   const placements = [];
   const placementPlots = new Map();

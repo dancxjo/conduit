@@ -32,10 +32,7 @@ impl PatchbayObservation {
                 .iter()
                 .flat_map(|fragment| &fragment.placements)
             {
-                if placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
-                    && crate::installed_browser::application::application_id(placement)?
-                        == "patchbay"
-                {
+                if crate::installed_browser::patchbay_owner_installation::is_owner(placement)? {
                     has_patchbay = true;
                 }
             }
@@ -56,10 +53,7 @@ impl PatchbayObservation {
         let mut owners = Vec::new();
         for fragment in &part.plan.fragments {
             for placement in &fragment.placements {
-                if placement.kind_id.as_str() == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
-                    && crate::installed_browser::application::application_id(placement)?
-                        == "patchbay"
-                {
+                if crate::installed_browser::patchbay_owner_installation::is_owner(placement)? {
                     owners.push((fragment, placement));
                 }
             }

@@ -15,13 +15,10 @@ pub(crate) fn masks(
                 &fragment.host_id == host_id
                     && &fragment.boot_id == boot_id
                     && fragment.placements.iter().any(|placement| {
-                        placement.kind_id.as_str()
-                            == conduit_semantic_catalog::RETAINED_APPLICATION_KIND
-                            && placement.configuration.iter().any(|entry| {
-                                entry.key == "application"
-                                    && entry.value
-                                        == conduit_core::ConfigurationValue::Text("patchbay".into())
-                            })
+                        // Invalid legacy configuration is rejected by ordinary
+                        // placement preparation; it cannot select a Mask here.
+                        crate::installed_browser::patchbay_owner_installation::is_owner(placement)
+                            .unwrap_or(false)
                     })
             })
         })
