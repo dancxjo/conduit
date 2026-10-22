@@ -1,0 +1,79 @@
+{
+  "source_commit": "06f8ee1932116fcbc3f6845e5279b61188e9121f",
+  "proof_class": "live-local-qmp-installed-owner-read-only",
+  "status": "passed",
+  "checkpoints": [
+    {
+      "frame": {
+        "checkpoint": "owner-standby",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "ef51474789ea1cb1ce83abdc2408d7821e32cddc419fdf555d0e19b2dbbb1726",
+        "png": "owner-standby.png",
+        "png_bytes": 156385,
+        "png_sha256": "b71cdc35a9eeb0efa3f61c9a0f11439c9f49133acf025c085f2515666ea080f6",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "owner-before",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "9aec164a8f38addf366fc05a46950f51b5722bda5e0e13d24713c2dd1da804d1",
+        "png": "owner-before.png",
+        "png_bytes": 123427,
+        "png_sha256": "0b4adea719e81cdd6f4f573f2b1acd942060b61eed19b712bec829d2d3321ce8",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-editorial-compact",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "8b405142397618a3a020fa3dba538864d24e9513c30e696c7cb16b5944b3381d",
+        "png": "todo-editorial-compact.png",
+        "png_bytes": 123830,
+        "png_sha256": "c1b0eec2d731572093282d2ea383b89b75a461ec0ee70ce8c60f28e04423e74d",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-editorial-spacious",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "1f7bfaecaa519c65e8b83ebb752215590f38594b732330cb4e932b8d63b3f5ec",
+        "png": "todo-editorial-spacious.png",
+        "png_bytes": 154713,
+        "png_sha256": "f8bec0f155e1c045f30a02a62e608ea5c6bb13b6e1a360aaf997949bf7ea1b1c",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-engineering-spacious",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "01ce4d682344c4bd5f0100e819e2586d879ab3d330d670bb12a66e41a2e36178",
+        "png": "todo-engineering-spacious.png",
+        "png_bytes": 153863,
+        "png_sha256": "375e3f96cd3999bbfc319d262361402635236879368a13b0bdf2391670440e2b",
+        "width": 1280
+      }
+    }
+  ],
+  "private_material_excluded": [
+    "invitation",
+    "route private key",
+    "spore ISO",
+    "raw joined serial",
+    "owner state"
+  ]
+}

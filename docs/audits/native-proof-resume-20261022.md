@@ -142,3 +142,33 @@ pass. The harness now requests three selections after activation, retaining
 the existing finite allowance and still comparing both actual Looks and two
 densities. The unsuccessful attempt and its three captures remain retained
 locally. A fresh exact-source successful run is still required.
+
+## Live installed-owner Look proof earned
+
+Clean source `06f8ee1932116fcbc3f6845e5279b61188e9121f` passed
+`make conduitos live-owner-todo-face-proof --look-selection` with its matching
+sealed installed Linux owner, BrowserBundle and provisioned x86_64 image.
+The [public packet](evidence/native-proof-resume-20261022/owner-looks/) retains
+the complete proof receipt and five manifest-listed captures. All PNG lengths,
+byte hashes, dimensions and independently decoded RGBA hashes pass. Editorial
+compact and Phosphor spacious captures were visually inspected. These selections
+change palette/density/scale; they do not establish that every typography family
+was independently switched.
+
+The real browser first joined, acknowledged the independently verified three-item
+Face and performed the owner's Wear/Doff/Prefer wardrobe handoff. QEMU then
+activated its Show and enacted three independently acknowledged Look selections:
+editorial compact, editorial spacious and Phosphor spacious. Complete Face and
+actions remain equal, exact component/recipe and Host/Boot provenance are
+retained, Shows and Mask Plans are fresh, and Body actions/mutations are zero.
+This is local Chromium/QEMU evidence, not physical, human or universal
+accessibility certification. Keys, invitations, boot media and raw joined serial
+are excluded from the public packet.
+
+The following required-item fallback attempt correctly stopped before either
+mutation because its harness incorrectly required Show activation to change
+Face meaning. That guard now accepts the same exact Face with a fresh Show,
+while rejecting regressing revisions, identity/revision mismatch and reused
+Shows. Its focused regression executes and passes, including revisions above
+JavaScript's exact integer range. The other filtered test targets execute zero
+cases and are not counted. A fresh live fallback result remains owed.

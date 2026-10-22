@@ -1,0 +1,1 @@
+{"status": "passed", "captures": 5, "checks": ["PNG length", "PNG SHA256", "dimensions", "independent stdlib PNG decode", "RGBA SHA256"]}

@@ -165,10 +165,7 @@ pub(super) fn continue_after_arrival(
     standby_image: &Value,
     before_image: &Value,
 ) -> Result<Value, ConduitosError> {
-    if before["face_revision"].as_u64().unwrap_or(0)
-        <= standby_face["face_revision"].as_u64().unwrap_or(u64::MAX)
-        || before["face_id"] == standby_face["face_id"]
-    {
+    if !fresh_show_for_current_face(standby_face, before) {
         return Err(refusal("native-todo-action-face-was-not-refreshed"));
     }
     if args.required_item_fallback {
@@ -304,8 +301,47 @@ pub(super) fn continue_after_arrival(
     }))
 }
 
+// Show activation may preserve Face meaning; a domain edit may advance it.
+fn fresh_show_for_current_face(prior: &Value, current: &Value) -> bool {
+    let (Some(old), Some(new)) = (
+        prior["face_revision"].as_u64(),
+        current["face_revision"].as_u64(),
+    ) else {
+        return false;
+    };
+    let identities = [
+        prior["face_id"].as_str(),
+        current["face_id"].as_str(),
+        prior["show_id"].as_str(),
+        current["show_id"].as_str(),
+    ];
+    if identities.iter().any(|id| id.is_none_or(str::is_empty)) {
+        return false;
+    }
+    old > 0
+        && new >= old
+        && ((new == old) == (current["face_id"] == prior["face_id"]))
+        && current["show_id"] != prior["show_id"]
+}
+
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn activation_refreshes_show_without_inventing_a_face_revision() {
+        let old = serde_json::json!({"face_revision":9007199254740993u64,"face_id":"face/a","show_id":"show/a"});
+        let mut fresh = old.clone();
+        fresh["show_id"] = serde_json::json!("show/b");
+        assert!(super::fresh_show_for_current_face(&old, &fresh));
+        assert!(!super::fresh_show_for_current_face(&old, &old));
+        fresh["face_id"] = serde_json::json!("face/b");
+        assert!(!super::fresh_show_for_current_face(&old, &fresh));
+        fresh["face_revision"] = serde_json::json!(9007199254740994u64);
+        assert!(super::fresh_show_for_current_face(&old, &fresh));
+        fresh["face_revision"] = serde_json::json!(9007199254740992u64);
+        assert!(!super::fresh_show_for_current_face(&old, &fresh));
+        fresh["face_revision"] = serde_json::Value::Null;
+        assert!(!super::fresh_show_for_current_face(&old, &fresh));
+    }
     use super::*;
     use std::{
         os::unix::fs::symlink,
