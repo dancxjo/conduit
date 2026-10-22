@@ -6895,6 +6895,7 @@ dependencies = [
  "conduit-face",
  "conduit-kernel",
  "conduit-patchbay-workbench-conformance",
+ "conduit-planner",
  "conduit-plot",
  "conduit-semantic-catalog",
  "patchbay-control",
