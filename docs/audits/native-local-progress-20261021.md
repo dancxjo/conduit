@@ -1967,3 +1967,9 @@ Merged exact authored Fore planning/admission seam into dev; tested and merged t
 Merged #6242 on dev171192726: canonical Memory Lantern document/editor and native checked Patchbay transport preparation. Exact tested/merged trees match; 29 focused native-workset tests, freestanding native-compositor and separate pure-guest compilation pass. Retained branch keeps canonical Source-dependent test counts (10 nodes/8 Cords versus dev’s still-legacy Patchbay 12/9), while source/production transport modules match delivered dev. Synchronization module duplicates/attributes were corrected; actual Mask test fixtures are explicitly gated by native-compositor.
 
 On retained source0e5ae6cbe, all17 Patchbay-filtered native-compositor CPU tests pass, including typed/keyboard Source editor opening, exact one-use requests, canonical ingress and legacy refusal. Initial missing-feature compilation failure is preserved separately. These are CPU Mask acknowledgements, not QEMU or physical evidence. Shared Patchbay Source/browser/front-door cutover and original #6201/#5994 acceptance remain open. CI deliberately skipped.
+
+## Installed Patchbay cutover synchronized (22 October, #6243)
+
+Merged #6243 on dev910532c9a; exact tested/merged trees match. Installed Source/browser runtime/SDK/Handbook and native FrontDoor now use canonical checked interaction.55 focused Rust and146 Node cases pass, plus freestanding native and WASM compilation. See patchbay-installed-cutover-20261022.md. Original product enactment/CI acceptance remains open per tonight’s deferral.
+
+Retained sync c9c775d0e preserves pending graph reading/selected Looks while taking the command-draft extraction. A duplicate FrontDoor module and inline methods were removed; owner-selection module conflict kept the existing pending implementation. Two actual installed keyboard/typed Patchbay Source-editor CPU regressions pass after synchronization. No new browser/QEMU/image/ZIP proof.
