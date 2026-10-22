@@ -11,6 +11,7 @@ mod evidence;
 mod input_refusal;
 mod navigation;
 mod recipe_selection;
+mod search;
 use evidence::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -83,6 +84,19 @@ pub(super) fn exercise(
         observations: Vec::new(),
     };
     run.capture("creche-controls-ready")?;
+    if metadata["proof_scenario"] == "search" {
+        return search::exercise(
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
+        );
+    }
     let forward = run.traverse(&initial, &expected, false)?;
     let reverse = run.traverse(&initial, &expected, true)?;
     let primary = run.pages(&initial, "primary")?;
@@ -184,6 +198,9 @@ pub(super) fn exercise(
         serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
     )
     .map_err(io_error)?;
+    identity(&world)
+}
+fn identity(world: &Value) -> Result<JourneyIdentity, ConduitosError> {
     let string = |key: &str| {
         world[key]
             .as_str()

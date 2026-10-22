@@ -90,7 +90,7 @@ pub(super) fn execute_viewport(
 /// Separate bounded control proof: no normal-journey or headless-gallery claim.
 pub(super) fn execute_controls(
     opts: &GlobalOpts,
-    viewport: Option<super::proof_viewport::Viewport>,
+    args: &super::proof_viewport::ControlsArgs,
 ) -> Result<(), ConduitosError> {
     if opts.dry_run {
         return Err(ConduitosError::refusal(
@@ -121,8 +121,8 @@ pub(super) fn execute_controls(
     let resolved = serde_json::to_value(resolved).map_err(|error| {
         ConduitosError::refusal("creche-controls-build-invalid", error.to_string())
     })?;
-    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved});
-    journey_proof::execute_controls(opts, &image, digest, viewport, &metadata)?;
+    let metadata = serde_json::json!({"target_build_manifest":manifest,"resolved_image":resolved, "proof_scenario":match args.scenario { super::proof_viewport::ControlScenario::Layout => "layout", super::proof_viewport::ControlScenario::Search => "search" }});
+    journey_proof::execute_controls(opts, &image, digest, args.viewport, &metadata)?;
     if clean_head(&paths.root)? != source {
         return Err(ConduitosError::refusal(
             "creche-controls-source-changed",
