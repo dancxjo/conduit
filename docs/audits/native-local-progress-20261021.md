@@ -1957,3 +1957,7 @@ campaign is claimed by this preparation checkpoint.
 ## Root custody synchronized (22 October, #6240)
 
 Merged #6240 into dev and synchronized the retained implementation. Exact tested and merged trees match. Three Root ledger tests, formatting, and freestanding native-compositor library compilation pass. CI deliberately skipped. Installed caller migration, source-editor delivery and remaining #5994 acceptance remain open. See patchbay-root-custody-delivery-20261022.md.
+
+## Native Fore admission synchronized (22 October, #6241)
+
+Merged exact authored Fore planning/admission seam into dev; tested and merged trees match. One focused actual combined-index/foreign-sink regression plus freestanding native-compositor compilation pass. Retained branch uses the reviewed standalone Source fixture test from dev (add/add test conflict resolved to that exact file); production module unchanged. Installed callers remain pending. CI deliberately skipped.
