@@ -1,6 +1,6 @@
 //! Strict fixed-matrix reader; raw observations are retained without speed claims.
 use super::super::ConduitosError;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 const HEADER: &str = "CONDUIT_SERVICE_BASELINE ";
 const SAMPLE: &str = "CONDUIT_SERVICE_SAMPLE ";
 fn refusal() -> ConduitosError {
