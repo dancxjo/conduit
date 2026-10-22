@@ -433,3 +433,6 @@ fn stale_scene_input_redraws_a_notice_and_preserves_the_refusal() {
 
 #[path = "pointer_motion_tests.rs"]
 mod pointer_motion;
+
+#[path = "canonical_publication_tests.rs"]
+mod canonical_publication;
