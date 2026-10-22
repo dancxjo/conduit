@@ -64,7 +64,7 @@ impl NativePlot {
         match self {
             Self::KeyboardCanvas => crate::keyboard_text_plan::PLOT_SOURCE,
             Self::MemoryLantern => {
-                include_str!("../../../../plots/memory-lantern/keyboard-only.conduit")
+                include_str!("../../../../plots/memory-lantern/main.conduit")
             }
             Self::Tour => include_str!("../../../../plots/tour/main.conduit"),
             Self::Patchbay => include_str!("../../../../plots/patchbay/native-retained.conduit"),

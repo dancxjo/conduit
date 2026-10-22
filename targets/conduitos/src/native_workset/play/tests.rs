@@ -192,7 +192,7 @@ fn retained_editing_reaches_its_exact_bound_and_reports_capacity_failure() {
         play.input(memory, key(4, KeyTransition::Pressed)),
         Err(PlayRefusal::HostFailure(conduit_kernel::Failure {
             code: conduit_kernel::FailureCode::StateCapacityExhausted,
-            detail: 82
+            detail: 94
         }))
     );
     play.cancel().unwrap();
@@ -266,4 +266,71 @@ fn body_activation_rejects_wrong_plan_forged_play_replay_and_cancelled_restart()
         kernel.start_for(&prepared.plan, &active),
         Err(PlayRefusal::Preparation)
     );
+}
+
+#[test]
+fn canonical_editor_roundtrip_keeps_one_owner_and_revisioned_document_loop() {
+    let (prepared, mut play) = kernel();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    let fragment = &prepared.plan.plots[memory].plan.fragments[0];
+    assert_eq!(fragment.placements.len(), 2);
+    assert!(
+        fragment
+            .placements
+            .iter()
+            .any(|p| p.kind_id.as_str() == conduit_semantic_catalog::FACE_EDITOR_KIND)
+    );
+    let active = play.active_body_play.clone();
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 0);
+    assert_eq!(type_key(&mut play, memory, 4), "a");
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 1);
+    assert_eq!(type_key(&mut play, memory, 40), "a\n");
+    assert_eq!(type_key(&mut play, memory, 42), "a");
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 3);
+    assert_eq!(play.active_body_play, active);
+    // A forged stale committed replacement reaches the same checked owner;
+    // it cannot rewrite the last accepted snapshot or produce another Show.
+    let request = play.pending[memory].take().unwrap();
+    let mut bytes = [0; 17];
+    let length = conduit_semantic_catalog::TextEdit {
+        base_revision: 0,
+        start: 0,
+        end: 0,
+        insert_text: b"x",
+    }
+    .encode_into(&mut bytes)
+    .unwrap();
+    play.output(request, Some(&bytes[..length])).unwrap();
+    assert_eq!(
+        play.drive(),
+        Err(PlayRefusal::HostFailure(conduit_kernel::Failure {
+            code: conduit_kernel::FailureCode::InvalidInput,
+            detail: 90
+        }))
+    );
+    assert_eq!(play.editor_observations[memory].unwrap().revision, 3);
+    assert!(play.take_face(memory).is_none());
+}
+
+#[test]
+fn source_handoff_uses_admitted_editor_and_preserves_existing_draft() {
+    let (prepared, mut play) = kernel();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    let canvas = index(&prepared, NativePlot::KeyboardCanvas);
+    assert_eq!(
+        play.open_source_editor(canvas, "source"),
+        Err(PlayRefusal::InputOwnership)
+    );
+    let active = play.active_body_play.clone();
+    let source = NativePlot::KeyboardCanvas.source();
+    play.open_source_editor(memory, source).unwrap();
+    assert_eq!(play.take_face(memory).unwrap().text(), source);
+    let revision = play.editor_observations[memory].unwrap().revision;
+    assert_eq!(
+        play.open_source_editor(memory, "different"),
+        Err(PlayRefusal::EditorDraftExists)
+    );
+    assert_eq!(play.editor_observations[memory].unwrap().revision, revision);
+    assert_eq!(play.active_body_play, active);
+    assert!(play.take_face(memory).is_none());
 }

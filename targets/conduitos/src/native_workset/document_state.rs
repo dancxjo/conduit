@@ -1,5 +1,4 @@
-//! Exact native canonical document state, awaiting full editor topology admission.
-//! Not added to the Host advertisement until the matching encounter is complete.
+//! Exact native canonical document state over the protected retained owner.
 use super::WorksetRefusal;
 use alloc::{format, vec};
 use conduit_core::{
@@ -11,7 +10,6 @@ use conduit_semantic_catalog::TextEditRefusal;
 pub(crate) const IMPLEMENTATION: &str = "conduitos/kernel-text-edit-document@1";
 pub(crate) const HOST_CALL: &str = "conduit.host/conduitos-text-edit-document@1";
 
-#[allow(dead_code)] // Prepared Back prerequisite; full editor offering remains separate.
 pub(super) fn offer(build_id: &str) -> CapabilityOffer {
     BackOfferBuilder::new(
         conduit_semantic_catalog::text_edit_document_semantic_contract(),

@@ -6,6 +6,7 @@ pub(super) enum Effect {
     Upper,
     Edit,
     Document,
+    Editor,
     Face,
     ApplicationEvent,
     Application,

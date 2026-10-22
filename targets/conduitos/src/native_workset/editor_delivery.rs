@@ -1,4 +1,4 @@
-//! Exact canonical native editor encounter, not yet advertised by the Host.
+//! Exact canonical native editor encounter over the initialized keyboard delivery.
 use super::WorksetRefusal;
 use alloc::{format, vec};
 use conduit_core::{

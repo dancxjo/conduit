@@ -181,7 +181,9 @@ impl NativeWorksetPlay {
                 }
                 Ok(())
             }
-            Effect::Keyboard | Effect::ApplicationEvent => Err(PlayRefusal::Kernel),
+            Effect::Keyboard | Effect::ApplicationEvent | Effect::Editor => {
+                Err(PlayRefusal::Kernel)
+            }
         }
     }
     fn document_refused(

@@ -161,6 +161,7 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
                 placement.kind_id.as_str(),
                 conduit_semantic_catalog::KEYBOARD_KIND
                     | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+                    | conduit_semantic_catalog::FACE_EDITOR_KIND
             )
         })
         .ok_or(WorksetRefusal::Capability)?;
@@ -176,7 +177,10 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
         == conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
         && connection.source_port_id.as_str() == conduit_semantic_catalog::APPLICATION_EVENT_PORT
         && connection.value_kind.as_str() == conduit_face::APPLICATION_EVENT_INFO_ID;
-    if !keyboard && !application {
+    let editor = placement.kind_id.as_str() == conduit_semantic_catalog::FACE_EDITOR_KIND
+        && connection.source_port_id.as_str() == "edit"
+        && connection.value_kind.as_str() == conduit_semantic_catalog::TEXT_EDIT_VALUE_KIND;
+    if !keyboard && !application && !editor {
         return Err(WorksetRefusal::Plan);
     }
     Ok(AdmittedPlotInput {
@@ -250,6 +254,12 @@ fn host_inner(
     advertisement
         .capabilities
         .push(super::text_state::offer(build_id));
+    advertisement
+        .capabilities
+        .push(super::document_state::offer(build_id));
+    advertisement
+        .capabilities
+        .push(super::editor_delivery::offer(build_id));
     advertisement
         .capabilities
         .extend(super::application_delivery::offers(build_id));

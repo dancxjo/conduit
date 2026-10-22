@@ -75,8 +75,8 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
     run(&mut journey, &ids, &offer);
     let started = journey.projection();
     assert_eq!(started.status, JourneyStatus::QuiescentAwaitingInput);
-    assert_eq!(started.gear_ids.len(), 14);
-    assert_eq!(started.cord_ids.len(), 10);
+    assert_eq!(started.gear_ids.len(), 12);
+    assert_eq!(started.cord_ids.len(), 9);
     let mask = started.mask.as_ref().unwrap();
     assert_eq!(mask.route_disposition, "planned-route-awaiting-show");
     assert!(mask.shows.is_empty());
@@ -87,7 +87,9 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
             input.plot == plot.plot
                 && matches!(
                     input.value_kind.as_str(),
-                    conduit_human::KEY_EVENT_INFO_ID | conduit_face::APPLICATION_EVENT_INFO_ID
+                    conduit_human::KEY_EVENT_INFO_ID
+                        | conduit_face::APPLICATION_EVENT_INFO_ID
+                        | conduit_semantic_catalog::TEXT_EDIT_VALUE_KIND
                 )
         })
     }));

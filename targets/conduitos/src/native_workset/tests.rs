@@ -61,7 +61,7 @@ fn native_inventory_preserves_existing_plots_and_adds_the_canonical_tour_identit
     assert_ne!(canvas, resident(NativePlot::MemoryLantern).unwrap());
     assert_eq!(
         NativePlot::MemoryLantern.source(),
-        include_str!("../../../../plots/memory-lantern/keyboard-only.conduit")
+        include_str!("../../../../plots/memory-lantern/main.conduit")
     );
     assert_eq!(
         NativePlot::Tour.source(),
@@ -99,13 +99,13 @@ fn canonical_memory_plans_as_an_exact_native_body_partition_before_play() {
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
     prepared.plan.validate_for(&wake).unwrap();
     assert_eq!(prepared.plan.plots.len(), 1);
-    assert_eq!(prepared.lowered.nodes, 4);
-    assert_eq!(prepared.lowered.cords, 3);
+    assert_eq!(prepared.lowered.nodes, 2);
+    assert_eq!(prepared.lowered.cords, 2);
     assert!(
         prepared.plan.plots[0].plan.fragments[0]
             .placements
             .iter()
-            .any(|gear| gear.implementation_id.as_str() == text_state::TEXT_EDIT_IMPLEMENTATION)
+            .any(|gear| gear.implementation_id.as_str() == document_state::IMPLEMENTATION)
     );
     assert_eq!(
         prepare(&wake, &ids, &offer, "wrong-build").err(),
@@ -118,8 +118,8 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
     let (ids, offer) = fixture();
     let wake = wake(&inventory());
     let prepared = prepare(&wake, &ids, &offer, "build").unwrap();
-    assert_eq!(prepared.lowered.nodes, 14);
-    assert_eq!(prepared.lowered.cords, 10);
+    assert_eq!(prepared.lowered.nodes, 12);
+    assert_eq!(prepared.lowered.cords, 9);
     assert_eq!(prepared.plan.plots.len(), 4);
     assert_eq!(prepared.keyboard, offer.keyboard.unwrap().realization);
     assert_eq!(prepared.input_owners().len(), 4);
@@ -132,6 +132,7 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
                     placement.kind_id.as_str(),
                     conduit_semantic_catalog::KEYBOARD_KIND
                         | conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
+                        | conduit_semantic_catalog::FACE_EDITOR_KIND
                 )
             })
             .unwrap();
@@ -163,6 +164,25 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
             assert!(!source.resources.iter().any(
                 |resource| resource.class_id.as_str() == crate::keyboard_offer::DEVICE_RESOURCE
             ));
+        } else if source.kind_id.as_str() == conduit_semantic_catalog::FACE_EDITOR_KIND {
+            assert_eq!(owner.port_id.as_str(), "edit");
+            assert_eq!(
+                owner.value_kind.as_str(),
+                conduit_semantic_catalog::TEXT_EDIT_VALUE_KIND
+            );
+            assert_eq!(
+                source.implementation_id.as_str(),
+                editor_delivery::IMPLEMENTATION
+            );
+            assert!(
+                source
+                    .resources
+                    .iter()
+                    .any(
+                        |resource| resource.class_id.as_str() == keyboard_delivery::RESOURCE
+                            && resource.units == 1
+                    )
+            );
         } else {
             assert_eq!(
                 owner.kind_id.as_str(),

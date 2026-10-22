@@ -1,6 +1,8 @@
 //! Native Host adapter around the one fixed production scheduler.
+mod editor_encounter;
 mod effect_binding;
 mod effects;
+use editor_encounter::EditorObservation;
 use effect_binding::{Binding, Effect};
 mod preparation;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
@@ -28,35 +30,8 @@ type Scheduler = conduitos_runtime_core::Scheduler;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 type Scheduler = crate::protected_runtime::Scheduler;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum PlayRefusal {
-    Preparation,
-    Protection(crate::composition::MachineRunError),
-    Kernel,
-    Scheduler(conduit_kernel::scheduler::SchedulerError),
-    HostFailure(conduit_kernel::Failure),
-    Foreground,
-    InputOwnership,
-    InputPressure,
-    WorkBound,
-    Cancelled,
-}
-impl PlayRefusal {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Protection(error) => error.as_str(),
-            Self::Preparation => "native-body-play-preparation-refused",
-            Self::Kernel => "native-body-kernel-boundary-refused",
-            Self::Scheduler(_) => "native-body-kernel-step-refused",
-            Self::HostFailure(failure) => failure.code.as_str(),
-            Self::Foreground => "native-body-foreground-unavailable",
-            Self::InputOwnership => "native-body-input-ownership-unavailable",
-            Self::InputPressure => "native-body-input-pressure",
-            Self::WorkBound => "native-body-work-bound-exceeded",
-            Self::Cancelled => "native-body-play-cancelled",
-        }
-    }
-}
+mod refusal;
+pub use refusal::PlayRefusal;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct NativeFace {
@@ -97,6 +72,7 @@ pub struct NativeWorksetPlay {
     pending: [Option<HostCallRequest>; PLOTS],
     held: [Option<u8>; 256],
     faces: [Option<NativeFace>; PLOTS],
+    editor_observations: [Option<EditorObservation>; PLOTS],
     application_views: [Option<conduit_face::ApplicationView>; PLOTS],
     applications: NativeApplications,
     application_requests: [Option<super::NativeApplicationRequest>; PLOTS],
@@ -383,6 +359,11 @@ impl NativeWorksetPlay {
         if self.faces[owner].is_some() {
             return Err(PlayRefusal::InputPressure);
         }
+        if self.binding(request.node)?.effect == Effect::Editor {
+            self.held[usage] =
+                matches!(event.transition(), KeyTransition::Pressed).then_some(owner as u8);
+            return self.editor_key(owner, event);
+        }
         self.output(request, Some(&event.encode()))?;
         self.pending[owner] = None;
         self.held[usage] =
@@ -410,6 +391,7 @@ impl NativeWorksetPlay {
         self.active_body_play = None;
         self.cancelled = true;
         self.faces.fill(None);
+        self.editor_observations.fill(None);
         self.application_views.fill_with(|| None);
         result
     }
@@ -453,6 +435,7 @@ impl NativeWorksetPlay {
         self.pure_results.fill_with(|| None);
         self.active_body_play = None;
         self.faces.fill(None);
+        self.editor_observations.fill(None);
         self.application_views.fill_with(|| None);
         self.cancelled = true;
     }
@@ -467,6 +450,8 @@ impl NativeWorksetPlay {
                     {
                         return Err(PlayRefusal::Kernel);
                     }
+                } else if binding.effect == Effect::Editor {
+                    self.present_editor(usize::from(binding.plot), request)?;
                 } else {
                     self.apply(request, binding)?;
                 }
