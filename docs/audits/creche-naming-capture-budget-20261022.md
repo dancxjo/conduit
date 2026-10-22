@@ -15,5 +15,4 @@ receipt explicitly identifies sampling: unsampled pages have no pixel claim.
 No product layout, Source authority, admission budget or proof frame limit
 changes. The original all-page wide proof remains separate evidence.
 
-Validation is pending. No new QEMU run has been authorized or performed for
-this source. Recipe identification and paired layout acceptance remain open.
+Validation is pending. No new QEMU run has been performed for this source. Recipe identification and paired layout acceptance remain open.
