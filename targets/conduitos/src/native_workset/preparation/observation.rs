@@ -107,11 +107,33 @@ mod guest {
             length: 0,
         };
         let result = (|| {
-            write!(line, "CONDUIT_NATIVE_CACHE {{\"schema\":\"conduit.conduitos/native-cache@1\",\"scope\":\"native-root-boot\",\"sequence\":{sequence},\"mode\":\"{mode}\",\"limits\":[{},{},{}],\"plot\":\"{}\",\"source_sha256\":\"", limits[0], limits[1], limits[2], plot.name())?;
+            write!(
+                line,
+                "CONDUIT_NATIVE_CACHE {{\"schema\":\"conduit.conduitos/native-cache@1\",\"scope\":\"native-root-boot\",\"sequence\":{sequence},\"mode\":\"{mode}\",\"limits\":[{},{},{}],\"plot\":\"{}\",\"source_sha256\":\"",
+                limits[0],
+                limits[1],
+                limits[2],
+                plot.name()
+            )?;
             for byte in Sha256::digest(plot.source().as_bytes()) {
                 write!(line, "{byte:02x}")?;
             }
-            writeln!(line, "\",\"path\":\"{}\",\"accepted\":{accepted},\"delta\":[{},{},{},{},{},{},{}],\"retained\":[{sources},{expansions}]}}", if fallback { "private-contention" } else { "shared" }, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5], stats[6])
+            writeln!(
+                line,
+                "\",\"path\":\"{}\",\"accepted\":{accepted},\"delta\":[{},{},{},{},{},{},{}],\"retained\":[{sources},{expansions}]}}",
+                if fallback {
+                    "private-contention"
+                } else {
+                    "shared"
+                },
+                stats[0],
+                stats[1],
+                stats[2],
+                stats[3],
+                stats[4],
+                stats[5],
+                stats[6]
+            )
         })();
         if result.is_ok() {
             crate::arch::early_write(&line.bytes[..line.length]);
@@ -120,6 +142,8 @@ mod guest {
         }
     }
     fn refuse(reason: &str) {
+        // Terminal for this observer, never for the operation being observed.
+        NEXT.store(LIMIT + 1, Ordering::Relaxed);
         crate::arch::early_write(b"CONDUIT_NATIVE_CACHE_REFUSAL ");
         crate::arch::early_write(reason.as_bytes());
         crate::arch::early_write(b"\n");
