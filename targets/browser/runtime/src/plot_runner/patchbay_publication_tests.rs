@@ -426,7 +426,6 @@ fn resident_command_entry_points_require_acknowledgement_and_consume_one_show() 
         .port
         .graph()
         .subject_identities()
-        .into_iter()
         .next()
         .unwrap()
         .to_string();
