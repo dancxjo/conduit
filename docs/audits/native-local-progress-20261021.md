@@ -1953,3 +1953,7 @@ subtree is byte-identical to dev, so no redundant allocator checks were rerun.
 CI was deliberately skipped; Root's independent custody and admitted caller path
 remain to be delivered under #6201/#5994. No production Source switch or platform
 campaign is claimed by this preparation checkpoint.
+
+## Root custody synchronized (22 October, #6240)
+
+Merged #6240 into dev and synchronized the retained implementation. Exact tested and merged trees match. Three Root ledger tests, formatting, and freestanding native-compositor library compilation pass. CI deliberately skipped. Installed caller migration, source-editor delivery and remaining #5994 acceptance remain open. See patchbay-root-custody-delivery-20261022.md.
