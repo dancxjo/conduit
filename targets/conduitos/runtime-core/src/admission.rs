@@ -79,7 +79,10 @@ impl Admission {
     /// Explicit Face profile; legacy callers retain their original value bound.
     pub fn build_face(self) -> Result<FaceScheduler, SchedulerError> {
         self.validate_face()?;
-        self.build_profile::<FACE_VALUE_BYTES>(CORDS as u16)
+        // Remote Sign slots retain admitted input EVENTS, not endpoint slots.
+        // FixedSignLog already physically contains SIGN_ITEMS remote entries;
+        // admit their exact finite storage, with no replenishment after pressure.
+        self.build_profile::<FACE_VALUE_BYTES>(SIGN_ITEMS as u16)
     }
     pub fn validate_face(&self) -> Result<(), SchedulerError> {
         if self.active_nodes == 0
