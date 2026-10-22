@@ -1,0 +1,12 @@
+{
+  "executable_source": "996cefe6e85c2991f51a773cfcad5b2494d21bd4",
+  "command": "cargo +stable xtask check model-inference",
+  "exit_code": 0,
+  "passed": 57,
+  "test_targets": 21,
+  "failed": 0,
+  "ignored": 0,
+  "stdout_sha256": "22976c2029a30ae0619fdb5c171e1f266c59be8038af143ea3fc2845df5ae54a",
+  "gzip_sha256": "fce1e94eda76011b3798df123c531e7019e792134ce93ee5ddde5200aed50ad5",
+  "delivery": "unmerged held repair; CI/Integration not yet admitted"
+}
