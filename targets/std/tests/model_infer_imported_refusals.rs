@@ -3,8 +3,7 @@
 mod common;
 #[path = "imported_model_infer/fixture.rs"]
 mod fixture;
-#[path = "imported_model_infer/profile.rs"]
-mod profile;
+use fixture::profile;
 use conduit_ai::{
     imported_back_admission::ImportedBackRefusal, imported_onnx::ONNX_FORMAT_PROFILE, *,
 };

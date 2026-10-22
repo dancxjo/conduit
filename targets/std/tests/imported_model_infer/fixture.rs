@@ -6,7 +6,7 @@ use conduit_std_host::{
 };
 use sha2::{Digest, Sha256};
 #[path = "profile.rs"]
-mod profile;
+pub(crate) mod profile;
 #[path = "../../../../semantics/ai/tests/common/onnx_resource_fixture.rs"]
 mod resource;
 #[path = "../../../../semantics/ai/tests/common/onnx_fixture.rs"]
