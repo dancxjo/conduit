@@ -178,10 +178,10 @@ fn page_costs(scene: &mut NativeFaceScene, configured: bool) {
             assert!(rows.len() <= 20);
             let mut surfaces = Vec::new();
             for row in &rows {
-                if let Some(panel) = row.panel_bounds {
-                    if !surfaces.contains(&panel) {
-                        surfaces.push(panel);
-                    }
+                if let Some(panel) = row.panel_bounds
+                    && !surfaces.contains(&panel)
+                {
+                    surfaces.push(panel);
                 }
                 std::println!(
                     "naming_row configured={configured} details={details} extent={}x{} page={} subject={:?} control={:?} bounds={:?} panel={:?} bytes={} text={}",
