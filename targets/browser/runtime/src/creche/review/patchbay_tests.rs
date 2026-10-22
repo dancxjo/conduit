@@ -106,7 +106,15 @@ fn patchbay_name_cannot_admit_an_arbitrary_open_root_or_substituted_fore() {
         .unwrap_err();
         assert!(error.contains("reviewed resident Fore"), "{error}");
     }
-    // A type-substituted sink must also refuse before any reviewed realization.
+    // Inventory records checked Source; full workload review must refuse a
+    // substituted Fore before admitting a realization of this resident owner.
     let wrong_type = PATCHBAY.replace("interaction: FaceInteraction", "interaction: Text");
-    assert!(initial_plots::reviewed_inventory(&wrong_type).is_err());
+    let (selected, host) = selection(&wrong_type);
+    assert!(super::review(
+        &wrong_type,
+        &selected,
+        &[host],
+        &crate::installed_browser::local_bases(),
+    )
+    .is_err());
 }
