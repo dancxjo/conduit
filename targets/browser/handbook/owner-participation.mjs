@@ -364,7 +364,7 @@ export async function startOwnerParticipation(application, root) {
   lookLabel.append(lookSelect);
   const recipeLabel = document.createElement('label'); recipeLabel.textContent = 'Layout ';
   const recipeSelect = document.createElement('select');
-  for (const [value, name] of [['flat', 'Single section'], ['grouped', 'Grouped sections']]) {
+  for (const [value, name] of [['flat', 'Single section'], ['grouped', 'Grouped sections'], ['required-item', 'Bound item']]) {
     const option = document.createElement('option'); option.value = value; option.textContent = name;
     recipeSelect.append(option);
   }

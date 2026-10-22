@@ -1,6 +1,6 @@
 //! Allocation-free layout over one admitted graphical command payload.
 
-use super::{GlyphRaster, TextRole, TextScale, metrics, scaled_glyph};
+use super::{GlyphRaster, TextRole, TextScale, TextStyle, scaled_glyph, selected_metrics};
 use crate::display::DisplayError;
 use conduit_face::MAX_GRAPHICS_TEXT_BYTES;
 
@@ -14,7 +14,7 @@ pub struct PositionedGlyph {
 /// token once; emitted positions and measured height share this exact cursor.
 pub struct TextLayout<'a> {
     remaining: &'a str,
-    role: TextRole,
+    role: TextStyle,
     scale: TextScale,
     width: u32,
     x: u32,
@@ -30,6 +30,15 @@ impl<'a> TextLayout<'a> {
     pub fn new_scaled(
         value: &'a str,
         role: TextRole,
+        width: u16,
+        text_scale_percent: u16,
+    ) -> Result<Self, DisplayError> {
+        Self::new_selected(value, role.into(), width, text_scale_percent)
+    }
+
+    pub fn new_selected(
+        value: &'a str,
+        role: TextStyle,
         width: u16,
         text_scale_percent: u16,
     ) -> Result<Self, DisplayError> {
@@ -75,7 +84,7 @@ impl<'a> TextLayout<'a> {
         for _ in self.by_ref() {}
         let height = self
             .scale
-            .unsigned(u32::from(metrics(self.role).line_height));
+            .unsigned(u32::from(selected_metrics(self.role).line_height));
         (self.x / 64, self.line * height, height)
     }
 
@@ -85,7 +94,7 @@ impl<'a> TextLayout<'a> {
         (self.line + 1)
             * self
                 .scale
-                .unsigned(u32::from(metrics(self.role).line_height))
+                .unsigned(u32::from(selected_metrics(self.role).line_height))
     }
 }
 
@@ -152,9 +161,12 @@ impl Iterator for TextLayout<'_> {
                 (self.line
                     * self
                         .scale
-                        .unsigned(u32::from(metrics(self.role).line_height)))
+                        .unsigned(u32::from(selected_metrics(self.role).line_height)))
                     as i32
-                    + self.scale.unsigned(metrics(self.role).ascent as u32) as i32,
+                    + self
+                        .scale
+                        .unsigned(selected_metrics(self.role).ascent as u32)
+                        as i32,
             );
             self.x += advance;
             return Some(PositionedGlyph { glyph: raster, pen });
@@ -164,7 +176,7 @@ impl Iterator for TextLayout<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::super::glyph;
+    use super::super::{glyph, metrics};
     use super::*;
 
     #[test]

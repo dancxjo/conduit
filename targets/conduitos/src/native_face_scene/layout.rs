@@ -1,6 +1,13 @@
 //! Paginated graphics rows measured by the same typography cursor as rasterization.
 use super::*;
+use crate::display::typography::Typography;
 use alloc::string::String;
+
+#[path = "layout/configured.rs"]
+mod configured;
+#[cfg(test)]
+pub(super) use configured::admit_configured;
+pub(super) use configured::{ConfiguredColumns, admit_configured_selected, authored_panel_groups};
 
 #[path = "layout/field_clusters.rs"]
 mod field_clusters;
@@ -209,6 +216,26 @@ pub(super) fn admit_with_expression(
     text_scale_percent: u16,
     padding: u16,
 ) -> Result<Vec<Row>, FaceSceneError> {
+    admit_with_expression_selected(
+        items,
+        screen,
+        gutter,
+        columns,
+        text_scale_percent,
+        padding,
+        Typography::EDITORIAL,
+    )
+}
+
+pub(super) fn admit_with_expression_selected(
+    items: Vec<document::Item>,
+    screen: LayoutRect,
+    gutter: u16,
+    columns: u16,
+    text_scale_percent: u16,
+    padding: u16,
+    typography: Typography,
+) -> Result<Vec<Row>, FaceSceneError> {
     field_clusters::validate(&items)?;
     if !(1..=2).contains(&columns) || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
         return Err(FaceSceneError::InvalidExtent);
@@ -223,13 +250,14 @@ pub(super) fn admit_with_expression(
         .map(|width| width / columns)
         .filter(|width| *width > 0)
         .ok_or(FaceSceneError::InvalidExtent)?;
-    let chrome = chrome::Chrome::prepare(screen, text_scale_percent)?;
+    let chrome = chrome::Chrome::prepare_selected(screen, text_scale_percent, typography)?;
     let bottom = chrome.bottom;
     let padding = fit_padding(
         items.iter(),
         bottom - chrome.top,
         text_scale_percent,
         padding,
+        typography,
     );
     let maximum_height = bottom
         .checked_sub(chrome.top)
@@ -261,6 +289,7 @@ pub(super) fn admit_with_expression(
                     width,
                     maximum_height,
                     scale: text_scale_percent,
+                    typography,
                     padding,
                 },
                 region_start,
@@ -291,6 +320,7 @@ pub(super) fn admit_with_expression(
                 text_width,
                 maximum_height,
                 text_scale_percent,
+                typography,
             )?;
             let box_height = height + padding * 2;
             let cost = row_commands(&item, region_start);
@@ -337,43 +367,6 @@ pub(super) fn admit_with_expression(
     Ok(rows)
 }
 
-/// Recipe group identity is not a domain catalogue or a reading-order hint.
-/// The renderer's first pair follows authored region order, even when the
-/// complete primary reader encounters review/unmatched material first.
-pub(super) fn authored_panel_groups(groups: impl Iterator<Item = u8>) -> Option<[u8; 2]> {
-    let mut first = None;
-    for group in groups {
-        match first {
-            None => first = Some(group),
-            Some(prior) if prior != group => return Some([prior, group]),
-            _ => {}
-        }
-    }
-    None
-}
-
-pub(super) fn admit_configured(
-    items: Vec<document::Item>,
-    screen: LayoutRect,
-    gutter: u16,
-    columns: u16,
-    text_scale_percent: u16,
-    padding: u16,
-    groups: Option<[u8; 2]>,
-) -> Result<Vec<Row>, FaceSceneError> {
-    if columns == 2
-        && screen.width >= 640
-        && let Some(groups) = groups
-    {
-        if groups[0] == groups[1] || !(SPACE_SM..=SPACE_SM * 2).contains(&padding) {
-            return Err(FaceSceneError::InvalidExtent);
-        }
-        panels::admit(items, screen, gutter, text_scale_percent, padding, groups)
-    } else {
-        admit_with_expression(items, screen, gutter, columns, text_scale_percent, padding)
-    }
-}
-
 /// Density-derived spacing is preferred geometry, not an authored hard minimum.
 /// At a constrained extent retain the requested text scale and the existing
 /// admitted minimum padding. If even that cannot fit, ordinary admission refuses.
@@ -382,11 +375,12 @@ fn fit_padding<'a>(
     available: u16,
     scale: u16,
     preferred: u16,
+    typography: Typography,
 ) -> u16 {
     let needs_minimum = items.filter(|item| !item.text.is_empty()).any(|item| {
-        TextLayout::new_scaled("", item.role.into(), 1, scale).is_ok_and(|layout| {
-            layout.finish_height() + u32::from(preferred) * 2 > u32::from(available)
-        })
+        TextLayout::new_selected("", typography.style(item.role.into()), 1, scale).is_ok_and(
+            |layout| layout.finish_height() + u32::from(preferred) * 2 > u32::from(available),
+        )
     });
     if needs_minimum { SPACE_SM } else { preferred }
 }
@@ -408,6 +402,7 @@ fn measure_prefix(
     width: u16,
     maximum_height: u16,
     scale: u16,
+    typography: Typography,
 ) -> Result<(usize, u16), FaceSceneError> {
     let mut end = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
     while !remaining.is_char_boundary(end) {
@@ -417,9 +412,14 @@ fn measure_prefix(
         if end == 0 {
             return Err(FaceSceneError::InvalidExtent);
         }
-        let height = TextLayout::new_scaled(&remaining[..end], role.into(), width, scale)
-            .map_err(|_| FaceSceneError::InvalidExtent)?
-            .finish_height();
+        let height = TextLayout::new_selected(
+            &remaining[..end],
+            typography.style(role.into()),
+            width,
+            scale,
+        )
+        .map_err(|_| FaceSceneError::InvalidExtent)?
+        .finish_height();
         if height <= u32::from(maximum_height) {
             return Ok((end, height as u16));
         }
