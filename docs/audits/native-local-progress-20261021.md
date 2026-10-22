@@ -1446,3 +1446,13 @@ were corrected (explicit pressure policy and fuel, and an admitted Host input
 rather than unbudgeted remote ingress). No production remote Sign capacity was
 added: native editor interaction admission still needs an explicit bounded path.
 These checks prove kernel composition only, not guest execution or editor usability.
+
+Canonical native state dispatch now maps the exact document implementation to
+that Runtime Back and calls the existing protected `replace_document` operation.
+Hosted compilation reuses the same shared revisioned text owner rather than
+pretending keyboard events are canonical replacements. Refusal codes and details
+preserve revision, encoding, range, UTF-8, capacity, revision exhaustion, storage
+and mode distinctions. Both hosted and freestanding x86_64 native-compositor
+library checks pass for this integration. The offer remains unadvertised: the
+matching editor encounter, topology admission and checked Mask return path are
+not yet complete. The native 256-byte capacity is unchanged.
