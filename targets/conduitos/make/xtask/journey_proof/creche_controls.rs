@@ -159,6 +159,9 @@ pub(super) fn exercise(
         }
     }
     let proof = Value::Object(fields);
+    if run.child.try_wait().map_err(io_error)?.is_some() {
+        return Err(refusal("guest exited before the controls proof finished"));
+    }
     fs::write(
         destination.join("creche-controls-proof.json"),
         serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
