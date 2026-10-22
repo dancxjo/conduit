@@ -1,6 +1,6 @@
 # Canonical checked export recovery
 
-Prepared scope for [#6063](https://github.com/dancxjo/conduit/issues/6063), based on current `dev` `3672758cf3f8bbaec01dab14476882433d31621f`. This is one generic adapter recovery, not a campaign checkpoint merge or completion of #4907. No PR, CI run, build, or Cargo check was started during this preparation; the shared build cache remained with its existing owner.
+Prepared scope for [#6063](https://github.com/dancxjo/conduit/issues/6063), based on current `dev` `3672758cf3f8bbaec01dab14476882433d31621f`. This is one generic adapter recovery, not a campaign checkpoint merge or completion of #4907. No PR or CI run was started during recovery. The shared build cache remained with its integration owner, who performed the first supported trial recorded below.
 
 ## Reused implementation and queue semantics
 
@@ -20,10 +20,16 @@ The initial adapter explicitly refuses startup/resource/abnormal Fores, duplicat
 
 Prepared negative cases cover foreign Source, all three Plan identities, missing/extra Fores, queue underflow/overflow, typed contracts, tracks, Gear identity/meaning/configuration, missing/extra Cords and wrong endpoints. Counters require integrity-valid Fore/graph counterexamples rather than counting only stale seals or core integrity failures. Separate cases cover unsupported queue/abnormal profiles and checked input-Fore fanout.
 
-The AI regression independently constructs canonical checked Source from the installed generic small categorical profile, seals its finite Fores, and reaches `prepare_canonical → submit → step → output ACK`. It checks moved request custody, exact canonical input/output, Plan/Play correlation, remote lifecycle Signs, held receipt pressure, and foreign Source/misbound-definition refusal. No parser policy or currentness authority is introduced.
+The prepared AI regression independently constructs canonical checked Source from the installed generic small categorical profile and is intended to prove `prepare_canonical → submit → step → output ACK` through exact finite Fores. It checks moved request custody, exact canonical input/output, Plan/Play correlation, remote lifecycle Signs, held receipt pressure, and foreign Source/misbound-definition refusal. No parser policy or currentness authority is introduced.
 
 The supported entrance is `cargo +stable xtask check canonical-export`: generic behavioral tests, the existing categorical custody integration target including both new canonical-channel cases, focused strict Composite test lint and strict AI library/channel-test lint with the numerical operation-owner feature. No Language dependency is needed for this check.
 
+## First supported trial and fixture correction
+
+The integration owner ran `cargo +stable xtask check canonical-export` at exact source `06e36ea8001db55264208fc41ac22d18cf9a7427`. The command exited **1**: all six generic export tests and twelve existing categorical custody tests passed, but both new AI canonical cases failed during fixture Plan construction because the input Fore value contract did not match the selected Back. Strict steps were not reached. The original raw-log SHA-256 is `21219c7b64eb69c56c060f7d0d722dd7ffbe53ffde9cbea6cacbe9aab73137ce`; the integration owner retains that failed log and its source-bound trial receipt. No failed case is counted as passing.
+
+The correction changes only the AI test fixture: its Source now declares explicit input/output byte bounds computed from the actual prepared structured types. Additional assertions compare each authored Fore contract with the corresponding selected Back contract before planning. Named type aliases establish Kind identity; they do not supply those omitted explicit bounds. This follows the held canonical helper's approach without weakening the planner, adapter, runtime or contracts. The fixture-correction successor remains unrun; the earlier `06e36ea8` trial does not prove it. Untested predecessor `1f0030152b4a2f0eafe066c4267ef4ec2b92d2c0` remains recoverable and is not positive execution evidence.
+
 ## Acceptance boundary
 
-Formatting and `git diff --check` were performed during preparation. The corrected tests, strict checks and supported entrance remain unexecuted until the integration owner runs the exact prepared source from its cache-owning path. Historical held Language-model evidence is not relabelled as proof of this generic recovery. #6062's dependency status, required current-base CI, exact-head acceptance, reviewed merge and the parent's shared Integration/publication batch remain delivery gates; this preparation does not close #6063.
+Formatting and `git diff --check` were performed after the fixture correction. A successful rerun of the complete supported entrance and its strict steps is still required from the integration owner's cache-owning path. Historical held Language-model evidence is not relabelled as proof of this generic recovery. #6062's dependency status, required current-base CI, exact-head acceptance, reviewed merge and the parent's shared Integration/publication batch remain delivery gates; this preparation does not close #6063.

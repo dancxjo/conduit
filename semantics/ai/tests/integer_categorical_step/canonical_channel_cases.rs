@@ -19,8 +19,12 @@ fn canonical_definition(
     let mut catalog = ProfileCatalog::new();
     profile.install(&mut startup, &mut catalog, true).unwrap();
     let kind = profile.kind_identity(true);
+    let input_max =
+        conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type()).unwrap();
+    let output_max =
+        conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type()).unwrap();
     let source = format!(
-        "plot {ENTRY} (\n >> input: {kind}/indices...|\n output: {kind}/scores...| >>\n) {{\n model: {kind}\n input >> model.indices\n model.scores >> output\n}}\n"
+        "plot {ENTRY} (\n >> input: {kind}/indices...| <= {input_max}B\n output: {kind}/scores...| <= {output_max}B >>\n) {{\n model: {kind}\n input >> model.indices\n model.scores >> output\n}}\n"
     );
     let document = conduit_plot::check_syntax_document_with_literal_constructors(
         &conduit_plot::parse_syntax_document(&source),
@@ -30,6 +34,22 @@ fn canonical_definition(
     .unwrap();
     let authored =
         conduit_plot::expand_canonical_plot_for_authoring(&document, ENTRY, &catalog).unwrap();
+    // Named structured types determine the value Kind; explicit Source bounds
+    // retain the selected Back's checked payload contract as a separate fact.
+    let selected = profile.contract(true).unwrap();
+    let selected_front = selected.checked_front();
+    assert_eq!(
+        authored
+            .front
+            .value_contract(&FrontValueLocation::Input(port_id("input"))),
+        selected_front.value_contract(&FrontValueLocation::Input(port_id("indices"))),
+    );
+    assert_eq!(
+        authored
+            .front
+            .value_contract(&FrontValueLocation::Output(port_id("output"))),
+        selected_front.value_contract(&FrontValueLocation::Output(port_id("scores"))),
+    );
     let hosts = [HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: "categorical-test".into(),
@@ -43,9 +63,7 @@ fn canonical_definition(
     }];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
-    let maximum = conduit_plot::maximum_prepared_canonical_value_bytes(profile.indices_type())
-        .unwrap()
-        .max(conduit_plot::maximum_prepared_canonical_value_bytes(profile.scores_type()).unwrap());
+    let maximum = input_max.max(output_max);
     let bounds = [
         (PortDirection::Input, "input"),
         (PortDirection::Output, "output"),
