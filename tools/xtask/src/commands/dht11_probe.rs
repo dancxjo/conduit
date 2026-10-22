@@ -74,6 +74,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     if arguments == ["display-esp32"]
         || arguments == ["pulse-esp32"]
         || arguments == ["capture-esp32"]
+        || arguments == ["live-esp32"]
+        || arguments == ["ap-esp32"]
     {
         let pulse = arguments == ["pulse-esp32"];
         let package = root.join(if pulse {
@@ -103,6 +105,10 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
             command.args(["--features", "host-call"]);
         } else if arguments == ["capture-esp32"] {
             command.args(["--features", "capture"]);
+        } else if arguments == ["ap-esp32"] {
+            command.args(["--features", "ap"]);
+        } else if arguments == ["live-esp32"] {
+            command.args(["--features", "live"]);
         }
         return execute(&mut command);
     }
@@ -347,7 +353,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, native-construction, network, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

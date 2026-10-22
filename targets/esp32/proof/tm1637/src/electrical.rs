@@ -26,6 +26,7 @@ impl<'a> DisplayPins<'a> {
             delay: Delay::new(),
         }
     }
+    #[cfg(not(feature = "ap"))]
     pub fn check_drive(&mut self) {
         self.clock.set_output_enable(true);
         self.data.set_output_enable(true);
@@ -38,6 +39,7 @@ impl<'a> DisplayPins<'a> {
         let released = self.levels();
         esp_println::println!("{{\"event\":\"display-electrical-check\",\"driven_clock_high\":{},\"driven_data_high\":{},\"released_clock_high\":{},\"released_data_high\":{},\"internal_pullups\":true}}",low.0,low.1,released.0,released.1);
     }
+    #[cfg(not(feature = "ap"))]
     pub fn levels(&self) -> (bool, bool) {
         (self.clock.is_high(), self.data.is_high())
     }

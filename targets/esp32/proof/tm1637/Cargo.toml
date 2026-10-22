@@ -5,8 +5,24 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
+ap = ["live", "dep:esp-radio", "dep:esp-rtos", "dep:embassy-executor", "dep:embassy-time", "dep:embassy-net", "dep:embassy-futures", "dep:static_cell", "dep:heapless", "dep:conduit-rp2040-network-realization"]
+live = ["capture", "dep:conduit-environment-runtime", "dep:conduit-environment-http", "dep:conduit-seven-segment-mask", "dep:conduit-face", "dep:esp-alloc"]
 capture = ["dep:conduit-esp32-pulse-capture", "dep:conduit-pulse-capture"]
 [dependencies]
+esp-radio = { version = "=0.18.0", features = ["wifi", "esp32", "unstable"], optional = true }
+esp-rtos = { version = "=0.3.0", features = ["embassy", "esp-radio", "esp32"], optional = true }
+embassy-executor = { version = "=0.10.0", optional = true }
+embassy-time = { version = "=0.5.1", optional = true }
+embassy-futures = { version = "0.1", optional = true }
+embassy-net = { version = "=0.9.1", features = ["medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }
+static_cell = { version = "2.1.1", optional = true }
+heapless = { version = "0.8", optional = true }
+conduit-rp2040-network-realization = { path = "../../../rp2040/network-realization", optional = true }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", features = ["source-capture"], optional = true }
+conduit-environment-http = { path = "../../../../bodies/environment/http", optional = true }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
+conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
+esp-alloc = { version = "=0.10.0", features = ["esp32"], optional = true }
 conduit-esp32-pulse-capture = { path = "../../pulse-capture", optional = true }
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", optional = true }
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }

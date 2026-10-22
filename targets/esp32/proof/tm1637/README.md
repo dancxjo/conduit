@@ -49,3 +49,32 @@ as evidence too; completeness is not sensor validity. The real Source decoder
 must validate checksum and range and publish explicit failure when appropriate.
 Radio coexistence, full appliance installation, AP/HTTP and a sensor-driven
 Fahrenheit Show remain integration work.
+
+## Live Source and AP integration bench
+
+`cargo xtask prove environment live-esp32` builds the Source capture-request,
+Source decoder, quantity Face, Fahrenheit Mask and Source packet encoder with
+the actual pins above and DHT11 DATA on GPIO27. Invalid frames render `----`.
+
+`cargo xtask prove environment ap-esp32` also builds the ESP32 radio, finite
+DHCP service and two bounded HTTP sockets. The attended network is the open
+`Conduit-Climate` AP, at `http://192.168.4.1/`, with JSON at `/reading`.
+The bench reuses the existing portable DHCP grammar and HTTP service from the
+RP2040 proof, without linking its HAL. Sensor and HTTP Looks share one Face.
+The current display hardware profile only admits the verified decimal point
+after digit two; other dots and colon remain unverified.
+
+These builds remain explicitly prebirth integration benches, with no Body,
+Wake, Plan or active Play identities. AP-to-station selection/fallback and
+recorder publication are not installed. Native Host Call admission, radio
+coexistence bounds and lifecycle installation still need their own proof.
+
+Physical AP integration on 22 October 2026: DHCP assigned the host an address;
+Ethernet stayed connected; both `/` and `/reading` returned HTTP 200. Successive
+JSON samples advanced sequence and Face revision, with 68.36°F and 52% RH.
+The same Face produced the acknowledged `68.4F` segment pattern. The finite
+capture loop is resident in RAM and observes release-high before clock
+bookkeeping; the earlier flash-resident loop consistently produced shifted
+checksum failures in this larger image. Raw failures remain retained evidence.
+The verified AP build and its cross-target Clippy check passed. This short test
+does not establish overnight endurance or native lifecycle admission.
