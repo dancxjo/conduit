@@ -1979,3 +1979,9 @@ Retained sync c9c775d0e preserves pending graph reading/selected Looks while tak
 Merged #6244 on dev24d8e4428; exact tested/merged trees match.13 unique focused graph/diagram CPU checks and freestanding native-compositor compilation pass. #5516’s three scoped criteria are checked and the issue is closed; #5994 step13 is updated. QEMU/cross-Mask/parent acceptance remains open. See patchbay-exact-graph-reading-20261022.md.
 
 Retained sync943ce816a preserves selected typography in the geometry-fit check and extracted draft preview, while taking the reviewed long-label/provenance test. All7 graph-reading checks pass after synchronization. Pending Look/typography code remains outside dev; no new QEMU/browser/physical proof or CI claim.
+
+## Cross-Mask correspondence delivered (22 October, #6246 / closed #5518)
+
+Merged #6246 on dev71312da7b; exact tested/merged trees match. Supported `cargo xtask make conduitos graph-correspondence` executes one opt-in three-variant native/Node-browser/linear conformance test and refuses zero-test success. Ten browser projection checks pass. #5518’s scoped criteria are checked and closed; #5994 step14 is updated. See patchbay-cross-mask-correspondence-20261022.md for the explicit description-versus-platform boundary.
+
+Retained branch merged without conflicts; the exact conformance case passes with pending selected typography present. CLI registrations are single and the fixture/oracle code matches delivered dev. #5519/QEMU, remaining Looks/accessibility and parent product acceptance remain open. CI deliberately skipped tonight.
