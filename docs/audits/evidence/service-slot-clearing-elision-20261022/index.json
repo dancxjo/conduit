@@ -179,6 +179,41 @@
       "raw_bytes": 46745,
       "raw_sha256": "e2b1fc94bda63305baeb8aa4776274caa6406402d8a5762758efa8fe996c4f05",
       "stored_sha256": "da5f95281f42b8a627c47a5436c9ecc9200f1dd5642c161ae51bc4af317685e8"
+    },
+    {
+      "source_path": "work/6183-normal-optimized-artifacts/x86_64/native-latency/1388508-1792689866071151005/manifest.json",
+      "stored": "normal-optimized-failure/manifest.json.gz",
+      "raw_bytes": 1894,
+      "raw_sha256": "62722faa35d28214ea5081fa554dfab4ea4e20680d66acd40cacb87720926b05",
+      "stored_sha256": "7f69a9ffd94754b93e00df02a0c53eba17e6df070fdff298a791e14002430f4f"
+    },
+    {
+      "source_path": "work/6183-normal-optimized-artifacts/x86_64/native-latency/1388508-1792689866071151005/trial-0/journey-serial.log",
+      "stored": "normal-optimized-failure/journey-serial.log.gz",
+      "raw_bytes": 422902,
+      "raw_sha256": "79d873d81c4561f0dfb8c23af703a29f372d319c9c215dc7f6a59c86e8faafcd",
+      "stored_sha256": "800ed77564aae8ed60649a41e91a65646884755a72fc2120864d1698eeb33d44"
+    },
+    {
+      "source_path": "work/6183-normal-optimized-artifacts/x86_64/native-latency/1388508-1792689866071151005/trial-0/journey-failure-registers.json",
+      "stored": "normal-optimized-failure/journey-failure-registers.json.gz",
+      "raw_bytes": 2173,
+      "raw_sha256": "789bb7d71dd080c464887f9e04d1e3cdf4e109b6ada0b5ab4e65ce0e3edf7343",
+      "stored_sha256": "b97c4154773a243273a4c75d4d5aa4496ea96376eb84e797811fbee75d3f6f2c"
+    },
+    {
+      "source_path": "work/6183-normal-optimized-artifacts/x86_64/native-latency/1388508-1792689866071151005/trial-0/journey-failure-stack.json",
+      "stored": "normal-optimized-failure/journey-failure-stack.json.gz",
+      "raw_bytes": 2071,
+      "raw_sha256": "44374e519b1dad848e5bfd35f630e775c8df3aa6b4ed316af76b8fe76e68c5ec",
+      "stored_sha256": "7378435d29ae20b3b389e7268485f234a6c6a9f4db0ea2f7ef804cd9d84804d8"
+    },
+    {
+      "source_path": "work/6183-normal-optimized-first.log",
+      "stored": "normal-optimized-failure/6183-normal-optimized-first.log.gz",
+      "raw_bytes": 24002,
+      "raw_sha256": "454bc10c691d79ec1c4e382f42a229360d3275802c6892fcb9d7a14539afeb3c",
+      "stored_sha256": "4aba8727f17abfb9d2b2200f1b211a0f74cae988b1d74a4162faf9370243f20b"
     }
   ],
   "conduitos_sha256": "edbfc5a764e6ac4baaa028d22a3b14efb8e2ad73cba0006ca0cbc8f5453b734c",
@@ -193,7 +228,16 @@
     "retry": false,
     "completed_timing_samples": 0
   },
-  "normal_optimized_result": "pending,one distinct-source run,not a baseline retry",
+  "normal_optimized_result": {
+    "source": "2f27e75265abb6ca45cd1ea0cc4d46a73f236be3",
+    "status": "failed",
+    "active_trial": 0,
+    "family": "work/6183-normal-optimized-artifacts/x86_64/native-latency/1388508-1792689866071151005",
+    "last_complete_startup_refusal": "CONDUIT_STARTUP_STAGE play refused native-body-kernel-boundary-refused",
+    "raw_bytes": 422902,
+    "retry": false,
+    "completed_timing_samples": 0
+  },
   "final_source_objects": {
     "targets/conduitos/src/arch/x86_64/service_memory.rs": {
       "git_blob": "ab1b7b0b0b92da960672f7c0a6bab3a92f06ca2a",
@@ -223,5 +267,6 @@
       "git_blob": "937e22ef06acaa85f75036934c57823c187ea554",
       "sha256": "23c749a8e9fba2106c879cbe6ac35a4226a836082447a7fc15f828fa8aa7f007"
     }
-  }
+  },
+  "normal_iterations": "stopped after one source-pinned attempt per arm; no completed timing samples or percentage gain"
 }
