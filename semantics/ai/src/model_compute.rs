@@ -201,7 +201,6 @@ impl ModelComputeLimits {
             || self.maximum_input_bytes == 0
             || self.maximum_output_bytes == 0
             || self.maximum_batch_items == 0
-            || self.maximum_rank == 0
             || self.maximum_in_flight != 1
             || self.maximum_queue_items == 0
             || self.maximum_queue_bytes < self.maximum_input_bytes
@@ -226,8 +225,7 @@ impl ModelComputeRequirement {
         {
             return Err(ModelComputeRefusal::UnsupportedElement);
         }
-        if self.rank == 0
-            || self.model_bytes == 0
+        if self.model_bytes == 0
             || self.working_memory_bytes == 0
             || self.input_bytes == 0
             || self.output_bytes == 0

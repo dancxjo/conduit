@@ -90,3 +90,24 @@ fn ir_and_opset_versions_are_positive_signed_integers() {
         );
     }
 }
+
+#[test]
+fn explicit_scalar_shape_differs_from_missing_shape_and_zero_dimension() {
+    let scalar = [
+        bytes(1, b"scalar"),
+        bytes(2, &bytes(1, &[number(1, 7), bytes(2, &[])].concat())),
+    ]
+    .concat();
+    let metadata = inspect(&model(&bytes(11, &scalar))).unwrap();
+    assert!(metadata.inputs.last().unwrap().dimensions.is_empty());
+    let unknown_tensor = number(1, 7);
+    let unknown = [bytes(1, b"unknown"), bytes(2, &bytes(1, &unknown_tensor))].concat();
+    assert_eq!(
+        inspect(&model(&bytes(11, &unknown))),
+        Err(OnnxMetadataRefusal::MissingField)
+    );
+    assert_eq!(
+        inspect(&model(&bytes(11, &port("zero", 7, number(1, 0))))),
+        Err(OnnxMetadataRefusal::InvalidDimension)
+    );
+}
