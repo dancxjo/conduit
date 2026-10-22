@@ -6,7 +6,14 @@ publish = false
 
 [workspace]
 
+[features]
+appliance = ["dep:conduit-time", "conduit-time/kernel-step"]
+construction = ["appliance", "dep:conduit-pulse-capture", "dep:conduit-planner"]
+
 [dependencies]
+conduit-planner = { path = "../../../architecture/planner", optional = true }
+conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture", default-features = false, features = ["plot-catalog"], optional = true }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel" }
 conduit-plot = { path = "../../../architecture/plot" }

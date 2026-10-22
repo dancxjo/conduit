@@ -247,3 +247,28 @@ bounded DHCP/HTTP buffers and prepares network storage before Play seals the
 allocator. It does not install new offers in the production Host construction
 profile, retain overnight history or realize the optional browser recorder Line.
 See the Pico proof README for exact bounds and proof limitations.
+
+## Authored appliance publication
+
+`profiles/appliance.conduit` connects the existing finite sampling Plot to four
+real typed publication kinds. The optional `construction` feature of the
+runtime crate checks and expands this Source without constructing a fake
+provider or advertising physical availability. Its resulting graph contains
+no fixture kinds. It is construction material, not an installed Host/Body or
+an executable Plan; actual ready offers, authority and resource admission are
+still required before Play.
+
+`PublicationBack` reserves its validator and two canonical buffers before Play.
+It retains one exact typed value per outcome, exposes no uncommitted value,
+refuses an exhausted event budget, and preserves the distinction between
+capture timeout, provider failure, geometry refusal and decoded sensor results.
+The ordinary kernel's read-only driver view supplies committed publications to
+the Face owner. No external mutable observer cell or second scheduler is needed.
+
+```sh
+cargo xtask prove environment publication
+```
+
+This checks Source expansion and publication commit, refusal, closure and
+cancellation behavior, including zero allocation in Play. Firmware installation,
+Body membership and the browser recorder remain separate integration work.

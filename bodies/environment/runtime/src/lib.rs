@@ -1,8 +1,13 @@
 #![no_std]
 //! Shared kernel Backs for the environmental Source composition.
 extern crate alloc;
+#[cfg(feature = "appliance")]
+pub mod appliance;
 pub mod assigned;
+#[cfg(feature = "construction")]
+pub mod construction;
 pub mod observation;
+pub mod publication;
 use alloc::{boxed::Box, string::String};
 use conduit_core::{PortTemporal, StructuredSelector};
 use conduit_kernel::{

@@ -111,6 +111,33 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         .map(String::as_str)
         .collect::<Vec<_>>()
         .as_slice()
+        == ["publication"]
+    {
+        return execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "bodies/environment/runtime/Cargo.toml",
+                    "--features",
+                    "construction",
+                    "--test",
+                    "publication",
+                    "--test",
+                    "construction",
+                    "--test",
+                    "appliance_kernel",
+                ])
+                .env("CARGO_TARGET_DIR", root.join("target")),
+        );
+    }
+    if arguments
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .as_slice()
         == ["kernel"]
     {
         execute(Command::new("cargo").current_dir(&root).args([
@@ -243,7 +270,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, mask, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, publication, mask, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
