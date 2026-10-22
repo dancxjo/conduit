@@ -9,6 +9,62 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "mechanisms/io/network-join/Cargo.toml",
+        lock: "mechanisms/io/network-join/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/esp32/network-switch/Cargo.toml",
+        lock: "targets/esp32/network-switch/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/esp32/proof/tm1637/Cargo.toml",
+        lock: "targets/esp32/proof/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/esp32/pulse-capture/Cargo.toml",
+        lock: "targets/esp32/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/face/Cargo.toml",
+        lock: "bodies/environment/face/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/http/Cargo.toml",
+        lock: "bodies/environment/http/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/make/Cargo.toml",
+        lock: "bodies/environment/make/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/runtime/Cargo.toml",
+        lock: "bodies/environment/runtime/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/pulse-capture/Cargo.toml",
+        lock: "mechanisms/io/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/tm1637/Cargo.toml",
+        lock: "mechanisms/io/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "plots/seven-segment-mask/Cargo.toml",
+        lock: "plots/seven-segment-mask/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/proof/dht11/Cargo.toml",
+        lock: "targets/rp2040/proof/dht11/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/pulse-capture/Cargo.toml",
+        lock: "targets/rp2040/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/tm1637/Cargo.toml",
+        lock: "targets/rp2040/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "proof/fixtures/native-speech-footprint/Cargo.toml",
         lock: "proof/fixtures/native-speech-footprint/Cargo.lock",
     },
@@ -167,7 +223,10 @@ mod tests {
                 Ok(())
             }
         });
-        assert_eq!(failures.len(), 4);
+        assert_eq!(failures.len(), 7);
+        for name in ["network-switch", "pulse-capture", "proof/tm1637"] {
+            assert!(failures.iter().any(|failure| failure.contains(name)));
+        }
         assert!(failures.iter().any(|failure| failure.contains("c3-signal")));
         assert!(failures.iter().any(|failure| failure.contains("s3-signal")));
         assert!(failures

@@ -1,4 +1,4 @@
-//! Finite TM1637 electrical transport, called by an admitted Host operation.
+//! Finite TM1637 electrical transport, called by an admitted Host Call.
 //! Command meaning and register mapping belong upstream, not in this driver.
 #![no_std]
 

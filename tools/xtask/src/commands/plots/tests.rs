@@ -459,4 +459,18 @@ fn workspace_catalog_preserves_memory_lantern_semantic_editor_requirement() {
         memory["source"],
         fs::read_to_string(root.join("plots/memory-lantern/main.conduit")).unwrap()
     );
+    let patchbay = catalog["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|plot| plot["slug"] == "patchbay")
+        .unwrap();
+    assert_eq!(
+        patchbay["required_kinds"],
+        serde_json::json!(["patchbay/accept-interaction"])
+    );
+    assert_eq!(
+        patchbay["source"],
+        fs::read_to_string(root.join("plots/patchbay/main.conduit")).unwrap()
+    );
 }

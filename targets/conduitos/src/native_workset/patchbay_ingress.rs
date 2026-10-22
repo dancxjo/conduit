@@ -69,9 +69,6 @@ pub(super) struct Ingress {
     pub checked_plot_id: conduit_core::CheckedPlotId,
     pub input: LoweredForePort,
     pub node: NodeId,
-    // Preparation already checks Plan identity; retain the witness only for tests.
-    #[cfg(test)]
-    pub plan_id: conduit_core::PlanId,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
@@ -213,8 +210,6 @@ pub(super) fn admit(
         checked_plot_id: plan.checked_plot_id.clone(),
         input: input.clone(),
         node: node.node,
-        #[cfg(test)]
-        plan_id: fragment.plan_id.clone(),
         host_id: fragment.host_id.clone(),
         boot_id: fragment.boot_id.clone(),
         offer_generation: fragment.offer_generation,

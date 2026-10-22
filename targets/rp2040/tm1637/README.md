@@ -9,7 +9,7 @@ The environmental bench selects GP3/GP4 and external bidirectional 3.3V/5V
 translation for the 5V display. The actual shifter is not yet identified.
 
 Timing uses the existing Embassy monotonic driver, with blocking 5 microsecond
-half-periods. This is a finite Host operation, not a scheduler. Interrupts may
+half-periods. This is a finite Host Call, not a scheduler. Interrupts may
 extend these periods; complete Host admission and physical timing measurements
 remain required. This crate is not installed in the production Host and has
 not been flashed or physically tested.

@@ -33,7 +33,9 @@ pub(super) fn read_and_validate_current(
         .arg("--json")
         .output()
         .map_err(|error| ConduitosError::refusal("native-todo-owner-face", error.to_string()))?;
-    if !output.status.success() || output.stdout.len() > 512 * 1024 {
+    // The local snapshot includes the current multi-Host membership inventory
+    // as well as Face. Bound that envelope separately from guest Face storage.
+    if !output.status.success() || output.stdout.len() > 2 * 1024 * 1024 {
         return Err(refusal("native-todo-owner-face-unavailable"));
     }
     let document: Value = serde_json::from_slice(&output.stdout)
