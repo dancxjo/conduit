@@ -419,6 +419,13 @@
       "dependencies": []
     },
     {
+      "role": "owner-face-look",
+      "kind": "style",
+      "path": "owner-face-look.css",
+      "maximum_bytes": 16384,
+      "dependencies": []
+    },
+    {
       "role": "browser-body-continuity",
       "kind": "module",
       "path": "browser-body-continuity.mjs",

@@ -23,9 +23,9 @@ async function workspaceResourceBytes(resource) {
   return bytes;
 }
 
-test("every shipped Workspace module fits its declared finite package bound", async () => {
+test("every shipped Workspace module and style fits its declared finite package bound", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
-  for (const resource of template.resources.filter(value => value.kind === "module")) {
+  for (const resource of template.resources.filter(value => ["module", "style"].includes(value.kind))) {
     const bytes = await workspaceResourceBytes(resource);
     assert.ok(bytes, `${resource.role}: shipped source must be located`);
     assert.ok(bytes.length > 0 && bytes.length <= resource.maximum_bytes,
@@ -65,7 +65,7 @@ test("Workspace admits its current storage module and still refuses an undersize
 test("Workspace packages the Body host and owner adapter dependency closure with exact byte custody", async () => {
   const template = JSON.parse(await readFile("targets/browser/workspace/workspace.application.template.json", "utf8"));
   assert.ok(template.resources.length <= 96);
-  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22437888);
+  assert.equal(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0), 22454272);
   assert.ok(template.resources.reduce((sum, resource) => sum + resource.maximum_bytes, 0) <= 32 * 1024 * 1024);
   const byRole = new Map(template.resources.map(resource => [resource.role, resource]));
   const included = new Set();
