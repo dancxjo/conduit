@@ -1,0 +1,140 @@
+{
+  "source_commit": "65869425ec2bc4b2a0f02d74d337c769a8e69ebd",
+  "source_blobs": {
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "9fa9b727708071ba06792c345d4a3a1f4887c015",
+    "targets/conduitos/src/arch/x86_64/domain_transition/entry_return.S": "0b479b2bf1f9506b96a15f220afb2d5999c53299"
+  },
+  "session": 10087,
+  "command": "cargo +stable xtask make conduitos ordinary-domain-proof --locked",
+  "result": "PASS",
+  "exit_code": 0,
+  "baseline_rows": 20,
+  "setup_records": 14,
+  "receipt_count": 5,
+  "assembly_parity": {
+    "object_byte_identical": true,
+    "object_sha256": "22d540cc74777472420f9481f38e895f67774f2b0c4a1d49484635c660133426",
+    "object_bytes": 4056,
+    "scope": "Actual global_asm fragments with exact selector constants; not full owning package or native runtime proof."
+  },
+  "artifacts": {
+    "conduitos": {
+      "bytes": 61445688,
+      "sha256": "8167ae701c32f61296c4f70322e59180235517ed33b1d9f940eb5e923d8d6b02"
+    },
+    "conduitos.iso": {
+      "bytes": 65712128,
+      "sha256": "93dad0890b59bbb79c12fd66e964a920ffc0cb9c115bbdc82372db34ad12676a"
+    },
+    "ordinary-domain-proof.log": {
+      "bytes": 38777,
+      "sha256": "7f9f3c2ce4cce5c8a4dfe448e692c506ac4ea78d5104c0dcb683762dff0c42a7"
+    }
+  },
+  "packet_files": [
+    {
+      "file": "6183-transition-native-first.log.gz",
+      "raw_bytes": 189011,
+      "raw_sha256": "164ccd9e22c99c9d483a7621b1ff0613fafb2ce911dec12125809788dbcba3d3",
+      "gzip_sha256": "e2fdec220695e1ada493ad0e5588e7b7ad3ab859fd3a70e42311cdc143f9775d"
+    },
+    {
+      "file": "ordinary-domain-proof.log.gz",
+      "raw_bytes": 38777,
+      "raw_sha256": "7f9f3c2ce4cce5c8a4dfe448e692c506ac4ea78d5104c0dcb683762dff0c42a7",
+      "gzip_sha256": "ba4657de8610d8f1d99ffc496ec535391d33a2e6b975ef82c7d8ec958ee952e9"
+    },
+    {
+      "file": "build.json.gz",
+      "raw_bytes": 335,
+      "raw_sha256": "17847bbe381d811a85db1579d10cc8414028af966e1e4364148c54ab8bb543fb",
+      "gzip_sha256": "276a1b10d7fcee029cf1dd14c276403bdeaef6edd21c72c229e5d31ed281d4aa"
+    },
+    {
+      "file": "image.json.gz",
+      "raw_bytes": 351,
+      "raw_sha256": "6f4ae77c412cd893aa99bab3110977ceb464ad5257b2a71f658a18c19bb52398",
+      "gzip_sha256": "0f9ead65c4617614cc52893e8c257b4aa94619ffdd5049982d7b4ff44af0c4ab"
+    },
+    {
+      "file": "compositor-copy-recovery-fixture-proof.json.gz",
+      "raw_bytes": 1630,
+      "raw_sha256": "214fd55f300c077af91950576a25294e5e4b787d6a777c28573ca1a6d9c02219",
+      "gzip_sha256": "37def13624007baec5dbda6ca1c98e6230ef7ba94e3d903c4ed4f979a491ab0d"
+    },
+    {
+      "file": "compositor-guest-fixture-proof.json.gz",
+      "raw_bytes": 1546,
+      "raw_sha256": "52ba05bf791e4751d9a120d60455ea44b62fa0bbf966bbd7ccb52f46536a9d6f",
+      "gzip_sha256": "b8060cab933d3c017f362fae844447ea0422bb22f0c109e2437a2511f9489eb5"
+    },
+    {
+      "file": "compositor-hostile-broker-fixture-proof.json.gz",
+      "raw_bytes": 2423,
+      "raw_sha256": "4ed3ba55ddb348fb3efe63e73f4dd3b32bde90155a85e8e4ef5d930db69e2dd0",
+      "gzip_sha256": "ae8c18ff0e00570fe2119b13f3b5ec8d03e3c4a6f9c26a287e26323d67791173"
+    },
+    {
+      "file": "service-baseline-proof.json.gz",
+      "raw_bytes": 13375,
+      "raw_sha256": "61dc6a70ab91ddd1e78a2e5fef2e2de3d635868ac338344c90cbfac82d98c130",
+      "gzip_sha256": "b1c10dbb58e285bb8cf166c7256b0bb214979c9852f2347efda5be5be4120aa5"
+    },
+    {
+      "file": "service-memory-fixture-proof.json.gz",
+      "raw_bytes": 1169,
+      "raw_sha256": "1659de9094e43f0f7430c83cb68136c50717d30accb714cd8a1d09c2f0dcbf66",
+      "gzip_sha256": "49688c47310c497f99ba8a320b24f333722cf7ab44797c6443f93748be4d6057"
+    },
+    {
+      "file": "source-manifest.json.gz",
+      "raw_bytes": 1460,
+      "raw_sha256": "00dfe0e20339c6a0458220caf8670abe1fc01cf8d638561fdd6f83a6f8a0e534",
+      "gzip_sha256": "9bd799ec48a0926b6f60a31dd46484481a8de56960436599eb1a67f184eee14c"
+    },
+    {
+      "file": "result.json.gz",
+      "raw_bytes": 269,
+      "raw_sha256": "965081a8a598d40b704b3db3ca68335bb950c4e11242e6f91204459dacde5c91",
+      "gzip_sha256": "956638fb183de93992acb011d9631d3def59a691408e4d15e951045734d609c6"
+    },
+    {
+      "file": "native-identity-verified.json.gz",
+      "raw_bytes": 659,
+      "raw_sha256": "a4988752fdf944ca1b7d84a35a784ad13c09ec963d5502cf4f4330621ba42707",
+      "gzip_sha256": "151e7de6dc8fe17c0b2d530db6d83a1ef25c38572370990e42bab4b25a85dcee"
+    },
+    {
+      "file": "original.o.gz",
+      "raw_bytes": 4056,
+      "raw_sha256": "22d540cc74777472420f9481f38e895f67774f2b0c4a1d49484635c660133426",
+      "gzip_sha256": "9b85dcab42df3e9ae42cad13fde2ff2c8879a1ca2b879446cc4c5cf0c4ba4f1a"
+    },
+    {
+      "file": "extracted.o.gz",
+      "raw_bytes": 4056,
+      "raw_sha256": "22d540cc74777472420f9481f38e895f67774f2b0c4a1d49484635c660133426",
+      "gzip_sha256": "9b85dcab42df3e9ae42cad13fde2ff2c8879a1ca2b879446cc4c5cf0c4ba4f1a"
+    },
+    {
+      "file": "original.rs.gz",
+      "raw_bytes": 7177,
+      "raw_sha256": "39b0033f4b19a939e8af84b27845837e2f0cc70f1fd7c384b783e1832581bea4",
+      "gzip_sha256": "390f1927c8853a0e59b3926574df373f1a577589a8baa09e9ed23f752b57c7d4"
+    },
+    {
+      "file": "extracted.rs.gz",
+      "raw_bytes": 275,
+      "raw_sha256": "7ff6648ec9d2267893566899e831c950adca4378dcacc71d1e691a59fabf1c91",
+      "gzip_sha256": "f06ba6b9da70bb36c7f798570bc106ef2de1b568131a791feece8eb328f1253c"
+    },
+    {
+      "file": "entry_return.S.gz",
+      "raw_bytes": 6927,
+      "raw_sha256": "b7399544137046a0a204c8ed0c6953bdd68b01371338cc97bddfee08925fb924",
+      "gzip_sha256": "952c9a5aaeeca9c66959d1d2ac8c06d7b89fec217bfe7d0d92c863c768528280"
+    }
+  ],
+  "scope": "Extraction-only preservation and actual supported x86_64 CPL3 fixture; no new CR3 attribution, calibrated timing, production confinement or normal journey speedup claim.",
+  "historical_metadata": "source-manifest configured_native_state=running is the preserved preflight snapshot; the terminal log and this manifest establish later PASS."
+}
