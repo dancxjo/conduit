@@ -37,34 +37,66 @@ fn rounded(layout: Layout) -> Option<usize> {
         .map(|n| n / UNIT)
         .filter(|&n| n <= UNITS)
 }
-unsafe fn occupied(index: usize) -> bool {
-    unsafe { ((BITMAP as *const u64).add(index / 64).read() & (1u64 << (index % 64))) != 0 }
+// Visit only the words intersecting [start, end), preserving neighboring bits.
+fn word_mask(start: usize, end: usize, word: usize) -> u64 {
+    let first = start.saturating_sub(word * 64);
+    let last = (end - word * 64).min(64);
+    (u64::MAX << first) & (u64::MAX >> (64 - last))
 }
-unsafe fn mark(start: usize, end: usize, used: bool) {
-    for index in start..end {
-        let pointer = unsafe { (BITMAP as *mut u64).add(index / 64) };
-        let mask = 1u64 << (index % 64);
-        let value = unsafe { pointer.read() };
-        unsafe {
-            pointer.write(if used { value | mask } else { value & !mask });
-        }
+// SAFETY: callers provide start <= end within the installed bitmap extent.
+unsafe fn mark_in(bitmap: *mut u64, start: usize, end: usize, used: bool) {
+    for word in start / 64..end.div_ceil(64) {
+        let mask = word_mask(start, end, word);
+        let pointer = unsafe { bitmap.add(word) };
+        // Fully covered words need no read of their old contents.
+        let value = if mask == u64::MAX {
+            0
+        } else {
+            unsafe { pointer.read() }
+        };
+        unsafe { pointer.write(if used { value | mask } else { value & !mask }) };
     }
 }
-unsafe fn find(mut index: usize, end: usize, needed: usize, alignment: usize) -> Option<usize> {
+unsafe fn mark(start: usize, end: usize, used: bool) {
+    unsafe { mark_in(BITMAP as *mut u64, start, end, used) }
+}
+// Return the first matching unit as a bit scan would, skipping opposite words.
+// SAFETY: callers provide start <= end within the installed bitmap extent.
+unsafe fn first_matching(
+    bitmap: *const u64,
+    start: usize,
+    end: usize,
+    used: bool,
+) -> Option<usize> {
+    for word in start / 64..end.div_ceil(64) {
+        let value = unsafe { bitmap.add(word).read() };
+        let occupied = (if used { value } else { !value }) & word_mask(start, end, word);
+        if occupied != 0 {
+            return Some(word * 64 + occupied.trailing_zeros() as usize);
+        }
+    }
+    None
+}
+unsafe fn find_in(
+    bitmap: *const u64,
+    mut index: usize,
+    end: usize,
+    needed: usize,
+    alignment: usize,
+) -> Option<usize> {
     while index.checked_add(needed).is_some_and(|n| n <= end) {
         let address = (HEAP_START + index * UNIT).checked_add(alignment - 1)? & !(alignment - 1);
         index = (address - HEAP_START) / UNIT;
         if index.checked_add(needed).is_none_or(|n| n > end) {
             return None;
         }
-        let mut cursor = index;
-        while cursor < index + needed && !unsafe { occupied(cursor) } {
-            cursor += 1;
+        match unsafe { first_matching(bitmap, index, index + needed, true) } {
+            None => return Some(index),
+            Some(cursor) => {
+                // No candidate starting inside this occupied run can fit.
+                index = unsafe { first_matching(bitmap, cursor + 1, end, false) }?;
+            }
         }
-        if cursor == index + needed {
-            return Some(index);
-        }
-        index = cursor + 1;
     }
     None
 }
@@ -85,8 +117,8 @@ unsafe impl GlobalAlloc for PrivateHeap {
             return capacity_failure();
         }
         let alignment = layout.align().max(UNIT);
-        let found = unsafe { find(cursor, UNITS, needed, alignment) }
-            .or_else(|| unsafe { find(0, cursor, needed, alignment) });
+        let found = unsafe { find_in(BITMAP as *const u64, cursor, UNITS, needed, alignment) }
+            .or_else(|| unsafe { find_in(BITMAP as *const u64, 0, cursor, needed, alignment) });
         let Some(index) = found else {
             return capacity_failure();
         };
@@ -111,6 +143,84 @@ unsafe impl GlobalAlloc for PrivateHeap {
             mark(index, index + needed, false);
             let cursor = (CURSOR as *const usize).read();
             (CURSOR as *mut usize).write(cursor.min(index));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn word_ranges_match_bit_reference_and_preserve_neighbors() {
+        for start in 0..193 {
+            for end in start..=193 {
+                for used in [false, true] {
+                    let mut words = [0xa55a_aa55_1234_fedc; 4];
+                    let mut expected = words;
+                    for index in start..end {
+                        let mask = 1 << (index % 64);
+                        if used {
+                            expected[index / 64] |= mask;
+                        } else {
+                            expected[index / 64] &= !mask;
+                        }
+                    }
+                    unsafe { mark_in(words.as_mut_ptr(), start, end, used) };
+                    assert_eq!(words, expected, "range {start}..{end} used={used}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn occupancy_scan_matches_fragmented_bit_reference() {
+        for words in [
+            [0; 4],
+            [u64::MAX; 4],
+            [0, 1, 1 << 63, 0],
+            [0xa55a_aa55_1234_fedc; 4],
+        ] {
+            for start in 0..256 {
+                for end in start..=256 {
+                    for used in [false, true] {
+                        let expected = (start..end)
+                            .find(|index| (words[index / 64] & (1 << (index % 64)) != 0) == used);
+                        assert_eq!(
+                            unsafe { first_matching(words.as_ptr(), start, end, used) },
+                            expected
+                        );
+                    }
+                }
+            }
+        }
+    }
+    #[test]
+    fn aligned_first_fit_matches_naive_fragmented_search() {
+        for words in [
+            [0; 4],
+            [u64::MAX; 4],
+            [u64::MAX, 0, u64::MAX, 0],
+            [0xa55a_aa55_1234_fedc; 4],
+        ] {
+            for start in [0, 1, 63, 64, 65, 127] {
+                for end in [128, 193, 256] {
+                    for needed in [1, 2, 31, 63, 64, 65, 129] {
+                        for alignment in [32, 64, 128, 4096] {
+                            let expected = (start..end).find(|&index| {
+                                (HEAP_START + index * UNIT).is_multiple_of(alignment)
+                                    && index + needed <= end
+                                    && (index..index + needed)
+                                        .all(|at| words[at / 64] & (1 << (at % 64)) == 0)
+                            });
+                            assert_eq!(
+                                unsafe { find_in(words.as_ptr(), start, end, needed, alignment) },
+                                expected
+                            );
+                        }
+                    }
+                }
+            }
         }
     }
 }

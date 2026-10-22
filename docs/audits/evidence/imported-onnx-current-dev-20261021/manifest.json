@@ -1,0 +1,38 @@
+{
+  "schema": "conduit.audit/imported-onnx-current-dev@1",
+  "executable_source": "c088803930be836335b3eeed14882cf32c0152fa",
+  "source_clean_for_suite": true,
+  "base_dev": "f3e582ce98ede25394a392de4ed06e0b6b086133",
+  "command": "cargo +stable xtask check model-inference",
+  "exit_code": 0,
+  "passed": 58,
+  "test_targets": 21,
+  "failed": 0,
+  "ignored": 0,
+  "raw_sha256": "1c0b51bf08bd012f184e86bf110c03b0d842a402007a3070f01abc8df2f16616",
+  "gzip_sha256": "6e5e956a4117e66478d53d6434ca00f9c9846b5e14a6f59b368b8314a0865ecc",
+  "environment": {
+    "CARGO_TARGET_DIR": "task-owned /tmp/conduit-bitmap-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "proof_class": "local-hosted-fixture-source-plan-play",
+  "not_established": [
+    "Candidate or Integration acceptance",
+    "merge or issue closure",
+    "actual ONNX Runtime execution",
+    "parent issue 5219 completion"
+  ],
+  "symbol_unit": {
+    "command": "cargo +stable test --locked -p conduit-std-host --lib hosted_model_infer::resource_custody::tests -- --nocapture",
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 880,
+    "raw_sha256": "16b6e75c5b7f2bb4c8f5635a5017b33879a0f0f77a92139eef85bdaec5f666d9",
+    "gzip_sha256": "42d838f7195a37cb7ae7a0a96ea45588453b3138fe637b4d97b5b390ac8073cb",
+    "note": "Executable source unchanged; only new suite evidence was untracked during unit run."
+  }
+}
