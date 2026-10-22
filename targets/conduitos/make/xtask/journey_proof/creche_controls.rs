@@ -8,6 +8,7 @@ use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod custody;
 mod evidence;
+mod input_refusal;
 mod navigation;
 mod recipe_selection;
 use evidence::*;
@@ -86,6 +87,7 @@ pub(super) fn exercise(
     run.press(&["f2"])?;
     let details = run.pages(&initial, "details")?;
     run.press(&["f2"])?;
+    let incomplete_refusal = run.incomplete_argument_refusal()?;
     let probe_name_change = run.rename(&name, "creche-controls-probe-name")?;
     let baseline = snapshot(&text(run.serial)?)?;
     if retained_selection(&initial.face) != retained_selection(&baseline.face)
@@ -144,7 +146,7 @@ pub(super) fn exercise(
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
         }),
         json!({
-            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
+            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"incomplete_argument_refusal":incomplete_refusal,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
             "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
         }),
         json!({

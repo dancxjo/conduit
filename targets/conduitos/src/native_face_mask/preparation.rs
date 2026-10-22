@@ -213,6 +213,7 @@ impl NativeFaceMask {
             display_base_id,
             surface_id: surface_id.into(),
             scene: None,
+            input_refusal: None,
             session: None,
             publication: None,
             surface_admitted: false,

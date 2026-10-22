@@ -94,6 +94,7 @@ pub struct NativeFaceMask {
     display_base_id: HostBaseId,
     surface_id: String,
     scene: Option<NativeFaceScene>,
+    input_refusal: Option<FaceSceneError>,
     session: Option<NativeMaskInteractionSession>,
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
@@ -322,6 +323,7 @@ impl NativeFaceMask {
         display: &mut impl PixelTarget,
         interaction_admitted: bool,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        self.input_refusal = None;
         let format = display.format().validate().map_err(|error| {
             NativeFaceMaskError::Compositor(
                 crate::native_compositor::NativeCompositorError::Display(error),
