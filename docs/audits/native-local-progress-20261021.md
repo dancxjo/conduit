@@ -1661,3 +1661,53 @@ Source, and retire its real legacy adapter consumers. The installed Source is
 still `native-retained.conduit`; its replacement is deliberately not claimed
 from these prepared paths. No new CI jobs, image/ZIP publication or platform
 proof campaign was requested.
+
+### 2026-10-22: installed native canonical Patchbay and ordinary Source editing
+
+ConduitOS now selects the same canonical `plots/patchbay/main.conduit` Source as
+the browser. Its actual resident Fore is planned, lowered and installed in the
+existing Body kernel. Ordinary ProductJourney/FrontDoor observes the selected
+retained actor's immutable fragment; Body membership owns resident declarations,
+and native lifecycle actions remain source-owned alongside the Patchbay actions.
+The ordinary admitted native Mask now automatically presents this surface.
+Typed Mask submissions return through the actual resident Cord and owner Host
+Call. Edit requests use the existing one-use authorization and real admitted
+resident text editor; they preserve Body, BodyPlan and active Play identity.
+Pending owner-request pressure disables further offered Patchbay actions.
+
+The old event/view Source is now explicitly `fixtures/legacy-retained.conduit`
+with its remaining browser regression callers named as fixtures. Installed
+browser/native Patchbay do not select it. Generic retained-application support
+for unrelated supported Sources remains. Native canonical preparation refuses
+legacy events and creates no legacy view snapshot for the canonical slot.
+The installed four-Plot workset now lowers to ten nodes and eight Cords (seven
+internal connections plus its canonical Fore Cord), within unchanged bounds.
+
+Canonical Face now retains all prior inspected Mask-stage facts as typed
+properties: implementation, manifestation identifier, Host/Boot, resource pool
+and class, reserved units, finite capacities and availability. Available stage
+metadata is not an acknowledged Show or a resource-possession claim. Existing
+Mask replanning and stale-request refusals exercise this canonical meaning.
+
+Focused CPU results: all fifteen Patchbay-matching native tests pass, including
+ordinary graph/Mask presentation, typed Edit into the actual Source editor,
+consumed-Show replay refusal, Source authorization/draft preservation, exact
+previous Plot/Plan observation, and graphical/speech Mask replanning. The two
+specific native workset/input-count contracts also pass. After merging current
+dev d72396eff (#6228), the installed typed-Edit path passes again. The focused
+pending-request/draft test passes after the final pressure fix. Freestanding
+x86_64 native-compositor compilation passes; no new QEMU/browser/CI campaign,
+image/ZIP publication or stable acceptance is claimed.
+
+Negative evidence: enabling the Face scheduler profile exposed hosted debug
+constructor overflow on the default test-thread stack. GDB identified
+`FixedScheduler::new_with_active_counts_and_host_calls` under the Face profile.
+Hosted test preparation now uses the same explicit 8 MiB bounded constructor
+fixture stack as runtime-core's existing Face tests, returning a boxed scheduler.
+This is test-only; native stacks were not enlarged and native peak stack/heap fit
+remain unproven. A richer BodyFace test projection also met the native producer
+capacity refusal; regression helpers now use the actual ordinary FrontDoor Face
+rather than claiming an alternate projection is installed. No bound or validator
+was weakened. Editor Source remains limited to its admitted 256 bytes, and the
+existing receipt still truthfully reports selection_enacted=false. Save/reopen,
+real-QEMU/protected-service execution and parent acceptance remain separate gaps.
