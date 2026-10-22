@@ -92,3 +92,20 @@ impl UsbLinkSession {
         Ok(())
     }
 }
+
+/// An absent or failed optional USB control base must not consume the finite
+/// sensor kernel's decision budget. Keep waiting inside this future; Root races
+/// it against the admitted sampling timer and can cancel it at that deadline.
+#[cfg(feature = "http-ap")]
+pub async fn wait_for_attached_control(link: &mut UsbLinkSession) {
+    loop {
+        link.wait_connection().await;
+        while !link.class.dtr() {
+            embassy_time::Timer::after(Duration::from_millis(25)).await;
+        }
+        match crate::bootsel::wait_for_request(link).await {
+            Ok(()) => return,
+            Err(_) => embassy_time::Timer::after(Duration::from_millis(25)).await,
+        }
+    }
+}

@@ -369,7 +369,7 @@ pub async fn run(
                     {
                         let _ = embassy_futures::select::select(
                             Timer::at(deadline),
-                            crate::bootsel::wait_for_request(link),
+                            crate::usb_link::wait_for_attached_control(link),
                         )
                         .await;
                     }
