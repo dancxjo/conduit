@@ -279,13 +279,24 @@ mod tests {
                 &startup,
             )
             .unwrap();
-            let cold =
-                conduit_plot::expand_canonical_plot_for_authoring(&checked, plot.name(), &profile)
-                    .unwrap();
+            let closed = conduit_plot::expand_canonical_plot(&checked, plot.name(), &profile);
+            let cold = conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+                &checked,
+                plot.name(),
+                &profile,
+                &CanonicalBackCatalog::new(),
+            )
+            .unwrap();
+            assert!(cold.output_bindings.is_empty());
+            if plot == NativePlot::Patchbay {
+                assert_eq!(closed.unwrap_err().code, "CND-FRM-033");
+                assert_eq!(cold.input_bindings.len(), 1);
+            } else {
+                assert_eq!(closed.unwrap(), cold.expanded);
+                assert!(cold.input_bindings.is_empty());
+            }
             let first = prepared.expanded(plot).unwrap();
             let second = prepared.expanded(plot).unwrap();
-            // Compare the full cold meaning, including Patchbay's admitted
-            // resident return Fore, rather than imposing a closed root.
             assert_eq!(*first, cold);
             assert!(Arc::ptr_eq(&first, &second));
         }

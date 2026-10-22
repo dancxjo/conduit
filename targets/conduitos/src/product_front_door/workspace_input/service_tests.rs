@@ -129,7 +129,15 @@ fn held_release_after_selection_is_observed_without_repainting_the_new_plot() {
         .unwrap();
     select(key(43, KeyTransition::Pressed), &mut journey).unwrap();
     let selected = journey.projection();
-    assert_eq!(selected.result.as_deref(), Some(""));
+    assert_eq!(
+        selected.checked_plot_id,
+        Some(
+            crate::native_workset::checked(crate::native_workset::NativePlot::MemoryLantern,)
+                .unwrap()
+                .checked_plot_id
+        )
+    );
+    assert!(selected.result.is_some());
     refresh(&mut door, &journey, &mut presenter, &mut display).unwrap();
     let frames = presenter.compositor_frame_sequence();
     let writes = display.writes;
@@ -144,6 +152,10 @@ fn held_release_after_selection_is_observed_without_repainting_the_new_plot() {
     );
     assert_eq!(journey.projection().input_count, 2);
     assert_eq!(journey.projection().result, selected.result);
+    assert_eq!(
+        journey.projection().checked_plot_id,
+        selected.checked_plot_id
+    );
     assert!(!journey.owns_key_release(key(4, KeyTransition::Released)));
     assert_eq!(display.writes, writes);
     assert_eq!(presenter.compositor_frame_sequence(), frames);

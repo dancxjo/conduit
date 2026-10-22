@@ -309,9 +309,48 @@ fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() 
     let interaction =
         execution::exact_boundary(&lowered.fore_ports, "interaction", PortDirection::Output)
             .unwrap();
-    // Valid JSON whitespace preserves this exact Face while making a single
-    // payload occupy more than half the actual sealed queue byte capacity.
-    // Pressure then precedes value-slot exhaustion without changing either grant.
+    let mut scheduler = execution::mask_scheduler(fragment, &lowered).unwrap();
+    assert_eq!(
+        scheduler
+            .admit_remote_input(input.endpoint, input.cord, 0, &original)
+            .unwrap(),
+        RemoteIngressOutcome::Accepted { sequence: 0 }
+    );
+    // Repeated Faces are distinct stored values. The real one-Face/Show/
+    // interaction lifecycle admits three values, so storage pressure can precede
+    // Cord pressure. Keep that refusal distinct and prove the retry has no effect.
+    let mut pressured_sequence = None;
+    for sequence in 1..=u64::from(input.item_capacity) {
+        match scheduler.admit_remote_input(input.endpoint, input.cord, sequence, &original) {
+            Ok(RemoteIngressOutcome::Accepted { sequence: actual }) => assert_eq!(actual, sequence),
+            Err(conduit_kernel::scheduler::SchedulerError::Storage(
+                conduit_kernel::StorageError::ItemCapacityExceeded,
+            )) => {
+                pressured_sequence = Some(sequence);
+                break;
+            }
+            result => panic!("expected admitted Face or explicit value pressure: {result:?}"),
+        }
+    }
+    let sequence = pressured_sequence.expect("finite Mask values must apply storage pressure");
+    assert!(sequence < u64::from(input.item_capacity));
+    assert!(matches!(
+        scheduler.admit_remote_input(input.endpoint, input.cord, sequence, &original),
+        Err(conduit_kernel::scheduler::SchedulerError::Storage(
+            conduit_kernel::StorageError::ItemCapacityExceeded
+        ))
+    ));
+    assert!(scheduler.next_host_request().is_none());
+    for boundary in [output, interaction] {
+        assert!(scheduler
+            .remote_egress_offer(boundary.endpoint, boundary.cord)
+            .unwrap()
+            .is_none());
+    }
+    drop(scheduler);
+    // Cancellation is a separate actual lifecycle. Valid JSON padding makes
+    // its one Face reach Cord byte pressure before exhausting value slots.
+    // Neither the production three-value grant nor the Fore limit changes.
     let mut pressured_face = original.clone();
     let pressure_bytes = original.len().max(input.byte_capacity as usize / 2 + 1);
     pressured_face.resize(pressure_bytes, b' ');
@@ -329,28 +368,14 @@ fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() 
             .unwrap(),
         RemoteIngressOutcome::Accepted { sequence: 0 }
     );
-    // Fill the actual planned Fore byte capacity; retain its four-item limit.
-    let mut pressured_sequence = None;
-    for sequence in 1..=64 {
-        match scheduler
-            .admit_remote_input(input.endpoint, input.cord, sequence, &pressured_face)
-            .unwrap()
-        {
-            RemoteIngressOutcome::Accepted { sequence: actual } => assert_eq!(actual, sequence),
-            RemoteIngressOutcome::Full { sequence: actual } => {
-                assert_eq!(actual, sequence);
-                pressured_sequence = Some(sequence);
-                break;
-            }
-        }
+    for _ in 0..2 {
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, 1, &pressured_face)
+                .unwrap(),
+            RemoteIngressOutcome::Full { sequence: 1 }
+        );
     }
-    let sequence = pressured_sequence.expect("finite planned Face queue must apply pressure");
-    assert_eq!(
-        scheduler
-            .admit_remote_input(input.endpoint, input.cord, sequence, &pressured_face)
-            .unwrap(),
-        RemoteIngressOutcome::Full { sequence }
-    );
     scheduler
         .close_remote_input(input.endpoint, input.cord)
         .unwrap();
