@@ -1937,3 +1937,19 @@ is byte-identical to dev, so no redundant profile tests were rerun. The hosted
 8 MiB debug fixture stack does not establish native stack/peak fit or actual
 protected-service execution. CI was deliberately skipped; #6201/#5994 stay open
 for exact Root custody and retained-owner publication/consume integration.
+
+### 2026-10-22: retained native owner publication reaches dev
+
+PR6239 delivered application-core publication/query/consume support at deve547a39c9;
+its tree equals locally testedc53f1fef7. Four canonical/transport cases and the
+actual bitmap private-heap executable pass, plus owning all-target/freestanding
+x86_64 checks and formatting. The dedicated audit preserves fixture boundaries:
+canonical peak1909952 versus2072576 heap bytes, separate large Graph peak2042464,
+and30112 combined rounded-live headroom do not prove general/simultaneous native
+fit, native stack or actual acknowledgement/protected-service execution.
+
+This branch includes delivered dev without conflicts. Its application-core
+subtree is byte-identical to dev, so no redundant allocator checks were rerun.
+CI was deliberately skipped; Root's independent custody and admitted caller path
+remain to be delivered under #6201/#5994. No production Source switch or platform
+campaign is claimed by this preparation checkpoint.
