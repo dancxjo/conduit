@@ -17,6 +17,14 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
     if arguments == ["network"] {
+        execute(Command::new("cargo").current_dir(&root).args([
+            "test",
+            "--locked",
+            "-p",
+            "conduit-net",
+            "--test",
+            "station_attempt",
+        ]))?;
         for (manifest, test) in [
             ("bodies/environment/http/Cargo.toml", "network_setup_tests"),
             ("bodies/environment/make/Cargo.toml", "network_setup"),

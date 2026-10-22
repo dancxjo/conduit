@@ -171,6 +171,8 @@ mod websocket_transport;
 #[cfg(feature = "wifi-bootstrap")]
 mod wifi_join;
 #[cfg(feature = "wifi-bootstrap")]
+mod network_station;
+#[cfg(feature = "wifi-bootstrap")]
 mod wifi_recovery;
 #[cfg(feature = "wifi-bootstrap")]
 mod wifi_session;

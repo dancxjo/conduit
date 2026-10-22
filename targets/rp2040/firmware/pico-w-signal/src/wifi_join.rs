@@ -189,28 +189,28 @@ impl JoinKernel {
                     credential.fill(0);
                     return Err(UsbLinkError::NetworkJoinFailed);
                 }
-                crate::panic_recovery::set_phase(crate::panic_recovery::PanicPhase::NetworkJoin);
-                let join_result = with_timeout(
+                let join_result = crate::network_station::join_and_configure(
+                    control,
+                    stack,
+                    ssid.as_str(),
+                    &credential[..credential_len],
                     JOIN_TIMEOUT,
-                    control.join(
-                        ssid.as_str(),
-                        cyw43::JoinOptions::new(&credential[..credential_len]),
-                    ),
                 )
                 .await;
                 ssid.clear();
                 credential.fill(0);
-                match join_result {
-                    Ok(Ok(())) => {}
-                    Ok(Err(_)) => return Err(UsbLinkError::NetworkJoinFailed),
-                    Err(_) => return Err(UsbLinkError::NetworkJoinTimeout),
+                if let Err(failure) = join_result {
+                    use conduit_net::{StationFailure, StationPhase};
+                    return Err(match (failure.phase, failure.reason) {
+                        (StationPhase::Associate, StationFailure::Deadline) => {
+                            UsbLinkError::NetworkJoinTimeout
+                        }
+                        (StationPhase::ConfigureAddress, StationFailure::Deadline) => {
+                            UsbLinkError::NetworkConfigurationTimeout
+                        }
+                        _ => UsbLinkError::NetworkJoinFailed,
+                    });
                 }
-                crate::panic_recovery::set_phase(
-                    crate::panic_recovery::PanicPhase::NetworkConfiguration,
-                );
-                with_timeout(JOIN_TIMEOUT, stack.wait_config_up())
-                    .await
-                    .map_err(|_| UsbLinkError::NetworkConfigurationTimeout)?;
                 crate::panic_recovery::set_phase(
                     crate::panic_recovery::PanicPhase::KernelCompletion,
                 );

@@ -342,3 +342,30 @@ The mailbox grants no authority. Root must plan and admit the existing network
 operations against its actual initialized radio and current Boot, bound both
 association and address configuration, and restore the AP on failure or link
 loss. Those physical transition and browser interactions remain integration work.
+
+
+The portable `conduit-net` contract now supplies finite station-attempt
+mechanics for an already admitted Host Call. Root provides the physical service,
+one deadline spanning AP withdrawal, association and address configuration, and
+a separate restoration deadline. Every failed or expired phase makes one cleanup
+attempt; readiness is reported only after that succeeds. Cleanup failure remains
+an explicit unavailable outcome. The mechanics select no credentials, authority,
+implementation, retry policy or Plan. Their deterministic tests model future
+cancellation and stage ordering; they are not physical timeout evidence.
+
+The existing `pico-w-signal` network/join Host Call now uses the same station
+mechanics with one 30-second deadline shared by association and DHCP. It keeps
+its existing selected request, attachment identity checks and error meanings.
+This integrates the shared deadline into a real target execution path, but does
+not yet install the environmental AP-switch service. That service still needs
+its physical AP withdrawal/restoration operations and link-loss supervision.
+
+
+The active hardware target is now the user's HW-463 ESP-WROOM-32 board. The
+selected attachment is DHT11 DATA → GPIO27 (D27), TM1637 CLK → GPIO18 (D18),
+and TM1637 DIO → GPIO19 (D19), with both modules supplied from the development
+board's labelled 3V3 and GND pins. The expansion board's VCC rail is not assumed
+to be 3.3 V. These are new physical binding requests, not reused Pico pin numbers
+or proof of initialized ESP32 providers. The sensor Source, quantities, Face,
+Mask and network request contracts remain portable. The old Pico firmware and
+physical receipts remain evidence for that target only.
