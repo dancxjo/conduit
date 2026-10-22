@@ -8,6 +8,7 @@ mod creche_pointer;
 mod face_correspondence;
 mod face_input;
 mod failure_stack;
+mod graph_reading;
 mod keyboard_domain;
 mod look_selection;
 mod timing_interactions;
@@ -299,7 +300,6 @@ fn execute_with_viewport(
         // Canonical Patchbay enters its checked Face as part of selection.
         face_correspondence::current_patchbay_show(
             &fs::read_to_string(&serial_path).map_err(io_error)?,
-            &latest_workspace_view(&serial_path)?,
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
@@ -311,41 +311,13 @@ fn execute_with_viewport(
                 &mut artifacts,
             )?;
         }
-        let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
-        journey_input::key_pair(&mut qmp, &mut reader, "f3", "journey-open-diagram")?;
-        hid_qmp::wait_for_stage_count(
+        graph_reading::exercise(
             &serial_path,
             &mut child,
-            "CONDUIT_WORKSPACE_VIEW ",
-            before + 1,
-            "journey-diagram-timeout",
+            &mut qmp,
+            &mut reader,
+            &mut artifacts,
         )?;
-        artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
-
-        let inspected_view = latest_workspace_view(&serial_path)?;
-        for (key, frame) in [
-            ("1", "patchbay-gear-details"),
-            ("f3", "patchbay-diagram-returned"),
-        ] {
-            let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
-            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-gear-inspection")?;
-            hid_qmp::wait_for_stage_count(
-                &serial_path,
-                &mut child,
-                "CONDUIT_WORKSPACE_VIEW ",
-                before + 1,
-                "journey-gear-inspection-timeout",
-            )?;
-            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
-            let current = latest_workspace_view(&serial_path)?;
-            for field in ["face_id", "body_id", "view_sha256", "status"] {
-                if inspected_view[field].as_str().is_none()
-                    || current[field] != inspected_view[field]
-                {
-                    return Err(refusal(format!("Gear inspection changed owner {field}")));
-                }
-            }
-        }
 
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;

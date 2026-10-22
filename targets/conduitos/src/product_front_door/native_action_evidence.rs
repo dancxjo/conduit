@@ -212,7 +212,6 @@ pub(super) fn reading(
     usage: u8,
     previous_page: usize,
 ) -> Result<(), &'static str> {
-    #[cfg(feature = "native-latency-observation")]
     {
         let scene = mask.scene().ok_or("reading-observation-scene-absent")?;
         let show = mask.show().ok_or("reading-observation-show-absent")?;
@@ -221,6 +220,8 @@ pub(super) fn reading(
             &json!({
                 "schema":"conduit.native-reading/v1", "usage":usage,
                 "previous_page":previous_page,"page":scene.page(),"pages":scene.pages(),
+                "diagram":scene.showing_diagram(),"details":scene.showing_details(),
+                "graph_focus":scene.graph_navigation().and_then(|(_, cursor)| cursor.focus.as_deref()),
                 "face_id":show.face_id,"face_revision":show.face_revision,
                 "show_id":show.show_id,"manifestation_id":show.show.manifestation_id,
                 "host_id":show.show.host_id,"boot_id":show.show.boot_id,
@@ -228,8 +229,6 @@ pub(super) fn reading(
             }),
         )?;
     }
-    #[cfg(not(feature = "native-latency-observation"))]
-    let _ = (mask, usage, previous_page);
     Ok(())
 }
 

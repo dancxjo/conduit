@@ -14,24 +14,33 @@ const BIRTH_PREFIX: &str = "CONDUIT_NATIVE_BIRTH ";
 mod birth_evidence;
 const MAX_RECORDS: usize = 256;
 
-pub(super) fn current_patchbay_show(serial: &str, workspace: &Value) -> Result<(), ConduitosError> {
+pub(super) fn current_patchbay_show(serial: &str) -> Result<Value, ConduitosError> {
     let emitted = records(serial, FACE_PREFIX)?;
     let record = emitted
         .last()
         .ok_or_else(|| refusal("missing current Patchbay Face"))?;
     let face: Face =
         serde_json::from_value(record["face"].clone()).map_err(|e| refusal(e.to_string()))?;
-    let show: conduit_face::MaskShow =
-        serde_json::from_value(record["show"].clone()).map_err(|e| refusal(e.to_string()))?;
     face.validate().map_err(|e| refusal(e.to_string()))?;
-    show.validate(&face).map_err(|e| refusal(e.to_string()))?;
-    if workspace["application"] != "patchbay"
-        || workspace["face_id"] != json!(face.identity)
-        || show.lifecycle != conduit_face::ManifestationLifecycle::Available
+    let journey = super::journey_records::decode(serial)?
+        .pop()
+        .ok_or_else(|| refusal("missing current journey"))?;
+    let expected =
+        conduitos::native_workset::resident(conduitos::native_workset::NativePlot::Patchbay)
+            .map_err(|e| refusal(e.as_str()))?;
+    let show = &record["show"];
+    if journey["checked_plot_id"] != expected.checked_plot_id.as_str()
+        || journey["face_id"] != json!(face.identity)
+        || show["face_id"] != json!(face.identity)
+        || show["face_revision"] != face.revision
+        || show["lifecycle"] != "Available"
+        || show["host_id"] != journey["host_id"]
+        || show["boot_id"] != journey["boot_id"]
     {
         return Err(refusal("Patchbay lacks its current available Face Show"));
     }
-    validate_receipt_order(serial)
+    validate_receipt_order(serial)?;
+    Ok(record.clone())
 }
 
 pub(super) fn records(serial: &str, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
