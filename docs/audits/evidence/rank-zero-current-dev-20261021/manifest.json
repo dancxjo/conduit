@@ -41,10 +41,30 @@
       "exit_code": 1,
       "raw_sha256": "e3ad16f29c5bc4bbdd949788be48b49e66348f244f8b8d7262a0475c78426951",
       "gzip_sha256": "aa2f3cf24ce9ed7fbfc14ed6b08b0d893f52caa46cb6fde497aaa48e8c02ff4c"
+    },
+    {
+      "file": "refusal-clippy.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "d23f695f93f7eaea256ade2243e2943fa234e72b09ef953bebe5d3cf64599fbd",
+      "gzip_sha256": "96caad473bff00c6aed4743fca4bf86ff109b0aa7bf8c42a08cce8d6dffe1b29"
+    },
+    {
+      "file": "refusal-tests.log.gz",
+      "exit_code": 0,
+      "raw_sha256": "ef18a7749879e313db43b82198cc47802d99799742f2977e668494c09f2f14d4",
+      "gzip_sha256": "c3d5f86aefa891cbbeb887eda76e8fa3c1eae64a68b055f7dd4a969e3b00c232"
     }
   ],
   "negative_notes": [
     "Initial new scalar-only offer test attempted private requirement.validate; corrected to public offer.admits before passing suite.",
     "Sibling-worktree shared Cargo cache retained prerequisite tensor objects across relative dep paths; package-native clean of conduit-data/conduit-ai/conduit-std-host forced rebuild. Actual clean-source suite then passed without product changes."
-  ]
+  ],
+  "module_wiring_followup": {
+    "clippy_source": "6078f6142",
+    "refusal_tests_source": "2caa2e436",
+    "clippy": "cargo +stable clippy --locked -p conduit-std-host --test model_infer_imported_refusals -- -D warnings",
+    "clippy_exit_code": 0,
+    "refusal_tests_passed": 2,
+    "note": "Changes after full suite share one fixture profile module and format its import; no production behavior changes. Whole workspace formatting and diff checks pass."
+  }
 }
