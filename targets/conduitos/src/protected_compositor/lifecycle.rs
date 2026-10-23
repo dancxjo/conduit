@@ -140,3 +140,7 @@ mod tests {
         assert_eq!(observed.disposal, None);
     }
 }
+
+#[cfg(feature = "native-compositor")]
+#[path = "lifecycle_sign.rs"]
+pub(crate) mod sign;
