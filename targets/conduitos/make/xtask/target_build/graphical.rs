@@ -32,6 +32,7 @@ impl Capture {
         root: &std::path::Path,
         firmware: &std::path::Path,
         image: &std::path::Path,
+        image_source_identity: &str,
     ) -> Result<(), ConduitosError> {
         let executable = std::env::var_os("PATH")
             .and_then(|path| {
@@ -55,7 +56,13 @@ impl Capture {
         if !dirty.status.success() {
             return Err(refuse("source status unavailable"));
         }
-        let launch = json!({"source_commit":super::super::report::git_head(root)?,
+        if !dirty.stdout.is_empty() {
+            return Err(ConduitosError::refusal(
+                "firmware-frame-source-dirty",
+                "commit or preserve source changes before retained graphical proof",
+            ));
+        }
+        let launch = json!({"image_source_identity":image_source_identity,"source_commit":super::super::report::git_head(root)?,
             "source_dirty":!dirty.stdout.is_empty(),
             "program":executable,"arguments":command.get_args().map(|arg|
                 arg.to_string_lossy().into_owned()).collect::<Vec<_>>(),

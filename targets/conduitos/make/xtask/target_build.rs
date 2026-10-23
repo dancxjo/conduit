@@ -241,7 +241,13 @@ fn boot_aarch64_product(
         command
             .args(["-device", "ramfb", "-qmp"])
             .arg(capture.endpoint());
-        capture.record_launch(&command, &paths.root, &firmware, image)?;
+        capture.record_launch(
+            &command,
+            &paths.root,
+            &firmware,
+            image,
+            &manifest.source_identity,
+        )?;
     }
     let stderr = if let Some(capture) = &capture {
         Stdio::from(fs::File::create(capture.stderr_path()).map_err(|error| {
