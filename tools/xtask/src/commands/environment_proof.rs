@@ -71,7 +71,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         );
     }
     if arguments == ["recording"] {
-        return execute(
+        execute(
             Command::new("cargo")
                 .current_dir(&root)
                 .args([
@@ -87,6 +87,19 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "recording_publication",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target/environment-runtime")),
+        )?;
+        return execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "bodies/environment/make/Cargo.toml",
+                    "--test",
+                    "recording_recovery",
+                ])
+                .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
     if arguments == ["display-esp32"]

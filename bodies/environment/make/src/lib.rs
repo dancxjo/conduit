@@ -3,6 +3,10 @@
 //! The result is construction material; Root must still authenticate it, admit
 //! current possession and storage, and advance the real Body/Wake before Play.
 extern crate alloc;
+mod recording_recovery;
+pub use recording_recovery::{
+    PreparedRecordingRecovery, RecordingPlanningRefusal, RecordingRecoverySource,
+};
 mod software_recipe;
 pub use software_recipe::{NativeSoftwareRecipe, SoftwareRecipeRefusal};
 mod execution;

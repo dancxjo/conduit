@@ -26,6 +26,21 @@ Body/Play or authorize storage.
 
 ## Exact storage access
 
+The authored `recovery.conduit` composes one generation Value, the existing
+snapshot-read Value, an explicit `flow/singleton`, and the closing recovery
+Flow. `RecordingRecoverySource` checks and expands this composition;
+`PreparedRecordingRecovery` uses the ordinary planner and lowering, with
+512-byte reference and 4 KiB content queues. The selected read must accept
+the exact reference version as well as independent residence and authority.
+`ReadyRecordingSingleton` retains the initialized temporal bridge before
+advertising it. Its committed emission preserves the original value reference.
+It owns no storage or recovery state.
+
+The planning tests use explicitly identified CPU store and authority fixtures.
+They check the actual retained software selections, absent authority/resource
+refusals and a mismatched generation. They do not yet execute this complete
+lowered recovery plan through a live storage provider.
+
 The generation source emits `resource/ref` values, matching the existing
 snapshot-read Fore. Its cursor advances only after the kernel commits an
 emission. Output pressure, insufficient fuel or an uncommitted Step cannot

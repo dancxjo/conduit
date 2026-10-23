@@ -178,6 +178,7 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",
+ "conduit-semantic-catalog",
  "conduit-time",
  "serde_json",
  "sha2",

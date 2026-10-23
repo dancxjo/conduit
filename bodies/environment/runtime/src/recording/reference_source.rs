@@ -28,6 +28,31 @@ pub fn generation_source_kind() -> c::Kind {
         },
     }
 }
+/// One selected generation is a Value, suitable for an exact snapshot read.
+pub fn generation_value_kind() -> c::Kind {
+    let mut kind = generation_source_kind();
+    kind.kind_id = "environment/recording-generation".into();
+    kind.kind_contract_revision = "conduit.environment/recording-generation@1".into();
+    kind.outputs[0].temporal = c::PortTemporal::Value;
+    kind.semantic_laws = alloc::vec![c::KindSemanticLaw::Terminal(
+        c::KindTerminalBehavior::EmitsOnce
+    )];
+    kind
+}
+pub fn install_generation_value_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = generation_value_kind();
+    startup.insert(conduit_plot::KindSignature {
+        kind: kind.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
+    profiles
+        .insert_kind(kind)
+        .map_err(|error| alloc::format!("{error:?}"))
+}
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordingReferenceRefusal {
     Capacity,

@@ -25,6 +25,7 @@ pub struct ReadyRecordingSoftware<B> {
     back: Option<B>,
 }
 pub type ReadyRecordingRecovery = ReadyRecordingSoftware<RecordingRecoveryBack>;
+pub type ReadyRecordingSingleton = ReadyRecordingSoftware<RecordingSingletonBack>;
 pub type ReadyRecordingGenerations = ReadyRecordingSoftware<RecordingReferenceSource>;
 impl ReadyRecordingRecovery {
     /// Root supplies checked meaning, actual current recorder residence, and
@@ -52,7 +53,43 @@ impl ReadyRecordingRecovery {
         )
     }
 }
+impl ReadyRecordingSingleton {
+    pub fn prepare_singleton(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: c::HostId,
+        boot: c::BootId,
+    ) -> Result<Self, RecoveryInstallationRefusal> {
+        Self::from_prepared(
+            source,
+            host,
+            boot,
+            recording_singleton_kind(),
+            RecordingSingletonBack::default(),
+            "json-singleton",
+            "recording-json-singleton",
+        )
+    }
+}
 impl ReadyRecordingGenerations {
+    pub fn prepare_generation(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: c::HostId,
+        boot: c::BootId,
+        reference: &c::BoundedResourceRef,
+    ) -> Result<Self, RecoveryInstallationRefusal> {
+        let back = RecordingReferenceSource::prepare(core::slice::from_ref(reference), 1)
+            .map_err(RecoveryInstallationRefusal::References)?;
+        Self::from_prepared(
+            source,
+            host,
+            boot,
+            generation_value_kind(),
+            back,
+            "generation",
+            "recording-generation",
+        )
+    }
+
     pub fn prepare_generations(
         source: &conduit_plot::ExpandedCanonicalPlot,
         host: c::HostId,

@@ -202,3 +202,6 @@ mod installation;
 
 #[path = "recording_recovery/reference_source.rs"]
 mod reference_source;
+
+#[path = "recording_recovery/temporal.rs"]
+mod temporal;
