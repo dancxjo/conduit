@@ -21,7 +21,7 @@ mod gdt;
 mod ordinary_domain;
 
 #[cfg(target_os = "none")]
-fn domain_ticks() -> u64 {
+pub(crate) fn domain_ticks() -> u64 {
     cpu::read_tsc()
 }
 #[cfg(target_os = "none")]
@@ -142,3 +142,15 @@ pub(crate) use clock_boundary::Observation as ClockBoundaryObservation;
 
 #[cfg(all(target_os = "none", feature = "ordinary-domain-proof"))]
 mod irq_envelope;
+
+#[cfg(all(
+    target_os = "none",
+    any(
+        feature = "ordinary-domain-proof",
+        feature = "compositor-semantic-recovery-proof"
+    )
+))]
+pub(crate) use service_memory::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};
