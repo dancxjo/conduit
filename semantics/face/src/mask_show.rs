@@ -52,6 +52,21 @@ pub enum MaskShowError {
     StaleInteraction,
 }
 
+/// Proof tied to one immutable borrow; callers cannot construct an unchecked
+/// token or mutate its Face while canonical Show validation consumes it.
+pub(crate) struct ValidatedFace<'a>(&'a Face);
+
+impl<'a> ValidatedFace<'a> {
+    pub(crate) fn new(face: &'a Face) -> Result<Self, crate::FaceError> {
+        face.validate()?;
+        Ok(Self(face))
+    }
+
+    pub(crate) fn face(&self) -> &'a Face {
+        self.0
+    }
+}
+
 impl MaskShow {
     #[allow(clippy::too_many_arguments)]
     pub fn prepared(
@@ -113,7 +128,8 @@ impl MaskShow {
     }
 
     pub fn validate(&self, face: &Face) -> Result<(), MaskShowError> {
-        let (face_plot, face_plan_id) = validate_basis(face)?;
+        let checked = ValidatedFace::new(face).map_err(|_| MaskShowError::StaleFace)?;
+        let (face_plot, face_plan_id) = validated_basis(&checked);
         if self.mask_plot != self.planned_mask.mask.plot_identity
             || self.face_plot != face_plot
             || self.face_plan_id != face_plan_id
@@ -124,7 +140,7 @@ impl MaskShow {
             return Err(MaskShowError::StalePlan);
         }
         self.show
-            .validate_against_mask_plot(face, &self.planned_mask.plan)
+            .validate_against_validated_mask_plot(&checked, &self.planned_mask.plan)
             .map_err(MaskShowError::InvalidManifestation)?;
         if self.show_id != bind_show(&self.planned_mask, face, &self.show) {
             return Err(MaskShowError::StaleShowIdentity);
@@ -153,8 +169,12 @@ impl MaskShow {
 }
 
 fn validate_basis(face: &Face) -> Result<(Option<PlotIdentity>, Option<PlanId>), MaskShowError> {
-    face.validate().map_err(|_| MaskShowError::StaleFace)?;
-    let basis = &face.basis;
+    let checked = ValidatedFace::new(face).map_err(|_| MaskShowError::StaleFace)?;
+    Ok(validated_basis(&checked))
+}
+
+fn validated_basis(face: &ValidatedFace<'_>) -> (Option<PlotIdentity>, Option<PlanId>) {
+    let basis = &face.face().basis;
     let plot = match (
         basis.source_document_id.clone(),
         basis.checked_plot_id.clone(),
@@ -169,7 +189,7 @@ fn validate_basis(face: &Face) -> Result<(Option<PlotIdentity>, Option<PlanId>),
         }
         _ => None,
     };
-    Ok((plot, basis.plan_id.clone()))
+    (plot, basis.plan_id.clone())
 }
 
 fn bind_show(planned_mask: &PlannedMaskPlot, face: &Face, show: &Show) -> MaskShowId {
