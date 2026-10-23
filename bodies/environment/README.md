@@ -1346,3 +1346,12 @@ acknowledgement. A subsequent `/network` readback returned HTTP 200 and its form
 See `evidence/2026-10-23-native-network-fallback/`. This is Root provisioning
 proof; successful station joining, joined-network mDNS, link-loss fallback,
 repeatable reconfiguration and the appliance browser Mask remain unverified.
+
+Native retirement now also carries a private exact-Play scope derived from the
+actual revoked pulse/timer owners. Root issuance can finish only that issued
+native Play, preserves its monotonic counter and any later independent control
+reservation, and refuses reissuance at old provider generations. CPU conformance
+checks foreign and duplicate finish, old-generation refusal, and separately
+sealed fixture Plans selecting newer generations; strict lint and the ESP32
+release build pass. This is not a physical second Play or reconstructed ready
+offers. Executor reuse and explicit fresh Root preparation remain open.

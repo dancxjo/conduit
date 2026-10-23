@@ -60,8 +60,11 @@ pub struct RootIssuer {
     issued: [bool; 2],
     wait_issued: bool,
     pulse_issued: bool,
+    pulse_generation: u64,
+    wait_generation: u64,
     last_play_sequence: u64,
     reserved_play: Option<c::ActivePlayIdentity>,
+    native_issued_play: Option<c::ActivePlayIdentity>,
 }
 impl RootIssuer {
     pub fn observe(boot: &crate::boot::ObservedBoot) -> Result<Self, ()> {
@@ -80,8 +83,11 @@ impl RootIssuer {
             issued: [false; 2],
             wait_issued: false,
             pulse_issued: false,
+            pulse_generation: 0,
+            wait_generation: 0,
             last_play_sequence: 0,
             reserved_play: None,
+            native_issued_play: None,
         })
     }
     /// Observation only; this neither reserves nor authorizes the next identity.
@@ -139,6 +145,29 @@ impl RootIssuer {
             return Err(());
         }
         self.reserve_assigned_play(assignment, plan, fragment)
+    }
+    /// Actual returned custody is non-deserializable and carries the exact
+    /// retired Play scope. Finishing never rewinds sequence or provider generations.
+    pub fn finish_native_play<P, W>(
+        &mut self,
+        active: &c::ActivePlayIdentity,
+        retired: &crate::native_retirement::RetiredProviders<P, W>,
+    ) -> Result<(), ()> {
+        if self.native_issued_play.as_ref() != Some(active)
+            || !self.pulse_issued
+            || !self.wait_issued
+            || !retired.matches_active(active)
+            || retired.provider_generations() != [self.pulse_generation, self.wait_generation]
+        {
+            return Err(());
+        }
+        self.pulse_issued = false;
+        self.wait_issued = false;
+        self.native_issued_play = None;
+        if self.reserved_play.as_ref() == Some(active) {
+            self.reserved_play = None;
+        }
+        Ok(())
     }
     fn reserve_plan(&mut self, plan: &c::PlanId) -> Result<c::ActivePlayIdentity, ()> {
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;

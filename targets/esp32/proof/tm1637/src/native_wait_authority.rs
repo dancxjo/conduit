@@ -65,7 +65,9 @@ impl RootIssuer {
         }
         let possession =
             self.prepare_wait_possession(native, &fragment.plan_id, active, cadence)?;
+        self.native_issued_play = Some(active.clone());
         self.wait_issued = true;
+        self.wait_generation = native.provider_generation;
         Ok(possession)
     }
     /// Bounded assignment issuance checks the actual retained timer before
@@ -113,10 +115,13 @@ impl RootIssuer {
                 value: c::ConfigurationValue::U64(cadence.period_ms),
             },
         ];
+        let active = selected.active;
         owner
             .check_assigned(&possession.0, &possession.2, &configuration, selected)
             .map_err(|_| ())?;
+        self.native_issued_play = Some(active.clone());
         self.wait_issued = true;
+        self.wait_generation = owner.native_identity().provider_generation;
         Ok(possession)
     }
     pub(super) fn prepare_wait_possession(
@@ -144,6 +149,11 @@ impl RootIssuer {
         let input = PARAMETER_BYTES;
         let output = 0;
         if self.wait_issued
+            || native.provider_generation <= self.wait_generation
+            || self
+                .native_issued_play
+                .as_ref()
+                .is_some_and(|issued| issued != active)
             || self.reserved_play.as_ref() != Some(active)
             || *active != c::bind_active_play(plan, &self.host, &self.boot, active.play_sequence)
         {

@@ -84,7 +84,9 @@ impl RootIssuer {
         }
         let possession =
             self.prepare_pulse_possession(native, &fragment.plan_id, active, cadence)?;
+        self.native_issued_play = Some(active.clone());
         self.pulse_issued = true;
+        self.pulse_generation = native.provider_generation;
         Ok(possession)
     }
     /// Verify the actual retained GPIO before returning bounded possession.
@@ -122,10 +124,13 @@ impl RootIssuer {
             selected.active,
             cadence,
         )?;
+        let active = selected.active;
         owner
             .check_assigned(&possession.0, &possession.2, contract, selected)
             .map_err(|_| ())?;
+        self.native_issued_play = Some(active.clone());
         self.pulse_issued = true;
+        self.pulse_generation = owner.native_identity().provider_generation;
         Ok(possession)
     }
     pub(super) fn prepare_pulse_possession(
@@ -153,6 +158,11 @@ impl RootIssuer {
         let input = PULSE_READ_MAXIMUM_BYTES;
         let output = PULSE_READ_MAXIMUM_BYTES;
         if self.pulse_issued
+            || native.provider_generation <= self.pulse_generation
+            || self
+                .native_issued_play
+                .as_ref()
+                .is_some_and(|issued| issued != active)
             || self.reserved_play.as_ref() != Some(active)
             || *active != c::bind_active_play(plan, &self.host, &self.boot, active.play_sequence)
         {

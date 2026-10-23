@@ -91,6 +91,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                 )
             }
             .unwrap();
+            let original_pulse_identity = pulse.native_identity().clone();
+            let original_timer_identity = timer.native_identity().clone();
             let mut pulse = Some(pulse);
             let mut timer = Some(timer);
             let contract = PulseReadContract::prepare().unwrap();
@@ -155,6 +157,85 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                 &timer_effects,
                 &active_wait,
                 behavior,
+                |retired| {
+                    assert!(retired.matches_active(&active));
+                    let mut newer_pulse = original_pulse_identity.clone();
+                    let mut newer_timer = original_timer_identity.clone();
+                    newer_pulse.provider_generation += 1;
+                    newer_timer.provider_generation += 1;
+                    // A separately sealed fixture Plan selects the newer Base
+                    // generations. Metadata alone is still not native possession.
+                    let mut updated = fragment.clone();
+                    for gear in &mut updated.placements {
+                        if gear.kind_id.as_str() == conduit_time::TICK_KIND
+                            || gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND
+                        {
+                            gear.base.as_mut().unwrap().provider_generation += 1;
+                        }
+                    }
+                    let updated = c::seal_plan(
+                        c::PlotIdentity {
+                            source_document_id: updated.source_document_id.clone(),
+                            checked_plot_id: updated.checked_plot_id.clone(),
+                            expanded_plot_id: updated.expanded_plot_id.clone(),
+                        },
+                        vec![updated],
+                    )
+                    .fragments
+                    .remove(0);
+                    let interleaved = if behavior == 14 {
+                        Some(issuer.reserve_play(&updated).unwrap())
+                    } else {
+                        None
+                    };
+                    let mut foreign = active.clone();
+                    foreign.active_play_id = "foreign/play".into();
+                    assert!(issuer.finish_native_play(&foreign, &retired).is_err());
+                    let next_sequence = issuer.next_play_sequence();
+                    let (finished, memory) =
+                        allocation_probe::observe(|| issuer.finish_native_play(&active, &retired));
+                    assert_eq!(finished, Ok(()));
+                    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+                    assert_eq!(issuer.next_play_sequence(), next_sequence);
+                    assert!(issuer.finish_native_play(&active, &retired).is_err());
+                    if let Some(other) = interleaved {
+                        // A later independent reservation must survive finishing
+                        // this actual earlier native Play.
+                        assert!(issuer
+                            .issue_pulse(&newer_pulse, &updated, &other, &resident.cadence)
+                            .is_ok());
+                        assert!(issuer
+                            .issue_wait(&newer_timer, &updated, &other, &resident.cadence)
+                            .is_ok());
+                        return;
+                    }
+
+                    let next = issuer
+                        .reserve_assigned_play(assignment, &fragment.plan_id, &fragment.fragment_id)
+                        .unwrap();
+                    assert_eq!(next.play_sequence, active.play_sequence + 1);
+                    assert!(!retired.matches_active(&next));
+                    let pulse_identity = original_pulse_identity.clone();
+                    let timer_identity = original_timer_identity.clone();
+                    assert!(issuer
+                        .issue_pulse(&pulse_identity, fragment, &next, &resident.cadence)
+                        .is_err());
+                    assert!(issuer
+                        .issue_wait(&timer_identity, fragment, &next, &resident.cadence)
+                        .is_err());
+                    let next = issuer.reserve_play(&updated).unwrap();
+                    assert_eq!(next.play_sequence, active.play_sequence + 2);
+
+                    assert!(issuer
+                        .issue_pulse(&newer_pulse, &updated, &next, &resident.cadence)
+                        .is_ok());
+                    assert!(issuer
+                        .issue_wait(&newer_timer, &updated, &next, &resident.cadence)
+                        .is_ok());
+                    // These are CPU fixture capability issuances only. No returned
+                    // provider is rebound, no ready offer appears and no second
+                    // Play runs.
+                },
             );
         }
     }

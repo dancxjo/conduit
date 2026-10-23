@@ -18,6 +18,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     timer_effects: &Cell<usize>,
     active_wait: &Cell<bool>,
     behavior: u8,
+    retirement: impl FnOnce(crate::native_worker::RetiredProviders<P, W>),
 ) {
     let recipe = prepared.software_recipe().unwrap();
     let programs: Vec<_> = recipe.resident_computations().collect();
@@ -68,6 +69,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             active_wait,
             resident.cadence.count,
             behavior,
+            retirement,
         );
         return;
     }

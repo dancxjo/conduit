@@ -35,6 +35,8 @@ mod native_network;
 #[cfg(feature = "native-root")]
 mod native_play;
 #[cfg(feature = "native-root")]
+mod native_retirement;
+#[cfg(feature = "native-root")]
 mod native_root;
 #[cfg(feature = "native-root")]
 mod native_kernel;

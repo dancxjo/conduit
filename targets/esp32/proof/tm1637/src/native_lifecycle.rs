@@ -60,6 +60,18 @@ impl NativeRoot {
                     return Err("native-already-retired");
                 }
                 self.retired_native = Some(worker.retire()?);
+                self.issuer
+                    .finish_native_play(
+                        &self
+                            .owner_reservation
+                            .as_ref()
+                            .expect("checked reservation")
+                            .active,
+                        self.retired_native
+                            .as_ref()
+                            .expect("returned native custody"),
+                    )
+                    .map_err(|_| "native-retirement-issuer-scope")?;
                 ack::State::Retired
             }
             _ => return Err("operation-not-installed"),

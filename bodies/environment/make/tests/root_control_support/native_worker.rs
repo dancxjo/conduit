@@ -11,6 +11,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     active_wait: &Cell<bool>,
     samples: u64,
     behavior: u8,
+    retirement: impl FnOnce(crate::native_worker::RetiredProviders<P, W>),
 ) {
     let mut storage = Some(storage);
     let mut native = Some(native);
@@ -48,7 +49,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         assert_eq!(cancelled.progress, Default::default());
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 0));
-        retire(execution);
+        retirement(retire(execution));
         return;
     }
 
@@ -119,7 +120,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         });
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 1));
-        retire(execution);
+        retirement(retire(execution));
         return;
     }
     let (outcome, memory) = allocation_probe::observe(|| {
@@ -201,9 +202,11 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         execution.cancel_held().err(),
         Some("execution-not-unpolled")
     );
-    retire(execution);
+    retirement(retire(execution));
 }
-fn retire<P: PulseReadProvider, W: w::MonotonicWaitProvider>(execution: Box<Execution<P, W>>) {
+fn retire<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
+    execution: Box<Execution<P, W>>,
+) -> crate::native_worker::RetiredProviders<P, W> {
     let mut retained = Some(execution);
     let (providers, memory) =
         allocation_probe::observe(|| Execution::retire_retained(&mut retained));
@@ -215,4 +218,5 @@ fn retire<P: PulseReadProvider, W: w::MonotonicWaitProvider>(execution: Box<Exec
         Execution::retire_retained(&mut retained).err(),
         Some("execution-unavailable")
     );
+    providers
 }
