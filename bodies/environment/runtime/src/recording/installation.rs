@@ -196,6 +196,18 @@ impl<B> ReadyRecordingSoftware<B> {
         fragment: &c::PlanFragment,
         placement: &c::PlacementId,
     ) -> Result<B, RecoveryInstallationRefusal> {
+        self.check_selected(fragment, placement)?;
+        self.back
+            .take()
+            .ok_or(RecoveryInstallationRefusal::AlreadySelected)
+    }
+    /// Preflight without transfer, so a composition can check every owner before
+    /// consuming any of them. This creates no reservation or start receipt.
+    pub fn check_selected(
+        &self,
+        fragment: &c::PlanFragment,
+        placement: &c::PlacementId,
+    ) -> Result<(), RecoveryInstallationRefusal> {
         use RecoveryInstallationRefusal as E;
         if !c::verify_plan_fragment(fragment)
             || fragment.host_id != self.host
@@ -238,6 +250,6 @@ impl<B> ReadyRecordingSoftware<B> {
         {
             return Err(E::Selection);
         }
-        self.back.take().ok_or(E::AlreadySelected)
+        self.back.as_ref().ok_or(E::AlreadySelected).map(|_| ())
     }
 }

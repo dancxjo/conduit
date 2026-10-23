@@ -10,6 +10,8 @@ use std::sync::LazyLock;
 mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+#[path = "recording_recovery/admission.rs"]
+mod admission;
 #[path = "recording_recovery/execution.rs"]
 mod execution;
 fn context() -> RecordingContext<'static> {

@@ -190,6 +190,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-kernel",
+ "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
  "conduit-pulse-capture",

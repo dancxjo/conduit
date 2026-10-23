@@ -8,6 +8,14 @@ mod batch;
 mod history;
 mod host_call;
 mod installation;
+#[cfg(feature = "recording-kernel")]
+mod kernel;
+#[cfg(feature = "recording-kernel")]
+pub use kernel::{
+    PreparedRecordingKernel, RecordingKernel, RecordingKernelRefusal, RecordingRoles,
+};
+mod back;
+pub use back::RecordingBack;
 mod publication;
 mod reader;
 mod recovery_back;

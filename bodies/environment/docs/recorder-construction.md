@@ -45,6 +45,14 @@ and committed recovery only after valid completion. Failed, cancelled and
 invalid-content reads preserve empty history. Execution allocates no storage.
 The external read completion remains a CPU fixture, not a live storage provider.
 
+`PreparedRecordingKernel` prepares this finite four-gear production kernel from
+the verified fragment and identical ordinary lowering. It rejects unsupported
+shape/storage and stale tables, preflights all retained software selections,
+then transfers those exact initialized objects. An unavailable owner refuses
+before any other owner is consumed. Its generic read driver only crosses the
+Host Call boundary: Root must separately retain the selected storage executor,
+admit the complete memory/work closure and confirm the real Body start.
+
 The generation source emits `resource/ref` values, matching the existing
 snapshot-read Fore. Its cursor advances only after the kernel commits an
 emission. Output pressure, insufficient fuel or an uncommitted Step cannot

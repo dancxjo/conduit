@@ -3,45 +3,6 @@
 use super::*;
 use conduit_kernel::{self as k, scheduler::*, ValueStorage};
 
-enum Driver {
-    Source(RecordingReferenceSource),
-    Read(HostCallBack),
-    Singleton(RecordingSingletonBack),
-    Recovery(Box<RecordingRecoveryBack>),
-}
-impl StepBack<1> for Driver {
-    fn step(&mut self, io: &mut StepIo<1>, bytes: &StepInputBytes<'_, 1>) -> StepOutcome {
-        match self {
-            Self::Source(b) => b.step(io, bytes),
-            Self::Read(b) => b.step(io, bytes),
-            Self::Singleton(b) => b.step(io, bytes),
-            Self::Recovery(b) => b.step(io, bytes),
-        }
-    }
-    fn prepared_output(&self, port: k::PortId) -> Option<&[u8]> {
-        match self {
-            Self::Source(b) => <RecordingReferenceSource as StepBack<1>>::prepared_output(b, port),
-            _ => None,
-        }
-    }
-    fn step_committed(&mut self) {
-        match self {
-            Self::Source(b) => <RecordingReferenceSource as StepBack<1>>::step_committed(b),
-            Self::Read(b) => <HostCallBack as StepBack<1>>::step_committed(b),
-            Self::Singleton(b) => <RecordingSingletonBack as StepBack<1>>::step_committed(b),
-            Self::Recovery(b) => <RecordingRecoveryBack as StepBack<1>>::step_committed(b),
-        }
-    }
-    fn cancel(&mut self) {
-        match self {
-            Self::Source(b) => <RecordingReferenceSource as StepBack<1>>::cancel(b),
-            Self::Read(b) => <HostCallBack as StepBack<1>>::cancel(b),
-            Self::Singleton(b) => <RecordingSingletonBack as StepBack<1>>::cancel(b),
-            Self::Recovery(b) => <RecordingRecoveryBack as StepBack<1>>::cancel(b),
-        }
-    }
-}
-
 #[test]
 fn lowered_recovery_requires_the_selected_read_before_committing_history() {
     execute(k::HostCallDisposition::Completed, false);
@@ -71,78 +32,19 @@ fn execute(disposition: k::HostCallDisposition, invalid: bool) {
     let prepared = PreparedRecordingRecovery::prepare(&source, &host, &bases(), &[grant]).unwrap();
     let fragment = &prepared.plan().fragments[0];
     let lowered = prepared.lowered();
-    let node_for = |kind: &str| {
-        let placement = fragment
-            .placements
-            .iter()
-            .find(|p| p.kind_id.as_str() == kind)
-            .unwrap();
-        lowered
-            .identity
-            .node_for_placement(&placement.placement_id)
-            .unwrap()
-    };
-    let read_node = node_for(conduit_semantic_catalog::SNAPSHOT_READ_KIND);
-    let recovery_node = node_for("environment/recover-recording");
-    let drivers = core::array::from_fn(|i| {
-        let placement = &lowered.nodes[i].placement_id;
-        let gear = fragment
-            .placements
-            .iter()
-            .find(|p| &p.placement_id == placement)
-            .unwrap();
-        match gear.kind_id.as_str() {
-            "environment/recording-generation" => {
-                Driver::Source(generations.take_selected(fragment, placement).unwrap())
-            }
-            "flow/singleton" => {
-                Driver::Singleton(singleton.take_selected(fragment, placement).unwrap())
-            }
-            "environment/recover-recording" => Driver::Recovery(Box::new(
-                recovery.take_selected(fragment, placement).unwrap(),
-            )),
-            conduit_semantic_catalog::SNAPSHOT_READ_KIND => Driver::Read(HostCallBack::new(512)),
-            other => panic!("unexpected selected kind: {other}"),
-        }
-    });
-    let nodes = core::array::from_fn(|i| {
-        let spec = lowered.node_specs[i];
-        assert!(spec.input_cords[1..].iter().all(Option::is_none));
-        NodeSpec {
-            input_cords: [spec.input_cords[0]],
-            maximum_step_fuel: spec.maximum_step_fuel,
-        }
-    });
-    let cords = core::array::from_fn(|i| lowered.cords[i].spec);
-    let mut routes = k::FixedRoutes::<4, 3>::new(1);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .unwrap();
-    }
-    routes.seal().unwrap();
-    let mut calls = k::FixedHostCallBindings::<4>::new(1);
-    for call in &lowered.host_calls {
-        calls.install(call.node, call.binding).unwrap();
-    }
-    calls.seal().unwrap();
-    let mut kernel = FixedScheduler::<_, _, _, 4, 3, 1, 3, 4, 3, 4, 4>::new_with_host_calls(
-        nodes,
-        cords,
-        routes,
-        calls,
-        drivers,
-        k::FixedValueStore::<4, 4096>::new(4 * 4096).unwrap(),
-        k::FixedSignLog::<128>::new((128 * core::mem::size_of::<k::KernelEvent>()) as u32).unwrap(),
+    let prepared = PreparedRecordingKernel::prepare(
+        fragment,
+        lowered,
+        &mut generations,
+        &mut singleton,
+        &mut recovery,
     )
     .unwrap();
-    let recovered = |kernel: &FixedScheduler<_, _, _, 4, 3, 1, 3, 4, 3, 4, 4>| {
-        let Driver::Recovery(back) = &kernel.drivers()[usize::from(recovery_node.0)] else {
+    let read_node = prepared.roles.read;
+    let recovery_node = prepared.roles.recovery;
+    let mut kernel = prepared.kernel;
+    let recovered = |kernel: &RecordingKernel| {
+        let RecordingBack::Recovery(back) = &kernel.drivers()[usize::from(recovery_node.0)] else {
             unreachable!()
         };
         back.recovered()
