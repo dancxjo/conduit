@@ -49,6 +49,30 @@ pub fn bind_selected_operation_for_subject(
     subject: &KindId,
     selection: SelectedOperationPlan<'_>,
 ) -> Result<NodeId, SelectedCallRefusal> {
+    bind_configured_for_subject(table, claim, definition, subject, &[], selection)
+}
+/// Bind a configured Back against independently retained checked configuration.
+/// The native Root supplies this expectation from its own trusted Source facts,
+/// never by copying configuration out of the incoming Plan. No values are
+/// defaulted or normalized here; exact planned entries must agree.
+pub fn bind_selected_configured_operation(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[conduit_core::ConfigurationEntry],
+    selection: SelectedOperationPlan<'_>,
+) -> Result<NodeId, SelectedCallRefusal> {
+    let subject = &definition.kind.kind_id;
+    bind_configured_for_subject(table, claim, definition, subject, configuration, selection)
+}
+fn bind_configured_for_subject(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    subject: &KindId,
+    configuration: &[conduit_core::ConfigurationEntry],
+    selection: SelectedOperationPlan<'_>,
+) -> Result<NodeId, SelectedCallRefusal> {
     let SelectedOperationPlan {
         fragment,
         lowered,
@@ -96,7 +120,7 @@ pub fn bind_selected_operation_for_subject(
         || gear.inputs != expected.inputs
         || gear.outputs != expected.outputs
         || gear.semantic_contract != expected.semantic_contract()
-        || !gear.configuration.is_empty()
+        || gear.configuration != configuration
         || gear.host_id != claim.host_id
         || gear.boot_id != claim.boot_id
         || gear.implementation_id != claim.implementation_id
