@@ -151,6 +151,9 @@ try:
     assert after['appliance_kernel_prepared'] == (args.mode != 'run')
     assert not after['assignment_staged']
     assert not after['body_installed'] and not after['native_plan_installed']
+    (args.capture / 'final-root-offer.json').write_text(json.dumps(after, indent=2) + '\n')
+    receipt['final_offer_generation'] = after['advertisement']['offer_generation']
+    receipt['final_network_configuration'] = after['network_configuration']
     receipt.update(proof_class='physical-owner-' + args.mode,
                    root_heap_used_bytes=after['native_root_heap_used_bytes'],
                    root_heap_peak_bytes=after['native_root_heap_peak_bytes'],

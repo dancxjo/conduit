@@ -162,12 +162,18 @@ impl NativeRoot {
         crate::native_owner_control::AuthenticatedRequest<'a>,
         crate::native_owner_control::Refusal,
     > {
+        let generation =
+            crate::native_owner_reservation::OwnerReservation::authentication_generation(
+                request.operation,
+                self.offer_generation,
+                self.owner_reservation.as_ref(),
+            );
         self.owner_control.authenticate(
             request,
             signature,
             self.host.as_str(),
             self.boot.as_str(),
-            self.offer_generation,
+            generation,
         )
     }
     pub fn next_play_sequence(&self) -> Option<u64> {

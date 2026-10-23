@@ -70,8 +70,16 @@ pub async fn receive(
             operation = Some(selected);
             match selected {
                 owner::Operation::Inspect => {
-                    inspect_command = token.into_request().transcript().ok();
-                    None
+                    match crate::native_owner_reservation::OwnerReservation::inspection_command(
+                        root.owner_reservation(),
+                        token,
+                    ) {
+                        Ok(command) => {
+                            inspect_command = command;
+                            None
+                        }
+                        Err(reason) => Some(reason),
+                    }
                 }
                 owner::Operation::Reserve => match root.reserve_owner(token) {
                     Ok(()) => {

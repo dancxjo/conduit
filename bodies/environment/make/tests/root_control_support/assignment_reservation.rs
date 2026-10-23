@@ -1,5 +1,7 @@
 //! Actual Root issuer with CPU-admitted tables; no authenticated device start.
 use super::*;
+#[path = "reservation_control.rs"]
+mod reservation_control;
 pub(super) fn check(
     assignment: &conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
     fragment: &c::PlanFragment,
@@ -163,6 +165,10 @@ fn signed_reservation(
         let body = core::mem::replace(&mut reserved.body, "body/substituted".into());
         assert!(!permit.matches(&reserved));
         reserved.body = body;
+        reserved.offer_generation += 1;
+        assert!(!permit.matches(&reserved));
+        reserved.offer_generation -= 1;
+        reservation_control::check(&reserved, fragment);
         assert_eq!(issuer.next_play_sequence(), Some(2));
         assert_eq!(reserved.active, expected); // refusal consumed no Root reservation
         assert_eq!(reserved.fragment, fragment.fragment_id);

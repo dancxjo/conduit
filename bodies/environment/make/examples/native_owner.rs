@@ -181,6 +181,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let scope = &reserved["reservation"];
     if reserved["control_applied"] != true
         || !reserved["refusal"].is_null()
+        || scope["offer_generation"] != host.offer_generation.0
         || scope["active"] != serde_json::to_value(&active)?
         || scope["fragment"] != serde_json::to_value(&fragment.fragment_id)?
         || scope["body"] != body_play.body_id.as_str()
