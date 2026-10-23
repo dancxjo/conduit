@@ -1,0 +1,12 @@
+{
+  "authority_issued": false,
+  "bases": 2,
+  "body_started": false,
+  "boot_id": "boot/6b9c4b7f1d506e66a1fb86575ebd073a",
+  "capabilities": 15,
+  "host_id": "esp32/b0a732286178",
+  "offer_generation": 3,
+  "plan_installed": false,
+  "proof_class": "source-checked-composition-of-captured-root-offers",
+  "resources": 2
+}

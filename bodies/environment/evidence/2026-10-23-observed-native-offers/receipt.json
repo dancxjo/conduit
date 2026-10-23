@@ -1,0 +1,13 @@
+{
+  "proof_class": "physical-uart-capture-and-source-checked-host-composition",
+  "capture_boot_id": "boot/6b9c4b7f1d506e66a1fb86575ebd073a",
+  "capture_offer_generation": 3,
+  "capabilities": 15,
+  "native_providers": 2,
+  "software_implementations": 13,
+  "flashed_elf_sha256": "6154acfab9f58a0da3db05f95363e5ae374a6e373c0d239e3aabcdff3e300b57",
+  "rebuilt_not_flashed_elf_sha256": "510847ea237d1fb88c13ab5bde62ca085bdf0369a392cf6f543eacc0811e0aa6",
+  "authority_issued": false,
+  "body_started": false,
+  "plan_installed": false
+}

@@ -1,0 +1,11 @@
+{
+  "proof_class": "physical-initialized-software-readiness",
+  "completed": true,
+  "body_start_claimed": false,
+  "climate_sampling_claimed": false,
+  "boot_id": "boot/6b9c4b7f1d506e66a1fb86575ebd073a",
+  "capabilities_bytes": 55655,
+  "root_heap_used_bytes": 86536,
+  "root_heap_peak_bytes": 110920,
+  "sdk_heap_peak_bytes": 37904
+}

@@ -1,0 +1,11 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 2m 26s
+     Running tests/native.rs (target/debug/deps/native-8183af75992a5b90)
+
+running 2 tests
+test observed_offers::retained_physical_offers_compose_exactly_without_inventing_native_facts ... ok
+test observed_offers::stale_scope_source_cadence_and_forged_software_refuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.19s
+
