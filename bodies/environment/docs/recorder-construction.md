@@ -136,10 +136,27 @@ no software; successful transfer removes that owner's reported availability.
 The [batch Plan receipt](../evidence/2026-10-23-batch-recovery-plan/measurement.json)
 checks 45 actual retained software owners and 15 explicit storage fixtures.
 
-Root must still admit the complete memory/work closure, bind actual browser
-providers and transfer the whole batch into its production kernel before Body
-start. The currently prepared recovery kernel realizes one generation; it does
-not silently broaden that selection to the batch.
+`PreparedRecordingBatchKernel<N, C>` transfers those preflighted owners into
+the same production fixed kernel, with two port ordinals, at most 64 gears and
+63 cords. It prepares all canonical value slots and local Sign backing before
+execution. Native Sign storage covers both the portable item and byte budgets.
+The boxed preparation entrance avoids a large scheduler return value on the
+caller's stack. Each read still crosses the generic admitted Host Call boundary;
+this kernel owns no external storage executor.
+
+The [batch kernel receipt](../evidence/2026-10-23-batch-recovery-kernel/measurement.json)
+executes 1, 15 and 16 chunks. Reads remain pending without moving history, then
+complete in reverse dispatch order while the planned concatenations preserve
+Source order. Mixed observations and sensor failures recover through the whole
+history with zero execution allocations or reallocations. Failed, cancelled and
+invalid-content reads refuse without publishing history. Stale tables and an
+unavailable owner refuse before other software transfers.
+
+Root must still admit the complete memory/work closure, retain actual browser
+providers, correlate their results with these exact kernel requests and advance
+the real Body start. These read completions are CPU fixtures; the independent
+IndexedDB proof does not establish that live provider connection. The original
+single-generation kernel retains its separate finite profile.
 
 ## Batches, recovery and Face
 

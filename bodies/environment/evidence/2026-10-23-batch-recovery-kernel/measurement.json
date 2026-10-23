@@ -1,0 +1,36 @@
+{
+  "proof_class": "production-fixed-kernel-cpu-execution-with-external-read-fixtures",
+  "batch_sizes_executed": [
+    1,
+    15,
+    16
+  ],
+  "samples_per_chunk": 64,
+  "overnight_samples": 960,
+  "maximum_profile_samples": 1024,
+  "read_completion_order": "reverse dispatch order",
+  "history_unchanged_while_reads_pending": true,
+  "ordered_complete_history_recovered": true,
+  "mixed_observations_and_sensor_failures": true,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "failed_read_refused": true,
+  "cancelled_read_refused": true,
+  "invalid_content_refused": true,
+  "stale_lowering_refused_before_transfers": true,
+  "unavailable_owner_preserves_other_owners": true,
+  "recording_suite_tests_passed": 43,
+  "strict_runtime_and_make_clippy": true,
+  "new_firmware_flashed": false,
+  "actual_browser_kernel_io_proven": false,
+  "actual_root_memory_work_admission": false,
+  "live_recorder_body": false,
+  "live_line": false,
+  "physical_overnight_recording": false,
+  "notes": [
+    "The same FixedScheduler executes transferred initialized software and the existing ordered finite concatenation Back. No separate scheduling loop or browser ordering policy is introduced.",
+    "Canonical value slots and local Sign storage are fully allocated during preparation. The boxed kernel entrance avoids carrying a large scheduler value through intermediate return frames.",
+    "Native Sign storage covers both the portable item and byte budgets, using the native event width. Complete Root/provider/allocator/stack admission remains separate.",
+    "Read completions in this proof are CPU fixtures. The independent real IndexedDB proof does not establish that these kernel requests have crossed the live browser provider boundary."
+  ]
+}
