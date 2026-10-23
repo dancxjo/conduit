@@ -46,20 +46,10 @@ pub(super) fn literal_value(
             .to_vec(),
         Some(PrimitiveInfoKind::MathematicalValue) => crate::mathematical_value::encode(literal)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?,
-        Some(PrimitiveInfoKind::Unit) => conduit_core::Unit::resolve(literal)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
-            .encode()
-            .to_vec(),
-        Some(PrimitiveInfoKind::Quantity) => conduit_core::Quantity::parse_plot_literal(literal)
-            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
-            .encode()
-            .to_vec(),
+        Some(PrimitiveInfoKind::Unit) => unit_literal_bytes(literal)?,
+        Some(PrimitiveInfoKind::Quantity) => quantity_literal_bytes(literal, None)?,
         Some(kind) if quantity_kind(kind) => {
-            let quantity = Quantity::parse_plot_literal(literal)
-                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
-            conduit_core::validate_primitive_info(leaf_kind(value_type)?, &quantity.encode())
-                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
-            quantity.encode().to_vec()
+            quantity_literal_bytes(literal, Some(leaf_kind(value_type)?))?
         }
         Some(kind) if fixed_integer(kind) => {
             let canonical = crate::integer_literal::canonicalize(literal, leaf_kind(value_type)?)
@@ -97,4 +87,29 @@ pub(crate) fn literal_primitive_bytes(
     literal: &str,
 ) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
     primitive_bytes(&literal_value(value_type, literal)?)
+}
+
+// Unit definitions are finite value carriers with substantial inline storage.
+// Keep their parse/encoding scratch out of ordinary integer and Boolean literals.
+#[inline(never)]
+fn unit_literal_bytes(literal: &str) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+    Ok(conduit_core::Unit::resolve(literal)
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
+        .encode()
+        .to_vec())
+}
+
+#[inline(never)]
+fn quantity_literal_bytes(
+    literal: &str,
+    expected_kind: Option<&str>,
+) -> Result<Vec<u8>, PortableExpressionEvaluationRefusal> {
+    let quantity = Quantity::parse_plot_literal(literal)
+        .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
+    let encoded = quantity.encode();
+    if let Some(kind) = expected_kind {
+        conduit_core::validate_primitive_info(kind, &encoded)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?;
+    }
+    Ok(encoded.to_vec())
 }
