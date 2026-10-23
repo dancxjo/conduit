@@ -210,6 +210,9 @@ fn run_controller(
             make.build_id,
             framebuffer_basis.base_id.clone(),
             &surface_provider,
+            // Explicitly admit the installed checked-Source inventory before Play.
+            // The Standard Mask and scene/surface limits remain unchanged.
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection,
         )
     })?;
     let mut presenter = FrontDoorPresenter::prepare(

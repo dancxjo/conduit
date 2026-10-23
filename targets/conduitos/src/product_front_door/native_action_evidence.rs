@@ -17,6 +17,10 @@ pub(super) fn emit_with_limit(
     if limit == 0 || limit > 96 * 1024 {
         return Err("native-action-evidence-bound");
     }
+    emit_admitted_record(prefix, record, limit)
+}
+
+fn emit_admitted_record(prefix: &[u8], record: &Value, limit: usize) -> Result<(), &'static str> {
     #[cfg(feature = "native-latency-observation")]
     let observed = crate::native_observation::counter_ticks().map(|ticks| {
         let mut observed = record.clone();
@@ -50,7 +54,28 @@ pub(super) fn face(
     observation: u64,
     play: u64,
 ) -> Result<(), &'static str> {
-    emit(
+    face_with_storage(face, show, observation, play, None)
+}
+
+pub(super) fn face_with_storage(
+    face: &Face,
+    show: &MaskShow,
+    observation: u64,
+    play: u64,
+    storage: Option<(
+        &crate::native_face_snapshot::FaceSnapshotReceipt,
+        &crate::native_mask_play::NativeMaskPlayReceipt,
+    )>,
+) -> Result<(), &'static str> {
+    // Observation envelope follows explicitly admitted storage, never incoming size.
+    let limit = if storage.is_some_and(|(producer, renderer)| {
+        producer.collection_storage.is_some() && renderer.collection_storage.is_some()
+    }) {
+        crate::native_face_snapshot::COLLECTION_SNAPSHOT_BYTES + 32 * 1024
+    } else {
+        96 * 1024
+    };
+    emit_admitted_record(
         b"CONDUIT_NATIVE_FACE ",
         &json!({
             "schema": "conduit.native-face/v1", "face": face,
@@ -66,7 +91,11 @@ pub(super) fn face(
             "manifestation": show.show,
             },
             "observation_sequence": observation, "play_sequence": play,
+            "storage_receipts": storage.map(|(producer, renderer)| json!({
+                "producer": producer, "renderer": renderer
+            })),
         }),
+        limit,
     )
 }
 

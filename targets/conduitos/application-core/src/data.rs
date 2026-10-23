@@ -30,7 +30,8 @@ pub enum Proposal {
 #[serde(deny_unknown_fields)]
 pub struct Target {
     pub graph: PatchbayGraph,
-    pub plan: PlanId,
+    /// None names checked Source only, with no inspected execution authority.
+    pub plan: Option<PlanId>,
     pub body: PlanId,
 }
 #[derive(Clone, Serialize, Deserialize)]

@@ -54,6 +54,7 @@ fn live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_app
         "build",
         provider.entry.base_id.clone(),
         &provider,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
     )
     .unwrap();
     workspace.continue_after_birth(8, 12);
@@ -140,6 +141,12 @@ fn live_resident_patchbay_face_reaches_mask_show_and_diagram_then_returns_to_app
 }
 
 pub(super) fn encounter() -> (ProductJourney, FrontDoor, FaceWorkspace, CountingDisplay) {
+    encounter_with_storage(conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard)
+}
+
+pub(super) fn encounter_with_storage(
+    storage: conduit_conduitos_mask_offer::NativeMaskStorageProfile,
+) -> (ProductJourney, FrontDoor, FaceWorkspace, CountingDisplay) {
     let (journey, door) = listening();
     let projection = journey.projection();
     let provider = crate::product_bases::fixture_surface_provider();
@@ -150,6 +157,7 @@ pub(super) fn encounter() -> (ProductJourney, FrontDoor, FaceWorkspace, Counting
         "build",
         provider.entry.base_id.clone(),
         &provider,
+        storage,
     )
     .unwrap();
     let mut display = CountingDisplay::default();

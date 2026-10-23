@@ -5,7 +5,6 @@
 //! pixels. Only then does its Show Fore become available for typed input.
 
 use alloc::string::{String, ToString};
-use conduit_birth_plot::BirthFaceBasis;
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
 use conduit_face::{
     Face, FaceInteraction, FaceRole, MaskInteractionCorrelation, MaskShow, RemoteOwnerMaskRouteSeal,
@@ -17,7 +16,7 @@ use crate::{
     mask_control::{Adapter, MaskStage, prepare_stage},
     native_compositor::{CompositionReceipt, CompositorAdmission, InputRoute, NativeCompositor},
     native_face_scene::{FaceFocusRequest, FaceSceneError, FaceSceneInput, NativeFaceScene},
-    native_face_snapshot::{FaceSnapshotReceipt, FaceSnapshotRefusal, NativeFaceSnapshotProducer},
+    native_face_snapshot::{FaceSnapshotReceipt, FaceSnapshotRefusal},
     native_mask_play::{NativeMaskInteractionSession, NativeMaskPlayError, PreparedNativeMaskPlay},
     native_surface_provider::NativeSurfaceProvider,
 };
@@ -30,6 +29,8 @@ mod preparation;
 
 #[path = "native_face_mask/encounter.rs"]
 mod encounter;
+#[path = "native_face_mask/producer.rs"]
+mod producer;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeFaceMaskError {
@@ -88,7 +89,7 @@ pub enum NativeFaceMaskInput {
 /// One Host preparation, shared across changing Face revisions. A Body is not
 /// created or advanced here; the caller retains that lifecycle authority.
 pub struct NativeFaceMask {
-    producer: NativeFaceSnapshotProducer,
+    producer: producer::Producer,
     mask: MaskStage,
     compositor: NativeCompositor,
     display_base_id: HostBaseId,
@@ -134,17 +135,6 @@ impl NativeFaceMask {
     }
     pub fn component_fallback(&self) -> Option<&str> {
         self.component_fallback.as_deref()
-    }
-
-    pub fn birth_basis(&self, encounter_id: &str) -> BirthFaceBasis {
-        let fragment = &self.producer.plan().fragments[0];
-        BirthFaceBasis {
-            host_id: fragment.host_id.clone(),
-            boot_id: fragment.boot_id.clone(),
-            encounter_id: encounter_id.into(),
-            producer_plot: self.producer.plot_identity(),
-            producer_plan_id: self.producer.plan().plan_id.clone(),
-        }
     }
 
     pub fn publication(&self) -> Option<&FaceSnapshotReceipt> {
@@ -372,13 +362,14 @@ impl NativeFaceMask {
             .producer
             .forward(face, observation_sequence, play_sequence)
             .map_err(NativeFaceMaskError::Producer)?;
-        let pending = PreparedNativeMaskPlay::prepare(
+        let pending = PreparedNativeMaskPlay::prepare_with_profile(
             &self.mask.planned_mask,
             &published.face,
             play_sequence,
             &front_subject,
             &self.surface_id,
             self.display_base_id.clone(),
+            self.producer.storage_profile(),
         )
         .map_err(NativeFaceMaskError::Mask)?;
         let request = pending.renderer_request();

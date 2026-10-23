@@ -213,7 +213,7 @@ fn exact_target_coverage_and_selected_position_survive_staging() {
     .unwrap();
     let selected = Target {
         graph: patchbay_graph::PatchbayGraph::from_expanded(&expanded.expanded).unwrap(),
-        plan: "plan/selected-source-staging-fixture".into(),
+        plan: Some("plan/selected-source-staging-fixture".into()),
         body: first.body.clone(),
     };
     let mut state = State::default();

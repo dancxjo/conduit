@@ -19,6 +19,14 @@ impl PatchbayApplicationPort {
         basis: FaceContributionBasis,
         body: &BodyId,
     ) -> Result<FaceFragment, FaceFragmentError> {
+        self.observe_fragment_with_graph(basis, body, true)
+    }
+    pub(super) fn observe_fragment_with_graph(
+        &self,
+        basis: FaceContributionBasis,
+        body: &BodyId,
+        include_graph: bool,
+    ) -> Result<FaceFragment, FaceFragmentError> {
         let root = format!("patchbay/document/{}", basis.checked_plot_id.as_str());
         let body = format!("body/{}", body.as_str());
         let mut fragment = FaceFragment {
@@ -48,7 +56,7 @@ impl PatchbayApplicationPort {
             ],
             text: vec![FaceText {
                 subject: root.clone(),
-                text: "Active plots on this body".into(),
+                text: self.inventory_title().into(),
             }],
             // Merely observing meaning is not an admitted effect return route.
             actions: Vec::new(),
@@ -81,10 +89,47 @@ impl PatchbayApplicationPort {
                 target: identity.clone(),
                 kind: FaceRelationshipKind::Observes,
             });
+            if plot.plan_id.is_none() {
+                fragment.subjects.push(FaceSubject {
+                    identity: identity.clone(),
+                    role: FaceRole::Plot,
+                    name: plot.title.clone(),
+                });
+            }
             fragment.text.push(FaceText {
                 subject: identity.clone(),
                 text: plot.title.clone(),
             });
+            if let Some(plan) = &plot.plan_id {
+                fragment.properties.push(property(
+                    &identity,
+                    "observed-plan-id",
+                    FacePropertyValue::Identity(plan.as_str().into()),
+                ));
+            } else {
+                fragment.properties.extend([
+                    property(
+                        &identity,
+                        "inspected-plan-present",
+                        FacePropertyValue::Flag(false),
+                    ),
+                    property(
+                        &identity,
+                        "inspected-play-present",
+                        FacePropertyValue::Flag(false),
+                    ),
+                    property(
+                        &identity,
+                        "inspected-source-document-id",
+                        FacePropertyValue::Identity(plot.graph.source_document_id.as_str().into()),
+                    ),
+                    property(
+                        &identity,
+                        "inspected-expanded-plot-id",
+                        FacePropertyValue::Identity(plot.graph.expanded_plot_id.as_str().into()),
+                    ),
+                ]);
+            }
             fragment.properties.extend([
                 property(
                     &identity,
@@ -93,23 +138,19 @@ impl PatchbayApplicationPort {
                 ),
                 property(
                     &identity,
-                    "observed-plan-id",
-                    FacePropertyValue::Identity(plot.plan_id.as_str().into()),
-                ),
-                property(
-                    &identity,
                     "observed-plot-state",
                     FacePropertyValue::Text(
                         match plot.state {
                             PatchbayActivePlotState::Playing => "playing",
                             PatchbayActivePlotState::Lulled => "lulled",
+                            PatchbayActivePlotState::CheckedSource => "checked-source",
                         }
                         .into(),
                     ),
                 ),
             ]);
         }
-        if let Some(index) = self.selected_plot {
+        if let Some(index) = self.selected_plot.filter(|_| include_graph) {
             graph_face::append(
                 &self.plots[index].graph,
                 &body,
@@ -124,22 +165,30 @@ impl PatchbayApplicationPort {
         }
         // Graph composition may name an inspected Plot, but the Body's outer
         // Face owns that resident subject and its containment; never redeclare it.
-        let owned_plots: Vec<String> = self
+        let inspected_plots: Vec<String> = self
             .plots
             .iter()
             .map(|plot| format!("plot/{}", plot.graph.checked_plot_id.as_str()))
             .collect();
-        fragment
-            .subjects
-            .retain(|subject| !owned_plots.contains(&subject.identity));
+        fragment.subjects.retain(|subject| {
+            !self
+                .plots
+                .iter()
+                .zip(&inspected_plots)
+                .any(|(plot, identity)| plot.plan_id.is_some() && identity == &subject.identity)
+        });
         fragment.relationships.retain(|relation| {
             !(relation.source == body
                 && relation.kind == FaceRelationshipKind::Contains
-                && owned_plots.contains(&relation.target))
+                && inspected_plots.contains(&relation.target))
         });
-        fragment
-            .disclosures
-            .retain(|disclosure| !owned_plots.contains(&disclosure.subject));
+        fragment.disclosures.retain(|disclosure| {
+            !self
+                .plots
+                .iter()
+                .zip(&inspected_plots)
+                .any(|(plot, identity)| plot.plan_id.is_some() && identity == &disclosure.subject)
+        });
         if let Some(topology) = &self.mask_topology {
             super::resident_mask_face::append(&mut fragment, &root, topology);
         }

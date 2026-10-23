@@ -6,6 +6,7 @@ use conduit_face::Face;
 use serde_json::{json, Value};
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
+mod checked_source;
 mod selection;
 mod source_editor;
 
@@ -43,6 +44,9 @@ pub(super) fn exercise(
     )?;
     let initial = current(serial)?;
     let round_trip = selection::round_trip(serial, child, qmp, reader, &initial)?;
+    let after_cross_plot = current(serial)?;
+    let source_inspection =
+        checked_source::exercise(serial, child, qmp, reader, &after_cross_plot)?;
     let after_select = current(serial)?;
     artifacts.capture(qmp, reader, "patchbay-inspected-other-and-returned", false)?;
 
@@ -104,6 +108,7 @@ pub(super) fn exercise(
     }
     artifacts.capture(qmp, reader, "patchbay-mask-replanned", true)?;
     Ok(json!({"cross_plot_selection":round_trip,
+        "checked_source_inspection":source_inspection,
         "cross_plot_selection_enacted":true, "selected_face":after_select,
         "edit_request":edit_request, "edit_outcome":"native-editor-existing-draft",
         "successful_edit_handoff_enacted":false, "edit_refusal_face":after_edit,

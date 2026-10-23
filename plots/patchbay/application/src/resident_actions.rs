@@ -26,8 +26,17 @@ impl PatchbayApplicationPort {
         body: &BodyId,
         actions_admitted: bool,
     ) -> Result<FaceFragment, PatchbayFaceProjectionError> {
+        self.face_fragment_with_graph(basis, body, actions_admitted, true)
+    }
+    pub(super) fn face_fragment_with_graph(
+        &self,
+        basis: FaceContributionBasis,
+        body: &BodyId,
+        actions_admitted: bool,
+        include_graph: bool,
+    ) -> Result<FaceFragment, PatchbayFaceProjectionError> {
         let mut fragment = self
-            .observe_fragment(basis, body)
+            .observe_fragment_with_graph(basis, body, include_graph)
             .map_err(PatchbayFaceProjectionError::InvalidFragment)?;
         let root = fragment.subjects[0].identity.clone();
         let availability = if actions_admitted {
@@ -49,7 +58,10 @@ impl PatchbayApplicationPort {
                 availability: availability.clone(),
             });
         }
-        if let Some(index) = self.selected_plot {
+        if let Some(index) = self
+            .selected_plot
+            .filter(|index| self.plots[*index].plan_id.is_some())
+        {
             // Reading focus is Mask-local. Editing therefore names an explicit
             // semantic subject instead of depending on a renderer's cursor.
             let mut argument = FaceActionArgument::text(

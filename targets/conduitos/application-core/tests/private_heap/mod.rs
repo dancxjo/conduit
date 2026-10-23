@@ -1,6 +1,8 @@
 mod canonical;
 mod graph_abort;
 mod initialize;
+mod source_inventory;
+mod source_publication;
 use conduitos_application_core::{
     data::{self, Command, Initial, Reply},
     memory,
@@ -396,7 +398,17 @@ pub fn run() {
     PEAK.store(0, Ordering::Relaxed);
     canonical::run(&applications, &mut transfer);
     let canonical_peak = PEAK.load(Ordering::Relaxed);
-    let combined_peak = graph_peak.max(canonical_peak);
+    PEAK.store(0, Ordering::Relaxed);
+    source_inventory::run(&applications, &mut transfer);
+    let source_peak = PEAK.load(Ordering::Relaxed);
+    report("checked Source inventory peak=", source_peak);
+    PEAK.store(0, Ordering::Relaxed);
+    source_publication::run(&applications, &mut transfer);
+    let publication_peak = PEAK.load(Ordering::Relaxed);
+    let combined_peak = graph_peak
+        .max(canonical_peak)
+        .max(source_peak)
+        .max(publication_peak);
     assert!(!unsafe { private_heap::exhausted() });
     ACTIVE.store(false, Ordering::SeqCst);
     assert_eq!(LIVE.load(Ordering::Relaxed), 0);
