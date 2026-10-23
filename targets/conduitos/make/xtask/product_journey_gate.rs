@@ -32,7 +32,7 @@ pub(crate) fn prove(
     verify_artifact_digest(image, digest)?;
     let proof = fs::read(paths.target.join("journey-proof.json"))
         .map_err(|error| refusal(error.to_string()))?;
-    let receipt: Value =
+    let mut receipt: Value =
         serde_json::from_slice(&proof).map_err(|error| refusal(error.to_string()))?;
     validate_binding(
         &receipt,
@@ -42,12 +42,21 @@ pub(crate) fn prove(
         &expected.build_id,
         image_binding,
     )?;
+    // Reuse the verified normal-product journey and its retained artifacts.
+    // Keeping the complete receipt here lets the existing CI product-evidence
+    // copy retain the strict lifecycle proof without another build or boot.
+    receipt["compositor_lifecycle"] = super::compositor_lifecycle_collection::collect(
+        &paths,
+        image,
+        &expected.source_identity,
+        digest,
+    )?;
     if git_head(&paths.root)? != expected.source_identity {
         return Err(refusal("source changed during the product journey"));
     }
     fs::write(
         paths.target.join("x86_64-product-journey-proof.json"),
-        proof,
+        serde_json::to_vec_pretty(&receipt).map_err(|error| refusal(error.to_string()))?,
     )
     .map_err(|error| refusal(error.to_string()))?;
     Ok(())

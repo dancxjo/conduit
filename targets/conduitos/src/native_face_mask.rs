@@ -21,6 +21,10 @@ use crate::{
     native_surface_provider::NativeSurfaceProvider,
 };
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+#[path = "native_face_mask/lifecycle_evidence.rs"]
+mod lifecycle_evidence;
+
 #[path = "native_face_mask/input.rs"]
 mod input;
 
