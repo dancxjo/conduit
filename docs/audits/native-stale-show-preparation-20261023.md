@@ -37,8 +37,7 @@ Mask cases and all four collector/profile/capacity/recovery cases pass. The
 [CPU packet](evidence/native-stale-show-preparation-20261023/) also preserves
 the initial featureless invocation, which failed to compile existing tests
 requiring `native-compositor`; the corrected invocation supplies that feature.
-Fresh QEMU capture and relevant merged checks remain pending.
-No visible stale-Show acceptance is claimed until the exact-source packet passes.
+The fresh QEMU result is recorded below; relevant merged checks remain pending.
 
 The first supported build on `48570ecc7` stopped before QEMU because `/tmp`'s
 user quota refused a C compiler temporary file. An inactive Cargo-only cache
@@ -48,3 +47,49 @@ The resumed build was deliberately stopped after review found that the guest
 could exit after Enter press while the collector still sent a separate release
 request. No emulator result was claimed. The corrected protocol batches both
 transitions and requires the guest to consume release before continuing.
+
+## Actual framebuffer result
+
+Clean Source `4d7c3283a2a13810cd59a4bed25f899bbdb226af` passes the same supported
+`cargo +stable xtask make conduitos compositor-semantic-recovery-proof`
+entrance with outer exit zero. The collector requires guest exit 33, exact
+Make/profile/recovery/capacity observations, one complete matching stale-Show
+checkpoint and its actual guest press/release acknowledgement. The
+[original packet](evidence/native-stale-show-qemu-20261023/) retains full serial
+and QMP transcripts, build/image records, original PNG, compressed full build
+log and independent verifiers/results. It uses evidence schema @4; previous
+packets and their proof classes remain unchanged.
+
+The real 1280×800 screenshot visibly contains `Stale: refresh` after 1,024,000
+framebuffer pixel writes. The exact Face remains
+`36b10b134d428664c71243ea52ba3dcd0cc666669aa3a104fbab978aaf0a195e`, revision 1.
+The genuine old Show is distinct from the retained fresh Show; the typed refusal
+is specifically `StaleShow`. The current Show, publication, source draft and
+keyboard route remain intact with zero source-owner actions at that boundary.
+The receipt retains the actual current Mask Plan and Play identities. Only
+after capture and the validated PS/2 press/release pair does the existing fresh
+typed interaction correlate and advance the canonical source draft.
+
+The capacity cases still pass with the actual framebuffer wrapper: 48 valid
+192-byte commands rasterize, the 49th/193-byte cases refuse atomically, and
+seven uploaded invisible fixture surfaces coexist with the real Mask surface.
+The ninth admission leaves full service cost unchanged, including guest entries
+2,153→2,153; cleanup and canonical recomposition preserve semantic custody.
+The Root-copy-loss recovery still passes its original independent conditions.
+
+Independent verification binds the clean measured Source, actual ELF/ISO bytes,
+unique complete serial receipts, exact QMP transcript and completed capture to
+the actual native Make's unchanged 268,435,456-byte arena/ceiling. An independent
+stdlib PNG reader verifies all chunk CRCs, decompressed extent, filters, RGBA
+pixels and receipt hashes. PNG SHA256 is
+`06bb657b272033294582ace97c287601e395ec1470d811919ecad9681faf8435`;
+decoded RGBA SHA256 is
+`7a57a886aac6e863ffc9da71be6c94a8042be4e9acc7db17fd3ac14df17b6e58`.
+The original image was visually inspected. ISO SHA256 is
+`c9d7921c1eba9d8a182da7b4321cbcaf610fd035319b5bad45d6bf176e836fad`.
+
+This earns the explicit appliance's visible stale-Show case, not ordinary-product
+provider disconnection, physical/human evidence, or the wide two-panel/four-choice
+layout requirement. The screenshot's primary page shows three choices with
+explicit continuation; it does not establish that all four are visible together.
+#5608/#5994 and normal merged acceptance retain those separate obligations.
