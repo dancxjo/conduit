@@ -423,3 +423,9 @@ compile_error!(
     feature = "compositor-semantic-recovery-proof"
 ))]
 pub mod compositor_semantic_recovery_proof;
+
+// Own the proof scanner's hosted poison/count controls without native mappings.
+#[cfg(test)]
+#[allow(dead_code, unused_imports)]
+#[path = "arch/x86_64/service_memory/storage.rs"]
+mod service_zero_storage_tests;
