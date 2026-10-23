@@ -212,3 +212,5 @@ mod sequences;
 
 #[path = "root_control_support/wait.rs"]
 mod wait;
+#[path = "root_control_support/pulse.rs"]
+mod pulse;

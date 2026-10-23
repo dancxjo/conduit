@@ -1,5 +1,7 @@
 //! Root provisioning policy, never a received grant or a fixture issuer. One
 //! acknowledged private setup may read once and attempt one selected join.
+#[path = "native_pulse_authority.rs"]
+mod pulse;
 #[path = "native_wait_authority.rs"]
 mod wait;
 use conduit_core as c;
@@ -54,6 +56,7 @@ pub struct RootIssuer {
     key: [u8; 32],
     issued: [bool; 2],
     wait_issued: bool,
+    pulse_issued: bool,
     last_play_sequence: u64,
     reserved_play: Option<c::ActivePlayIdentity>,
 }
@@ -73,6 +76,7 @@ impl RootIssuer {
             key,
             issued: [false; 2],
             wait_issued: false,
+            pulse_issued: false,
             last_play_sequence: 0,
             reserved_play: None,
         })

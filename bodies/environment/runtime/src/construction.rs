@@ -135,14 +135,41 @@ impl ApplianceSource {
             .expanded
             .connections
             .iter()
-            .filter(|connection| {
-                self.expanded.gears.iter().any(|gear| {
+            .map(|connection| {
+                let is_reading = self.expanded.gears.iter().any(|gear| {
                     gear.gear_id == connection.sink_gear_id
                         && gear.kind_id.as_str() == PublicationChannel::Reading.kind_id()
-                })
-            })
-            .map(|connection| {
-                (
+                });
+                let preferred_bytes = if is_reading {
+                    PublicationChannel::Reading.maximum_bytes() as u32
+                } else {
+                    1024
+                };
+                let limit = |gear: &conduit_core::GearId| {
+                    let choice = placements.by_gear.get(gear).ok_or_else(|| {
+                        conduit_planner::PlannerError::MissingPlacement(gear.as_str().into())
+                    })?;
+                    host.capabilities
+                        .iter()
+                        .find(|offer| offer.capability_id == choice.capability_id)
+                        .map(|offer| offer.limits.max_queue_bytes)
+                        .ok_or_else(|| {
+                            conduit_planner::PlannerError::UnknownCapability(
+                                choice.capability_id.as_str().into(),
+                            )
+                        })
+                };
+                // Ordinary default queue preferences are bounded by both
+                // selected offers. Reading's required payload extent remains
+                // explicit so an undersized offer refuses instead of shrinking it.
+                let byte_capacity = if is_reading {
+                    preferred_bytes
+                } else {
+                    preferred_bytes
+                        .min(limit(&connection.source_gear_id)?)
+                        .min(limit(&connection.sink_gear_id)?)
+                };
+                Ok((
                     (
                         connection.source_gear_id.clone(),
                         connection.source_port_id.clone(),
@@ -151,11 +178,11 @@ impl ApplianceSource {
                     ),
                     conduit_planner::ConnectionQueueLimits {
                         item_capacity: 1,
-                        byte_capacity: PublicationChannel::Reading.maximum_bytes() as u32,
+                        byte_capacity,
                     },
-                )
+                ))
             })
-            .collect();
+            .collect::<Result<_, conduit_planner::PlannerError>>()?;
         conduit_planner::plan_expanded_canonical_with_connection_limits(
             &self.expanded,
             &hosts,
