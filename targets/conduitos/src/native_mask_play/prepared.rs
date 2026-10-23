@@ -42,6 +42,7 @@ pub struct PreparedNativeMaskPlay {
 }
 
 impl PreparedNativeMaskPlay {
+    #[cfg(test)]
     pub fn prepare(
         planned: &PlannedMaskPlot,
         face: &Face,

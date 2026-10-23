@@ -55,6 +55,7 @@ impl Encounter {
             "build",
             provider.entry.base_id.clone(),
             &provider,
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
         )
         .unwrap();
         let mut presenter = FrontDoorPresenter::prepare(

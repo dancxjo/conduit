@@ -55,6 +55,26 @@ pub(super) fn exercise(
     let outward = submit(serial, child, qmp, reader, initial, &offered.identity, None)?;
     let selected = current(serial)?;
     let face = decode(&selected)?;
+    let storage = &selected["storage_receipts"];
+    for owner in ["producer", "renderer"] {
+        if storage[owner]["collection_storage"]["maximum_value_bytes"] != json!(256 * 1024)
+            || storage[owner]["face_id"] != selected["face"]["identity"]
+            || storage[owner]["face_revision"] != selected["face"]["revision"]
+        {
+            return Err(refusal(
+                "Source Show lacks matching initialized Collection storage receipts",
+            ));
+        }
+    }
+    let encoded = storage["producer"]["encoded_bytes"]
+        .as_u64()
+        .ok_or_else(|| refusal("Source producer lacks encoded byte receipt"))?;
+    if encoded <= 48 * 1024 || encoded > 256 * 1024 {
+        return Err(refusal(
+            "Source storage proof did not cross Standard within Collection bound",
+        ));
+    }
+
     for (name, expected) in [
         ("patchbay-selected", FacePropertyValue::Flag(true)),
         ("inspected-plan-present", FacePropertyValue::Flag(false)),
