@@ -1,0 +1,13 @@
+{
+  "proof_class": "physical-installed-root-negative-network-fixture",
+  "completed": false,
+  "body_installation_claimed": false,
+  "station_success_claimed": false,
+  "fixture_sha256": "6aca6aa5b9254dd3cf89905b5ccfd80bb46bdda865a32e81afbfea238eb36401",
+  "post_acknowledged": true,
+  "observed_boot_id": "boot/9af99d311f9ab5a0153ac9d464f13cd1",
+  "post_status": 202,
+  "uart_quiet_after_post_seconds": 30,
+  "failure": "bounded join failure and native AP restoration were not verified",
+  "elapsed_seconds": 91.8523141220212
+}
