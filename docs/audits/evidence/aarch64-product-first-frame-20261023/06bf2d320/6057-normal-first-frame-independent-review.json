@@ -1,0 +1,149 @@
+{
+  "schema": "conduit.independent-artifact-review@1",
+  "status": "PASS_SCOPED_NORMAL_AARCH64_READ_ONLY_FIRST_FRAME_WITH_OPEN_UI_TRUTH_BOUNDARY",
+  "source_commit": "06bf2d3207bc17794e0b18336e56c824ce08e973",
+  "checks": {
+    "image": {
+      "source": "06bf2d3207bc17794e0b18336e56c824ce08e973",
+      "artifact_role": "product-host",
+      "profile_id": "sha256:f12fd5c05e55ae635942b890fe669e2466d98f2584a101ccd0625aad5467ebb2",
+      "build_id": "build:sha256:f63b9e8ccfd0295d273826affb8d3b52e049fba52cf6e63bace0e06e3db45f81",
+      "logical_image_id": "image:sha256:01b5839a38e9eedf4550cc6901838a2e55890e23ae5170f2c13515312910657a",
+      "iso_sha256": "3076d307936020be4141f8eb4ae0329241e9bb45464597bfa7fc1e3dc7105d86",
+      "kernel_sha256": "f396d2cea9ecf48ce2fd5ba7c4e8a21b5942105f86fb099322bad7254bc1ac39",
+      "exact_kernel_in_iso_offset": 3239936,
+      "exact_kernel_occurrences": 1,
+      "resolved_manifest_exact": true,
+      "profile_build_logical_image_strings_embedded": true,
+      "literal_source_sha_present_in_elf": false
+    },
+    "serial": {
+      "counts": {
+        "CONDUIT_NATIVE_FIRST_FRAME": 1,
+        "CONDUIT_AARCH64_PRODUCT": 1,
+        "CONDUIT_OBSERVATORY_SNAPSHOT": 1
+      },
+      "line_anchors": {
+        "CONDUIT_NATIVE_FIRST_FRAME": [
+          6
+        ],
+        "CONDUIT_AARCH64_PRODUCT": [
+          8
+        ],
+        "CONDUIT_OBSERVATORY_SNAPSHOT": [
+          9
+        ]
+      },
+      "host_id": "a5c14e8b0efef5aade00f434a83e82a466c82eadb732da89eceba6b5bbd7cec7",
+      "boot_id": "830afaaf1d844f392b0dff2cb9ef27cd0af07d6918c838d97f32844a6dc095eb",
+      "face_id": "da140bd9f57a59291f9c7ec1e85c0d2affb2afc737e4479d7bdd227c9f756642",
+      "producer_plot": {
+        "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+        "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+        "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b"
+      },
+      "producer_plan_id": "480ccd5db06ba0b6e8db4ea021e94150f9a69fd7cce4f9a30978b2afe11fb675",
+      "kernel_signs": 12,
+      "mask_plan_id": "091e40f8ab2e186fb45dfbe9be0cccf1bed9f560bc8d9d0c0de1d115c9cc4227",
+      "mask_active_play_id": "d425b4275be4221235a2ea68c5c545427e883e4dbd70bb5aac2079272ca00458",
+      "show_id": "show/a3baada70b4753e38196b852f968c94602856461669ee017d70daea75d821d7a",
+      "framebuffer": {
+        "base_id": "e8897cb71101b2214dbf7b44151c7de4ba2e931dbb795d3ede8d6b11ebc75c96",
+        "bits_per_pixel": 32,
+        "height": 600,
+        "pitch_bytes": 3200,
+        "width": 800
+      },
+      "observatory_framebuffer_join": true,
+      "no_body": true,
+      "read_only": true
+    },
+    "capture": {
+      "dimensions": [
+        800,
+        600
+      ],
+      "png_sha256": "b5982592346b13bb2e212138f3fbf8548e2194d5eeb4f9c47b514ab7e4a4e412",
+      "ppm_sha256": "ab0eef4f57ebabaa6f9f9fe51961641137b01c92ac3c6db055a0ec5d2c3e8237",
+      "decoded_rgb_sha256": "d7439020e4999b5fc894b5074496628ee53c3a3b8badb04495ede7bd50f6ac30",
+      "png_crc_valid": true,
+      "decoded_png_exact_original_ppm": true,
+      "qmp_screendump_success": true,
+      "original_receipt_sha256": "de908a495131582d3abdc9130bdcb384f6f6e414f903d2b8f6d4e7606fb7878e",
+      "original_probe_failure_preserved": true
+    },
+    "source_checkout": {
+      "head": "06bf2d3207bc17794e0b18336e56c824ce08e973",
+      "clean_at_review": true
+    }
+  },
+  "artifacts": [
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/capture-receipt-before-png-recovery.json",
+      "bytes": 747715,
+      "sha256": "de908a495131582d3abdc9130bdcb384f6f6e414f903d2b8f6d4e7606fb7878e"
+    },
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/serial.log",
+      "bytes": 128996,
+      "sha256": "bd2cf1dc9bd534396a8c05f9309d0b5fd177ad0f3b06a03951d60bfae7c613e6"
+    },
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/display.ppm",
+      "bytes": 1440015,
+      "sha256": "ab0eef4f57ebabaa6f9f9fe51961641137b01c92ac3c6db055a0ec5d2c3e8237"
+    },
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/receipt.json",
+      "bytes": 748500,
+      "sha256": "f57e9466dbc54ee1b8b21d911dba6ebc76c739c68a266e66cf9fc5e0faa856a0"
+    },
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/stderr.log",
+      "bytes": 73,
+      "sha256": "df8f0da5cfc80d0b5cac0591cbc9db8bbb99a69c303b5a0d46fa0afeb364af3b"
+    },
+    {
+      "path": "outputs/6057-aarch64-first-frame-06bf2d320/display.png",
+      "bytes": 32317,
+      "sha256": "b5982592346b13bb2e212138f3fbf8548e2194d5eeb4f9c47b514ab7e4a4e412"
+    },
+    {
+      "path": "work/6057-normal-graphical-host/conduitos-aarch64.iso",
+      "bytes": 15046656,
+      "sha256": "3076d307936020be4141f8eb4ae0329241e9bb45464597bfa7fc1e3dc7105d86"
+    },
+    {
+      "path": "work/6057-normal-graphical-host/resolved-image.json",
+      "bytes": 4462,
+      "sha256": "9ea6a410118eed9785631505426d42beb6dc99f7da8e199da1463cc3b6d3bc13"
+    },
+    {
+      "path": "work/6057-normal-graphical-host/conduitos-kernel.elf",
+      "bytes": 10814640,
+      "sha256": "f396d2cea9ecf48ce2fd5ba7c4e8a21b5942105f86fb099322bad7254bc1ac39"
+    },
+    {
+      "path": "work/6057-normal-graphical-host/build-manifest.json",
+      "bytes": 4282,
+      "sha256": "bcb4c6f1fb50ad4d5c56f4cd226518b3a61accc06b33b9c6f90205e79b87d945"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "pre-PR UI truth boundary",
+      "detail": "Renderer footer advertises PgUp/F2 interactions although this product has no input reader; serial correctly says interactive_local_control=false. Qualify/remove inactive affordances before claiming coherent local control UX. Screenshot does not prove working input."
+    }
+  ],
+  "limits": [
+    "No builds/QEMU/GH/cache/source mutations performed.",
+    "Source binding is build/resolved manifest plus matching embedded profile/build/logical image IDs; literal source SHA is absent from ELF and no independently reproduced build was performed.",
+    "Original probe exit1 occurred after QMP/serial success due to missing Pillow; exact PNG-to-original-PPM equality independently verified. Cleanup exit0 is not guest acceptance exit. Recovery records match same original serial; no new Boot inferred.",
+    "Plans/Show identity and lifecycle joins checked, not cryptographic signature revalidation or replay through Rust validators.",
+    "Canonical zero-Body BirthDraft presentation provenance is not execution of candidate Body owner Sources.",
+    "QEMU virt/ramfb/neoverse-n2 evidence is not physical input/display/DMA/isolation proof.",
+    "Full6057 five-architecture/gallery/IA32/launcher acceptance remains open.",
+    "Logical image binding intentionally differs from final ISO hash.",
+    "Original receipt product_show_proved=false remains unmodified; this independent audit supplies only stated scoped conclusions."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "observed_utc": "2026-10-23T23:01:59.636485+00:00",
+  "source": "06bf2d3207bc17794e0b18336e56c824ce08e973",
+  "result": "AArch64 normal product binary cargo check passed",
+  "command": "cargo +stable check --locked -p conduitos --bin conduitos-aarch64-product --target aarch64-unknown-none --features aarch64-product,native-compositor",
+  "log": "work/6057-aarch64-product-check.log",
+  "log_sha256": "88c874802d59e7dfb4432df2a79042c28a4652fc952559b2bc28066f69ca1ef5",
+  "warnings": "40 library dead-code/unused warnings; not a target-wide strict Clippy claim",
+  "limits": "Compiler check only; normal PROFILE build/QEMU pending",
+  "normal_profile_build_session": 73085
+}

@@ -1,0 +1,21 @@
+{
+  "source": "06bf2d3207bc17794e0b18336e56c824ce08e973",
+  "exit_code": 0,
+  "clean": true,
+  "profile": "sha256:f12fd5c05e55ae635942b890fe669e2466d98f2584a101ccd0625aad5467ebb2",
+  "build": "build:sha256:f63b9e8ccfd0295d273826affb8d3b52e049fba52cf6e63bace0e06e3db45f81",
+  "image": {
+    "role": "final-bootable-image",
+    "file": "conduitos-aarch64.iso",
+    "sha256": "3076d307936020be4141f8eb4ae0329241e9bb45464597bfa7fc1e3dc7105d86"
+  },
+  "kernel": {
+    "role": "freestanding-kernel",
+    "file": "conduitos-kernel.elf",
+    "sha256": "f396d2cea9ecf48ce2fd5ba7c4e8a21b5942105f86fb099322bad7254bc1ac39"
+  },
+  "artifact_role": "product-host",
+  "log_sha256": "1217d223fcb57ad8b60754ca2ce2d6d307a2b688b6d0c469fa91f8d8629caeea",
+  "observed_utc": "2026-10-23T23:11:36.714141+00:00",
+  "limits": "Normal PROFILE build; QEMU proof pending."
+}

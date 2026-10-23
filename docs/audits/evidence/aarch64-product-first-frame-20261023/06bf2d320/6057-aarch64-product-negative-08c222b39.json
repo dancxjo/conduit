@@ -1,0 +1,13 @@
+{
+  "source": "08c222b393e4a4c892fc07c1dfc48cdb7cc7c6f2",
+  "result": "AArch64 binary check failed E0433: RndrEntropy not exported from arch; existing alias is DomainEntropy",
+  "log": "work/6057-aarch64-product-negative-08c222b39.log",
+  "sha256": "d89c5faafdea10106eca59fbfd87ce1cd5615fa6cf747d80a14f4134f0fe66b3",
+  "owned_normal_profile_build_stopped_for_source_repair_pids": [
+    3339799,
+    3339858,
+    3346245,
+    3346428
+  ],
+  "observed_utc": "2026-10-23T23:01:09.691789+00:00"
+}

@@ -1,0 +1,51 @@
+{
+  "schema": "conduit.review/6057-native-first-frame-held@2",
+  "status": "NO_ACTIONABLE_STATIC_FINDING_CANONICAL_PREBIRTH_PRODUCER_BASIS",
+  "source_commit": "f55aad9297a05f81fd3dcb2a03dcc8d54232c864",
+  "reviewed_source_objects": [
+    {
+      "path": "targets/conduitos/src/native_first_frame.rs",
+      "sha256": "2d77bcec76ac43759d16faae3599577c143d0219fef5daff89c5a3adc6dd83e3"
+    },
+    {
+      "path": "targets/conduitos/src/native_first_frame/tests.rs",
+      "sha256": "a1ddc0d582e3231e71fba6017711f813373cb7598f7d25432aa9d13ff1eb4e37"
+    },
+    {
+      "path": "targets/conduitos/src/bin/aarch64_product.rs",
+      "sha256": "5d3d6f1b41df432ca9b57f52ef74244ba61dfeff247f1197024b698b47532960"
+    },
+    {
+      "path": "targets/conduitos/src/lib.rs",
+      "sha256": "b2178833c52a6416d33999d17cf0a00e4ad178e697a2dae49bd011bebfaf09cd"
+    }
+  ],
+  "findings": [],
+  "superseded_review": {
+    "source": "ef3658b17f202bfecffec0aec908c00aeca48323",
+    "status": "NO_ACTIONABLE_STATIC_REGRESSION_WITH_OPEN_G1_PROVENANCE_GATE",
+    "correction": "Prior Host inventory Face was not a valid producer-basis Face. The actual ef3658 CPU negative preserves this refusal; revised code changes the owner Face construction rather than weakening the producer guard.",
+    "negative_receipt": "outputs/6057-native-first-frame-negative-ef3658b17.json",
+    "negative_raw_sha256": "328154e4db659cf6a9849d351958c56b961fe8512d7f13b00151af418963efe0"
+  },
+  "acceptance_assessment": {
+    "prebirth_source_backed_first_frame": "The static provenance gap is addressed for the explicitly noninteractive zero-Body Cr\u00e8che frame: canonical BirthDraft with five real candidate Sources, all explicitly unavailable and unselected, constructs Face using NativeFaceMask.birth_basis. That basis derives actual producer PlotIdentity and PlanId from the already prepared producer, rather than caller-invented identifiers. Existing forwarding/producer guard, checked Mask execution and actual scanout acknowledgement remain unchanged.",
+    "owner_boundary": "Owner is the retained canonical BirthDraft/encounter. Face source/checked/Plan basis identifies the real native presentation producer. Candidate Plot Sources are inventory for the prebirth view; they have not been admitted as a Body workset or executed as candidate owner Plots. No Body lifecycle/owner-Source execution claim follows.",
+    "g1_readiness": "This clears the identified source-level provenance prerequisite for attempting G1 first-frame validation. It does not by itself establish compiled AArch64 integration, actual firmware display/RNDR discovery, QEMU scanout, or full G1 acceptance."
+  },
+  "static_checks": [
+    "Current Host/Boot, Make profile/logical image and capability artifact build guards remain before publication. Finite display byte bound and observed framebuffer Base remain unchanged.",
+    "prepare_creche ResponsiveColumns installs existing component path; draft.face(mask.birth_basis(ENCOUNTER)) uses actual producer Host/Boot/source/checked/Plan basis and no Body.",
+    "Boot-derived encounter UUID follows existing boot identity pattern; no random Boot selection or fabricated Body identity introduced.",
+    "All five candidates are resolved through native_workset resident Source path, with explicit lifecycle-unavailable refusal and selected=false; no eligibility/Plan authority is fabricated.",
+    "present_read_only retains Face actions/wording while preventing semantic input; NativeFirstFrame retains both draft and mask/session/Show through frame lifetime.",
+    "Tests now assert exact observed basis/Face equality, source/checked/producer Plan identity and positive actual kernel Signs, no Body, available matching Show, positive writes and read-only routing; negative display/key/surface tests remain. These tests were inspected, not executed by reviewer.",
+    "Private issuer key stays in existing provider/Mask authority path; ordinary fill(0) is not a secure-zeroization guarantee for all copies."
+  ],
+  "limits": [
+    "Read-only committed-source review; no builds/tests/QEMU/GitHub/cache operations performed. Parent CPU session2680 was running when requested; no result inferred.",
+    "Full Body Source execution, interactive input, physical display/DMA isolation and all-architecture claims remain outside this first prebirth frame.",
+    "Source-backed producer presentation is distinct from execution of each candidate Plot Source.",
+    "Actual normal QEMU/product evidence remains pending and must bind exact source/image/artifacts separately."
+  ]
+}

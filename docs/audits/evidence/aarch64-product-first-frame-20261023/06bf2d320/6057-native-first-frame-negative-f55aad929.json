@@ -1,0 +1,7 @@
+{
+  "source": "f55aad9297a05f81fd3dcb2a03dcc8d54232c864",
+  "result": "1 passed; 1 failed",
+  "failure": "incorrect assertion that read-only semantic input also disables compositor keyboard routing",
+  "log": "work/6057-native-first-frame-negative-f55aad929.log",
+  "sha256": "5c2c77fb6c919645110825e64e6c15a6c7a03d54aedba7bd887ec2514df3854b"
+}

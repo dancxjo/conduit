@@ -1,0 +1,26 @@
+{
+  "observed_utc": "2026-10-23T22:55:53.519044+00:00",
+  "source": "08c222b393e4a4c892fc07c1dfc48cdb7cc7c6f2",
+  "clean": true,
+  "command": "cargo +stable test --locked -p conduitos --lib --features native-compositor native_first_frame::tests",
+  "result": "2 passed; 0 failed",
+  "log": "work/6057-native-first-frame-cpu-tests.log",
+  "log_sha256": "48f77279e2e0bad8941f7dfc5854a62fc749aa3bcfdf7e11f419ad07c90ad62e",
+  "scope": "Hosted CPU first-frame contract only. AArch64 binary, normal PROFILE ISO and QEMU proof remain pending.",
+  "clippy": {
+    "command": "cargo +stable clippy --locked -p conduitos --lib --features native-compositor -- -D warnings",
+    "exit_code": 0,
+    "log": "work/6057-native-first-frame-clippy.log",
+    "sha256": "d9f5691c087a15be59817491e1ec78ecb5c76d9ca9fb81a2d37f95f0bed74f5c"
+  },
+  "publication": {
+    "branch": "prep/6057-graphical-product-current-dev-20261023",
+    "remote_head_verified": "08c222b393e4a4c892fc07c1dfc48cdb7cc7c6f2",
+    "remote_verified_utc": "2026-10-23T22:57:00Z"
+  },
+  "active_validation": {
+    "aarch64_binary_check_session": 15311,
+    "normal_profile_build_session": 79415,
+    "source_unchanged_until_terminal": true
+  }
+}

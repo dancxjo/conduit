@@ -1,0 +1,11 @@
+{
+  "source": "ef3658b17",
+  "command": "cargo +stable test --locked -p conduitos --lib --features native-compositor native_first_frame::tests",
+  "exit_code": 101,
+  "passed": 1,
+  "failed": 1,
+  "failure": "native-face-mask-producer-basis: Host inventory Face has no admitted producer provenance",
+  "log": "work/6057-native-first-frame-negative-ef3658b17.log",
+  "sha256": "328154e4db659cf6a9849d351958c56b961fe8512d7f13b00151af418963efe0",
+  "scope": "CPU host library only; AArch64 binary not yet compiled or executed"
+}
