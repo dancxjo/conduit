@@ -34,9 +34,12 @@ struct PreparedField {
 }
 
 struct PreparedChild {
-    value_type: StructuredInfoType,
-    type_prefix: Vec<u8>,
+    output: ChildOutput,
     evaluator: PreparedPortableExpressionEvaluator,
+}
+enum ChildOutput {
+    Leaf,
+    Structured(Vec<u8>),
 }
 
 impl PreparedStructuredExpression {
@@ -221,15 +224,15 @@ impl PreparedStructuredExpression {
 impl PreparedChild {
     fn append_node(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
         let encoded = self.evaluator.evaluate(input)?;
-        match self.value_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) => {
+        match &self.output {
+            ChildOutput::Leaf => {
                 push(output, 0)?;
                 push_len(output, encoded.len())?;
                 append(output, encoded)
             }
-            _ => {
+            ChildOutput::Structured(type_prefix) => {
                 let node = encoded
-                    .strip_prefix(self.type_prefix.as_slice())
+                    .strip_prefix(type_prefix.as_slice())
                     .ok_or(Refusal::InvalidProgram)?;
                 append(output, node)
             }
@@ -248,12 +251,20 @@ fn child(
         output_type: &node.value_type,
         root: node,
     };
+    // Preserve canonical Type validation during preparation. Only structured
+    // outputs need these bytes during Play; no child needs a second Type graph.
+    let type_prefix = node
+        .value_type
+        .canonical_bytes()
+        .map_err(|_| Refusal::InvalidProgram)?;
+    let output = if matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_)) {
+        drop(type_prefix);
+        ChildOutput::Leaf
+    } else {
+        ChildOutput::Structured(type_prefix)
+    };
     Ok(PreparedChild {
-        type_prefix: node
-            .value_type
-            .canonical_bytes()
-            .map_err(|_| Refusal::InvalidProgram)?,
-        value_type: node.value_type.clone(),
+        output,
         evaluator: PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?,
     })
 }
