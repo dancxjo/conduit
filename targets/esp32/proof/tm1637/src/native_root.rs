@@ -192,11 +192,18 @@ impl NativeRoot {
                 if self.prepare_network_plan().is_err() {
                     return b"refused";
                 }
-                let Some(Ok(prepared)) = &self.network_preparation else {
-                    return b"planning-refused";
+                let prepared = match self.network_preparation.take() {
+                    Some(Ok(prepared)) => prepared,
+                    refusal => {
+                        self.network_preparation = refusal;
+                        return b"planning-refused";
+                    }
                 };
+                // Selected owners and kernel retain their exact bindings. The
+                // rich construction Plan/lowering is not continuing execution
+                // custody and is released after installation, on either result.
                 let result = self.play.install(
-                    prepared,
+                    &prepared,
                     &mut self.credentials,
                     self.network.ready_slot(),
                     &mut self.issuer,
