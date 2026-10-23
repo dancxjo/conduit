@@ -1,0 +1,56 @@
+# Preparation-only structural profile. No component-mask@2 Back admits this yet.
+# Logical axes, with spacing in sixteenths of selected root text em. Resolution
+# belongs to Mask metrics/Look; visual children never change Face semantic order.
+type ComponentLayoutAlignment =
+    start
+    | center
+    | end
+    | stretch
+
+type ComponentLayoutBreak =
+    keep
+    | accessible_continuation
+
+type ComponentLayoutChild = {
+    node: U8 in 0..=31
+    inline_track: U8 in 0..=3
+    block_track: U8 in 0..=3
+    inline_span: U8 in 1..=2
+    block_span: U8 in 1..=2
+}
+
+type ComponentLayoutGroup = {
+    children: sequence ComponentLayoutChild <= 32
+    inline_alignment: ComponentLayoutAlignment
+    block_alignment: ComponentLayoutAlignment
+    break_policy: ComponentLayoutBreak
+    gap_em_sixteenths: U16 in 0..=256
+    padding_em_sixteenths: U16 in 0..=256
+    grow: U8 in 0..=16
+    shrink: U8 in 0..=16
+}
+
+type ComponentLayoutGrid = {
+    group: ComponentLayoutGroup
+    inline_tracks: U8 in 1..=4
+    block_tracks: U8 in 1..=4
+}
+
+type ComponentLayoutNode =
+    region U8 in 0..=7
+    | fallback
+    | row ComponentLayoutGroup
+    | column ComponentLayoutGroup
+    | grid ComponentLayoutGrid
+
+type ComponentLayoutCandidate = {
+    nodes: sequence ComponentLayoutNode <= 32
+    root: U8 in 0..=31
+}
+
+type ComponentLayoutInfo = {
+    candidates: sequence ComponentLayoutCandidate <= 2
+    identity: Text <= 128B not in [""]
+    recipe_identity: Text <= 128B not in [""]
+    version: U16 in 1..=1
+}

@@ -259,6 +259,13 @@ mod configured_mask;
 pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
+mod component_layout;
+pub use component_layout::*;
+pub use generated::{
+    ComponentLayoutAlignment, ComponentLayoutBreak, ComponentLayoutCandidate, ComponentLayoutChild,
+    ComponentLayoutGrid, ComponentLayoutGroup, ComponentLayoutInfo, ComponentLayoutNode,
+};
+
 mod component_recipe;
 mod component_slots;
 pub use component_recipe::*;
