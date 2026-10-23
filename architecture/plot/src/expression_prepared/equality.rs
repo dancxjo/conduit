@@ -29,6 +29,20 @@ pub(super) fn binary(
             right: Box::new(prepare_node(right, input_type, input)?),
         });
     }
+    structured_binary(operator, output_kind, left, right, input_type, input)
+}
+
+// Keep the larger structured-equality preparation frame out of every nested
+// primitive Binary node. Preparation remains bounded by the same checked tree.
+#[inline(never)]
+fn structured_binary(
+    operator: BinaryOperator,
+    output_kind: PrimitiveInfoKind,
+    left: &PortableExpressionNode,
+    right: &PortableExpressionNode,
+    input_type: &StructuredInfoType,
+    input: &PreparedInput,
+) -> Result<PreparedOperation, Refusal> {
     if output_kind != PrimitiveInfoKind::Bool
         || left.value_type != right.value_type
         || !matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
