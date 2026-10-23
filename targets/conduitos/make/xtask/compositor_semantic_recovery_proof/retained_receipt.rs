@@ -107,7 +107,7 @@ pub(super) fn validate(
         let payload = line.strip_prefix(PREFIX).ok_or_else(refusal)?;
         let record: Record = serde_json::from_str(payload).map_err(|_| refusal())?;
         let index = records.len();
-        let prepared = index % 3 == 0;
+        let prepared = index.is_multiple_of(3);
         if record.schema != "conduit.conduitos/compositor-retained-pair@1"
             || record.trial as usize != index / 3
             || record.arm != ["prepared", "cold", "retained"][index % 3]
@@ -184,10 +184,8 @@ pub(super) fn validate(
         return Err(refusal());
     }
     let mut pairs = Vec::with_capacity(3);
-    for (trial, batch) in records.chunks_exact(3).enumerate() {
-        let [prepared, cold, retained] = batch else {
-            return Err(refusal());
-        };
+    for (trial, batch) in records.as_chunks::<3>().0.iter().enumerate() {
+        let [prepared, cold, retained] = batch;
         let cold_ack = cold.ack.0.as_ref().ok_or_else(refusal)?;
         let warm_ack = retained.ack.0.as_ref().ok_or_else(refusal)?;
         if cold.instance != prepared.instance
@@ -210,12 +208,16 @@ pub(super) fn validate(
             "cold_raw_ticks":cold.elapsed_raw_ticks.0,"retained_raw_ticks":retained.elapsed_raw_ticks.0}));
     }
     let cold_ticks = records
-        .chunks_exact(3)
+        .as_chunks::<3>()
+        .0
+        .iter()
         .map(|batch| batch[1].elapsed_raw_ticks.0)
         .collect::<Option<Vec<_>>>()
         .ok_or_else(refusal)?;
     let retained_ticks = records
-        .chunks_exact(3)
+        .as_chunks::<3>()
+        .0
+        .iter()
         .map(|batch| batch[2].elapsed_raw_ticks.0)
         .collect::<Option<Vec<_>>>()
         .ok_or_else(refusal)?;

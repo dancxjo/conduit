@@ -29,11 +29,11 @@ fn poison(slot: &mut Fixture, region: usize, position: usize) {
 #[test]
 fn every_table_and_data_region_is_checked_at_first_middle_last_without_short_circuit() {
     let mut slot = Fixture::empty();
-    for region in 0..ZERO_REGIONS {
+    for (region, count) in COUNTS.iter().enumerate() {
         let length = if region < 4 {
-            COUNTS[region] as usize / 8
+            *count as usize / 8
         } else {
-            COUNTS[region] as usize
+            *count as usize
         };
         for position in [0, length / 2, length - 1] {
             slot.view().clear();
@@ -171,5 +171,5 @@ fn missing_wrong_and_duplicate_tokens_never_destroy_another_pending_result() {
     assert!(state.arm.is_some());
     assert_eq!(take(&mut state, token), Err(ZeroObserverError::Incomplete));
     assert_eq!(take(&mut state, token), Err(ZeroObserverError::Missing));
-    assert!(SERVICE_ZERO_OBSERVER_BYTES <= 512);
+    const { assert!(SERVICE_ZERO_OBSERVER_BYTES <= 512) };
 }

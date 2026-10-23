@@ -28,7 +28,8 @@ fn header(b: &[u8]) -> Option<()> {
     }
     Some(())
 }
-fn loads(b: &[u8]) -> Option<Vec<(usize, usize, u64, u64, u64)>> {
+type LoadSegment = (usize, usize, u64, u64, u64);
+fn loads(b: &[u8]) -> Option<Vec<LoadSegment>> {
     header(b)?;
     let off = usize_at(b, 32, 8)?;
     let count = usize_at(b, 56, 2)?;

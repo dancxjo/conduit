@@ -151,6 +151,9 @@ pub struct Snapshot {
 }
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
+// Keep the bounded parsed record inline; boxing changes allocation semantics
+// solely to reduce this private, short-lived discriminator's stack size.
+#[allow(clippy::large_enum_variant)]
 pub(super) enum Packet {
     Snapshot(SnapshotRecord),
     Incomplete(IncompleteRecord),

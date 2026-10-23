@@ -195,7 +195,7 @@ fn tables(tables: &[Table]) -> ZeroRegionResult {
             nonzero |= unsafe { core::ptr::read_volatile(word) };
         }
     }
-    let count = (tables.len() * size_of::<Table>()) as u64;
+    let count = core::mem::size_of_val(tables) as u64;
     ZeroRegionResult {
         expected_bytes: count,
         checked_bytes: count,

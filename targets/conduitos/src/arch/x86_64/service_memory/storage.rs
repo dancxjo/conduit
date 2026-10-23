@@ -366,6 +366,8 @@ mod zero_observer;
     feature = "ordinary-domain-proof",
     feature = "compositor-semantic-recovery-proof"
 ))]
+// The standalone storage test harness exercises the private observer directly.
+#[cfg_attr(test, allow(unused_imports))]
 pub(crate) use zero_observer::{
     SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
     ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
