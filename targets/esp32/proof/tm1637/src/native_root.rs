@@ -5,6 +5,7 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    network_source: conduit_plot::ExpandedCanonicalPlot,
     credentials: conduit_network_join_call::credential_installation::ReadyCredentialBase<
         crate::native_credentials::RootCredentialSource,
     >,
@@ -25,6 +26,7 @@ impl NativeRoot {
         sensor: Esp32PulseCapture<'static>,
         radio: crate::network::Radio,
         boot: &crate::boot::ObservedBoot,
+        network_source: conduit_plot::ExpandedCanonicalPlot,
     ) -> Self {
         let (host, boot) = boot.ids();
         let host: c::HostId = host.into();
@@ -62,6 +64,7 @@ impl NativeRoot {
         .unwrap();
         let (credentials, credential_writer) = crate::native_credentials::prepare(&host, &boot);
         Self {
+            network_source,
             credentials,
             credential_writer,
             station_config: None,
@@ -75,6 +78,9 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
+        &self.network_source
     }
     /// Fixed Root bootstrap service, independent of Body/Face installation. Two
     /// HTTP listeners and one DHCP socket share one finite private submission.

@@ -1,0 +1,73 @@
+//! Host allocation evidence for the autonomous preparation boundary. Root,
+//! authority and radio fixtures remain those of the owning CPU execution test.
+use super::{allocation_probe, c};
+
+pub fn measure(
+    host: &c::HostAdvertisement,
+    bases: &[c::BaseImplementationId],
+    grants: &[c::AuthorityGrant],
+    expected: &c::Plan,
+) {
+    let (source, compilation) =
+        allocation_probe::observe(|| conduit_environment_make::compile_network_setup().unwrap());
+    let image = conduit_plot::flat_image::encode(&source).unwrap();
+    for absent in [
+        host.host_id.as_str(),
+        host.boot_id.as_str(),
+        "fixture-password",
+    ] {
+        assert!(!image.windows(absent.len()).any(|v| v == absent.as_bytes()));
+    }
+    // SAFETY: bytes were produced above from the ordinary checker in this same
+    // trusted process. No network input or supplied provenance is accepted.
+    let (restored, decoding) = allocation_probe::observe(|| unsafe {
+        conduit_plot::flat_image::decode_trusted(&image).unwrap()
+    });
+    assert_eq!(restored, source);
+    let mut corrupt: serde_json::Value = serde_json::from_slice(&image).unwrap();
+    corrupt["provenance"][0]["construction_owner"] = "not-compiler-authority".into();
+    // Negative representation probe only; no returned graph is used for planning.
+    assert!(matches!(
+        unsafe { conduit_plot::flat_image::decode_trusted(&serde_json::to_vec(&corrupt).unwrap()) },
+        Err(conduit_plot::flat_image::ImageRefusal::Representation)
+    ));
+    let source = restored;
+    let (copy, graph) = allocation_probe::observe(|| source.clone());
+    drop(copy);
+    let (plan, planning) = allocation_probe::observe(|| {
+        // Include the retained graph itself in the measured preparation peak;
+        // measuring only planner scratch would understate the MCU requirement.
+        let source = source.clone();
+        let hosts = core::slice::from_ref(host);
+        let placements = conduit_planner::default_expanded_placements(&source, hosts).unwrap();
+        conduit_planner::plan_expanded_canonical_with_options(
+            &source,
+            hosts,
+            &placements,
+            bases,
+            conduit_planner::PlanningOptions {
+                connection_bases: &std::collections::BTreeMap::new(),
+                line_candidates: &std::collections::BTreeMap::new(),
+                connection_item_capacity: 1,
+                connection_byte_capacity: conduit_net::MAXIMUM_JOIN_INPUT_BYTES,
+                authority_grants: grants,
+                protected_resource_grants: &[],
+                line_offers: &[],
+            },
+        )
+        .unwrap()
+    });
+    assert_eq!(&plan, expected);
+    assert!(c::verify_plan(&plan));
+    let (lowered, lowering) = allocation_probe::observe(|| {
+        // Lowering also needs the live Plan, not just its own scratch storage.
+        let plan = plan.clone();
+        conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap()
+    });
+    assert_eq!((lowered.nodes.len(), lowered.cords.len()), (3, 2));
+    eprintln!(
+        "network_preparation_stages source_peak={} graph_clone_peak={} graph_and_planner_peak={} plan_and_lowering_peak={} planner_allocations={} lowering_allocations={} image_bytes={} image_decode_peak={}",
+        compilation.peak_bytes, graph.peak_bytes, planning.peak_bytes,
+        lowering.peak_bytes, planning.allocations, lowering.allocations, image.len(), decoding.peak_bytes,
+    );
+}

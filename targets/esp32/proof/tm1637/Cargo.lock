@@ -237,6 +237,7 @@ dependencies = [
  "conduit-face",
  "conduit-net",
  "conduit-network-join-call",
+ "conduit-plot",
  "conduit-pulse-capture",
  "conduit-rp2040-network-realization",
  "conduit-seven-segment-mask",
@@ -254,6 +255,7 @@ dependencies = [
  "esp-rtos",
  "heapless 0.8.0",
  "serde-json-core",
+ "sha2",
  "static_cell",
 ]
 
@@ -350,6 +352,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "serde",
+ "serde_json",
  "sha2",
 ]
 

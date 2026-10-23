@@ -20,6 +20,8 @@ mod native_credentials;
 mod native_entry;
 #[cfg(feature = "native-root")]
 mod native_root;
+#[cfg(feature = "native-root")]
+mod native_source;
 #[cfg(feature = "ap")]
 mod network;
 #[cfg(all(feature = "ap", not(feature = "native-root")))]

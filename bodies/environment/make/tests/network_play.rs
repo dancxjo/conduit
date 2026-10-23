@@ -14,6 +14,8 @@ use conduit_network_join_call::{installation::*, *};
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "network_play_support/preparation_profile.rs"]
+mod preparation_profile;
 #[path = "network_play_support/projection.rs"]
 mod projection;
 #[global_allocator]
@@ -208,6 +210,7 @@ fn execute(acknowledged: bool, assigned: bool) {
         PreparedNetworkSetup::prepare(&host, &bases, &grants).unwrap()
     });
     assert!(c::verify_plan(prepared.plan()));
+    preparation_profile::measure(&host, &bases, &grants, prepared.plan());
     assert_eq!(prepared.body_plot_plan().plan, *prepared.plan());
     let projection = projection::Projection::prepare(prepared);
     let prepared = projection.native.checked();

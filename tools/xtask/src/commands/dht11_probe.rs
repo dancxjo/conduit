@@ -63,6 +63,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "--test",
                     "network_play",
                 ])
+                .args(["--", "--nocapture"])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
