@@ -1,0 +1,18 @@
+{
+  "implementation_commit": "42425549c953bd86842b6089aaf48f0b686019e7",
+  "proof_class": "32-bit CPU production appliance kernel and ESP32 cross-build",
+  "tests_passed": 19,
+  "overnight_scenarios": 7,
+  "samples_per_scenario": 960,
+  "preparation_peak_bytes": 60116,
+  "software_retained_bytes": 51423,
+  "assignment_admission_allocations": 0,
+  "ownership_transfer_allocations": 0,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "strict_runtime_clippy": true,
+  "locked_esp32_cross_build": true,
+  "firmware_constructor_invoked": false,
+  "complete_climate_memory_admission": false,
+  "physical_climate_body_started": false
+}
