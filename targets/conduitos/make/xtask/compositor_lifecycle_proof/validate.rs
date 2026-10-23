@@ -1,4 +1,5 @@
 //! Fixed selected checkpoint policy, separate from line decoding and artifact I/O.
+use super::std::vec::Vec;
 use super::{frame::Frame, *};
 
 fn hex(value: &str, length: usize) -> bool {

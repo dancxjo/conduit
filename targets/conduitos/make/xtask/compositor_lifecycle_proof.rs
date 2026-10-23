@@ -1,4 +1,6 @@
 //! Pure terminal receipt validation. No I/O, guest calls, clock or artifact custody.
+extern crate std;
+use self::std::vec::Vec;
 #[path = "compositor_lifecycle_proof/frame.rs"]
 mod frame;
 #[path = "compositor_lifecycle_proof/types.rs"]
@@ -15,6 +17,25 @@ const MAX_FRAMES: usize = 4096;
 /// Input is terminal, already decoded by the owning shared serial reader.
 /// Unrelated lines are ignored; a partial required record always refuses.
 pub fn parse_terminal(serial: &str, expected: &ExpectedBinding) -> Result<Report, Refusal> {
+    let (records, frames) = decode_terminal(serial)?;
+    validate::validate(&records, &frames, expected)
+}
+
+/// Observed preparation metadata only; no artifact or full-scope claim follows.
+/// Reuses the exact closed decoder, including incomplete-marker refusal.
+pub fn preparation_context(serial: &str) -> Result<Snapshot, Refusal> {
+    let (records, _) = decode_terminal(serial)?;
+    let mut contexts = records.into_iter().filter(|r| {
+        r.checkpoint == Checkpoint::Prepared && r.kind == Kind::Context && r.position.part == 0
+    });
+    let context = contexts.next().ok_or(Refusal::BatchShape)?;
+    if contexts.next().is_some() {
+        return Err(Refusal::BatchShape);
+    }
+    Ok(context)
+}
+
+fn decode_terminal(serial: &str) -> Result<(Vec<Snapshot>, Vec<frame::Frame>), Refusal> {
     let mut records = Vec::new();
     let mut frames = Vec::new();
     for line in serial.split_inclusive('\n') {
@@ -48,15 +69,44 @@ pub fn parse_terminal(serial: &str, expected: &ExpectedBinding) -> Result<Report
         if records.len() == MAX_RECORDS {
             return Err(Refusal::RecordCount);
         }
-        let record: types::Record = serde_json::from_str(line.strip_prefix(PREFIX).unwrap())
+        let packet: types::Packet = serde_json::from_str(line.strip_prefix(PREFIX).unwrap())
             .map_err(|_| Refusal::Malformed)?;
-        if record.schema != "conduit.conduitos/compositor-lifecycle@1" {
-            return Err(Refusal::UnknownSchema);
+        match packet {
+            types::Packet::Snapshot(record) => {
+                let _kind = record.record_kind;
+                if record.schema != "conduit.conduitos/compositor-lifecycle@1" {
+                    return Err(Refusal::UnknownSchema);
+                }
+                if !record.complete {
+                    return Err(Refusal::Malformed);
+                }
+                records.push(record.snapshot);
+            }
+            types::Packet::Incomplete(record) => {
+                let _details = (record.record_kind, record.position, record.stage);
+                if record.schema != "conduit.conduitos/compositor-lifecycle@1" {
+                    return Err(Refusal::UnknownSchema);
+                }
+                if record.complete
+                    || record.reason == IncompleteReason::IncompleteMarkerSerialization
+                {
+                    return Err(Refusal::Malformed);
+                }
+                return Err(Refusal::Incomplete(record.reason));
+            }
+            types::Packet::Emergency(record) => {
+                let _kind = record.record_kind;
+                if record.schema != "conduit.conduitos/compositor-lifecycle@1" {
+                    return Err(Refusal::UnknownSchema);
+                }
+                if record.complete
+                    || record.reason != IncompleteReason::IncompleteMarkerSerialization
+                {
+                    return Err(Refusal::Malformed);
+                }
+                return Err(Refusal::Incomplete(record.reason));
+            }
         }
-        if !record.complete || record.record_kind != types::RecordKind::Snapshot {
-            return Err(Refusal::Incomplete);
-        }
-        records.push(record.snapshot);
     }
-    validate::validate(&records, &frames, expected)
+    Ok((records, frames))
 }

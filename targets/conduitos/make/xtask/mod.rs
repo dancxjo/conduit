@@ -18,6 +18,8 @@ mod armv6_rpi_flash;
 mod armv6_rpi_physical;
 mod build;
 mod command;
+mod compositor_lifecycle_collection;
+mod compositor_lifecycle_proof;
 mod compositor_performance;
 mod compositor_semantic_recovery_proof;
 mod demo;
