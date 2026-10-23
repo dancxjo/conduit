@@ -1,0 +1,60 @@
+{
+  "source": "d075207d3f49e5ac4ef9cbc5f270de6f892cfb44",
+  "status": "completed",
+  "started": 1792759773.7260394,
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "check",
+    "model-native-inference",
+    "--locked"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_ORT_LIBRARY": "/usr/lib/x86_64-linux-gnu/libonnxruntime.so.1.23.2"
+  },
+  "attempts": 1,
+  "runtime_sha256": "9c8f6112e9dcf09ed4e621a1d0a7b6ba49575c7d09f27a652d24a22c8564b13c",
+  "resource_floor_bytes": 6442450944,
+  "classification": "Supported owning native inference and lifecycle suite; exact source and raw outcomes retained",
+  "exit_code": 0,
+  "finished": 1792760315.912045,
+  "log_sha256": "59b4e37e3b1819167a839e3d8e58a4c378c52b4db7544bdf08bb680a426245ef",
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/conduit_std_host-6b6dd60d9313d586",
+      "sha256": "18dca66d6f52e9c476f7c1912ee56880d8b924875aa1c4b7e15ade5a2078a5bc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/conduit_std_host-6b6dd60d9313d586",
+      "sha256": "18dca66d6f52e9c476f7c1912ee56880d8b924875aa1c4b7e15ade5a2078a5bc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/conduit_std_host-6b6dd60d9313d586",
+      "sha256": "18dca66d6f52e9c476f7c1912ee56880d8b924875aa1c4b7e15ade5a2078a5bc"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/model_infer_pending-1cac8379d0f19951",
+      "sha256": "5848aea23e7cbe5fc7df29190de1829ce3872926dca43638c99edbfac414f2b5"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/model_infer_pending_play-38f4a46cfd1a3bc2",
+      "sha256": "f9c6945f956c945ef5feec3aad0384461a95467c65e301e9c3761f2a1a9c681f"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/model_infer_native-cfaa92232cd197fa",
+      "sha256": "fbdc8d59563f02ca0cf4f6cb112de1cddfe40810f875d24c9e9b316dfeee298b"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5695-supported-lifecycle-d075207d3/model_infer_native_lifecycle-fb4662d1d76075ca",
+      "sha256": "03c1976b353b10e488583e332f7ac4c8741bc50d7c8838ab3634a6fdc16be347"
+    }
+  ],
+  "worker_sha256": "afad04f3666ed1e2abba1dbb8b81535e041dbb1bab92810c55a5417766e35da7"
+}

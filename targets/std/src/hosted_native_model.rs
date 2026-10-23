@@ -1,5 +1,5 @@
 //! One admitted native CPU Back behind the existing named-inference boundary.
-//! Interruptible cancellation and cross-session retirement remain separate.
+//! One pending operation retains its exact transport generation until take or retirement.
 mod profile;
 use crate::{
     hosted_model_compute::{
@@ -8,7 +8,8 @@ use crate::{
     },
     hosted_model_infer::{ImportedModelPrepareRefusal, PreparedModelInfer},
     native_model_backing::{
-        NativeBackingGrant, NativeBackingRefusal, NativeCpuProfile, PreparedNativeModel,
+        NativeBackingGrant, NativeBackingRefusal, NativeCpuProfile, NativeRequestId,
+        PreparedNativeModel,
     },
 };
 use conduit_ai::{imported_onnx::ImportedOnnxResource, *};
@@ -31,6 +32,16 @@ pub struct NativeCpuModelAdapter {
     requirement: ModelComputeRequirement,
     artifact: [u8; 32],
     output: PreparedNamedTensorBundleOutput,
+    pending: Option<PendingNative>,
+    retired: bool,
+    cancelled: bool,
+}
+
+#[derive(Clone, Copy)]
+struct PendingNative {
+    token: NativeRequestId,
+    request: [u8; 32],
+    inputs: [u8; 32],
 }
 
 /// Host preparation only: executable/runtime paths never enter authored Source.
@@ -70,6 +81,9 @@ pub fn prepare_native_model(
         session,
         requirement: requirement.clone(),
         output,
+        pending: None,
+        retired: false,
+        cancelled: false,
     };
     PreparedModelInfer::prepare_imported_shared(
         model,
@@ -105,6 +119,15 @@ impl ModelComputeAdapter for NativeCpuModelAdapter {
         &mut self,
         invocation: ModelComputeInvocation<'_>,
     ) -> ModelComputeAdapterTerminal<'_> {
+        if self.cancelled {
+            return ModelComputeAdapterTerminal::Cancelled;
+        }
+        if self.retired {
+            return ModelComputeAdapterTerminal::ProviderLost;
+        }
+        if self.pending.is_some() {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::QueueFull);
+        }
         if invocation.request_identity == [0; 32]
             || invocation.artifact_identity != self.artifact
             || invocation.checkpoint_identity.is_some()
@@ -137,52 +160,122 @@ impl ModelComputeAdapter for NativeCpuModelAdapter {
             self.session.provider_lost();
             return ModelComputeAdapterTerminal::ProviderLost;
         };
-        let result = native.infer_f32(f32::from_le_bytes(
+        let result = native.begin_f32(f32::from_le_bytes(
             payload.try_into().expect("exact scalar width"),
         ));
-        let value = match result {
-            Ok(value) => value,
+        match result {
+            Ok(token) => {
+                self.pending = Some(PendingNative {
+                    token,
+                    request: invocation.request_identity,
+                    inputs: invocation.inputs.semantic_digest(),
+                });
+                ModelComputeAdapterTerminal::Pending
+            }
             Err(NativeBackingRefusal::Capacity) => {
                 let _ = self.session.finish();
-                return ModelComputeAdapterTerminal::Refused(
-                    ModelComputeRefusal::ResourceBoundExceeded,
-                );
+                ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
             }
-            Err(error) => {
-                self.session.provider_lost();
-                drop(self.native.take());
-                return if error == NativeBackingRefusal::InvalidOutput {
-                    ModelComputeAdapterTerminal::Failed
-                } else {
-                    ModelComputeAdapterTerminal::ProviderLost
-                };
-            }
+            Err(error) => self.fail(error),
+        }
+    }
+    fn poll(&mut self) -> ModelComputeAdapterTerminal<'_> {
+        if self.cancelled {
+            return ModelComputeAdapterTerminal::Cancelled;
+        }
+        if self.retired {
+            return ModelComputeAdapterTerminal::ProviderLost;
+        }
+        let Some(pending) = self.pending else {
+            return ModelComputeAdapterTerminal::Failed;
         };
+        let Some(native) = self.native.as_mut() else {
+            return self.fail(NativeBackingRefusal::Protocol);
+        };
+        match native.poll_f32(pending.token) {
+            Ok(false) => return ModelComputeAdapterTerminal::Pending,
+            Ok(true) => {}
+            Err(error) => return self.fail(error),
+        }
+        let value = match native.take_f32(pending.token) {
+            Ok(Some(value)) => value,
+            Ok(None) => return ModelComputeAdapterTerminal::Pending,
+            Err(error) => return self.fail(error),
+        };
+        self.pending = None;
         if self.session.finish().is_err()
             || self.output.write("scalar", &value.to_le_bytes()).is_err()
         {
-            return ModelComputeAdapterTerminal::Failed;
+            return self.fail(NativeBackingRefusal::InvalidOutput);
         }
         let Ok(outputs) = self.output.view() else {
             return ModelComputeAdapterTerminal::Failed;
         };
         ModelComputeAdapterTerminal::Produced(ModelComputeExecution {
-            request_identity: invocation.request_identity,
+            request_identity: pending.request,
             artifact_identity: self.artifact,
             checkpoint_identity: None,
-            inputs_identity: invocation.inputs.semantic_digest(),
+            inputs_identity: pending.inputs,
             outputs: outputs.encoded_ref(),
             consumed_work_units: 1,
             runtime: self.session.runtime(),
         })
     }
     fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal<'_>, ModelComputeRefusal> {
-        // This synchronous profile does not advertise interruptible cancellation.
-        Err(ModelComputeRefusal::CancellationUnsupported)
+        // Revoke the publication token before backend cancellation/pipe disposal.
+        self.cancelled = true;
+        self.retired = true;
+        let pending = self.pending.take();
+        if let Some(mut native) = self.native.take() {
+            if let Some(pending) = pending {
+                let _ = native.cancel(pending.token);
+            }
+            let _ = native.unload();
+        }
+        self.output.reset();
+        self.session.provider_lost();
+        Ok(ModelComputeAdapterTerminal::Cancelled)
     }
     fn unload(&mut self) -> Result<(), ModelComputeRefusal> {
-        self.session.begin_unload()?;
-        drop(self.native.take());
-        self.session.shutdown()
+        if self.retired && self.native.is_none() {
+            return Ok(());
+        }
+        self.retired = true;
+        self.pending = None;
+        // The generic machine permits clean Ready -> Unloading -> Shutdown.
+        // Active/lost retirement remains Lost; never pretend the worker is reusable.
+        let clean = self.session.begin_unload().is_ok();
+        if let Some(mut native) = self.native.take() {
+            let _ = native.unload();
+        }
+        self.output.reset();
+        if clean {
+            self.session.shutdown()
+        } else {
+            self.session.provider_lost();
+            Ok(())
+        }
+    }
+}
+
+impl NativeCpuModelAdapter {
+    fn fail(&mut self, error: NativeBackingRefusal) -> ModelComputeAdapterTerminal<'_> {
+        self.pending = None;
+        self.retired = true;
+        self.session.provider_lost();
+        if let Some(mut native) = self.native.take() {
+            let _ = native.unload();
+        }
+        self.output.reset();
+        if error == NativeBackingRefusal::InvalidOutput {
+            ModelComputeAdapterTerminal::Failed
+        } else {
+            ModelComputeAdapterTerminal::ProviderLost
+        }
+    }
+}
+impl Drop for NativeCpuModelAdapter {
+    fn drop(&mut self) {
+        let _ = self.unload();
     }
 }

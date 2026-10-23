@@ -10,6 +10,9 @@ pub const RUNTIME_SHA256: [u8; 32] = [
     156, 143, 97, 18, 233, 220, 240, 158, 212, 230, 33, 161, 208, 167, 182, 186, 73, 87, 92, 125,
     9, 242, 122, 101, 45, 36, 162, 44, 133, 100, 177, 60,
 ];
+/// Fixed Host preparation pipe-I/O bound for this exact profile. Does not bound
+/// filesystem hashing/process creation/kernel stalls or native execution time.
+pub(super) const PREPARATION_IO_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 pub const MAX_CALLS: u16 = 1024;
 pub const STACK_BYTES: usize = 512 * 1024;
 pub const HEAP_SEED_BYTES: usize = 256 * 1024;
@@ -67,6 +70,7 @@ pub enum NativeBackingRefusal {
     },
     InvalidLedger,
     BackingPreparation,
+    PreparationTimedOut,
     ExecutionBoundary,
     ProviderLost,
     InvalidInput,

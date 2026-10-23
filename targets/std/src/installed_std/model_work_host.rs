@@ -46,9 +46,9 @@ impl Completion {
 pub(super) fn execute(
     placement: &PlannedGear,
     input: &[u8],
-    adapter: Option<&mut dyn HostedModelWorkAdapter>,
+    adapter: Option<&mut (dyn HostedModelWorkAdapter + 'static)>,
     output: &mut Vec<u8>,
-) -> Result<Completion, String> {
+) -> Result<Option<Completion>, String> {
     // Inference's complete Kind/schema is validated by its Back factory before
     // Play. Compare the retained offer here; rebuilding its Native schema per
     // call would allocate during execution without adding a new authority check.
@@ -57,7 +57,7 @@ pub(super) fn execute(
         super::model_work_back::validate(placement)?;
     }
     let Some(adapter) = adapter else {
-        return Ok(Completion::Refused);
+        return Ok(Some(Completion::Refused));
     };
     let offer = adapter.capability_offer();
     if offer.capability_id != placement.capability_id
@@ -71,9 +71,14 @@ pub(super) fn execute(
         || offer.implementation.artifact_id != placement.artifact_id
         || offer.implementation.execution_profile_id != placement.execution_profile_id
     {
-        return Ok(Completion::Refused);
+        return Ok(Some(Completion::Refused));
     }
-    Ok(match adapter.execute(placement, input, output) {
+    Ok(completion(adapter.execute(placement, input, output)))
+}
+
+pub(super) fn completion(terminal: ModelWorkTerminal) -> Option<Completion> {
+    Some(match terminal {
+        ModelWorkTerminal::Pending => return None,
         ModelWorkTerminal::Produced => Completion::Output,
         ModelWorkTerminal::Refused => Completion::Refused,
         ModelWorkTerminal::Failed => Completion::Failed,
