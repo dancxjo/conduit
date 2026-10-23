@@ -12,6 +12,7 @@ pub fn signature() -> ModelSignature {
                     vec![element],
                     vec![ModelAxisConstraint::new(dimension, TensorAxisRole::Feature).unwrap()],
                     4096,
+                    conduit_ai::ModelTensorNumericPolicy::Ieee,
                 )
                 .unwrap(),
             )

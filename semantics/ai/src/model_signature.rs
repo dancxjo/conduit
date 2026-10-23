@@ -9,7 +9,8 @@ use crate::{
     ModelDimensionConstraint, ModelOperation, ModelOperationForm, ModelOperations,
     ModelPortConstraint, ModelPortIdentity, ModelPortPresence, ModelPortPresenceForm, ModelPorts,
     ModelSemanticKind, ModelSignature, ModelSignatureRefusal, ModelTensorAxes,
-    ModelTensorConstraint, ModelTensorElements, ModelValueConstraint,
+    ModelTensorConstraint, ModelTensorElements, ModelTensorNumericPolicy,
+    ModelTensorNumericPolicyForm, ModelValueConstraint,
 };
 
 pub const MODEL_SIGNATURE_INFO_ID: &str = "model/signature@1";
@@ -131,6 +132,7 @@ impl ModelTensorConstraint {
         elements: Vec<conduit_data::TensorElement>,
         axes: Vec<crate::ModelAxisConstraint>,
         maximum_bytes: u64,
+        numeric_policy: ModelTensorNumericPolicy,
     ) -> Result<Self, NativeBindingRefusal> {
         Self::new(
             ModelTensorAxes::new(
@@ -140,6 +142,7 @@ impl ModelTensorConstraint {
                 BoundedSequence::try_from_iter(elements).map_err(|_| invalid_native_value())?,
             )?,
             maximum_bytes,
+            numeric_policy,
         )
     }
 }
@@ -248,6 +251,7 @@ fn encode_ports(output: &mut Vec<u8>, ports: &[ModelPortConstraint], direction: 
             push_dimension_constraint(output, &axis.dimension);
         }
         output.extend_from_slice(&tensor.maximum_bytes.to_le_bytes());
+        output.push(ModelTensorNumericPolicyForm::encode(tensor.numeric_policy)[0]);
     }
 }
 

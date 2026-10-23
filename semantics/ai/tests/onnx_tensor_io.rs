@@ -29,6 +29,7 @@ fn imported() -> ImportedOnnxResource {
                         )
                         .unwrap()],
                         4096,
+                        conduit_ai::ModelTensorNumericPolicy::Ieee,
                     )
                     .unwrap(),
                 )

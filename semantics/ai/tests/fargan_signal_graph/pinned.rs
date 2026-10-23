@@ -18,6 +18,7 @@ fn typed_port(
             dimension: ModelDimensionConstraint::fixed(width).unwrap(),
         }],
         width * bytes_per_element,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap();
     ModelPortConstraint::from_parts(

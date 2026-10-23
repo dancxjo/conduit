@@ -25,6 +25,7 @@ fn fixture() -> (ModelArtifact, ModelSignature) {
                     )
                     .unwrap()],
                     count * 8,
+                    conduit_ai::ModelTensorNumericPolicy::Ieee,
                 )
                 .unwrap(),
             )

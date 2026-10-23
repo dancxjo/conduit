@@ -101,3 +101,13 @@ those fixtures. The supported model-inference suite passed 68 tests across 24 ta
 Source `9cacd3ca8d8ae486112ba81d1f35b692c25505f1`; the source-bound receipt is in
 `docs/audits/evidence/rank-zero-imported-model-20261021`. CI/Integration/merge
 remain delivery gates.
+
+
+The #6302 preparation adds an explicit `numeric_policy` to each canonical model
+tensor constraint: `ieee` preserves existing floating encodings and `finite_only`
+requires actual finite F32/F64 values. The policy participates in signature and
+selected Plan identity. Shared owned and borrowed validation checks inline values
+without rewriting payload bytes; finite-only floating resource descriptors refuse
+as unverifiable, rather than opening data or inferring finiteness from a digest.
+Integer encodings are finite by construction. Validation and delivery of this
+preparation remain pending; this does not close the parent acceptance gaps.

@@ -18,6 +18,7 @@ pub fn descriptor() -> AuthoringDescriptor {
             },
         ],
         32,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap();
     let port = |id: &str| {
