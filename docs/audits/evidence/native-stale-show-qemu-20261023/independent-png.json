@@ -1,0 +1,9 @@
+{
+  "png": "stale-show-refused.png",
+  "bytes": 133705,
+  "width": 1280,
+  "height": 800,
+  "png_sha256": "06bb657b272033294582ace97c287601e395ec1470d811919ecad9681faf8435",
+  "pixel_sha256": "7a57a886aac6e863ffc9da71be6c94a8042be4e9acc7db17fd3ac14df17b6e58",
+  "checks": "independent stdlib PNG signature, complete chunks, CRCs, zlib extent, all filters, RGBA hash and retained receipt match"
+}
