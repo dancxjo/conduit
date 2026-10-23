@@ -9,3 +9,7 @@ The suite covers bounded preparation pipe deadlines and nonblocking transport, p
 The original native inference controls retain nineteen exact IEEE-754 results and zero parent Play allocation calls/requested bytes. Deferred fixture tests remain explicitly separate from actual native worker tests. No downloads, extra production scheduler or custom operation are introduced. Default/NoStd and native optional boundaries remain distinct.
 
 Development proof does not establish accepted Integration or stable publication. The implementation issue remains open until the scoped change is merged with relevant accepted checks.
+
+## Retained failures
+
+`negatives/` retains the first compile lifetime failure at source532066080, the four wrong closing-Flow entrance failures at804745b0b, and the two cancellation-cleanup expectation failures before the global-cancel owner retirement fix. These are superseded by the passing supported suite, not erased or counted as passes. The value-controlled failure executable was preserved and is described by its receipt; the earlier failing Play executable was not retained before overwrite. Raw logs and original receipt identities remain unchanged.

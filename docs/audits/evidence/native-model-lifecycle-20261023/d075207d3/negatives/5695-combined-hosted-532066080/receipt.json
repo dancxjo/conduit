@@ -1,0 +1,33 @@
+{
+  "source": "53206608092ef4dfac4360800d7f45b9ca0b4f98",
+  "status": "completed",
+  "started": 1792758212.5170763,
+  "commands": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "native-model-backing",
+        "--lib",
+        "model_work_pending",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "status": "completed",
+      "started": 1792758212.5174289,
+      "exit_code": 101,
+      "finished": 1792758466.6816015,
+      "log_sha256": "f91ae30373d6946bf801b51dc15c11d0078676cc49d731404c441a5cac0e6cba"
+    }
+  ],
+  "classification": "Internal combined focused tests; actual ORT/SourcePlanPlay cancellation proof pending",
+  "exit_code": 101,
+  "finished": 1792758466.6820433,
+  "clean_after": true
+}
