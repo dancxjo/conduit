@@ -93,7 +93,7 @@ fn lower(node: &PreparedNode, nodes: &mut usize) -> Result<Node, Refusal> {
     if *nodes > MAX_NODES {
         return Err(unsupported());
     }
-    let kind = match (node.kind, node.info_kind.as_str()) {
+    let kind = match (node.kind, node.info_kind.as_ref()) {
         (PrimitiveInfoKind::U64, "value/u64") => Kind::Word,
         (PrimitiveInfoKind::Bool, "value/bool") => Kind::Bool,
         _ => return Err(unsupported()),
