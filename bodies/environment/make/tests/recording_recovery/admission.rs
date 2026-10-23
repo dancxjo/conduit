@@ -2,6 +2,39 @@
 use super::*;
 
 #[test]
+fn full_first_class_recording_fits_the_snapshot_text_profile() {
+    let contract = ObservationContract::prepare().unwrap();
+    let mut reference = reference();
+    reference.extent.bytes =
+        PreparedRecordingSnapshot::content_bytes(context(), &contract, 64).unwrap() as u64;
+    let mut snapshot =
+        PreparedRecordingSnapshot::prepare(context(), &contract, 64, &reference).unwrap();
+    let mut forms =
+        conduit_environment_runtime::observation::PreparedObservationQuantityForms::prepare(
+            &contract,
+        )
+        .unwrap();
+    let observation = forms.unpack(&[198, 0, 78, 2]).unwrap();
+    for sequence in 1..=64 {
+        snapshot
+            .append(
+                sequence,
+                sequence * 60_000,
+                RecordingDisposition::Available,
+                Some(observation),
+            )
+            .unwrap();
+    }
+    let content = snapshot.seal().unwrap();
+    assert_eq!(content.len() as u64, reference.extent.bytes);
+    assert!(content.len() > 2688 && content.len() <= 4096);
+    let (result, memory) =
+        allocation_probe::observe(|| conduit_web::validate_json_text(content.as_bytes()));
+    assert_eq!(result, Ok(()));
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}
+
+#[test]
 fn stale_tables_and_unavailable_software_refuse_before_other_transfers() {
     let source = RecordingRecoverySource::compile(&reference()).unwrap();
     let (mut host, grant) = fixture_store(source.reference());

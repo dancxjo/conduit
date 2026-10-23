@@ -3,6 +3,8 @@
 This describes the prepared software contracts. The real browser recorder,
 its persistent reference catalog, Line and Body installation remain incomplete.
 The public conformance entrance is `cargo xtask prove environment recording`.
+The browser publication boundary is checked separately with
+`cargo xtask prove environment recording-storage`.
 
 ## Meaning and readiness
 
@@ -44,6 +46,17 @@ exact reference request, no recovery progress while the read is pending,
 and committed recovery only after valid completion. Failed, cancelled and
 invalid-content reads preserve empty history. Execution allocates no storage.
 The external read completion remains a CPU fixture, not a live storage provider.
+
+Browser snapshot publication validates bounded JSON text without constructing
+the canonical JSON value tree. This admits a full 64-sample chunk's 2,688-byte
+hex field within the existing 4 KiB envelope and eight-value nesting ceiling.
+The same parser still enforces the tighter string, collection and numeric
+bounds when constructing `JsonValue`; snapshot storage preserves the raw text.
+The browser kernel regression reaches its ordinary storage request with a full
+chunk-sized field. A separate test feeds the actual encoder's full 64-sample
+chunk, retaining first-class temperature and humidity Forms, through the text
+validator without allocations. This establishes the publication boundary, not
+IndexedDB persistence or a live recorder Body.
 
 `PreparedRecordingKernel` prepares this finite four-gear production kernel from
 the verified fragment and identical ordinary lowering. It rejects unsupported
