@@ -878,3 +878,21 @@ bytes and retains 118,776; preallocated value storage, assignment bytes, residen
 metadata and native owners are outside that measurement. The complete MCU
 closure remains unproven. The ESP32 native-root feature compiles this appliance
 profile, but no physical appliance installation is claimed.
+
+Host Wi-Fi HIL setup uses `cargo xtask setup environment-host-wifi` in a
+foreground host terminal. It displays the exact proposed command, then requires
+host sudo authentication to install a grant for the existing climate-test
+connection UUID and one Wi-Fi interface. The installer validates the
+`Conduit-Climate` SSID, refuses Ethernet and unrelated sudoers files, and checks
+its snippet with `visudo` before installing it. It reads no network credentials
+and does not activate a connection during installation. The scoped file is
+`/etc/sudoers.d/conduit-climate-test-<user>`; removing that file revokes this grant.
+
+`cargo xtask prove environment host-wifi` subsequently activates that exact
+profile on that interface with noninteractive sudo. Activation failure remains a
+failure; the command never edits profiles or supplies a password. This is Linux
+operator tooling, separate from MCU authority and Body membership. Opening this
+ESP32's serial port with both DTR and RTS asserted allowed three Root offers to
+be read in the previously observed Boot; deasserting them sequentially during
+open had caused the earlier resets. An observer timeout does not retire or reset
+the device's independently owned setup operation.
