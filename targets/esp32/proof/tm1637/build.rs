@@ -15,7 +15,7 @@ fn main() {
         let stack = out.join("native-stack.x");
         std::fs::write(
             &stack,
-            "ASSERT(_stack_start_cpu0 - _stack_end_cpu0 >= 24576, \"native Root requires at least 24 KiB CPU stack\");\n",
+            "ASSERT(_stack_start_cpu0 - _stack_end_cpu0 >= 28672, \"native Root requires at least 28 KiB CPU stack\");\n",
         )
         .unwrap();
         println!("cargo:rustc-link-arg=-T{}", stack.display());
