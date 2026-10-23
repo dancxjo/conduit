@@ -1,6 +1,8 @@
 //! Provision public owner trust, flash the actual Root and retain the Body owner
 //! through signed native preparation. No Body start or sensor dispatch is claimed.
 use super::{execute, host_target, software_ready};
+#[path = "../esp32_flash_tool.rs"]
+mod flash_tool;
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
@@ -86,7 +88,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
         image.join("image-receipt.json"),
         serde_json::to_vec_pretty(&image_receipt)?,
     )?;
-    let tool = crate::commands::esp32_firmware::provision_espflash(root)?;
+    let tool = flash_tool::provision_espflash(root)?;
     execute(
         Command::new(tool)
             .args([
