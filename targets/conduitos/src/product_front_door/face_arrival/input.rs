@@ -31,10 +31,13 @@ impl FaceArrival {
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
-        let input = self
-            .mask
-            .key(event, sequence, display)
-            .map_err(|error| error.as_str())?;
+        let input = match self.mask.key(event, sequence, display) {
+            Ok(input) => input,
+            Err(error) if self.observe_input_refusal(error, sequence)? => {
+                return Ok(FaceArrivalInput::Continue);
+            }
+            Err(error) => return Err(error.as_str()),
+        };
         self.accept_input(input, show, door, journey, presenter, display, make)
     }
 
@@ -74,11 +77,40 @@ impl FaceArrival {
         let show = self.mask.show().cloned().ok_or("creche-face-show-absent")?;
         let sequence = self.next_interaction;
         self.next_interaction = sequence.checked_add(1).ok_or("creche-face-input-bound")?;
-        let input = self
-            .mask
-            .pointer(x, y, sequence, display)
-            .map_err(|error| error.as_str())?;
+        let input = match self.mask.pointer(x, y, sequence, display) {
+            Ok(input) => input,
+            Err(error) if self.observe_input_refusal(error, sequence)? => {
+                return Ok(FaceArrivalInput::Continue);
+            }
+            Err(error) => return Err(error.as_str()),
+        };
         self.accept_input(input, show, door, journey, presenter, display, make)
+    }
+
+    fn observe_input_refusal(
+        &self,
+        error: crate::native_face_mask::NativeFaceMaskError,
+        sequence: u64,
+    ) -> Result<bool, &'static str> {
+        let Some((reason, notice)) = self.mask.acknowledged_input_refusal() else {
+            return Ok(false);
+        };
+        if error != crate::native_face_mask::NativeFaceMaskError::Scene(reason) {
+            return Ok(false);
+        }
+        let show = self.mask.show().ok_or("creche-face-show-absent")?;
+        super::super::native_action_evidence::emit_with_limit(
+            b"CONDUIT_CRECHE_INPUT_REFUSAL ",
+            &serde_json::json!({
+                "schema":"conduit.creche-input-refusal/v1", "status":"refused",
+                "reason":error.as_str(),"notice":notice,"sequence":sequence,
+                "face_id":show.face_id,"face_revision":show.face_revision,
+                "show_id":show.show_id,"scanout_acknowledged":true,
+                "source_owner_called":false,
+            }),
+            1_024,
+        )?;
+        Ok(true)
     }
 
     #[allow(clippy::too_many_arguments)]

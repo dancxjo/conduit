@@ -29,3 +29,33 @@ pub(super) fn require_resident_fore(
     }
     Ok(())
 }
+
+/// Check the selected Back and lowered Fore, rather than a copied Kind label.
+pub(super) fn require_planned_fore(plan: &conduit_core::Plan) -> Result<(), String> {
+    let [fragment] = plan.fragments.as_slice() else {
+        return Err("reviewed Patchbay Fore must have one local fragment".into());
+    };
+    let [placement] = fragment.placements.as_slice() else {
+        return Err("reviewed Patchbay Fore must have one installed sink".into());
+    };
+    crate::installed_browser::patchbay_ingress::prepare(placement)?;
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(fragment)
+        .map_err(|error| format!("reviewed Patchbay lowering: {error:?}"))?;
+    let [input] = lowered.fore_ports.as_slice() else {
+        return Err("reviewed Patchbay requires one lowered input Fore".into());
+    };
+    if input.direction != conduit_core::PortDirection::Input
+        || input.value_kind.as_str() != conduit_face::FACE_INTERACTION_VALUE_KIND
+        || input.temporal != (conduit_core::PortTemporal::Flow { closes: true })
+        || input.item_capacity != 1
+        || input.byte_capacity != conduit_face::MAX_FACE_INTERACTION_BYTES as u32
+        || input.selected_line.is_some()
+    {
+        return Err("reviewed Patchbay differs from the exact finite interaction Fore".into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "planned_fore_tests.rs"]
+mod planned_fore_tests;

@@ -1,0 +1,12 @@
+{
+  "source": "4449f87ceca8cab7bc9b20aada21acc8c22cfcbe",
+  "owner_responded_after_idle_lull": true,
+  "terminal": {
+    "Cancelled": {
+      "reason": "OperatorRequested"
+    }
+  },
+  "committed_fore_count": 0,
+  "checkpoint_files_unchanged": true,
+  "retained_verified_read": true
+}

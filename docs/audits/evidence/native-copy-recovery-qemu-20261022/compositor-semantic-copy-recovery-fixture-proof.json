@@ -1,0 +1,154 @@
+{
+  "admitted_profile": {
+    "build_id": "build:sha256:dc9a88016ad1482ec2221ecc95a5fad8f47f3956224e843d59ea4b67e2916ad2",
+    "image_binding": "image:sha256:8c91596d95400b5a578b8c833f408d27beee8ec20d85deef534054e7fc0ad0cc",
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "proof_feature": "compositor-semantic-recovery-proof",
+    "runtime_arena_bytes": 268435456,
+    "runtime_arena_ceiling": 268435456,
+    "schema": "conduit.conduitos/compositor-semantic-recovery-profile@1"
+  },
+  "budget_basis": "existing conduitos-native.host.conduit; actual admitted product profile, not minimum memory",
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "70ed87ef863c0f9aefd743dd065fbd35fcdc9755",
+    "elf_sha256": "522280f1646171116524c006d8bd9a0d64a4ab1560941e21e0436164e2b06557",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 512,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "native_make_manifest": {
+    "base_selections": [
+      {
+        "driver": "display/linear-framebuffer@1",
+        "id": "base/0",
+        "kind": "display/scanout"
+      }
+    ],
+    "bases": [
+      "base/0"
+    ],
+    "bounds": {
+      "active_instances": 128,
+      "buffered_bytes": 8388608,
+      "evidence_items": 1024,
+      "heap_arena_bytes": 268435456,
+      "line_sessions": 8,
+      "operation_slots": 64,
+      "queue_items": 1024,
+      "static_memory_bytes": 8388608,
+      "timer_slots": 32
+    },
+    "build_id": "build:sha256:dc9a88016ad1482ec2221ecc95a5fad8f47f3956224e843d59ea4b67e2916ad2",
+    "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+    "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "image_id": "image:sha256:8c91596d95400b5a578b8c833f408d27beee8ec20d85deef534054e7fc0ad0cc",
+    "implementation_packages": [
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "implementations": [],
+    "inclusion_paths": {
+      "presenter:presenter/main > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    },
+    "lines": [],
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "make_strategy": "deterministic-specialized-build",
+    "output": "disk-image",
+    "post_build_actions": [
+      "boot"
+    ],
+    "presenters": [
+      "presenter/native-graphical@1"
+    ],
+    "profile_fragments": [],
+    "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+    "reproducibility": "byte-exact",
+    "resource_budgets": [
+      {
+        "bytes": 8388608,
+        "class": "face/surface",
+        "id": "surface/main",
+        "slots": 4
+      }
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "schema": "conduit.host/build-manifest@3",
+    "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+    "source_identity": "70ed87ef863c0f9aefd743dd065fbd35fcdc9755",
+    "target": "conduitos/x86_64/pc",
+    "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+  },
+  "observations": {
+    "atomic_present_acknowledgement": true,
+    "fixture": true,
+    "fresh_interaction_advances_semantics": true,
+    "fresh_interaction_correlated": true,
+    "fresh_service_instance": true,
+    "fresh_show_and_play": true,
+    "guest_cpu_fault_recovery": false,
+    "held_input_refused_by_fresh_show": true,
+    "human_observation": false,
+    "initial_show_acknowledged": true,
+    "malformed_guest_reply_recovery": false,
+    "no_show_or_keyboard_before_present": true,
+    "old_submit_refused": true,
+    "physical_scanout": false,
+    "production_mask_proxy": true,
+    "proof_class": "freestanding-emulator",
+    "root_copy_failure": true,
+    "schema": "conduit.conduitos/compositor-semantic-copy-recovery-fixture@1",
+    "stale_input_preserves_semantic_revision": true,
+    "status": "completed"
+  },
+  "proof_class": "freestanding-emulator",
+  "proof_feature": "compositor-semantic-recovery-proof",
+  "same_uninstrumented_product_binary": false,
+  "schema": "conduit.conduitos/compositor-semantic-copy-recovery-evidence@2",
+  "transcript_sha256": "30064d6b29cac645e6c39aca4e98272c978b62f9cec44ef67c2565fbca970d17"
+}

@@ -1,0 +1,43 @@
+{
+  "schema": "conduit.checked-source-graph-candidate/v1",
+  "status": "source-checked-only",
+  "source_path": "plots/vision/main.conduit",
+  "source_sha256": "652ef750da420307d6676d866fc10e09075b5360157c4d671ab6dc9375c60485",
+  "checker_binary_sha256": "14c84cd574d1cc590b28be04ba54ef3552fb6875c994827410586ce703948d73",
+  "checker_product_source_commit": "3217e783b15a7908747d951e0039f46cab170323",
+  "inspection_checkout_commit": "d08759af4",
+  "commands": [
+    "conduit check --json plots/vision/main.conduit",
+    "conduit diagram --format mermaid plots/vision/main.conduit"
+  ],
+  "diagnostics": [],
+  "internal_cords": 14,
+  "boundary_bindings": 2,
+  "internal_edges": [
+    "  gear_0 -- \"VisualImpression\" --> gear_5",
+    "  gear_1 -- \"ImageResource\" --> gear_3",
+    "  gear_2 -- \"VisionMotionsFour\" --> gear_5",
+    "  gear_3 -- \"ImageResource\" --> gear_0",
+    "  gear_3 -- \"ImageResource\" --> gear_2",
+    "  gear_3 -- \"ImageResource\" --> gear_4",
+    "  gear_3 -- \"ImageResource\" --> gear_6",
+    "  gear_4 -- \"VisionObjectObservations\" --> gear_0",
+    "  gear_4 -- \"VisionObjectObservations\" --> gear_5",
+    "  gear_4 -- \"VisionObjectObservations\" --> gear_7",
+    "  gear_6 -- \"VisionTextsEight\" --> gear_0",
+    "  gear_6 -- \"VisionTextsEight\" --> gear_5",
+    "  gear_7 -- \"VisionTracksFour\" --> gear_0",
+    "  gear_7 -- \"VisionTracksFour\" --> gear_5"
+  ],
+  "boundary_edges": [
+    "  plot_in -- \"ImageResource\" --> gear_1",
+    "  gear_5 -- \"VisualExperience\" --> plot_out"
+  ],
+  "native_admission": false,
+  "execution": false,
+  "qemu_evidence": false,
+  "check_exit_status": 0,
+  "check_stderr": "",
+  "expansion_class": "checked expanded authoring graph from conduit diagram; recursive selected Plot-Back expansion not claimed",
+  "renderer_basis": "render_mermaid iterates authoring.expanded.connections separately from authoring.input_bindings and output_bindings"
+}

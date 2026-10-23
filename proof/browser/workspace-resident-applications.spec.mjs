@@ -4,6 +4,13 @@ import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 
 let entrance;
 const current = page => page.evaluate(() => globalThis.__conduitWorkspace.current());
+// Read the retained runtime observation through its packaged, checked bridge.
+// This never submits or acknowledges an interaction.
+const patchbayObservation = page => page.evaluate(async () => {
+  const { bindBrowserRuntimeBridge } = await import(new URL('browser-runtime-bridge.mjs', location.href).href);
+  return bindBrowserRuntimeBridge(globalThis.__conduitWorkspace.host.runtime,
+    { context: 'Workspace Patchbay proof observation' }).patchbayObservation();
+});
 const visiblePlotOutput = page => page.locator("[data-plot-output] > output:not([hidden])");
 
 test.beforeEach(async ({ page }) => {
@@ -40,7 +47,8 @@ test("the first body runs and can remove its resident Tutorial Plot without losi
   expect((await current(page)).initial_plots).toHaveLength(born.initial_plots.length - 1);
 });
 
-test("resident Patchbay inspects and begins an exact edit in one browser Body Play", async ({ page }, testInfo) => {
+test("resident canonical Patchbay inspects a typed subject and retains an unhandled edit request", async ({ page }, testInfo) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Patchbay", exact: true }).check();

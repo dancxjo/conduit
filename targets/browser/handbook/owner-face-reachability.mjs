@@ -45,9 +45,16 @@ function visiblePath(node, transparentNativeInput = false) {
 }
 export function assertOwnerFaceReachability(element, view) {
   const disabled = view.show_state !== 'available' || view.interactions_admitted !== true;
-  const certifiedControl = control => !control.hasAttribute('aria-label')
-    && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
-    && control.matches(':disabled') === disabled;
+  const certifiedControl = (control, argumentName) => {
+    // Stable argument captions may name native inputs explicitly. They cannot
+    // override checked meaning or replace the visible native label below.
+    const expected = normalizedName(argumentName);
+    const sourceLabel = control.matches('input:not([type=radio]),select') && expected
+      && normalizedName(control.getAttribute('aria-label')) === expected;
+    return (!control.hasAttribute('aria-label') || sourceLabel)
+      && !control.hasAttribute('aria-labelledby') && control.getAttribute('aria-disabled') !== 'true'
+      && control.matches(':disabled') === disabled;
+  };
   const visibleControl = control => control.matches('input[type=radio]')
     ? visiblePath(control, true) && [...control.labels].some(label => visiblePath(label))
     : visiblePath(control);
@@ -69,7 +76,8 @@ export function assertOwnerFaceReachability(element, view) {
       if (!named || !visibleControl(activator)) return false;
       const inputs = controls.filter(control => control !== activator);
       if (inputs.length !== action.arguments.length) return false;
-      return controls.every(control => certifiedControl(control) && control.dataset.unavailable !== 'true'
+      return controls.every(control => certifiedControl(control, control === activator ? undefined
+        : action.arguments[inputs.indexOf(control)]?.value_name) && control.dataset.unavailable !== 'true'
         && control.tabIndex >= 0 && visibleControl(control)
         && (control === activator || (control.labels.length > 0
           && [...control.labels].every(label => visiblePath(label))

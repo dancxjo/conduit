@@ -45,7 +45,7 @@ impl PixelTarget for CountingDisplay {
     }
 }
 
-fn fixture() -> (NativeFaceMask, BirthDraft) {
+pub(super) fn fixture() -> (NativeFaceMask, BirthDraft) {
     let provider = crate::product_bases::fixture_surface_provider();
     let service = NativeFaceMask::prepare(
         "host/native".into(),

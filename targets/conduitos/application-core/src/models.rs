@@ -7,7 +7,8 @@ mod canonical;
 pub(crate) use builder::Builder;
 use patchbay_graph::PatchbayGraph;
 pub struct Patchbay {
-    ports: [Option<Box<PatchbayApplicationPort>>; SLOTS],
+    port: Option<Box<PatchbayApplicationPort>>,
+    targets: [Option<u8>; SLOTS],
     selected: usize,
     publication: Option<Box<canonical::Publication>>,
     publication_sequence: u64,
@@ -67,7 +68,7 @@ impl Models {
         let Application::Patchbay(p) = self.applications.get(slot)?.as_ref()? else {
             return None;
         };
-        Some(p.ports[p.selected].as_ref()?.graph())
+        p.port.as_ref()?.selected_graph()
     }
     pub fn apply(
         &mut self,
@@ -108,7 +109,8 @@ impl Models {
                     return Err(Refusal::Order);
                 }
                 p.publication = None;
-                let out = p.ports[p.selected]
+                let out = p
+                    .port
                     .as_mut()
                     .ok_or(Refusal::Order)?
                     .apply(input)
@@ -144,14 +146,24 @@ impl Models {
         Ok(())
     }
     pub fn select(&mut self, slot: usize, target: usize) -> Result<(), Refusal> {
+        if target >= SLOTS {
+            return Err(Refusal::Bounds);
+        }
         let Some(Application::Patchbay(p)) =
             self.applications.get_mut(slot).and_then(Option::as_mut)
         else {
             return Err(Refusal::Order);
         };
-        if p.ports.get(target).is_none_or(Option::is_none) {
-            return Err(Refusal::Bounds);
-        }
+        let index = p
+            .targets
+            .iter()
+            .position(|slot| *slot == Some(target as u8))
+            .ok_or(Refusal::Bounds)?;
+        p.port
+            .as_mut()
+            .ok_or(Refusal::Order)?
+            .select_prepared_plot(index)
+            .map_err(|_| Refusal::Application)?;
         p.publication = None;
         p.selected = target;
         Ok(())
@@ -160,9 +172,10 @@ impl Models {
         for app in self.applications.iter_mut().flatten() {
             if let Application::Patchbay(p) = app {
                 p.publication = None;
-                for port in p.ports.iter_mut().flatten() {
-                    port.set_mask_topology(topology.clone());
-                }
+                p.port
+                    .as_mut()
+                    .ok_or(Refusal::Order)?
+                    .set_mask_topology(topology.clone());
             }
         }
         Ok(())

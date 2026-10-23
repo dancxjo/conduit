@@ -1,0 +1,227 @@
+{
+  "source_identity": "50aaeb07f5bcb6ef99d06b36bf051c34ffd1a756",
+  "checkpoints": [
+    {
+      "frame": {
+        "checkpoint": "front-door-ready",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7410a42af83ea0a1321e57216b8739f6c6011e97e6130ebbd152b4ee11a54ce3",
+        "png": "journey-frames/front-door-ready.png",
+        "png_bytes": 31831,
+        "png_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-ready",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "0de64df76d15815b9c8e9a0c44f8b4d552993730dcef76f4dad93d446a95cc33",
+        "png": "journey-frames/creche-controls-ready.png",
+        "png_bytes": 73123,
+        "png_sha256": "bfa01e8160ba5887f5b10348fde89ea2a4edd8570bacb6deed0e46b685e38402",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-primary-1",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "f2516d36b0703be1c4e63eb4d9737f1a8ac8aeec9ce2b096d6551686d0f72c29",
+        "png": "journey-frames/creche-controls-primary-1.png",
+        "png_bytes": 80032,
+        "png_sha256": "53664d961afcf7891f5f51f55ae3db38989f118f6ce752dcc76a1d29131a7ae6",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-primary-2",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "8e8df2dd59d5c9aac3b9f136bb7a42c29dc59aff262ae3d4ced16d4205861fde",
+        "png": "journey-frames/creche-controls-primary-2.png",
+        "png_bytes": 72722,
+        "png_sha256": "bd2c97403623d9b01eb5b5d0d1f9da1eae74364dba315aa615cd91ff8b6ea950",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-primary-3",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7c82910dbd6d4e51510f15f016b04cb7535f8f97ab05857ab254fc917892d801",
+        "png": "journey-frames/creche-controls-primary-3.png",
+        "png_bytes": 93887,
+        "png_sha256": "85a6b96e1a0e39c61c132bce3abda0ac3aedd2c9efe8536828348bc5638ed31c",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-details-1",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "ab7d650dca9e6ecdc5d38bfc06c0c1b2c1320a4374fba68f90c7322017581ed9",
+        "png": "journey-frames/creche-controls-details-1.png",
+        "png_bytes": 85848,
+        "png_sha256": "4179c3a893f4dcd77724d4c14767c1171633181719a7984cb8c83edd9e024ccd",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-details-11",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "133f5c2cd8d0c586a39d890047e228988d21fc100c4e7d55469d1fc1a8d41ef3",
+        "png": "journey-frames/creche-controls-details-11.png",
+        "png_bytes": 71846,
+        "png_sha256": "5a0bc40e88729699908d4c4e4d46d0d68229800eb05865c8ebc6443adc302808",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-details-21",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "e9121881a93318b08a8fb15d4f8c8861a0b71354ceb00871e7a60dc9a436d7f6",
+        "png": "journey-frames/creche-controls-details-21.png",
+        "png_bytes": 170203,
+        "png_sha256": "a1ce5048effe8398ba1f42bff5667b3046b2d5b06f7690e1f4de21709ff414c5",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-input-incomplete",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "72932a17e84bea152f18e238c5b3499ee0ac4025be04a523f2806eabe4d210e3",
+        "png": "journey-frames/creche-input-incomplete.png",
+        "png_bytes": 65871,
+        "png_sha256": "5b0dd65b34b50868d8652c3004164171d64b24f357f22d5818fd508aaf92addd",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-probe-name",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "fa2135d2b83df866a91c291c0bb5e4bbfab8a627bd78d7420b74e1730d3986e4",
+        "png": "journey-frames/creche-controls-probe-name.png",
+        "png_bytes": 77289,
+        "png_sha256": "4b4d99dfa865cf867b5a5a086f0ca141b2f0c8cd89391fe39c60a99dd7c09a5b",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-long-name-1",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "bb683cc2804df50ccb8e56f1fade16641d346214e9a7e4eed962d91267ff40da",
+        "png": "journey-frames/creche-controls-long-name-1.png",
+        "png_bytes": 85456,
+        "png_sha256": "e21ef4ae5ef31bd565e58190bda5caf985e53d1562a522894834448da702108b",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-long-name-2",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "86415a45f80d7bae4aa355923ee0f7546b3aed5fd06c132a847d71e537196066",
+        "png": "journey-frames/creche-controls-long-name-2.png",
+        "png_bytes": 76888,
+        "png_sha256": "1646fb616f3cbc4ef6ddef998c5f9316815dcb813cad96f1ffb9f5b0ab3f5f42",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-controls-long-name-3",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7c82910dbd6d4e51510f15f016b04cb7535f8f97ab05857ab254fc917892d801",
+        "png": "journey-frames/creche-controls-long-name-3.png",
+        "png_bytes": 93887,
+        "png_sha256": "85a6b96e1a0e39c61c132bce3abda0ac3aedd2c9efe8536828348bc5638ed31c",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-naming-welsh",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "86048d284903f59db16d53879d397d3e977ebd1e32734592d5139a58b40b64b4",
+        "png": "journey-frames/creche-naming-welsh.png",
+        "png_bytes": 93885,
+        "png_sha256": "24311689f4a706771cb85f5eda94120778cafa3bfbe8951034194bb7566d845d",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-naming-pointer-focused",
+        "height": 480,
+        "non_background_pixels": 302540,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "2de0de6a18e2294984476b4102ae0d32ec697d64265f97422027905a52ff9ad0",
+        "png": "journey-frames/creche-naming-pointer-focused.png",
+        "png_bytes": 93925,
+        "png_sha256": "fd361b666c6e60bb45c79a112e23bb5f14135899a7486bbe4d49142b641fa815",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-naming-tradition-restored",
+        "height": 480,
+        "non_background_pixels": 302540,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "1c71f206261be6bcbe562e6c9a7efc2f6fc6ce156ec83244c96505f56391d91d",
+        "png": "journey-frames/creche-naming-tradition-restored.png",
+        "png_bytes": 94301,
+        "png_sha256": "57e20742ae6deff417915959d8277ae569e0803325d898508184b43fd4c9cf42",
+        "width": 640
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-naming-exact-name-restored",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "9cfda7bad4171f70cc5565c2fed4ec61a802126c0fc44d90e24c9b29aeab631e",
+        "png": "journey-frames/creche-naming-exact-name-restored.png",
+        "png_bytes": 77292,
+        "png_sha256": "83537a1bd1dc0297c719ff8f8e811be9e95e7d560462eaf636678d219a561c51",
+        "width": 640
+      }
+    }
+  ],
+  "outer_exit_code": 0
+}
