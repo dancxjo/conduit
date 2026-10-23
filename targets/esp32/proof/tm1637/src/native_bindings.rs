@@ -106,7 +106,7 @@ impl RootIssuer {
         // possession or claim rollback of an already moved provider.
         self.pulse_generation = pulse_owner.native_identity().provider_generation;
         self.wait_generation = wait_owner.native_identity().provider_generation;
-        self.native_issued_play = Some(source.active.clone());
+        self.native_issued_play = Some(alloc::boxed::Box::new(source.active.clone()));
         self.pulse_issued = true;
         self.wait_issued = true;
         let pulse = ReadyPulseBase::bind_assigned_retained(

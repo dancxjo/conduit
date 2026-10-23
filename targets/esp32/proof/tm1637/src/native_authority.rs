@@ -63,8 +63,10 @@ pub struct RootIssuer {
     pulse_generation: u64,
     wait_generation: u64,
     last_play_sequence: u64,
-    reserved_play: Option<c::ActivePlayIdentity>,
-    native_issued_play: Option<c::ActivePlayIdentity>,
+    // Prepared control identities live in admitted Root heap headroom, keeping
+    // the permanent executor task frame small. No allocation occurs in Play.
+    reserved_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
+    native_issued_play: Option<alloc::boxed::Box<c::ActivePlayIdentity>>,
 }
 impl RootIssuer {
     pub fn observe(boot: &crate::boot::ObservedBoot) -> Result<Self, ()> {
@@ -153,7 +155,7 @@ impl RootIssuer {
         active: &c::ActivePlayIdentity,
         retired: &crate::native_retirement::RetiredProviders<P, W>,
     ) -> Result<(), ()> {
-        if self.native_issued_play.as_ref() != Some(active)
+        if self.native_issued_play.as_deref() != Some(active)
             || !self.pulse_issued
             || !self.wait_issued
             || !retired.matches_active(active)
@@ -164,7 +166,7 @@ impl RootIssuer {
         self.pulse_issued = false;
         self.wait_issued = false;
         self.native_issued_play = None;
-        if self.reserved_play.as_ref() == Some(active) {
+        if self.reserved_play.as_deref() == Some(active) {
             self.reserved_play = None;
         }
         Ok(())
@@ -172,7 +174,7 @@ impl RootIssuer {
     fn reserve_plan(&mut self, plan: &c::PlanId) -> Result<c::ActivePlayIdentity, ()> {
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
         let active = c::bind_active_play(plan, &self.host, &self.boot, sequence);
-        self.reserved_play = Some(active.clone());
+        self.reserved_play = Some(alloc::boxed::Box::new(active.clone()));
         self.last_play_sequence = sequence;
         Ok(active)
     }
@@ -215,7 +217,7 @@ impl RootIssuer {
             || fragment.host_id != self.host
             || fragment.boot_id != self.boot
             || !c::verify_plan_fragment(fragment)
-            || self.reserved_play.as_ref() != Some(active)
+            || self.reserved_play.as_deref() != Some(active)
             || *active
                 != c::bind_active_play(
                     &fragment.plan_id,

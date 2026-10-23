@@ -84,7 +84,7 @@ impl RootIssuer {
         }
         let possession =
             self.prepare_pulse_possession(native, &fragment.plan_id, active, cadence)?;
-        self.native_issued_play = Some(active.clone());
+        self.native_issued_play = Some(alloc::boxed::Box::new(active.clone()));
         self.pulse_issued = true;
         self.pulse_generation = native.provider_generation;
         Ok(possession)
@@ -128,7 +128,7 @@ impl RootIssuer {
         owner
             .check_assigned(&possession.0, &possession.2, contract, selected)
             .map_err(|_| ())?;
-        self.native_issued_play = Some(active.clone());
+        self.native_issued_play = Some(alloc::boxed::Box::new(active.clone()));
         self.pulse_issued = true;
         self.pulse_generation = owner.native_identity().provider_generation;
         Ok(possession)
@@ -161,9 +161,9 @@ impl RootIssuer {
             || native.provider_generation <= self.pulse_generation
             || self
                 .native_issued_play
-                .as_ref()
+                .as_deref()
                 .is_some_and(|issued| issued != active)
-            || self.reserved_play.as_ref() != Some(active)
+            || self.reserved_play.as_deref() != Some(active)
             || *active != c::bind_active_play(plan, &self.host, &self.boot, active.play_sequence)
         {
             return Err(());

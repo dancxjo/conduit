@@ -1,0 +1,31 @@
+I (247) esp_image: segment 1: paddr=00082174 vaddr=3ffb0000 size=04268h ( 17000) load
+I (254) esp_image: segment 2: paddr=000863e4 vaddr=40080000 size=09c34h ( 39988) load
+I (270) esp_image: segment 3: paddr=00090020 vaddr=400d0020 size=1b2458h (1778776) map
+I (877) esp_image: segment 4: paddr=00242480 vaddr=40089c34 size=054ach ( 21676) load
+I (894) boot: Loaded app from partition at offset 0x10000
+I (894) boot: Disabling RNG early entropy source...
+[31m
+
+====================== PANIC ======================
+panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/esp-hal-1.1.2/src/exception_handler/mod.rs:30:9:
+
+
+Detected a write to the stack guard value on ProCpu
+Context { PC: 1075985800, PS: 394021, A0: 2148650630, A1: 1073582080, A2: 1073422536, A3: 96, A4: 1, A5: 256, A6: 394016, A7: 4294967231, A8: 0, A9: 1, A10: 1, A11: 1, A12: 0, A13: 42692, A14: 8, A15: 5382180, SAR: 24, EXCCAUSE: 15401229, EXCVADDR: 16711936, LBEG: 1073791817, LEND: 1073791851, LCOUNT: 4294967295, THREADPTR: 1073426192, SCOMPARE1: 256, BR: 0, ACCLO: 0, ACCHI: 0, M0: 0, M1: 0, M2: 0, M3: 0, F64R_LO_CPENABLE: 0, F64R_HI: 0, F64S: 0, FCR: 0, FSR: 0, F0: 0, F1: 0, F2: 0, F3: 0, F4: 0, F5: 0, F6: 0, F7: 0, F8: 0, F9: 0, F10: 0, F11: 0, F12: 0, F13: 0, F14: 0, F15: 0 }
+[0m
+
+Backtrace:
+
+0x40218862
+0x402271bd
+0x400817ec
+0x40080b5c
+0x40040003
+0x40223d85
+0x4013e7f6
+0x4013de3a
+0x4013e32f
+0x4013e087
+
+
+
