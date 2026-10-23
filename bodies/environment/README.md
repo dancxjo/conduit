@@ -1249,8 +1249,9 @@ The target and CPU conformance use the same storage assembly. CPU controls cover
 960 logical samples, concurrent pending-clock/reading publication, cancellation,
 late completions, pressure, provider failure and revoked possession, without Play
 allocation. See `evidence/2026-10-23-native-dispatch/` for the exact proof scope.
-Worker/task admission and signed start/release remain unfinished; the new bridge
-has not replaced the physically prepared image or dispatched a physical reading.
+At that CPU-proof stage, worker/task admission and signed start/release were
+unfinished; the later physical custody result is recorded below. No physical
+reading is claimed by that bridge proof.
 
 The target worker now owns finite pulse/timer request queues and a two-slot reply
 queue around the ordinary kernel. It advances Steps while native futures remain
@@ -1259,8 +1260,9 @@ conformance covers 960 logical samples, concurrent publication, native failure,
 revocation, cancellation and fenced abandonment with no Play allocation. Kernel
 and native ownership transfer to one boxed context without cloning; Root guards
 that context separately while retaining 8 KiB control headroom. See
-`evidence/2026-10-23-native-worker/` for exact scope and measurements. Actual task
-admission and signed start/release are not wired, and the worker is not flashed.
+`evidence/2026-10-23-native-worker/` for exact scope and measurements. That
+CPU proof predates the physical task admission recorded below; signed
+start/release remain unfinished.
 
 Root now registers a concrete Embassy worker during signed preparation. The task
 owns the boxed kernel, both native providers and the finite request/reply queues,
@@ -1280,3 +1282,11 @@ The requested Raspberry Pi recorder/presenter, MCU construction role and symmetr
 Linux/ConduitOS/browser handoff requirements are retained in
 [SECOND-HOST.md](SECOND-HOST.md). Exact board identification and physical proof
 remain required.
+
+The full supported preparation command subsequently passed on the ESP32. The
+real task acknowledged held custody with a 4,640-byte context and a 3,536-byte
+held future, both providers issued and idle, and zero Steps or publications.
+Peak Root use was 109,704 of 114,688 bytes. See
+`evidence/2026-10-23-native-task-ready/` for the source-bound physical receipt.
+The finite owner process still exits after preparation. Attributed start,
+persistent ownership, release and actual climate sampling remain unfinished.

@@ -28,3 +28,7 @@ frames are entered only by their respective typed literal paths. The linked CPU
 stack span remains 28,988 bytes; no heap backing or numerical bound was enlarged.
 `frames.json` binds this measurement to the exact ELF digest. The next physical
 preparation must still prove startup and actual held-task custody.
+
+The subsequent physical preparation passed startup and held-task custody. See
+[the physical receipt](../2026-10-23-native-task-ready/README.md); start/release
+and physical sensor execution remain separate unfinished acceptance.
