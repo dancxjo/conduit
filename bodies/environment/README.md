@@ -746,8 +746,8 @@ one publication; retries and additional generations are not implicit.
 fixed kernel, plus cancellation between staging and commit and blocked output.
 Execution allocates nothing. Numeric placement and external storage completions
 in this proof are explicit CPU fixtures: browser installation, actual storage
-acknowledgement, recorder membership/Line, cross-chunk recovery and physical
-endurance are still required for a deployed recorder appliance.
+acknowledgement, recorder membership/Line and physical endurance are still
+required for a deployed recorder appliance.
 
 
 The replacement ESP32's annunciator test was visually reported as `11:11`,
@@ -806,3 +806,14 @@ The [physical Root input receipt](evidence/2026-10-23-esp32-root-input/README.md
 now records actual AP/DHCP/HTTP service and a private fixture submission followed
 by three prepared offers under one Boot. The temperature/RH bench was restored
 afterward; actual network control remains uninstalled.
+
+`PreparedRecordingHistory` recovers an admitted finite number of chunks for one
+exact producer Host/Boot/Plan/Play. It retains one chunk and a recovery summary,
+exposes missing sequences across chunk boundaries, and refuses overlap, replay,
+reversed producer clocks, foreign context and excess chunks without replacing
+prior recovery. Available samples retain the observation's first-class quantities;
+failure samples retain their disposition. It neither creates a storage manifest
+nor claims durable acknowledgement. Each generation still requires independent
+snapshot authorization and restoration through the existing browser executor.
+The recording proof recovers 64 chunks (4,096 samples) without execution
+allocations; this is deterministic CPU recovery, not an overnight browser run.

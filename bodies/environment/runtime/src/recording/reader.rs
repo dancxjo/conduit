@@ -30,6 +30,7 @@ pub struct PreparedRecordingReader {
     quantities: PreparedObservationQuantityForms,
     samples: [[u8; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
     count: usize,
+    preceding_sequence: Option<u64>,
 }
 impl PreparedRecordingReader {
     pub fn prepare(
@@ -42,12 +43,22 @@ impl PreparedRecordingReader {
             quantities: prepared.quantities,
             samples: [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES],
             count: 0,
+            preceding_sequence: None,
         })
     }
     /// Accept precisely the encoder's canonical JSON, including all producer,
     /// semantic Type and Form identities. Invalid input preserves the previous
     /// loaded chunk; no prefix of a refused snapshot becomes visible.
     pub fn read(&mut self, json: &str) -> Result<(), RecordingReadRefusal> {
+        self.read_after(json, None)
+    }
+    /// The history owner supplies the last accepted sample, never context taken
+    /// from incoming content. Validate the boundary before replacing any state.
+    pub(super) fn read_after(
+        &mut self,
+        json: &str,
+        previous: Option<(u64, u64)>,
+    ) -> Result<(), RecordingReadRefusal> {
         use RecordingReadRefusal as E;
         if json.len() > MAXIMUM_CHUNK_BYTES {
             return Err(E::Extent);
@@ -64,7 +75,7 @@ impl PreparedRecordingReader {
         }
         let mut samples = [[0; SAMPLE_BYTES]; MAXIMUM_CHUNK_SAMPLES];
         let mut count = 0;
-        let mut last = None;
+        let mut last = previous;
         for encoded in records.as_bytes().as_chunks::<{ SAMPLE_BYTES * 2 }>().0 {
             let sample = &mut samples[count];
             for (octet, pair) in sample.iter_mut().zip(encoded.as_chunks::<2>().0) {
@@ -92,6 +103,7 @@ impl PreparedRecordingReader {
         }
         self.samples = samples;
         self.count = count;
+        self.preceding_sequence = previous.map(|(sequence, _)| sequence);
         Ok(())
     }
     pub fn len(&self) -> usize {
@@ -101,7 +113,8 @@ impl PreparedRecordingReader {
         self.count == 0
     }
     /// Reconstitute first-class quantities with the prepared semantic codec.
-    /// Gaps are local to this chunk; its first sample proves no earlier history.
+    /// Standalone reads prove no earlier history; ordered history reads also
+    /// expose a gap between the previous chunk and this chunk's first sample.
     pub fn sample(&mut self, index: usize) -> Option<RecordedSample<'_>> {
         if index >= self.count {
             return None;
@@ -109,7 +122,10 @@ impl PreparedRecordingReader {
         let sample = self.samples[index];
         let sequence = number(&sample[..8]);
         let disposition = RecordingDispositionForm::decode(&sample[16..17]).ok()?;
-        let previous = index.checked_sub(1).map(|i| number(&self.samples[i][..8]));
+        let previous = index
+            .checked_sub(1)
+            .map(|i| number(&self.samples[i][..8]))
+            .or(self.preceding_sequence);
         let gap_before = previous
             .filter(|previous| sequence - previous > 1)
             .map(|previous| (previous + 1, sequence - 1));

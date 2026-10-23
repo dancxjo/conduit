@@ -4,12 +4,14 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+mod history;
 mod host_call;
 mod publication;
 mod reader;
 mod snapshot;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
+pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
 pub use publication::PreparedRecordingInput;
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};

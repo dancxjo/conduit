@@ -190,3 +190,6 @@ fn full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses() {
     assert_eq!(reader.len(), 64);
     assert_eq!(reader.sample(63).unwrap().sequence, 64);
 }
+
+#[path = "recording_recovery/history.rs"]
+mod history;
