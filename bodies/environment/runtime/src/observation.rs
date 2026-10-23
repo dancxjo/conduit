@@ -11,7 +11,9 @@ mod forms {
     include!(concat!(env!("OUT_DIR"), "/observation-forms.rs"));
 }
 mod back;
+mod packed;
 pub use back::ObservationBack;
+pub use packed::PreparedObservationQuantityForms;
 pub const KIND: &str = "device/dht11-observation";
 pub const MAXIMUM_BYTES: u32 = 4096;
 
