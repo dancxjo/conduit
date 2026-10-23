@@ -20,7 +20,9 @@ draft, it submits the genuine held S1 occurrence. The actual production route
 must return `StaleShow`, preserve S2/publication/Face/draft and keyboard routing,
 and finish copying the existing notice. Only then does it emit a source/Show
 checkpoint and wait on the normal PS/2 adapter. The collector captures once
-through QMP before sending a real Enter acknowledgement, after which the original
+through QMP before sending a real Enter press/release pair in one QMP request.
+The guest consumes and validates both transitions before its acknowledgement,
+after which the original
 fresh S2 interaction must still be accepted by the canonical owner.
 
 This is an explicit freestanding emulator appliance with actual framebuffer
@@ -37,3 +39,12 @@ the initial featureless invocation, which failed to compile existing tests
 requiring `native-compositor`; the corrected invocation supplies that feature.
 Fresh QEMU capture and relevant merged checks remain pending.
 No visible stale-Show acceptance is claimed until the exact-source packet passes.
+
+The first supported build on `48570ecc7` stopped before QEMU because `/tmp`'s
+user quota refused a C compiler temporary file. An inactive Cargo-only cache
+was checked for active processes/file handles and cleaned through Cargo,
+reclaiming about 14 GiB; active work and unique proof packets were preserved.
+The resumed build was deliberately stopped after review found that the guest
+could exit after Enter press while the collector still sent a separate release
+request. No emulator result was claimed. The corrected protocol batches both
+transitions and requires the guest to consume release before continuing.

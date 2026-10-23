@@ -72,5 +72,11 @@ pub(super) fn capture_refusal(
     if key.usage() != 40 || !key.pressed() || key.modifiers() != 0 {
         refuse("stale-capture-ack-value");
     }
+    let release = input
+        .receive_keyboard()
+        .unwrap_or_else(|_| refuse("stale-capture-release"));
+    if release.usage() != 40 || release.pressed() || release.modifiers() != 0 {
+        refuse("stale-capture-release-value");
+    }
     arch::early_write(b"CONDUIT_COMPOSITOR_STALE_CAPTURE_ACK\n");
 }

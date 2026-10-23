@@ -1,5 +1,5 @@
 //! Capture a completed real refusal frame before acknowledging its checkpoint.
-use super::super::{hid_qmp, live_serial, qmp, qmp_display};
+use super::super::{live_serial, qmp, qmp_display};
 use super::{refusal, ConduitosError};
 use serde_json::Value;
 use std::{
@@ -115,23 +115,19 @@ pub(super) fn capture(
             "capture must match actual framebuffer",
         ));
     }
-    hid_qmp::send_named_keys(
+    let keys = serde_json::json!({"execute":"input-send-event","arguments":{"events":[
+        {"type":"key","data":{"down":true,"key":{"type":"qcode","data":"ret"}}},
+        {"type":"key","data":{"down":false,"key":{"type":"qcode","data":"ret"}}}
+    ]}});
+    qmp::request(
         &mut stream,
         &mut reader,
-        &["ret"],
-        true,
-        "stale-capture-ack-down",
-    )?;
-    hid_qmp::send_named_keys(
-        &mut stream,
-        &mut reader,
-        &["ret"],
-        false,
-        "stale-capture-ack-up",
+        keys.to_string().as_bytes(),
+        "stale-capture-ack-pair",
     )?;
     Ok(serde_json::json!({"guest":observed,"capture":frame,
         "qmp_transcript_sha256":super::super::report::sha256_file(&trace)?,
-        "checkpoint_ack":"real-ps2-enter-after-capture","ordinary_product":false}))
+        "checkpoint_ack":"real-ps2-enter-press-release-after-capture","ordinary_product":false}))
 }
 
 pub(super) fn validate_final(transcript: &str, capture: &Value) -> Result<(), ConduitosError> {
