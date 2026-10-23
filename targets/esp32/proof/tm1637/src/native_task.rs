@@ -46,8 +46,13 @@ pub struct Status {
 }
 struct State {
     status: Status,
-    canonical: heapless::Vec<u8, 4096>,
 }
+const PROJECTION_BYTES: usize = 4096;
+// Reclaimed backing is initialized only by committed publication copies. Access
+// is serialized by STATE; publication_bytes records the initialized prefix.
+#[esp_hal::ram(reclaimed)]
+static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
+    core::mem::MaybeUninit::uninit();
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
     status: Status {
         phase: "unregistered",
@@ -68,7 +73,6 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
         native_lifecycles: None,
         native_in_flight: None,
     },
-    canonical: heapless::Vec::new(),
 }));
 fn update(f: impl FnOnce(&mut State)) {
     STATE.lock(|state| f(&mut state.borrow_mut()));
@@ -96,9 +100,18 @@ impl Handle {
                 return Ok(None);
             }
             let target = output
-                .get_mut(..state.canonical.len())
+                .get_mut(..state.status.publication_bytes)
                 .ok_or("publication-capacity")?;
-            target.copy_from_slice(&state.canonical);
+            // SAFETY: STATE serializes all backing access. This prefix was
+            // initialized before publication_sequence became nonzero, and the
+            // caller's ordinary output slice cannot alias private static memory.
+            unsafe {
+                core::ptr::copy_nonoverlapping(
+                    core::ptr::addr_of!(CANONICAL).cast::<u8>(),
+                    target.as_mut_ptr(),
+                    target.len(),
+                );
+            }
             Ok(Some(state.status))
         })
     }
@@ -167,15 +180,19 @@ async fn held(slot: &'static Slot) {
                     |snapshot| {
                         update(|state| {
                             state.status.source_sequence = snapshot.sequence;
-                            if snapshot.canonical.len() > state.canonical.capacity() {
+                            if snapshot.canonical.len() > PROJECTION_BYTES {
                                 state.status.projection_refused = true;
                                 return;
                             }
-                            state.canonical.clear();
-                            state
-                                .canonical
-                                .extend_from_slice(snapshot.canonical)
-                                .expect("preflighted publication projection capacity");
+                            // SAFETY: bounded above and serialized by STATE;
+                            // the kernel snapshot cannot alias this private backing.
+                            unsafe {
+                                core::ptr::copy_nonoverlapping(
+                                    snapshot.canonical.as_ptr(),
+                                    core::ptr::addr_of_mut!(CANONICAL).cast::<u8>(),
+                                    snapshot.canonical.len(),
+                                );
+                            }
                             state.status.publication_bytes = snapshot.canonical.len();
                             state.status.publication_sequence = snapshot.sequence;
                             state.status.publication_channel = Some(snapshot.channel.index() as u8);

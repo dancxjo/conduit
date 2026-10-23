@@ -9,6 +9,16 @@ fn main() {
         let source = network_source::compile_network_setup().expect("checked network Source");
         let image = conduit_plot::flat_image::encode(&source).expect("finite flat Source image");
         let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+        // Native task pools and Root statics must leave the CPU stack admitted.
+        // Preserve the hardware guard as well; this floor is not a worst-case
+        // stack proof for every future program or provider.
+        let stack = out.join("native-stack.x");
+        std::fs::write(
+            &stack,
+            "ASSERT(_stack_start_cpu0 - _stack_end_cpu0 >= 24576, \"native Root requires at least 24 KiB CPU stack\");\n",
+        )
+        .unwrap();
+        println!("cargo:rustc-link-arg=-T{}", stack.display());
         build_owner_key::emit(&out);
         std::fs::write(out.join("network-source.json"), &image).unwrap();
         std::fs::write(out.join("network-source.sha256"), Sha256::digest(&image)).unwrap();
