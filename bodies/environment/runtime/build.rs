@@ -4,11 +4,19 @@ use std::{env, fs, path::PathBuf};
 fn main() {
     let path = "../../../plots/device-protocols/dht11.conduit";
     println!("cargo:rerun-if-changed={path}");
-    let syntax = parse_syntax_document(&fs::read_to_string(path).unwrap());
+    let pulse = "../../../plots/device-protocols/pulse-types.conduit";
+    println!("cargo:rerun-if-changed={pulse}");
+    let source = format!(
+        "{}\n{}",
+        fs::read_to_string(pulse).unwrap(),
+        fs::read_to_string(path).unwrap()
+    );
+    let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty());
     let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
     let out = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     for (name, file) in [
+        ("PulseReadCapture", "pulse-capture.type"),
         ("Dht11DecodedResult", "decoded.type"),
         ("Dht11Observation", "observation.type"),
         ("Dht11Result", "observation-result.type"),
