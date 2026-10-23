@@ -38,6 +38,7 @@ fn fixture() -> (Arc<AdmittedModelResource>, ResourceContentOffer) {
                     )
                     .unwrap()],
                     16,
+                    conduit_ai::ModelTensorNumericPolicy::Ieee,
                 )
                 .unwrap(),
             )

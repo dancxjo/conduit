@@ -132,6 +132,7 @@ fn signature() -> ModelSignature {
                     )
                     .unwrap(),
                     4,
+                    conduit_ai::ModelTensorNumericPolicy::Ieee,
                 )
                 .unwrap(),
             )

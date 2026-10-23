@@ -15,7 +15,13 @@ where
 }
 
 fn tensor(axes: Vec<ModelAxisConstraint>) -> ModelTensorConstraint {
-    ModelTensorConstraint::from_parts(vec![TensorElement::F32], axes, 4_096).unwrap()
+    ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        axes,
+        4_096,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
+    )
+    .unwrap()
 }
 
 #[test]
@@ -105,7 +111,13 @@ fn model_signature_vocabularies_round_trip_through_their_native_types() {
 
 #[test]
 fn model_signature_native_bounds_refuse_invalid_construction() {
-    assert!(ModelTensorConstraint::from_parts(Vec::new(), Vec::new(), 1).is_err());
+    assert!(ModelTensorConstraint::from_parts(
+        Vec::new(),
+        Vec::new(),
+        1,
+        conduit_ai::ModelTensorNumericPolicy::Ieee
+    )
+    .is_err());
     let axes = (0..9)
         .map(|_| {
             ModelAxisConstraint::new(
@@ -115,7 +127,13 @@ fn model_signature_native_bounds_refuse_invalid_construction() {
             .unwrap()
         })
         .collect();
-    assert!(ModelTensorConstraint::from_parts(vec![TensorElement::F32], axes, 1).is_err());
+    assert!(ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        axes,
+        1,
+        conduit_ai::ModelTensorNumericPolicy::Ieee
+    )
+    .is_err());
     assert!(ModelPortConstraint::from_parts(
         "x".repeat(129),
         "data/tensor@1".into(),

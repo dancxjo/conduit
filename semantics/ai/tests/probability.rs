@@ -231,6 +231,7 @@ fn model_signature_declares_a_bounded_probabilistic_signal_output() {
             },
         ],
         800,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap();
     let signature = ModelSignature::from_parts(

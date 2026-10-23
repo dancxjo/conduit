@@ -53,6 +53,7 @@ pub fn english_parser_scorer_descriptor() -> (ModelArtifact, ModelSignature) {
                     )
                     .expect("pinned axis")],
                     count * 8,
+                    ModelTensorNumericPolicy::Ieee,
                 )
                 .expect("pinned tensor"),
             )

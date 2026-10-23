@@ -49,22 +49,23 @@ pub use generated::{
     ModelRefusal, ModelRelationSignature, ModelResultDisposition, ModelResultInvalidity,
     ModelResultPayload, ModelResultProvenance, ModelSemanticKind, ModelSignature,
     ModelSignatureRefusal, ModelTensorAxes, ModelTensorConstraint, ModelTensorElements,
-    ModelTextRefusal, ModelValueConstraint, ModelValueConstraintProbabilisticSignal,
-    ModelValueConstraintProbabilisticTensor, ModelValueConstraintSampledSignal,
-    ModelValueConstraintTensor, ModelWorkAccounting, NonnegativeFiniteF32, ObjectiveParticipation,
-    PortableComputeClass, PortableGroundedAnswer, PortableModelDerivedResult,
-    PortableProposedClaimSupport, PortableProposedGroundedClaim, ProbabilisticDisposition,
-    ProbabilisticDispositionApproximate, ProbabilisticDispositionTruncated,
-    ProbabilityClaimProfile, ProbabilityDigest, ProbabilityRefusal, ProbabilitySample,
-    ProbabilitySampleSet, ProbabilitySummary, ProfileReportedConfidence, PromotionDecision,
-    PromotionTerminal, R3OfferInvalidity, RagAnswerOfferInvalidity, RagIdentity, RandomnessProfile,
-    RandomnessProfileExplicitSeed, RandomnessProfileProviderChosen, RelationCandidateOutput,
-    RelationDigest, RelationEvidence, RelationEvidenceValues, RelationIdentity, RelationQuery,
-    RelationQueryIdentity, RelationQueryMode, RelationRefusal, RelationResultProfile,
-    RelationResultProfileProbabilistic, RelationSemanticRole, RelationTerminal, RelationValue,
-    RelationVariable, RelationVariableIdentities, RelationVariableIdentity, RelationVariables,
-    RerankObservation, RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal,
-    RerankingStrategy, RerankingStrategyObservedScores, RetrievalContribution, RetrievalIntent,
+    ModelTensorNumericPolicy, ModelTensorNumericPolicyForm, ModelTextRefusal, ModelValueConstraint,
+    ModelValueConstraintProbabilisticSignal, ModelValueConstraintProbabilisticTensor,
+    ModelValueConstraintSampledSignal, ModelValueConstraintTensor, ModelWorkAccounting,
+    NonnegativeFiniteF32, ObjectiveParticipation, PortableComputeClass, PortableGroundedAnswer,
+    PortableModelDerivedResult, PortableProposedClaimSupport, PortableProposedGroundedClaim,
+    ProbabilisticDisposition, ProbabilisticDispositionApproximate,
+    ProbabilisticDispositionTruncated, ProbabilityClaimProfile, ProbabilityDigest,
+    ProbabilityRefusal, ProbabilitySample, ProbabilitySampleSet, ProbabilitySummary,
+    ProfileReportedConfidence, PromotionDecision, PromotionTerminal, R3OfferInvalidity,
+    RagAnswerOfferInvalidity, RagIdentity, RandomnessProfile, RandomnessProfileExplicitSeed,
+    RandomnessProfileProviderChosen, RelationCandidateOutput, RelationDigest, RelationEvidence,
+    RelationEvidenceValues, RelationIdentity, RelationQuery, RelationQueryIdentity,
+    RelationQueryMode, RelationRefusal, RelationResultProfile, RelationResultProfileProbabilistic,
+    RelationSemanticRole, RelationTerminal, RelationValue, RelationVariable,
+    RelationVariableIdentities, RelationVariableIdentity, RelationVariables, RerankObservation,
+    RerankScore, RerankingPolicy, RerankingProofClass, RerankingRefusal, RerankingStrategy,
+    RerankingStrategyObservedScores, RetrievalContribution, RetrievalIntent,
     RetrievalIntentIdentity, RetrievalMechanism, RetrievalMechanismForm, RetrievalMode,
     RetrievalModeBoundary, RetrievalModeTemporal, RetrievalModes, RetrievalScore,
     RetrieverIdentity, RollbackTerminal, SelectedContextCost, SelectedContextRationale,
@@ -135,6 +136,7 @@ pub use model_text::*;
 mod model_signature;
 pub use model_signature::*;
 mod model_tensor_io;
+mod model_tensor_numeric;
 pub use model_tensor_io::*;
 pub mod imported_back_admission;
 pub mod imported_model_descriptor;

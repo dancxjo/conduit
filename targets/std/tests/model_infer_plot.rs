@@ -157,6 +157,7 @@ fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
         )
         .unwrap()],
         16,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap();
     let port = |name: &str| {
@@ -181,6 +182,7 @@ fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
                 )
                 .unwrap()],
                 8,
+                conduit_ai::ModelTensorNumericPolicy::Ieee,
             )
             .unwrap(),
         )

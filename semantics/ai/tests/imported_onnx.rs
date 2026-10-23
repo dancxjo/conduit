@@ -134,6 +134,7 @@ fn semantic_dtype_rank_and_dimension_must_match_the_import() {
                     .map(|d| ModelAxisConstraint::new(d, TensorAxisRole::Feature).unwrap())
                     .collect(),
                 4096,
+                conduit_ai::ModelTensorNumericPolicy::Ieee,
             )
             .unwrap(),
         )

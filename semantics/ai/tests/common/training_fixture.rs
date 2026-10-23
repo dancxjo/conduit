@@ -36,6 +36,7 @@ fn tensor_constraint() -> ModelTensorConstraint {
             },
         ],
         12_288,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap()
 }

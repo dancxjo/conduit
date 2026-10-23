@@ -11,7 +11,13 @@ fn fixture() -> Result<Arc<ImportedOnnxResource>, NativeBackingRefusal> {
             "data/tensor@1".into(),
             ModelPortPresence::Required,
             ModelValueConstraint::tensor(
-                ModelTensorConstraint::from_parts(vec![TensorElement::F32], vec![], 4).unwrap(),
+                ModelTensorConstraint::from_parts(
+                    vec![TensorElement::F32],
+                    vec![],
+                    4,
+                    ModelTensorNumericPolicy::Ieee,
+                )
+                .unwrap(),
             )
             .unwrap(),
         )

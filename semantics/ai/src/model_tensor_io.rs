@@ -5,7 +5,7 @@ use crate::{
 };
 use conduit_data::{
     NamedTensorBundle, NamedTensorBundleRefusal, NamedTensorBundleView, NamedTensorView,
-    TensorAxisRole, TensorElement, TensorValue,
+    TensorAxisRole, TensorBacking, TensorBackingView, TensorElement, TensorValue,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -19,6 +19,8 @@ pub enum ModelTensorIoRefusal {
     Dimension,
     AxisRole,
     ByteBound,
+    NonFinite,
+    NumericPolicyUnverifiable,
 }
 
 impl ModelSignature {
@@ -145,6 +147,18 @@ impl Tensor<'_, '_> {
                 .is_ok_and(|actual| actual.matches(role)),
         }
     }
+    fn inline_bytes(&self) -> Option<&[u8]> {
+        match self {
+            Self::Owned(value) => match &value.backing {
+                TensorBacking::Inline(payload) => Some(payload.as_slice()),
+                TensorBacking::Resource(_) => None,
+            },
+            Self::Borrowed(value) => match value.backing {
+                TensorBackingView::Inline(payload) => Some(payload),
+                TensorBackingView::Resource { .. } => None,
+            },
+        }
+    }
     fn byte_count(&self) -> Result<u64, ModelTensorIoRefusal> {
         match self {
             Self::Owned(value) => value
@@ -205,6 +219,11 @@ pub(crate) fn validate_ports(
         if tensor.byte_count()? > constraint.maximum_bytes {
             return Err(R::ByteBound);
         }
+        crate::model_tensor_numeric::validate(
+            constraint.numeric_policy,
+            tensor.element(),
+            tensor.inline_bytes(),
+        )?;
     }
     Ok(())
 }

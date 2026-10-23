@@ -150,6 +150,7 @@ fn tensor_with(
             },
         ],
         12_288,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap()
 }
