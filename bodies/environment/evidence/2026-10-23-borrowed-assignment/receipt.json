@@ -1,0 +1,11 @@
+{
+  "code_commit": "8efaeedc2",
+  "esp32_release_build": "passed",
+  "rebuilt_elf_sha256": "bcbec090ddb2eb9089a0dd434b6590a67958f43249c7cf7b98ca52151822774c",
+  "rebuilt_elf_flashed": false,
+  "borrowed_admission": "host compiler and CPU controls only",
+  "capture": "1792776504",
+  "capture_zip_sha256": "aa32c50a6edb350be5f65ceb906c14b814fd70731f9fcf9649873894a7225075",
+  "body_installed": false,
+  "climate_sampling_claimed": false
+}

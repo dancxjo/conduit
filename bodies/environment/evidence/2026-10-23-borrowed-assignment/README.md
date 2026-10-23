@@ -36,3 +36,7 @@ native owner binding, full memory admission and actual Body/Play installation
 remain necessary. Sensor/Face/Mask execution, positive station/mDNS, recorder
 custody/transport and an overnight physical run remain unfinished. These are
 local development proofs, not dev or stable acceptance.
+
+The ESP32 optimized release build passes with the same five unused-material/
+issuance warnings. Its ELF hash is retained in receipt.json. It was not flashed;
+the physical capture predates this rebuilt image.
