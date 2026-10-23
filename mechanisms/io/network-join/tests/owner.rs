@@ -29,9 +29,10 @@ struct State {
     cancelled: Cell<u32>,
     cleanups: Cell<u32>,
     pending: Cell<bool>,
-    failed: Cell<bool>,
+    failure: Cell<Option<StationFailure>>,
     foreign: Cell<u8>,
     cleanup_failed: Cell<bool>,
+    cleanup_pressure: Cell<bool>,
     correct_request: Cell<bool>,
 }
 struct Provider(Rc<State>);
@@ -57,10 +58,10 @@ impl NetworkJoinProvider for Provider {
             core::future::pending::<()>().await;
         }
         guard.1 = true;
-        if self.0.failed.get() {
+        if let Some(reason) = self.0.failure.get() {
             return Err(StationAttemptFailure {
                 phase: StationPhase::Associate,
-                reason: StationFailure::Rejected,
+                reason,
             });
         }
         Ok(AttachmentRecord::encode(NetworkAttachmentInfo {
@@ -86,7 +87,9 @@ impl NetworkJoinProvider for Provider {
     }
     async fn cleanup(&mut self) -> Result<(), StationFailure> {
         self.0.cleanups.set(self.0.cleanups.get() + 1);
-        if self.0.cleanup_failed.get() {
+        if self.0.cleanup_pressure.get() {
+            Err(StationFailure::Pressure)
+        } else if self.0.cleanup_failed.get() {
             Err(StationFailure::ProviderUnavailable)
         } else {
             Ok(())
@@ -283,7 +286,9 @@ fn foreign_attachment_and_provider_failure_never_publish_success() {
     for foreign in 0..=4 {
         let state = Rc::new(State::default());
         state.foreign.set(foreign);
-        state.failed.set(foreign == 0);
+        state
+            .failure
+            .set((foreign == 0).then_some(StationFailure::Rejected));
         let (mut owner, node) = ready(state.clone());
         let (bytes, length) = request();
         let result = run(owner.invoke(node, HostCallId(0), RequestId(0), &bytes[..length]));
@@ -328,4 +333,36 @@ fn retained_native_identity_refuses_consistent_but_foreign_planned_metadata() {
         ));
         assert_eq!(state.effects.get(), 0);
     }
+}
+
+#[test]
+fn native_storage_pressure_remains_distinct_and_preserves_cleanup_without_retry() {
+    let state = Rc::new(State::default());
+    state.failure.set(Some(StationFailure::Pressure));
+    state.cleanup_pressure.set(true);
+    let (mut owner, node) = ready(state.clone());
+    let (bytes, length) = request();
+    let ((), allocations) = allocation_probe::observe(|| {
+        assert!(matches!(
+            run(owner.invoke(node, HostCallId(0), RequestId(0), &bytes[..length])),
+            Err(JoinCallRefusal::Provider(StationAttemptFailure {
+                phase: StationPhase::Associate,
+                reason: StationFailure::Pressure
+            }))
+        ));
+        assert!(owner.cleanup_required());
+        assert_eq!(run(owner.cleanup()), Err(StationFailure::Pressure));
+        assert!(owner.cleanup_required());
+        state.cleanup_pressure.set(false);
+        run(owner.cleanup()).unwrap();
+        assert!(!owner.cleanup_required());
+        assert!(matches!(
+            run(owner.invoke(node, HostCallId(0), RequestId(0), &bytes[..length])),
+            Err(JoinCallRefusal::StaleRequest)
+        ));
+    });
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    assert_eq!(state.effects.get(), 1);
+    assert_eq!(state.cleanups.get(), 2);
+    assert_eq!(owner.inspection().completed_operations, 1);
 }

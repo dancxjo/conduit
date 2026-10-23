@@ -16,6 +16,7 @@ struct Provider {
     blocked: Option<Operation>,
     refused: Option<Operation>,
     unavailable: Option<Operation>,
+    pressured: Option<Operation>,
     active: bool,
 }
 impl Provider {
@@ -25,6 +26,7 @@ impl Provider {
             blocked: None,
             refused: None,
             unavailable: None,
+            pressured: None,
             active: false,
         }
     }
@@ -50,6 +52,9 @@ impl Provider {
         }
         if self.unavailable == Some(operation) {
             return Err(StationFailure::ProviderUnavailable);
+        }
+        if self.pressured == Some(operation) {
+            return Err(StationFailure::Pressure);
         }
         Ok(())
     }
@@ -203,6 +208,64 @@ fn successful_switch_does_not_restore_or_retry() {
             Operation::Address
         ]
     );
+}
+
+#[test]
+fn storage_pressure_retains_the_failed_phase_and_independent_cleanup_outcome() {
+    for (operation, phase) in [
+        (Operation::Withdraw, StationPhase::WithdrawAccessPoint),
+        (Operation::Associate, StationPhase::Associate),
+        (Operation::Address, StationPhase::ConfigureAddress),
+    ] {
+        let mut provider = Provider::new();
+        provider.pressured = Some(operation);
+        let mut attempt = Deadline { calls: 0 };
+        let mut restore = Deadline { calls: 0 };
+        assert_eq!(
+            run(switch_from_access_point(
+                &mut provider,
+                &mut attempt,
+                &mut restore
+            )),
+            AccessPointSwitchOutcome::AccessPointRestored {
+                failure: StationAttemptFailure {
+                    phase,
+                    reason: StationFailure::Pressure
+                }
+            }
+        );
+        assert_eq!((attempt.calls, restore.calls), (1, 1));
+        assert_eq!(
+            provider
+                .operations
+                .iter()
+                .filter(|&&v| v == Operation::Restore)
+                .count(),
+            1
+        );
+        assert!(!provider.active);
+    }
+    let mut provider = Provider::new();
+    provider.refused = Some(Operation::Associate);
+    provider.pressured = Some(Operation::Restore);
+    let mut attempt = Deadline { calls: 0 };
+    let mut restore = Deadline { calls: 0 };
+    assert_eq!(
+        run(switch_from_access_point(
+            &mut provider,
+            &mut attempt,
+            &mut restore
+        )),
+        AccessPointSwitchOutcome::Unavailable {
+            failure: StationAttemptFailure {
+                phase: StationPhase::Associate,
+                reason: StationFailure::Rejected
+            },
+            restoration: StationFailure::Pressure,
+        }
+    );
+    assert_eq!((attempt.calls, restore.calls), (1, 1));
+    assert!(!provider.active);
 }
 
 #[test]

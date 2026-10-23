@@ -12,6 +12,8 @@ pub enum StationPhase {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum StationFailure {
     Rejected,
+    /// The retained implementation exhausted its admitted finite storage.
+    Pressure,
     ProviderUnavailable,
     Deadline,
 }

@@ -97,10 +97,7 @@ impl<S: AccessPointServices> StationOperations for Esp32ApStationSwitch<'_, '_, 
         if result.is_ok() {
             guard.armed = false;
         }
-        result.map(|_| ()).map_err(|error| match error {
-            WifiError::Disconnected(_) => StationFailure::Rejected,
-            _ => StationFailure::ProviderUnavailable,
-        })
+        result.map(|_| ()).map_err(station_failure)
     }
     async fn configure_address(&mut self) -> Result<(), StationFailure> {
         self.station_stack.wait_config_up().await;
@@ -119,7 +116,7 @@ impl<S: AccessPointServices> AccessPointSwitchOperations for Esp32ApStationSwitc
         self.station_stack.set_config_v4(ConfigV4::None);
         self.controller
             .set_config(&self.station_config)
-            .map_err(|_| StationFailure::ProviderUnavailable)?;
+            .map_err(station_failure)?;
         self.station_stack
             .set_config_v4(ConfigV4::Dhcp(Default::default()));
         Ok(())
@@ -129,13 +126,23 @@ impl<S: AccessPointServices> AccessPointSwitchOperations for Esp32ApStationSwitc
         self.station_stack.set_config_v4(ConfigV4::None);
         self.controller
             .set_config(&self.ap_config)
-            .map_err(|_| StationFailure::ProviderUnavailable)?;
+            .map_err(station_failure)?;
         self.ap_stack
             .set_config_v4(ConfigV4::Static(self.ap_address.clone()));
         self.ap_stack.wait_link_up().await;
         self.services.restore().await?;
         self.cleanup_required = false;
         Ok(())
+    }
+}
+
+fn station_failure(error: WifiError) -> StationFailure {
+    match error {
+        WifiError::OutOfMemory => StationFailure::Pressure,
+        WifiError::Disconnected(_) | WifiError::InvalidSsid | WifiError::InvalidPassword => {
+            StationFailure::Rejected
+        }
+        _ => StationFailure::ProviderUnavailable,
     }
 }
 

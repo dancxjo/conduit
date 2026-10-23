@@ -102,3 +102,20 @@ returns the sole provider owner. An empty slot receives `OwnerUnavailable`.
 The constructor's actual-resource and finite SDK admission requirements remain
 unchanged. Root still needs to admit those resources and install the selected
 control Play; compilation and strict linting establish no physical join proof.
+
+The pinned SDK's C allocation entrypoints (`malloc_internal`, `calloc_internal`
+and `realloc_internal`) forward to the configured `esp-alloc` heap and return a
+null pointer on exhaustion. The retained Root preparation ELF has exactly the
+96 KiB and 88 KiB heap backing symbols declared by its entry point, plus the
+single allocator object. This establishes the inspected allocation path and
+fixed arena extent, not a complete per-provider reservation or worst-case work
+bound. Root must still admit the whole native reservation and runtime storage
+before advertising the selected join provider.
+
+SDK `OutOfMemory` now becomes `StationFailure::Pressure` during configuration,
+association or restoration, rather than being reported as provider loss. The
+portable operation preserves the failed phase and an independent restoration
+failure. Selected-owner conformance checks that pressure spends the one attempt,
+retains the cleanup obligation until cleanup succeeds, and never permits a
+second join invocation. These are deterministic CPU and SDK compilation checks;
+physical pressure injection and join/fallback remain unproved.
