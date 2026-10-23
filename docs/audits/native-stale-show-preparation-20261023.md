@@ -105,3 +105,7 @@ cargo +stable test -p conduitos --features native-compositor native_face_mask::s
 ```
 
 The compressed `post-source-submission-tests.log.gz` retains this local result. This is compile/CPU regression evidence for the combined source; the earlier measured QEMU packet retains its original source identity and was not relabelled or rerun. Current Candidate and merge acceptance remain separate gates.
+
+## Candidate evidence packaging correction
+
+Candidate 39939155013 stopped at patch whitespace validation: original emulator serial CRLF bytes were interpreted as trailing whitespace. Both original capacity/stale serial transcripts are now retained losslessly as gzip archives, with independently checked decompression and original-byte hashes in `serial-compression.json`. No serial byte, source, image or proof result changed. The retained verifier scripts still target the original product output paths. The failed quick-gate log is retained beside the stale packet.
