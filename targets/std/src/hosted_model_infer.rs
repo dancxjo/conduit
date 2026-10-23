@@ -53,6 +53,18 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         self.model.imported()
     }
 
+    /// Actual prepared provider identity, borrowed from the existing adapter session.
+    pub fn runtime_identity(&self) -> &conduit_ai::ModelComputeRuntimeIdentity {
+        self.adapter.runtime_identity()
+    }
+
+    /// Retained exact checkpoint/Back receipt corresponding to selected Plan inspection.
+    pub fn imported_admission(
+        &self,
+    ) -> Option<&conduit_ai::imported_back_admission::ImportedBackAdmissionReceipt> {
+        self.model.imported_admission()
+    }
+
     fn prepare_owned(
         model: ModelCustody,
         mut adapter: A,

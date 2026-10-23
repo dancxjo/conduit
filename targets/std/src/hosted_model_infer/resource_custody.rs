@@ -1,15 +1,20 @@
 //! The selected capability retains immutable model and imported-name custody.
 use conduit_ai::{imported_onnx::ImportedOnnxResource, AdmittedModelResource};
-use std::ops::Deref;
+use std::{ops::Deref, sync::Arc};
 
 // Both variants are bounded preparation-owned descriptors. Keeping them inline
 // avoids a new heap reservation for existing native preparations; Play only
-// borrows this retained owner.
+// borrows this retained owner. The explicit shared path retains the same native
+// model owner instead of reconstructing its descriptor or read authority.
 #[allow(clippy::large_enum_variant)]
 pub(super) enum ModelCustody {
     Native(AdmittedModelResource),
     Imported {
         model: ImportedOnnxResource,
+        admission: conduit_ai::imported_back_admission::ImportedBackAdmissionReceipt,
+    },
+    SharedImported {
+        model: Arc<ImportedOnnxResource>,
         admission: conduit_ai::imported_back_admission::ImportedBackAdmissionReceipt,
     },
 }
@@ -19,28 +24,48 @@ impl ModelCustody {
         match self {
             Self::Native(_) => None,
             Self::Imported { model, .. } => Some(model),
+            Self::SharedImported { model, .. } => Some(model.as_ref()),
+        }
+    }
+
+    pub(super) fn imported_admission(
+        &self,
+    ) -> Option<&conduit_ai::imported_back_admission::ImportedBackAdmissionReceipt> {
+        match self {
+            Self::Native(_) => None,
+            Self::Imported { admission, .. } | Self::SharedImported { admission, .. } => {
+                Some(admission)
+            }
         }
     }
 
     pub(super) fn imported_runtime(&self) -> Option<&conduit_ai::ModelComputeRuntimeIdentity> {
         match self {
             Self::Native(_) => None,
-            Self::Imported { admission, .. } => Some(&admission.profile().runtime),
+            Self::Imported { admission, .. } | Self::SharedImported { admission, .. } => {
+                Some(&admission.profile().runtime)
+            }
         }
     }
 
     pub(super) fn selection_identity(&self) -> [u8; 32] {
         match self {
             Self::Native(model) => model.descriptor_identity(),
-            Self::Imported { model, admission } => {
-                let mut bytes = [0; 96];
-                bytes[..32].copy_from_slice(&model.resource().descriptor_identity());
-                bytes[32..64].copy_from_slice(&model.sidecar_identity());
-                bytes[64..].copy_from_slice(&admission.identity());
-                conduit_core::semantic_digest("model/imported-inference-selection@2", &bytes)
-            }
+            Self::Imported { model, admission } => imported_selection(model, admission),
+            Self::SharedImported { model, admission } => imported_selection(model, admission),
         }
     }
+}
+
+fn imported_selection(
+    model: &ImportedOnnxResource,
+    admission: &conduit_ai::imported_back_admission::ImportedBackAdmissionReceipt,
+) -> [u8; 32] {
+    let mut bytes = [0; 96];
+    bytes[..32].copy_from_slice(&model.resource().descriptor_identity());
+    bytes[32..64].copy_from_slice(&model.sidecar_identity());
+    bytes[64..].copy_from_slice(&admission.identity());
+    conduit_core::semantic_digest("model/imported-inference-selection@2", &bytes)
 }
 
 impl Deref for ModelCustody {
@@ -49,6 +74,7 @@ impl Deref for ModelCustody {
         match self {
             Self::Native(model) => model,
             Self::Imported { model, .. } => model.resource(),
+            Self::SharedImported { model, .. } => model.resource(),
         }
     }
 }

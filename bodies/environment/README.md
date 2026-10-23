@@ -259,3 +259,18 @@ sensor readings or an installed Body/Plan. See the
 [diagnostic contract](../../targets/esp32/proof/tm1637/README.md) for wiring,
 observed timing and unverified annunciators. The board's USB connector has since
 broken; this admission does not claim a fresh physical run.
+
+## Fixed snapshot extent
+
+`PreparedRecordingSnapshot` fixes a chunk's sample count and exact JSON byte
+extent during preparation, before samples arrive. It accepts only the selected
+`resource/snapshot@1` reference with the exact `text/json-utf8@1` profile and
+single-item extent. Available observations retain the shared quantity Forms;
+failed observations occupy the same finite sample representation.
+
+A partial chunk cannot seal. Full chunks retain idempotent duplicates and
+refuse conflicting or additional samples; append and seal allocate nothing.
+The encoded expected reference is construction material, not a durable receipt.
+Publication still requires the ordinary admitted snapshot Host Call and its
+correlated completion. This layer supplies neither storage authority nor a
+provider, and does not start a recorder Body.

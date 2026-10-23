@@ -20,6 +20,8 @@ mod inverse_angle;
 mod model_inference;
 #[path = "../suites/model_native_backing.rs"]
 mod model_native_backing;
+#[path = "../suites/model_native_inference.rs"]
+mod model_native_inference;
 #[path = "../suites/native_source_laws.rs"]
 mod native_source_laws;
 #[path = "../suites/parser_scorer.rs"]
@@ -109,6 +111,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::CategoricalRuntime => run_suite(categorical_runtime::STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::ModelNativeBacking => run_suite(model_native_backing::STEPS, &root, opts),
+        CheckSuite::ModelNativeInference => run_suite(model_native_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::AsrCommonLanguage => run_suite(asr_common_language::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),

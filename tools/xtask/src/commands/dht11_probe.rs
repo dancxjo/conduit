@@ -16,6 +16,25 @@ pub fn dispatch(arguments: &[String]) -> Option<Result<(), Box<dyn Error>>> {
 
 fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["recording"] {
+        return execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "bodies/environment/runtime/Cargo.toml",
+                    "--test",
+                    "observation_forms",
+                    "--test",
+                    "recording_chunks",
+                    "--test",
+                    "recording_recovery",
+                ])
+                .env("CARGO_TARGET_DIR", root.join("target")),
+        );
+    }
     if arguments == ["http"] {
         return execute(
             Command::new("cargo")
@@ -271,7 +290,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, recording, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
