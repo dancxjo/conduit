@@ -1,0 +1,208 @@
+{
+  "schema": "conduit.local/6183-canonical-pair-independent-review@1",
+  "status": "PASS",
+  "batch_sha256": "c4f049f49b6cdc877b61b98fce8af7afdd20fe43b03e54ec04cdd9209f21e0b4",
+  "arms": [
+    {
+      "arm": "baseline",
+      "status": "PASS",
+      "source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+      "command_exit": 0,
+      "command_attempts": 1,
+      "outer_seconds": 2490.8075514039956,
+      "actual_elf_sha256": "dbd2bda0e063ab8504f51a4d374f907a20d457fcdeb217d0c063206d5877ce57",
+      "actual_iso_sha256": "260bedbdb065885cf126fb0a213d019604872c512d43c6bfc035deb89b92b263",
+      "actual_qemu_cdrom_verified": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-normal-baseline/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "artifact_role": "product-host",
+      "steps": [
+        "arrive",
+        "creche-three-selected",
+        "creche-four-restored",
+        "creche-fourth-checked",
+        "creche-pointer-three-selected",
+        "creche-pointer-four-restored",
+        "birth",
+        "wake",
+        "plan",
+        "play",
+        "commons-hub",
+        "commons-workshop",
+        "unavailable-wake-refused",
+        "protected-keyboard-canvas",
+        "protected-memory-lantern",
+        "home",
+        "patchbay",
+        "face",
+        "diagram",
+        "gear-details",
+        "diagram-return",
+        "stop",
+        "home-returned",
+        "patchbay-reentered"
+      ],
+      "step_count": 24,
+      "checkpoints": 27,
+      "png_file_pixel_crc_dimensions_verified": 27,
+      "serial_complete_newline": true,
+      "serial_json_records": 1671,
+      "host_id": "04fd808f51f0f95114ca469998fff833578f3f388af3f11eb8c487b5d7b8b3f9",
+      "boot_id": "8d7c1dedd2780b940e3aa9bf36fdd507ce80a0fcced89a1cf4e00c23afe0bdb6",
+      "paired_birth_count": 1,
+      "paired_accepted_actions": 15,
+      "look_selection": "passed",
+      "fresh_source_editor": {
+        "serial_snapshot_membership": true,
+        "suffix_backspace_restoration": true,
+        "selection_enacted": false,
+        "save_reopen_enacted": false
+      },
+      "patchbay_actions": {
+        "cross_plot_selection_enacted": true,
+        "edit_outcome": "native-editor-existing-draft",
+        "successful_edit_handoff_enacted": false
+      },
+      "headless_image_build_identity_only": [
+        {
+          "architecture": "ia32",
+          "elf_sha256": "dc15690e5513e107ca0e6489541819b8f62359ac004059bc60e5f4ed6a2dc84a",
+          "iso_sha256": "9f364aeab31ce689d4c4c102b735c5f33b35f566057385dda2c36c08a13f7430",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "aarch64",
+          "elf_sha256": "6d6cceb7cfb376cfa5630700c602badce7b1abb4bd5f17d95f57118ff1c52fe6",
+          "iso_sha256": "5340527d33235353e34f28def884f091d9f5e5e3518bd3e49b30412215c2efb2",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "riscv64",
+          "elf_sha256": "c6f28239a8fba1bc35d03e1587805140ba1c1993afa1a5169569dbcd90c394ec",
+          "iso_sha256": "665a87222513bbb6a0b75cfb5c072a12893a5098574ebcd7f58bcd0aca0166f0",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "loongarch64",
+          "elf_sha256": "3a82a26ee036c3766d766a47c22540d2ca62e2230e2ad8094c88d59e69bdab0b",
+          "iso_sha256": "13633234892e4ed7e7bf128926660d42f7b761e73bc9ee99dd516874a47ca796",
+          "runtime_execution_claim": false
+        }
+      ],
+      "batch_retained_files_hashed": 148,
+      "duplicate_large_boot_copy_hashes_not_repeated": [
+        "native/aarch64/iso-root/boot/conduitos",
+        "native/ia32/iso-root/boot/conduitos",
+        "native/loongarch64/iso-root/boot/conduitos",
+        "native/riscv64/iso-root/boot/conduitos",
+        "native/x86_64/iso-root/boot/conduitos"
+      ]
+    },
+    {
+      "arm": "optimized",
+      "status": "PASS",
+      "source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+      "command_exit": 0,
+      "command_attempts": 1,
+      "outer_seconds": 2209.0472128469846,
+      "actual_elf_sha256": "c622f4a4af0c626f7e7afea8a5bce10413339e6c2000dd63b459d9a29c30de45",
+      "actual_iso_sha256": "479730754ee87c4f70fe570c87fe5b6ffdb6118f9a4dc2957d8d5a9cd28eb125",
+      "actual_qemu_cdrom_verified": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-normal-optimized/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "artifact_role": "product-host",
+      "steps": [
+        "arrive",
+        "creche-three-selected",
+        "creche-four-restored",
+        "creche-fourth-checked",
+        "creche-pointer-three-selected",
+        "creche-pointer-four-restored",
+        "birth",
+        "wake",
+        "plan",
+        "play",
+        "commons-hub",
+        "commons-workshop",
+        "unavailable-wake-refused",
+        "protected-keyboard-canvas",
+        "protected-memory-lantern",
+        "home",
+        "patchbay",
+        "face",
+        "diagram",
+        "gear-details",
+        "diagram-return",
+        "stop",
+        "home-returned",
+        "patchbay-reentered"
+      ],
+      "step_count": 24,
+      "checkpoints": 27,
+      "png_file_pixel_crc_dimensions_verified": 27,
+      "serial_complete_newline": true,
+      "serial_json_records": 1667,
+      "host_id": "d6f65991d442dbf27b68aa7fda539658d0670a9df0ddb61acb3468ed186dc37c",
+      "boot_id": "4b6ccda9986fea17666ce74e6e51b452bc50c695d9b7dc108c6f8bfb244c6c3d",
+      "paired_birth_count": 1,
+      "paired_accepted_actions": 15,
+      "look_selection": "passed",
+      "fresh_source_editor": {
+        "serial_snapshot_membership": true,
+        "suffix_backspace_restoration": true,
+        "selection_enacted": false,
+        "save_reopen_enacted": false
+      },
+      "patchbay_actions": {
+        "cross_plot_selection_enacted": true,
+        "edit_outcome": "native-editor-existing-draft",
+        "successful_edit_handoff_enacted": false
+      },
+      "headless_image_build_identity_only": [
+        {
+          "architecture": "ia32",
+          "elf_sha256": "e74a77fe06099e8223c3f077f3989eba1a9757603979a77268f08e85e6351d66",
+          "iso_sha256": "6c4e91988b4f07d1c408acfe5dc2470c0f7cfda9a077141b14876e533bf12967",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "aarch64",
+          "elf_sha256": "15e9f7d978dabefb81ea2b63245100a2d72f36144a704b5cda1712fc7bdb9945",
+          "iso_sha256": "44d12de11dfc441d6a3b4ae2daba5c7609cb0a922e6f0ca73a873db548376333",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "riscv64",
+          "elf_sha256": "3ad59b44eee58356869a8e34581b3d7e24d351fbc81680f2f9598e8ef92eec79",
+          "iso_sha256": "a4d5297ed8f4177aa1868dd9f240dd75d4cc871c922a8a17af31dca4dcf80ed0",
+          "runtime_execution_claim": false
+        },
+        {
+          "architecture": "loongarch64",
+          "elf_sha256": "cb45b31f8d4a792210c7661458fa32feb8cce6031bfe786c701c2e21c81b3401",
+          "iso_sha256": "6b2c117bc4d2ded0f066abf1c096fd924cfa129ee66d713b3e5ee4c0f8874703",
+          "runtime_execution_claim": false
+        }
+      ],
+      "batch_retained_files_hashed": 148,
+      "duplicate_large_boot_copy_hashes_not_repeated": [
+        "native/aarch64/iso-root/boot/conduitos",
+        "native/ia32/iso-root/boot/conduitos",
+        "native/loongarch64/iso-root/boot/conduitos",
+        "native/riscv64/iso-root/boot/conduitos",
+        "native/x86_64/iso-root/boot/conduitos"
+      ]
+    }
+  ],
+  "limits": [
+    "Historical measured 1f727/2ffef source pair; no automatic correspondence to later dev.",
+    "24-step canonical journey at these sources, not later added routes/checkpoints.",
+    "Outer command durations include compilation/image assembly and tooling; not runtime or speedup.",
+    "QMP keyboard/pointer and retained frame/serial checks are emulator evidence, not human or physical acceptance.",
+    "Four headless architectures have shipped image/build identity checks only; no runtime journey inferred.",
+    "Successful harness SIGKILL is intentional after journey; no graceful disposal/restart assertion.",
+    "No full #6183 completion, pure trap/IRET/physical latency, publication, or aggregate CI claim."
+  ],
+  "remaining_gaps": [
+    "Later accepted source correspondence and delivery/relevant CI remain separate.",
+    "Trap-envelope producer/collector preparation is distinct and requires hosted controls plus real native execution.",
+    "Historical Source selection/Save-reopen and original-Play successful edit handoff are not supplied by these receipts.",
+    "Full #6183 issue acceptance retains component attribution and any physical/human criteria; this pair supplies normal workload regression evidence only."
+  ]
+}

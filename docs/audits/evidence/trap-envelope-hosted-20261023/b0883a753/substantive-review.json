@@ -1,0 +1,42 @@
+{
+  "source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+  "scope": "Read-only substantive producer/reader review; no compilation, execution, cache or source changes",
+  "blocking_findings": [],
+  "reviewed": [
+    {
+      "area": "registers and flags",
+      "finding": "R12/R13/R14 park entry arguments before RDTSC. Gate/fault temporary RAX/RDX pushes are balanced before original stack accesses. R8/R9 preserve transition return pair through Root restore. Saved flags are read at RootRSP+48 before six pops; restored flags are sampled with PUSHFQ inside assembly. Post-POPFQ stamp, MOV stores and return-pair restoration do not change flags."
+    },
+    {
+      "area": "Root-only mapping",
+      "finding": "Actual ServiceDomain maps through arch/x86_64/service_memory.rs:139, which copies inherited PML4 entries with user bit cleared. Observer BSS is adjacent to pre-existing Root transition globals accessed under the same guest CR3. No user mapping/grant expansion. trap_observation comment cites domain_memory generically; actual service mapping was independently reviewed too."
+    },
+    {
+      "area": "timing and readiness",
+      "finding": "Three outer intervals only. Ready=1 precedes stamps and ready=2 follows common endpoint/actual flag snapshot. One timestamp supplies both terminal and restore ends. Ordered raw validation rejects reversal and improper paths; preempt terminal start remains zero and wire terminal interval null. All invalid intervals are null. Controls are adjacent raw pairs with no subtraction; intervals overlap and are nonadditive."
+    },
+    {
+      "area": "matrix and wire",
+      "finding": "Producer and strict reader agree exact20 order: three cases x fresh/reused x three trials, then fresh preempt and #GP. Actual guest command2/status0 gives gate value0; probe6 gives4/origin2; probe5 CLI gives0x10d/origin1. ServiceDomain checked monotonic instance IDs satisfy reader fresh/reuse predicates. New harness does not replace existing hostile or protection checks."
+    },
+    {
+      "area": "cfg and bounded storage",
+      "finding": "Native ordinary_domain_proof is x86_64-none+feature gated; assembly observation conditional matches Rust helper feature. Hosted cross-conformance uses only pure wire/reader paths. Fixed112-byte assembly observation plus16-byte arming/instance atomics; formatting occurs after measured endpoint. No per-IRQ event history or guest clock authority."
+    },
+    {
+      "area": "collector binding",
+      "finding": "Reader requires20 newline-terminated matching records, exact fields/closed invalid reasons, actual flags true and restore<=terminal. New receipt uses existing actual architecture-appliance build record/ELF plus ISO and transcript hashes. New data cannot be relabeled historical or normal-product execution."
+    }
+  ],
+  "remaining_gates": [
+    "Root-owned focused hosted compilation/tests result (not observed by this reviewer)",
+    "Actual supported ordinary-domain-proof on frozen integrated source, including all unchanged hostile/Root/sibling/NM/grant checks",
+    "Retain source/producer/ELF/ISO/transcript hashes and invalid records for any first failure",
+    "Root reports LLVM disabled-text/relocation equality and enabled assembly success; this reviewer did not rerun those checks"
+  ],
+  "limits": [
+    "No full IRQ register preservation interval implemented; wire explicitly false",
+    "No hardware trap delivery/IRET isolation/calibration/physical or normal-product timing claim",
+    "This source review is not a native execution result"
+  ]
+}

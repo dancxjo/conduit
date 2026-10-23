@@ -1,0 +1,31 @@
+{
+  "source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "native-compositor",
+    "service_trap_",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "status": "completed",
+  "started": 1792756880.7012737,
+  "classification": "Internal focused owning hosted tests; not native execution",
+  "exit_code": 0,
+  "finished": 1792757098.103104,
+  "log_sha256": "aa15b38a0c56d307ab2eb676743b72b84fabce0e2fa1511f8dd2814bc14056a3",
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-trap-hosted-b0883a753/conduitos-e4c0d8a30ad94180",
+      "sha256": "23df6a2d064423407f2b8c20f1caa976949b230b65b2764d29646fa246fe27f5"
+    }
+  ]
+}

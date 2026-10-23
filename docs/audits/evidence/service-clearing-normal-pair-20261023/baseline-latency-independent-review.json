@@ -1,0 +1,603 @@
+{
+  "schema": "conduit.local/6183-baseline-latency-independent-review@1",
+  "status": "PASS",
+  "source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+  "family": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-normal-pair-1f727/baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554",
+  "family_complete": true,
+  "admitted_and_completed_trials": 3,
+  "failed_or_excluded_trials": 0,
+  "actual_elf_sha256": "09a6390d5800533c0f41cd4849abdaf580d56abbd53e9ede100b1c4854772f7e",
+  "actual_iso_sha256": "fe51479b5aac0467bcf9d4a60de3d86ec4449dab5bcacff8d05421c947c7fbe1",
+  "image_role": "architecture-proof-appliance: observation-instrumented normal graphical workload, not canonical graphical product-host image proof",
+  "build_and_image_seconds": 1607.742126177,
+  "family_total_seconds": 1710.10731986,
+  "sum_three_journey_seconds": 101.787750245,
+  "trials": [
+    {
+      "index": 0,
+      "journey_ns": 34020398339,
+      "phase": "first-process",
+      "host_id": "59e9e53fdf2a810edc81671d51a915bec9e14aacedd2211cf9c68f3ac28539ef",
+      "boot_id": "3006c3aaa8bd8a56c328c2f6f7416f54ba222f86a554d38ef197b02758767b64",
+      "body_id": "ae769b7128855393730b2fe764449e7821950bc80058c0240c9a1d5bc445d652",
+      "frames_verified": 29,
+      "active_play_product_record_count": 45,
+      "plan_product_record_count": 47,
+      "serial_json_records_strictly_parsed": 1110,
+      "serial_complete_newline": true,
+      "phases_verified": [
+        "catalog-install",
+        "display-setup",
+        "face-construction",
+        "first-show",
+        "host-preparation",
+        "identity-generation",
+        "identity-resolve",
+        "input-setup",
+        "input-wait",
+        "kernel-prepare",
+        "machine-setup",
+        "mask-preparation",
+        "plot-build",
+        "scanout",
+        "source-check",
+        "source-expand",
+        "source-parse",
+        "usb-enumeration",
+        "workset-lowering",
+        "workset-planning",
+        "xhci-setup"
+      ]
+    },
+    {
+      "index": 1,
+      "journey_ns": 32321365726,
+      "phase": "repeated-fresh-process",
+      "host_id": "fa53c8d39123e3926f74c39afc53a53aad3e3f65477da67ae01696cc8e6c9767",
+      "boot_id": "cd2b2505f927d212be0c44e1d68035bfb4a21052a2892c218106ee97ceb00abb",
+      "body_id": "1c0ce6cdf9a9ddfcf890953d05992cbe91f10056b3bb9075a4f3525c3171bc60",
+      "frames_verified": 29,
+      "active_play_product_record_count": 44,
+      "plan_product_record_count": 46,
+      "serial_json_records_strictly_parsed": 1105,
+      "serial_complete_newline": true,
+      "phases_verified": [
+        "catalog-install",
+        "display-setup",
+        "face-construction",
+        "first-show",
+        "host-preparation",
+        "identity-generation",
+        "identity-resolve",
+        "input-setup",
+        "input-wait",
+        "kernel-prepare",
+        "machine-setup",
+        "mask-preparation",
+        "plot-build",
+        "scanout",
+        "source-check",
+        "source-expand",
+        "source-parse",
+        "usb-enumeration",
+        "workset-lowering",
+        "workset-planning",
+        "xhci-setup"
+      ]
+    },
+    {
+      "index": 2,
+      "journey_ns": 35445986180,
+      "phase": "repeated-fresh-process",
+      "host_id": "21abb405d888b3c09ad7165d4fc96c63a9d4f99b1098424f2ff76a2203372f49",
+      "boot_id": "b8d8d7706bbd9da368c12218b5c0434064d1ec05e0245accb97d9407a8a100eb",
+      "body_id": "bb4d4e633397c1fe5a3d730cc6673b5a8f20844a260e8cb93a8447c0f5c1cf6e",
+      "frames_verified": 29,
+      "active_play_product_record_count": 44,
+      "plan_product_record_count": 46,
+      "serial_json_records_strictly_parsed": 1105,
+      "serial_complete_newline": true,
+      "phases_verified": [
+        "catalog-install",
+        "display-setup",
+        "face-construction",
+        "first-show",
+        "host-preparation",
+        "identity-generation",
+        "identity-resolve",
+        "input-setup",
+        "input-wait",
+        "kernel-prepare",
+        "machine-setup",
+        "mask-preparation",
+        "plot-build",
+        "scanout",
+        "source-check",
+        "source-expand",
+        "source-parse",
+        "usb-enumeration",
+        "workset-lowering",
+        "workset-planning",
+        "xhci-setup"
+      ]
+    }
+  ],
+  "total_frames_file_pixel_crc_dimensions_verified": 87,
+  "file_hashes": {
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/manifest.json": {
+      "bytes": 1420796,
+      "sha256": "4a6cfb31a32334b4bba6a21083c53c5b25130f123dbd99a9c6242b17dca65716"
+    },
+    "baseline/latency/native/x86_64/build.json": {
+      "bytes": 335,
+      "sha256": "7d97cc200c92ae0738b104b6a2d4e82f5777d85eb384bfa0c83548ab34a7bb27"
+    },
+    "baseline/latency/native/x86_64/image.json": {
+      "bytes": 351,
+      "sha256": "07a463cbbf4c5bc815c2d8eeb5896dab3833039799d76272cb1f681b12abaef6"
+    },
+    "baseline/latency/native/x86_64/conduitos": {
+      "bytes": 78857816,
+      "sha256": "09a6390d5800533c0f41cd4849abdaf580d56abbd53e9ede100b1c4854772f7e"
+    },
+    "baseline/latency/native/x86_64/conduitos.iso": {
+      "bytes": 83124224,
+      "sha256": "fe51479b5aac0467bcf9d4a60de3d86ec4449dab5bcacff8d05421c947c7fbe1"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/timing.json": {
+      "bytes": 415615,
+      "sha256": "e582fc9b1ec5e6c1090a134b01cc104cc8a1cce1dbb669426a731a0c48b2be51"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-proof.json": {
+      "bytes": 14248,
+      "sha256": "c32f73d8b560656561426cd8d923eb6f9f909cd5683a08a9f3af0b781e6e872f"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/manifest.json": {
+      "bytes": 1596960,
+      "sha256": "7708bd208f3d09f379146e8041cf7babccbf9820bd27e2facb1df78f0fb4db8d"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-serial.log": {
+      "bytes": 1161402,
+      "sha256": "ef54564f14cbc4476e693dcd7324d32b7f8a7ec58ed5d6450681c2ed5f29d0cc"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/front-door-ready.png": {
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-ready.png": {
+      "bytes": 172621,
+      "sha256": "9207ee64299bf4622013b1570dbaeef237b8fa0a0f499658a62cc6d23756930e"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-three-selected.png": {
+      "bytes": 172494,
+      "sha256": "34f58e0128e38682c91bc97606c906483d62fddc8e175dcaa3d239501a3f3d40"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-four-restored.png": {
+      "bytes": 172615,
+      "sha256": "ba36830b611d3a61d963c41fd1a023a61075f38b1479f6999206fd7eb94b6862"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-fourth-checked.png": {
+      "bytes": 101640,
+      "sha256": "53e8100df994f93c0cd22768a0968aa69eaa61ab5c20e336edcbfb12ed5eb78b"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-pointer-three-selected.png": {
+      "bytes": 101558,
+      "sha256": "30247c7a8f4a8b50ab307fb093f13051856f3e53f15ae7c275413c4dd6313910"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/creche-pointer-four-restored.png": {
+      "bytes": 101657,
+      "sha256": "59ceae3d2990f1fca7485523f5a3c5c9505cbdd0e326a2ad6c3ba23190f51592"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/body-playing.png": {
+      "bytes": 72774,
+      "sha256": "fda498c78ab2c99a3ead1221d33a916627ce257efaeafb975359787f3bde629a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/wake-refused.png": {
+      "bytes": 133947,
+      "sha256": "32b84c66b68e0a3d9ab53ae95a5c3baab475ce3c68ce280fcf2c007cf120bafd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/protected-keyboard-canvas.png": {
+      "bytes": 76252,
+      "sha256": "f380754d149b5b5bb4a7a126a2212e21b647822987708db751943ac8a584677c"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-0.png": {
+      "bytes": 63270,
+      "sha256": "0844121b2330a62ad90fee9de2a7d21640ce9aaccebc9a34edcb2e8cb08a071d"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-1.png": {
+      "bytes": 62973,
+      "sha256": "4926a56e6209202bf9522540e875b918c36a9e35383909116371f5eec93c7e79"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-2.png": {
+      "bytes": 63193,
+      "sha256": "075bb550307183cd1bb914087785e3964f73a9e04cc8d0c4068cbf2319e11d09"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-3.png": {
+      "bytes": 63533,
+      "sha256": "1ae7851c9c08faabe45fcd61a721230bf7de4d7971d2c64ffe5d3455261b1c59"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-4.png": {
+      "bytes": 63797,
+      "sha256": "0ed5910cea0b50107f1ac76cb106fc4fca7382f23eb30dca7d13b693807372ec"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/typing-5.png": {
+      "bytes": 64165,
+      "sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/protected-memory-lantern.png": {
+      "bytes": 64165,
+      "sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/home.png": {
+      "bytes": 72774,
+      "sha256": "fda498c78ab2c99a3ead1221d33a916627ce257efaeafb975359787f3bde629a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-workspace.png": {
+      "bytes": 160283,
+      "sha256": "dcc17b3ff99bb67d6b26b898b9a9495cc9e1f4bf784d7af68236a7b227e0f667"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-face.png": {
+      "bytes": 160283,
+      "sha256": "dcc17b3ff99bb67d6b26b898b9a9495cc9e1f4bf784d7af68236a7b227e0f667"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/reading-details-first.png": {
+      "bytes": 240386,
+      "sha256": "3ab88e2a4c5d23dac91f2ea91bc4005bb3c36d8d77fa517232f35a5d882b77e3"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/reading-details-next.png": {
+      "bytes": 329232,
+      "sha256": "0baf9348e6ce620eb2c505fc9fe1f8a2fcb921e432dcc172fa3b32a00bc39581"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/reading-details-returned.png": {
+      "bytes": 240386,
+      "sha256": "3ab88e2a4c5d23dac91f2ea91bc4005bb3c36d8d77fa517232f35a5d882b77e3"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-diagram.png": {
+      "bytes": 153581,
+      "sha256": "253f637d479380d49a1823c5409f0351390e3a9906f189cbcfa9ab434eb8f350"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-gear-details.png": {
+      "bytes": 244412,
+      "sha256": "17ac679ed2ec47ec91a456b2ec53d30a31745e72f48bdb2c10193ef835084f63"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-diagram-returned.png": {
+      "bytes": 153245,
+      "sha256": "33dfd8bcb71525ddbc934cee32223bc6fee5ff4bcc6215efc44e0c02a5dcecd7"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/body-stopped.png": {
+      "bytes": 206810,
+      "sha256": "eacc5a231f54656acf60a3a7d2d4864f6f03e32ef3107abdc4217a574d02430a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/home-returned.png": {
+      "bytes": 61037,
+      "sha256": "888bf3417fed10984c904818bd2974b6c5edb7f95eb5221bd8deda75d838eeb6"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-frames/patchbay-reentered.png": {
+      "bytes": 62535,
+      "sha256": "90ef64e77895c32ebd0d345f909634c3286bffec6ba2c1ad26b0a8df4c21297b"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/native-shell-paired-linear.json": {
+      "bytes": 1573977,
+      "sha256": "a1d42ed25ac86deebf041b97cd9c3f8fb44d505000d34eb9f596ca5986be60ae"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/memory-lantern-native-edit.json": {
+      "bytes": 5070,
+      "sha256": "f1a36049bf03e683d87a4e1e4f38f868a6ce5f417d7e08419a573ba3eb160647"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-typing-timing.json": {
+      "bytes": 32242,
+      "sha256": "fdf03e6fd9b1f0c5c9e9c1a81f75917e6ad151bb5bba4143753ea0f1dd65130a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-0/journey-reading-timing.json": {
+      "bytes": 3932,
+      "sha256": "a0e0897781b246902088262a5e685626edbb8712410b52ff23b4852d99df38d0"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/timing.json": {
+      "bytes": 414023,
+      "sha256": "825d8ed9ed9579d15b306348a2b6cd3a338f8c52581ac476c0c1eb4ca7521390"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-proof.json": {
+      "bytes": 14248,
+      "sha256": "a0bfc92ff52d6c0cb897de10cf41a41ba93c0d5c6fe820588d21a437cfb27cc2"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/manifest.json": {
+      "bytes": 1599508,
+      "sha256": "ab2151c735312fc31a69fbd6f37629c66f6933e12867e14723b1d1275c4dff4b"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-serial.log": {
+      "bytes": 1152517,
+      "sha256": "c2938224d3bbccaff6ba19ebe2f712c72ab3413639a3a1787cc4ec6536acf2b5"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/front-door-ready.png": {
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-ready.png": {
+      "bytes": 169362,
+      "sha256": "f0de7ee0ea49dd075df636bdb841406503106df0e79f1f07ff8a5c273f34bdd7"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-three-selected.png": {
+      "bytes": 169357,
+      "sha256": "a2a80f46cd9143a6376fba0a1932016f6096fc93454712d560abe0a26b95e596"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-four-restored.png": {
+      "bytes": 169479,
+      "sha256": "694ba9f6de186804d8cc5a3f980c769328a4927263b1a800d626ef0bb59b13e1"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-fourth-checked.png": {
+      "bytes": 97461,
+      "sha256": "9c58041c2ed8a276ebd437456751eddcadb22fc90df885551a0832aadfe1565a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-pointer-three-selected.png": {
+      "bytes": 97379,
+      "sha256": "c7e4b27de373d8af890f634eff815fc3a3cc792b25052eb7ff2d45c8b1ecfd7b"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/creche-pointer-four-restored.png": {
+      "bytes": 97478,
+      "sha256": "d8771e7272071a7995c3875d7a72dda69109c69f0ec1b8e128c437f31b63c43f"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/body-playing.png": {
+      "bytes": 68587,
+      "sha256": "52e6a16137270d9937c72547d060755bd248ffa3f4220689a7e9fc2068868dd5"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/wake-refused.png": {
+      "bytes": 126920,
+      "sha256": "b63dad9f87f29b345166990fb8afa69d0a9cd4e223f73f5f937802113aac32fb"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/protected-keyboard-canvas.png": {
+      "bytes": 69225,
+      "sha256": "3ccf6f9871338edf3e963a72f8153595d4c175cd2108fb69f8368fd332816558"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-0.png": {
+      "bytes": 63270,
+      "sha256": "0844121b2330a62ad90fee9de2a7d21640ce9aaccebc9a34edcb2e8cb08a071d"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-1.png": {
+      "bytes": 62973,
+      "sha256": "4926a56e6209202bf9522540e875b918c36a9e35383909116371f5eec93c7e79"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-2.png": {
+      "bytes": 63193,
+      "sha256": "075bb550307183cd1bb914087785e3964f73a9e04cc8d0c4068cbf2319e11d09"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-3.png": {
+      "bytes": 63533,
+      "sha256": "1ae7851c9c08faabe45fcd61a721230bf7de4d7971d2c64ffe5d3455261b1c59"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-4.png": {
+      "bytes": 63797,
+      "sha256": "0ed5910cea0b50107f1ac76cb106fc4fca7382f23eb30dca7d13b693807372ec"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/typing-5.png": {
+      "bytes": 64165,
+      "sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/protected-memory-lantern.png": {
+      "bytes": 59222,
+      "sha256": "34794d44409223bfb38b7953402f6180295477ad3f5c36ac7b12fa0938884a2b"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/home.png": {
+      "bytes": 68587,
+      "sha256": "52e6a16137270d9937c72547d060755bd248ffa3f4220689a7e9fc2068868dd5"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-workspace.png": {
+      "bytes": 152889,
+      "sha256": "06eb86a03a548f868760651355a408efac181a0eb1f440c7c0284e8f3265f55e"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-face.png": {
+      "bytes": 152889,
+      "sha256": "06eb86a03a548f868760651355a408efac181a0eb1f440c7c0284e8f3265f55e"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/reading-details-first.png": {
+      "bytes": 240386,
+      "sha256": "3ab88e2a4c5d23dac91f2ea91bc4005bb3c36d8d77fa517232f35a5d882b77e3"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/reading-details-next.png": {
+      "bytes": 329232,
+      "sha256": "0baf9348e6ce620eb2c505fc9fe1f8a2fcb921e432dcc172fa3b32a00bc39581"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/reading-details-returned.png": {
+      "bytes": 240386,
+      "sha256": "3ab88e2a4c5d23dac91f2ea91bc4005bb3c36d8d77fa517232f35a5d882b77e3"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-diagram.png": {
+      "bytes": 153581,
+      "sha256": "253f637d479380d49a1823c5409f0351390e3a9906f189cbcfa9ab434eb8f350"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-gear-details.png": {
+      "bytes": 244412,
+      "sha256": "17ac679ed2ec47ec91a456b2ec53d30a31745e72f48bdb2c10193ef835084f63"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-diagram-returned.png": {
+      "bytes": 153245,
+      "sha256": "33dfd8bcb71525ddbc934cee32223bc6fee5ff4bcc6215efc44e0c02a5dcecd7"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/body-stopped.png": {
+      "bytes": 199416,
+      "sha256": "6042f1081f7aec5ddc7895ccc8887f75f9d2ca751ffbd24287d253ddda0defc2"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/home-returned.png": {
+      "bytes": 56850,
+      "sha256": "d3d387e1b2bb617d29a18c91291c2b26c613929373d9eb90941f18a8b9d2220f"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-frames/patchbay-reentered.png": {
+      "bytes": 55508,
+      "sha256": "d35695e9dbeb9c1197c1dfdb66841e7500a018340b7163e866b935b4eace2e78"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/native-shell-paired-linear.json": {
+      "bytes": 1570684,
+      "sha256": "ad2fcb2106562c4a54e7ba54c994706470ba6645b256c305e323832a52dfaf02"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/memory-lantern-native-edit.json": {
+      "bytes": 5054,
+      "sha256": "0cca7bf94479d70e25d1628626b3c12f6b1336babf49fe3ef8b8d7fa53424c3c"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-typing-timing.json": {
+      "bytes": 32146,
+      "sha256": "dd3c5e0e21c5138b887f62308fdd2c0abe56e9cfc09f0f6aa9edd10d5bcaabb7"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-1/journey-reading-timing.json": {
+      "bytes": 3932,
+      "sha256": "cf58211dc165cc7564d25f08714316543b914e86bb1499c5c6f8b0208502f97f"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/timing.json": {
+      "bytes": 414050,
+      "sha256": "9aa93d46b15f39616c08ba4f8ab6a47acc8b142595ddab903f571103f9455a0e"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-proof.json": {
+      "bytes": 14248,
+      "sha256": "2557e275bad27135ef79e0b05b284890ce76acd8d74151c9277f90a5ec594af3"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/manifest.json": {
+      "bytes": 1596144,
+      "sha256": "97eddc3d3db16c4a168af728c18bef24dfffe44b019c23a9b4273f08e2fd9eb5"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-serial.log": {
+      "bytes": 1152289,
+      "sha256": "d6a2dde3819136c33008d1e58f8c582ab41d4ac0c2a8c56b05ce91445e28d497"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/front-door-ready.png": {
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-ready.png": {
+      "bytes": 168836,
+      "sha256": "b41cd96e1fe93a09df666c13dc21fad97d425c5f0a13cd9524e6a8d8962b4311"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-three-selected.png": {
+      "bytes": 168832,
+      "sha256": "73d930bafed6c50dea21f27fa0a6bdcff4c286bb364dbe08e95838fcb42cc801"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-four-restored.png": {
+      "bytes": 168954,
+      "sha256": "64f475bb76b9d09e2b6bb5464a1880a82ad2e138be0e0881616f3fcf5b352735"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-fourth-checked.png": {
+      "bytes": 96822,
+      "sha256": "7fcdbbadb1198c3ca4002ecefbf0a21aa3bac2fff5221e02d54b93cbae4ce69f"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-pointer-three-selected.png": {
+      "bytes": 96740,
+      "sha256": "09347d561c2da02eec2a3736d9395f481f34f9e9b42c42a211a9fb83bae49c09"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/creche-pointer-four-restored.png": {
+      "bytes": 96839,
+      "sha256": "d8b9c29f17af179c64fef951bc67449b7f4080d44d50c53d3d5f9afc5a972294"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/body-playing.png": {
+      "bytes": 67927,
+      "sha256": "0135f68a4d5e6971038367cf472f7b94db9947564d5c15fb62b5e2c05502e5b9"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/wake-refused.png": {
+      "bytes": 125591,
+      "sha256": "0b928a3d04bef4ba084e19f6bc90f1cc977b7db680e66ee53267434ef020c006"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/protected-keyboard-canvas.png": {
+      "bytes": 67896,
+      "sha256": "d6247a957af9d0c64d7adfaec251852a91678494fa9b75fa3cf2e2a2a3a655bd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-0.png": {
+      "bytes": 63270,
+      "sha256": "0844121b2330a62ad90fee9de2a7d21640ce9aaccebc9a34edcb2e8cb08a071d"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-1.png": {
+      "bytes": 62973,
+      "sha256": "4926a56e6209202bf9522540e875b918c36a9e35383909116371f5eec93c7e79"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-2.png": {
+      "bytes": 63193,
+      "sha256": "075bb550307183cd1bb914087785e3964f73a9e04cc8d0c4068cbf2319e11d09"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-3.png": {
+      "bytes": 63533,
+      "sha256": "1ae7851c9c08faabe45fcd61a721230bf7de4d7971d2c64ffe5d3455261b1c59"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-4.png": {
+      "bytes": 63797,
+      "sha256": "0ed5910cea0b50107f1ac76cb106fc4fca7382f23eb30dca7d13b693807372ec"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/typing-5.png": {
+      "bytes": 64165,
+      "sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/protected-memory-lantern.png": {
+      "bytes": 64165,
+      "sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/home.png": {
+      "bytes": 67927,
+      "sha256": "0135f68a4d5e6971038367cf472f7b94db9947564d5c15fb62b5e2c05502e5b9"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-workspace.png": {
+      "bytes": 151439,
+      "sha256": "f38c712ac277a8bffa8cdb2da97a77d5067ace41ab9845e0d29fb371395130bc"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-face.png": {
+      "bytes": 151439,
+      "sha256": "f38c712ac277a8bffa8cdb2da97a77d5067ace41ab9845e0d29fb371395130bc"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/reading-details-first.png": {
+      "bytes": 240351,
+      "sha256": "28fade8db84a4404d609449a4366fa65cf858c4410bd17ccd6f5bbbaf86c2b4a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/reading-details-next.png": {
+      "bytes": 329197,
+      "sha256": "7fa905d238d0436fb67a4d6e9c37f0b95d6ee7f5a2fb1700369d39ab4e809e1a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/reading-details-returned.png": {
+      "bytes": 240351,
+      "sha256": "28fade8db84a4404d609449a4366fa65cf858c4410bd17ccd6f5bbbaf86c2b4a"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-diagram.png": {
+      "bytes": 153581,
+      "sha256": "253f637d479380d49a1823c5409f0351390e3a9906f189cbcfa9ab434eb8f350"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-gear-details.png": {
+      "bytes": 244377,
+      "sha256": "180bba763e6b353845f8e8129e2cc4615db18992b2db32adcdebcfaa43e46c46"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-diagram-returned.png": {
+      "bytes": 153245,
+      "sha256": "33dfd8bcb71525ddbc934cee32223bc6fee5ff4bcc6215efc44e0c02a5dcecd7"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/body-stopped.png": {
+      "bytes": 197966,
+      "sha256": "401db8d975dfc0d43fcbb16c48c80d73e73579a915db42cb7cbd6688a6acb509"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/home-returned.png": {
+      "bytes": 56190,
+      "sha256": "7b06e8c01eea8cb9b47e7a6a0a086e8d73082bedc9e721c4de51eecf9ab048b6"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-frames/patchbay-reentered.png": {
+      "bytes": 54179,
+      "sha256": "0f1c8442b4cedaacb3326f2e1929d4d9143a05dd07d3ac171e1d54daf602b6c6"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/native-shell-paired-linear.json": {
+      "bytes": 1570278,
+      "sha256": "52bd986db68962cd627c58dc88540d7c6f6f8bccea8666078d49e418d6e72097"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/memory-lantern-native-edit.json": {
+      "bytes": 5052,
+      "sha256": "00449ee2dcdfac67038c1e2b48b8fa517fef3b934b3ae9dda9388097ee73488d"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-typing-timing.json": {
+      "bytes": 32134,
+      "sha256": "4ede9f6dbeb10184a81ed6f5af2a45c9d57f3e92ee061b74043d28044db2cf88"
+    },
+    "baseline/latency/native/x86_64/native-latency/2427584-1792747478715367554/trial-2/journey-reading-timing.json": {
+      "bytes": 3932,
+      "sha256": "51bcdba3f4bac9bdb19e478c323aacecd7136fa9091e27a8072b714acf69c100"
+    }
+  },
+  "limits": [
+    "Baseline only; nooptimizedcomparison/speedup claim.",
+    "Outer2057s includesxtaskcompilation;family1710s includes1607s build/image. Journeys about102s total, not2057s runtime.",
+    "HostInstantnanoseconds includeemulatorstartup/input/polling/framecapture/teardown;firstprocessseparatefromlaterfreshprocesses;host/compilerOS caches uncontrolled.",
+    "Some latestframeguest_record objects are native-mask-control snapshots without Host/Boot fields; exactrawserialmembership verified, scopebound by separateboot/framecontextandactualproductrecords. No missingfieldsinvented.",
+    "Guestclock x86-tsc-lfence frequency_hz=null: no calibrated ns conversion orpuretrap attribution.",
+    "IntentionalharnessSIGKILL aftersuccessfuljourney retained as process stop;notguestterminal/crash/restartorgracefuldisposal proof.",
+    "LatencyentranceintentionallydoesnotexerciseLookswap/freshSourceeditor/Patchbayactionextension;canonicalgraphicalproofseparate.",
+    "No human/physical/stablepublication/full6183completion."
+  ],
+  "actions": "Read-onlyrawartifacts;onlyindependentreviewwritten.Nobuild/cache/CIquery."
+}

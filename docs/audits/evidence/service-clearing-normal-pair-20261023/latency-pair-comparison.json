@@ -1,0 +1,35 @@
+{
+  "baseline_source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+  "optimized_source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+  "baseline_journey_seconds": [
+    34.020398339,
+    32.321365726,
+    35.44598618
+  ],
+  "optimized_journey_seconds": [
+    25.76265091,
+    26.036856503,
+    24.397296595
+  ],
+  "baseline_total_seconds": 101.78775024500001,
+  "optimized_total_seconds": 76.196804008,
+  "observed_total_difference_seconds": -25.59094623700001,
+  "observed_total_difference_fraction": -0.2514147937782629,
+  "first_process_seconds": {
+    "baseline": 34.020398339,
+    "optimized": 25.76265091
+  },
+  "repeated_fresh_process_seconds": {
+    "baseline": [
+      32.321365726,
+      35.44598618
+    ],
+    "optimized": [
+      26.036856503,
+      24.397296595
+    ]
+  },
+  "frames_verified": 174,
+  "claim": "Matched source-pinned observation families only; uncontrolled host caches/arm order prevent causal speedup claim; no calibrated guest ticks/pure trap attribution/full6183closure",
+  "canonical_status": "baseline PASS, optimized running"
+}

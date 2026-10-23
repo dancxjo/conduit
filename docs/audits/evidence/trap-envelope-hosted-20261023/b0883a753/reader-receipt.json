@@ -1,0 +1,10 @@
+{
+  "source": "5160fe5ebd875c4b35e682317cc7d1ba39f1ddcb",
+  "tests": 6,
+  "passed": 6,
+  "failed": 0,
+  "ignored": 0,
+  "kind": "Internal standalone pure reader controls; native execution pending",
+  "log": "reader-tests.log",
+  "executable_sha256": "c2b827a064367856d48891bcec627c1fdf2b28b45a22dba2efd22fef8ce4823b"
+}

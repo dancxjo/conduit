@@ -1,0 +1,83 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/architecture/plot)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/thermostat/model)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/architecture/composite)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos)
+   Compiling conduit-commons-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/commons)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/data)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/face)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/web)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/ai)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/tutorial)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/education)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/speech)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/make/host)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/std/offers)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/mechanisms/protocols/bluetooth)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/proof/conformance/signal)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/patchbay/application)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/tour)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/birth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/semantics/home)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/std/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/raspberry-pi/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/orange-pi/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/make/body)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/avr/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/rp2040/make)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/mechanisms/implementations/synth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/thermostat/face)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/little-seismograph/fixture)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/proof/conformance/network-r1)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/plots/todo/face)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/architecture/observatory)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/proof/conformance/alife-distributed)
+   Compiling conduitos-creche-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos/creche-core)
+   Compiling conduitos-application-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos/application-core)
+   Compiling conduitos-mask-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos/mask-core)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos/mask-offer)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 3m 37s
+     Running unittests src/lib.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/conduitos-e4c0d8a30ad94180)
+
+running 10 tests
+test service_trap_conformance_tests::actual_wire_twenty_rows_satisfy_reader_and_invalid_flags_refuse ... ok
+test service_trap_reader_tests::tests::accepts_exact_matrix_with_zero_measurement_and_absent_preempt_terminal ... ok
+test service_trap_reader_tests::tests::every_nullable_field_is_required_and_only_preempt_terminal_can_be_null ... ok
+test service_trap_reader_tests::tests::refuses_broadened_claims_and_impossible_nested_intervals ... ok
+test service_trap_reader_tests::tests::refuses_invalid_clock_path_flags_and_corrupt_returns ... ok
+test service_trap_reader_tests::tests::refuses_missing_duplicate_reordered_and_foreign_instances ... ok
+test service_trap_reader_tests::tests::refuses_unknown_duplicate_overflow_oversized_and_truncated_records ... ok
+test service_trap_wire_tests::tests::absent_partial_reversed_flags_and_path_changes_remain_invalid_null_evidence ... ok
+test service_trap_wire_tests::tests::finite_matrix_and_actual_paths_preserve_explicit_preempt_absence ... ok
+test service_trap_wire_tests::tests::full_width_intervals_and_wrapping_clock_do_not_saturate_or_fabricate_zero ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 1347 filtered out; finished in 0.04s
+
