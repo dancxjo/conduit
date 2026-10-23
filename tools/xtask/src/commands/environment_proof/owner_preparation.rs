@@ -5,7 +5,7 @@ use super::{execute, host_target, software_ready};
 mod flash_tool;
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path, process::Command};
-pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+pub(super) fn prove(root: &Path, mode: &str) -> Result<(), Box<dyn Error>> {
     let data = std::env::var_os("XDG_DATA_HOME")
         .map(std::path::PathBuf::from)
         .or_else(|| {
@@ -129,6 +129,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             .arg(admission)
             .arg("--keys")
             .arg(keys)
+            .arg("--mode")
+            .arg(mode)
             .arg("--owner")
             .arg(host_target(root).join("debug/examples/native_owner")),
     )

@@ -49,6 +49,8 @@ mod native_task;
 #[cfg(feature = "native-root")]
 mod native_owner_control;
 #[cfg(feature = "native-root")]
+mod native_owner_receipt;
+#[cfg(feature = "native-root")]
 mod native_owner_reservation;
 #[cfg(feature = "native-root")]
 mod native_owner_wire;

@@ -35,6 +35,8 @@ pub struct Status {
     pub publication_bytes: usize,
     pub committed_millis: Option<u64>,
     pub projection_refused: bool,
+    /// Counters are exact while held/terminal, not sampled from active futures.
+    pub progress_current: bool,
     pub steps: u64,
     pub submitted: [u64; 2],
     pub completed: [u64; 2],
@@ -45,6 +47,7 @@ pub struct Status {
     pub native_in_flight: Option<[u16; 2]>,
 }
 struct State {
+    cancel_requested: bool,
     status: Status,
 }
 const PROJECTION_BYTES: usize = 4096;
@@ -54,6 +57,7 @@ const PROJECTION_BYTES: usize = 4096;
 static mut CANONICAL: core::mem::MaybeUninit<[u8; PROJECTION_BYTES]> =
     core::mem::MaybeUninit::uninit();
 static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCell::new(State {
+    cancel_requested: false,
     status: Status {
         phase: "unregistered",
         context_bytes: 0,
@@ -64,6 +68,7 @@ static STATE: Mutex<CriticalSectionRawMutex, RefCell<State>> = Mutex::new(RefCel
         publication_bytes: 0,
         committed_millis: None,
         projection_refused: false,
+        progress_current: true,
         steps: 0,
         submitted: [0; 2],
         completed: [0; 2],
@@ -89,8 +94,58 @@ impl Handle {
     pub fn status(&self) -> Status {
         STATE.lock(|state| state.borrow().status)
     }
+    pub fn accept_start(&self) -> Result<(), &'static str> {
+        STATE.lock(|state| {
+            let mut state = state.borrow_mut();
+            if state.cancel_requested {
+                return Err("worker-cancellation-requested");
+            }
+            let status = &mut state.status;
+            if status.phase != "ready-held"
+                || !status.native_live
+                || status.native_in_flight != Some([0, 0])
+                || status.native_lifecycles != Some(["issued", "issued"])
+                || !status.progress_current
+                || status.steps != 0
+                || status.publication_sequence != 0
+            {
+                return Err("worker-not-ready-held");
+            }
+            status.phase = "started-held";
+            Ok(())
+        })
+    }
+    pub fn release(&self) -> Result<(), &'static str> {
+        STATE.lock(|state| {
+            let mut state = state.borrow_mut();
+            if state.cancel_requested {
+                return Err("worker-cancellation-requested");
+            }
+            let status = &mut state.status;
+            if status.phase != "started-held" {
+                return Err("worker-not-started-held");
+            }
+            status.phase = "released";
+            COMMAND.signal(Command::Release);
+            Ok(())
+        })
+    }
     pub fn abort_preparation(&self) {
-        COMMAND.signal(Command::Cancel);
+        let signal = STATE.lock(|state| {
+            let mut state = state.borrow_mut();
+            if matches!(
+                state.status.phase,
+                "quiesced" | "drained" | "failed" | "cleanup-refused" | "ownership-refused"
+            ) {
+                return false;
+            }
+            state.cancel_requested = true;
+            state.status.phase = "cancellation-requested";
+            true
+        });
+        if signal {
+            COMMAND.signal(Command::Cancel);
+        }
     }
     /// Copy under the short critical section; parsing/Mask work happens outside.
     pub fn copy_publication(&self, output: &mut [u8]) -> Result<Option<Status>, &'static str> {
@@ -156,7 +211,11 @@ async fn held(slot: &'static Slot) {
         return;
     };
     update(|state| {
-        state.status.phase = "ready-held";
+        state.status.phase = if state.cancel_requested {
+            "cancellation-requested"
+        } else {
+            "ready-held"
+        };
         native_status(&mut state.status, &execution);
     });
     READY.signal(());
@@ -171,7 +230,11 @@ async fn held(slot: &'static Slot) {
             }
         }
         Command::Release => {
-            update(|state| state.status.phase = "running");
+            update(|state| {
+                state.status.phase = "running";
+                state.status.progress_current = false;
+                state.status.native_in_flight = None;
+            });
             execution
                 .run(
                     async {
@@ -215,6 +278,7 @@ async fn held(slot: &'static Slot) {
                 Exit::Failed(_) => "failed",
             }
         };
+        state.status.progress_current = true;
         state.status.steps = outcome.progress.steps;
         state.status.submitted = outcome.progress.submitted;
         state.status.completed = outcome.progress.completed;

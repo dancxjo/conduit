@@ -4,7 +4,7 @@ use ed25519_dalek::{Signer, SigningKey};
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_owner_control.rs"]
 pub(crate) mod control;
 use control::*;
-fn request() -> Request<'static> {
+pub(super) fn request() -> Request<'static> {
     Request {
         protocol: PROTOCOL,
         operation: Operation::Prepare,

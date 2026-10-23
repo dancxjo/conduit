@@ -69,8 +69,13 @@ pub async fn receive(
         worker: Option<crate::native_task::Status>,
         kernel_additional_preparation_bound: Option<usize>,
         capability_possession_issued: bool,
+        acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
+        acknowledgement_signature: Option<&'a [u8]>,
+        publication_bytes: usize,
     }
     let authenticated = result.is_ok();
+    let mut inspect_command = None;
+    let mut acknowledgement = None;
     let mut operation = None;
     let mut applied = false;
     let refusal = match result {
@@ -78,7 +83,10 @@ pub async fn receive(
             let selected = token.operation();
             operation = Some(selected);
             match selected {
-                owner::Operation::Inspect => None,
+                owner::Operation::Inspect => {
+                    inspect_command = token.into_request().transcript().ok();
+                    None
+                }
                 owner::Operation::Reserve => match root.reserve_owner(token) {
                     Ok(()) => {
                         applied = true;
@@ -96,7 +104,16 @@ pub async fn receive(
                     },
                     Err(reason) => Some(reason),
                 },
-                _ => Some("operation-not-installed"),
+                owner::Operation::Start | owner::Operation::Release | owner::Operation::Cancel => {
+                    match root.apply_owner_lifecycle(token).await {
+                        Ok(receipt) => {
+                            acknowledgement = Some(receipt);
+                            applied = true;
+                            None
+                        }
+                        Err(reason) => Some(reason),
+                    }
+                }
             }
         }
         Err(owner::Refusal::Disabled) => Some("owner-control-disabled"),
@@ -108,6 +125,31 @@ pub async fn receive(
         Err(owner::Refusal::Replay) => Some("replay"),
         Err(owner::Refusal::Signature) => Some("signature"),
     };
+    // Reuse the existing control buffer: one bounded committed value and one
+    // bounded metadata frame, without adding a second 4-KiB task/stack carrier.
+    let (publication, output) = buffer.split_at_mut(4096);
+    let snapshot = if inspect_command.is_some() {
+        root.copy_worker_publication(publication).map_err(|_| ())?
+    } else {
+        None
+    };
+    let publication_bytes = snapshot.map_or(0, |s| s.publication_bytes);
+    if let (Some(command), Some(snapshot)) = (inspect_command, snapshot) {
+        use sha2::{Digest, Sha256};
+        acknowledgement = Some(crate::native_owner_receipt::Receipt {
+            command,
+            state: crate::native_owner_receipt::State::Observed,
+            snapshot: Some(crate::native_owner_receipt::Snapshot {
+                sequence: snapshot.publication_sequence,
+                channel: snapshot.publication_channel.ok_or(())?,
+                bytes: publication_bytes.try_into().map_err(|_| ())?,
+                sha256: Sha256::digest(&publication[..publication_bytes]).into(),
+            }),
+        });
+    }
+    let acknowledgement_signature = acknowledgement
+        .as_ref()
+        .map(|receipt| root.sign_owner_receipt(receipt));
     let reply = Reply {
         event: "native-owner-control",
         authenticated,
@@ -122,17 +164,23 @@ pub async fn receive(
         appliance_kernel_prepared: root.appliance_kernel_prepared(),
         execution_context_prepared: root.execution_context_prepared(),
         execution_context_bytes: root.execution_context_bytes(),
-        worker: root.worker_status(),
+        worker: snapshot.or_else(|| root.worker_status()),
         kernel_additional_preparation_bound: crate::native_kernel::requirements()
             .ok()
             .map(|(bytes, _)| bytes),
         capability_possession_issued: root.native_possession_prepared(),
+        publication_bytes,
+        acknowledgement: acknowledgement.as_ref(),
+        acknowledgement_signature: acknowledgement_signature
+            .as_ref()
+            .map(|value| value.as_slice()),
     };
-    let size = serde_json_core::to_slice(&reply, buffer).map_err(|_| ())?;
+    let size = serde_json_core::to_slice(&reply, output).map_err(|_| ())?;
     with_timeout(Duration::from_secs(2), async {
         crate::native_control::write_all(uart, b"\n").await?;
-        crate::native_control::write_all(uart, &buffer[..size]).await?;
-        crate::native_control::write_all(uart, b"\n").await
+        crate::native_control::write_all(uart, &output[..size]).await?;
+        crate::native_control::write_all(uart, b"\n").await?;
+        crate::native_control::write_all(uart, &publication[..publication_bytes]).await
     })
     .await
     .map_err(|_| ())?

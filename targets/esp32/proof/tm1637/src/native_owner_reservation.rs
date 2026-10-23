@@ -51,8 +51,25 @@ impl OwnerReservation {
         &self,
         authenticated: AuthenticatedRequest<'_>,
     ) -> Result<PreparationPermit, &'static str> {
+        self.authorize_operation(authenticated, Operation::Prepare)?;
+        Ok(PreparationPermit {
+            scope: self.scope_digest(),
+        })
+    }
+    pub fn authorize_operation(
+        &self,
+        authenticated: AuthenticatedRequest<'_>,
+        operation: Operation,
+    ) -> Result<(), &'static str> {
         let request = authenticated.into_request();
-        if request.operation != Operation::Prepare {
+        self.check_request(&request, operation)
+    }
+    pub(super) fn check_request(
+        &self,
+        request: &crate::native_owner_control::Request<'_>,
+        operation: Operation,
+    ) -> Result<(), &'static str> {
+        if request.operation != operation {
             return Err("wrong-operation");
         }
         if request.host != self.active.host_id.as_str()
@@ -68,9 +85,7 @@ impl OwnerReservation {
         {
             return Err("reservation-scope");
         }
-        Ok(PreparationPermit {
-            scope: self.scope_digest(),
-        })
+        Ok(())
     }
     pub fn reserve(
         authenticated: AuthenticatedRequest<'_>,

@@ -2,7 +2,7 @@
 use super::*;
 use conduit_body::*;
 #[path = "../../../../../targets/esp32/proof/tm1637/src/native_admission.rs"]
-mod responder;
+pub(super) mod responder;
 #[test]
 fn root_proof_enters_ordinary_admission_without_creating_a_plan_or_play() {
     assert_eq!(responder::MAXIMUM_ADVERTISEMENT_BYTES, 8192);

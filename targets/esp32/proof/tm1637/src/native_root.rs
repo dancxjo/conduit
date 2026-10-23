@@ -3,6 +3,8 @@
 //! No simulated provider, descriptor-derived availability or execution is used.
 #[path = "native_install.rs"]
 mod install;
+#[path = "native_lifecycle.rs"]
+mod lifecycle;
 use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};

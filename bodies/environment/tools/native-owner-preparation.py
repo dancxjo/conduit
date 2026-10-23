@@ -13,6 +13,7 @@ parser.add_argument('--capture', type=Path, required=True)
 parser.add_argument('--admission', type=Path, required=True)
 parser.add_argument('--keys', type=Path, required=True)
 parser.add_argument('--owner', type=Path, required=True)
+parser.add_argument('--mode', choices=['prepare', 'start-held', 'run'], default='prepare')
 args = parser.parse_args()
 port = serial.Serial(port=None, baudrate=115200, timeout=.1, write_timeout=2)
 port.port = '/dev/ttyUSB0'
@@ -53,7 +54,34 @@ def host_line():
     return json.loads(line)
 
 
-receipt = {'completed': False, 'proof_class': 'physical-signed-native-preparation',
+def carry(frame, wire):
+    encoded = json.dumps(frame['request'], separators=(',', ':')).encode()
+    signature = bytes(frame['signature'])
+    if len(encoded) > 2048 or len(signature) != 64:
+        raise RuntimeError('owner command bound')
+    port.write(b'owner-control\n')
+    event('native-owner-control-ready')
+    port.write(len(encoded).to_bytes(2, 'little') + encoded + signature)
+    if frame['request']['operation'] == 'Prepare':
+        event('native-owner-assignment-ready')
+        port.write(len(wire).to_bytes(2, 'little') + wire)
+    reply = event('native-owner-control')
+    length = reply.get('publication_bytes', 0)
+    if not isinstance(length, int) or not 0 <= length <= 4096:
+        raise RuntimeError('publication bound')
+    deadline = time.monotonic() + 3
+    while len(pending) < length and time.monotonic() < deadline:
+        pending.extend(port.read(length - len(pending)))
+    if len(pending) < length:
+        raise RuntimeError('publication deadline')
+    if length:
+        reply['publication'] = list(pending[:length])
+        del pending[:length]
+    process.stdin.write(json.dumps(reply) + '\n')
+    process.stdin.flush()
+
+
+receipt = {'completed': False, 'proof_class': 'physical-owner-' + args.mode,
            'body_started': False, 'climate_sampling_claimed': False}
 try:
     wire = (args.capture / 'uninstalled-assignment-transfer.bin').read_bytes()
@@ -62,25 +90,36 @@ try:
     port.open()
     with (args.capture / 'native-owner-stderr.log').open('w') as errors:
         process = subprocess.Popen([str(args.owner.resolve()), str(args.capture.resolve()),
-                                    str(args.admission.resolve()), str(args.keys.resolve())],
+                                    str(args.admission.resolve()), str(args.keys.resolve())] +
+                                   ([] if args.mode == 'prepare' else [args.mode]),
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errors, text=True)
-        for operation in ['Inspect', 'Reserve', 'Prepare']:
+        operations = ['Inspect', 'Reserve', 'Prepare']
+        if args.mode != 'prepare':
+            operations.append('Start')
+        for operation in operations:
             frame = host_line()
             assert frame['event'] == 'owner-command' and frame['request']['operation'] == operation
             encoded = json.dumps(frame['request'], separators=(',', ':')).encode()
             signature = bytes(frame['signature'])
             assert len(encoded) <= 2048 and len(signature) == 64
-            port.write(b'owner-control\n')
-            event('native-owner-control-ready')
-            port.write(len(encoded).to_bytes(2, 'little') + encoded + signature)
-            if operation == 'Prepare':
-                event('native-owner-assignment-ready')
-                port.write(len(wire).to_bytes(2, 'little') + wire)
-            reply = event('native-owner-control')
-            process.stdin.write(json.dumps(reply) + '\n')
-            process.stdin.flush()
-        receipt = host_line()
-        assert receipt['event'] == 'owner-preparation-complete' and receipt['completed']
+            carry(frame, wire)
+        if args.mode == 'run':
+            for _ in range(34):
+                frame = host_line()
+                if frame.get('event') == 'owner-run-complete':
+                    receipt = frame
+                    break
+                if frame.get('event') != 'owner-command':
+                    raise RuntimeError('unexpected retained owner event')
+                if frame['request']['operation'] not in ['Release', 'Inspect', 'Cancel']:
+                    raise RuntimeError('unexpected run operation')
+                carry(frame, wire)
+            else:
+                raise RuntimeError('finite owner run exchange bound')
+        else:
+            receipt = host_line()
+        expected = {'prepare': 'owner-preparation-complete', 'start-held': 'owner-start-held-complete', 'run': 'owner-run-complete'}[args.mode]
+        assert receipt['event'] == expected and receipt['completed']
         process.stdin.close()
         if process.wait(timeout=8) != 0:
             raise RuntimeError('retained owner refused preparation')
@@ -88,7 +127,7 @@ try:
     after = event('native-root-offer')
     assert after['appliance_kernel_prepared'] and not after['assignment_staged']
     assert not after['body_installed'] and not after['native_plan_installed']
-    receipt.update(proof_class='physical-signed-native-preparation',
+    receipt.update(proof_class='physical-owner-' + args.mode,
                    root_heap_used_bytes=after['native_root_heap_used_bytes'],
                    root_heap_peak_bytes=after['native_root_heap_peak_bytes'],
                    native_root_heap_bytes=after['native_root_heap_bytes'])

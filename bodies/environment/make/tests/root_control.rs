@@ -1,7 +1,7 @@
 //! Production MCU composition logic with CPU-only entropy/Boot/radio providers.
 //! No physical Root, network, image attestation or Body installation is claimed.
-extern crate self as esp_hal;
 extern crate alloc;
+extern crate self as esp_hal;
 use conduit_core as c;
 use conduit_environment_http::network_setup::*;
 use conduit_net as net;
@@ -210,14 +210,14 @@ fn issuer_requires_entropy_and_never_falls_back_to_a_fixture_key() {
 #[path = "root_control_support/sequences.rs"]
 mod sequences;
 
-#[path = "root_control_support/wait.rs"]
-mod wait;
-#[path = "root_control_support/pulse.rs"]
-mod pulse;
-#[path = "root_control_support/policy.rs"]
-mod policy;
 #[path = "root_control_support/assignment.rs"]
 mod native_assignment;
+#[path = "root_control_support/policy.rs"]
+mod policy;
+#[path = "root_control_support/pulse.rs"]
+mod pulse;
+#[path = "root_control_support/wait.rs"]
+mod wait;
 
 #[path = "root_control_support/admission.rs"]
 mod admission;
@@ -236,3 +236,8 @@ mod native_service;
 
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_worker.rs"]
 mod native_worker;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_receipt.rs"]
+mod native_owner_receipt;
+#[path = "root_control_support/owner_receipt.rs"]
+mod owner_receipt;

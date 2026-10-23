@@ -151,6 +151,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         serde_json::to_string(&serde_json::json!({
             "proof_class":"physical-ambient-admission", "credential":credential,
             "biography":biography, "receipts":manager.receipts,
+            "verified_boot_key": {"host_id":offered.advertisement.host_id,
+                "boot_id":offered.advertisement.boot_id, "verifying_key":offered.verifying_key},
             "key_provenance":"attended UART of expected ESP32", "image_attestation_claimed":false,
             "tampering_refused":true, "replay_refused":true,
             "body_installed_on_mcu":false, "play_started":false,

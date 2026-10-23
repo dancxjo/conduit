@@ -23,8 +23,14 @@ fn host_target(root: &Path) -> PathBuf {
 
 pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["owner-start-held-esp32"] {
+        return owner_preparation::prove(&root, "start-held");
+    }
+    if arguments == ["owner-run-esp32"] {
+        return owner_preparation::prove(&root, "run");
+    }
     if arguments == ["owner-prepare-esp32"] {
-        return owner_preparation::prove(&root);
+        return owner_preparation::prove(&root, "prepare");
     }
     if arguments == ["wait"] {
         return wait::prove(&root);
