@@ -66,6 +66,15 @@ before any other owner is consumed. Its generic read driver only crosses the
 Host Call boundary: Root must separately retain the selected storage executor,
 admit the complete memory/work closure and confirm the real Body start.
 
+The browser's `PreparedSnapshotOperation` is shared by the inline runner and
+other kernel driver sets. It prepares one exact placement's record validation,
+checks the lowered node/call and byte bounds, and retains one pending request.
+Overlap, replay and mismatched completions refuse without replacing that
+request. Storage bytes become an output only after validation; the caller still
+completes the original kernel request and retires the effect separately.
+The existing IndexedDB adapter remains the external storage executor. This
+prepared operation neither executes IndexedDB nor admits a recorder Body.
+
 The generation source emits `resource/ref` values, matching the existing
 snapshot-read Fore. Its cursor advances only after the kernel commits an
 emission. Output pressure, insufficient fuel or an uncommitted Step cannot

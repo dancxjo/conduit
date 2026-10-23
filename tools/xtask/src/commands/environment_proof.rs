@@ -27,14 +27,17 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         )?;
-        return execute(Command::new("cargo").current_dir(&root).args([
-            "test",
-            "--locked",
-            "-p",
-            "conduit-browser-runtime",
-            "resource_effect",
-            "--lib",
-        ]));
+        for filter in ["resource_snapshot", "resource_effect"] {
+            execute(Command::new("cargo").current_dir(&root).args([
+                "test",
+                "--locked",
+                "-p",
+                "conduit-browser-runtime",
+                filter,
+                "--lib",
+            ]))?;
+        }
+        return Ok(());
     }
     if arguments == ["network"] {
         execute(Command::new("cargo").current_dir(&root).args([
