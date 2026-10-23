@@ -60,3 +60,29 @@ cargo +stable clippy -p conduit-face --lib -- -D warnings
 
 Compressed logs are retained in `evidence/checked-layout-profile-20261023/`.
 No renderer, emulator, browser, CI or accepted-release result is inferred.
+
+## Selected native text metrics prerequisite
+
+The native font generator now retains the actual rasterization em size beside
+ascent and line height. `intrinsic_text_metrics` uses the existing selected ink
+and base/mark cluster rules to report the minimum indivisible inline width,
+the longest explicit unwrapped line, selected line height and explicit line
+count. Maximum usable extent remains the separately admitted container bound.
+The API accepts the existing 192-byte payload and 100–200 percent scale, performs
+two bounded scans and allocates nothing. It does not add general shaping.
+
+The production `TextLayout` cursor consumes this same minimum in its existing
+pre-paint width refusal. Portable em-sixteenth spacing can resolve against the
+selected font size with one outward rounding step, rather than using line
+spacing as an em substitute. Profile-driven spacing is not yet installed.
+
+Twenty-five owning typography tests pass, including comparison against actual
+cursor ink and height at minimum/preferred widths, both typography selections,
+100/125/200 percent scaling, negative bearings, combining marks, explicit lines,
+tabs and unsupported-scalar fallback. Existing raster confinement, repeatability
+and shared measurement/paint checks also pass. Strict native owning-package
+all-target Clippy with `native-compositor` and warnings denied passes.
+Compressed `native-intrinsic-tests.log.gz` and `native-intrinsic-clippy.log.gz`
+retain those results. This is CPU evidence, not a new
+QEMU or browser run. The remaining native consumer must still admit the new
+profile explicitly and implement bounded measurement, arrangement and continuation.

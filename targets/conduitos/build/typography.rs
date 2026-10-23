@@ -137,7 +137,7 @@ pub fn generate() {
         let line_height = (line.new_line_size.ceil() as u16).max((ascent + descent + 1) as u16);
         writeln!(
             profiles,
-            "ProfileMetrics {{ ascent: {ascent}, line_height: {line_height} }},"
+            "ProfileMetrics {{ em_size: {size}, ascent: {ascent}, line_height: {line_height} }},"
         )
         .unwrap();
         writeln!(ledger, "{profile}\t{}\t{size}\t{glyph_count}\t{fallbacks}\t{}\t{ascent}\t{line_height}\t{left_ink}\t{right_overhang}", FONTS[front].0, coverage.len() - coverage_start).unwrap();
