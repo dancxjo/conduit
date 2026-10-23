@@ -912,3 +912,15 @@ admitted tables. The same 64-bit CPU measurement reports 119,307 new peak heap
 bytes (118,776 retained), excluding the separately preallocated value store,
 assignment bytes, resident metadata and native owners. This reduces preparation
 peak; it still does not establish the complete MCU memory closure.
+
+The appliance now exposes `value_storage_bytes()` and `prepare_value_storage()`
+for its canonical kernel values. This reuses the kernel's preallocated store:
+two 4 KiB slots and seven 1 KiB slots (15,360 payload bytes), with slot metadata
+counted separately by the architecture-specific admission estimate. Callers
+must admit that cost before construction, alongside the other live storage.
+Both rich and constrained CPU paths use this production profile. All seven
+sensor outcomes also drain the authored 960-sample, one-minute workload with
+zero execution allocations. These accelerated clock completions establish
+kernel/storage behavior; they do not establish physical overnight operation,
+browser persistence, or the complete ESP32 memory closure. The profile also
+passes the ESP32 native-root release cross-check.

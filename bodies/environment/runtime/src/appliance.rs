@@ -68,3 +68,6 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
 pub mod software;
 
 pub mod assigned;
+
+mod value_storage;
+pub use value_storage::{prepare_value_storage, value_storage_bytes};

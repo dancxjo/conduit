@@ -8,7 +8,7 @@ publish = false
 
 [features]
 source-capture = ["dep:conduit-pulse-capture"]
-appliance = ["dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
+appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-pulse-capture", "dep:conduit-planner"]
 
 [dependencies]

@@ -137,13 +137,11 @@ fn run(scenario: usize, native: bool, overnight: bool) {
             .node_for_placement(&plan.fragments[0].startup_order[i])
             .unwrap())
     );
-    let mut capacities = [1024; 32];
-    capacities[..2].fill(4096);
-    let mut values = if overnight {
-        k::HostedValueStore::new_with_slot_capacities(&capacities[..9], 15360).unwrap()
-    } else {
-        k::HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap()
-    };
+    let mut values = conduit_environment_runtime::appliance::prepare_value_storage().unwrap();
+    assert_eq!(
+        values.reserved_storage_bytes(),
+        conduit_environment_runtime::appliance::value_storage_bytes().unwrap()
+    );
     let sign_bytes = lowered.sign_bytes;
     let sign_slots = lowered.sign_items.max(
         u16::try_from(
