@@ -1,11 +1,19 @@
 //! Actual initialized resources and Root provisioning Control. Environmental
 //! Host/Body construction and its sensor Plan remain separate.
 //! No simulated provider, descriptor-derived availability or execution is used.
+#[path = "native_install.rs"]
+mod install;
 use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    native_bindings: Option<
+        crate::native_authority::NativeBindings<
+            Esp32PulseCapture<'static>,
+            crate::native_wait::EspWait,
+        >,
+    >,
     owner_control: crate::native_owner_control::OwnerControl,
     owner_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
     pub(crate) assignment_seal: Option<[u8; 32]>,
@@ -100,6 +108,7 @@ impl NativeRoot {
         let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
             .expect("installed owner public key must be valid and non-weak");
         Self {
+            native_bindings: None,
             owner_control,
             owner_reservation: None,
             assignment_seal: None,

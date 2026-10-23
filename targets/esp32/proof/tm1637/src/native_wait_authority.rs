@@ -119,7 +119,7 @@ impl RootIssuer {
         self.wait_issued = true;
         Ok(possession)
     }
-    fn prepare_wait_possession(
+    pub(super) fn prepare_wait_possession(
         &self,
         native: &WaitNativeIdentity,
         plan: &c::PlanId,

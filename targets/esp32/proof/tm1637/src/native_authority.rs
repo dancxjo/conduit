@@ -1,9 +1,12 @@
 //! Root provisioning policy, never a received grant or a fixture issuer. One
 //! acknowledged private setup may read once and attempt one selected join.
+#[path = "native_bindings.rs"]
+mod bindings;
 #[path = "native_pulse_authority.rs"]
 mod pulse;
 #[path = "native_wait_authority.rs"]
 mod wait;
+pub use bindings::{AssignedNativeInput, NativeBindings};
 use conduit_core as c;
 use conduit_network_join_call::installation::NetworkNativeIdentity;
 use sha2::{Digest, Sha256};

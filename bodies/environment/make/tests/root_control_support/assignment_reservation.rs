@@ -131,13 +131,38 @@ fn signed_reservation(
         )
         .is_err());
         let token = authenticate(&mut gate, &key, make(2, false), fragment);
-        let reserved = native_owner_reservation::OwnerReservation::reserve(
+        let mut reserved = native_owner_reservation::OwnerReservation::reserve(
             token,
             assignment,
             &seal,
             &mut issuer,
         )
         .unwrap();
+        for change in 0..9 {
+            let mut request = make(3 + change, false);
+            request.operation = Operation::Prepare;
+            match change {
+                0 => request.body = "other/body",
+                1 => request.wake = "other/wake",
+                2 => request.body_plan = "other/body-plan",
+                3 => request.body_play = "other/body-play",
+                4 => request.plan = "other/plan",
+                5 => request.fragment = "other/fragment",
+                6 => request.fragment_play = "other/play",
+                7 => request.assignment_seal = [41; 32],
+                _ => request.operation = Operation::Release,
+            }
+            let token = authenticate(&mut gate, &key, request, fragment);
+            assert!(reserved.authorize_preparation(token).is_err());
+        }
+        let mut request = make(20, false);
+        request.operation = Operation::Prepare;
+        let token = authenticate(&mut gate, &key, request, fragment);
+        let permit = reserved.authorize_preparation(token).unwrap();
+        assert!(permit.matches(&reserved));
+        let body = core::mem::replace(&mut reserved.body, "body/substituted".into());
+        assert!(!permit.matches(&reserved));
+        reserved.body = body;
         assert_eq!(issuer.next_play_sequence(), Some(2));
         assert_eq!(reserved.active, expected); // refusal consumed no Root reservation
         assert_eq!(reserved.fragment, fragment.fragment_id);

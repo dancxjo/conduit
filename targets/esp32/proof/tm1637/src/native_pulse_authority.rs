@@ -128,7 +128,7 @@ impl RootIssuer {
         self.pulse_issued = true;
         Ok(possession)
     }
-    fn prepare_pulse_possession(
+    pub(super) fn prepare_pulse_possession(
         &self,
         native: &PulseNativeIdentity,
         plan: &c::PlanId,

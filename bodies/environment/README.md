@@ -1170,7 +1170,8 @@ This is an authentication prerequisite, not installation authority. The bounded
 UART probe admits at most 2 KiB of JSON plus a 64-byte signature, with a five-second
 receive deadline and two-second responses. It reports authentication separately
 from application. `Reserve` correlates signed intent with actual admitted tables
-and retains the scope; prepare/start/release/cancel remain `operation-not-installed`.
+and retains the scope. `Prepare` admits the same sealed transfer and dormant
+native/kernel preparation; start/release/cancel remain `operation-not-installed`.
 The build reads only an explicitly provisioned public key. Private-key custody,
 the persistent ordinary Body owner, native installation and acknowledged start
 remain unfinished. CPU controls run in `cargo xtask prove environment
@@ -1186,4 +1187,21 @@ identities alongside the actual reserved fragment Play; it is not a Body start
 record. Root admits 4 KiB of remaining preparation/response capacity before
 reservation and prevents diagnostic kernel preparation from consuming an
 owner-reserved assignment. Native capability issuance, provider transfer and
-installation remain separate unfinished steps.
+attributed installation remain separate unfinished steps.
+
+Signed `Prepare` now checks every retained reservation identity and returns an
+opaque permit bound to the complete reservation. The owner then resends the exact
+sealed assignment through a bounded 8 KiB transfer (two-second ready response,
+five-second receive deadline). Root jointly preflights its actual retained pulse
+and timer owners, Source cadence, selected operations and locally reserved Play
+before spending either issuance budget or transferring either provider. It drops
+record staging before preparing the ordinary dormant scheduler. If kernel
+preparation refuses after native transfer, Root retains those native owners and
+reports possession separately from kernel preparation; it does not pretend to
+roll ownership back or start execution.
+
+CPU controls exercise both assignment representations, each wrong provider role,
+reservation identity substitution and successful dormant ownership transfer. The
+ESP32 build passes. Physical native preparation, the persistent Body owner and
+attributed start/release remain unproved; the diagnostic kernel image currently
+on the board has not been replaced by this new control path.

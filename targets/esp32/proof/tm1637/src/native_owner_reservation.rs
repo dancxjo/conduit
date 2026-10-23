@@ -4,6 +4,7 @@ use crate::native_authority::RootIssuer;
 use crate::native_owner_control::{AuthenticatedRequest, Operation};
 use conduit_core as c;
 use conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance;
+use sha2::{Digest, Sha256};
 
 #[derive(serde::Serialize)]
 pub struct OwnerReservation {
@@ -15,7 +16,62 @@ pub struct OwnerReservation {
     pub active: c::ActivePlayIdentity,
     pub assignment_seal: [u8; 32],
 }
+/// Sender proof checked against the retained reservation. Not a start permit.
+pub struct PreparationPermit {
+    scope: [u8; 32],
+}
+impl PreparationPermit {
+    pub fn matches(&self, reservation: &OwnerReservation) -> bool {
+        self.scope == reservation.scope_digest()
+    }
+}
 impl OwnerReservation {
+    fn scope_digest(&self) -> [u8; 32] {
+        let mut hash = Sha256::new();
+        hash.update(b"conduit.environment/root-reservation@1");
+        for id in [
+            self.active.host_id.as_str(),
+            self.active.boot_id.as_str(),
+            &self.body,
+            &self.wake,
+            &self.body_plan,
+            &self.body_play,
+            self.active.plan_id.as_str(),
+            self.fragment.as_str(),
+            self.active.active_play_id.as_str(),
+        ] {
+            hash.update((id.len() as u16).to_le_bytes());
+            hash.update(id.as_bytes());
+        }
+        hash.update(self.assignment_seal);
+        hash.finalize().into()
+    }
+
+    pub fn authorize_preparation(
+        &self,
+        authenticated: AuthenticatedRequest<'_>,
+    ) -> Result<PreparationPermit, &'static str> {
+        let request = authenticated.into_request();
+        if request.operation != Operation::Prepare {
+            return Err("wrong-operation");
+        }
+        if request.host != self.active.host_id.as_str()
+            || request.boot != self.active.boot_id.as_str()
+            || request.body != self.body
+            || request.wake != self.wake
+            || request.body_plan != self.body_plan
+            || request.body_play != self.body_play
+            || request.plan != self.active.plan_id.as_str()
+            || request.fragment != self.fragment.as_str()
+            || request.fragment_play != self.active.active_play_id.as_str()
+            || request.assignment_seal != self.assignment_seal
+        {
+            return Err("reservation-scope");
+        }
+        Ok(PreparationPermit {
+            scope: self.scope_digest(),
+        })
+    }
     pub fn reserve(
         authenticated: AuthenticatedRequest<'_>,
         assignment: &ValidatedAssignedAppliance,

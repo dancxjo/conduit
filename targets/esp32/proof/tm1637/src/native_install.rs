@@ -1,0 +1,103 @@
+//! Root native installation below the authenticated owner and retained reservation.
+//! Native calls and the ordinary kernel remain dormant until attributed start.
+use super::NativeRoot;
+use crate::native_owner_reservation::PreparationPermit;
+use alloc::vec::Vec;
+use conduit_core as c;
+use conduit_environment_runtime::appliance::assignment_transfer as t;
+use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput;
+impl NativeRoot {
+    pub fn authorize_native_preparation(
+        &self,
+        token: crate::native_owner_control::AuthenticatedRequest<'_>,
+    ) -> Result<PreparationPermit, &'static str> {
+        if self.native_bindings.is_some() || self.appliance_kernel.is_some() {
+            return Err("already-native-prepared");
+        }
+        self.owner_reservation
+            .as_ref()
+            .ok_or("owner-unreserved")?
+            .authorize_preparation(token)
+    }
+    pub fn native_possession_prepared(&self) -> bool {
+        self.native_bindings.is_some()
+    }
+    pub fn prepare_native_assignment(
+        &mut self,
+        permit: PreparationPermit,
+        wire: &[u8],
+    ) -> Result<(), &'static str> {
+        if self.native_bindings.is_some() || self.appliance_kernel.is_some() {
+            return Err("already-native-prepared");
+        }
+        let reservation = self.owner_reservation.as_ref().ok_or("owner-unreserved")?;
+        if !permit.matches(reservation)
+            || c::assigned_plan_payload_digest(wire) != reservation.assignment_seal
+            || self.assignment_seal != Some(reservation.assignment_seal)
+        {
+            return Err("assignment-seal");
+        }
+        let assignment = self.assignment.as_ref().ok_or("assignment-unavailable")?;
+        let resident = crate::native_software::resident().map_err(|_| "provisioning")?;
+        let stats = esp_alloc::HEAP.stats();
+        // Finite record views plus preparation-only capability/binding storage.
+        let staging = t::MAXIMUM_RECORDS * core::mem::size_of::<c::AssignedRecord<'_>>() + 8192;
+        if stats.size.saturating_sub(stats.current_usage) < staging {
+            return Err("native-preparation-capacity");
+        }
+        let bindings = {
+            let mut slots = Vec::new();
+            slots
+                .try_reserve_exact(t::MAXIMUM_RECORDS)
+                .map_err(|_| "record-capacity")?;
+            slots.resize(
+                t::MAXIMUM_RECORDS,
+                c::AssignedRecord {
+                    tag: 0,
+                    payload: &[],
+                },
+            );
+            let decoded = t::decode(
+                wire,
+                resident.source,
+                crate::native_software::computation_records(),
+                &mut slots,
+            )
+            .map_err(|_| "transfer")?;
+            let requirements = crate::appliance_layout::requirements(
+                c::AssignedIdentity::from_text(self.host.as_str()),
+                c::AssignedIdentity::from_text(self.boot.as_str()),
+            );
+            self.issuer.bind_assigned_native(
+                &mut self.pulse,
+                &mut self.wait,
+                crate::native_authority::AssignedNativeInput {
+                    assignment,
+                    resident: &resident,
+                    input: AssignedOperationInput::Records {
+                        header: decoded.header,
+                        records: decoded.records,
+                    },
+                    maxima: c::AssignedPlanMaxima {
+                        encoded_bytes: 48 * 1024,
+                        runtime_state_bytes: 32 * 1024,
+                        counts: resident.layout.counts,
+                    },
+                    requirements,
+                    fragment: &reservation.fragment,
+                    active: &reservation.active,
+                    contract: &self.contract,
+                },
+            )?
+        }; // Release borrowed record staging before allocating the kernel.
+        self.native_bindings = Some(bindings);
+        // Refusal retains the native owners, with no dispatch or claim of rollback.
+        // The diagnostic installer cannot bypass this reservation's custody.
+        self.appliance_kernel = Some(crate::native_kernel::prepare(
+            &mut self.software,
+            &mut self.assignment,
+        )?);
+        self.assignment_seal = None;
+        Ok(())
+    }
+}

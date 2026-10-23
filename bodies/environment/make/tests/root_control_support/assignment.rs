@@ -3,6 +3,8 @@
 use super::*;
 #[path = "assigned_pulse.rs"]
 mod assigned_pulse;
+#[path = "native_pair.rs"]
+mod native_pair;
 #[path = "assigned_wait.rs"]
 mod assigned_wait;
 #[path = "assignment_reservation.rs"]
@@ -159,6 +161,7 @@ pub(super) fn round_trip(
     reservation_scope(&admitted, &plan.fragments[0]);
     assigned_wait::check(&admitted, &projected, &resident, required, timer);
     assigned_pulse::check(&admitted, &projected, &resident, required, pulse);
+    native_pair::check(&admitted, &projected, &resident, required, pulse, timer);
     let (identity, memory) = allocation_probe::observe(|| {
         let boxed = ValidatedAssignedAppliance::admit_records_boxed(
             decoded.header,

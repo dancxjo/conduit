@@ -1,4 +1,4 @@
-//! Bounded owner authentication probe; lifecycle actions are not installed here.
+//! Bounded authenticated owner control; preparation stays dormant until start.
 use crate::{native_owner_control as owner, native_root::NativeRoot};
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
@@ -63,6 +63,7 @@ pub async fn receive(
         control_applied: bool,
         body_installed: bool,
         native_plan_installed: bool,
+        appliance_kernel_prepared: bool,
         capability_possession_issued: bool,
     }
     let authenticated = result.is_ok();
@@ -79,6 +80,16 @@ pub async fn receive(
                         applied = true;
                         None
                     }
+                    Err(reason) => Some(reason),
+                },
+                owner::Operation::Prepare => match root.authorize_native_preparation(token) {
+                    Ok(permit) => match receive_assignment(root, permit, uart, buffer).await {
+                        Ok(()) => {
+                            applied = true;
+                            None
+                        }
+                        Err(reason) => Some(reason),
+                    },
                     Err(reason) => Some(reason),
                 },
                 _ => Some("operation-not-installed"),
@@ -104,7 +115,8 @@ pub async fn receive(
         control_applied: applied,
         body_installed: false,
         native_plan_installed: false,
-        capability_possession_issued: false,
+        appliance_kernel_prepared: root.appliance_kernel_prepared(),
+        capability_possession_issued: root.native_possession_prepared(),
     };
     let size = serde_json_core::to_slice(&reply, buffer).map_err(|_| ())?;
     with_timeout(Duration::from_secs(2), async {
@@ -114,4 +126,37 @@ pub async fn receive(
     })
     .await
     .map_err(|_| ())?
+}
+
+async fn receive_assignment(
+    root: &mut NativeRoot,
+    permit: crate::native_owner_reservation::PreparationPermit,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+) -> Result<(), &'static str> {
+    use conduit_environment_runtime::appliance::assignment_transfer::MAXIMUM_WIRE_BYTES;
+    with_timeout(
+        Duration::from_secs(2),
+        crate::native_control::write_all(
+            uart,
+            b"\n{\"event\":\"native-owner-assignment-ready\",\"maximum_bytes\":8192}\n",
+        ),
+    )
+    .await
+    .map_err(|_| "transfer-ready-timeout")?
+    .map_err(|_| "transfer-ready")?;
+    let length = with_timeout(Duration::from_secs(5), async {
+        let mut bytes = [0; 2];
+        read_exact(uart, &mut bytes).await?;
+        let length = usize::from(u16::from_le_bytes(bytes));
+        if length == 0 || length > MAXIMUM_WIRE_BYTES {
+            return Err(());
+        }
+        read_exact(uart, buffer.get_mut(..length).ok_or(())?).await?;
+        Ok(length)
+    })
+    .await
+    .map_err(|_| "transfer-timeout")?
+    .map_err(|_| "transfer-frame")?;
+    root.prepare_native_assignment(permit, &buffer[..length])
 }
