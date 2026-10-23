@@ -24,3 +24,8 @@ This is local Core conformance. Runtime table construction, compact transport,
 independent firmware provisioning, native possession and device lifecycle work
 remain separate admission slices of the environmental appliance. Candidate and
 accepted Integration are not established by these local logs.
+
+Supported preflight passes all 345 controls and its remaining checks. Its first
+local invocation stopped because the new worktree lacked the pinned actionlint
+executable; copying the verified repair-worktree tool resolved that setup issue.
+No product check or CI policy was changed.
