@@ -171,11 +171,13 @@ fn actual_encoder_complete_batches_join_existing_ack_telemetry() {
         }
     }
     let report = collector::parse_terminal(&serial, &expected()).unwrap();
-    assert!(collector::preparation_context(&serial)
-        .unwrap()
-        .ack
-        .0
-        .is_none());
+    assert!(
+        collector::preparation_context(&serial)
+            .unwrap()
+            .ack
+            .0
+            .is_none()
+    );
     assert_eq!(report.lifecycle_records, 23);
     assert_eq!(report.checkpoints.len(), 4);
     assert!(!report.artifact_custody_verified);
