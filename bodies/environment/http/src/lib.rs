@@ -92,3 +92,6 @@ mod tests;
 
 #[cfg(test)]
 mod network_setup_tests;
+
+mod recording_mask;
+pub use recording_mask::{recording_response, RecordingMaskRefusal};

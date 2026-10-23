@@ -1010,3 +1010,11 @@ actual contribution basis and only committed recovery state. This Face neither
 acknowledges a new durable write nor treats historical samples as fresh sensor
 readings; quantity observations remain in the existing observation Face/history.
 The browser Mask and real recorder Host installation remain separate work.
+
+The HTTP Mask's `recording_response` formats that sealed recovery Face into a
+finite JSON or HTML Show, preserving its exact identity and revision. It keeps
+no recorder state, rejects foreign/inconsistent Faces and allocates nothing
+during formatting. Root must still provide the actual Face and install its
+selected route; this formatter alone makes no endpoint or recorder Host live.
+The observation page no longer asserts a hard-coded sampling cadence or AP-only
+connectivity; neither follows from its semantic observation Face.

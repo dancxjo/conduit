@@ -142,3 +142,85 @@ fn fixture_display_profile() -> conduit_seven_segment_mask::Tm1637Profile {
         colon: Some(WireBit { address: 4, bit: 0 }),
     }
 }
+
+#[test]
+fn recorder_http_mask_projects_the_same_sealed_face_without_allocating() {
+    use conduit_environment_face::{
+        PreparedRecordingFace, RecordingRecoveryFailure, RecoveredRecordingRange,
+    };
+    let mut owner = PreparedRecordingFace::prepare(basis(), 2, 128, 4).unwrap();
+    owner
+        .publish_recovered(RecoveredRecordingRange {
+            chunks: 1,
+            samples: 2,
+            first_sequence: 12,
+            last_sequence: 14,
+        })
+        .unwrap();
+    let ((json, html), memory) = allocation_probe::observe(|| {
+        (
+            recording_response(owner.current(), true).unwrap(),
+            recording_response(owner.current(), false).unwrap(),
+        )
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let show: serde_json::Value = serde_json::from_str(body(&json)).unwrap();
+    assert_eq!(show["face_identity"], owner.current().identity.as_str());
+    assert_eq!(show["face_revision"], owner.current().revision);
+    assert_eq!(show["samples"], 2);
+    assert_eq!(show["missing_sequences"], 1);
+    assert_eq!(show["recovery_status"], "recovered");
+    assert!(body(&html).contains("Sequences 12 through 14; 1 missing"));
+    assert!(show.get("durable").is_none());
+    assert!(show.get("fresh").is_none());
+    owner
+        .publish_refusal(RecordingRecoveryFailure::Capacity)
+        .unwrap();
+    let refused = recording_response(owner.current(), true).unwrap();
+    let refused: serde_json::Value = serde_json::from_str(body(&refused)).unwrap();
+    assert_eq!(refused["recovery_failure"], "capacity");
+    assert_eq!(refused["last_sequence"], 14);
+    assert_ne!(show["face_identity"], refused["face_identity"]);
+}
+#[test]
+fn recorder_mask_refuses_a_foreign_or_semantically_inconsistent_face() {
+    use conduit_environment_face::{PreparedRecordingFace, RecoveredRecordingRange};
+    assert_eq!(
+        recording_response(
+            PreparedObservationFace::prepare(basis(), 2, 100)
+                .unwrap()
+                .current(),
+            true
+        ),
+        Err(RecordingMaskRefusal::UnsupportedFace)
+    );
+    let mut owner = PreparedRecordingFace::prepare(basis(), 2, 128, 4).unwrap();
+    let empty = recording_response(owner.current(), true).unwrap();
+    assert!(body(&empty).contains("\"has_range\":false"));
+    owner
+        .publish_recovered(RecoveredRecordingRange {
+            chunks: 1,
+            samples: 2,
+            first_sequence: 12,
+            last_sequence: 14,
+        })
+        .unwrap();
+    let mut forged = owner.current().clone();
+    forged
+        .properties
+        .iter_mut()
+        .find(|p| p.name == "missing-sequences")
+        .unwrap()
+        .value = conduit_face::FacePropertyValue::Count(0);
+    forged.reseal_prepared().unwrap();
+    assert_eq!(
+        recording_response(&forged, true),
+        Err(RecordingMaskRefusal::UnsupportedFace)
+    );
+    forged.properties.retain(|p| p.name != "samples");
+    forged.reseal_prepared().unwrap();
+    assert_eq!(
+        recording_response(&forged, true),
+        Err(RecordingMaskRefusal::UnsupportedFace)
+    );
+}
