@@ -634,3 +634,11 @@ Cancellation, replacement of an uncommitted step and dropping a staged Back
 return that reservation. The sequence is local to a Play and does not supply
 Host/Boot provenance or sample time. This closes the independent-channel-counter
 gap; durable publication, recorder transport and physical endurance remain.
+
+`recording::PreparedRecordingInput` validates each publication's exact channel
+Type, projects the authored observation result into the recording disposition,
+and appends the committed common sequence to a chunk. All eight sensor outcomes
+round-trip through the existing chunk reader without execution allocation;
+wrong-channel Types and zero sequences refuse without adding records. The caller
+must supply actual producer sample time and retain the selected producer context.
+This component owns no transport, durable storage or acknowledgement.

@@ -251,3 +251,126 @@ fn all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity() 
     commit(&mut replacement);
     assert_eq!(replacement.snapshot().unwrap().sequence, 1);
 }
+
+#[test]
+fn committed_publications_record_and_recover_every_sensor_disposition() {
+    use conduit_environment_runtime::{observation::ObservationContract, recording::*};
+    let contract = ObservationContract::prepare().unwrap();
+    let contracts = Channel::ALL.map(|channel| PublicationContract::prepare(channel).unwrap());
+    let mut inputs: Vec<(usize, Vec<u8>)> = contracts
+        .iter()
+        .enumerate()
+        .map(|(i, contract)| (i, value(contract.value_type()).canonical_bytes().unwrap()))
+        .collect();
+    let Shape::Variant { cases, .. } = contract.result_type().shape() else {
+        panic!("result variant")
+    };
+    let failure_type = cases
+        .iter()
+        .find(|case| case.tag() == "unavailable")
+        .unwrap()
+        .payload_type();
+    let Shape::Variant { cases, .. } = failure_type.shape() else {
+        panic!("failure variant")
+    };
+    for tag in [
+        "short-frame",
+        "malformed-length",
+        "checksum",
+        "invalid-payload",
+    ] {
+        let ty = cases
+            .iter()
+            .find(|case| case.tag() == tag)
+            .unwrap()
+            .payload_type();
+        let failure = Value::variant(failure_type.clone(), tag, value(ty)).unwrap();
+        inputs.push((
+            0,
+            Value::variant(contract.result_type().clone(), "unavailable", failure)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap(),
+        ));
+    }
+    let expected = [
+        RecordingDisposition::Available,
+        RecordingDisposition::CaptureTimeout,
+        RecordingDisposition::ProviderFailed,
+        RecordingDisposition::GeometryRefused,
+        RecordingDisposition::ShortFrame,
+        RecordingDisposition::MalformedLength,
+        RecordingDisposition::Checksum,
+        RecordingDisposition::InvalidPayload,
+    ];
+    let host = c::HostId::from("fixture/producer");
+    let boot = c::BootId::from("fixture/boot");
+    let plan = c::PlanId::from("fixture/plan");
+    let play = c::ActivePlayId::from("fixture/play");
+    let context = || RecordingContext {
+        host: &host,
+        boot: &boot,
+        plan: &plan,
+        play: &play,
+    };
+    let mut chunk = PreparedRecordingChunk::prepare(context(), &contract).unwrap();
+    let mut reader = PreparedRecordingReader::prepare(context(), &contract).unwrap();
+    let mut input = PreparedRecordingInput::prepare(&contract).unwrap();
+    let order = PublicationSequence::prepare(8);
+    let mut backs = contracts
+        .each_ref()
+        .map(|contract| PublicationBack::prepare(contract, 8, order.clone()).unwrap());
+    let ((), allocation) = allocation_probe::observe(|| {
+        use conduit_environment_runtime::publication::PublicationSnapshot;
+        assert!(matches!(
+            input.append(
+                &mut chunk,
+                PublicationSnapshot {
+                    channel: Channel::ProviderFailure,
+                    sequence: 1,
+                    canonical: &inputs[0].1,
+                },
+                0
+            ),
+            Err(RecordingRefusal::Canonical(_))
+        ));
+        assert!(chunk.is_empty());
+        assert_eq!(
+            input.append(
+                &mut chunk,
+                PublicationSnapshot {
+                    channel: Channel::Reading,
+                    sequence: 0,
+                    canonical: &inputs[0].1,
+                },
+                0
+            ),
+            Err(RecordingRefusal::InvalidSequence)
+        );
+        assert!(chunk.is_empty());
+        for (i, (channel, bytes)) in inputs.iter().enumerate() {
+            let back = &mut backs[*channel];
+            assert_eq!(
+                step(back, bytes, bytes.len() as u32, 8).0,
+                StepOutcome::Progress
+            );
+            commit(back);
+            assert_eq!(
+                input
+                    .append(&mut chunk, back.snapshot().unwrap(), i as u64 * 60_000)
+                    .unwrap(),
+                ChunkAppend::Buffered { gap_before: None }
+            );
+        }
+        reader.read(chunk.seal().unwrap()).unwrap();
+        for (i, disposition) in expected.into_iter().enumerate() {
+            let sample = reader.sample(i).unwrap();
+            assert_eq!(sample.sequence, i as u64 + 1);
+            assert_eq!(sample.disposition, disposition);
+            assert_eq!(sample.sampled_at_boot_ms, i as u64 * 60_000);
+            assert_eq!(sample.observation.is_some(), i == 0);
+            assert_eq!(sample.gap_before, None);
+        }
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+}

@@ -4,9 +4,11 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+mod publication;
 mod reader;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
+pub use publication::PreparedRecordingInput;
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
 #[allow(dead_code)]
 mod forms {
