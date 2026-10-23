@@ -14,6 +14,8 @@ use sha2::{Digest, Sha256};
 #[cfg(feature = "native-compositor")]
 #[path = "lifecycle_emission.rs"]
 mod lifecycle_emission;
+#[path = "staging_wipe.rs"]
+mod staging_wipe;
 
 pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
 pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
@@ -165,7 +167,7 @@ impl DisplayOwner {
         let started = super::lifecycle::start();
         let live_staging = !self.staging.is_empty();
         self.sessions.quarantine();
-        self.staging.fill(0);
+        staging_wipe::clear(&mut self.staging);
         drop(core::mem::take(&mut self.staging));
         if live_staging {
             self.disposal_raw_ticks = super::lifecycle::elapsed(started, super::lifecycle::start());
@@ -218,5 +220,11 @@ impl DisplayOwner {
             self.quarantine();
         }
         Ok(result)
+    }
+}
+
+impl Drop for DisplayOwner {
+    fn drop(&mut self) {
+        self.quarantine();
     }
 }

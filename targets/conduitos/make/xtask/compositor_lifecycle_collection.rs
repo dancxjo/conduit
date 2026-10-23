@@ -1,8 +1,8 @@
 //! Normal-product artifact custody and I/O, separate from pure wire validation.
 use super::{
-    compositor_lifecycle_proof as protocol, profile::Paths, report::sha256_file, ConduitosError,
+    ConduitosError, compositor_lifecycle_proof as protocol, profile::Paths, report::sha256_file,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
@@ -190,4 +190,12 @@ pub(super) fn collect(
     )
     .map_err(|e| refusal(e.to_string()))?;
     Ok(receipt)
+}
+
+/// Actual embedded guest custody for a separately built architecture appliance.
+pub(super) fn embedded_guest_digest(kernel: &Path) -> Result<[u8; 32], ConduitosError> {
+    let root = bytes(kernel, 512 * 1024 * 1024)?;
+    let guest =
+        embedded::extract(&root).map_err(|e| refusal(format!("embedded compositor ELF: {e:?}")))?;
+    Ok(Sha256::digest(guest).into())
 }

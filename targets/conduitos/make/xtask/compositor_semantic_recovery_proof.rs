@@ -1,5 +1,5 @@
 //! Separate native-profile semantic fixture. The ordinary proof keeps its budget.
-use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
+use super::{ConduitosArch, ConduitosError, build, image, profile::Paths, report::ArtifactRole};
 use crate::cli::GlobalOpts;
 use std::{
     fs,
@@ -12,13 +12,14 @@ mod profile_receipt;
 #[path = "ordinary_domain_proof/compositor_semantic_recovery.rs"]
 mod receipt;
 mod stale_capture;
+mod stopped_receipt;
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let (built, manifest) = build::compositor_semantic_recovery::execute(opts)?;
     built
         .artifact_role
         .require(ArtifactRole::ArchitectureProofAppliance)?;
-    image::assemble_architecture_proof(ConduitosArch::X86_64, opts)?;
+    let assembled = image::assemble_architecture_proof(ConduitosArch::X86_64, opts)?;
     if opts.dry_run {
         return Err(refusal("semantic-recovery-dry-run", "no emulator evidence"));
     }
@@ -103,18 +104,39 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         &manifest.image_id,
         manifest.bounds.heap_arena_bytes,
     )?;
+    if super::report::sha256_file(&paths.kernel)? != built.elf_sha256 {
+        return Err(refusal(
+            "semantic-recovery-kernel-custody",
+            "Root ELF changed after build",
+        ));
+    }
+    if super::report::sha256_file(&paths.iso)? != assembled.iso_sha256 {
+        return Err(refusal(
+            "semantic-recovery-image-custody",
+            "ISO changed after assembly",
+        ));
+    }
+    let guest = super::compositor_lifecycle_collection::embedded_guest_digest(&paths.kernel)?;
+    let stopped = stopped_receipt::validate(
+        &transcript,
+        &manifest.profile_id,
+        &manifest.build_id,
+        &manifest.image_id,
+        guest,
+    )?;
     let observed = receipt::validate(&transcript)?;
     let pressure = pressure_receipt::validate(&transcript)?;
     stale_capture::validate_final(&transcript, &capture)?;
     let record = serde_json::json!({
-        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@4",
+        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@5",
         "proof_class":"freestanding-emulator","fixture":true,
         "proof_feature":"compositor-semantic-recovery-proof",
         "same_uninstrumented_product_binary":false,
         "machine":{"emulator":"qemu-system-x86_64","model":"q35","cpu":"max",
             "memory_mib":512,"vcpus":1},
         "budget_basis":"existing conduitos-native.host.conduit; actual admitted product profile, not minimum memory",
-        "build":built,"native_make_manifest":manifest,"admitted_profile":budget,
+        "build":built,"image":assembled,"native_make_manifest":manifest,"admitted_profile":budget,
+        "stopped_lifecycle":stopped,
         "observations":observed,"pressure_observations":pressure,
         "stale_show_capture":capture,
         "transcript_sha256":super::report::sha256_file(&log)?,
