@@ -149,9 +149,6 @@ impl PreparedNativeModel {
         if self.failed {
             return Err(NativeBackingRefusal::ProviderLost);
         }
-        if !value.is_finite() {
-            return Err(NativeBackingRefusal::InvalidInput);
-        }
         if self.next > self.maximum {
             return Err(NativeBackingRefusal::Capacity);
         }
