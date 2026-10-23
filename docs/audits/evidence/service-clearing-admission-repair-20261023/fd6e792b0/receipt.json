@@ -1,0 +1,34 @@
+{
+  "source": "fd6e792b0d4ac0aad22f6ab33e4868716119fc51",
+  "clean": true,
+  "clippy_exit": 0,
+  "focused_test_exit": 0,
+  "test_counts": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0
+  },
+  "logs": [
+    {
+      "name": "6291-focused-test-fd6e792b0.log",
+      "sha256": "793a2698d7440f84d7557f68f0962865d25deea761dc9efa368c314b40a45faa"
+    },
+    {
+      "name": "6291-focused-clippy-current.log",
+      "sha256": "885cc0ca953a4173b207d04b7cf2a9b166b8d04ff063b7def2263ef859b9c48d"
+    },
+    {
+      "name": "6291-focused-clippy-2909fdbe1-negative.log",
+      "sha256": "ef6e5cbf539aea0db0ea27fae2124575af8544acb2161984d2ad5bbaedb19413"
+    },
+    {
+      "name": "6291-admission-120441361206.log",
+      "sha256": "a4fa589e18747173461bb3409bb7e7e3806ed9b669d3c8d3f16b2538d431bf79"
+    }
+  ],
+  "executable": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6291-focused-fd6e792b0/service_slot_lifecycle-9010f64b9957208f",
+    "sha256": "25a099367edc5d34d4313570bee977358e511d73d3fdc5555bcfd6c1152d592d"
+  },
+  "scope": "Test shared-reference syntax only; both production blobs remain exactly measured originals; first localmove-reference and hosteduseless_asref failures retained"
+}
