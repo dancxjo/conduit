@@ -14,6 +14,8 @@ pub const READ_OPERATION: &str = "conduit.host/resource-snapshot-read@1";
 pub const MAXIMUM_SNAPSHOT_BYTES: usize = 4096;
 pub const MAXIMUM_RECORD_BYTES: usize = 8 + 2 + 128 + 2 + 512 + 32 + MAXIMUM_SNAPSHOT_BYTES;
 const MAGIC: &[u8; 8] = b"CDRSNP01";
+mod operation;
+pub use operation::{PreparedSnapshotOperation, SnapshotStorageRequest};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnapshotRefusal {

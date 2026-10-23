@@ -1,6 +1,23 @@
 use super::*;
 use conduit_core::*;
 
+#[test]
+fn snapshot_owner_metadata_must_fit_the_prepared_record_envelope() {
+    for length in [0, 129, 1024] {
+        let (mut write, reference) = placement("boot/current", true, MAXIMUM_SNAPSHOT_BYTES);
+        let oversized: HostId = "x".repeat(length).into();
+        write.host_id = oversized.clone();
+        write.authority[0].host_id = oversized.clone();
+        write.resources[0].content.as_mut().unwrap().owner_host = oversized;
+        assert!(matches!(
+            PreparedSnapshotRecord::prepare(&write, &reference),
+            Err(SnapshotRefusal::Reference(
+                ResourceContentRefusal::InvalidContract
+            ))
+        ));
+    }
+}
+
 // Explicit sealed-binding fixture. The record codec is not a planner.
 pub(crate) fn placement(
     boot: &str,
