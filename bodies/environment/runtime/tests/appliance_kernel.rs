@@ -21,13 +21,13 @@ mod appliance_support;
 )]
 #[path = "support/pulse.rs"]
 mod pulse;
+#[path = "appliance_support/software.rs"]
+mod software_tests;
 use conduit_core as c;
 use conduit_environment_runtime::appliance::ApplianceBack as Driver;
 use conduit_environment_runtime::{
-    construction::compile,
-    observation::ObservationContract,
-    publication::{PublicationChannel as Channel, PublicationContract},
-    CaptureBack, PreparedCaptureSelector,
+    construction::compile, publication::PublicationChannel as Channel, CaptureBack,
+    PreparedCaptureSelector,
 };
 use conduit_kernel::{
     self as k,
@@ -42,7 +42,8 @@ const R: usize = N * P;
 fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
     let source = compile(1, 0).unwrap();
     let (ready, effects) = pulse::ready(0);
-    let mut host = appliance_support::advertisement(&source, &ready);
+    let mut software = software(&source);
+    let mut host = appliance_support::advertisement(&source, &mut software, &ready);
     let bases = ["conduit.base/local@1".into()];
     assert!(source.plan_local(&host, &bases, &[]).is_err());
     let mut wrong = pulse::grant();
@@ -63,7 +64,14 @@ fn authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel(
 fn run(scenario: usize) {
     let source = compile(1, 0).unwrap();
     let (ready, effects) = pulse::ready(scenario);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (mut software, software_memory) = allocation_probe::observe(|| software(&source));
+    if scenario == 0 {
+        eprintln!(
+            "environment_software_ready_peak={}",
+            software_memory.peak_bytes
+        );
+    }
+    let host = appliance_support::advertisement(&source, &mut software, &ready);
     let (plan, planning_memory) = allocation_probe::observe(|| {
         source
             .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
@@ -113,8 +121,6 @@ fn run(scenario: usize) {
     let wait = values.store(&0_u64.to_le_bytes()).unwrap();
     let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
     let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
-    let publication_sequence =
-        conduit_environment_runtime::publication::PublicationSequence::prepare(1);
     for placement in &plan.fragments[0].startup_order {
         let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
         let gear = plan.fragments[0]
@@ -122,61 +128,17 @@ fn run(scenario: usize) {
             .iter()
             .find(|g| &g.placement_id == placement)
             .unwrap();
-        drivers[i] = Some(
-            if let Some(channel) = Channel::ALL
-                .into_iter()
-                .find(|c| c.kind_id() == gear.kind_id.as_str())
-            {
-                Driver::publication(
-                    &PublicationContract::prepare(channel).unwrap(),
-                    1,
-                    publication_sequence.clone(),
-                )
-                .unwrap()
-            } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
-                Driver::Tick(conduit_time::TickBack::counted(wait, 1).unwrap())
-            } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {
-                Driver::Trigger(conduit_time::TickTriggerBack::default())
-            } else if gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND {
-                Driver::Native(CaptureBack::pulse(1024))
-            } else if gear.kind_id.as_str() == conduit_environment_runtime::observation::KIND {
-                Driver::Native(
-                    CaptureBack::observation(&ObservationContract::prepare().unwrap()).unwrap(),
-                )
-            } else if let Some(c::ConfigurationValue::Text(program)) = gear
-                .configuration
-                .iter()
-                .find(|c| c.key == "program")
-                .map(|c| &c.value)
-            {
-                Driver::Native(
-                    CaptureBack::expression(
-                        &conduit_plot::PortableExpressionProgram::from_canonical_hex(program)
-                            .unwrap(),
-                        c::PortTemporal::Flow { closes: true },
-                    )
-                    .unwrap(),
-                )
-            } else {
-                let Some(c::ConfigurationValue::Text(selector)) = gear
-                    .configuration
-                    .iter()
-                    .find(|c| c.key == "selector")
-                    .map(|c| &c.value)
-                else {
-                    panic!("uninstalled Kind")
-                };
-                selectors[i] = Some(
-                    PreparedCaptureSelector::prepare(
-                        c::StructuredSelector::from_canonical_hex(selector).unwrap(),
-                        1024,
-                        1024,
-                    )
-                    .unwrap(),
-                );
-                Driver::Native(CaptureBack::selector(1024))
-            },
-        );
+        drivers[i] = Some(if gear.kind_id.as_str() == conduit_time::TICK_KIND {
+            Driver::Tick(conduit_time::TickBack::counted(wait, 1).unwrap())
+        } else if gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND {
+            Driver::Native(CaptureBack::pulse(1024))
+        } else {
+            let prepared = software
+                .take_selected(&plan.fragments[0], placement)
+                .unwrap();
+            selectors[i] = prepared.selector;
+            prepared.driver
+        });
     }
     let sign_slots = lowered.sign_items.max(
         u16::try_from(
@@ -281,4 +243,15 @@ fn block_on<F: core::future::Future>(future: F) -> F::Output {
         std::task::Poll::Ready(value) => value,
         std::task::Poll::Pending => panic!("bounded transcript must finish immediately"),
     }
+}
+
+fn software(
+    source: &conduit_environment_runtime::construction::ApplianceSource,
+) -> conduit_environment_runtime::appliance::software::ReadySoftwareBacks {
+    conduit_environment_runtime::appliance::software::ReadySoftwareBacks::prepare(
+        source,
+        pulse::identity().host_id,
+        pulse::identity().boot_id,
+    )
+    .unwrap()
 }

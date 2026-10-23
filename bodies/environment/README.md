@@ -838,3 +838,24 @@ and its one acknowledged credential/join budget is not renewed by another
 reservation. CPU conformance covers current and superseded reservations and
 execution after an earlier unused reservation. Environmental Body installation
 and producer-to-recorder admission remain separate work.
+
+`ReadySoftwareBacks` initializes and retains the actual interpreter, selector,
+observation and publication objects before projecting their software offers.
+Ordinary selection transfers each object once, only after matching its retained
+Source, configuration, Front, implementation, artifact and published generation.
+Refusal preserves the object; selected objects are omitted from new advertisements.
+The timer and pulse provider remain independently initialized and authorized.
+The appliance conformance proof now uses these retained software owners rather
+than constructing software offers from Source descriptors and reconstructing
+unrelated drivers after planning. All outcome publications still share one
+finite committed sequence, and the production kernel remains the scheduler.
+
+This is a rich preparation profile, not an MCU memory-admission claim. The
+current 64-bit CPU measurement observes 232,595 bytes of peak heap for software
+preparation, 121,391 for a graph copy, and 281,438 for ordinary planning. Its
+native assignment encoding is 46,121 bytes with 20,722 declared projection bytes;
+those are distinct from the complete execution closure. The ESP32 Root's 64 KiB
+arena therefore has no admission proof for this rich path. MCU installation must
+use the separately bounded native assignment path and prove its complete live
+closure before Play. No new physical Host, Body, sensor or browser installation
+is claimed by these CPU measurements.
