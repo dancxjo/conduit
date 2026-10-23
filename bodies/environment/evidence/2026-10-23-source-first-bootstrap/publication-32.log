@@ -1,0 +1,91 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `target/debug/conduit-xtask-dispatch prove environment publication-32`
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 1.48s
+     Running tests/appliance_kernel.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/appliance_kernel-83df2bfb2f6b14cd)
+
+running 9 tests
+environment_software_ready_peak=151722
+environment_software_ready_peak=151722
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+test a_ready_capability_does_not_replace_authority_or_missing_implementations ... ok
+test software_tests::wrong_current_advertisement_and_duplicate_projection_leave_it_unchanged ... ok
+test software_tests::forged_selected_facts_refuse_before_transfer_and_selected_objects_cannot_replay ... ok
+test assigned_software::resident_initialization_refuses_missing_duplicate_or_changed_text_before_allocating ... ok
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_assigned_software_preparation=Observation { allocations: 2499, reallocations: 23, deallocations: 1963, peak_bytes: 60116, requested_bytes: 182381, live_bytes: 51423 }
+environment_assigned_storage pointer_bits=32 assignment_bytes=46121 value_backing_bytes=15504 prepared_object_bytes=3908
+environment_kernel_storage pointer_bits=32 ports_per_node=1 object_bytes=10584 sixteen_port_object_bytes=38256
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=15504
+test assigned_software::assigned_preparation_refuses_wrong_root_scope_roles_and_storage_before_effects ... ok
+test software_tests::unchecked_configuration_and_contract_changes_cannot_initialize_an_available_back ... ok
+test assigned_software::retained_resident_software_refuses_other_source_then_transfers_without_allocation ... ok
+environment_software_ready_peak=151722
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_computation_memory pointer_bits=32 node=4 text_bytes=29798 memory=Observation { allocations: 1716, reallocations: 0, deallocations: 1399, peak_bytes: 60116, requested_bytes: 110741, live_bytes: 24241 }
+environment_computation_memory pointer_bits=32 node=5 text_bytes=3604 memory=Observation { allocations: 197, reallocations: 2, deallocations: 157, peak_bytes: 7667, requested_bytes: 14035, live_bytes: 3523 }
+environment_computation_memory pointer_bits=32 node=6 text_bytes=1738 memory=Observation { allocations: 104, reallocations: 1, deallocations: 85, peak_bytes: 3763, requested_bytes: 7205, live_bytes: 2324 }
+environment_computation_memory pointer_bits=32 node=8 text_bytes=1058 memory=Observation { allocations: 37, reallocations: 3, deallocations: 4, peak_bytes: 3017, requested_bytes: 4619, live_bytes: 1826 }
+environment_computation_memory pointer_bits=32 node=9 text_bytes=1070 memory=Observation { allocations: 31, reallocations: 3, deallocations: 4, peak_bytes: 2820, requested_bytes: 3967, live_bytes: 1294 }
+environment_computation_memory pointer_bits=32 node=10 text_bytes=1072 memory=Observation { allocations: 31, reallocations: 3, deallocations: 4, peak_bytes: 2822, requested_bytes: 3969, live_bytes: 1295 }
+environment_computation_memory pointer_bits=32 node=11 text_bytes=1058 memory=Observation { allocations: 37, reallocations: 3, deallocations: 4, peak_bytes: 3017, requested_bytes: 4619, live_bytes: 1826 }
+environment_assigned_software_preparation=Observation { allocations: 2499, reallocations: 23, deallocations: 1963, peak_bytes: 60116, requested_bytes: 182381, live_bytes: 51423 }
+environment_assigned_storage pointer_bits=32 assignment_bytes=46121 value_backing_bytes=15504 prepared_object_bytes=3908
+environment_kernel_storage pointer_bits=32 ports_per_node=1 object_bytes=10584 sixteen_port_object_bytes=38256
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=15504
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2292
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1769
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1424
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+test authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel ... ok
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1426
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2296
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+test full_authored_overnight_workload_drains_with_a_small_value_store ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.59s
+
+     Running tests/canonical_input.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/canonical_input-332d85ccc6f8269a)
+
+running 1 test
+test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/capture_selector.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/capture_selector-9e77d3330839bd75)
+
+running 1 test
+test exact_type_full_value_and_capacity_refusals_do_not_allocate_or_poison_next_selection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/construction.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/construction-5eec133c094f6b2a)
+
+running 1 test
+test authored_appliance_uses_real_typed_publication_kinds_and_a_finite_clock ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/publication.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/publication-20ce28db376332be)
+
+running 7 tests
+test zero_event_admission_refuses_values_but_still_closes_normally ... ok
+test empty_publication_channels_prepare_within_one_kib ... ok
+test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok
+test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok
+test publication_storage_preserves_the_full_quantity_coordinate_width ... ok
+test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok
+test committed_publications_record_and_recover_every_sensor_disposition ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

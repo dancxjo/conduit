@@ -1,0 +1,20 @@
+{
+  "implementation_commit": "b782accebc7a7548858bf401f9afaa928c5b4644",
+  "proof_class": "CPU Source-first construction and generated-module compilation; 32-bit production kernel; ESP32 cross-build",
+  "native_construction_tests_passed": 22,
+  "runtime_32bit_tests_passed": 19,
+  "default_source_samples": 960,
+  "default_period_ms": 60000,
+  "source_recipe_requires_host_or_plan": false,
+  "source_recipe_rust_sha256": "74c1e8ff1421b6f2d64d92d252d79f8fd9fb3e75d3d7b9b4d767b408cc2b46d9",
+  "software_retained_bytes": 51423,
+  "preparation_peak_bytes": 60116,
+  "assignment_transfer_allocations": 0,
+  "execution_allocations": 0,
+  "strict_make_runtime_xtask_clippy": true,
+  "locked_esp32_cross_build": true,
+  "firmware_invokes_source_bootstrap": false,
+  "new_firmware_flashed": false,
+  "complete_climate_memory_admission": false,
+  "climate_body_installed": false
+}

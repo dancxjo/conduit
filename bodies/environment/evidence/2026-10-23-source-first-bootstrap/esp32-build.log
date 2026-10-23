@@ -1,0 +1,29 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-esp32-tm1637-probe v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/proof/tm1637)
+warning: field `wait_issued` is never read
+  --> src/native_authority.rs:56:5
+   |
+51 | pub struct RootIssuer {
+   |            ---------- field in this struct
+...
+56 |     wait_issued: bool,
+   |     ^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `grant_wait` and `issue_wait` are never used
+  --> src/native_wait_authority.rs:9:12
+   |
+ 6 | impl RootIssuer {
+   | --------------- methods in this implementation
+...
+ 9 |     pub fn grant_wait(&self, native: &WaitNativeIdentity) -> Result<c::AuthorityGrant, ()> {
+   |            ^^^^^^^^^^
+...
+26 |     pub fn issue_wait(
+   |            ^^^^^^^^^^
+
+warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 2 warnings
+    Finished `release` profile [optimized] target(s) in 18.84s
