@@ -223,3 +223,90 @@ fn current_lowering_explicitly_refuses_new_profile() {
         Err(conduit_plan_lowering::lowering::LoweringError::UnsupportedExecutionRegion(_))
     ));
 }
+
+#[test]
+fn offered_context_extent_alignment_and_pool_are_plan_identity() {
+    let baseline = select();
+    for mutation in 0..3 {
+        let (original, mut host, mut selections) = input();
+        match mutation {
+            0 => {
+                host.resources[0]
+                    .compute
+                    .as_mut()
+                    .unwrap()
+                    .protected_preemption
+                    .as_mut()
+                    .unwrap()
+                    .context_bytes = 256;
+                host.resources[1].capacity_units = 256;
+                selections[0].context_binding.units = 256;
+            }
+            1 => {
+                host.resources[0]
+                    .compute
+                    .as_mut()
+                    .unwrap()
+                    .protected_preemption
+                    .as_mut()
+                    .unwrap()
+                    .context_alignment = 32;
+            }
+            _ => {
+                host.resources[1].pool_id = "continuation/other".into();
+                selections[0].context_binding.pool_id = host.resources[1].pool_id.clone();
+            }
+        }
+        let changed =
+            seal_protected_preemptible_execution(original.clone(), &host, selections).unwrap();
+        assert!(verify_plan(&changed));
+        assert_ne!(
+            changed.plan_id, baseline.plan_id,
+            "context mutation {mutation}"
+        );
+        assert_eq!(changed.source_document_id, original.source_document_id);
+        assert_eq!(changed.checked_plot_id, original.checked_plot_id);
+        assert_eq!(changed.expanded_plot_id, original.expanded_plot_id);
+        assert_eq!(
+            changed.fragments[0].placements,
+            original.fragments[0].placements
+        );
+        assert_eq!(
+            changed.fragments[0].connections,
+            original.fragments[0].connections
+        );
+    }
+}
+
+#[test]
+fn independent_regions_share_capacity_without_reusing_the_same_context_bytes() {
+    let (original, mut host, mut selections) = input();
+    let mut fragment = original.fragments[0].clone();
+    let mut second = fragment.placements[0].clone();
+    second.placement_id = "placement/second".into();
+    second.gear_id = "gear/second".into();
+    fragment.startup_order.push(second.placement_id.clone());
+    let first = &selections[0];
+    let second_selection = ProtectedRegionSelection {
+        region_id: "region/second".into(),
+        placements: vec![second.placement_id.clone()],
+        execution_profile_id: first.execution_profile_id.clone(),
+        lane_resource: first.lane_resource.clone(),
+        lane_base_id: first.lane_base_id.clone(),
+        context_binding: first.context_binding.clone(),
+    };
+    fragment.placements.push(second);
+    let plan = fixture::common::seal(fragment);
+    assert!(
+        verify_plan(&plan),
+        "two independent placements are valid before protected selection"
+    );
+    host.resources[0].capacity_units = 2;
+    selections.push(second_selection);
+    assert_eq!(host.resources[1].capacity_units, 128);
+    assert!(selections.iter().all(|s| s.context_binding.units == 128));
+    assert_eq!(
+        seal_protected_preemptible_execution(plan, &host, selections),
+        Err(ProtectedRegionPlanningError::CapacityExceeded)
+    );
+}
