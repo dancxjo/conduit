@@ -222,8 +222,19 @@ fn resource_reference_without_authority_leaves_native_call_capacity_untouched() 
     assert_eq!((reference_allocations, reference_bytes), (0, 0));
     // Only one native invocation is available. Its success after the reference
     // refusal proves that the reference never reached native execution.
-    let (success, inline_allocations, inline_bytes) =
-        allocation::measure(|| prepared.execute(placement, &inline, &mut output));
+    let (success, inline_allocations, inline_bytes) = allocation::measure(|| {
+        let mut terminal = prepared.execute(placement, &inline, &mut output);
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while terminal == ModelWorkTerminal::Pending {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "native pending deadline"
+            );
+            std::thread::yield_now();
+            terminal = prepared.poll(&mut output);
+        }
+        terminal
+    });
     assert_eq!(success, ModelWorkTerminal::Produced);
     assert_eq!(
         NamedTensorBundle::decode(&output).unwrap(),

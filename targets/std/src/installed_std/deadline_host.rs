@@ -74,6 +74,29 @@ impl<const SLOTS: usize> InstalledDeadlineHost<SLOTS> {
             }
             wake => wake,
         };
+        Self::complete_wake(scheduler, wake)
+    }
+
+    /// Pending model I/O must not wait for an unrelated future deadline.
+    pub(super) fn complete_ready<T: TimerAdapter>(
+        &mut self,
+        scheduler: &mut InstalledScheduler,
+        timer: &mut T,
+    ) -> Result<bool, String> {
+        if self.reactor.is_empty() {
+            return Ok(false);
+        }
+        let now_ms = timer
+            .monotonic_now_ms()
+            .ok_or_else(|| "admitted monotonic deadline Base became unavailable".to_string())?;
+        self.observe_now(now_ms)?;
+        Self::complete_wake(scheduler, self.reactor.poll(now_ms))
+    }
+
+    fn complete_wake(
+        scheduler: &mut InstalledScheduler,
+        wake: DeadlineWake,
+    ) -> Result<bool, String> {
         let DeadlineWake::Fired(key) = wake else {
             return match wake {
                 DeadlineWake::Empty => Ok(false),

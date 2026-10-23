@@ -3,6 +3,7 @@ use conduit_core::{CapabilityOffer, PlannedGear, ResourceOffer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ModelWorkTerminal {
+    Pending,
     Produced,
     Refused,
     Failed,
@@ -21,5 +22,11 @@ pub trait HostedModelWorkAdapter: Send {
         input: &[u8],
         output: &mut Vec<u8>,
     ) -> ModelWorkTerminal;
+    fn poll(&mut self, output: &mut Vec<u8>) -> ModelWorkTerminal {
+        output.clear();
+        ModelWorkTerminal::Failed
+    }
     fn cancel(&mut self);
+    /// Retire preparation-owned resources. Existing stateless providers need no action.
+    fn unload(&mut self) {}
 }

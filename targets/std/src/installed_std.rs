@@ -114,6 +114,7 @@ mod fore_sign_storage;
 mod model_infer_back;
 mod model_work_back;
 mod model_work_host;
+mod model_work_pending;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
@@ -678,6 +679,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     )?;
     let mut model_work_output =
         Vec::with_capacity(conduit_ai::MODEL_WORK_MAXIMUM_OUTPUT_BYTES as usize);
+    let mut installed_model_work =
+        model_work_pending::InstalledModelWorkHost::new(model_work.take());
     let mut local_model_output = Vec::with_capacity(conduit_ai::MAXIMUM_LLM_OUTPUT_BYTES as usize);
     let mut vector_search_output =
         Vec::with_capacity(conduit_ai::MAXIMUM_VECTOR_SEARCH_OUTPUT_BYTES as usize);
@@ -861,6 +864,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         }
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
+                installed_model_work.cancel_all();
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel installed kernel: {error:?}"))?;
@@ -939,14 +943,18 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if let Some(adapter) = &mut vector_search {
                     adapter.cancel();
                 }
-            } else if cancelled_operation.contract_id.as_str() == conduit_ai::MODEL_WORK_OPERATION {
-                if let Some(adapter) = &mut model_work {
-                    adapter.cancel();
-                }
+            } else if matches!(
+                cancelled_operation.contract_id.as_str(),
+                conduit_ai::MODEL_WORK_OPERATION | crate::hosted_model_infer::MODEL_INFER_OPERATION
+            ) {
+                installed_model_work.cancel(cancellation);
             } else {
                 deadlines.cancel(cancellation, &mut scheduler)?;
             }
         }
+        installed_model_work.poll(&mut scheduler, &mut model_work_output, || {
+            control.stop_requested()
+        })?;
         while !control.stop_requested() {
             let Some(request) = scheduler.next_host_request() else {
                 break;
@@ -2935,15 +2943,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .placements
                     .get(usize::from(request.node.0))
                     .ok_or_else(|| "model-work request has no exact placement".to_string())?;
-                let completion = model_work_host::execute(
+                let completion = installed_model_work.execute(
+                    request,
+                    lowered_operation.binding.maximum_output_bytes,
                     placement,
                     input,
-                    match &mut model_work {
-                        Some(adapter) => Some(&mut **adapter),
-                        None => None,
-                    },
                     &mut model_work_output,
                 )?;
+                host_calls.record(request)?;
+                let Some(completion) = completion else {
+                    continue;
+                };
                 let output = if completion.has_output() {
                     let value = scheduler
                         .store_host_value(&model_work_output)
@@ -2955,7 +2965,6 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 } else {
                     None
                 };
-                host_calls.record(request)?;
                 scheduler
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model-work operation: {error:?}"))?;
@@ -3475,11 +3484,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 if completed_midi_input {
                     continue;
                 }
-                if deadlines.complete_next(&mut scheduler, timer)? {
+                let completed_deadline = if installed_model_work.is_pending() {
+                    deadlines.complete_ready(&mut scheduler, timer)?
+                } else {
+                    deadlines.complete_next(&mut scheduler, timer)?
+                };
+                if completed_deadline {
                     continue;
                 }
                 if !deadlines.is_empty()
                     || pending_midi_input
+                    || installed_model_work.is_pending()
                     || keyboard_host.is_pending()
                     || body_conversation_context_host.is_pending()
                 {
