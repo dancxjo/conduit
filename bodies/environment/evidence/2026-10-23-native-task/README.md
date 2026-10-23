@@ -27,3 +27,10 @@ sufficient stack bound is claimed for that image. The next fixed partition moves
 112 KiB (60+52) and the isolated SDK remains 72 KiB (32+40). The linker floor is
 raised to 28 KiB, close to the previously working image's stack span. Startup
 and the complete held-worker exchange must be physically verified again.
+
+The third image also failed startup with a CPU stack-guard write while evaluating
+a Source literal. Its linked CPU stack span was 29,020 bytes, compared with
+29,028 in the prior verified image; restoring the approximate span was therefore
+insufficient. These partition changes are compilation evidence only. The prior
+verified image is being restored while the actual preparation call-stack closure
+is investigated. No Body start, native dispatch or task-ready receipt was reached.

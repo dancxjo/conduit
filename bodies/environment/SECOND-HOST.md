@@ -54,3 +54,39 @@ Current repository inspection found reviewed Raspberry Pi OS packaging for
 newer aarch64 profiles and an ARMv6 ConduitOS substrate including Model B+ v1.2.
 The selected Pi 3B+ has not yet been matched to a reviewed exact profile. This
 record is the requested construction target, not an implementation claim.
+
+## MCU-served browser Host and alternate Lines
+
+The MCU's Body page must bootstrap a real browser Host in the same Body, using
+the existing browser membership runtime, Host identity and fresh Boot identity.
+The browser offers its actually initialized Face, Line and optional durable-store
+Backs. Body admission follows the Body's policy; visiting or downloading WASM is
+not itself membership, storage possession or owner authority. An admitted browser
+Mask consumes the appliance Face rather than maintaining a second appliance.
+
+The bootstrap may load an exact versioned WASM distribution from a served URL.
+That distribution must remain reachable in the selected network mode. In an
+isolated AP without Internet, a remote URL alone is insufficient: retain a local
+asset source or a proved cache path, including first-visit behavior. Keep the
+runtime asset identity and loader origin distinct from the Body identity and
+selected transport; test resource loading and storage-origin behavior explicitly.
+
+Departure uses the existing presence/session machinery: a graceful departure is
+useful evidence, but abrupt tab loss, navigation and suspended pages also need
+bounded disconnect or lease expiry. Durable membership, unavailable presence,
+retained recording bytes and authority retirement are different facts. Returning
+must follow ordinary admission/return rules and fence stale Boots.
+
+Bluetooth is also requested as an alternate Line. It must be independently
+initialized, offered and selected, with exact peers, finite queues, framing,
+authority, correlation, failure and planned fallback behavior. It does not grant
+unplanned connectivity, duplicate request replay or automatic retries. Prove the
+MCU-to-Pi and MCU-to-browser realizations separately; the browser's actual
+transport support and permissions must be observed. Wi-Fi loss and Bluetooth
+loss must preserve the Body identity and report gaps or unknown outcomes.
+
+Existing entry points to reuse are
+`targets/browser/host/assets/browser-host-membership.mjs`,
+`targets/browser/profiles/environment-recorder.host.conduit` and
+`architecture/body/src/presence.rs`. This appliance has not yet wired or physically
+proved those membership and alternate-Line paths.
