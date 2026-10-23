@@ -42,6 +42,11 @@ impl InputState {
 mod command_draft;
 
 impl NativeFaceScene {
+    pub(crate) fn disable_local_input(&mut self) {
+        self.local_input_available = false;
+        self.interaction_admitted = false;
+    }
+
     /// Resolve a named navigation request against this fresh Face, not an old
     /// action index. A missing/removed/unavailable target refuses explicitly.
     pub fn focus_named(&mut self, request: &FaceFocusRequest) -> Result<(), FaceSceneError> {
@@ -100,6 +105,9 @@ impl NativeFaceScene {
         show: &MaskShow,
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
+        if !self.local_input_available {
+            return Err(FaceSceneError::UnsupportedInput);
+        }
         self.check_show(show)?;
         if self.showing_diagram {
             let mut drawing = GraphicsScene::empty();
@@ -154,6 +162,9 @@ impl NativeFaceScene {
         show: &MaskShow,
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
+        if !self.local_input_available {
+            return Err(FaceSceneError::UnsupportedInput);
+        }
         self.check_show(show)?;
         if let Some(result) = self.graph_key(event)? {
             return Ok(result);

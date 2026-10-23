@@ -118,6 +118,8 @@ impl<D: PixelTarget> FirmwareFace<D> {
             &provider,
             conduit_face::CrecheComponentRecipe::ResponsiveColumns,
         )
+        .map_err(|e| e.as_str())?
+        .without_local_input()
         .map_err(|e| e.as_str())?;
         let birth_basis = mask.birth_basis("conduitos/creche/current");
         let face = door.creche_face(&birth_basis).map_err(|e| e.as_str())?;
