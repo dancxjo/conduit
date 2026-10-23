@@ -35,5 +35,35 @@ or malformed guest reply recovery. No limits or memory profile increase.
 
 ## Validation record
 
-Implementation and validation are in progress. No successful QEMU result is
-claimed by this preparation note until an exact-source receipt is retained.
+Clean Source `27723dc559ffe8852c011e14afee792749154aae` passes the supported
+entrance with outer exit zero. The collector requires QEMU guest exit 33,
+the original exact semantic-recovery receipt, matching native Make admission,
+and the separate strict pressure receipt before publishing evidence schema @3.
+The [original packet](evidence/native-capacity-pressure-qemu-20261023/)
+retains the complete serial transcript, build/image records, compressed full
+build/proof log, focused test log, independent verification and verifier.
+
+All 48 valid commands complete in the production typography rasterizer,
+writing 470,016 pixels. Both capacity refusals leave the scene unchanged.
+Seven distinct extra handles complete admission/upload/commit and removal.
+The ninth admission leaves the full service cost unchanged; guest entries
+remain exactly 1,161 before and after refusal. Canonical recomposition writes
+307,200 pixels and preserves the exact original Face, Show and draft revision,
+with keyboard routing available. The subsequent original copy-loss recovery
+still retires old input, acknowledges a fresh service's Show atomically, and
+accepts a fresh typed interaction that advances the canonical draft.
+
+Independent verification checks the clean source, actual ELF and ISO bytes,
+serial hash, unique complete receipt lines, observed counters and semantic
+custody, Make identity correspondence and unchanged 268,435,456-byte runtime
+arena/ceiling. ISO SHA256 is
+`18c29a750423268ac8381d81161553fa4773271dea453af88454597edbb3d6c0`.
+All three focused collector/profile/recovery tests pass, including missing,
+changed, zero-counter, duplicate and overclaim pressure negatives. The supported
+build's six-target common-backbone compile gate also completes; existing unused
+code warnings remain in the original log. No extra workflow run was queued.
+
+This packet adds no screenshot or ordinary-product pressure acceptance. The
+broader #5608 readable layout, separate visible refusals and combined-head
+merge/check requirements remain open. Earlier copy-loss and ordinary-product
+evidence retain their own exact sources and proof classes.
