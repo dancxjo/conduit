@@ -1,0 +1,134 @@
+{
+  "schema": "conduit.independent-integration-review@1",
+  "head": "368695685bf80ed92262553bd6868bcfd67e7e33",
+  "base": "c40764ccf645414dcd155ac5e2c8c48136005ab2",
+  "status": "NO_ACTIONABLE_COMPOSITION_OR_FIX_FINDINGS",
+  "findings": [],
+  "merges": [
+    {
+      "merge": "e69adae8bd5101d957eca453d6d6868a2aa2a720",
+      "parents": [
+        "c40764ccf645414dcd155ac5e2c8c48136005ab2",
+        "6663e81a282d4dd912d52d3c098eaf0de183ec45"
+      ],
+      "tree": "887c2486a8fd25b8b3830e948e7b2ddf0077039b",
+      "clean_automatic_merge_tree_exact": true,
+      "pr_head_ancestor": true
+    },
+    {
+      "merge": "da2165c56cf74d75f2947ff264ca09a0d62172a4",
+      "parents": [
+        "e69adae8bd5101d957eca453d6d6868a2aa2a720",
+        "03f51f15dc539c19a3fe26c92680e93bc413802f"
+      ],
+      "tree": "5ed84e58ffb723b1ed5c93fddec715d63d339cce",
+      "clean_automatic_merge_tree_exact": true,
+      "pr_head_ancestor": true
+    },
+    {
+      "merge": "c3c687cbce0adb0036d2d9a2b15a4cdd22d81862",
+      "parents": [
+        "da2165c56cf74d75f2947ff264ca09a0d62172a4",
+        "458123b56bca0e31d516b2f3c16e477a701fb673"
+      ],
+      "tree": "e85d18db558c245397c260a4da8ed6ea73f0cc5e",
+      "clean_automatic_merge_tree_exact": true,
+      "pr_head_ancestor": true
+    },
+    {
+      "merge": "afd29956b8ad70acbd8c463c35ffdfabb526db7e",
+      "parents": [
+        "c3c687cbce0adb0036d2d9a2b15a4cdd22d81862",
+        "ecd44fbe20481e955fdc855b653c6a8387adf3f9"
+      ],
+      "tree": "aa404edbdcad85e7676084ad16e44aacaed5fa15",
+      "clean_automatic_merge_tree_exact": true,
+      "pr_head_ancestor": true
+    }
+  ],
+  "post_merge_paths_exact": [
+    "docs/audits/evidence/aarch64-ramfb-g0-20261023/manifest.json",
+    "docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log",
+    "docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log.gz",
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/index.json",
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log",
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz",
+    "targets/raspberry-pi/deployment/linux/bootstrap.py"
+  ],
+  "gzip_custody": [
+    {
+      "stored_path": "docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log.gz",
+      "stored_bytes": 1577,
+      "stored_sha256": "144fd28229a06ae34efe44fe090a521527d8ec0d203c4f53f3189a7c014ec490",
+      "original_bytes": 5899,
+      "original_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+      "exact_original_pr_bytes": true
+    },
+    {
+      "stored_path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz",
+      "stored_bytes": 1560,
+      "stored_sha256": "1eec07f45f9dafcc41eafe2596cbe76e140fc818bef91ea61bfd38053ed6e875",
+      "original_bytes": 5876,
+      "original_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0",
+      "exact_original_pr_bytes": true
+    }
+  ],
+  "yaml_fix": "Exactly four affected YAML lines JSON-quote hostname/user strings, including both user/group flow arguments and metadata hostname; no name-policy/resource/deployment command change. JSON double-quoted strings are YAML string scalars, preventing bool/number reinterpretation. Root owns independently executed seven case checks.",
+  "diff_check_passed": true,
+  "checkout_clean_at_review": true,
+  "proof_boundaries": [
+    "Source merge composition verified against clean automatic merge-tree for each two-parent merge; all four reviewed PR heads preserved as ancestors.",
+    "No unexpected post-merge changes beyond exact YAML fix and two lossless gzip replacements/index updates.",
+    "Original logs, original command/path fields and raw-byte hashes preserved; gzip metadata describes stored versus uncompressed bytes explicitly.",
+    "No builds/tests/Cargo/QEMU/GH/CI observations performed by reviewer. Root reported YAML cases are not independently rerun here.",
+    "Prior component review limits and issue6317 production-owner lifecycle gap remain; omnibus ancestry and clean composition do not close those requirements.",
+    "Final combined supported checks/Candidate/exact accepted-tree Integration remain delivery gates."
+  ],
+  "refresh": {
+    "head": "2fd2bcb03d19fb39493fb1fc46fb9cc8535b245c",
+    "previous_head": "368695685bf80ed92262553bd6868bcfd67e7e33",
+    "updated_pr6336_head": "abd896d14633a45c69d93996bcebee0e343cbfd7",
+    "status": "NO_ACTIONABLE_REFRESH_FINDINGS",
+    "owner_head_is_ancestor": true,
+    "changed_paths": [
+      {
+        "path": "docs/audits/aarch64-ramfb-g0-20261023.md",
+        "exact_owner_blob": true,
+        "sha256": "338435b9afc75fe84de2ff487e9762557113e8b4144bdc17cea4cd2bc2d59f78"
+      },
+      {
+        "path": "docs/audits/evidence/aarch64-ramfb-g0-20261023/manifest.json",
+        "exact_owner_blob": true,
+        "sha256": "a984654a6ac2e3bc667528f83bf7c84bc94d078e9c806b879daba29cd4b3c9a5"
+      },
+      {
+        "path": "docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log.gz",
+        "exact_owner_blob": true,
+        "sha256": "8b3e08ad75f8b6cb3d88aa5578742ae7dac47f7a4c44253a2f822bce03598f49",
+        "original_bytes": 5899,
+        "original_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+        "stored_and_original_metadata_verified": true
+      },
+      {
+        "path": "docs/proof/conduitos-aarch64-firmware-frame.md",
+        "exact_owner_blob": true,
+        "sha256": "a13ebb5697bd2fee4a432e6a5ca3fbf7963dc8ce49ec49cfaf16530d8dfc41df"
+      },
+      {
+        "path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/index.json",
+        "exact_owner_blob": true,
+        "sha256": "c7b90abb6fdcc4b2f3682fe70c864e90cd03bb90215eae7bb8df47faae72952b"
+      },
+      {
+        "path": "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz",
+        "exact_owner_blob": true,
+        "sha256": "2d3f6cf29c45e458110506ce6b1ed7ab206b5ca5da13e33e04d8e5d7ad60bf58",
+        "original_bytes": 5876,
+        "original_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0",
+        "stored_and_original_metadata_verified": true
+      }
+    ],
+    "source_code_delta": false,
+    "detail": "Exactly six documentation/evidence paths changed, all equal exact owner blobs. Both transcripts decompress identically to prior omnibus and metadata matches actual stored/original bytes. Original command and raw custody identities unchanged. No build/test/CI result inferred for new merge."
+  }
+}

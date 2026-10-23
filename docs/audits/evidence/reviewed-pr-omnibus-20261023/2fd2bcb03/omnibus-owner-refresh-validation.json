@@ -1,0 +1,64 @@
+{
+  "source": "2fd2bcb03d19fb39493fb1fc46fb9cc8535b245c",
+  "previous_compiled_source": "368695685bf80ed92262553bd6868bcfd67e7e33",
+  "source_code_delta": false,
+  "steps": [
+    {
+      "label": "preflight",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "ci",
+        "pipeline",
+        "preflight",
+        "c40764ccf645414dcd155ac5e2c8c48136005ab2"
+      ],
+      "log": "work/omnibus-2fd2-preflight.log",
+      "exit_code": 0,
+      "sha256": "ced71ec24c465fd27ecc77cae41e8cbe194f371445660441f8b242c0e18170bd"
+    },
+    {
+      "label": "native-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "work/omnibus-2fd2-native-clippy.log",
+      "exit_code": 0,
+      "sha256": "59e339d2aa27cd2222fead9549dbc67b0a6e0d10e368fb0ddf49b9c9ba0ac0a3"
+    },
+    {
+      "label": "arm-check",
+      "command": [
+        "cargo",
+        "+stable",
+        "check",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--bin",
+        "conduitos-aarch64-product",
+        "--target",
+        "aarch64-unknown-none",
+        "--features",
+        "aarch64-product,native-compositor"
+      ],
+      "log": "work/omnibus-2fd2-arm-check.log",
+      "exit_code": 0,
+      "sha256": "e8a69bf3ae5b2ae9162a596699a74888ce8fb99ee41345850a73748a4cfa0043"
+    }
+  ],
+  "status": "passed",
+  "verified_utc": "2026-10-23T23:37:46.052326+00:00"
+}

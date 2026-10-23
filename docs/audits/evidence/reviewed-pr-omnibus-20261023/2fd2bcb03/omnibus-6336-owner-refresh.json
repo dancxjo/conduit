@@ -1,0 +1,17 @@
+{
+  "new_head": "2fd2bcb03d19fb39493fb1fc46fb9cc8535b245c",
+  "previous_omnibus": "368695685bf80ed92262553bd6868bcfd67e7e33",
+  "latest_6336_head": "abd896d14633a45c69d93996bcebee0e343cbfd7",
+  "source_code_delta": false,
+  "changed_paths": [
+    "docs/audits/aarch64-ramfb-g0-20261023.md",
+    "docs/audits/evidence/aarch64-ramfb-g0-20261023/manifest.json",
+    "docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log.gz",
+    "docs/proof/conduitos-aarch64-firmware-frame.md",
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/index.json",
+    "targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz"
+  ],
+  "owner_packaging_adopted_exactly": true,
+  "raw_transcripts_decompress_identically": true,
+  "observed_utc": "2026-10-23T23:36:46.000049+00:00"
+}
