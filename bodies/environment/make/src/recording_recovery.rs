@@ -68,11 +68,47 @@ impl PreparedRecordingRecovery {
         bases: &[c::BaseImplementationId],
         authority: &[c::AuthorityGrant],
     ) -> Result<Self, RecordingPlanningRefusal> {
-        use RecordingPlanningRefusal as E;
         let expanded = source.expanded();
         let hosts = core::slice::from_ref(host);
-        let placements =
-            conduit_planner::default_expanded_placements(expanded, hosts).map_err(E::Placement)?;
+        let placements = conduit_planner::default_expanded_placements(expanded, hosts)
+            .map_err(RecordingPlanningRefusal::Placement)?;
+        Self::prepare_selected(
+            expanded,
+            core::slice::from_ref(source.reference()),
+            host,
+            &placements,
+            bases,
+            authority,
+        )
+    }
+    /// Root supplies exact current choices from its retained owners. This uses
+    /// the ordinary Planner and does not infer availability from descriptors.
+    pub fn prepare_batch(
+        source: &RecordingBatchRecoverySource,
+        host: &c::HostAdvertisement,
+        placements: &conduit_planner::PlacementChoices,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, RecordingPlanningRefusal> {
+        Self::prepare_selected(
+            source.expanded(),
+            source.references(),
+            host,
+            placements,
+            bases,
+            authority,
+        )
+    }
+    fn prepare_selected(
+        expanded: &conduit_plot::ExpandedCanonicalPlot,
+        references: &[c::BoundedResourceRef],
+        host: &c::HostAdvertisement,
+        placements: &conduit_planner::PlacementChoices,
+        bases: &[c::BaseImplementationId],
+        authority: &[c::AuthorityGrant],
+    ) -> Result<Self, RecordingPlanningRefusal> {
+        use RecordingPlanningRefusal as E;
+        let hosts = core::slice::from_ref(host);
         let connection_limits = expanded
             .connections
             .iter()
@@ -106,7 +142,7 @@ impl PreparedRecordingRecovery {
         let plan = conduit_planner::plan_expanded_canonical_with_connection_limits(
             expanded,
             hosts,
-            &placements,
+            placements,
             bases,
             conduit_planner::PlanningOptions {
                 connection_bases: &BTreeMap::new(),
@@ -126,19 +162,42 @@ impl PreparedRecordingRecovery {
         if fragment.host_id != host.host_id || fragment.boot_id != host.boot_id {
             return Err(E::ForeignFragment);
         }
-        let read = fragment
+        let reads: Vec<_> = fragment
             .placements
             .iter()
-            .find(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::SNAPSHOT_READ_KIND)
-            .ok_or(E::ReferenceBinding)?;
-        let [binding] = read.resources.as_slice() else {
+            .filter(|gear| gear.kind_id.as_str() == conduit_semantic_catalog::SNAPSHOT_READ_KIND)
+            .collect();
+        if reads.len() != references.len() {
             return Err(E::ReferenceBinding);
-        };
-        let content = binding.content.as_ref().ok_or(E::ReferenceBinding)?;
-        content
-            .contract
-            .accepts_reference(source.reference())
-            .map_err(|_| E::ReferenceBinding)?;
+        }
+        for reference in references {
+            let hex: String = reference
+                .encode()
+                .map_err(|_| E::ReferenceBinding)?
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect();
+            let mut matching = reads.iter().filter(|gear| {
+                gear.configuration.iter().any(|entry| {
+                    entry.key == "reference"
+                        && entry.value == c::ConfigurationValue::Text(hex.clone())
+                })
+            });
+            let read = matching.next().ok_or(E::ReferenceBinding)?;
+            if matching.next().is_some() {
+                return Err(E::ReferenceBinding);
+            }
+            let [binding] = read.resources.as_slice() else {
+                return Err(E::ReferenceBinding);
+            };
+            binding
+                .content
+                .as_ref()
+                .ok_or(E::ReferenceBinding)?
+                .contract
+                .accepts_reference(reference)
+                .map_err(|_| E::ReferenceBinding)?;
+        }
         let lowered =
             conduit_plan_lowering::lowering::lower_plan_fragment(fragment).map_err(E::Lowering)?;
         Ok(Self { plan, lowered })

@@ -10,9 +10,10 @@ publish = false
 source-capture = ["dep:conduit-pulse-capture"]
 appliance = ["conduit-kernel/alloc", "dep:conduit-time", "conduit-time/kernel-step", "dep:conduit-pulse-capture"]
 construction = ["appliance", "dep:conduit-pulse-capture", "dep:conduit-planner"]
-recording-kernel = ["conduit-kernel/alloc", "dep:conduit-plan-lowering"]
+recording-kernel = ["conduit-kernel/alloc", "dep:conduit-plan-lowering", "dep:conduit-composite"]
 
 [dependencies]
+conduit-composite = { path = "../../../architecture/composite", optional = true }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering", optional = true }
 conduit-planner = { path = "../../../architecture/planner", optional = true }
 conduit-time = { path = "../../../semantics/time", default-features = false, optional = true }

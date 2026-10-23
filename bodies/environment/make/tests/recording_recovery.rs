@@ -256,3 +256,6 @@ fn wrong_generation_or_absent_resource_cannot_become_a_recovery_plan() {
 
 #[path = "recording_recovery/batch_source.rs"]
 mod batch_source;
+
+#[path = "recording_recovery/batch_plan.rs"]
+mod batch_plan;

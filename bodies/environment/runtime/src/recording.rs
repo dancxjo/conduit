@@ -14,6 +14,8 @@ mod history;
 mod host_call;
 mod installation;
 #[cfg(feature = "recording-kernel")]
+pub use installation::ReadyRecordingConcat;
+#[cfg(feature = "recording-kernel")]
 mod kernel;
 #[cfg(feature = "recording-kernel")]
 pub use kernel::{

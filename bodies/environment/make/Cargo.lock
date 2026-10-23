@@ -352,6 +352,7 @@ dependencies = [
 name = "conduit-environment-runtime"
 version = "0.1.0"
 dependencies = [
+ "conduit-composite",
  "conduit-core",
  "conduit-kernel",
  "conduit-plan-lowering",
