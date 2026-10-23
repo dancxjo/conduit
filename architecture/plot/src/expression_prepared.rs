@@ -155,8 +155,10 @@ enum PreparedOperation {
         when_true: Box<PreparedNode>,
         when_false: Box<PreparedNode>,
     },
-    Projection(PreparedMemberSelection),
-    SequenceSelection(sequence_selection::PreparedSequenceSelection),
+    // Reserve selector objects only for nodes that use them, during preparation.
+    // Keeping selector buffers inline inflated arithmetic nodes as well.
+    Projection(Box<PreparedMemberSelection>),
+    SequenceSelection(Box<sequence_selection::PreparedSequenceSelection>),
     Widen(Box<PreparedNode>),
     TextMaterial(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
