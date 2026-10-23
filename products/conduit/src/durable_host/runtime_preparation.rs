@@ -148,16 +148,22 @@ fn prepare_runtime_with_composition(
         offer_generation: host.advertisement().offer_generation.0,
         process_id: std::process::id(),
         body_id: current_body_id(&installation).map(str::to_owned),
-        release_bundle_sha256: installation.release_bundle_sha256,
+        release_bundle_sha256: installation.release_bundle_sha256.clone(),
     };
-    write_json_atomic(&state_dir.join("runtime.json"), &status)?;
     let executable = Path::new(&installation.product_executable);
     let image_content_digest = digest(&bounded_read(executable, MAXIMUM_RELEASE_FILE_BYTES)?);
-    let runtime = crate::durable_host_control::DurableHostRuntime::new(
+    let mut runtime = crate::durable_host_control::DurableHostRuntime::new(
         running_target_id()?.into(),
         image_content_digest,
         host,
     )
     .with_selected_speech_equipment(selected_equipment);
+    // Cold reviewed inventory and compiled contracts belong to preparation,
+    // before clients can spend their finite control budget on an interaction.
+    crate::plot_source::prepare_standard_catalogs()?;
+    if installation.body_state.is_none() && installation.joined_body_state.is_none() {
+        runtime.prepare_birth_encounter(state_dir)?;
+    }
+    write_json_atomic(&state_dir.join("runtime.json"), &status)?;
     Ok((status, runtime))
 }
