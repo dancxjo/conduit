@@ -7,6 +7,7 @@ pub enum Command {
     SoftwareOffer,
     AppliancePolicy,
     AssignmentTransfer,
+    KernelPrepare,
     Unsupported,
     TooLarge,
 }
@@ -39,6 +40,8 @@ impl CommandBuffer {
                     Command::SoftwareOffer
                 } else if bytes == b"appliance-policy" {
                     Command::AppliancePolicy
+                } else if bytes == b"kernel-prepare" {
+                    Command::KernelPrepare
                 } else if bytes == b"assignment-transfer" {
                     Command::AssignmentTransfer
                 } else {
@@ -90,6 +93,13 @@ mod tests {
         for byte in b"CONDUIT_BODY_ADVERTISE_V1\n" {
             if *byte == b'\n' {
                 assert_eq!(buffer.push(*byte), Some(Command::Admission));
+            } else {
+                assert_eq!(buffer.push(*byte), None);
+            }
+        }
+        for byte in b"kernel-prepare\n" {
+            if *byte == b'\n' {
+                assert_eq!(buffer.push(*byte), Some(Command::KernelPrepare));
             } else {
                 assert_eq!(buffer.push(*byte), None);
             }

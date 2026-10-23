@@ -1,5 +1,7 @@
 // Generated Make layout pins; independently provision through firmware.
 use conduit_core as c;
+pub const SIGN_ITEMS: u16 = 46;
+pub const SIGN_BYTES: u32 = 2862;
 #[rustfmt::skip]
 static RECORDS: [c::AssignedRecordRequirement; 125] = [
 c::AssignedRecordRequirement { tag: 1, payload_digest: [66, 150, 203, 166, 185, 234, 81, 35, 224, 139, 220, 138, 5, 27, 117, 105, 115, 21, 161, 251, 81, 148, 60, 168, 103, 69, 35, 49, 187, 137, 193, 150] },

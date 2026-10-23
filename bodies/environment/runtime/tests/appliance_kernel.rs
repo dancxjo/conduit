@@ -183,12 +183,12 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         let assignment_bytes = projection.bytes.len();
         let programs = recipe.programs();
         let (mut retained, memory) = allocation_probe::observe(|| {
-            Some(
+            Some(Box::new(
             conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::prepare(
                 &recipe.resident(&projection), &programs,
                 &conduit_time::TickConfiguration { count, period_ms }, values,
             ).unwrap()
-        )
+        ))
         });
 
         let (admitted, admission_memory) = allocation_probe::observe(|| {
@@ -204,15 +204,17 @@ fn run(scenario: usize, native: bool, overnight: bool) {
             (admission_memory.allocations, admission_memory.reallocations),
             (0, 0)
         );
+        let mut admitted = Some(Box::new(admitted));
         drop(projection);
         let (prepared, binding_memory) = allocation_probe::observe(|| {
-            conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::bind_retained(&mut retained, admitted).unwrap()
+            conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::bind_boxed_retained(&mut retained, &mut admitted).unwrap()
         });
-        assert!(retained.is_none());
+        assert!(retained.is_none() && admitted.is_none());
         assert_eq!(
             (binding_memory.allocations, binding_memory.reallocations),
-            (0, 0)
+            (1, 0)
         );
+        let prepared = *prepared;
         assert_eq!((prepared.count, prepared.period_ms), (count, period_ms));
         assert_eq!(prepared.roles.pulse, pulse_node);
         assert_eq!(prepared.roles.tick, tick_node);
@@ -257,7 +259,8 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         }
         (tables, drivers.map(Option::unwrap), selectors, values)
     };
-    let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_with_host_calls(
+    let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_boxed_with_active_counts_and_host_calls(
+        N, C,
         tables.nodes,
         tables.cords,
         tables.routes,
@@ -283,7 +286,7 @@ fn run(scenario: usize, native: bool, overnight: bool) {
                 N,
             >,
         >();
-        let tight = core::mem::size_of_val(&kernel);
+        let tight = core::mem::size_of_val(&*kernel);
         assert!(tight < broad);
         eprintln!("environment_kernel_storage pointer_bits={} ports_per_node={P} object_bytes={tight} sixteen_port_object_bytes={broad}", usize::BITS);
         eprintln!("environment_additional_backing sign_slots={sign_slots} sign_logical_bytes={sign_bytes} sign_physical_bytes={} value_physical_bytes={}", kernel.signs().reserved_storage_bytes(), kernel.values().reserved_storage_bytes());

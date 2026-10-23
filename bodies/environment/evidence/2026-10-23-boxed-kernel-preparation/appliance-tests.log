@@ -1,0 +1,17 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 0.58s
+     Running tests/appliance_kernel.rs (target/environment-main-host/debug/deps/appliance_kernel-8791c6e9beaabbb9)
+
+running 10 tests
+test a_ready_capability_does_not_replace_authority_or_missing_implementations ... ok
+test assigned_software::assigned_preparation_refuses_wrong_root_scope_roles_and_storage_before_effects ... ok
+test assigned_software::resident_initialization_refuses_missing_duplicate_or_changed_text_before_allocating ... ok
+test software_tests::wrong_current_advertisement_and_duplicate_projection_leave_it_unchanged ... ok
+test software_tests::forged_selected_facts_refuse_before_transfer_and_selected_objects_cannot_replay ... ok
+test software_tests::unchecked_configuration_and_contract_changes_cannot_initialize_an_available_back ... ok
+test assigned_software::retained_resident_software_refuses_other_source_then_transfers_without_allocation ... ok
+test assigned_software::boxed_transfer::boxed_transfer_preserves_both_slots_then_allocates_only_the_destination ... ok
+test authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel ... ok
+test full_authored_overnight_workload_drains_with_a_small_value_store ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.63s

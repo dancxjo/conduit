@@ -6,6 +6,7 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
     admission: crate::native_admission::NativeAdmission,
     admission_freshness: u64,
     network_preparation: Option<
@@ -91,6 +92,7 @@ impl NativeRoot {
             .expect("Root admission requires nonzero entropy");
         seed.fill(0);
         Self {
+            appliance_kernel: None,
             admission,
             admission_freshness: 0,
             network_preparation: None,
@@ -111,6 +113,19 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    pub fn prepare_appliance_kernel(&mut self) -> Result<(), &'static str> {
+        if self.appliance_kernel.is_some() {
+            return Err("already-prepared");
+        }
+        self.appliance_kernel = Some(crate::native_kernel::prepare(
+            &mut self.software,
+            &mut self.assignment,
+        )?);
+        Ok(())
+    }
+    pub fn appliance_kernel_prepared(&self) -> bool {
+        self.appliance_kernel.is_some()
     }
     pub fn write_admission_offer(&mut self, output: &mut [u8]) -> Result<usize, ()> {
         self.admission_freshness = self.admission_freshness.checked_add(1).ok_or(())?;

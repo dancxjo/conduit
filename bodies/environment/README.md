@@ -1144,3 +1144,12 @@ own reserved Play. Pulse and timer issuance both compare expected Source cadence
 with admission's retained cadence; neither starts a Body or dispatches hardware.
 The complete native kernel and authenticated installation handshake still need
 to be admitted before physical appliance Play.
+
+Retained software and assignment now also transfer through a boxed destination,
+preserving both slots on refusal and moving existing drivers/selectors/value
+backing on success. The ESP32 diagnostic adds `kernel-prepare` after assignment
+staging: it prepares the ordinary dormant scheduler and sign log using
+Make-emitted sign limits and an explicit additional-memory guard. This is not
+an installation/start command and does not dispatch native operations. A
+persistent authenticated owner, actual native possession and attributed Body
+start remain required before any appliance Step. Hardware preparation is pending.

@@ -11,6 +11,8 @@ impl NativeSoftwareRecipe {
             "// Generated Make layout pins; independently provision through firmware."
         )?;
         writeln!(out, "use conduit_core as c;")?;
+        writeln!(out, "pub const SIGN_ITEMS: u16 = {};", self.sign_items)?;
+        writeln!(out, "pub const SIGN_BYTES: u32 = {};", self.sign_bytes)?;
         self.write_records(out)?;
         writeln!(
             out,

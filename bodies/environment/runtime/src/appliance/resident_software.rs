@@ -1,6 +1,8 @@
 //! Initialized software retained before planning, with no native possession.
 use super::*;
 use alloc::{boxed::Box, vec::Vec};
+#[path = "resident_transfer.rs"]
+mod transfer;
 
 #[derive(PartialEq, Eq)]
 pub(super) struct Construction {
@@ -126,18 +128,25 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         slot: &mut Option<Self>,
         selected: ValidatedAssignedAppliance,
     ) -> Result<PreparedAssignedAppliance<V>, NativePreparationRefusal> {
-        if slot
-            .as_ref()
+        slot.as_ref()
             .ok_or(NativePreparationRefusal::Initialization)?
-            .construction
-            != selected.construction
-        {
-            return Err(NativePreparationRefusal::Configuration);
-        }
+            .check_assignment(&selected)?;
         Ok(slot
             .take()
             .expect("preflighted resident software")
             .into_assigned(selected.tables))
+    }
+    fn check_assignment(
+        &self,
+        selected: &ValidatedAssignedAppliance,
+    ) -> Result<(), NativePreparationRefusal> {
+        if self.construction != selected.construction {
+            return Err(NativePreparationRefusal::Configuration);
+        }
+        if self.drivers.iter().any(Option::is_none) {
+            return Err(NativePreparationRefusal::Initialization);
+        }
+        Ok(())
     }
     pub(super) fn into_assigned(self, tables: NativeTables) -> PreparedAssignedAppliance<V> {
         let Construction {

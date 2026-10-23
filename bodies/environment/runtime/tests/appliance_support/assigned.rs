@@ -270,22 +270,7 @@ fn retained_resident_software_refuses_other_source_then_transfers_without_alloca
     use conduit_environment_runtime::appliance::assigned::{
         PreparedResidentSoftware, ValidatedAssignedAppliance,
     };
-    let fixture = |count| {
-        let source = compile(count, 0).unwrap();
-        let (ready, _) = pulse::ready(0);
-        let mut software = software(&source);
-        let host = appliance_support::advertisement(&source, &mut software, &ready);
-        let plan = source
-            .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
-            .unwrap();
-        let lowered =
-            conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
-        let image = appliance_support::native_image(&plan, &lowered);
-        let projection = assignment::NativeProjection::prepare(&image);
-        let recipe = Recipe::prepare(&plan, &lowered, &image, &projection);
-        (projection, recipe)
-    };
-    let (projection, recipe) = fixture(1);
+    let (projection, recipe) = transfer_fixture(1);
     let texts = recipe.programs();
     for mode in 0..3 {
         let mut resident = recipe.resident(&projection);
@@ -321,7 +306,7 @@ fn retained_resident_software_refuses_other_source_then_transfers_without_alloca
         )
         .unwrap(),
     );
-    let (other, other_recipe) = fixture(2);
+    let (other, other_recipe) = transfer_fixture(2);
     let wrong = ValidatedAssignedAppliance::admit(
         &other.bytes,
         assignment::NativeProjection::maxima(),
@@ -397,3 +382,21 @@ pub fn report_computation_memory(recipe: &Recipe) {
         drop((driver, selector));
     }
 }
+
+fn transfer_fixture(count: u64) -> (assignment::NativeProjection, Recipe) {
+    let source = compile(count, 0).unwrap();
+    let (ready, _) = pulse::ready(0);
+    let mut software = software(&source);
+    let host = appliance_support::advertisement(&source, &mut software, &ready);
+    let plan = source
+        .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+        .unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    let image = appliance_support::native_image(&plan, &lowered);
+    let projection = assignment::NativeProjection::prepare(&image);
+    let recipe = Recipe::prepare(&plan, &lowered, &image, &projection);
+    (projection, recipe)
+}
+
+#[path = "boxed_transfer.rs"]
+mod boxed_transfer;

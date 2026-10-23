@@ -37,6 +37,8 @@ mod native_play;
 #[cfg(feature = "native-root")]
 mod native_root;
 #[cfg(feature = "native-root")]
+mod native_kernel;
+#[cfg(feature = "native-root")]
 mod native_software;
 #[cfg(feature = "native-root")]
 mod native_software_offer;
