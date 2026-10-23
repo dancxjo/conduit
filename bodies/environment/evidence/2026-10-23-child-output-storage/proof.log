@@ -1,0 +1,96 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `target/debug/conduit-xtask-dispatch prove environment publication-32`
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+    Finished `test` profile [unoptimized] target(s) in 1m 50s
+     Running tests/appliance_kernel.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/appliance_kernel-83df2bfb2f6b14cd)
+
+running 8 tests
+environment_software_ready_peak=182610
+test software_tests::wrong_current_advertisement_and_duplicate_projection_leave_it_unchanged ... ok
+environment_software_ready_peak=182610
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+test a_ready_capability_does_not_replace_authority_or_missing_implementations ... ok
+test assigned_software::resident_initialization_refuses_missing_duplicate_or_changed_text_before_allocating ... ok
+test assigned_software::assigned_preparation_refuses_wrong_root_scope_roles_and_storage_before_effects ... ok
+test software_tests::forged_selected_facts_refuse_before_transfer_and_selected_objects_cannot_replay ... ok
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_assigned_software_preparation=Observation { allocations: 2766, reallocations: 23, deallocations: 1942, peak_bytes: 82030, requested_bytes: 223247, live_bytes: 81671 }
+environment_assigned_storage pointer_bits=32 assignment_bytes=46121 value_backing_bytes=15504 prepared_object_bytes=4508
+environment_kernel_storage pointer_bits=32 ports_per_node=1 object_bytes=10584 sixteen_port_object_bytes=38256
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=15504
+test software_tests::unchecked_configuration_and_contract_changes_cannot_initialize_an_available_back ... ok
+environment_software_ready_peak=182610
+environment_appliance_host_heap graph_copy_peak=107515 host_copy_peak=57232 plan_copy_peak=123536 ordinary_planning_peak=239814 lowering_peak=32832
+environment_kernel_schema=5 encoded_bytes=46121 declared_runtime_projection_bytes=20722 structural_records=124
+environment_computation_memory pointer_bits=32 node=4 text_bytes=29798 memory=Observation { allocations: 1833, reallocations: 0, deallocations: 1387, peak_bytes: 66277, requested_bytes: 126876, live_bytes: 30402 }
+environment_computation_memory pointer_bits=32 node=5 text_bytes=3604 memory=Observation { allocations: 204, reallocations: 2, deallocations: 157, peak_bytes: 7890, requested_bytes: 16013, live_bytes: 3683 }
+environment_computation_memory pointer_bits=32 node=6 text_bytes=1738 memory=Observation { allocations: 116, reallocations: 1, deallocations: 86, peak_bytes: 3936, requested_bytes: 8279, live_bytes: 2497 }
+environment_computation_memory pointer_bits=32 node=8 text_bytes=1058 memory=Observation { allocations: 59, reallocations: 3, deallocations: 3, peak_bytes: 3857, requested_bytes: 6508, live_bytes: 3857 }
+environment_computation_memory pointer_bits=32 node=9 text_bytes=1070 memory=Observation { allocations: 53, reallocations: 3, deallocations: 3, peak_bytes: 3528, requested_bytes: 6185, live_bytes: 3528 }
+environment_computation_memory pointer_bits=32 node=10 text_bytes=1072 memory=Observation { allocations: 53, reallocations: 3, deallocations: 3, peak_bytes: 3529, requested_bytes: 6187, live_bytes: 3529 }
+environment_computation_memory pointer_bits=32 node=11 text_bytes=1058 memory=Observation { allocations: 59, reallocations: 3, deallocations: 3, peak_bytes: 3857, requested_bytes: 6508, live_bytes: 3857 }
+environment_assigned_software_preparation=Observation { allocations: 2766, reallocations: 23, deallocations: 1942, peak_bytes: 82030, requested_bytes: 223247, live_bytes: 81671 }
+environment_assigned_storage pointer_bits=32 assignment_bytes=46121 value_backing_bytes=15504 prepared_object_bytes=4508
+environment_kernel_storage pointer_bits=32 ports_per_node=1 object_bytes=10584 sixteen_port_object_bytes=38256
+environment_additional_backing sign_slots=144 sign_logical_bytes=2862 sign_physical_bytes=2880 value_physical_bytes=15504
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2292
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1769
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1424
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+test authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel ... ok
+overnight_post_step_peak_live_items=7 overnight_post_step_peak_live_bytes=1426
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=3837
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+overnight_post_step_peak_live_items=8 overnight_post_step_peak_live_bytes=2296
+overnight_samples=960 period_ms=60000 logical_elapsed_ms=57600000 value_slots=9 value_bytes=15360
+test full_authored_overnight_workload_drains_with_a_small_value_store ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.35s
+
+     Running tests/construction.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/construction-5eec133c094f6b2a)
+
+running 1 test
+test authored_appliance_uses_real_typed_publication_kinds_and_a_finite_clock ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.95s
+
+     Running tests/publication.rs (target/environment-i686/i686-unknown-linux-gnu/debug/deps/publication-20ce28db376332be)
+
+running 5 tests
+test zero_event_admission_refuses_values_but_still_closes_normally ... ok
+test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok
+test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok
+test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok
+test committed_publications_record_and_recover_every_sensor_disposition ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

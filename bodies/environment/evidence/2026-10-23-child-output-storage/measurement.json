@@ -1,0 +1,37 @@
+{
+  "proof_class": "32-bit-linux-cpu-preparation-and-kernel-execution",
+  "baseline_receipt": "../2026-10-23-expression-selector-storage/measurement.json",
+  "before": {
+    "software_peak": 91095,
+    "software_retained": 90736,
+    "preparation_allocations": 2995
+  },
+  "after": {
+    "software_peak": 82030,
+    "software_retained": 81671,
+    "preparation_allocations": 2766
+  },
+  "requested_bytes_saved": 9065,
+  "preparation_allocations_removed": 229,
+  "decoder_retained_before": 38634,
+  "decoder_retained_after": 30402,
+  "pulse_frame_projection_retained_before": 4181,
+  "pulse_frame_projection_retained_after": 3683,
+  "expression_conformance_tests_passed": 44,
+  "appliance_tests_passed": 14,
+  "overnight_scenarios_passed": 7,
+  "samples_per_scenario": 960,
+  "logical_elapsed_ms": 57600000,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "strict_plot_clippy_all_targets": true,
+  "esp32_native_root_release_cross_check": true,
+  "new_firmware_flashed": false,
+  "complete_mcu_memory_admission": false,
+  "notes": [
+    "Private output-framing representation only; authored meaning and canonical bytes remain unchanged.",
+    "Canonical Type validation still runs during preparation; non-leaf outputs retain their prefix comparison.",
+    "Requested heap bytes exclude allocator overhead, Root ownership, kernel storage and native effects.",
+    "The resulting software still exceeds the current 65536-byte Root arena before the complete appliance closure."
+  ]
+}
