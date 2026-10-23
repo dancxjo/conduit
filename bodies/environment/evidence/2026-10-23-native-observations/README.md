@@ -29,3 +29,12 @@ client or an overnight recording. The JSON/bin files are retained evidence,
 not a replacement logging authority. Those original goal requirements remain
 open. Earlier negative preparations/ingress and pending-timer cleanup are
 retained separately; they are not erased by this successful run.
+
+The retained `physical-face-{1,2,3}.json` files also serve as replay inputs for
+`bodies/environment/make/tests/native_face_mask.rs`, included in the supported
+`cargo xtask prove environment native-construction` entrance. The replay feeds
+the complete, validated parent Body Faces to the timed seven-segment Mask:
+Fahrenheit tenths use the explicitly selected colon Look on the measured
+colon-only profile, alternating with whole-percent RH. Both pages preserve the
+parent content identity and revision. This is CPU interpretation evidence added
+after the native capture; it is not evidence of physical display delivery.
