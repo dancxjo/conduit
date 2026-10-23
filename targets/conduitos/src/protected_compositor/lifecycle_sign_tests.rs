@@ -200,3 +200,45 @@ fn guest_image_digest_retains_every_borrowed_byte_without_hex_allocation() {
         assert_eq!(byte.as_u64(), Some(u64::from(expected)));
     }
 }
+
+#[test]
+fn prepared_record_and_incomplete_paths_make_no_heap_allocation_calls() {
+    // Preparation and JSON parsing are deliberately outside the measured closure.
+    let cost = DomainCost {
+        entries: u64::MAX,
+        setup_ticks: u64::MAX,
+        teardown_zeroed_bytes: u32::MAX,
+        reserved_bytes: u32::MAX,
+        ..DomainCost::default()
+    };
+    let normal = snapshot("escaped\"\\\n", &cost);
+    let long = "\"\\\n".repeat(CAPACITY);
+    let oversized = snapshot(&long, &cost);
+    let mut overflowed = snapshot("scope", &cost);
+    overflowed.phase.as_mut().unwrap().overflowed = true;
+    let records = [&normal, &oversized, &overflowed];
+    let mut buffers = [[0; CAPACITY]; 3];
+    let mut encoded = [Encoded {
+        length: 0,
+        complete: false,
+    }; 3];
+    let (calls, retained_bytes) = crate::test_allocations::rounded_retained_bytes(|| {
+        crate::test_allocations::allocations(|| {
+            for i in 0..records.len() {
+                encoded[i] = encode(records[i], &mut buffers[i]);
+            }
+        })
+    });
+    // The helper counts alloc, alloc_zeroed and realloc calls, including failed
+    // attempts: zero calls means no heap storage was requested by emission.
+    assert_eq!(calls, 0);
+    // This additional helper reports net rounded retained bytes, not peak/total.
+    assert_eq!(retained_bytes, 0);
+    assert!(encoded[0].complete);
+    assert!(!encoded[1].complete);
+    assert!(!encoded[2].complete);
+    for i in 0..records.len() {
+        let json = parse(&buffers[i], encoded[i]);
+        assert_eq!(json["complete"], encoded[i].complete);
+    }
+}
