@@ -960,3 +960,21 @@ allocator overhead or stack high-water. Releasing the assignment buffer before
 software initialization requires a distinct validated-admission phase and
 independently pinned resident computation data, rather than treating received
 program bytes as resident authority.
+
+Native initialization now has two phases. `ValidatedAssignedAppliance::admit`
+checks current assignment tables, roles, exact computation requirements and
+Source cadence without allocating; its owned result borrows no input buffer.
+Root can release the assignment before `initialize` checks independently
+provisioned `ResidentComputation` text and initializes the software. Missing,
+extra, duplicate, wrong-key or altered computations refuse before software
+allocation. Make retains those texts independently and emits static firmware
+text as well as the exact acceptance digests. No current identity or authority
+is inferred from that resident data. The convenience `prepare` entrance still
+retains its borrowed assignment through initialization.
+
+The 32-bit proof now drops the received assignment before initialization and
+passes all seven overnight scenarios. Software's own 92,679-byte heap peak is
+unchanged; the separated phases eliminate assignment-buffer overlap when
+firmware actually uses the emitted static texts. CPU fixtures retain owned
+recipe text separately. Neither this lifetime proof nor the ESP32 cross-check
+establishes the complete physical MCU memory closure or a Body start.

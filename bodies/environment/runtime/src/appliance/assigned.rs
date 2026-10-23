@@ -93,16 +93,43 @@ pub struct PreparedAssignedAppliance<V> {
     pub period_ms: u64,
 }
 impl<V: ValueStorage> PreparedAssignedAppliance<V> {
+    /// Convenience path retaining assignment bytes through initialization.
+    /// Constrained callers can use `ValidatedAssignedAppliance` to release them.
     pub fn prepare(
         bytes: &[u8],
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         resident: &ResidentAppliance<'_>,
-        mut values: V,
+        values: V,
+    ) -> Result<Self, NativePreparationRefusal> {
+        ValidatedAssignedAppliance::admit(bytes, maxima, required, resident)?
+            .initialize_with(|computation| computation_text(bytes, computation), values)
+    }
+}
+/// Independently provisioned firmware data, not a received assignment or grant.
+#[derive(Clone, Copy)]
+pub struct ResidentComputation<'a> {
+    pub node: u16,
+    pub key: c::AssignedIdentity,
+    pub text: &'a str,
+}
+/// Owns validated current tables and Source cadence; borrows no assignment bytes.
+/// Admission is not native possession, Body start, authority or memory admission.
+pub struct ValidatedAssignedAppliance {
+    tables: NativeTables,
+    roles: ResidentRoles,
+    computations: [c::AssignedComputationRequirement; NODES - 8],
+    count: u64,
+    period_ms: u64,
+}
+impl ValidatedAssignedAppliance {
+    pub fn admit(
+        bytes: &[u8],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        resident: &ResidentAppliance<'_>,
     ) -> Result<Self, NativePreparationRefusal> {
         use NativePreparationRefusal as E;
-        // Full structural/configuration/computation validation precedes software
-        // initialization. Root supplies current Host/Boot and required effects.
         let tables = NativeTables::prepare(
             bytes,
             maxima,
@@ -111,8 +138,6 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
             &resident.layout,
         )
         .map_err(E::Tables)?;
-        let mut drivers: [Option<ApplianceBack>; NODES] = core::array::from_fn(|_| None);
-        let mut selectors = core::array::from_fn(|_| None);
         let roles = resident.roles;
         let mut occupied = [false; NODES];
         for node in [roles.pulse, roles.tick, roles.trigger, roles.observation]
@@ -143,7 +168,82 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
         validate_roles(bytes, roles)?;
         let count = numeric(bytes, roles.tick, "count")?;
         let period_ms = numeric(bytes, roles.tick, "period-ms")?;
+        u32::try_from(count).map_err(|_| E::Configuration)?;
+        let computations = resident
+            .computations
+            .requirements
+            .try_into()
+            .map_err(|_| E::Roles)?;
+        Ok(Self {
+            tables,
+            roles,
+            computations,
+            count,
+            period_ms,
+        })
+    }
+    /// Root may drop the received assignment before entering this allocating
+    /// phase. Every supplied resident text must match the independently pinned
+    /// inventory admitted above. No missing, extra or duplicate computation is
+    /// accepted, and no software is initialized until that check is complete.
+    pub fn initialize<V: ValueStorage>(
+        self,
+        resident: &[ResidentComputation<'_>],
+        values: V,
+    ) -> Result<PreparedAssignedAppliance<V>, NativePreparationRefusal> {
+        use NativePreparationRefusal as E;
+        if resident.len() != self.computations.len() {
+            return Err(E::Configuration);
+        }
+        for expected in &self.computations {
+            let mut matching = resident
+                .iter()
+                .filter(|text| text.node == expected.node && text.key == expected.key);
+            let text = matching.next().ok_or(E::Configuration)?;
+            if matching.next().is_some() {
+                return Err(E::Configuration);
+            }
+            let key = if expected.key == c::AssignedIdentity::from_text("program") {
+                "program"
+            } else if expected.key == c::AssignedIdentity::from_text("selector") {
+                "selector"
+            } else {
+                return Err(E::Configuration);
+            };
+            if c::AssignedComputationRequirement::from_text(text.node, key, text.text)
+                .map_err(|_| E::Configuration)?
+                != *expected
+            {
+                return Err(E::Configuration);
+            }
+        }
+        self.initialize_with(
+            |expected| {
+                resident
+                    .iter()
+                    .find(|text| text.node == expected.node && text.key == expected.key)
+                    .map(|text| text.text)
+                    .ok_or(E::Configuration)
+            },
+            values,
+        )
+    }
+    fn initialize_with<'a, V: ValueStorage>(
+        self,
+        text: impl Fn(&c::AssignedComputationRequirement) -> Result<&'a str, NativePreparationRefusal>,
+        mut values: V,
+    ) -> Result<PreparedAssignedAppliance<V>, NativePreparationRefusal> {
+        use NativePreparationRefusal as E;
+        let Self {
+            tables,
+            roles,
+            computations,
+            count,
+            period_ms,
+        } = self;
         let maximum = u32::try_from(count).map_err(|_| E::Configuration)?;
+        let mut drivers: [Option<ApplianceBack>; NODES] = core::array::from_fn(|_| None);
+        let mut selectors = core::array::from_fn(|_| None);
         let wait = values
             .store(&c::encode_monotonic_duration(period_ms))
             .map_err(E::Storage)?;
@@ -153,17 +253,15 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
         // codecs/publications do not yet occupy the admission arena. This is
         // preparation ordering only; runtime order remains the admitted tables.
         let mut initialized = [false; NODES];
-        for _ in 0..resident.computations.requirements.len() {
-            let computation = resident
-                .computations
-                .requirements
+        for _ in 0..computations.len() {
+            let computation = computations
                 .iter()
                 .filter(|r| !initialized[usize::from(r.node)])
                 .max_by_key(|r| r.text_bytes)
                 .ok_or(E::Roles)?;
             let node = usize::from(computation.node);
             initialized[node] = true;
-            let text = computation_text(bytes, computation)?;
+            let text = text(computation)?;
             let driver = if computation.key == program_key {
                 let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
                     .map_err(init)?;
@@ -204,7 +302,7 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
         if drivers.iter().any(Option::is_none) {
             return Err(E::Roles);
         }
-        Ok(Self {
+        Ok(PreparedAssignedAppliance {
             tables,
             drivers: drivers.map(|d| d.expect("complete resident role closure")),
             selectors,

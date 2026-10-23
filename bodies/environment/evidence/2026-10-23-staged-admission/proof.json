@@ -1,0 +1,14 @@
+{
+  "proof_class": "32-bit-linux-cpu-kernel-execution",
+  "tests_passed": 14,
+  "make_native_tests_passed": 8,
+  "assignment_dropped_before_software_initialization": true,
+  "admission_allocations": 0,
+  "admission_reallocations": 0,
+  "software_heap_peak": 92679,
+  "software_heap_retained": 92320,
+  "resident_text_provisioning": "emitted static Rust compiled against production dependencies with Cargo",
+  "esp32_native_root_release_cross_check": true,
+  "physical_installation_claimed": false,
+  "complete_mcu_memory_closure_claimed": false
+}

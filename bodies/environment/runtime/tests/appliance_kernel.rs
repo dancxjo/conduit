@@ -165,16 +165,24 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         // The constrained constructor retains no rich Source, Host advertisement,
         // Plan, lowering, software offer catalog or Make image.
         drop((source, host, plan, lowered, software, image, tables));
-        let (prepared, memory) = allocation_probe::observe(|| {
-            conduit_environment_runtime::appliance::assigned::PreparedAssignedAppliance::prepare(
+        let assignment_bytes = projection.bytes.len();
+        let (admitted, admission_memory) = allocation_probe::observe(|| {
+            conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit(
                 &projection.bytes,
                 assignment::NativeProjection::maxima(),
                 projection.required(),
                 &recipe.resident(&projection),
-                values,
             )
             .unwrap()
         });
+        assert_eq!(
+            (admission_memory.allocations, admission_memory.reallocations),
+            (0, 0)
+        );
+        drop(projection);
+        let programs = recipe.programs();
+        let (prepared, memory) =
+            allocation_probe::observe(|| admitted.initialize(&programs, values).unwrap());
         assert_eq!((prepared.count, prepared.period_ms), (count, period_ms));
         assert_eq!(prepared.roles.pulse, pulse_node);
         assert_eq!(prepared.roles.tick, tick_node);
@@ -183,7 +191,7 @@ fn run(scenario: usize, native: bool, overnight: bool) {
             eprintln!(
                 "environment_assigned_storage pointer_bits={} assignment_bytes={} value_backing_bytes={} prepared_object_bytes={}",
                 usize::BITS,
-                projection.bytes.len(),
+                assignment_bytes,
                 prepared.values.reserved_storage_bytes(),
                 core::mem::size_of_val(&prepared),
             );

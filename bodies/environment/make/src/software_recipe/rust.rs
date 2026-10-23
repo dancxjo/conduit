@@ -14,7 +14,7 @@ impl NativeSoftwareRecipe {
             "// Generated Make recipe; acceptance constraints, never authority."
         )?;
         writeln!(out, "use conduit_core as c;")?;
-        writeln!(out, "use conduit_environment_runtime::{{appliance::assigned::{{ResidentAppliance, ResidentRoles}}, assigned::ResidentLayout}};")?;
+        writeln!(out, "use conduit_environment_runtime::{{appliance::assigned::{{ResidentAppliance, ResidentComputation, ResidentRoles}}, assigned::ResidentLayout}};")?;
         writeln!(
             out,
             "static RECORDS: [c::AssignedRecordRequirement; {}] = [",
@@ -37,8 +37,17 @@ impl NativeSoftwareRecipe {
         }
         writeln!(
             out,
-            "];\npub fn resident() -> ResidentAppliance<'static> {{"
+            "];\nstatic TEXTS: [ResidentComputation<'static>; {}] = [",
+            self.texts.len()
         )?;
+        for (node, key, text) in &self.texts {
+            writeln!(out, "ResidentComputation {{ node: {node}, key: c::AssignedIdentity({:?}), text: {text:?} }},", key.0)?;
+        }
+        writeln!(
+            out,
+            "];\npub fn computations() -> &'static [ResidentComputation<'static>] {{ &TEXTS }}"
+        )?;
+        writeln!(out, "pub fn resident() -> ResidentAppliance<'static> {{")?;
         writeln!(
             out,
             "ResidentAppliance {{ layout: ResidentLayout {{ records: &RECORDS, counts: {:?} }},",

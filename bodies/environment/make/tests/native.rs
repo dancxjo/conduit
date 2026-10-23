@@ -143,15 +143,22 @@ fn real_authored_source_is_prepared_against_supplied_offers_without_effects() {
     let assignment = prepared.assignment().to_vec();
     drop((prepared, source, host, _software));
     let values = conduit_kernel::FixedValueStore::<2, 1024>::new(2048).unwrap();
-    let assigned =
-        conduit_environment_runtime::appliance::assigned::PreparedAssignedAppliance::prepare(
+    let (admitted, admission_memory) = allocation_probe::observe(|| {
+        conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit(
             &assignment,
             limits().assignment,
             required,
             &recipe.resident(),
-            values,
         )
-        .unwrap();
+        .unwrap()
+    });
+    assert_eq!(
+        (admission_memory.allocations, admission_memory.reallocations),
+        (0, 0)
+    );
+    drop(assignment);
+    let programs: Vec<_> = recipe.resident_computations().collect();
+    let assigned = admitted.initialize(&programs, values).unwrap();
     assert_eq!((assigned.count, assigned.period_ms), expected_cadence);
     assert_eq!(assigned.tables.nodes, tables.nodes);
     assert_eq!(effects.get(), 0);

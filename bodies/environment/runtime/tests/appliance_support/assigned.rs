@@ -4,6 +4,7 @@ use super::*;
 use conduit_environment_runtime::appliance::assigned::{ResidentAppliance, ResidentRoles};
 pub struct Recipe {
     records: Vec<c::AssignedRecordRequirement>,
+    texts: Vec<(u16, c::AssignedIdentity, String)>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     roles: ResidentRoles,
 }
@@ -48,9 +49,42 @@ impl Recipe {
         counts.copy_from_slice(&projection.bytes[80..80 + c::ASSIGNED_PLAN_COUNT_KINDS]);
         Self {
             records,
+            texts: image
+                .configuration
+                .iter()
+                .filter_map(|entry| {
+                    if !matches!(entry.key.as_str(), "program" | "selector") {
+                        return None;
+                    }
+                    let conduit_embedded_build::GeneratedConfigurationValue::Text(text) =
+                        &entry.value
+                    else {
+                        return None;
+                    };
+                    Some((
+                        entry.node,
+                        c::AssignedIdentity::from_text(&entry.key),
+                        text.clone(),
+                    ))
+                })
+                .collect(),
             counts,
             roles,
         }
+    }
+    pub fn programs(
+        &self,
+    ) -> Vec<conduit_environment_runtime::appliance::assigned::ResidentComputation<'_>> {
+        self.texts
+            .iter()
+            .map(|(node, key, text)| {
+                conduit_environment_runtime::appliance::assigned::ResidentComputation {
+                    node: *node,
+                    key: *key,
+                    text,
+                }
+            })
+            .collect()
     }
     pub fn resident<'a>(
         &'a self,
@@ -150,4 +184,46 @@ fn assigned_preparation_refuses_wrong_root_scope_roles_and_storage_before_effect
     assert!(matches!(result, Err(E::Tables(_))));
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(effects.get(), 0);
+}
+
+#[test]
+fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allocating() {
+    use conduit_environment_runtime::appliance::assigned::{
+        NativePreparationRefusal as E, ValidatedAssignedAppliance,
+    };
+    let source = compile(1, 0).unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let mut software = software(&source);
+    let host = appliance_support::advertisement(&source, &mut software, &ready);
+    let plan = source
+        .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+        .unwrap();
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+    let image = appliance_support::native_image(&plan, &lowered);
+    let projection = assignment::NativeProjection::prepare(&image);
+    let recipe = Recipe::prepare(&plan, &lowered, &image, &projection);
+    for mode in 0..5 {
+        let admitted = ValidatedAssignedAppliance::admit(
+            &projection.bytes,
+            assignment::NativeProjection::maxima(),
+            projection.required(),
+            &recipe.resident(&projection),
+        )
+        .unwrap();
+        let mut texts = recipe.programs();
+        match mode {
+            0 => {
+                texts.pop();
+            }
+            1 => texts[1] = texts[0],
+            2 => texts[0].text = "00",
+            3 => texts[0].node = u16::MAX,
+            _ => texts[0].key = c::AssignedIdentity::from_text("unknown"),
+        }
+        let values = k::FixedValueStore::<1, 8>::new(8).unwrap();
+        let (result, memory) = allocation_probe::observe(|| admitted.initialize(&texts, values));
+        assert!(matches!(result, Err(E::Configuration)));
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        assert_eq!(effects.get(), 0);
+    }
 }

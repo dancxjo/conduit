@@ -4,7 +4,7 @@ mod rust;
 use crate::PreparedNativeAppliance;
 use conduit_core as c;
 use conduit_environment_runtime::{
-    appliance::assigned::{ResidentAppliance, ResidentRoles},
+    appliance::assigned::{ResidentAppliance, ResidentComputation, ResidentRoles},
     assigned::ResidentLayout,
 };
 #[derive(Debug, PartialEq, Eq)]
@@ -16,6 +16,7 @@ pub enum SoftwareRecipeRefusal {
 #[derive(Debug, PartialEq, Eq)]
 pub struct NativeSoftwareRecipe {
     records: Vec<c::AssignedRecordRequirement>,
+    texts: Vec<(u16, c::AssignedIdentity, String)>,
     computations: Vec<c::AssignedComputationRequirement>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     roles: ResidentRoles,
@@ -56,6 +57,26 @@ impl PreparedNativeAppliance {
             .ok_or(E::Capacity)?;
         Ok(NativeSoftwareRecipe {
             records: self.resident_records().to_vec(),
+            texts: self
+                .image()
+                .configuration
+                .iter()
+                .filter_map(|entry| {
+                    if !matches!(entry.key.as_str(), "program" | "selector") {
+                        return None;
+                    }
+                    let conduit_embedded_build::GeneratedConfigurationValue::Text(text) =
+                        &entry.value
+                    else {
+                        return None;
+                    };
+                    Some((
+                        entry.node,
+                        c::AssignedIdentity::from_text(&entry.key),
+                        text.clone(),
+                    ))
+                })
+                .collect(),
             computations: self.computations().to_vec(),
             counts,
             roles,
@@ -65,6 +86,18 @@ impl PreparedNativeAppliance {
     }
 }
 impl NativeSoftwareRecipe {
+    /// Build-side views over independently owned computation data. Firmware can
+    /// instead borrow the static array emitted by `write_resident_rust`.
+    pub fn resident_computations(&self) -> impl ExactSizeIterator<Item = ResidentComputation<'_>> {
+        self.texts
+            .iter()
+            .map(|(node, key, text)| ResidentComputation {
+                node: *node,
+                key: *key,
+                text,
+            })
+    }
+
     /// This independent owned recipe survives dropping rich Make objects. These
     /// digests are compilation constraints, never possession or storage admission.
     pub fn resident(&self) -> ResidentAppliance<'_> {
