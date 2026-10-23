@@ -1,5 +1,6 @@
 //! Initialized software retained before planning, with no native possession.
 use super::*;
+use alloc::{boxed::Box, vec::Vec};
 
 #[derive(PartialEq, Eq)]
 pub(super) struct Construction {
@@ -79,8 +80,8 @@ impl Construction {
 /// Body. Root must separately admit the complete memory/work closure.
 pub struct PreparedResidentSoftware<V> {
     pub(super) construction: Construction,
-    drivers: [ApplianceBack; NODES],
-    selectors: [Option<PreparedCaptureSelector>; NODES],
+    drivers: Box<[Option<ApplianceBack>; NODES]>,
+    selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
     values: V,
 }
 impl<V: ValueStorage> PreparedResidentSoftware<V> {
@@ -147,8 +148,8 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         } = self.construction;
         PreparedAssignedAppliance {
             tables,
-            drivers: self.drivers,
-            selectors: self.selectors,
+            drivers: (*self.drivers).map(|d| d.expect("complete resident role closure")),
+            selectors: *self.selectors,
             values: self.values,
             roles,
             count,
@@ -172,11 +173,13 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         } = &construction;
         let (roles, computations, count, period_ms) = (*roles, computations, *count, *period_ms);
         let maximum = u32::try_from(count).map_err(|_| E::Configuration)?;
-        let mut drivers: [Option<ApplianceBack>; NODES] = core::array::from_fn(|_| None);
-        let mut selectors = core::array::from_fn(|_| None);
         let wait = values
             .store(&c::encode_monotonic_duration(period_ms))
             .map_err(E::Storage)?;
+        // Fixed preparation backing lives in the admitted heap, not beneath the
+        // recursive program/type decoder on a constrained target's stack.
+        let mut drivers = empty_slots::<ApplianceBack, NODES>();
+        let mut selectors = empty_slots::<PreparedCaptureSelector, NODES>();
         let program_key = c::AssignedIdentity::from_text("program");
         let selector_key = c::AssignedIdentity::from_text("selector");
         // Prepare the largest temporary evaluator first, while other retained
@@ -239,7 +242,7 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         }
         Ok(Self {
             construction,
-            drivers: drivers.map(|d| d.expect("complete resident role closure")),
+            drivers,
             selectors,
             values,
         })
@@ -280,4 +283,13 @@ pub(super) fn validate_texts(
         }
     }
     Ok(())
+}
+
+/// Build exactly N empty slots without a stack-sized array temporary.
+fn empty_slots<T, const N: usize>() -> Box<[Option<T>; N]> {
+    let slots: Vec<Option<T>> = (0..N).map(|_| None).collect();
+    match slots.into_boxed_slice().try_into() {
+        Ok(slots) => slots,
+        Err(_) => unreachable!("fixed resident slot count"),
+    }
 }
