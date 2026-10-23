@@ -46,9 +46,20 @@ pub(super) fn initial(
                         .map_err(|_| super::WorksetRefusal::Plan)?;
                     targets[index] = Some(Target {
                         graph,
-                        plan: planned.plan.plan_id.clone(),
+                        plan: Some(planned.plan.plan_id.clone()),
                         body: prepared.plan.plan_id.clone(),
                     });
+                }
+                // Reuse an unused finite inspection slot after the first planned
+                // target. Target indices are inventory positions, not Body slots.
+                // Profiles without such a position retain their resident inventory.
+                if let Some(first) = targets.iter().position(Option::is_some)
+                    && let Some(index) = targets.iter().rposition(Option::is_none)
+                    && index > first
+                {
+                    targets[index] = Some(super::inspection_sources::vision(
+                        prepared.plan.plan_id.clone(),
+                    )?);
                 }
                 Initial::Patchbay {
                     targets,
@@ -161,9 +172,16 @@ mod tests {
             conduit_body::BodyBiographyEvidence::born(born, membership, "Test Body".into())
                 .unwrap();
         let initial = initial(&prepared, Some(&evidence)).unwrap();
+        let Some(conduitos_application_core::data::Initial::Patchbay {
+            targets: inventory, ..
+        }) = &initial[index]
+        else {
+            panic!("Patchbay inventory");
+        };
+        let admitted = inventory.each_ref().map(Option::is_some);
         let mut targets = conduitos_application_core::models::Models::new(initial).unwrap();
-        for target in 0..super::super::NATIVE_PLOT_CAPACITY {
-            if target == index {
+        for (target, present) in admitted.into_iter().enumerate() {
+            if !present {
                 continue;
             }
             targets.select(index, target).unwrap();

@@ -3,6 +3,7 @@ use super::*;
 
 enum Selection<'a> {
     Ordinary,
+    OrdinaryCollection,
     Owner(&'a RemoteOwnerMaskRouteSeal),
     Creche(
         conduit_face::CrecheComponentRecipe,
@@ -30,6 +31,41 @@ impl NativeFaceMask {
             surface_id,
             provider,
             None,
+        )
+    }
+
+    /// Select the existing Collection forwarding and Mask storage before Play.
+    /// This does not enlarge Standard/owner/Crèche profiles or infer capacity
+    /// from incoming Face data. The caller admits this workspace explicitly.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prepare_collection(
+        host_id: HostId,
+        boot_id: BootId,
+        offer_generation: OfferGeneration,
+        build_id: &str,
+        display_base_id: HostBaseId,
+        surface_id: &str,
+        provider: &NativeSurfaceProvider,
+    ) -> Result<Self, NativeFaceMaskError> {
+        if display_base_id != provider.entry.base_id
+            || provider.entry.provider_generation == 0
+            || provider.entry.lifecycle != conduit_core::BaseLifecycle::Ready
+            || !provider.entry.resources.iter().any(|resource| {
+                resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS
+                    && resource.capacity_units > 0
+            })
+        {
+            return Err(NativeFaceMaskError::Plan);
+        }
+        Self::prepare_selected(
+            host_id,
+            boot_id,
+            offer_generation,
+            build_id,
+            display_base_id,
+            surface_id,
+            provider,
+            Selection::OrdinaryCollection,
         )
     }
 
@@ -118,7 +154,8 @@ impl NativeFaceMask {
         provider: &NativeSurfaceProvider,
         selection: Selection<'_>,
     ) -> Result<Self, NativeFaceMaskError> {
-        let producer = NativeFaceSnapshotProducer::prepare(
+        let producer = producer::Producer::prepare(
+            matches!(&selection, Selection::OrdinaryCollection),
             host_id.clone(),
             boot_id.clone(),
             offer_generation,
@@ -176,6 +213,16 @@ impl NativeFaceMask {
                     .map_err(|_| NativeFaceMaskError::Plan)?;
                 component_configuration = Some(configuration);
                 stage
+            }
+            Selection::OrdinaryCollection => {
+                let offer = conduit_conduitos_mask_offer::collection_native_host_advertisement(
+                    &host_id,
+                    &boot_id,
+                    offer_generation.0,
+                    &provider.entry,
+                );
+                conduit_conduitos_mask_offer::prepare_collection_stage_from_offer(&offer)
+                    .map_err(|_| NativeFaceMaskError::Plan)?
             }
             Selection::Ordinary => prepare_stage(
                 Adapter::Native,
