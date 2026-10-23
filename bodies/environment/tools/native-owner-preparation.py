@@ -34,8 +34,14 @@ def read_ingress(count):
     return incoming
 
 
+# Root may finish one admitted 15-second network attempt and five-second
+# restoration before returning to management. This is an observation window;
+# it changes no provider deadline, admitted work or retry policy.
+ROOT_EVENT_SECONDS = 30
+
+
 def event(name):
-    deadline = time.monotonic() + 12
+    deadline = time.monotonic() + ROOT_EVENT_SECONDS
     while time.monotonic() < deadline:
         pending.extend(read_ingress(min(8192, max(1, port.in_waiting))))
         if len(pending) > 65536:
