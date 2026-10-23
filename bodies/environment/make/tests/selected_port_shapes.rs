@@ -11,10 +11,35 @@ mod possession;
 #[test]
 fn source_sink_and_single_pair_shapes_bind_exactly() {
     for (inputs, outputs) in [(0, 0), (0, 1), (1, 0), (1, 1), (2, 1), (1, 2)] {
-        check(inputs, outputs);
+        check(inputs, outputs, vec![]);
     }
 }
-fn check(inputs: usize, outputs: usize) {
+#[test]
+fn assigned_configuration_matches_independent_source_exactly() {
+    check(
+        1,
+        1,
+        vec![
+            c::ConfigurationEntry {
+                key: "a".into(),
+                value: c::ConfigurationValue::Bool(true),
+            },
+            c::ConfigurationEntry {
+                key: "b".into(),
+                value: c::ConfigurationValue::I64(-4),
+            },
+            c::ConfigurationEntry {
+                key: "c".into(),
+                value: c::ConfigurationValue::U64(250),
+            },
+            c::ConfigurationEntry {
+                key: "d".into(),
+                value: c::ConfigurationValue::Text("fixture".into()),
+            },
+        ],
+    );
+}
+fn check(inputs: usize, outputs: usize, configuration: Vec<c::ConfigurationEntry>) {
     let ports = |count, direction| {
         (0..count)
             .map(|i| c::PortDescriptor {
@@ -42,8 +67,17 @@ fn check(inputs: usize, outputs: usize) {
         },
     };
     let mut scope = possession::scope(kind.kind_id.as_str());
-    let (fragment, lowered, active, placement) =
+    let (mut fragment, _, _, placement) =
         fixture::selected(&scope, &kind, "call/join", 256, "radio", "join");
+    fragment.placements[0].configuration = configuration.clone();
+    let identity = c::PlotIdentity {
+        source_document_id: fragment.source_document_id.clone(),
+        checked_plot_id: fragment.checked_plot_id.clone(),
+        expanded_plot_id: fragment.expanded_plot_id.clone(),
+    };
+    let fragment = c::seal_plan(identity, vec![fragment]).fragments.remove(0);
+    let lowered = conduit_plan_lowering::lowering::lower_plan_fragment(&fragment).unwrap();
+    let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 0);
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let (table, _handle, claim) = possession::possession(scope);
@@ -58,7 +92,7 @@ fn check(inputs: usize, outputs: usize) {
             maximum_host_calls: 1,
             maximum_resources: 1,
             maximum_sign_expectations: 16,
-            maximum_configuration_entries: 0,
+            maximum_configuration_entries: 4,
             maximum_ports_per_node: 8,
             maximum_remote_endpoints: 0,
             maximum_cord_value_slots: 1,
@@ -84,10 +118,11 @@ fn check(inputs: usize, outputs: usize) {
         output_bytes: 256,
         resource_bytes: 1,
     };
-    let rich = bind_selected_operation(
+    let rich = bind_selected_configured_operation(
         &table,
         &claim,
         definition(),
+        &configuration,
         SelectedOperationPlan {
             fragment: &fragment,
             lowered: &lowered,
@@ -124,8 +159,14 @@ fn check(inputs: usize, outputs: usize) {
         active: &active,
         node: lowered.nodes[0].node,
     };
-    let assigned =
-        bind_selected_assigned_operation(&table, &claim, definition(), native(), selected());
+    let assigned = bind_selected_assigned_configured_operation(
+        &table,
+        &claim,
+        definition(),
+        &configuration,
+        native(),
+        selected(),
+    );
     let expected = if inputs <= 1 && outputs <= 1 {
         Ok(lowered.nodes[0].node)
     } else {
@@ -133,6 +174,54 @@ fn check(inputs: usize, outputs: usize) {
     };
     assert_eq!(rich, expected);
     assert_eq!(assigned, expected);
+    if !configuration.is_empty() {
+        assert_eq!(
+            bind_selected_assigned_operation(&table, &claim, definition(), native(), selected()),
+            Err(SelectedCallRefusal::WrongBinding)
+        );
+        for index in 0..configuration.len() {
+            let mut changed = configuration.clone();
+            changed[index].value = c::ConfigurationValue::U64(999);
+            assert_eq!(
+                bind_selected_assigned_configured_operation(
+                    &table,
+                    &claim,
+                    definition(),
+                    &changed,
+                    native(),
+                    selected()
+                ),
+                Err(SelectedCallRefusal::WrongBinding)
+            );
+        }
+        let mut missing = configuration.clone();
+        missing.pop();
+        assert_eq!(
+            bind_selected_assigned_configured_operation(
+                &table,
+                &claim,
+                definition(),
+                &missing,
+                native(),
+                selected()
+            ),
+            Err(SelectedCallRefusal::WrongBinding)
+        );
+        let mut reordered = configuration.clone();
+        reordered.reverse();
+        assert_eq!(
+            bind_selected_assigned_configured_operation(
+                &table,
+                &claim,
+                definition(),
+                &reordered,
+                native(),
+                selected()
+            ),
+            Err(SelectedCallRefusal::WrongBinding)
+        );
+    }
+
     // Trusted implementation shape cannot be substituted by the Plan, even
     // when the caller retains the same semantic Kind identity and possession.
     let mut wrong_kind = kind.clone();

@@ -3,6 +3,8 @@
 use crate::selected_operation::{
     matching_scope, SelectedCallRefusal as E, SelectedOperationContract,
 };
+#[path = "assigned_configuration.rs"]
+mod configuration_check;
 use conduit_core as c;
 use conduit_kernel::{NodeId, PortId};
 
@@ -52,6 +54,40 @@ pub fn bind_selected_assigned_operation_for_subject(
     native: AssignedNativeIdentity<'_>,
     selected: SelectedAssignedOperationPlan<'_>,
 ) -> Result<NodeId, E> {
+    bind_configured_for_subject(table, claim, definition, subject, &[], native, selected)
+}
+
+/// Check configuration against independently retained checked Source facts.
+/// Incoming assigned bytes cannot supply their own expected configuration.
+pub fn bind_selected_assigned_configured_operation(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedOperationPlan<'_>,
+) -> Result<NodeId, E> {
+    let subject = &definition.kind.kind_id;
+    bind_configured_for_subject(
+        table,
+        claim,
+        definition,
+        subject,
+        configuration,
+        native,
+        selected,
+    )
+}
+
+fn bind_configured_for_subject(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    definition: SelectedOperationContract<'_>,
+    subject: &c::KindId,
+    configuration: &[c::ConfigurationEntry],
+    native: AssignedNativeIdentity<'_>,
+    selected: SelectedAssignedOperationPlan<'_>,
+) -> Result<NodeId, E> {
     let wrong = || E::WrongBinding;
     let id = c::AssignedIdentity::from_text;
     if selected.bytes.get(8..10) != Some(c::ASSIGNED_NATIVE_PLAN_SCHEMA.to_le_bytes().as_slice()) {
@@ -79,6 +115,7 @@ pub fn bind_selected_assigned_operation_for_subject(
     {
         return Err(wrong());
     }
+    configuration_check::check(selected.bytes, selected.node, configuration)?;
     let scope = matching_scope(table, claim)?;
     if scope.capability_id.as_str() != native.capability
         || scope.authority_contract_id.as_str() != native.authority
