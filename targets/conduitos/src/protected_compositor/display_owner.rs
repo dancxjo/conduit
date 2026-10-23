@@ -11,6 +11,8 @@ use crate::{display::DisplayError, protected_region::DomainCost};
 use alloc::{rc::Rc, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
 use sha2::{Digest, Sha256};
+#[path = "lifecycle_emission.rs"]
+mod lifecycle_emission;
 
 pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
 pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
@@ -44,6 +46,8 @@ pub(crate) struct DisplayOwner {
     report: PreparationReport,
     grant: SharedDisplayGrant,
     guest_image_sha256: [u8; 32],
+    observation_make: Option<crate::make::MakeRecord>,
+    observation_seen: u8,
     staging_preparation_raw_ticks: Option<u64>,
     preparation_raw_ticks: Option<u64>,
     disposal_raw_ticks: Option<u64>,
@@ -105,6 +109,8 @@ impl DisplayOwner {
             report,
             grant,
             guest_image_sha256,
+            observation_make: None,
+            observation_seen: 0,
             staging_preparation_raw_ticks: super::lifecycle::elapsed(
                 staging_started,
                 staging_finished,

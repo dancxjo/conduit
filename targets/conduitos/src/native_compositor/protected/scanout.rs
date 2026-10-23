@@ -8,6 +8,14 @@ impl NativeCompositor {
         &mut self,
         target: &mut impl PixelTarget,
     ) -> Result<FrameReceipt, NativeCompositorError> {
+        let result = self.compose_frame_inner(target);
+        self.complete_lifecycle_observation(result.is_ok());
+        result
+    }
+    fn compose_frame_inner(
+        &mut self,
+        target: &mut impl PixelTarget,
+    ) -> Result<FrameReceipt, NativeCompositorError> {
         self.invalidate();
         let ordinal = self
             .frame_sequence

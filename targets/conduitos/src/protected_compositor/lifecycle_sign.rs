@@ -17,6 +17,16 @@ pub(crate) enum Checkpoint {
     FirstCreche,
     PlayingHub,
 }
+impl Checkpoint {
+    pub(crate) const fn ordinal(self) -> u64 {
+        match self {
+            Self::Prepared => 0,
+            Self::InitialHub => 1,
+            Self::FirstCreche => 2,
+            Self::PlayingHub => 3,
+        }
+    }
+}
 
 /// Correlation to existing validated-copy/guest-ACK telemetry, not scanout authority.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
@@ -237,18 +247,42 @@ pub(crate) fn encode(snapshot: &Snapshot<'_>, buffer: &mut [u8; CAPACITY]) -> En
             };
         }
     }
+    encode_failure(
+        snapshot.position,
+        snapshot.stage,
+        if overflowed {
+            "counter-overflow"
+        } else {
+            "record-capacity-or-serialization"
+        },
+        buffer,
+    )
+}
+
+/// A selected route returned without an actual qualifying ACK. Receipt loss
+/// is explicit and must never change the product operation's result.
+pub(crate) fn encode_missing_ack(position: Position, buffer: &mut [u8; CAPACITY]) -> Encoded {
+    encode_failure(
+        position,
+        Stage::Activation,
+        "missing-ack-or-route-refused",
+        buffer,
+    )
+}
+fn encode_failure(
+    position: Position,
+    stage: Stage,
+    reason: &'static str,
+    buffer: &mut [u8; CAPACITY],
+) -> Encoded {
     buffer.fill(0);
     let record = Incomplete {
         record_kind: RecordKind::Incomplete,
         schema: SCHEMA,
         complete: false,
-        position: snapshot.position,
-        stage: snapshot.stage,
-        reason: if overflowed {
-            "counter-overflow"
-        } else {
-            "record-capacity-or-serialization"
-        },
+        position,
+        stage,
+        reason,
     };
     // All fallback fields are closed enums/integers/static strings; tests cover
     // maximum values. Keep a static valid marker even if the serializer changes.

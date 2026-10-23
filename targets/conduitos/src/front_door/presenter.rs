@@ -315,6 +315,10 @@ impl FrontDoorPresenter {
     }
 }
 
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+#[path = "presenter/lifecycle_evidence.rs"]
+mod lifecycle_evidence;
+
 #[cfg(test)]
 mod tests {
     use conduit_core::{CheckedPlotId, SourceDocumentId};
