@@ -27,8 +27,12 @@ test.afterEach(async ({}, testInfo) => {
   state.entrance?.child.kill();
   const results = await Promise.allSettled([state.retire()]);
   const diagnostics = testInfo.outputPath("encounter-preparation.json");
-  await writeFile(diagnostics, JSON.stringify({ fixture: import.meta.url, source_sha256: fixtureSources, timeout_ms: testInfo.timeout,
-    elapsed_ms: performance.now() - state.started, records: state.records }, null, 2));
+  const record = { fixture: import.meta.url, source_sha256: fixtureSources, timeout_ms: testInfo.timeout,
+    elapsed_ms: performance.now() - state.started, records: state.records };
+  await writeFile(diagnostics, JSON.stringify(record, null, 2));
+  // Successful CI does not upload test-results; retain finite phase timings in its log too.
+  console.log(`CONDUIT_ENCOUNTER_PREPARATION ${JSON.stringify({ ...record,
+    records: state.records.map(({ output, ...phase }) => phase) })}`);
   await testInfo.attach("encounter-preparation", { contentType: "application/json", path: diagnostics });
   const errors = results.filter(result => result.status === "rejected").map(result => result.reason);
   if (errors.length) throw new AggregateError([...(testInfo.error ? [testInfo.error] : []), ...errors], "Encounter cleanup failed");

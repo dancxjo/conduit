@@ -12,7 +12,9 @@ actual Host/rendezvous processes and all admission assertions stay unchanged.
 Late readiness refuses even if its timer callback has not yet run. Each phase
 records elapsed time and outcome; process diagnostics retain PID, exit/signal
 and at most 16 KiB of combined output with explicit truncation. Successful and
-failed runs retain the JSON record and hashes of the actual fixture helpers.
+failed runs retain the on-disk JSON record and hashes of the actual fixture
+helpers. A bounded summary without raw process output also reaches the CI log,
+since successful runs do not upload the test-results directory.
 
 Per-test ownership retires synchronously, cancels browser preparation, joins
 pending preparation and late cleanup, and prevents a late Host spawn. Cleanup
