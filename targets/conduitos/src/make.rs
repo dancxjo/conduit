@@ -203,11 +203,11 @@ impl MakeRecord {
             || (matches!(
                 self.target,
                 "conduitos/ia32/pc"
-                    | "conduitos/aarch64/virt"
                     | "conduitos/riscv64/virt"
                     | "conduitos/loongarch64/virt"
                     | "conduitos/aarch64/orange-pi-5-rk3588s"
             ) && (native || !linear))
+            || (self.target == "conduitos/aarch64/virt" && native == linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
         {
             return Err(MakeError::UnknownInventory);
@@ -395,7 +395,39 @@ mod tests {
     }
 
     #[test]
-    fn aarch64_requires_only_the_linear_serial_closure() {
+    fn aarch64_graphical_requires_one_complete_native_closure() {
+        let graphical = MakeRecord {
+            target: "conduitos/aarch64/virt",
+            implementations: IMPL_TIME_TICK
+                | IMPL_TICK_FACE
+                | IMPL_TEXT_LITERAL
+                | IMPL_TEXT_UPPER
+                | IMPL_TEXT_FACE
+                | IMPL_NATIVE_PRESENTER
+                | IMPL_USB_TRANSPORT,
+            ..record()
+        };
+        assert_eq!(graphical.validate(1), Ok(()));
+        for malformed in [
+            MakeRecord {
+                implementations: graphical.implementations | IMPL_LINEAR_PRESENTER,
+                ..graphical
+            },
+            MakeRecord {
+                drivers: DRIVER_PL011_SERIAL,
+                ..graphical
+            },
+            MakeRecord {
+                face_surface_bytes: 0,
+                ..graphical
+            },
+        ] {
+            assert_eq!(malformed.validate(1), Err(MakeError::UnknownInventory));
+        }
+    }
+
+    #[test]
+    fn aarch64_linear_closure_remains_distinct_from_graphical() {
         let x86 = record();
         let record = MakeRecord {
             target: "conduitos/aarch64/virt",

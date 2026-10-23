@@ -5,7 +5,7 @@ use conduit_host_make::{
 
 use super::*;
 
-fn manifest(source: &str) -> BuildManifest {
+pub(super) fn manifest(source: &str) -> BuildManifest {
     let profile: HostProfile = if source.trim_start().starts_with("host ") {
         check_host_configuration(
             parse_host_configuration_conduit(source).unwrap(),
