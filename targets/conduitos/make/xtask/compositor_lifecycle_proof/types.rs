@@ -1,4 +1,5 @@
 //! Wire types: even nullable fields are required, and unknown fields refuse.
+use super::std::{string::String, vec::Vec};
 use serde::{Deserialize, Deserializer};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -135,18 +136,55 @@ pub struct Snapshot {
     pub disposal_raw_ticks: Nullable<u64>,
 }
 #[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub(super) enum Packet {
+    Snapshot(SnapshotRecord),
+    Incomplete(IncompleteRecord),
+    Emergency(EmergencyRecord),
+}
+#[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub(super) struct Record {
-    pub record_kind: RecordKind,
+pub(super) struct SnapshotRecord {
+    pub record_kind: SnapshotKind,
     pub schema: String,
     pub complete: bool,
     pub snapshot: Snapshot,
 }
-#[derive(Debug, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize)]
 #[serde(rename_all = "kebab-case")]
-pub(super) enum RecordKind {
+pub(super) enum SnapshotKind {
     Snapshot,
+}
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub(super) enum IncompleteKind {
     Incomplete,
+}
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum IncompleteReason {
+    CounterOverflow,
+    RecordCapacityOrSerialization,
+    IncompleteMarkerSerialization,
+    MissingAckOrRouteRefused,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct IncompleteRecord {
+    pub record_kind: IncompleteKind,
+    pub schema: String,
+    pub complete: bool,
+    pub position: Position,
+    pub stage: Stage,
+    pub reason: IncompleteReason,
+}
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct EmergencyRecord {
+    pub record_kind: IncompleteKind,
+    pub schema: String,
+    pub complete: bool,
+    pub reason: IncompleteReason,
 }
 
 /// Caller-provided expected values. This module never reads or verifies artifacts.
@@ -166,7 +204,7 @@ pub enum Refusal {
     Truncated,
     Malformed,
     UnknownSchema,
-    Incomplete,
+    Incomplete(IncompleteReason),
     RecordCount,
     BatchShape,
     Scope,

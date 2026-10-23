@@ -109,6 +109,11 @@ fn refuses(records: &[Value]) {
 #[test]
 fn complete_selected_batches_join_real_frame_tuples_without_claiming_artifact_custody() {
     let report = proof::parse_terminal(&lines(&fixture()), &expected()).unwrap();
+    assert!(proof::preparation_context(&lines(&fixture()))
+        .unwrap()
+        .ack
+        .0
+        .is_none());
     assert_eq!(report.instance, 9);
     assert_eq!(report.lifecycle_records, 23);
     assert_eq!(report.checkpoints.len(), 4);
@@ -283,4 +288,24 @@ fn counter_reversal_and_false_success_refuse_without_conflating_gauges() {
     r[6]["snapshot"]["cost"]["setup_ticks"] = json!(999);
     r[7]["snapshot"]["cost"]["setup_ticks"] = json!(1);
     assert!(proof::parse_terminal(&lines(&r), &expected()).is_ok());
+}
+
+#[test]
+fn actual_encoder_emergency_wire_shape_refuses_with_retained_reason() {
+    // Exact static FALLBACK bytes from lifecycle_sign::encode, whose serializer
+    // fallback branch is otherwise not triggerable by valid bounded metadata.
+    let marker = concat!(
+        "CONDUIT_COMPOSITOR_LIFECYCLE ",
+        "{\"record_kind\":\"incomplete\",\"schema\":\"conduit.conduitos/compositor-lifecycle@1\",",
+        "\"complete\":false,\"reason\":\"incomplete-marker-serialization\"}\n"
+    );
+    assert_eq!(
+        proof::parse_terminal(marker, &expected()).unwrap_err(),
+        Refusal::Incomplete(proof::IncompleteReason::IncompleteMarkerSerialization)
+    );
+    let missing_details = marker.replace("incomplete-marker-serialization", "counter-overflow");
+    assert_eq!(
+        proof::parse_terminal(&missing_details, &expected()).unwrap_err(),
+        Refusal::Malformed
+    );
 }
