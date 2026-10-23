@@ -1,0 +1,7 @@
+{
+  "source": "ac7a81572",
+  "command": "rustc --test standalone internal extractor diagnostic",
+  "result": "3 failed 0 passed: fixture copy_from_slice source18 destination17 at embedded.rs:183",
+  "actual_retained_baseline_extraction": "29256 bytes SHA256 f673730b2ae11b69064d591d5d6537443f0d2230e08ad95d30739adcc44e5c3e",
+  "claim": "Historical baseline artifact diagnostic; no new native execution"
+}

@@ -1,0 +1,96 @@
+{
+  "source": "ab4864bfbf4f5bf2cabf60c6d314b4f32ba43c16",
+  "status": "completed",
+  "started": 1792754687.5015092,
+  "commands": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "native-compositor",
+        "compositor_",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "started": 1792754687.5262485,
+      "status": "completed",
+      "exit_code": 0,
+      "finished": 1792754707.31396,
+      "log_sha256": "83c6057d62115b486282077b20cd4919e257e6f790665063faec55b2570f053a",
+      "passed_tests": 48,
+      "retained_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-combined-hosted-ab4864bfb/conduitos-e4c0d8a30ad94180",
+          "sha256": "3681963f762ba1ea3569caeb0fd79e4fd6656c41805fa4a1594fa7098af9df72"
+        }
+      ]
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "--test",
+        "compositor_lifecycle_proof",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "started": 1792754707.63601,
+      "status": "completed",
+      "exit_code": 0,
+      "finished": 1792755003.220091,
+      "log_sha256": "b2e3b8351eac5ff43fc878059750434f1bc979372cf0565a3260196027bd3d56",
+      "passed_tests": 9,
+      "retained_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-combined-hosted-ab4864bfb/compositor_lifecycle_proof-54225a34299a3cc7",
+          "sha256": "d53c42c5425390bef4d4a80164e5316db3157c6392f268fdbd48e0415996653e"
+        }
+      ]
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "--bin",
+        "xtask",
+        "compositor_lifecycle_collection::embedded::tests",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "started": 1792755003.2526882,
+      "status": "completed",
+      "exit_code": 0,
+      "finished": 1792755021.272219,
+      "log_sha256": "7337a0e5cabf6b365ec33b832253033ee132d8e61398da693a6c7bf7cf178077",
+      "passed_tests": 3,
+      "retained_executables": [
+        {
+          "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-combined-hosted-ab4864bfb/xtask-e0cb80f6b5d49743",
+          "sha256": "e8394f600749d00dd2c7d44eadd93f4ea9abb64fdd57fbde7a93d42fd581d400"
+        }
+      ]
+    }
+  ],
+  "attempts_per_command": 1,
+  "scope": "Combined hosted actual encoder/parser conformance plus owning-module checks; no native execution claim",
+  "exit_code": 0,
+  "finished": 1792755021.5603957,
+  "clean_after": true
+}

@@ -1,0 +1,57 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 19.68s
+     Running unittests src/lib.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/conduitos-e4c0d8a30ad94180)
+
+running 49 tests
+test compositor_display_grant_tests::recovery_tests::fresh_identity_allocations_fragment_released_staging_but_shared_custody_does_not ... ok
+test compositor_display_grant_tests::recovery_tests::shared_grant_retains_exact_scope_without_refreshing_replaced_provider ... ok
+test compositor_display_grant_tests::tests::exact_host_boot_generation_and_display_are_required ... ok
+test compositor_display_grant_tests::tests::scanout_format_changes_require_new_admission ... ok
+test compositor_frame_grant_tests::tests::coverage_and_selection_are_bounded_but_fully_obscured_selection_is_valid ... ok
+test compositor_frame_grant_tests::tests::descriptor_refuses_empty_overlapping_outside_unused_and_overflow_before_effects ... ok
+test compositor_frame_grant_tests::tests::exact_rectangles_rows_and_completion_are_required ... ok
+test compositor_frame_grant_tests::tests::stale_sequence_and_invalid_window_do_not_advance_progress ... ok
+test compositor_raster_staging_tests::tests::actual_typography_blending_matches_existing_surface_buffer_without_allocation ... ok
+test compositor_raster_staging_tests::tests::exact_admission_and_invalid_extents_refuse_before_effects ... ok
+test compositor_raster_staging_tests::tests::lease_cleanup_runs_after_error_and_successive_extents_start_clear ... ok
+test compositor_raster_staging_tests::tests::row_bounds_and_atomic_spans_preserve_prior_pixels ... ok
+test compositor_raster_staging_tests::tests::staging_and_upload_chunks_allocate_nothing_after_admission ... ok
+test compositor_session_owner_tests::focused_query_tests::logical_focus_query_refuses_foreign_handles_even_without_keyboard_route ... ok
+test compositor_session_owner_tests::frame_failures::duplicate_completed_reply_cannot_reopen_frame_or_replay_prior_ack ... ok
+test compositor_session_owner_tests::frame_failures::malformed_completion_or_exhausted_output_fences_prior_ack_before_callback ... ok
+test compositor_session_owner_tests::lifecycle::sign::conformance_tests::actual_encoder_complete_batches_join_existing_ack_telemetry ... ok
+test compositor_session_owner_tests::lifecycle::sign::conformance_tests::actual_encoder_overflow_and_capacity_markers_retain_distinct_refusals ... ok
+test compositor_session_owner_tests::lifecycle::sign::conformance_tests::actual_product_missing_ack_encoder_is_a_distinct_incomplete_packet ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::growing_escaped_identity_never_exposes_a_truncated_record ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::guest_image_digest_retains_every_borrowed_byte_without_hex_allocation ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::maximum_numeric_cost_fields_and_escaped_identity_are_lossless ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::missing_samples_cost_and_ticks_remain_explicit_null_for_every_closed_kind ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::named_checkpoint_and_actual_ack_projection_are_explicit_and_lossless ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::oversized_identity_and_counter_overflow_emit_only_complete_incomplete_marker ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::prepared_record_and_incomplete_paths_make_no_heap_allocation_calls ... ok
+test compositor_session_owner_tests::lifecycle::sign::tests::selected_route_without_ack_is_explicit_incomplete_evidence ... ok
+test compositor_session_owner_tests::lifecycle::tests::absent_and_reverse_clocks_are_not_zero_measurements ... ok
+test compositor_session_owner_tests::lifecycle::tests::installation_does_not_invent_requests_or_disposal ... ok
+test compositor_session_owner_tests::lifecycle::tests::overflow_is_explicit_and_keeps_last_sample_without_wrapping ... ok
+test compositor_session_owner_tests::tests::advisory_routes_and_coverage_must_belong_to_active_handle_map ... ok
+test compositor_session_owner_tests::tests::exhaustion_and_capacity_refuse_before_retirement_or_guest_effects ... ok
+test compositor_session_owner_tests::tests::foreign_instance_and_inactive_upload_or_frame_refuse_before_effects ... ok
+test compositor_session_owner_tests::tests::handoff::withdrawn_commons_creche_birth_handoff_mints_fresh_session_without_replaying_handles ... ok
+test compositor_session_owner_tests::tests::handoff::withdrawn_handoff_failure_is_terminal_and_cannot_retry_uncertain_effects ... ok
+test compositor_session_owner_tests::tests::handoff::withdrawn_handoff_never_wraps_namespace_generation ... ok
+test compositor_session_owner_tests::tests::handoff::withdrawn_handoff_refuses_live_surfaces_without_retiring_or_sending_commands ... ok
+test compositor_session_owner_tests::tests::initial_and_later_activation_reset_cursor_and_full_frame_before_publication ... ok
+test compositor_session_owner_tests::tests::lifecycle::failed_activation_remains_terminal_without_observer_retry ... ok
+test compositor_session_owner_tests::tests::lifecycle::retained_activation_records_same_instance_and_only_actual_reset_entries ... ok
+test compositor_session_owner_tests::tests::one_service_slot_is_reused_with_fresh_namespace_and_stale_fences ... ok
+test compositor_session_owner_tests::tests::reset_failures_or_refusals_quarantine_without_namespace_publication_or_retry ... ok
+test compositor_session_owner_tests::tests::retirement_failure_quarantines_and_never_retries_or_reinstalls ... ok
+test compositor_session_owner_tests::tests::retirement_refusal_is_not_ignored_and_request_failure_is_terminal ... ok
+test compositor_session_owner_tests::tests::selected_but_fully_obscured_foreign_surface_cannot_escape_handle_fence ... ok
+test compositor_session_owner_tests::tests::upload_and_scoped_frame_borrow_use_single_admitted_service_without_escape ... ok
+test native_compositor::frame_composition::differential::span_compositor_performance ... ignored, manual optimized compositor performance observation
+test native_face_mask::tests::compositor_refusal_keeps_its_specific_machine_reason ... ok
+test service_memory::tests::compositor_admits_larger_immutable_image_without_widening_text_contract ... ok
+
+test result: ok. 48 passed; 0 failed; 1 ignored; 0 measured; 1314 filtered out; finished in 0.06s
+

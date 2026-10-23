@@ -1,0 +1,23 @@
+
+running 9 tests
+test actual_encoder_emergency_wire_shape_refuses_with_retained_reason ... ok
+test all_required_nullable_fields_refuse_omission_but_accept_explicit_null ... 
+thread 'all_required_nullable_fields_refuse_omission_but_accept_explicit_null' (2590011) panicked at /home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-integration/tools/xtask/tests/compositor_lifecycle_proof.rs:107:5:
+assertion failed: proof::parse_terminal(&lines(records), &expected()).is_err()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+test complete_selected_batches_join_real_frame_tuples_without_claiming_artifact_custody ... ok
+test counter_reversal_and_false_success_refuse_without_conflating_gauges ... ok
+test foreign_scope_image_and_disposal_cannot_satisfy_normal_proof ... ok
+test missing_duplicate_reordered_or_wrong_shape_records_refuse ... ok
+test real_ack_requires_unique_preceding_exact_tuple_and_matching_cost ... ok
+test terminal_partial_required_line_oversize_and_record_flood_refuse ... ok
+test unknown_duplicate_json_fields_and_numeric_overflow_refuse ... ok
+
+failures:
+
+failures:
+    all_required_nullable_fields_refuse_omission_but_accept_explicit_null
+
+test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

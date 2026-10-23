@@ -1,0 +1,7 @@
+# Combined hosted compositor lifecycle proof
+
+At clean source `ab4864bfbf4f5bf2cabf60c6d314b4f32ba43c16`, all three focused Cargo commands passed: 48 compositor/lifecycle module tests, nine strict parser tests and three embedded-ELF extractor tests. One separately labelled manual compositor performance observation remained ignored; none of the required three encoder/parser conformance controls was skipped. The receipt retains commands, log hashes, actual executed binaries and their retained SHA-256 identities.
+
+The actual encoder produced the selected 23-record/four-checkpoint protocol, matched existing ACK tuples and emitted distinct overflow/capacity/missing-ACK refusals. Parser tests require explicit nullable fields and reject omissions, malformed/duplicate/foreign/truncated records. Extractor controls reject malformed or ambiguous embedded guests. These are hosted conformance and compilation checks. **The x86 freestanding product emission/hook paths, matched native costs, disposal/restart and the full fault/cancellation acceptance of #6185 are not yet proved.**
+
+Earlier failures remain under `negative/`: the initial nullable wrapper admitted omission; a fixture string extent was wrong; and the conformance import referenced a native-only module. Each received a focused correction before the passing source. No old execution has been relabelled as this source, and no native/physical/publication or #6185 closure claim is made.
