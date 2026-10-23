@@ -379,3 +379,54 @@ fn mask_fits_decimal_and_colon_capabilities_before_show_publication() {
         ))
     );
 }
+
+#[test]
+fn explicit_colon_fraction_look_retains_tenths_on_colon_only_glass() {
+    let face = face("19.8°C", "59%", true, true);
+    let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+    let mut profile = profile();
+    profile.decimal_points = [None; 4];
+    profile.colon = Some(WireBit { address: 1, bit: 7 });
+    let look = SevenSegmentLook::fahrenheit().with_colon_fraction();
+    let output =
+        render_for_profile(&view, SevenSegmentSelection::Temperature, &look, &profile).unwrap();
+    assert_eq!(text(&output.show), "67:6F");
+    assert_eq!(
+        output.disposition,
+        MaskDisposition::Temperature { decimal_places: 1 }
+    );
+    assert_eq!(
+        profile.map(&output.show).unwrap(),
+        [0x7d, 0x87, 0x7d, 0x71, 0, 0]
+    );
+    assert_eq!(output.show.decimal_points(), &[false; 4]);
+    assert!(*output.show.colon());
+}
+
+#[test]
+fn timed_mask_pages_keep_one_face_and_stop_at_the_admitted_lifetime() {
+    let face = face("19.8°C", "59%", true, true);
+    let view = PreparedEnvironmentFace::prepare(&face, "environment").unwrap();
+    let mut profile = profile();
+    profile.decimal_points = [None; 4];
+    profile.colon = Some(WireBit { address: 1, bit: 7 });
+    let mask = TimedSevenSegmentMask::prepare(
+        SevenSegmentLook::fahrenheit().with_colon_fraction(),
+        3000,
+        12000,
+    )
+    .unwrap();
+    for (elapsed, expected) in [
+        (0, "67:6F"),
+        (2999, "67:6F"),
+        (3000, " 59H"),
+        (5999, " 59H"),
+        (6000, "67:6F"),
+        (9000, " 59H"),
+        (12000, "----"),
+    ] {
+        let show = mask.render(&view, elapsed, &profile).unwrap();
+        assert_eq!(text(&show.show), expected);
+        assert_eq!(show.face_content_id, face.identity.as_str());
+    }
+}

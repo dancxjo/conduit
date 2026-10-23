@@ -23,28 +23,36 @@ mod generated {
         pub const fn fahrenheit() -> Self {
             Self {
                 temperature_unit: SevenSegmentTemperatureUnit::Fahrenheit,
+                fraction_marker: SevenSegmentFractionMarker::DecimalPoint,
             }
+        }
+        pub const fn with_colon_fraction(mut self) -> Self {
+            self.fraction_marker = SevenSegmentFractionMarker::Colon;
+            self
         }
         pub const fn celsius() -> Self {
             Self {
                 temperature_unit: SevenSegmentTemperatureUnit::Celsius,
+                fraction_marker: SevenSegmentFractionMarker::DecimalPoint,
             }
         }
     }
 }
 pub use generated::{
-    SegmentPattern, SegmentPatternForm, SevenSegmentLook, SevenSegmentSelection, SevenSegmentShow,
-    SevenSegmentTemperatureUnit,
+    SegmentPattern, SegmentPatternForm, SevenSegmentFractionMarker, SevenSegmentLook,
+    SevenSegmentSelection, SevenSegmentShow, SevenSegmentTemperatureUnit,
 };
 mod format;
 mod projection;
 mod rounding;
+mod timed;
 mod wiring;
 pub use format::{
     render, render_for_profile, Alternation, MaskDisposition, MaskUnavailable, RenderedShow,
     TimingRefusal,
 };
 pub use projection::{FaceProjectionRefusal, PreparedEnvironmentFace};
+pub use timed::TimedSevenSegmentMask;
 pub use wiring::{DigitWiring, Tm1637Profile, WireBit, WiringRefusal};
 
 pub(crate) fn pattern(bits: u8) -> SegmentPattern {

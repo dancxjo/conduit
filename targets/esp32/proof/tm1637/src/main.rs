@@ -55,9 +55,14 @@ fn main() -> ! {
     #[cfg(feature = "live")]
     {
         let mut live = live::Live::prepare();
+        let mut sample_tick = 0u8;
         loop {
-            live.sample(&mut sensor, &mut pins);
-            delay.delay_millis(15_000);
+            if sample_tick == 0 {
+                live.sample(&mut sensor);
+            }
+            live.display(&mut pins);
+            sample_tick = (sample_tick + 1) % 5;
+            delay.delay_millis(3_000);
         }
     }
     #[cfg(not(feature = "live"))]

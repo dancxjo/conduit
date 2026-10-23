@@ -748,3 +748,20 @@ Execution allocates nothing. Numeric placement and external storage completions
 in this proof are explicit CPU fixtures: browser installation, actual storage
 acknowledgement, recorder membership/Line, cross-chunk recovery and physical
 endurance are still required for a deployed recorder appliance.
+
+
+The replacement ESP32's annunciator test was visually reported as `11:11`,
+with no decimal point. Its bench hardware profile therefore declares a colon
+and no decimal points. The explicitly selected Fahrenheit Look uses that colon
+as the fractional marker (`71:2F`); it retains tenths instead of reducing to
+whole degrees. This is Mask policy, not a false decimal-point wiring claim.
+`TimedSevenSegmentMask` owns the three-second temperature/RH page alternation;
+its prepared lifetime is finite (24 hours in this attended bench). After that
+lifetime it renders an explicit unavailable Show. Acquisition still updates one
+shared quantity Face every fifteen seconds. The HTTP Mask and display Mask
+consume that same revision; neither owns a second observation state.
+
+The replacement ESP32 revision 3.1/4 MB has been flashed with this bench. Serial
+capture shows acknowledged alternating temperature and `H` pages with the same
+Face identity between sensor updates. AP startup is reported; the new image has
+not yet been checked over HTTP. Page-to-station control remains uninstalled.

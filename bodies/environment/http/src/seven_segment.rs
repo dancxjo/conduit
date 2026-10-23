@@ -23,6 +23,33 @@ pub fn seven_segment_snapshot(
     selection: m::SevenSegmentSelection,
     profile: &m::Tm1637Profile,
 ) -> Result<SevenSegmentSnapshot, SevenSegmentSnapshotRefusal> {
+    seven_segment_snapshot_with_look(now, selection, profile, &m::SevenSegmentLook::fahrenheit())
+}
+pub fn seven_segment_snapshot_with_look(
+    now: u64,
+    selection: m::SevenSegmentSelection,
+    profile: &m::Tm1637Profile,
+    look: &m::SevenSegmentLook,
+) -> Result<SevenSegmentSnapshot, SevenSegmentSnapshotRefusal> {
+    snapshot(now, profile, Policy::Fixed(selection, look))
+}
+pub fn seven_segment_snapshot_with_mask(
+    now: u64,
+    elapsed_ms: u64,
+    profile: &m::Tm1637Profile,
+    mask: &m::TimedSevenSegmentMask,
+) -> Result<SevenSegmentSnapshot, SevenSegmentSnapshotRefusal> {
+    snapshot(now, profile, Policy::Timed(mask, elapsed_ms))
+}
+enum Policy<'a> {
+    Fixed(m::SevenSegmentSelection, &'a m::SevenSegmentLook),
+    Timed(&'a m::TimedSevenSegmentMask, u64),
+}
+fn snapshot(
+    now: u64,
+    profile: &m::Tm1637Profile,
+    policy: Policy<'_>,
+) -> Result<SevenSegmentSnapshot, SevenSegmentSnapshotRefusal> {
     use SevenSegmentSnapshotRefusal as E;
     critical_section::with(|cs| {
         let mut slot = super::PUBLICATION.borrow(cs).borrow_mut();
@@ -30,12 +57,12 @@ pub fn seven_segment_snapshot(
         let face = publication.face.at(now).map_err(E::Publication)?;
         let view = m::PreparedEnvironmentFace::prepare(face, conduit_environment_face::SUBJECT)
             .map_err(E::Projection)?;
-        let rendered = m::render_for_profile(
-            &view,
-            selection,
-            &m::SevenSegmentLook::fahrenheit(),
-            profile,
-        )
+        let rendered = match policy {
+            Policy::Fixed(selection, look) => {
+                m::render_for_profile(&view, selection, look, profile)
+            }
+            Policy::Timed(mask, elapsed) => mask.render(&view, elapsed, profile),
+        }
         .map_err(E::Wiring)?;
         let mut identity = [0; 64];
         if rendered.face_content_id.len() != identity.len() {

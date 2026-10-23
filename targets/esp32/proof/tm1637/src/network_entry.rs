@@ -32,8 +32,13 @@ async fn main(spawner: Spawner) {
         "AP Conduit-Climate http://192.168.4.1/ heap free={}",
         esp_alloc::HEAP.free()
     );
+    let mut sample_tick = 0u8;
     loop {
-        live.sample(&mut sensor, &mut pins);
-        Timer::after(Duration::from_secs(15)).await;
+        if sample_tick == 0 {
+            live.sample(&mut sensor);
+        }
+        live.display(&mut pins);
+        sample_tick = (sample_tick + 1) % 5;
+        Timer::after(Duration::from_secs(3)).await;
     }
 }

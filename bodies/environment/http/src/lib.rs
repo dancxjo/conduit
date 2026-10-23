@@ -12,7 +12,8 @@ mod mask;
 pub mod network_setup;
 mod seven_segment;
 pub use seven_segment::{
-    seven_segment_snapshot, SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,
+    seven_segment_snapshot, seven_segment_snapshot_with_look, seven_segment_snapshot_with_mask,
+    SevenSegmentSnapshot, SevenSegmentSnapshotRefusal,
 };
 struct Publication {
     face: PreparedObservationFace,
