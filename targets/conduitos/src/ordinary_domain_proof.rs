@@ -12,6 +12,8 @@ pub(crate) use x87::observe as observe_transition_return;
 mod morse;
 mod retained_text;
 mod service_memory;
+pub(crate) use service_memory::clock_boundary::observe as observe_clock_boundary;
+pub(crate) use service_memory::trap_envelope::observe as observe_trap_envelope;
 mod timer;
 mod timer_runtime;
 

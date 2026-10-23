@@ -3,9 +3,13 @@
 #![no_main]
 
 mod allocation;
+#[cfg(all(feature = "proof", target_arch = "x86_64"))]
+mod boundary_clock;
 mod document;
 mod frame;
 mod gate;
+#[cfg(all(target_arch = "x86_64", feature = "proof"))]
+mod irq_canary;
 mod keymap;
 mod layout;
 mod memory;
@@ -38,7 +42,11 @@ mod text_transform;
 /// The supervisor admits this exact bounded input/output page before entry.
 /// This layout is mechanism ABI, never authored Plot or semantic identity.
 
-#[unsafe(no_mangle)]
+#[cfg_attr(
+    all(feature = "proof", target_arch = "x86_64"),
+    unsafe(export_name = "domain_rust_entry")
+)]
+#[cfg_attr(not(all(feature = "proof", target_arch = "x86_64")), unsafe(no_mangle))]
 pub unsafe extern "C" fn domain_entry(frame: *mut TextFrame) -> ! {
     let frame = unsafe { &mut *frame };
     #[cfg(feature = "proof")]
