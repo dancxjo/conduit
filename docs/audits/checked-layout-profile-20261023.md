@@ -300,3 +300,72 @@ non-membership/no-Plan/no-Play facts, test longer identities and refuse oversize
 requests. Four fixed-storage WebSocket checks and final strict all-target Clippy
 for native, Face, native offers and Network core pass. Required QEMU remains
 pending.
+
+## First normal-product QEMU run: c65a9d4fa
+
+The canonical product-host ISO built successfully from clean published
+`c65a9d4fa152f028eb1691524cab00ae2a112c3e`, SHA256
+`966f5c4b331c291e21d8db257dbbd61ff9852271d7f3196979b6977824270914`.
+Its 1280×800 control proof passes: 223 focus observations, 15 original captures,
+47/48 command high water and 192-byte maximum command payload. All four actual
+source Plot controls have first-page hit regions, including after the long
+Unicode edit. The actual capture shows Body/naming and search/Plots in two
+coherent columns. Exact component, recipe and layout fingerprints stay invariant
+across the two real Look selections; Shows and input remain source-bound.
+
+The 640×480 control proof also passes interaction conformance (249 focus
+observations, 35/48 command high water). **Visual inspection rejects this as the
+intended narrow-layout acceptance:** it still compresses two columns. Its
+original screenshot and successful behavioral receipt are retained together in
+`c65-narrow-compressed-columns`; success does not establish coherent collapse.
+
+The next normal graphical journey reaches the actual Patchbay checked Source
+path, then fails `proof-viewport-mismatch`: its largest complete native Face
+record is 110,393 bytes versus the viewport collector's old 96 KiB cap. There
+are only 38 Face and 20 focus records, in 2,057,321 serial bytes; this is not a
+record-count or product scene limit. Retain the original partial journey and
+failure in `c65-journey-viewport-bound`. No complete journey or Source traversal
+claim is made for this run. The corrected viewport collector uses the existing
+journey correspondence 2 MiB Face-record cap, retains the 96 KiB focus cap,
+256-record cap and 16 MiB serial cap, and preserves exact Show custody and
+malformed/overbound/truncated-line negatives.
+
+### Measured minimum instead of a viewport breakpoint
+
+Disabling row shrink outright failed the strong wide Unicode/four-choice test;
+that negative is retained. The missing composition fact is an authored usable
+panel minimum, distinct from each text cluster's hard-wrap minimum or full
+unwrapped preferred demand. The checked Group now carries a finite outer inline
+minimum, including padding, in sixteenths of selected root text em (0..4096,
+zero adds no extra minimum). Crèche and Todo wide panels request 20 em each;
+the selected font and accessibility scale resolve that request. Bottom-up
+measurement propagates these minima through existing row/grid allocation. The
+explicit single-column alternative wins when they cannot fit; no screen-width
+cutoff or domain-label lookup is added. Candidate/node/depth/track/work-pass and
+scene limits remain unchanged. The em resolver covers the new 256-em maximum;
+spacing and padding retain their own existing 16-em Type bounds.
+
+Strengthened source checks require coherent collapse at 640 as well as 320,
+while retaining the strong wide four-choice/Unicode result. A separate native
+minimum test verifies font-scale-dependent feasibility on unrelated fixture
+content. Portable bounds/roundtrip, native Mask, intrinsic metrics and viewport
+collector checks accompany the change. New-source QEMU remains pending until
+these checks finish and the source is committed.
+
+During this build, an inventory and `fuser` check found 1,121 unopened,
+regenerable cross-target `.rlib`/`.rmeta` files in inactive caches. Removing only
+those recovered 2,810,023,868 bytes (about 2.6 GiB). Executables, generated values,
+images, source, unique evidence, active x86 outputs and active build artifacts
+were preserved. Earlier separate browser-cache cleanup is recorded independently.
+
+The strengthened CPU checks now pass: two strong real-source geometry/content
+checks, 19 mechanical checks (including selected-font minimum scaling), all24
+native Mask checks with 640×480 added to actual selected-Back scanout, three
+intrinsic metric checks, seven portable layout checks and six authenticated
+layout-configuration checks, ten offer checks, three actual-product join checks,
+three viewport checks in the owning xtask target, and strict all-target Clippy
+for native/Face/offers/Network. The new exact join sizes are 33,903 serial and
+33,798 routed bytes, within #6288's admitted finite envelope. An initial
+viewport test invocation selected zero tests in the host-make facade; the
+corrected owning xtask invocation ran the three tests reported here. It is not
+counted as prior proof. All final logs are retained under `minimum-final-*`.

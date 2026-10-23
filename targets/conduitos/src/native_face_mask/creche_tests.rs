@@ -12,7 +12,7 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
         CrecheComponentRecipe::SingleColumn,
         CrecheComponentRecipe::ResponsiveColumns,
     ] {
-        for (width, height) in [(320, 240), (1280, 800)] {
+        for (width, height) in [(320, 240), (640, 480), (1280, 800)] {
             let mut mask = NativeFaceMask::prepare_creche(
                 "host/creche-layout".into(),
                 "boot/creche-layout".into(),

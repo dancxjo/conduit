@@ -164,3 +164,7 @@ mod grid_fixture;
 #[cfg(test)]
 #[path = "mechanical/grid_tests.rs"]
 mod grid_tests;
+
+#[cfg(test)]
+#[path = "mechanical/minimum_tests.rs"]
+mod minimum_tests;

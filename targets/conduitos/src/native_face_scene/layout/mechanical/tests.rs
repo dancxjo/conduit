@@ -20,6 +20,7 @@ fn group(nodes: &[u8], keep: bool) -> ComponentLayoutGroup {
         Alignment::Stretch,
         1,
         1,
+        0,
         8,
     )
     .unwrap()
@@ -38,6 +39,7 @@ fn node(group: ComponentLayoutGroup, row: bool) -> ComponentLayoutNode {
         *group.inline_alignment(),
         *group.inline_grow(),
         *group.inline_shrink(),
+        *group.minimum_inline_em_sixteenths(),
         *group.padding_em_sixteenths(),
     )
     .unwrap()
@@ -269,6 +271,7 @@ fn impossible_keep_and_unsupported_inline_shrink_are_explicit() {
                 Alignment::Stretch,
                 1,
                 2,
+                0,
                 0,
             )
             .unwrap(),

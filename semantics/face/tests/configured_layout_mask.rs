@@ -7,7 +7,7 @@ use conduit_plot::*;
 use std::collections::BTreeMap;
 const EXPRESSION: &str = "{density: compact(empty), identity: \"test/look@1\", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, typography: editorial(empty), version: 2}";
 const RECIPE: &str = "{gutter: 12, identity: \"test/recipe@1\", maximum_columns: 1, reflow_width: 720, regions: [{group: 0, identity: \"collection\", maximum_subjects: 20, selector: role(\"Collection\")}], version: 1}";
-const LAYOUT: &str = "{candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1}), region(0), fallback(empty)], root: 0}], identity: \"test/layout@1\", recipe_identity: \"test/recipe@1\", version: 1}";
+const LAYOUT: &str = "{candidates: [{nodes: [column({block_alignment: stretch(empty), break_policy: accessible_continuation(empty), children: [{block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 1}, {block_span: 1, block_track: 0, inline_span: 1, inline_track: 0, node: 2}], gap_em_sixteenths: 8, inline_grow: 0, inline_alignment: stretch(empty), padding_em_sixteenths: 8, inline_shrink: 1, minimum_inline_em_sixteenths: 0}), region(0), fallback(empty)], root: 0}], identity: \"test/layout@1\", recipe_identity: \"test/recipe@1\", version: 1}";
 fn fixture(
     source: &str,
     root_name: &str,
@@ -175,7 +175,9 @@ fn evidence_with(
 }
 
 fn source() -> String {
-    format!("plot component (\n expression: VisualExpressionInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n render: test/configured-renderer(label = \"component\", recipe = {RECIPE}, layout = {LAYOUT}, expression = expression)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}}\nplot root (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(expression = {EXPRESSION})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n")
+    format!(
+        "plot component (\n expression: VisualExpressionInfo\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n render: test/configured-renderer(label = \"component\", recipe = {RECIPE}, layout = {LAYOUT}, expression = expression)\n face >> render.face\n render.show >> show\n render.interaction >> interaction\n}}\nplot root (\n >> face: Face\n show: Show >>\n interaction: FaceInteraction...| >>\n) {{\n invoke: component(expression = {EXPRESSION})\n face >> invoke.face\n invoke.show >> show\n invoke.interaction >> interaction\n}}\n"
+    )
 }
 #[test]
 fn version_three_contract_is_distinct_and_requires_typed_layout() {

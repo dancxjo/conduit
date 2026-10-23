@@ -101,6 +101,7 @@ fn group(children: Vec<ComponentLayoutChild>) -> ComponentLayoutGroup {
         Alignment::Stretch,
         1,
         1,
+        0,
         8,
     )
     .unwrap()
@@ -115,6 +116,7 @@ fn column(nodes: &[u8]) -> ComponentLayoutNode {
         *g.inline_alignment(),
         *g.inline_grow(),
         *g.inline_shrink(),
+        *g.minimum_inline_em_sixteenths(),
         *g.padding_em_sixteenths(),
     )
     .unwrap()
@@ -177,6 +179,7 @@ pub(super) fn profile(face: &Face) -> PreparedComponentLayout<'_> {
             Alignment::Stretch,
             0,
             1,
+            0,
             0,
         )
         .unwrap(),

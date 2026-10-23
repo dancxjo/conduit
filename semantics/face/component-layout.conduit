@@ -26,6 +26,9 @@ type ComponentLayoutGroup = {
     break_policy: ComponentLayoutBreak
     gap_em_sixteenths: U16 in 0..=256
     padding_em_sixteenths: U16 in 0..=256
+# Minimum outer logical inline extent, including padding, in sixteenths of
+# selected root text em. Mask metrics resolve it; zero adds no authored minimum.
+    minimum_inline_em_sixteenths: U16 in 0..=4096
 # Inline weights negotiate logical inline extent only. They are not CSS
 # main-axis flex or vertical/block flexible space. Native first consumer admits
 # inline_shrink 0 (preferred is required) or 1 (minimum is required).

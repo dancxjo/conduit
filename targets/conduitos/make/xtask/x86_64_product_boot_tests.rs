@@ -1,5 +1,5 @@
-use super::{GuestBootSign, validate};
-use serde_json::{Value, json};
+use super::{validate, GuestBootSign};
+use serde_json::{json, Value};
 
 fn arrival() -> (GuestBootSign, Value) {
     let boot = GuestBootSign {

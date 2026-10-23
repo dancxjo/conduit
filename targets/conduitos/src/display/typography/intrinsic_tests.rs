@@ -56,7 +56,8 @@ fn portable_spacing_uses_actual_em_and_one_outward_rounding() {
     assert_eq!(resolve_em_sixteenths(label, 125, 16), Ok(18));
     assert_eq!(resolve_em_sixteenths(label, 125, 1), Ok(2));
     assert_eq!(resolve_em_sixteenths(body, 200, 0), Ok(0));
-    assert!(resolve_em_sixteenths(body, 100, 257).is_err());
+    assert_eq!(resolve_em_sixteenths(body, 100, 4096), Ok(4096));
+    assert!(resolve_em_sixteenths(body, 100, 4097).is_err());
 }
 
 #[test]

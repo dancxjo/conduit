@@ -32,6 +32,7 @@ pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
         ComponentLayoutAlignment::Stretch,
         0,
         1,
+        0,
         8,
     )
     .unwrap();

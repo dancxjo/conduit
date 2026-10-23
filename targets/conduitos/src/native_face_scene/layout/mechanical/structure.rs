@@ -16,6 +16,7 @@ pub(super) struct Group<'a> {
     pub gap: u16,
     pub inline_grow: u8,
     pub inline_shrink: u8,
+    pub minimum_inline: u16,
 }
 pub(super) enum Node<'a> {
     Leaf(Option<usize>),
@@ -42,6 +43,7 @@ pub(super) fn node<'a>(
                 gap: context.em(*g.gap_em_sixteenths())?,
                 inline_grow: *g.inline_grow(),
                 inline_shrink: *g.inline_shrink(),
+                minimum_inline: context.em(*g.minimum_inline_em_sixteenths())?,
             }
         }};
     }
@@ -223,7 +225,7 @@ fn finish_demand(
     preferred: u32,
 ) -> Result<Demand, FaceSceneError> {
     let edges = u32::from(group.padding) * 2;
-    let minimum = minimum + edges;
+    let minimum = (minimum + edges).max(u32::from(group.minimum_inline));
     let preferred = preferred + edges;
     if minimum > u32::from(context.width)
         || (group.inline_shrink == 0 && preferred > u32::from(context.width))

@@ -118,6 +118,7 @@ fn track_contributions_support_zero_single_and_spanning_demands_without_empty_mi
             1,
             1,
             0,
+            0,
         )
         .unwrap()
     };
@@ -220,6 +221,7 @@ fn one_spanning_cell_keeps_empty_tracks_at_zero_and_all_original_rows() {
             1,
             1,
             0,
+            0,
         )
         .unwrap()
     };
@@ -240,6 +242,7 @@ fn one_spanning_cell_keeps_empty_tracks_at_zero_and_all_original_rows() {
         Alignment::Stretch,
         1,
         1,
+        0,
         0,
     )
     .unwrap();
@@ -299,6 +302,7 @@ fn declared_empty_block_tracks_preserve_internal_and_leading_gaps() {
             1,
             1,
             0,
+            0,
         )
         .unwrap();
         let nodes = vec![
@@ -339,6 +343,7 @@ fn independent_grid_bands_paginate_under_row_and_command_pressure() {
         Alignment::Stretch,
         1,
         1,
+        0,
         0,
     )
     .unwrap();
@@ -385,6 +390,7 @@ fn indivisible_grid_band_reports_command_pressure_instead_of_raising_budget() {
         Alignment::Stretch,
         1,
         1,
+        0,
         0,
     )
     .unwrap();

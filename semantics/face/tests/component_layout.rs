@@ -59,6 +59,12 @@ fn child(node: u8, inline: u8, block: u8, inline_span: u8) -> ComponentLayoutChi
     ComponentLayoutChild::new(1, block, inline_span, inline, node).unwrap()
 }
 fn group(children: Vec<ComponentLayoutChild>) -> ComponentLayoutGroup {
+    group_with_minimum(children, 0).unwrap()
+}
+fn group_with_minimum(
+    children: Vec<ComponentLayoutChild>,
+    minimum: u16,
+) -> Result<ComponentLayoutGroup, conduit_plot::rust_binding::NativeBindingRefusal> {
     ComponentLayoutGroup::new(
         ComponentLayoutAlignment::Start,
         ComponentLayoutBreak::AccessibleContinuation,
@@ -67,9 +73,9 @@ fn group(children: Vec<ComponentLayoutChild>) -> ComponentLayoutGroup {
         ComponentLayoutAlignment::Stretch,
         1,
         1,
+        minimum,
         16,
     )
-    .unwrap()
 }
 fn column(nodes: &[u8]) -> ComponentLayoutNode {
     node_column(group(nodes.iter().map(|n| child(*n, 0, 0, 1)).collect())).unwrap()
@@ -196,6 +202,18 @@ fn refuses_grid_overlap_and_track_span_overrun() {
         ]),
         R::Placement
     );
+}
+
+#[test]
+fn authored_outer_inline_minimum_has_portable_finite_bounds() {
+    for minimum in [0, 1, 4096] {
+        let group = group_with_minimum(vec![], minimum).unwrap();
+        assert_eq!(*group.minimum_inline_em_sixteenths(), minimum);
+        let value = group.clone().into_structured().unwrap();
+        let round_trip = ComponentLayoutGroup::from_structured(value).unwrap();
+        assert_eq!(round_trip, group);
+    }
+    assert!(group_with_minimum(vec![], 4097).is_err());
 }
 
 #[test]
@@ -395,6 +413,7 @@ fn node_column(
         *g.inline_alignment(),
         *g.inline_grow(),
         *g.inline_shrink(),
+        *g.minimum_inline_em_sixteenths(),
         *g.padding_em_sixteenths(),
     )
 }
@@ -409,6 +428,7 @@ fn row(
         *g.inline_alignment(),
         *g.inline_grow(),
         *g.inline_shrink(),
+        *g.minimum_inline_em_sixteenths(),
         *g.padding_em_sixteenths(),
     )
 }

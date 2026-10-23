@@ -48,7 +48,7 @@ pub fn intrinsic_text_metrics(
     })
 }
 
-/// Resolve portable spacing against the exact selected font em, with a single
+/// Resolve a portable em extent against the exact selected font em, with a single
 /// outward rounding step. Line spacing is deliberately not used as an em proxy.
 pub fn resolve_em_sixteenths(
     style: TextStyle,
@@ -56,7 +56,7 @@ pub fn resolve_em_sixteenths(
     units: u16,
 ) -> Result<u16, DisplayError> {
     TextScale::new(percent)?;
-    if units > 256 {
+    if units > 4096 {
         return Err(DisplayError::InvalidExtent);
     }
     let pixels =

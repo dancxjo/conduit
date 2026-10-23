@@ -188,7 +188,7 @@ fn verify_reviewed_sources(require_first_page: bool) {
                     "wide Crèche must show all four checked starting Plots on the first page"
                 );
             }
-            if width == 320 && component == "creche-component-columns" {
+            if width <= 640 && component == "creche-component-columns" {
                 assert_eq!(
                     origin(0),
                     origin(2),
