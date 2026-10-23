@@ -1152,4 +1152,8 @@ staging: it prepares the ordinary dormant scheduler and sign log using
 Make-emitted sign limits and an explicit additional-memory guard. This is not
 an installation/start command and does not dispatch native operations. A
 persistent authenticated owner, actual native possession and attributed Body
-start remain required before any appliance Step. Hardware preparation is pending.
+start remain required before any appliance Step. The physical entrance `cargo xtask prove environment kernel-prepare-esp32` now
+passes on the attended ESP32. Evidence in
+`evidence/2026-10-23-physical-kernel-preparation/` records 93,252 retained and
+97,220 peak bytes in the 114,688-byte Root heap. This remains a dormant
+preparation diagnostic; native/control admission and Body start are unfinished.

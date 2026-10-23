@@ -1,0 +1,19 @@
+{
+  "proof_class": "physical-dormant-kernel-preparation",
+  "completed": true,
+  "before_staging": false,
+  "body_start_claimed": false,
+  "native_possession_claimed": false,
+  "climate_sampling_claimed": false,
+  "boot_id": "boot/4a5af5c74d3fbff0052445a058089467",
+  "kernel_bytes": 10760,
+  "additional_preparation_bound": 27660,
+  "root_heap_used_bytes": 93252,
+  "root_heap_peak_bytes": 97220,
+  "native_root_heap_bytes": 114688,
+  "firmware_source": "5d2f5d7cf",
+  "elf_sha256": "65140edbb56a885b6bcc8eb7db1dd6157726afd086e5e8409115b758499f9262",
+  "capture": "target/environment-software-ready/1792785072",
+  "root_retained_free_bytes": 21436,
+  "root_peak_free_bytes": 17468
+}

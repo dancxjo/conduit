@@ -1,0 +1,12 @@
+{
+  "proof_class": "physical-assignment-table-staging",
+  "completed": true,
+  "body_start_claimed": false,
+  "climate_sampling_claimed": false,
+  "wire_bytes": 7111,
+  "canonical_bytes": 46411,
+  "wire_sha256": "8206962e7349d3aa39bfe6a772e77f6e6e97cc9ba823375547cf527f7b443358",
+  "boot_id": "boot/4a5af5c74d3fbff0052445a058089467",
+  "root_heap_used_bytes": 82564,
+  "root_heap_peak_bytes": 90564
+}

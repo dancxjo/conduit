@@ -16,6 +16,26 @@ pub(super) fn prove_ingress(root: &Path) -> Result<(), Box<dyn Error>> {
             .arg(output),
     )
 }
+pub(super) fn prove_kernel_preparation(root: &Path) -> Result<(), Box<dyn Error>> {
+    let output = capture_and_plan(root)?;
+    for (script, before) in [
+        ("native-kernel-preparation.py", true),
+        ("native-assignment-ingress.py", false),
+        ("native-kernel-preparation.py", false),
+    ] {
+        let mut command = Command::new("python3");
+        command
+            .current_dir(root)
+            .arg(root.join("bodies/environment/tools").join(script))
+            .arg("--capture")
+            .arg(&output);
+        if before {
+            command.arg("--before-staging");
+        }
+        execute(&mut command)?;
+    }
+    Ok(())
+}
 pub(super) fn prove_body_admission(root: &Path) -> Result<(), Box<dyn Error>> {
     capture_body_admission(root).map(|_| ())
 }

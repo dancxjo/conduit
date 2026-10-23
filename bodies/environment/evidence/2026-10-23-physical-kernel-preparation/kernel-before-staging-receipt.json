@@ -1,0 +1,14 @@
+{
+  "proof_class": "physical-dormant-kernel-preparation",
+  "completed": true,
+  "before_staging": true,
+  "body_start_claimed": false,
+  "native_possession_claimed": false,
+  "climate_sampling_claimed": false,
+  "boot_id": "boot/4a5af5c74d3fbff0052445a058089467",
+  "kernel_bytes": 10760,
+  "additional_preparation_bound": 27660,
+  "root_heap_used_bytes": 81084,
+  "root_heap_peak_bytes": 90564,
+  "native_root_heap_bytes": 114688
+}
