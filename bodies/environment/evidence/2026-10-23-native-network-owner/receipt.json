@@ -1,0 +1,71 @@
+{
+  "source_commit": "f4e972f1a528f3f5072cce57ea4cd5a6e34e19bc",
+  "firmware_sha256": "8dde042a35d1d952ee98e56387e998df47e379fa9001ecaa5526f94a83c17e0c",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/6552e813d3b19c0fa5ebdc886a0f7795",
+  "boot_current": false,
+  "private_fixture_submission": "HTTP POST 202, no response/UART credential echo",
+  "preparation_page_after_transfer_status": 200,
+  "initial_offer_generation": 1,
+  "prepared_offer_generation": 2,
+  "prepared_offers": 4,
+  "root_used_bytes": [
+    10056,
+    10056,
+    10056,
+    10056
+  ],
+  "sdk_used_bytes": [
+    34504,
+    34504,
+    34504,
+    34504
+  ],
+  "sdk_reserved_bytes": 122880,
+  "native_owner": "actual controller, AP/station runners, acknowledged services, prepared configuration and unique isolated SDK reservation",
+  "admitted_operation_policy": {
+    "maximum_attempts": 1,
+    "attempt_seconds": 15,
+    "cleanup_seconds": 5,
+    "sdk_failure_retries": 0,
+    "class": "cooperative; no hard real-time SDK WCET claim"
+  },
+  "body_installed": false,
+  "native_plan_installed": false,
+  "network_join_attempted": false,
+  "validation": {
+    "root_build": "passed",
+    "strict_root_and_ap_clippy": "passed",
+    "network_owner_tests": 10
+  },
+  "remaining_physical_proof": [
+    "selected actual join",
+    "deadline/pressure/cancellation during native effect",
+    "AP restoration and link loss"
+  ],
+  "restoration": {
+    "display_acks": 7,
+    "last_reading": {
+      "face_identity": "46a7ed3567e2361d793bcbb150c876ba6fbbce2b893b05961018f0179f380453",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 69.08,
+      "relative_humidity_percent": 53,
+      "sampled_at_boot_ms": 15848,
+      "age_ms": 3211,
+      "ap_ready": true
+    }
+  },
+  "artifacts": {
+    "serial.log": "a8758ac2216094d5e9fa97a55e7c66082afda2ca0f9428afa8096d77a17de01d",
+    "offers.json": "55dd10fc3e8dd7bb48a10f49c43404741f92ac0d29c706da56680a23964afae9",
+    "http-results.json": "23a63bd864fe5874af0daeb50ba28097a73a1a9f759c5c60ebbb3bf73b864c17",
+    "flash.log": "9fc30416eee62880bea0578617ab614f3d345b20d74cce8035e085ac60c8cf1d",
+    "restore.log": "1ad53c354dc12e52fed2d732e52bcec89201161616b0e693710dfad8ce33b7d9",
+    "restored-serial.log": "fe0bd626dd1f987dca94d2d2211d80c94e330f5dea489f7afbba2f531a2e8ace",
+    "harness-error-serial.log": "b8e725864c5489bfd111c3c82f4f9451d68a3a26a424e2a78bc7a0eb100193aa"
+  }
+}
