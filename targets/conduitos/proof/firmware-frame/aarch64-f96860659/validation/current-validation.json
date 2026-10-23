@@ -1,0 +1,63 @@
+{
+  "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "results": [
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--features",
+        "conduitos/native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-strict-clippy.log",
+      "exit_code": 0,
+      "completion_observed": 1792796881.6205575,
+      "sha256": "d874759dcbad4a4a0eb5ef022daf2900e530453a86caa6581df914bc4e6a4ff9",
+      "executor_session": 8803
+    },
+    {
+      "name": "host-make",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-host-make",
+        "--lib",
+        "--",
+        "--test-threads=1"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-host-make.log",
+      "started": 1792797010.7454004,
+      "exit_code": 0,
+      "finished": 1792797137.9075644
+    },
+    {
+      "name": "target-lowering",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "xtask",
+        "target_lowering",
+        "--",
+        "--test-threads=1"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-target-lowering.log",
+      "started": 1792797137.907827,
+      "exit_code": 0,
+      "finished": 1792797175.9736364
+    }
+  ],
+  "completed": 1792797175.9740605
+}

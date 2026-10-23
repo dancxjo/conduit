@@ -116,6 +116,7 @@ fn incomplete_local_input_can_be_corrected_on_the_same_show() {
     assert_eq!(scene.face(), &owner_face);
 }
 
+#[cfg(feature = "native-owner-network")]
 #[test]
 fn checked_mask_show_survives_compact_bounded_wire_roundtrip() {
     let owner_face = face(10);

@@ -1,3 +1,6 @@
+#[path = "configuration/presentation.rs"]
+mod presentation;
+
 use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
@@ -5,8 +8,7 @@ use sha2::{Digest, Sha256};
 
 use crate::{
     validate_profile, BaseSelection, DriverSelection, HostBounds, HostPolicy, HostProfile,
-    MakeCatalog, MakePackageSet, PresenterSelection, ResourceBudget, TargetSelection,
-    HOST_PROFILE_SCHEMA,
+    MakeCatalog, MakePackageSet, ResourceBudget, TargetSelection, HOST_PROFILE_SCHEMA,
 };
 
 pub const HOST_CONFIGURATION_SCHEMA: u32 = 1;
@@ -323,50 +325,14 @@ pub fn check_host_configuration(
     let configuration_id = format!("sha256:{:x}", Sha256::digest(canonical.as_bytes()));
     let mut resolved_bases = selected.into_iter().collect::<Vec<_>>();
     resolved_bases.sort();
-    let mut derived_presenters = if descriptor.presenter.is_none() {
-        catalog
-            .presenters
-            .iter()
-            .filter(|(_, metadata)| target_matches(&metadata.targets, &target_key))
-            .filter(|(_, metadata)| {
-                presenter_roots_are_selected(
-                    &metadata.prerequisites,
-                    catalog,
-                    &resolved_bases,
-                    &configuration.resources,
-                    &mut BTreeSet::new(),
-                )
-            })
-            .map(|(implementation, metadata)| (implementation.clone(), metadata))
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
-    derived_presenters.sort_by(|left, right| left.0.cmp(&right.0));
-    if derived_presenters.len() > 1 {
-        return Err(vec![ConfigurationDiagnostic::AmbiguousFaceRealization {
-            implementations: derived_presenters
-                .into_iter()
-                .map(|(implementation, _)| implementation)
-                .collect(),
-        }]);
-    }
-    let derived_presenter = derived_presenters.pop();
-    let mut host_calls = descriptor.host_calls.clone();
-    let mut facilities = Vec::new();
-    if let Some((_, metadata)) = &derived_presenter {
-        collect_derived_face_requirements(
-            &metadata.prerequisites,
-            catalog,
-            &mut host_calls,
-            &mut facilities,
-            &mut BTreeSet::new(),
-        );
-    }
-    host_calls.sort();
-    host_calls.dedup();
-    facilities.sort();
-    facilities.dedup();
+    let presentation = presentation::resolve(
+        descriptor.presenter.as_ref(),
+        &descriptor.host_calls,
+        &target_key,
+        catalog,
+        &resolved_bases,
+        &configuration.resources,
+    )?;
     let profile = HostProfile {
         schema: HOST_PROFILE_SCHEMA.into(),
         name: configuration.name.clone(),
@@ -381,7 +347,7 @@ pub fn check_host_configuration(
         host_core: descriptor.host_core.clone(),
         fragments: Vec::new(),
         capabilities: Vec::new(),
-        host_calls,
+        host_calls: presentation.host_calls,
         resources: configuration.resources.clone(),
         bases: resolved_bases
             .iter()
@@ -401,24 +367,12 @@ pub fn check_host_configuration(
             })
             .collect(),
         lines: Vec::new(),
-        presenters: descriptor
-            .presenter
-            .as_ref()
-            .map(|presenter| PresenterSelection {
-                id: presenter.id.clone(),
-                implementation: presenter.implementation_id.clone(),
-                interactive: presenter.interactive,
-            })
-            .or_else(|| {
-                derived_presenter.map(|(implementation, _)| PresenterSelection {
-                    id: "presenter/main".into(),
-                    implementation,
-                    interactive: true,
-                })
-            })
+        presenters: presentation
+            .supplemental
             .into_iter()
+            .chain(presentation.presenter)
             .collect(),
-        facilities,
+        facilities: presentation.facilities,
         exclusions: Vec::new(),
         policy: HostPolicy {
             authority_profile: "authority/explicit@1".into(),
@@ -442,63 +396,6 @@ pub fn check_host_configuration(
         configuration_id,
         resolved_bases,
     })
-}
-
-fn presenter_roots_are_selected(
-    roots: &[crate::PrerequisiteNode],
-    catalog: &MakeCatalog,
-    bases: &[(String, String)],
-    resources: &[ResourceBudget],
-    visited: &mut BTreeSet<crate::PrerequisiteNode>,
-) -> bool {
-    roots.iter().all(|node| {
-        if !visited.insert(node.clone()) {
-            return true;
-        }
-        let selected = match node {
-            crate::PrerequisiteNode::Base(value) => bases.iter().any(|(kind, _)| kind == value),
-            crate::PrerequisiteNode::Driver(value) => bases
-                .iter()
-                .any(|(_, implementation)| implementation == value),
-            crate::PrerequisiteNode::Resource(value) => {
-                resources.iter().any(|resource| resource.class == *value)
-            }
-            crate::PrerequisiteNode::HostCall(_) | crate::PrerequisiteNode::Facility(_) => true,
-            crate::PrerequisiteNode::Implementation(_) => false,
-        };
-        selected
-            && catalog.dependencies.get(node).is_none_or(|dependencies| {
-                presenter_roots_are_selected(dependencies, catalog, bases, resources, visited)
-            })
-    })
-}
-
-fn collect_derived_face_requirements(
-    roots: &[crate::PrerequisiteNode],
-    catalog: &MakeCatalog,
-    host_calls: &mut Vec<String>,
-    facilities: &mut Vec<String>,
-    visited: &mut BTreeSet<crate::PrerequisiteNode>,
-) {
-    for node in roots {
-        if !visited.insert(node.clone()) {
-            continue;
-        }
-        match node {
-            crate::PrerequisiteNode::HostCall(value) => host_calls.push(value.clone()),
-            crate::PrerequisiteNode::Facility(value) => facilities.push(value.clone()),
-            _ => {}
-        }
-        if let Some(dependencies) = catalog.dependencies.get(node) {
-            collect_derived_face_requirements(
-                dependencies,
-                catalog,
-                host_calls,
-                facilities,
-                visited,
-            );
-        }
-    }
 }
 
 fn target_matches(patterns: &[String], target: &str) -> bool {

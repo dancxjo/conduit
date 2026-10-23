@@ -171,6 +171,7 @@ impl NativeFaceScene {
             showing_diagram: false,
             input: input::InputState::default(),
             interaction_admitted,
+            local_input_available: true,
             local_notice: None,
         })
     }

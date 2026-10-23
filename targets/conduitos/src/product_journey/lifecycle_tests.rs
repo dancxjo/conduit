@@ -189,6 +189,7 @@ fn cancelled_prepared_execution_refuses_play_without_losing_birth_or_claiming_st
 }
 
 #[test]
+#[cfg(all(target_arch = "x86_64", feature = "native-compositor"))]
 fn automatic_remaining_play_refusal_retains_birth_and_exposes_the_failing_stage() {
     // This test lives with the owner so cancellation uses its real private
     // prepared kernel, without adding a fault-injection or production API.

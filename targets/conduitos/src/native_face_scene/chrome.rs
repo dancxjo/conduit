@@ -23,14 +23,22 @@ const HEADINGS: [&str; 6] = [
 pub(super) const EDITOR_FOOTER: &str =
     "Type message · Backspace erase · Tab switch plot · F2 details";
 pub(super) const EDITOR_COMPACT_FOOTER: &str = "Type · F2";
-const COMPACT_FOOTERS: [&str; 3] = ["Read only · F2", "PgDn · F2", EDITOR_COMPACT_FOOTER];
-const FOOTERS: [&str; 6] = [
+pub(super) const NO_LOCAL_INPUT: &str = "Read only · No local input";
+pub(super) const NO_LOCAL_INPUT_COMPACT: &str = "No input";
+const COMPACT_FOOTERS: [&str; 4] = [
+    "Read only · F2",
+    "PgDn · F2",
+    EDITOR_COMPACT_FOOTER,
+    NO_LOCAL_INPUT_COMPACT,
+];
+const FOOTERS: [&str; 7] = [
     "Read only · PgUp/PgDn pages · F2 facts · F3 Patchbay",
     "Read only · PgUp/PgDn pages · F2 facts",
     "PgUp/PgDn pages · Tab next · F2 return",
     "Tab next · Enter act · F2 inspect · F3 Patchbay",
     "PgUp/PgDn pages · Tab next · Enter act · F2 inspect",
     EDITOR_FOOTER,
+    NO_LOCAL_INPUT,
 ];
 
 pub(super) struct Chrome {

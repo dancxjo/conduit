@@ -1,0 +1,17 @@
+{
+  "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "command": [
+    "cargo",
+    "xtask",
+    "make",
+    "host",
+    "verify",
+    "target/host-build/6057-aarch64-f96860659",
+    "--boot"
+  ],
+  "exit_code": 1,
+  "expected_refusal": "firmware-frame-source-dirty",
+  "owned_sentinel_removed": true,
+  "clean_after": true,
+  "classification": "retained-proof-source-refusal-before-guest-spawn; no graphical pass"
+}

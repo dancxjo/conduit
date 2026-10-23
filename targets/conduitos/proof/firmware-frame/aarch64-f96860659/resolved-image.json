@@ -1,0 +1,199 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:82e3e520b8cda3fcb0f9bd5dae9be63b2f8dc7f6b7d2cf225c0f1fe6d46bae20",
+    "profile_id": "sha256:305713f6a34fa317fc8662e7149c9509cb8df92607fb94923a89e4c82b35c70e",
+    "source_configuration_id": "sha256:5ed7f52e29e80a9d7af9d6e29c96b67cc5bfc27070e7ebc8f827207a54d51209",
+    "target": "conduitos/aarch64/virt",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "serial/text",
+        "driver": "conduitos/pl011@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "conduitos/pl011@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/linear-serial@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:305713f6a34fa317fc8662e7149c9509cb8df92607fb94923a89e4c82b35c70e",
+    "source_configuration_id": "sha256:5ed7f52e29e80a9d7af9d6e29c96b67cc5bfc27070e7ebc8f827207a54d51209",
+    "build_id": "build:sha256:82e3e520b8cda3fcb0f9bd5dae9be63b2f8dc7f6b7d2cf225c0f1fe6d46bae20",
+    "image_id": "image:sha256:68f35119614204c450f5ce03d7df0e064a3616f42310f8eaec917467db84a025",
+    "source_identity": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+    "toolchain_identity": "rustc:stable+aarch64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-aarch64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-aarch64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "conduitos/pl011@1",
+        "package_id": "conduitos-image@1",
+        "package_revision": 1
+      },
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/aarch64/virt",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "face/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0",
+      "base/1"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      },
+      {
+        "id": "base/1",
+        "kind": "serial/text",
+        "driver": "conduitos/pl011@1"
+      }
+    ],
+    "drivers": [
+      "driver/0",
+      "driver/1"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      },
+      {
+        "id": "driver/1",
+        "kind": "conduitos/pl011@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/linear-serial@1",
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 268435456,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:serial/text": [
+        "base:serial/text"
+      ],
+      "presenter:presenter/main > driver:conduitos/pl011@1": [
+        "base:serial/text",
+        "driver:conduitos/pl011@1"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main/derived > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main/derived > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main/derived > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main/derived > resource:face/surface": [
+        "resource:face/surface"
+      ]
+    }
+  }
+}
