@@ -110,3 +110,36 @@ fn decode_terminal(serial: &str) -> Result<(Vec<Snapshot>, Vec<frame::Frame>), R
     }
     Ok((records, frames))
 }
+
+/// Join a separate appliance observation to the existing real successful ACK line.
+pub(super) fn verify_ack(serial: &str, ack: &AckRef, cost: &Cost) -> Result<(), Refusal> {
+    let mut matched = 0;
+    let mut count = 0;
+    for line in serial
+        .lines()
+        .filter(|line| line.starts_with(frame::PREFIX))
+    {
+        count += 1;
+        if count > MAX_FRAMES || line.len() > MAX_LINE_BYTES {
+            return Err(Refusal::Frame);
+        }
+        let frame = frame::parse(line, 0)?;
+        if &frame.ack == ack {
+            if frame.counters
+                != [
+                    cost.entries,
+                    cost.privilege_transitions,
+                    cost.address_space_switches,
+                    cost.scheduler_returns,
+                ]
+            {
+                return Err(Refusal::Ack);
+            }
+            matched += 1;
+        }
+    }
+    if matched != 1 {
+        return Err(Refusal::Ack);
+    }
+    Ok(())
+}
