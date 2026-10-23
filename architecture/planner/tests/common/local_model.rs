@@ -84,6 +84,7 @@ pub fn local_model_provider(
                     &budget.class,
                     budget.slots,
                     ComputePoolContract {
+                        protected_preemption: None,
                         service_guarantee: ComputeServiceGuarantee::Shared,
                         architecture_base_id: ArchitectureBaseId::from(format!(
                             "{id}/hosted-compute"

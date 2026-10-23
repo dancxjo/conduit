@@ -203,6 +203,7 @@ fn global_assignment_reserves_declared_memory_and_typed_compute_limits() {
                     "global-hard/cpu-lanes",
                     if index == 0 { 1 } else { 2 },
                     ComputePoolContract {
+                        protected_preemption: None,
                         service_guarantee: ComputeServiceGuarantee::Shared,
                         architecture_base_id: "global-hard/base".into(),
                         architecture_base_kind: ArchitectureBaseKind::HostedOs,

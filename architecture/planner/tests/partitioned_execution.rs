@@ -4,9 +4,7 @@ use conduit_core::*;
 #[allow(dead_code)]
 #[path = "../../plan-lowering/tests/common/execution_regions.rs"]
 mod fixture;
-#[path = "../src/execution_regions.rs"]
-mod selection;
-use selection::*;
+use conduit_planner::execution_regions::*;
 fn input() -> (Plan, Vec<PartitionedRegionSelection>) {
     let mut fragment = fixture::transfer_plan().fragments.remove(0);
     for placement in &mut fragment.placements {
