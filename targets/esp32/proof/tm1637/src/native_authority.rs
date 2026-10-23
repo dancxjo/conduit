@@ -94,8 +94,32 @@ impl RootIssuer {
         {
             return Err(());
         }
+        self.reserve_plan(&fragment.plan_id)
+    }
+    /// Correlate full identities with already validated bounded tables. The
+    /// header's truncated identities cannot reconstruct full Plan/fragment IDs.
+    /// This local reservation is neither authenticated Body installation nor
+    /// permission to start: native possession and complete admission remain
+    /// separate gates. Do not expose this method as an unsigned start command.
+    pub fn reserve_assigned_play(
+        &mut self,
+        assignment: &conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
+        plan: &c::PlanId,
+        fragment: &c::FragmentId,
+    ) -> Result<c::ActivePlayIdentity, ()> {
+        let identity = assignment.identity();
+        if identity.host != c::AssignedIdentity::from_text(self.host.as_str())
+            || identity.boot != c::AssignedIdentity::from_text(self.boot.as_str())
+            || identity.plan != c::AssignedIdentity::from_text(plan.as_str())
+            || identity.fragment != c::AssignedIdentity::from_text(fragment.as_str())
+        {
+            return Err(());
+        }
+        self.reserve_plan(plan)
+    }
+    fn reserve_plan(&mut self, plan: &c::PlanId) -> Result<c::ActivePlayIdentity, ()> {
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
-        let active = c::bind_active_play(&fragment.plan_id, &self.host, &self.boot, sequence);
+        let active = c::bind_active_play(plan, &self.host, &self.boot, sequence);
         self.reserved_play = Some(active.clone());
         self.last_play_sequence = sequence;
         Ok(active)

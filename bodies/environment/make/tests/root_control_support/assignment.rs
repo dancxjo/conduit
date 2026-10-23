@@ -1,8 +1,11 @@
 //! Compiler round trip with inert retained native providers. Make-owned layout
 //! material here is not independent provisioning into a physical Root.
 use super::*;
+#[path = "assignment_reservation.rs"]
+mod reservation;
 use conduit_environment_make::{NativeApplianceLimits, PreparedNativeAppliance};
 use conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance;
+use reservation::check as reservation_scope;
 pub(super) fn round_trip(
     source: &conduit_environment_runtime::construction::ApplianceSource,
     host: &c::HostAdvertisement,
@@ -142,6 +145,7 @@ pub(super) fn round_trip(
     });
     assert!(result.is_ok());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    reservation_scope(&result.unwrap(), &plan.fragments[0]);
     let (identity, memory) = allocation_probe::observe(|| {
         let boxed = ValidatedAssignedAppliance::admit_records_boxed(
             decoded.header,

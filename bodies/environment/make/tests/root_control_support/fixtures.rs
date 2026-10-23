@@ -24,10 +24,18 @@ impl Trng {
         });
     }
 }
+thread_local! { static SCOPE_MODE:Cell<u8>=const {Cell::new(0)}; }
+pub(crate) fn scope_mode(mode: u8) {
+    SCOPE_MODE.with(|value| value.set(mode));
+}
 pub struct ObservedBoot;
 impl ObservedBoot {
     pub fn ids(&self) -> (&str, &str) {
-        ("host/network", "boot/current")
+        match SCOPE_MODE.with(Cell::get) {
+            1 => ("host/foreign", "boot/current"),
+            2 => ("host/network", "boot/stale"),
+            _ => ("host/network", "boot/current"),
+        }
     }
 }
 #[derive(Default)]

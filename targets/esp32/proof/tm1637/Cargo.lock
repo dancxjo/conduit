@@ -247,6 +247,7 @@ dependencies = [
  "conduit-environment-runtime",
  "conduit-face",
  "conduit-host-browser-make",
+ "conduit-host-esp32-make",
  "conduit-host-make",
  "conduit-host-rp2040",
  "conduit-monotonic-wait",
@@ -359,6 +360,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-host-make",
+]
+
+[[package]]
+name = "conduit-host-esp32-make"
+version = "0.1.0"
+dependencies = [
+ "conduit-host-make",
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
