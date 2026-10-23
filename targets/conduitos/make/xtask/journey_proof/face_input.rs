@@ -35,6 +35,26 @@ pub(super) fn unavailable_wake(
     Ok(())
 }
 
+/// Correlate this navigation with a new, complete guest checkpoint. Earlier
+/// visits and `returned-to-plot` records cannot authorize this capture.
+pub(super) fn open_home(
+    serial_path: &Path,
+    child: &mut Child,
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+) -> Result<(), ConduitosError> {
+    let marker = "CONDUIT_HOME_CHECKPOINT returned\n";
+    let before = stage_count(serial_path, marker)?;
+    journey_input::key_pair(qmp, reader, "esc", "journey-home")?;
+    hid_qmp::wait_for_stage_count(
+        serial_path,
+        child,
+        marker,
+        before + 1,
+        "journey-home-timeout",
+    )
+}
+
 pub(super) fn return_and_reenter(
     serial_path: &Path,
     child: &mut Child,
