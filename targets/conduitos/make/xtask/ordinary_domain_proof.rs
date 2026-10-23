@@ -9,6 +9,7 @@ use crate::cli::GlobalOpts;
 
 use super::{build, image, profile::Paths, report::ArtifactRole, ConduitosArch, ConduitosError};
 
+mod clock_boundary;
 mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
@@ -92,6 +93,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
+    let clock_boundary = clock_boundary::validate(&transcript)
+        .map_err(|reason| ConduitosError::refusal("service-clock-boundary-refused", reason))?;
     let trap_envelope = trap_envelope::validate(&transcript).map_err(|reason| {
         ConduitosError::refusal("service-trap-envelope-refused", format!("{reason:?}"))
     })?;
@@ -258,6 +261,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "iso_sha256": super::report::sha256_file(&paths.iso)?,
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
         "observations": trap_envelope,
+        "privilege_boundary_observations": clock_boundary,
     });
     fs::write(
         paths.target.join("service-trap-envelope-proof.json"),

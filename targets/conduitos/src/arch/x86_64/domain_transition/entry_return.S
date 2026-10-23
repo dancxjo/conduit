@@ -20,6 +20,8 @@ conduitos_ordinary_root_gs: .quad 0
     .if {proof_envelope}
     .global conduitos_trap_observation
 conduitos_trap_observation: .zero 112
+    .global conduitos_boundary_clock
+conduitos_boundary_clock: .zero 40
     .endif
     .text
     .global conduitos_ordinary_enter
@@ -52,6 +54,12 @@ conduitos_ordinary_enter:
     mov rax, cr4
     mov [rip + conduitos_ordinary_root_cr4], rax
     or rax, 4
+    .if {proof_envelope}
+    cmp qword ptr [rip + conduitos_boundary_clock], 1
+    jne 81f
+    and rax, -5
+81:
+    .endif
     and rax, -65793
     mov cr4, rax
     mov ax, ss
@@ -113,6 +121,18 @@ conduitos_ordinary_enter:
     xor r13d, r13d
     xor r14d, r14d
     xor r15d, r15d
+    .if {proof_envelope}
+    cmp qword ptr [rip + conduitos_boundary_clock], 1
+    jne 82f
+    lfence
+    rdtsc
+    lfence
+    mov dword ptr [rip + conduitos_boundary_clock + 8], eax
+    mov dword ptr [rip + conduitos_boundary_clock + 12], edx
+    xor eax, eax
+    xor edx, edx
+82:
+    .endif
     iretq
 
     .global conduitos_ordinary_gate
@@ -123,6 +143,17 @@ conduitos_ordinary_gate:
     .if {proof_envelope}
     push rax
     push rdx
+    cmp qword ptr [rip + conduitos_boundary_clock], 1
+    jne 83f
+    lfence
+    rdtsc
+    lfence
+    mov dword ptr [rip + conduitos_boundary_clock + 32], eax
+    mov dword ptr [rip + conduitos_boundary_clock + 36], edx
+    mov [rip + conduitos_boundary_clock + 16], r12
+    mov [rip + conduitos_boundary_clock + 24], r13
+    mov qword ptr [rip + conduitos_boundary_clock], 2
+83:
     envelope_stamp 32
     mov qword ptr [rip + conduitos_trap_observation + 8], 1
     pop rdx

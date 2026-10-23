@@ -10,6 +10,7 @@ use crate::{
 mod frame;
 use frame::TextFrame;
 
+pub(super) mod clock_boundary;
 pub(super) mod trap_envelope;
 
 const IMAGE: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/domain.elf"));
@@ -80,6 +81,7 @@ fn sentinel(address: u64) -> u32 {
 
 pub(super) fn run() {
     trap_envelope::run();
+    clock_boundary::run();
     let image = ServiceImage::compositor(IMAGE).unwrap_or_else(|_| refuse("service-image"));
     let layout = image.layout();
     let root_sentinel = VALUE;
