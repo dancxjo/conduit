@@ -63,9 +63,9 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         .iter()
         .filter(|command| command.payload().contains('\n'))
         .collect();
-    #[cfg(not(feature = "native-compositor"))]
+    #[cfg(not(feature = "native-compositor-core"))]
     let line_height = 16;
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     let line_height =
         crate::display::typography::metrics(crate::display::typography::TextRole::Body).line_height;
     assert_eq!(fields[0].bounds.height, 2 * line_height);

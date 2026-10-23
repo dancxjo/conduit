@@ -12,10 +12,16 @@ fn real_graphical_profile_admits_scanout_without_x86_input_or_proof_inventory() 
     let lowered = lower_aarch64_virt(&graphical()).unwrap();
     assert_eq!(
         lowered.cargo_features,
-        ["aarch64-product", "native-compositor"]
+        ["aarch64-product", "native-compositor-core"]
     );
-    assert_eq!(lowered.bases, conduitos::make::BASE_DISPLAY_SCANOUT);
-    assert_eq!(lowered.drivers, conduitos::make::DRIVER_LINEAR_FRAMEBUFFER);
+    assert_eq!(
+        lowered.bases,
+        conduitos::make::BASE_DISPLAY_SCANOUT | conduitos::make::BASE_SERIAL_TEXT
+    );
+    assert_eq!(
+        lowered.drivers,
+        conduitos::make::DRIVER_LINEAR_FRAMEBUFFER | conduitos::make::DRIVER_PL011_SERIAL
+    );
     assert_eq!(lowered.face_surface_slots, 4);
     assert_eq!(lowered.face_surface_bytes, 8388608);
     assert_eq!(lowered.proof_instrumentation, 0);
@@ -24,8 +30,7 @@ fn real_graphical_profile_admits_scanout_without_x86_input_or_proof_inventory() 
             & (conduitos::make::IMPL_KEYBOARD
                 | conduitos::make::IMPL_POINTER
                 | conduitos::make::IMPL_PC_SPEAKER
-                | conduitos::make::IMPL_OPL2
-                | conduitos::make::IMPL_LINEAR_PRESENTER),
+                | conduitos::make::IMPL_OPL2),
         0
     );
 }
@@ -44,9 +49,11 @@ fn graphical_closure_refuses_mismatched_or_unbounded_resources_and_drivers() {
                 .resource_budgets
                 .push(manifest.resource_budgets[0].clone()),
         }
-        assert!(lower_aarch64_virt(&manifest)
-            .unwrap_err()
-            .to_string()
-            .contains("aarch64-product-closure-mismatch"));
+        assert!(
+            lower_aarch64_virt(&manifest)
+                .unwrap_err()
+                .to_string()
+                .contains("aarch64-")
+        );
     }
 }

@@ -367,7 +367,11 @@ pub fn check_host_configuration(
             })
             .collect(),
         lines: Vec::new(),
-        presenters: presentation.presenter.into_iter().collect(),
+        presenters: presentation
+            .supplemental
+            .into_iter()
+            .chain(presentation.presenter)
+            .collect(),
         facilities: presentation.facilities,
         exclusions: Vec::new(),
         policy: HostPolicy {

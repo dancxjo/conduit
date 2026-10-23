@@ -194,7 +194,7 @@ impl NativeCompositor {
                 .with_raster(bounds.width, bounds.height, |sessions, lease| {
                     use crate::display::PixelTarget;
                     let format = lease.format();
-                    #[cfg(feature = "native-compositor")]
+                    #[cfg(feature = "native-compositor-core")]
                     let receipt = crate::display::typography::render_scene_configured(
                         lease,
                         scene,
@@ -204,7 +204,7 @@ impl NativeCompositor {
                             .map_or(100, |e| e.expression.text_scale_percent),
                         |role| super::super::paint::visual_paint(format, role, expression.as_ref()),
                     )?;
-                    #[cfg(not(feature = "native-compositor"))]
+                    #[cfg(not(feature = "native-compositor-core"))]
                     let receipt = crate::display::render_scene(lease, scene)?;
                     // The full packed arena is finite; preparation copies at most
                     // MAX_COMPOSITOR_PIXELS unchanged pixels in bounded entries.

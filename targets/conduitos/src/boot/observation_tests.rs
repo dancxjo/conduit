@@ -2,9 +2,9 @@ use super::*;
 
 #[test]
 fn runtime_arena_matches_the_compiled_face_shape() {
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     assert_eq!(MIN_RUNTIME_ARENA_BYTES, 16 * 1024 * 1024);
-    #[cfg(not(feature = "native-compositor"))]
+    #[cfg(not(feature = "native-compositor-core"))]
     assert_eq!(MIN_RUNTIME_ARENA_BYTES, 8 * 1024 * 1024);
 }
 

@@ -107,11 +107,11 @@ pub mod monotonic_clock;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod native_boot_join;
 mod native_components;
-#[cfg(any(test, feature = "native-compositor"))]
+#[cfg(any(test, feature = "native-compositor-core"))]
 pub mod native_compositor;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_mask;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
 pub mod native_guest_face;
@@ -432,3 +432,6 @@ compile_error!(
     feature = "compositor-semantic-recovery-proof"
 ))]
 pub mod compositor_semantic_recovery_proof;
+
+#[cfg(feature = "native-compositor-core")]
+pub mod firmware_face;

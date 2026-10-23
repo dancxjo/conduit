@@ -23,7 +23,7 @@ use image_validation as domain_image;
 #[allow(dead_code)]
 #[path = "src/service_memory.rs"]
 mod service_image_validation;
-#[cfg(feature = "native-compositor")]
+#[cfg(feature = "native-compositor-core")]
 #[path = "build/typography.rs"]
 mod typography;
 
@@ -55,7 +55,7 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUITOS_IMAGE_ID");
     println!("cargo:rerun-if-env-changed=CONDUITOS_MAKE_RECORD");
     generate_unifont_subset();
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     typography::generate();
     let output =
         PathBuf::from(env::var_os("OUT_DIR").expect("Cargo sets OUT_DIR")).join("make_record.rs");

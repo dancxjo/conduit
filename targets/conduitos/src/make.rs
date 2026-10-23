@@ -207,7 +207,7 @@ impl MakeRecord {
                     | "conduitos/loongarch64/virt"
                     | "conduitos/aarch64/orange-pi-5-rk3588s"
             ) && (native || !linear))
-            || (self.target == "conduitos/aarch64/virt" && native == linear)
+            || (self.target == "conduitos/aarch64/virt" && !linear)
             || (self.target == "conduitos/x86_64/pc" && linear)
         {
             return Err(MakeError::UnknownInventory);
@@ -404,13 +404,17 @@ mod tests {
                 | IMPL_TEXT_UPPER
                 | IMPL_TEXT_FACE
                 | IMPL_NATIVE_PRESENTER
+                | IMPL_LINEAR_PRESENTER
                 | IMPL_USB_TRANSPORT,
+            bases: BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT,
+            drivers: DRIVER_LINEAR_FRAMEBUFFER | DRIVER_PL011_SERIAL,
+            presenters: PRESENTER_NATIVE_GRAPHICAL | PRESENTER_LINEAR_SERIAL,
             ..record()
         };
         assert_eq!(graphical.validate(1), Ok(()));
         for malformed in [
             MakeRecord {
-                implementations: graphical.implementations | IMPL_LINEAR_PRESENTER,
+                implementations: graphical.implementations & !IMPL_LINEAR_PRESENTER,
                 ..graphical
             },
             MakeRecord {
