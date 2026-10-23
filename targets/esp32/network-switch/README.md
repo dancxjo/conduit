@@ -76,3 +76,12 @@ cancellation or another cleanup call cannot reset it. All AP addressing, link an
 service acknowledgements must complete within it. No retry or new credential
 selection is hidden in the provider. Actual offer/capability issuance, the private
 page route, station HTTP/mDNS ownership and physical join/fallback remain open.
+
+`prepare_station_configuration` is the Root preparation callback for the
+attended WPA2-personal profile: a UTF-8 SSID of 1–32 bytes and a UTF-8 passphrase
+of 8–63 bytes, with embedded NUL refused. It creates the SDK password String
+before Play and explicitly disables the SDK's default connection retry. The
+selected provider refuses configurations outside that profile or with retries
+enabled, including binary SSIDs whose SDK string view loses bytes. This is SDK
+representation preparation, not submission consumption or permission to join.
+The Root page-to-configuration caller remains to be installed.

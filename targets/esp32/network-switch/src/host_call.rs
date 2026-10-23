@@ -6,7 +6,7 @@ use conduit_net::{
 };
 use conduit_network_join_call::{AttachmentRecord, NetworkJoinProvider};
 use embassy_time::{Duration, Instant};
-use esp_radio::wifi::Config;
+use esp_radio::wifi::{AuthenticationMethod, Config};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Esp32JoinPreparationRefusal {
@@ -49,7 +49,14 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
         let Config::Station(config) = &radio.station_config else {
             return Err(Esp32JoinPreparationRefusal::Configuration);
         };
-        if config.ssid().is_empty() || config.password().is_empty() || config.password().len() > 64
+        if crate::credentials::validate(NetworkJoinRequest {
+            ssid: config.ssid().as_str().as_bytes(),
+            credential: config.password().as_bytes(),
+        })
+        .is_err()
+            || config.ssid().as_str().len() != config.ssid().len()
+            || config.auth_method() != AuthenticationMethod::Wpa2Personal
+            || config.failure_retry_cnt() != 0
         {
             return Err(Esp32JoinPreparationRefusal::Configuration);
         }

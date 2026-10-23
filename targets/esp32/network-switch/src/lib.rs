@@ -1,12 +1,14 @@
 #![no_std]
 //! ESP32 mode/address mechanics for an independently admitted network Host Call.
 //! No offer, credential policy, retry, attachment or Body lifecycle is minted.
+mod credentials;
 mod host_call;
 use conduit_net::{
     AccessPointSwitchOperations, DeadlineExpired, OperationDeadline, StationFailure,
     StationOperations,
 };
 use core::future::Future;
+pub use credentials::{prepare_station_configuration, StationConfigurationRefusal};
 use embassy_net::{ConfigV4, Stack, StaticConfigV4};
 use embassy_time::{with_deadline, Instant};
 use esp_radio::wifi::{
