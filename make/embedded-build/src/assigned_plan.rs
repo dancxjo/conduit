@@ -18,6 +18,31 @@ pub fn encode_assigned_plan(
     plan: &GeneratedEmbeddedPlan,
     maxima: AssignedPlanMaxima,
 ) -> Result<Vec<u8>, GenerationError> {
+    encode(plan, maxima, ASSIGNED_PLAN_SCHEMA)
+}
+
+/// Kernel projection with explicit single-value envelopes and pressure policy.
+/// The legacy encoder and tiny-host schema remain unchanged.
+pub fn encode_assigned_kernel_plan(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+) -> Result<Vec<u8>, GenerationError> {
+    encode(plan, maxima, conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA)
+}
+/// Exact single cooperative Base/resource/authority facts for constrained native
+/// possession admission. Legacy and kernel-only projections remain unchanged.
+pub fn encode_assigned_native_plan(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+) -> Result<Vec<u8>, GenerationError> {
+    encode(plan, maxima, conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA)
+}
+
+fn encode(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+    schema: u16,
+) -> Result<Vec<u8>, GenerationError> {
     let mut payload = Vec::new();
     let mut counts = [0_u8; conduit_core::ASSIGNED_PLAN_COUNT_KINDS];
     let mut record = |tag: u8, value: Vec<u8>| -> Result<(), GenerationError> {
@@ -85,6 +110,13 @@ pub fn encode_assigned_plan(
         u16_to(&mut value, cord.item_capacity);
         u32_to(&mut value, cord.byte_capacity);
         value.push(cord.track as u8);
+        if matches!(
+            schema,
+            conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA | conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA
+        ) {
+            u32_to(&mut value, cord.maximum_value_bytes);
+            value.push(cord.pressure_policy as u8);
+        }
         record(ASSIGNED_CORD, value)?;
     }
     for route in &plan.routes {
@@ -124,6 +156,9 @@ pub fn encode_assigned_plan(
         u16_to(&mut value, operation.maximum_in_flight);
         u32_to(&mut value, operation.maximum_input_bytes);
         u32_to(&mut value, operation.maximum_output_bytes);
+        if schema == conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA {
+            crate::assigned_native::append(plan, operation, &mut value)?;
+        }
         record(ASSIGNED_HOST_CALL, value)?;
     }
     for resource in &plan.resources {
@@ -267,7 +302,7 @@ pub fn encode_assigned_plan(
 
     let mut bytes = Vec::with_capacity(usize::from(total));
     bytes.extend_from_slice(&assigned_plan_magic());
-    u16_to(&mut bytes, ASSIGNED_PLAN_SCHEMA);
+    u16_to(&mut bytes, schema);
     u16_to(&mut bytes, total);
     u16_to(&mut bytes, runtime_state_bytes);
     u16_to(&mut bytes, 0);
@@ -363,4 +398,69 @@ fn bound(table: &str, actual: u64, maximum: u64) -> Result<(), GenerationError> 
     }
     let _ = table;
     Ok(())
+}
+
+/// Trusted image inventory for the computation-aware assigned-Plan decoder.
+/// Call after fixed-image generation validated each computation's exact contract.
+/// Deploy this inventory with the resident image, never derive it from an incoming
+/// assignment on the device. These digests do not admit evaluator heap or work.
+pub fn assigned_computation_requirements(
+    plan: &GeneratedEmbeddedPlan,
+) -> Result<Vec<conduit_core::AssignedComputationRequirement>, GenerationError> {
+    plan.configuration
+        .iter()
+        .filter(|entry| matches!(entry.key.as_str(), "program" | "selector"))
+        .map(|entry| {
+            let GeneratedConfigurationValue::Text(text) = &entry.value else {
+                return Err(GenerationError::InvalidComputationConfiguration);
+            };
+            conduit_core::AssignedComputationRequirement::from_text(entry.node, &entry.key, text)
+                .map_err(|_| GenerationError::InvalidComputationConfiguration)
+        })
+        .collect()
+}
+
+/// Resident structural inventory for a fixed-source assigned-kernel layout.
+/// Configurations have their separate exact inventory. Sign and terminal IDs
+/// depend on the current Plan/Boot and are not executable structural tables.
+/// Only derive this from a validated generated image on the trusted Make side.
+pub fn assigned_layout_requirements(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
+    layout_records(
+        encode_assigned_kernel_plan(plan, maxima)?,
+        conduit_core::ASSIGNED_KERNEL_PLAN_SCHEMA,
+    )
+}
+pub fn assigned_native_layout_requirements(
+    plan: &GeneratedEmbeddedPlan,
+    maxima: AssignedPlanMaxima,
+) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
+    layout_records(
+        encode_assigned_native_plan(plan, maxima)?,
+        conduit_core::ASSIGNED_NATIVE_PLAN_SCHEMA,
+    )
+}
+fn layout_records(
+    bytes: Vec<u8>,
+    schema: u16,
+) -> Result<Vec<conduit_core::AssignedRecordRequirement>, GenerationError> {
+    conduit_core::AssignedPlanRecords::new(&bytes)
+        .map_err(|_| GenerationError::InvalidFragment)?
+        .filter_map(|record| match record {
+            Ok(record)
+                if !matches!(
+                    record.tag,
+                    ASSIGNED_CONFIGURATION | ASSIGNED_SIGN | ASSIGNED_TERMINAL
+                ) =>
+            {
+                Some(Ok(
+                    conduit_core::AssignedRecordRequirement::from_kernel_record(record, schema),
+                ))
+            }
+            Ok(_) => None,
+            Err(_) => Some(Err(GenerationError::InvalidFragment)),
+        })
+        .collect()
 }

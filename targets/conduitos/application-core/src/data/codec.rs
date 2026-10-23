@@ -1,11 +1,17 @@
 //! Finite transport encoding; compression never changes typed application data.
 mod byte_sequences;
+#[path = "codec/graph_encoding/mod.rs"]
+mod graph_encoding;
 mod graph_reply;
 use super::{Command, Refusal, Reply, transport_codec};
 use crate::MAX_BLOB;
 use alloc::{boxed::Box, vec::Vec};
 use byte_sequences::JsonBytes;
 pub use graph_reply::PACK_BYTES as GRAPH_PACK_BYTES;
+pub const GRAPH_SERIALIZE_TURNS: u32 = graph_encoding::MAX_TURNS;
+pub const GRAPH_VALIDATE_TURNS: u32 =
+    (2 * MAX_DECODED_JSON_BYTES.div_ceil(transport_codec::streaming_step_bytes())) as u32;
+pub(crate) use graph_encoding::GraphEncoding;
 pub(crate) use graph_reply::Packing;
 use miniz_oxide::{
     deflate::core::{
@@ -17,6 +23,7 @@ use miniz_oxide::{
     },
 };
 use serde::{Serialize, de::DeserializeOwned};
+pub(crate) use transport_codec::GraphValidation;
 
 /// A decoded wire engineering ceiling, not proof of aggregate service fit.
 /// The wire remains at MAX_BLOB; neither ceiling authorizes an application effect.

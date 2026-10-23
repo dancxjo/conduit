@@ -1,0 +1,19 @@
+# The public observation retains first-class Temperature and Ratio quantities.
+# The decoder's integer coordinates are internal representation material; the
+# admitted conversion Back applies the checked Forms from dht11.conduit.
+plot dht11-observe (
+    >> begin: Empty...|
+    observed: Dht11Result...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    read: dht11-read
+    observation: device/dht11-observation
+    begin >> read.begin
+    read.decoded >> observation.decoded
+    observation.result >> observed
+    read.timed_out >> timed_out
+    read.provider_failed >> provider_failed
+    read.geometry_refused >> geometry_refused
+}

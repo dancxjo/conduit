@@ -5,6 +5,8 @@ edition = "2024"
 publish = false
 [dependencies]
 conduit-core = { path = "../../../architecture/core" }
+conduit-human = { path = "../../../semantics/human" }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-tutorial-plot = { path = "../../../semantics/tutorial" }
@@ -21,5 +23,4 @@ name = "private_heap"
 harness = false
 
 [dev-dependencies]
-conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }

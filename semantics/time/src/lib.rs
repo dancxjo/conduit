@@ -62,6 +62,14 @@ pub use generated::{
 
 mod timed_pattern_refusal;
 
+#[cfg(feature = "kernel-step")]
+mod tick_back;
+#[cfg(feature = "kernel-step")]
+pub use tick_back::TickBack;
+mod tick_trigger;
+#[cfg(feature = "kernel-step")]
+pub use tick_trigger::TickTriggerBack;
+pub use tick_trigger::{tick_trigger_semantic_contract, TICK_TRIGGER_KIND};
 mod tick;
 pub use tick::*;
 

@@ -1,0 +1,8 @@
+{
+  "base": "2433a5a093aced05b6751f27604c88779f67f833",
+  "production_unchanged": true,
+  "exit_code": 101,
+  "expected_failure": "later primitive contract indexes [] instead of [1,1]",
+  "log_sha256": "d42fd903ec976b1bfc7abf828573512567aaf719cef8e969433b015988da8116",
+  "test_patch_sha256": "14c38a4dcb6b627b3eb95d42e2d92738e304c713947af264065e047664439b2d"
+}
