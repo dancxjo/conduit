@@ -1,7 +1,8 @@
 //! Actual encoder/collector protocol conformance; no native execution is claimed.
 extern crate std;
 use self::std::{format, string::String};
-use crate::{protected_compositor::lifecycle_sign as wire, protected_region::DomainCost};
+use super as wire;
+use crate::protected_region::DomainCost;
 #[path = "../../make/xtask/compositor_lifecycle_proof.rs"]
 mod collector;
 
