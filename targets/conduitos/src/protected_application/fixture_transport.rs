@@ -101,14 +101,26 @@ fn exchange(state: &mut State, command: &Command) -> Result<Reply, Refusal> {
     let mut response = state.execute(Request::Commit, &mut transfer)?;
     if matches!(command, Command::Graph { .. }) {
         assert_eq!(response, Response::Ready);
-        assert_eq!(
-            state.execute(Request::GraphSerialize, &mut transfer)?,
-            Response::Ready
-        );
-        assert_eq!(
-            state.execute(Request::GraphValidate, &mut transfer)?,
-            Response::Ready
-        );
+        for phase in [
+            conduitos_application_core::wire::GraphPhase::Serialize,
+            conduitos_application_core::wire::GraphPhase::Validate,
+        ] {
+            let limit = match phase {
+                conduitos_application_core::wire::GraphPhase::Serialize => {
+                    data::GRAPH_SERIALIZE_TURNS
+                }
+                conduitos_application_core::wire::GraphPhase::Validate => {
+                    data::GRAPH_VALIDATE_TURNS
+                }
+            };
+            let mut progress = conduitos_application_core::wire::GraphProgress::new(phase, limit)?;
+            loop {
+                let response = state.execute(progress.request()?, &mut transfer)?;
+                if progress.accept(response)? {
+                    break;
+                }
+            }
+        }
         for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
             response = state.execute(
                 Request::GraphPack {
