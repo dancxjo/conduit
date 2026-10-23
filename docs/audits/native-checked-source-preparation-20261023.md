@@ -110,3 +110,33 @@ projected Source but did not retain this full ordinary owner Face/Show; that
 proof gap is being repaired within the unchanged Application grant. No retry or
 budget increase is represented as success. This run's image products and raw
 failure packet are preserved separately from the prior d146 capacity failure.
+
+## Publication lifetime correction
+
+The faithful software fixture now includes the full initialized Collection
+MaskShow (about 18 KiB), the complete owner Face, current resident graphs,
+reviewed Vision graph and the exact Body Mask topology carried by that Face.
+It is a CPU fixture, not a substituted QEMU command. The current-product
+allocator scenario retains Tour and Patchbay owners; an initial diagnostic
+also retained a historical Tutorial controller and is labelled separately.
+Both the larger aggregate and the aligned current-product scenario exhausted
+the grant while constructing a second complete graph fragment for validation.
+A reserve-only attempt also failed and was removed.
+
+Validation now consumes finite chunks from the same graph emitter used by full
+Face projection. It retains subject declarations because later Cords require
+prior Port visibility to emit Connects relationships, while releasing the
+larger property/relationship/text vectors between chunks. It compares every
+expected field and rejects unexpected owned actions. Aggregate bounds and
+identity refusals remain explicit; typed action lookup uses the same action
+emitter without materializing another complete graph. No graph truth, cached
+model, authority route or storage ceiling is added.
+
+The full Source publication plus exact offered return-selection consume passes
+in the unchanged 2,072,576-byte bitmap grant, peaking at 2,031,648 bytes. The
+combined historical scenario maximum remains 2,042,592 bytes (29,984 headroom).
+Mutation tests exposed and corrected an early prototype which released Port
+visibility and consequently omitted Cord Connects. Those negatives and the
+initial allocator failures are retained under `publication-lifetime` beside the
+passing focused checks. Aggregate and duplicate-subject refusal equivalence are
+also checked. Fresh repaired QEMU proof remains required.
