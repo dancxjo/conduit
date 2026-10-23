@@ -1,0 +1,24 @@
+{
+  "source": "831d3b0a66cbb4b03ae55629a6a0de505e9ba3a8",
+  "kind": "read-only source review; focused hosted results separate; native code not yet compiled",
+  "reviewed_surfaces": [
+    "fixed optional phase snapshots/raw ticks",
+    "checked finite count/overflow",
+    "borrowed immutable display/make identity",
+    "4096-byte serde-json-core whole-record encoding",
+    "all18 numeric cost fields",
+    "incomplete marker replaces partial serialization",
+    "one-time embedded image SHA256 insideprepare interval, immutable32B owner custody",
+    "zero-allocation test using existing allocator helper"
+  ],
+  "findings": {
+    "authority": "No grant renewal, map/backend/profile change, retry, scheduler or semantic effect selection added.",
+    "allocation": "Caller provides fixedbuffer, borrowedidentity andcostsnapshot; digestretained32B/no perframehash; hostedencode control observeszeroalloccalls. NewRootownermetadata is distinctfromguestprivategrant.",
+    "failure": "Counteroverflow/serializationcapacity affect receipt completeness only; originalserviceoperation outcomes preserved.",
+    "image": "RawstaticembeddedELFhash differsfrom MakeRecord image_binding; RootELF/ISO/source identity muststilljoin externally.",
+    "clock": "ExistingunfencedrawTSC, Nonehosted/reverse; notcalibratednanoseconds/cycleaccurateisolatedcomponent measurement.",
+    "remaining": "Nativeonlyclockexport/digestprep/borrowedctor/accessors uncompiled; producthooks/strictparser/actualcheckpointmap/realQEMUnegative+matchedmeasurement allpending."
+  },
+  "substantive_blockers_found": [],
+  "proof_scope": "No actualnativeorfullissuecompletionclaim"
+}

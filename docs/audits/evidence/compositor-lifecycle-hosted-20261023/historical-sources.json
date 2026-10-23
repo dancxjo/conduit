@@ -1,0 +1,18 @@
+{
+  "42dc6b": {
+    "source": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+    "source_specific_results": "26 hosted focused tests; NOT evidence for831source",
+    "packet": "https://github.com/dancxjo/conduit/tree/f98380d00d8610eb767fab6230079f12d444b29b/docs/audits/evidence/compositor-lifecycle-hosted-20261023"
+  },
+  "ce1877": {
+    "source": "ce1877d9540fe0ffdab7c449a9d6674d37fe835a",
+    "source_specific_results": "26 hosted owner/serializer tests; NOT guest-digest/allocation controls or831proof",
+    "retained_metadata": "prior-ce1877/run.json",
+    "retained_actual_ELF": "work/6185-hosted-ce1877/conduitos-cff8a604d4e3a62b"
+  },
+  "982af9": {
+    "source": "982af9518563b4485f615835466c459197acc221",
+    "status": "first focused attempt linker SIGBUS; no tests executed; cause unproven"
+  },
+  "prior_root_review": "prior-42dc-source-review.json reviews42source only; not final831source"
+}

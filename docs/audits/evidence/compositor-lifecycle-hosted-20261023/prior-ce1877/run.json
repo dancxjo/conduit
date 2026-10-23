@@ -1,0 +1,67 @@
+{
+  "source": "ce1877d9540fe0ffdab7c449a9d6674d37fe835a",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "hosted-tools,native-compositor",
+    "compositor_session_owner_tests",
+    "--locked",
+    "--",
+    "--test-threads=1"
+  ],
+  "env": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "cache": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+  "scope": "isolated focused hosted; native and fullsuite pending",
+  "status": "success",
+  "started_utc": "2026-10-23T09:50:37.021773+00:00",
+  "capacity_checks": [
+    {
+      "utc": "2026-10-23T09:51:37.071949+00:00",
+      "cache_bytes": 3327117678,
+      "tmp_free_bytes": 17807544320,
+      "mem_available_bytes": 49060438016
+    },
+    {
+      "utc": "2026-10-23T09:52:37.123879+00:00",
+      "cache_bytes": 3309909959,
+      "tmp_free_bytes": 17824686080,
+      "mem_available_bytes": 49294921728
+    },
+    {
+      "utc": "2026-10-23T09:53:37.174019+00:00",
+      "cache_bytes": 3323330742,
+      "tmp_free_bytes": 17811099648,
+      "mem_available_bytes": 47561547776
+    },
+    {
+      "utc": "2026-10-23T09:54:37.197527+00:00",
+      "cache_bytes": 3247003502,
+      "tmp_free_bytes": 17887281152,
+      "mem_available_bytes": 48675172352
+    }
+  ],
+  "exit_code": 0,
+  "finished_utc": "2026-10-23T09:55:35.053303+00:00",
+  "source_after": "ce1877d9540fe0ffdab7c449a9d6674d37fe835a",
+  "status_after": "",
+  "raw_log_sha256": "ad078e71e2823e5f3205cbb56af9a77e874df7956dc2dea5663b737c3805fea8",
+  "root_free_bytes": 21352869888,
+  "retained_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-ce1877/conduitos-cff8a604d4e3a62b",
+      "bytes": 156335432,
+      "sha256": "785b69a88a1811451cfbbd1ccb252251e1ce2d5ed9dc7002528df4f7bf64ba9b"
+    }
+  ]
+}

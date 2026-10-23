@@ -1,0 +1,15 @@
+{
+  "source": "831d3b0a66cbb4b03ae55629a6a0de505e9ba3a8",
+  "required_new_tests": [
+    "maximum_numeric_cost_fields_and_escaped_identity_are_lossless",
+    "missing_samples_cost_and_ticks_remain_explicit_null_for_every_closed_kind",
+    "oversized_identity_and_counter_overflow_emit_only_complete_incomplete_marker",
+    "growing_escaped_identity_never_exposes_a_truncated_record",
+    "guest_image_digest_retains_every_borrowed_byte_without_hex_allocation",
+    "prepared_record_and_incomplete_paths_make_no_heap_allocation_calls"
+  ],
+  "all_explicitly_observed_pass": true,
+  "passed": 28,
+  "ignored": 0,
+  "filtered": 1323
+}

@@ -1,0 +1,42 @@
+{
+  "source": "831d3b0a66cbb4b03ae55629a6a0de505e9ba3a8",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "hosted-tools,native-compositor",
+    "compositor_session_owner_tests",
+    "--locked",
+    "--",
+    "--test-threads=1"
+  ],
+  "env": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "cache": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+  "scope": "isolated focused hosted; native and fullsuite pending",
+  "status": "success",
+  "started_utc": "2026-10-23T10:02:01.442466+00:00",
+  "capacity_checks": [],
+  "exit_code": 0,
+  "finished_utc": "2026-10-23T10:02:21.831087+00:00",
+  "source_after": "831d3b0a66cbb4b03ae55629a6a0de505e9ba3a8",
+  "status_after": "",
+  "raw_log_sha256": "7e73442128d2099a75143659403e54bd141928a8c48b850ae172b02086608cce",
+  "root_free_bytes": 19350691840,
+  "retained_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-831d3b/conduitos-cff8a604d4e3a62b",
+      "bytes": 156357392,
+      "sha256": "59ef29325fbb78279fd6e02da8ee1d6efe9923f234e19d736b34eb00728507e2"
+    }
+  ]
+}

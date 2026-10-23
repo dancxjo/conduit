@@ -1,0 +1,12 @@
+{
+  "required_new_serializer_tests": [
+    "maximum_numeric_cost_fields_and_escaped_identity_are_lossless",
+    "missing_samples_cost_and_ticks_remain_explicit_null_for_every_closed_kind",
+    "oversized_identity_and_counter_overflow_emit_only_complete_incomplete_marker",
+    "growing_escaped_identity_never_exposes_a_truncated_record"
+  ],
+  "all_explicitly_observed_pass": true,
+  "total_owning_tests_passed": 26,
+  "ignored": 0,
+  "filtered": 1323
+}

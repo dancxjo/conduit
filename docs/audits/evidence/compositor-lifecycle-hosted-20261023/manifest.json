@@ -1,0 +1,26 @@
+{
+  "schema": "conduit.local/compositor-lifecycle-hosted@2",
+  "source": "831d3b0a66cbb4b03ae55629a6a0de505e9ba3a8",
+  "proof_class": "hosted focused tests only",
+  "passed": 32,
+  "ignored": 0,
+  "owner_test_count": 28,
+  "owner_filtered": 1323,
+  "identity_test_count": 4,
+  "identity_filtered": 1347,
+  "allocation_control": "zero alloc/alloc_zeroed/realloc calls and zero net rounded retained bytes during normal/max, capacity-fallback and overflow emission; no total-byte counter exists; preparation/parsing excluded",
+  "actual_test_executable": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-831d3b/conduitos-cff8a604d4e3a62b",
+    "bytes": 156357392,
+    "sha256": "59ef29325fbb78279fd6e02da8ee1d6efe9923f234e19d736b34eb00728507e2"
+  },
+  "binaries_in_git": false,
+  "limits": [
+    "Not full suite",
+    "Native raw clock/digest preparation/borrowed native identity constructor uncompiled",
+    "No native/CPL3/QEMU/product proof",
+    "No timing/speedup or full6185 claim"
+  ],
+  "compiler_observation": "version queried after tests at packet sealing, not independently captured beforeexecution",
+  "sealed_utc": "2026-10-23T10:04:56.149982+00:00"
+}
