@@ -677,3 +677,12 @@ binding with actual private mailbox submissions, revocation, replay and a
 substituted artifact. Assigned binding and execution allocate nothing. The ESP32
 network adapter cross-check passes; this is compilation evidence, not firmware
 installation or a physical network transition.
+
+`PreparedNetworkSetup::prepare_native` now emits the ordinary native assignment
+and Make-owned resident layout for the checked control Plot. The network Play
+proof exercises both rich and native-assigned realization: both retained owners
+bind the assignment and the fixed kernel tables are prepared from it without
+allocation. Foreign expected Boot and missing trusted layout refuse. Acknowledged
+credentials reach one join and attachment sign; unacknowledged input reaches no
+radio effect. This is CPU integration evidence, with explicit Root/radio fixtures;
+authenticated MCU delivery, Body admission and physical switching remain.

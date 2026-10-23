@@ -14,6 +14,8 @@ use conduit_network_join_call::{installation::*, *};
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
+#[path = "network_play_support/projection.rs"]
+mod projection;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "../../../../architecture/plan-lowering/tests/common/native_possession.rs"]
@@ -66,11 +68,13 @@ fn run<T>(future: impl core::future::Future<Output = T>) -> T {
 }
 #[test]
 fn checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel() {
-    for acknowledged in [true, false] {
-        execute(acknowledged);
+    for assigned in [false, true] {
+        for acknowledged in [true, false] {
+            execute(acknowledged, assigned);
+        }
     }
 }
-fn execute(acknowledged: bool) {
+fn execute(acknowledged: bool, assigned: bool) {
     let mut scope = possession::scope(net::NETWORK_CONFIG_SUBJECT);
     scope.capability_id = JOIN_CAPABILITY.into();
     scope.authority_contract_id = net::NETWORK_CONFIG_AUTHORITY.into();
@@ -205,6 +209,8 @@ fn execute(acknowledged: bool) {
     });
     assert!(c::verify_plan(prepared.plan()));
     assert_eq!(prepared.body_plot_plan().plan, *prepared.plan());
+    let projection = projection::Projection::prepare(prepared);
+    let prepared = projection.native.checked();
     let lowered = prepared.lowered();
     let fragment = &prepared.plan().fragments[0];
     const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
@@ -231,8 +237,16 @@ fn execute(acknowledged: bool) {
     let (credential_table, credential_handle, credential_claim) =
         possession::possession(credential_scope);
     let credential_contract = PreparedCredentialContract::prepare();
-    let mut credential_owner = private
-        .bind_selected(
+    let mut credential_owner = if assigned {
+        private.bind_assigned(
+            credential_table,
+            credential_handle,
+            credential_claim,
+            &credential_contract,
+            projection.selected(&active, credential),
+        )
+    } else {
+        private.bind_selected(
             credential_table,
             credential_handle,
             credential_claim,
@@ -244,13 +258,22 @@ fn execute(acknowledged: bool) {
                 placement_id: &lowered.nodes[usize::from(credential.0)].placement_id,
             },
         )
-        .unwrap();
+    }
+    .unwrap();
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let (table, handle, claim) = possession::possession(scope);
     let contract = PreparedJoinContract::prepare();
-    let mut owner = ready
-        .bind_selected(
+    let mut owner = if assigned {
+        ready.bind_assigned(
+            table,
+            handle,
+            claim,
+            &contract,
+            projection.selected(&active, join),
+        )
+    } else {
+        ready.bind_selected(
             table,
             handle,
             claim,
@@ -262,7 +285,8 @@ fn execute(acknowledged: bool) {
                 placement_id: &lowered.nodes[usize::from(join.0)].placement_id,
             },
         )
-        .unwrap();
+    }
+    .unwrap();
     let mut routes = k::FixedRoutes::<{ 3 * P }, 2>::new(P as u16);
     for route in &lowered.routes {
         routes
@@ -291,10 +315,30 @@ fn execute(acknowledged: bool) {
             NetworkControlBack::attachment_sign()
         }
     });
-    let mut kernel =
-        FixedScheduler::<_, _, _, 3, 2, P, 2, { 3 * P }, 2, 3, 3>::new_with_host_calls(
+    let (nodes, cords, routes, bindings) = if assigned {
+        let (tables, memory) = allocation_probe::observe(|| projection.tables());
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        assert_eq!(
+            tables.nodes,
+            core::array::from_fn(|i| lowered.node_specs[i])
+        );
+        assert_eq!(
+            tables.cords,
+            core::array::from_fn(|i| lowered.cords[i].spec)
+        );
+        (tables.nodes, tables.cords, tables.routes, tables.calls)
+    } else {
+        (
             core::array::from_fn(|i| lowered.node_specs[i]),
             core::array::from_fn(|i| lowered.cords[i].spec),
+            routes,
+            bindings,
+        )
+    };
+    let mut kernel =
+        FixedScheduler::<_, _, _, 3, 2, P, 2, { 3 * P }, 2, 3, 3>::new_with_host_calls(
+            nodes,
+            cords,
             routes,
             bindings,
             drivers,
