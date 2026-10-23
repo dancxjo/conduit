@@ -75,7 +75,7 @@ impl ServiceDomain {
         if state.active {
             return Err(DomainRefusal::InvalidLifecycle);
         }
-        state.instance = self.instance;
+        state.instance = self.instance();
         state.digest =
             Sha256::digest(include_bytes!(concat!(env!("OUT_DIR"), "/domain.elf"))).into();
         state.trial = trial;
@@ -89,7 +89,7 @@ impl ServiceDomain {
     pub(crate) fn finish_irq_fixture(&self) -> Result<(), DomainRefusal> {
         let _interrupts = super::cpu::InterruptMask::new();
         let state = unsafe { &mut *core::ptr::addr_of_mut!(STATE) };
-        if !state.active || !state.entered || state.instance != self.instance {
+        if !state.active || !state.entered || state.instance != self.instance() {
             return Err(DomainRefusal::InvalidLifecycle);
         }
         state.active = false;
