@@ -1,0 +1,32 @@
+{
+  "proof_class": "32-bit-linux-cpu-preparation-and-kernel-execution",
+  "baseline_receipt": "../2026-10-23-canonical-storage/measurement.json",
+  "before": {
+    "software_peak": 66162,
+    "software_retained": 61926,
+    "preparation_allocations": 2639
+  },
+  "after": {
+    "software_peak": 62285,
+    "software_retained": 61926,
+    "preparation_allocations": 2636
+  },
+  "peak_bytes_saved": 3877,
+  "retained_bytes_saved": 0,
+  "appliance_tests_passed": 16,
+  "native_construction_tests_passed": 18,
+  "overnight_scenarios_passed": 7,
+  "samples_per_scenario": 960,
+  "logical_elapsed_ms": 57600000,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "esp32_native_root_release_cross_check": true,
+  "new_firmware_flashed": false,
+  "complete_mcu_memory_admission": false,
+  "notes": [
+    "Make emits additional static canonical bytes alongside exact pinned text. This trades firmware storage for removal of temporary hex-decoding buffers.",
+    "Runtime compares optional bytes to pinned text without allocation before initialization; mismatched and truncated copies refuse without allocation.",
+    "Software preparation alone fits the 65536-byte arena. Root, allocator overhead, native owners, value/sign backing, kernel and stack still require complete admission."
+  ],
+  "strict_runtime_and_make_clippy": true
+}
