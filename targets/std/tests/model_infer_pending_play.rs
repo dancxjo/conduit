@@ -127,7 +127,7 @@ fn run(
     mode: Mode,
     items: usize,
 ) -> (
-    Result<StdRunReport, String>,
+    Vec<Result<StdRunReport, String>>,
     Outputs,
     Arc<Counts>,
     RunControl,
@@ -171,29 +171,30 @@ fn run(
             .as_str(),
         conduit_std_host::hosted_model_infer::MODEL_INFER_OPERATION
     );
-    let inputs = (0..items)
-        .map(|_| ExternalForeInput {
-            front_port_id: "inputs".into(),
-            track: ConnectionTrack::Payload,
-            bytes: bundle(input([2., 3.])).encode().unwrap(),
-        })
-        .collect::<Vec<_>>();
+    let inputs = [ExternalForeInput {
+        front_port_id: "inputs".into(),
+        track: ConnectionTrack::Payload,
+        bytes: bundle(input([2., 3.])).encode().unwrap(),
+    }];
     let mut outputs = Outputs::default();
-    let report = host.run_external_plot_sequence_controlled_to(
-        plan.fragments[0].clone(),
-        &inputs,
-        &mut outputs,
-        &mut Vec::new(),
-        &mut NoTimer,
-        &control,
-    );
-    // The same prepared adapter served the whole Play. Only actual owner Drop
+    let mut reports = Vec::with_capacity(items);
+    for _ in 0..items {
+        reports.push(host.run_external_plot_controlled_to(
+            plan.fragments[0].clone(),
+            &inputs,
+            &mut outputs,
+            &mut Vec::new(),
+            &mut NoTimer,
+            &control,
+        ));
+    }
+    // The same prepared adapter serves each separate Value Play. Only owner Drop
     // retires it, so completed runs do not secretly replace preparation.
     assert_eq!(counts.loads.load(Ordering::SeqCst), 1);
     assert_eq!(counts.unloads.load(Ordering::SeqCst), 0);
     drop(host);
     assert_eq!(counts.unloads.load(Ordering::SeqCst), 1);
-    (report, outputs, counts, control)
+    (reports, outputs, counts, control)
 }
 fn count(report: &StdRunReport, kind: KernelEventKind) -> usize {
     report
@@ -252,8 +253,8 @@ fn cancelled(report: &StdRunReport) {
 }
 #[test]
 fn ordinary_stop_is_drained_while_named_inference_remains_pending() {
-    let (report, outputs, counts, _) = run(Mode::StopPending, 1);
-    cancelled(&report.unwrap());
+    let (mut reports, outputs, counts, _) = run(Mode::StopPending, 1);
+    cancelled(&reports.pop().unwrap().unwrap());
     assert!(outputs.0.is_empty());
     assert_eq!(counts.executes.load(Ordering::SeqCst), 1);
     assert_eq!(counts.polls.load(Ordering::SeqCst), 1);
@@ -262,8 +263,8 @@ fn ordinary_stop_is_drained_while_named_inference_remains_pending() {
 }
 #[test]
 fn response_ready_stop_cannot_publish_before_scheduler_cancellation() {
-    let (report, outputs, counts, _) = run(Mode::StopReady, 1);
-    cancelled(&report.unwrap());
+    let (mut reports, outputs, counts, _) = run(Mode::StopReady, 1);
+    cancelled(&reports.pop().unwrap().unwrap());
     assert!(outputs.0.is_empty());
     assert_eq!(counts.polls.load(Ordering::SeqCst), 1);
     assert_eq!(counts.ready.load(Ordering::SeqCst), 1);
@@ -271,38 +272,52 @@ fn response_ready_stop_cannot_publish_before_scheduler_cancellation() {
 }
 #[test]
 fn completed_before_late_stop_keeps_exact_success_and_one_warm_preparation() {
-    let (report, outputs, counts, control) = run(Mode::Complete, 2);
-    let report = report.unwrap();
-    assert!(matches!(
-        report.observations.last().map(|value| &value.kind),
-        Some(ObservationKind::PlanTerminal {
-            disposition: TerminalDisposition::Completed
-        })
-    ));
+    let (reports, outputs, counts, control) = run(Mode::Complete, 2);
+    let reports = reports.into_iter().map(Result::unwrap).collect::<Vec<_>>();
+    assert_eq!(reports.len(), 2);
+    assert_ne!(
+        reports[0].kernel.as_ref().unwrap().active_play_id,
+        reports[1].kernel.as_ref().unwrap().active_play_id
+    );
+    assert_eq!(
+        reports[0].kernel.as_ref().unwrap().active_play.plan_id,
+        reports[1].kernel.as_ref().unwrap().active_play.plan_id
+    );
+    for report in &reports {
+        assert!(matches!(
+            report.observations.last().map(|value| &value.kind),
+            Some(ObservationKind::PlanTerminal {
+                disposition: TerminalDisposition::Completed
+            })
+        ));
+        assert_eq!(count(report, KernelEventKind::HostCallRequested), 1);
+        assert_eq!(count(report, KernelEventKind::HostCallCompleted), 1);
+        assert_eq!(count(report, KernelEventKind::RunCancelled), 0);
+        assert!(report.control_receipts.is_empty());
+    }
     assert_eq!(outputs.0.len(), 2);
     assert_eq!(outputs.0[0], outputs.0[1]);
+    // Aggregate adapter counters span two distinct Plays, never a merged Sign.
     assert_eq!(counts.executes.load(Ordering::SeqCst), 2);
     assert_eq!(counts.polls.load(Ordering::SeqCst), 4);
     assert_eq!(counts.ready.load(Ordering::SeqCst), 2);
     assert_eq!(counts.cancels.load(Ordering::SeqCst), 0);
-    assert_eq!(count(&report, KernelEventKind::HostCallRequested), 2);
-    assert_eq!(count(&report, KernelEventKind::HostCallCompleted), 2);
-    assert_eq!(count(&report, KernelEventKind::RunCancelled), 0);
-    assert!(report.control_receipts.is_empty());
     control
         .request_stop(RunControlRequestId::new("model-completed/late-stop").unwrap())
         .unwrap();
-    // A request after this terminal return cannot retroactively revoke output
-    // or create a second outcome in the already-completed Play's retained Sign.
+    // This later request cannot retroactively change either terminal report.
     assert_eq!(outputs.0.len(), 2);
-    assert_eq!(count(&report, KernelEventKind::HostCallCompleted), 2);
+    for report in &reports {
+        assert_eq!(count(report, KernelEventKind::HostCallCompleted), 1);
+    }
 }
+
 #[test]
 fn pending_provider_loss_has_no_output_or_hidden_retry() {
-    let (report, outputs, counts, _) = run(Mode::ProviderLost, 1);
+    let (mut reports, outputs, counts, _) = run(Mode::ProviderLost, 1);
     // Public runner currently returns a String on BackFailed, not a typed
     // failure report; do not pretend this asserts an unavailable failure Sign.
-    let error = report.unwrap_err();
+    let error = reports.pop().unwrap().unwrap_err();
     assert!(
         error.starts_with("installed kernel step: BackFailed"),
         "{error}"
