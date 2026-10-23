@@ -934,3 +934,15 @@ the actual assignments and Plans differ. Its generated Rust was compiled
 against the production core, kernel and appliance runtime. This enables resident
 acceptance data without heap-owned recipe vectors; it does not yet provision
 the physical Root, initialize a provider or complete appliance installation.
+
+`PreparedRecordingBatch` prepares the complete finite recording workload from
+caller-supplied immutable resource references and explicit generation/content
+ceilings. It initializes every chunk encoder, publication Back and commit
+observer before Play. Full chunks precede a final shorter chunk; references
+must have exact extents and unique identity/version pairs. The 960-sample
+workload needs 15 generations. Partial flushes need separate admission, rather
+than silently changing this closure. The constructor neither mints references
+nor installs resource authority, routes values or performs storage effects.
+Root still admits the full heap/work/envelope closure and selected storage.
+CPU proof encodes and recovers all 960 samples without execution allocations;
+all observers remain uncommitted because that proof invokes no durable store.

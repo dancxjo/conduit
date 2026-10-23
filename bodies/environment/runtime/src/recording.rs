@@ -4,6 +4,7 @@
 use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
+mod batch;
 mod history;
 mod host_call;
 mod publication;
@@ -11,6 +12,7 @@ mod reader;
 mod recovery_back;
 mod snapshot;
 use alloc::string::String;
+pub use batch::{PreparedRecordingBatch, PreparedRecordingGeneration, RecordingBatchRefusal};
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
@@ -29,6 +31,7 @@ pub const MAXIMUM_CHUNK_SAMPLES: usize = 64;
 pub const SAMPLE_BYTES: usize = 21; // sequence u64le, boot ms u64le, status Form, quantity Forms
 const PREFIX_BYTES: usize = MAXIMUM_CHUNK_BYTES - MAXIMUM_CHUNK_SAMPLES * SAMPLE_BYTES * 2 - 2;
 
+#[derive(Clone, Copy)]
 pub struct RecordingContext<'a> {
     pub host: &'a HostId,
     pub boot: &'a BootId,
