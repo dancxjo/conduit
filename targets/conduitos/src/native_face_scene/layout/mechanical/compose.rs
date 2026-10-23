@@ -12,19 +12,27 @@ pub(super) fn arrange(
     if demands[index].minimum > width {
         return Err(FaceSceneError::InvalidExtent);
     }
-    let Node::Group(group) = structure::node(context, &candidate.nodes().as_slice()[index])? else {
-        let Node::Leaf(region) = structure::node(context, &candidate.nodes().as_slice()[index])?
-        else {
-            unreachable!()
-        };
-        return leaves::arrange(context, region, width, height);
+    let (group, tracks) = match structure::node(context, &candidate.nodes().as_slice()[index])? {
+        Node::Leaf(region) => return leaves::arrange(context, region, width, height),
+        Node::Group(group) => (group, None),
+        Node::Grid(group, inline, block) => (group, Some((inline, block))),
     };
     if group.children.is_empty() {
         return Ok(Vec::new());
     }
     let inner_width = inset(width, group.padding)?;
     let inner_height = inset(height, group.padding)?;
-    let mut result = if group.row {
+    let mut result = if let Some(tracks) = tracks {
+        super::grid::arrange(
+            context,
+            candidate,
+            &group,
+            tracks,
+            inner_width,
+            inner_height,
+            demands,
+        )?
+    } else if group.row {
         row(
             context,
             candidate,
@@ -62,6 +70,10 @@ pub(super) fn arrange(
         }
         for entry in &mut fragment.entries {
             entry.outer_padding = add(entry.outer_padding, group.padding)?;
+            if let Some(extent) = &mut entry.extent {
+                extent.inset = add(extent.inset, group.padding)?;
+                extent.end = add(extent.end, group.padding)?;
+            }
         }
         fragment.translate(group.padding, group.padding);
         fragment.height = add(fragment.height, group.padding * 2)?;
@@ -204,7 +216,7 @@ fn row(
     }
     for page in &mut pages {
         for entry in &mut page.entries {
-            entry.row.bounds.y += offset(group.block, page.height, entry.cross_extent) as i16;
+            entry.translate(0, offset(group.block, page.height, entry.cross_extent));
             entry.cross_extent = 0;
         }
     }

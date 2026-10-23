@@ -28,11 +28,9 @@ use conduit_plot::{
 };
 
 mod configured;
-#[cfg(test)]
 mod layout_configured;
 mod storage_profile;
 pub use configured::*;
-#[cfg(test)]
 pub use layout_configured::*;
 pub use storage_profile::*;
 

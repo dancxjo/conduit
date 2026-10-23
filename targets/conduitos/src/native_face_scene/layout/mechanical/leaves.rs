@@ -14,6 +14,9 @@ pub(super) fn arrange(
     let mut previous = None;
     let mut cluster_atomic = false;
     while let Some((original, item)) = items.next() {
+        if item.text.is_empty() {
+            continue;
+        }
         let starts = field_clusters::starts(previous, item);
         previous = field_clusters::key(item);
         if starts {
@@ -101,6 +104,7 @@ pub(super) fn arrange(
                 cost,
                 break_before: !cluster_atomic || (starts && chunk == 0),
                 outer_padding: 0,
+                extent: None,
                 row: Row {
                     text: remaining[..end].into(),
                     role: item.role,

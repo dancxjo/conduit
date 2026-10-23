@@ -118,13 +118,20 @@ impl NativeFaceScene {
         interaction_admitted: bool,
         expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
-        let mut scene = Self::prepare_with_input(
-            structure.face().clone(),
+        let face = structure.face();
+        face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
+        if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        let screen = LayoutRect {
+            x: 0,
+            y: 0,
             width,
             height,
-            interaction_admitted,
-        )?;
-        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        };
+        // Prepare the selected layout directly. A generic scene's geometry is
+        // neither its prerequisite nor storage that should coexist with it.
+        let (mut primary, details) = document::prepare(face, interaction_admitted)?;
         for item in &mut primary {
             item.region_order = item.subject_index.and_then(|subject| {
                 structure
@@ -145,19 +152,26 @@ impl NativeFaceScene {
             conduit_face::VisualDensity::Compact => SPACE_SM,
             conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
         };
-        scene.primary =
-            layout::admit_mechanical(primary, scene.screen, structure, scale, padding, typography)?;
-        scene.details = layout::admit_with_expression_selected(
-            details,
-            scene.screen,
-            SPACE_XL,
-            1,
-            scale,
-            padding,
-            typography,
+        let primary =
+            layout::admit_mechanical(primary, screen, structure, scale, padding, typography)?;
+        let details = layout::admit_with_expression_selected(
+            details, screen, SPACE_XL, 1, scale, padding, typography,
         )?;
-        scene.text_scale_percent = scale;
-        scene.typography = typography;
-        Ok(scene)
+        Ok(Self {
+            primary,
+            details,
+            graph_reading: graph_reading::GraphReading::prepare(face)?,
+            face: face.clone(),
+            screen,
+            text_scale_percent: scale,
+            typography,
+            page: 0,
+            focus: None,
+            showing_details: false,
+            showing_diagram: false,
+            input: input::InputState::default(),
+            interaction_admitted,
+            local_notice: None,
+        })
     }
 }

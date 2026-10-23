@@ -64,3 +64,18 @@ fn associated_field_cluster_that_fits_fresh_page_has_no_internal_cut() {
     assert_eq!(complete.entries.len(), 3);
     assert!(fragments[1].entries.is_empty());
 }
+
+#[test]
+fn aggregate_document_bytes_refuse_before_any_text_measurement() {
+    let face = crate::native_face_scene::tests::face(7);
+    let profile = prepared(&face, vec![wide(false)]);
+    let segment = "x".repeat(MAX_DOCUMENT_BYTES / 2 + 1);
+    let items = vec![
+        item(&segment, Some(0), false),
+        item(&segment, Some(1), false),
+    ];
+    assert_eq!(
+        run(items, 1200, 900, &profile).err(),
+        Some(FaceSceneError::DocumentBound)
+    );
+}

@@ -247,7 +247,7 @@ fn resource_pressure_paginates_every_row_without_overlap_or_binding_loss() {
     }
 }
 #[test]
-fn impossible_keep_and_unsupported_grid_are_explicit() {
+fn impossible_keep_and_unsupported_inline_shrink_are_explicit() {
     let face = crate::native_face_scene::tests::face(7);
     let keep = prepared(&face, vec![wide(true)]);
     let many = || {
@@ -258,29 +258,20 @@ fn impossible_keep_and_unsupported_grid_are_explicit() {
     assert!(run(many(), 800, 350, &keep).is_err());
     let continuing = prepared(&face, vec![wide(true), narrow()]);
     assert_eq!(run(many(), 800, 350, &continuing).unwrap().len(), 40);
-    let grid = ComponentLayoutNode::grid(
-        3,
-        ComponentLayoutGroup::new(
-            Alignment::Start,
-            Break::AccessibleContinuation,
-            BoundedSequence::try_from_iter(
-                (1..=3).map(|n| ComponentLayoutChild::new(1, n - 1, 1, 0, n).unwrap()),
-            )
-            .unwrap(),
-            0,
-            Alignment::Stretch,
-            1,
-            1,
-            0,
-        )
-        .unwrap(),
-        1,
-    )
-    .unwrap();
     let unsupported = prepared(
         &face,
         vec![candidate(vec![
-            grid,
+            ComponentLayoutNode::column(
+                Alignment::Start,
+                Break::AccessibleContinuation,
+                BoundedSequence::try_from_iter([child(1), child(2), child(3)]).unwrap(),
+                0,
+                Alignment::Stretch,
+                1,
+                2,
+                0,
+            )
+            .unwrap(),
             ComponentLayoutNode::region(0).unwrap(),
             ComponentLayoutNode::region(1).unwrap(),
             ComponentLayoutNode::Fallback,

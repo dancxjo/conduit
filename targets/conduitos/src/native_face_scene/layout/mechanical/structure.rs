@@ -20,6 +20,7 @@ pub(super) struct Group<'a> {
 pub(super) enum Node<'a> {
     Leaf(Option<usize>),
     Group(Group<'a>),
+    Grid(Group<'a>, u8, u8),
 }
 pub(super) fn node<'a>(
     context: &Context<'_>,
@@ -31,7 +32,7 @@ pub(super) fn node<'a>(
             if *g.inline_shrink() > 1 {
                 return Err(FaceSceneError::UnsupportedStructure);
             }
-            Node::Group(Group {
+            Group {
                 children: g.children().as_slice(),
                 row: $row,
                 inline: g.inline_alignment(),
@@ -41,15 +42,19 @@ pub(super) fn node<'a>(
                 gap: context.em(*g.gap_em_sixteenths())?,
                 inline_grow: *g.inline_grow(),
                 inline_shrink: *g.inline_shrink(),
-            })
+            }
         }};
     }
     Ok(match node {
         ComponentLayoutNode::Region(index) => Node::Leaf(Some(usize::from(*index))),
         ComponentLayoutNode::Fallback => Node::Leaf(None),
-        ComponentLayoutNode::Row(group) => group!(group, true),
-        ComponentLayoutNode::Column(group) => group!(group, false),
-        ComponentLayoutNode::Grid(_) => return Err(FaceSceneError::UnsupportedStructure),
+        ComponentLayoutNode::Row(group) => Node::Group(group!(group, true)),
+        ComponentLayoutNode::Column(group) => Node::Group(group!(group, false)),
+        ComponentLayoutNode::Grid(grid) => Node::Grid(
+            group!(grid.group(), false),
+            *grid.inline_tracks(),
+            *grid.block_tracks(),
+        ),
     })
 }
 
@@ -62,11 +67,15 @@ pub(super) fn measure(
     let result = match node(context, &candidate.nodes().as_slice()[index])? {
         Node::Leaf(region) => {
             let mut result = Demand {
-                minimum: 1,
-                preferred: 1,
-                inline_grow: 1,
+                minimum: 0,
+                preferred: 0,
+                inline_grow: 0,
             };
             for (_, item) in context.items(region) {
+                if item.text.is_empty() {
+                    continue;
+                }
+                result.inline_grow = 1;
                 let extra = u32::from(context.padding) * 2
                     + u32::from(item.indent) * u32::from(INDENT_STEP)
                     + u32::from(super::super::super::semantic_icons::inset(item.icon))
@@ -100,42 +109,45 @@ pub(super) fn measure(
             result
         }
         Node::Group(group) => {
-            let mut minimum = 0;
+            let mut minimum = 0u32;
             let mut preferred = 0u32;
             for child in group.children {
                 let child = measure(context, candidate, usize::from(*child.node()), demands)?;
                 if group.row {
-                    minimum = add(minimum, child.minimum)?;
+                    minimum += u32::from(child.minimum);
                     preferred += u32::from(child.preferred);
                 } else {
-                    minimum = minimum.max(child.minimum);
+                    minimum = minimum.max(u32::from(child.minimum));
                     preferred = preferred.max(u32::from(child.preferred));
                 }
             }
             let gaps = if group.row {
-                group
-                    .gap
-                    .checked_mul(group.children.len().saturating_sub(1) as u16)
-                    .ok_or(FaceSceneError::InvalidExtent)?
+                u32::from(group.gap) * group.children.len().saturating_sub(1) as u32
             } else {
                 0
             };
-            let edges = add(group.padding, group.padding)?;
-            let minimum = add(add(minimum, gaps)?, edges)?;
-            let preferred = preferred + u32::from(gaps) + u32::from(edges);
-            if group.inline_shrink == 0 && preferred > u32::from(context.width) {
-                return Err(FaceSceneError::InvalidExtent);
+            finish_demand(context, &group, minimum + gaps, preferred + gaps)?
+        }
+        Node::Grid(group, inline_tracks, _) => {
+            for child in group.children {
+                measure(context, candidate, usize::from(*child.node()), demands)?;
             }
-            let preferred = (preferred.min(u32::from(context.width)) as u16).max(minimum);
-            Demand {
-                minimum: if group.inline_shrink == 0 {
-                    preferred
-                } else {
-                    minimum
-                },
-                preferred,
-                inline_grow: group.inline_grow,
-            }
+            let tracks = super::grid::intrinsic(&group, inline_tracks, demands)?;
+            let gaps = u32::from(group.gap) * u32::from(inline_tracks - 1);
+            finish_demand(
+                context,
+                &group,
+                tracks[..usize::from(inline_tracks)]
+                    .iter()
+                    .map(|d| u32::from(d.minimum))
+                    .sum::<u32>()
+                    + gaps,
+                tracks[..usize::from(inline_tracks)]
+                    .iter()
+                    .map(|d| u32::from(d.preferred))
+                    .sum::<u32>()
+                    + gaps,
+            )?
         }
     };
     demands[index] = result;
@@ -150,10 +162,21 @@ pub(super) fn widths(
     available: u16,
     demands: &[Demand; 32],
 ) -> Result<[u16; 32], FaceSceneError> {
+    let mut children = [Demand::default(); 32];
+    for (index, child) in group.children.iter().enumerate() {
+        children[index] = demands[usize::from(*child.node())];
+    }
+    allocate(&children[..group.children.len()], available, group.gap)
+}
+
+pub(super) fn allocate(
+    demands: &[Demand],
+    available: u16,
+    gap: u16,
+) -> Result<[u16; 32], FaceSceneError> {
     let mut widths = [0; 32];
-    let gaps = group
-        .gap
-        .checked_mul(group.children.len().saturating_sub(1) as u16)
+    let gaps = gap
+        .checked_mul(demands.len().saturating_sub(1) as u16)
         .ok_or(FaceSceneError::InvalidExtent)?;
     let available = available
         .checked_sub(gaps)
@@ -161,8 +184,7 @@ pub(super) fn widths(
     let mut minimum = 0u32;
     let mut delta = 0u32;
     let mut inline_grow = 0u32;
-    for (i, child) in group.children.iter().enumerate() {
-        let demand = demands[usize::from(*child.node())];
+    for (i, demand) in demands.iter().enumerate() {
         widths[i] = demand.minimum;
         minimum += u32::from(demand.minimum);
         delta += u32::from(demand.preferred - demand.minimum);
@@ -174,8 +196,7 @@ pub(super) fn widths(
     let toward = extra.min(delta);
     let mut remaining_delta = delta;
     let mut remaining_toward = toward;
-    for (i, child) in group.children.iter().enumerate() {
-        let demand = demands[usize::from(*child.node())];
+    for (i, demand) in demands.iter().enumerate() {
         let wanted = u32::from(demand.preferred - demand.minimum);
         let allocation = (remaining_toward * wanted)
             .checked_div(remaining_delta)
@@ -185,12 +206,38 @@ pub(super) fn widths(
         remaining_toward -= allocation;
     }
     extra -= toward;
-    for (i, child) in group.children.iter().enumerate() {
-        let weight = u32::from(demands[usize::from(*child.node())].inline_grow);
+    for (i, demand) in demands.iter().enumerate() {
+        let weight = u32::from(demand.inline_grow);
         let allocation = (extra * weight).checked_div(inline_grow).unwrap_or(0);
         widths[i] += allocation as u16;
         inline_grow -= weight;
         extra -= allocation;
     }
     Ok(widths)
+}
+
+fn finish_demand(
+    context: &Context<'_>,
+    group: &Group<'_>,
+    minimum: u32,
+    preferred: u32,
+) -> Result<Demand, FaceSceneError> {
+    let edges = u32::from(group.padding) * 2;
+    let minimum = minimum + edges;
+    let preferred = preferred + edges;
+    if minimum > u32::from(context.width)
+        || (group.inline_shrink == 0 && preferred > u32::from(context.width))
+    {
+        return Err(FaceSceneError::InvalidExtent);
+    }
+    let preferred = preferred.min(u32::from(context.width)).max(minimum) as u16;
+    Ok(Demand {
+        minimum: if group.inline_shrink == 0 {
+            preferred
+        } else {
+            minimum as u16
+        },
+        preferred,
+        inline_grow: group.inline_grow,
+    })
 }

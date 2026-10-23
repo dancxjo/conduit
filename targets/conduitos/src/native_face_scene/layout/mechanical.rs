@@ -1,8 +1,9 @@
-//! Preparation-only row/column realization. Geometry never becomes reading order.
+//! Preparation-only row/column/grid realization. Geometry never becomes reading order.
 //! Two candidates, 32 nodes and depth four are checked by conduit-face. Each
-//! candidate retains at most MAX_ROWS rows and MAX_DOCUMENT_BYTES text bytes;
-//! composition moves rows rather than copying them. Both candidates are evaluated
-//! sequentially; at most the current and best result coexist. Grid is refused.
+//! arrangement retains at most MAX_ROWS rows and MAX_DOCUMENT_BYTES text bytes;
+//! composition moves rows rather than copying them. Score/discard at most two
+//! candidates, then prepare the winner once. Grid continuation keeps finite
+//! span-connected bands intact; oversized bands explicitly refuse.
 use super::*;
 use crate::display::typography::{TextRole, intrinsic_text_metrics, resolve_em_sixteenths};
 use conduit_face::{
@@ -13,6 +14,8 @@ use conduit_face::{
 mod compose;
 #[path = "mechanical/fragment.rs"]
 mod fragment;
+#[path = "mechanical/grid.rs"]
+mod grid;
 #[path = "mechanical/leaves.rs"]
 mod leaves;
 #[path = "mechanical/structure.rs"]
@@ -43,42 +46,30 @@ pub(in crate::native_face_scene) fn admit(
         typography,
         rows: core::cell::Cell::new(0),
     };
-    let mut best: Option<(usize, u64, Vec<Fragment>)> = None;
+    let mut best: Option<(usize, u64, usize)> = None;
     let mut refusal = FaceSceneError::InvalidExtent;
-    for candidate in prepared.structure().candidates().iter() {
-        context.rows.set(0);
-        let attempt = (|| {
-            let mut demands = [Demand::default(); 32];
-            structure::measure(
-                &context,
-                candidate,
-                usize::from(*candidate.root()),
-                &mut demands,
-            )?;
-            let fragments = compose::arrange(
-                &context,
-                candidate,
-                usize::from(*candidate.root()),
-                screen.width,
-                height,
-                &demands,
-            )?;
-            let block: u64 = fragments.iter().map(|f| u64::from(f.height)).sum();
-            Ok::<_, FaceSceneError>((fragments.len(), block, fragments))
-        })();
-        match attempt {
-            Ok(result)
-                if best
-                    .as_ref()
-                    .is_none_or(|prior| (result.0, result.1) < (prior.0, prior.1)) =>
-            {
-                best = Some(result)
+    for (index, candidate) in prepared.structure().candidates().iter().enumerate() {
+        match arrange_candidate(&context, candidate, height) {
+            Ok(fragments) => {
+                let score = (
+                    fragments.len(),
+                    fragments.iter().map(|f| u64::from(f.height)).sum(),
+                );
+                if best.as_ref().is_none_or(|prior| score < (prior.0, prior.1)) {
+                    best = Some((score.0, score.1, index));
+                }
+                // Keep only the score. Retaining a prior candidate's rows would
+                // make its document storage coexist with the next candidate.
             }
-            Ok(_) => (),
             Err(error) => refusal = error,
         }
     }
-    let (_, _, fragments) = best.ok_or(refusal)?;
+    let (_, _, index) = best.ok_or(refusal)?;
+    let fragments = arrange_candidate(
+        &context,
+        &prepared.structure().candidates().as_slice()[index],
+        height,
+    )?;
     let mut entries = Vec::new();
     for (page, fragment) in fragments.into_iter().enumerate() {
         for mut entry in fragment.entries {
@@ -89,6 +80,29 @@ pub(in crate::native_face_scene) fn admit(
     }
     entries.sort_unstable_by_key(|entry| (entry.original, entry.chunk));
     Ok(entries.into_iter().map(|entry| entry.row).collect())
+}
+
+fn arrange_candidate(
+    context: &Context<'_>,
+    candidate: &ComponentLayoutCandidate,
+    height: u16,
+) -> Result<Vec<Fragment>, FaceSceneError> {
+    context.rows.set(0);
+    let mut demands = [Demand::default(); 32];
+    structure::measure(
+        context,
+        candidate,
+        usize::from(*candidate.root()),
+        &mut demands,
+    )?;
+    compose::arrange(
+        context,
+        candidate,
+        usize::from(*candidate.root()),
+        context.width,
+        height,
+        &demands,
+    )
 }
 
 struct Context<'a> {
@@ -143,3 +157,10 @@ mod tests;
 #[cfg(test)]
 #[path = "mechanical/fragment_tests.rs"]
 mod fragment_tests;
+
+#[cfg(test)]
+#[path = "mechanical/grid_fixture.rs"]
+mod grid_fixture;
+#[cfg(test)]
+#[path = "mechanical/grid_tests.rs"]
+mod grid_tests;

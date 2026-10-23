@@ -163,3 +163,58 @@ selected runtime admission and required platform proof remain open.
 
 All twenty-one existing native Mask tests also pass after installing the optional
 layout dispatch; their log is retained as `native-layout-dispatch-tests.log.gz`.
+
+
+## Resource and explicit-selection follow-up
+
+The structured scene now validates the exact Face and extent and prepares its
+selected geometry directly, rather than first retaining a complete generic
+scene and then replacing it. The version-two and fallback constructors retain
+their existing behavior. Candidate evaluation retains only scalar scores, drops
+each candidate's rows, and prepares the winner once. With at most two candidates
+this admits at most three fixed arrangement passes and avoids simultaneous
+current/best document storage. This is a storage reduction, not yet a measured
+freestanding grant receipt.
+
+The explicit layout offer/preparation functions now compile as ordinary library
+APIs so callers can prepare an actually matching selected Back. This supersedes
+the earlier test-only export fence. Ordinary Host advertisements still do not
+offer this Back; old offers cannot satisfy it, and no installed default selects
+it. A caller must supply the exact matching offer before planning. This does
+not turn the availability of native consumer code into authority or a Show.
+
+
+## Bounded grid preparation and remaining first-page pressure
+
+The native consumer now negotiates up to four explicit inline/block tracks and
+one/two-track spans. Single-track intrinsic contributions precede spans;
+deficits distribute deterministically in track order. Assigned inline widths
+feed actual height-for-width measurement. Empty tracks have zero intrinsic
+size but retain all declared gaps. Span-connected block bands stay coherent;
+an oversized cell/band explicitly refuses to the complete generic reader.
+There is no implicit cell placement, convergence loop or domain priority rule.
+
+An independent account-form Face uses real typed bound slots and label/field
+relations, unavailable input, fallback meaning, both span axes and shared tracks.
+Eighteen mechanical tests pass, including zero/one/many cells, minimum conflict,
+empty/leading/skipped tracks, band continuation, row/command pressure, aggregate
+text admission, complete content, source order and actual frame hit targets.
+Review caught dropped empty-block-track gaps (44 instead of52); the negative
+and corrected regression are both retained. A separate initial unsupported-shrink
+fixture omitted a required region and was corrected without changing the law.
+The original general Crèche/Todo six-extent case and the exact selected
+configuration case pass, as does combined strict owning-package Clippy.
+The configuration case preserves every action/argument control versus the
+established generic baseline and every fallback text command across primary
+and Details continuation. Ordinary Host selection remains unchanged.
+
+A stronger separate acceptance check remains deliberately failing at this
+checkpoint: all four checked starting Plots must be visible on wide Crèche's
+first page. Current full material consumes48 commands after two checked Plots;
+including the other two would require56. Geometry fits, but commands do not.
+The held branch has no PR and does not claim full-package green or #5608
+acceptance. The failure is retained without an ignore or a relaxed limit.
+A following bounded Mask decoration change must reduce actual command cost or
+an explicit authored composition must defer material; geometry cannot invent
+source priorities or drop meaning. Freestanding resource admission and normal
+QEMU proof remain required. Block-axis flexibility is still outside this slice.

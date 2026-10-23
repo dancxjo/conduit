@@ -1,5 +1,6 @@
-//! Test-only selected-Back preparation fixture for the version-three contract.
-//! This module is fenced from production until the native consumer is ready.
+//! Explicit selected-Back preparation for the version-three contract.
+//! Ordinary Host advertisements do not offer this Back. Callers must possess
+//! an observed matching offer; availability is not inferred from the consumer.
 use super::*;
 use conduit_core::*;
 use conduit_face::{ConfiguredMaskConfiguration, layout_component_mask_kind};

@@ -10,6 +10,38 @@ pub(super) struct Entry {
     pub cost: usize,
     pub break_before: bool,
     pub outer_padding: u16,
+    pub extent: Option<BlockExtent>,
+}
+/// A grid band can include allocated track space beyond its last painted row.
+/// Insets added outside the band repeat on continuation without losing that space.
+pub(super) struct BlockExtent {
+    pub origin: u16,
+    pub end: u16,
+    pub inset: u16,
+}
+impl Entry {
+    pub fn translate(&mut self, x: u16, y: u16) {
+        self.row.bounds.x += x as i16;
+        self.row.bounds.y += y as i16;
+        if let Some(extent) = &mut self.extent {
+            extent.origin += y;
+            extent.end += y;
+        }
+    }
+    fn end(&self) -> u32 {
+        let row = u32::from(self.row.bounds.y as u16)
+            + u32::from(self.row.bounds.height)
+            + u32::from(self.outer_padding);
+        self.extent
+            .as_ref()
+            .map_or(row, |extent| row.max(u32::from(extent.end)))
+    }
+    fn origin(&self) -> u16 {
+        let row = (self.row.bounds.y as u16).saturating_sub(self.outer_padding);
+        self.extent.as_ref().map_or(row, |extent| {
+            row.min(extent.origin.saturating_sub(extent.inset))
+        })
+    }
 }
 pub(super) struct Fragment {
     pub entries: Vec<Entry>,
@@ -31,8 +63,7 @@ impl Fragment {
     }
     pub fn translate(&mut self, x: u16, y: u16) {
         for entry in &mut self.entries {
-            entry.row.bounds.x += x as i16;
-            entry.row.bounds.y += y as i16;
+            entry.translate(x, y);
         }
     }
 }
@@ -47,11 +78,7 @@ impl Fragment {
         let mut end = 0;
         for (index, entry) in self.entries.iter().enumerate() {
             used_cost += entry.cost;
-            used_height = used_height.max(
-                u32::from(entry.row.bounds.y as u16)
-                    + u32::from(entry.row.bounds.height)
-                    + u32::from(entry.outer_padding),
-            );
+            used_height = used_height.max(entry.end());
             if index >= rows || used_cost > cost || used_height > u32::from(height) {
                 break;
             }
@@ -76,14 +103,13 @@ impl Fragment {
         prefix.refresh();
         // Repeated group padding belongs on continuation pages too. Remove
         // prior flow offset, never the inherited structural inset.
-        if let Some(shift) = self
-            .entries
-            .iter()
-            .map(|entry| (entry.row.bounds.y as u16).saturating_sub(entry.outer_padding))
-            .min()
-        {
+        if let Some(shift) = self.entries.iter().map(Entry::origin).min() {
             for entry in &mut self.entries {
                 entry.row.bounds.y -= shift as i16;
+                if let Some(extent) = &mut entry.extent {
+                    extent.origin -= shift;
+                    extent.end -= shift;
+                }
             }
         }
         self.refresh();
@@ -94,7 +120,7 @@ impl Fragment {
         self.height = self
             .entries
             .iter()
-            .map(|entry| entry.row.bounds.y as u16 + entry.row.bounds.height + entry.outer_padding)
+            .map(|entry| entry.end() as u16)
             .max()
             .unwrap_or(0);
     }
