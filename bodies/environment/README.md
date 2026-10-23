@@ -1337,3 +1337,12 @@ zero execution-context bytes with no prepared kernel or live possession. Evidenc
 is retained in `evidence/2026-10-23-owner-retirement/`. The executor task remains
 one-use; this does not yet rearm a new Play, advance resource generations or
 establish a resident recorder. The board is retired and inactive after the proof.
+
+The same retired native Boot then passed the negative network fixture through
+`cargo xtask prove environment network-fallback`: HTTP acknowledged private
+fixture credentials, the installed Root setup kernel attempted one join without
+UART polling, and rejected association restored the AP with actual socket-task
+acknowledgement. A subsequent `/network` readback returned HTTP 200 and its form.
+See `evidence/2026-10-23-native-network-fallback/`. This is Root provisioning
+proof; successful station joining, joined-network mDNS, link-loss fallback,
+repeatable reconfiguration and the appliance browser Mask remain unverified.
