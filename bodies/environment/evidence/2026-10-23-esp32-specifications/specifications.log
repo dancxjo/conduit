@@ -1,0 +1,304 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.15s
+     Running `target/environment-main-host/debug/conduit-xtask-dispatch prove environment specifications`
+    Finished `dev` profile [unoptimized] target(s) in 0.06s
+     Running `target/environment-main-host/debug/conduit-environment-specification-proof`
+{
+  "proof_class": "checked-host-and-body-specifications",
+  "runtime_admission_claimed": false,
+  "specifications": [
+    {
+      "body_id": "body:environment",
+      "description_id": "body-description:sha256:453c1294e5095ea8b1bcf68962b50893e9033711221c4982f7b0168e923a5fc5",
+      "hosts": [
+        {
+          "configuration_id": "sha256:a02f355ec69f73fc7e9036ff7abe0fc450908650f648084040d32cea9cfe9c68",
+          "join_mode": "prejoined",
+          "name": "sensor",
+          "resource_needs": [
+            {
+              "bytes": 64,
+              "class": "gpio/open-drain",
+              "id": "environment/sensor-data-gp2",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "clock/monotonic",
+              "id": "environment/sampling-clock",
+              "slots": 1
+            },
+            {
+              "bytes": 32768,
+              "class": "storage/bounded-ram",
+              "id": "environment/recent-observations",
+              "slots": 1024
+            },
+            {
+              "bytes": 16384,
+              "class": "network/access-point",
+              "id": "environment/browser-line",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "face/seven-segment",
+              "id": "environment/display",
+              "slots": 1
+            }
+          ],
+          "selected_bases": [
+            [
+              "serial/text",
+              "pico/usb-cdc@1"
+            ]
+          ]
+        }
+      ],
+      "masks": [
+        {
+          "alias": "seven-segment",
+          "plot_identity": {
+            "checked_plot_id": "f5b377e9df3c4d4d6597be601fcb993ce37d93ad8512d37e0eae8df8a02b2dbb",
+            "expanded_plot_id": "3dbc3da00efe53ec041d2f2e491285cde688563d8b8d55e320b8c1fb76897107",
+            "source_document_id": "ae189a974f150fe4ec3e1ce4d7c8ee3323d6597465342fe67202158b4e1f0fea"
+          }
+        }
+      ],
+      "source": "environment.body.conduit"
+    },
+    {
+      "body_id": "body:environment",
+      "description_id": "body-description:sha256:7f2976427355adbe58b2970ddbc709388b6720b062b75e73e7caacd995a0b7fe",
+      "hosts": [
+        {
+          "configuration_id": "sha256:07512e6f100f40ad7ccc071c533d7b8860b6331b2afaf21b941c6027defd70b2",
+          "join_mode": "self-joining",
+          "name": "recorder",
+          "resource_needs": [
+            {
+              "bytes": 1048576,
+              "class": "storage/durable",
+              "id": "environment/overnight-records",
+              "slots": 64
+            }
+          ],
+          "selected_bases": [
+            [
+              "face/graphical",
+              "browser/dom-face@1"
+            ],
+            [
+              "line/websocket",
+              "browser/websocket@1"
+            ],
+            [
+              "storage/durable",
+              "browser/indexeddb@1"
+            ]
+          ]
+        },
+        {
+          "configuration_id": "sha256:a02f355ec69f73fc7e9036ff7abe0fc450908650f648084040d32cea9cfe9c68",
+          "join_mode": "prejoined",
+          "name": "sensor",
+          "resource_needs": [
+            {
+              "bytes": 64,
+              "class": "gpio/open-drain",
+              "id": "environment/sensor-data-gp2",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "clock/monotonic",
+              "id": "environment/sampling-clock",
+              "slots": 1
+            },
+            {
+              "bytes": 32768,
+              "class": "storage/bounded-ram",
+              "id": "environment/recent-observations",
+              "slots": 1024
+            },
+            {
+              "bytes": 16384,
+              "class": "network/access-point",
+              "id": "environment/browser-line",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "face/seven-segment",
+              "id": "environment/display",
+              "slots": 1
+            }
+          ],
+          "selected_bases": [
+            [
+              "serial/text",
+              "pico/usb-cdc@1"
+            ]
+          ]
+        }
+      ],
+      "masks": [
+        {
+          "alias": "seven-segment",
+          "plot_identity": {
+            "checked_plot_id": "f5b377e9df3c4d4d6597be601fcb993ce37d93ad8512d37e0eae8df8a02b2dbb",
+            "expanded_plot_id": "3dbc3da00efe53ec041d2f2e491285cde688563d8b8d55e320b8c1fb76897107",
+            "source_document_id": "ae189a974f150fe4ec3e1ce4d7c8ee3323d6597465342fe67202158b4e1f0fea"
+          }
+        }
+      ],
+      "source": "environment-browser.body.conduit"
+    },
+    {
+      "body_id": "body:environment",
+      "description_id": "body-description:sha256:6b9d2e7e40fde88ff9ba58174db5f0b2adfee4f4b96b705af9953c6125d3e83b",
+      "hosts": [
+        {
+          "configuration_id": "sha256:1d9d5d4ce0dc49e977a50475d57e1db9d50f183b246eb1e37abe42ee8a165810",
+          "join_mode": "prejoined",
+          "name": "sensor",
+          "resource_needs": [
+            {
+              "bytes": 64,
+              "class": "gpio/open-drain",
+              "id": "environment/sensor-data-gpio27",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "clock/monotonic",
+              "id": "environment/sampling-clock",
+              "slots": 1
+            },
+            {
+              "bytes": 32768,
+              "class": "storage/bounded-ram",
+              "id": "environment/recent-observations",
+              "slots": 1024
+            },
+            {
+              "bytes": 16384,
+              "class": "network/access-point",
+              "id": "environment/browser-line",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "face/seven-segment",
+              "id": "environment/display",
+              "slots": 1
+            }
+          ],
+          "selected_bases": [
+            [
+              "kernel/signal",
+              "esp32/kernel-signal@1"
+            ]
+          ]
+        }
+      ],
+      "masks": [
+        {
+          "alias": "seven-segment",
+          "plot_identity": {
+            "checked_plot_id": "f5b377e9df3c4d4d6597be601fcb993ce37d93ad8512d37e0eae8df8a02b2dbb",
+            "expanded_plot_id": "3dbc3da00efe53ec041d2f2e491285cde688563d8b8d55e320b8c1fb76897107",
+            "source_document_id": "ae189a974f150fe4ec3e1ce4d7c8ee3323d6597465342fe67202158b4e1f0fea"
+          }
+        }
+      ],
+      "source": "environment-esp32.body.conduit"
+    },
+    {
+      "body_id": "body:environment",
+      "description_id": "body-description:sha256:9800004f048e6ad12c2cec540e97263d4df3ecdfb2b9a0f72e0cff8c3f4d9914",
+      "hosts": [
+        {
+          "configuration_id": "sha256:07512e6f100f40ad7ccc071c533d7b8860b6331b2afaf21b941c6027defd70b2",
+          "join_mode": "self-joining",
+          "name": "recorder",
+          "resource_needs": [
+            {
+              "bytes": 1048576,
+              "class": "storage/durable",
+              "id": "environment/overnight-records",
+              "slots": 64
+            }
+          ],
+          "selected_bases": [
+            [
+              "face/graphical",
+              "browser/dom-face@1"
+            ],
+            [
+              "line/websocket",
+              "browser/websocket@1"
+            ],
+            [
+              "storage/durable",
+              "browser/indexeddb@1"
+            ]
+          ]
+        },
+        {
+          "configuration_id": "sha256:1d9d5d4ce0dc49e977a50475d57e1db9d50f183b246eb1e37abe42ee8a165810",
+          "join_mode": "prejoined",
+          "name": "sensor",
+          "resource_needs": [
+            {
+              "bytes": 64,
+              "class": "gpio/open-drain",
+              "id": "environment/sensor-data-gpio27",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "clock/monotonic",
+              "id": "environment/sampling-clock",
+              "slots": 1
+            },
+            {
+              "bytes": 32768,
+              "class": "storage/bounded-ram",
+              "id": "environment/recent-observations",
+              "slots": 1024
+            },
+            {
+              "bytes": 16384,
+              "class": "network/access-point",
+              "id": "environment/browser-line",
+              "slots": 1
+            },
+            {
+              "bytes": 64,
+              "class": "face/seven-segment",
+              "id": "environment/display",
+              "slots": 1
+            }
+          ],
+          "selected_bases": [
+            [
+              "kernel/signal",
+              "esp32/kernel-signal@1"
+            ]
+          ]
+        }
+      ],
+      "masks": [
+        {
+          "alias": "seven-segment",
+          "plot_identity": {
+            "checked_plot_id": "f5b377e9df3c4d4d6597be601fcb993ce37d93ad8512d37e0eae8df8a02b2dbb",
+            "expanded_plot_id": "3dbc3da00efe53ec041d2f2e491285cde688563d8b8d55e320b8c1fb76897107",
+            "source_document_id": "ae189a974f150fe4ec3e1ce4d7c8ee3323d6597465342fe67202158b4e1f0fea"
+          }
+        }
+      ],
+      "source": "environment-esp32-browser.body.conduit"
+    }
+  ]
+}

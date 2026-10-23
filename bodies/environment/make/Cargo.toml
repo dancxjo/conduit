@@ -33,6 +33,7 @@ conduit-planner = { path = "../../../architecture/planner" }
 conduit-embedded-build = { path = "../../../make/embedded-build" }
 conduit-body-make = { path = "../../../make/body" }
 conduit-host-make = { path = "../../../make/host" }
+conduit-host-esp32-make = { path = "../../../targets/esp32/make" }
 conduit-host-rp2040 = { path = "../../../targets/rp2040/make" }
 conduit-host-browser-make = { path = "../../../targets/browser/make" }
 conduit-face = { path = "../../../semantics/face", features = ["plot-catalog"] }

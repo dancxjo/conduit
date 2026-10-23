@@ -1,0 +1,9 @@
+# The MCU is the persistent part. A recorder is not required to admit this Body.
+with plots/seven-segment-mask/main as seven-segment
+
+body environment-esp32 {
+  schema = 2
+  id = "body:environment"
+  host = {name: "sensor", part: "part:environment-sensor", configuration: "../../../targets/esp32/profiles/hw463-environment.host.conduit", spore: {join_mode: "prejoined", output: "esp32-image"}}
+  wear seven-segment
+}

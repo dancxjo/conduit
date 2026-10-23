@@ -9,6 +9,11 @@ and Body checkers:
   its invitation name requests a binding and does not mint authority.
 - The sensor Host selects the registered Pico USB implementation and declares
   finite GPIO, clock, local retention and access-point resource needs.
+- `profiles/environment-esp32.body.conduit` and
+  `profiles/environment-esp32-browser.body.conduit` request the same compositions
+  on the HW-463 ESP-WROOM-32, with its exact package descriptor. They select only
+  the registered kernel/signal Back; peripheral needs remain requests. This does
+  not select or build the climate diagnostic image.
 - The recorder Host selects the registered browser Face, WebSocket and IndexedDB
   implementations, with a finite durable-storage budget.
 
@@ -19,8 +24,8 @@ Play:
 cargo xtask prove environment specifications
 ```
 
-This focused entrance uses the real RP2040/browser make packages and shared
-Host/Body checkers. It checks both compositions and canonical Source round trips.
+This focused entrance uses the real RP2040/ESP32/browser make packages and shared
+Host/Body checkers. It checks all four compositions and canonical Source round trips.
 It does not install missing providers or establish runtime admission. The
 ordinary general entrance remains `cargo xtask make body check <body-file>`.
 

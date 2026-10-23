@@ -14,6 +14,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..");
     let packages = MakePackageSet::compose(&[
         &conduit_host_rp2040::Rp2040MakePackage,
+        &conduit_host_esp32_make::Esp32MakePackage,
         &conduit_host_browser_make::BrowserMakePackage,
     ])
     .map_err(|why| format!("installed make packages: {why:?}"))?;
@@ -22,6 +23,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     for file in [
         "environment.body.conduit",
         "environment-browser.body.conduit",
+        "environment-esp32.body.conduit",
+        "environment-esp32-browser.body.conduit",
     ] {
         let path = root.join("bodies/environment/profiles").join(file);
         let body = parse_body_description_conduit(&fs::read_to_string(&path)?)
