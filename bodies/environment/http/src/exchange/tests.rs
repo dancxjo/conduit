@@ -249,3 +249,34 @@ fn shared_socket_custody_blocks_source_until_exchange_flushes_or_cancels() {
         assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
     }
 }
+
+#[test]
+fn bootstrap_control_offers_joining_without_inventing_an_environmental_face() {
+    let mut mailbox = NetworkSetupMailbox::new(1);
+    let mut reading = Socket::new(b"GET /reading HTTP/1.1\r\n\r\n");
+    let route = NetworkSetupRoute::bootstrap_control(&mut mailbox, limits()).unwrap();
+    assert_eq!(
+        poll(exchange(&mut reading, || 0, Some(route))),
+        Poll::Ready(Ok(ExchangeOutcome::ReadingUnavailable))
+    );
+    let mut page = Socket::new(b"GET /network HTTP/1.1\r\n\r\n");
+    let route = NetworkSetupRoute::bootstrap_control(&mut mailbox, limits()).unwrap();
+    assert_eq!(
+        poll(exchange(&mut page, || 0, Some(route))),
+        Poll::Ready(Ok(ExchangeOutcome::NetworkPage))
+    );
+    assert!(core::str::from_utf8(&page.output[..page.written])
+        .unwrap()
+        .contains("Connect to Wi-Fi"));
+    let post = post();
+    let mut socket = Socket::new(post.as_bytes());
+    let route = NetworkSetupRoute::bootstrap_control(&mut mailbox, limits()).unwrap();
+    assert_eq!(
+        poll(exchange(&mut socket, || 0, Some(route))),
+        Poll::Ready(Ok(ExchangeOutcome::SubmissionAcknowledged))
+    );
+    assert!(mailbox.has_acknowledged());
+    assert!(!core::str::from_utf8(&socket.output[..socket.written])
+        .unwrap()
+        .contains("fixture-password"));
+}

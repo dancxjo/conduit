@@ -62,6 +62,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "credential_owner",
                     "--test",
                     "network_play",
+                    "--test",
+                    "root_control",
                 ])
                 .args(["--", "--nocapture"])
                 .env("CARGO_TARGET_DIR", root.join("target")),

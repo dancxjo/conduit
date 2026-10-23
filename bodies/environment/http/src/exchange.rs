@@ -8,6 +8,7 @@ pub struct NetworkSetupRoute<'a> {
     mailbox: &'a mut NetworkSetupMailbox,
     limits: NetworkSetupLimits,
     preparation_only: bool,
+    reading_available: bool,
 }
 impl<'a> NetworkSetupRoute<'a> {
     /// Root installs this alongside its actual private credential source and
@@ -23,7 +24,19 @@ impl<'a> NetworkSetupRoute<'a> {
             mailbox,
             limits,
             preparation_only: false,
+            reading_available: true,
         })
+    }
+    /// Root has a real control executor but no environmental Body/Face yet.
+    /// Joining may start only after the response acknowledgement; reading routes
+    /// remain unavailable rather than projecting a fictitious observation.
+    pub fn bootstrap_control(
+        mailbox: &'a mut NetworkSetupMailbox,
+        limits: NetworkSetupLimits,
+    ) -> Result<Self, NetworkSetupRefusal> {
+        let mut route = Self::new(mailbox, limits)?;
+        route.reading_available = false;
+        Ok(route)
     }
     /// Root bootstrap input custody before a control Play is installed. Reading
     /// routes return unavailable rather than inventing a Body/Face basis.
@@ -33,6 +46,7 @@ impl<'a> NetworkSetupRoute<'a> {
     ) -> Result<Self, NetworkSetupRefusal> {
         let mut route = Self::new(mailbox, limits)?;
         route.preparation_only = true;
+        route.reading_available = false;
         Ok(route)
     }
 }
@@ -87,7 +101,7 @@ pub async fn exchange<T: Read + Write>(
         }
     };
     match (parsed, route) {
-        (Some(NetworkHttpRequest::Reading { .. }), Some(route)) if route.preparation_only => {
+        (Some(NetworkHttpRequest::Reading { .. }), Some(route)) if !route.reading_available => {
             write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
             Ok(ExchangeOutcome::ReadingUnavailable)
         }

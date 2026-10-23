@@ -1,4 +1,5 @@
-//! Actual initialized GPIO ownership before any Body or native Plan is installed.
+//! Actual initialized resources and Root provisioning Control. Environmental
+//! Host/Body construction and its sensor Plan remain separate.
 //! No simulated provider, descriptor-derived availability or execution is used.
 use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
@@ -12,9 +13,14 @@ pub struct NativeRoot {
         >,
     >,
     network_source: conduit_plot::ExpandedCanonicalPlot,
-    credentials: conduit_network_join_call::credential_installation::ReadyCredentialBase<
-        crate::native_credentials::RootCredentialSource,
+    credentials: Option<
+        conduit_network_join_call::credential_installation::ReadyCredentialBase<
+            crate::native_credentials::RootCredentialSource,
+        >,
     >,
+    issuer: crate::native_authority::RootIssuer,
+    play: crate::native_play::NativePlay,
+    offer_generation: u64,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
@@ -30,6 +36,8 @@ impl NativeRoot {
         network_source: conduit_plot::ExpandedCanonicalPlot,
         sdk_reservation: crate::sdk_memory::NativeSdkReservation,
     ) -> Self {
+        let issuer = crate::native_authority::RootIssuer::observe(boot)
+            .expect("initialized hardware entropy for Root issuance");
         let (host, boot) = boot.ids();
         let host: c::HostId = host.into();
         let boot: c::BootId = boot.into();
@@ -68,7 +76,10 @@ impl NativeRoot {
         Self {
             network_preparation: None,
             network_source,
-            credentials,
+            credentials: Some(credentials),
+            issuer,
+            play: crate::native_play::NativePlay::new(),
+            offer_generation: 1,
             credential_writer,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse,
@@ -87,16 +98,33 @@ impl NativeRoot {
     pub fn prepare_network_plan(&mut self) -> Result<(), ()> {
         self.network_preparation = None;
         let host = self.advertisement()?;
+        let local_bases = [c::BaseImplementationId::from("conduit.base/local@1")];
+        let grants = match (self.network.ready(), self.credentials.as_ref()) {
+            (Some(join), Some(source)) => Some([
+                self.issuer.grant(
+                    source.native_identity(),
+                    crate::native_authority::Operation::Credentials,
+                )?,
+                self.issuer.grant(
+                    join.native_identity(),
+                    crate::native_authority::Operation::Join,
+                )?,
+            ]),
+            _ => None,
+        };
         self.network_preparation =
             Some(crate::network_planning::PreparedNetworkSetup::from_checked(
                 &self.network_source,
                 &host,
-                &[],
-                &[],
+                &local_bases,
+                grants.as_ref().map_or(&[], |v| v.as_slice()),
             ));
         Ok(())
     }
     pub fn network_plan_status(&self) -> &'static str {
+        if self.play.attempted() {
+            return self.play.status();
+        }
         match &self.network_preparation {
             None => "unprepared",
             Some(Err(error)) => error.code(),
@@ -134,6 +162,9 @@ impl NativeRoot {
     /// Once configured, subsequent offers reuse the retained SDK configuration.
     pub fn prepare_network_configuration(&mut self) -> &'static [u8] {
         use conduit_environment_http::network_setup::NetworkSetupRefusal as E;
+        if self.play.attempted() {
+            return self.play.status().as_bytes();
+        }
         if self.network.is_ready() {
             return b"prepared";
         }
@@ -155,17 +186,54 @@ impl NativeRoot {
                 if self.network.prepare(&self.host, &self.boot).is_err() {
                     return b"refused";
                 }
+                self.offer_generation += 1;
                 // The retained provider changes the truthful offer generation.
                 // Preparation is fresh; old refusal/Plan material is discarded.
                 if self.prepare_network_plan().is_err() {
                     return b"refused";
                 }
-                b"prepared"
+                let Some(Ok(prepared)) = &self.network_preparation else {
+                    return b"planning-refused";
+                };
+                let result = self.play.install(
+                    prepared,
+                    &mut self.credentials,
+                    self.network.ready_slot(),
+                    &mut self.issuer,
+                );
+                self.network.mark_selected();
+                self.offer_generation += 1;
+                if result.is_err() {
+                    return b"installation-refused";
+                }
+                b"installed"
             }
             Ok(Err(_)) => b"refused",
             Err(E::NoSubmission | E::NotAcknowledged) => b"waiting",
             Err(_) => b"refused",
         }
+    }
+    /// Poll independently of UART management. HTTP acknowledgement is required
+    /// before preparation, selection or the control Play can consume input.
+    pub async fn advance_setup(&mut self) {
+        self.prepare_network_configuration();
+        self.play.run().await;
+    }
+    pub fn control_binding(&self) -> Option<&c::ActivePlayIdentity> {
+        self.play.active()
+    }
+    pub fn control_progress(&self) -> (u16, [u8; 3], bool) {
+        let (steps, calls) = self.play.progress();
+        (steps, calls, self.play.receipt_received())
+    }
+    pub fn control_installed(&self) -> bool {
+        self.play.installed()
+    }
+    pub fn control_status(&self) -> &'static str {
+        self.play.status()
+    }
+    pub fn control_failure(&self) -> (&'static str, &'static str) {
+        (self.play.failure_phase(), self.play.failure_reason())
     }
     pub fn network_ready(&self) -> bool {
         self.network.is_ready()
@@ -180,7 +248,7 @@ impl NativeRoot {
             protocol_version: c::PROTOCOL_VERSION,
             host_id: self.host.clone(),
             boot_id: self.boot.clone(),
-            offer_generation: c::OfferGeneration(if self.network.is_ready() { 2 } else { 1 }),
+            offer_generation: c::OfferGeneration(self.offer_generation),
             profile: "environment/esp32-native-root@1".into(),
             bases: alloc::vec![],
             resources: alloc::vec![],
@@ -190,9 +258,12 @@ impl NativeRoot {
         self.pulse
             .append_to_advertisement(&mut advertisement, &self.contract)
             .map_err(|_| ())?;
-        self.credentials
-            .append_to_advertisement(&mut advertisement)
-            .map_err(|_| ())?;
+        if let Some(source) = &self.credentials {
+            source
+                .append_to_advertisement(&mut advertisement)
+                .map_err(|_| ())?;
+        }
+        self.play.append_offer(&mut advertisement);
         self.network.append_to_advertisement(&mut advertisement)?;
         Ok(advertisement)
     }

@@ -27,13 +27,14 @@ pub enum ServiceReady {
 pub async fn serve_acknowledged(
     stack: Stack<'static>,
     setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
     ready: impl Fn(ServiceReady),
 ) -> Result<(), ()> {
     let _ = select(
         dhcp(stack, &ready),
         select(
-            http(stack, setup.clone(), ServiceReady::Http0, &ready),
-            http(stack, setup, ServiceReady::Http1, &ready),
+            http(stack, setup.clone(), connect, ServiceReady::Http0, &ready),
+            http(stack, setup, connect, ServiceReady::Http1, &ready),
         ),
     )
     .await;
@@ -68,6 +69,7 @@ async fn dhcp(stack: Stack<'static>, ready: &impl Fn(ServiceReady)) -> Result<()
 async fn http(
     stack: Stack<'static>,
     setup: Option<NetworkSetupWriter<'static>>,
+    connect: bool,
     service: ServiceReady,
     ready: &impl Fn(ServiceReady),
 ) -> Result<(), ()> {
@@ -93,7 +95,7 @@ async fn http(
         {
             let _ = with_timeout(
                 Duration::from_secs(5),
-                exchange(&mut socket, setup.as_ref()),
+                exchange(&mut socket, setup.as_ref(), connect),
             )
             .await;
             socket.close();
@@ -105,6 +107,7 @@ async fn http(
 async fn exchange(
     socket: &mut TcpSocket<'_>,
     setup: Option<&NetworkSetupWriter<'static>>,
+    connect: bool,
 ) -> Result<(), ()> {
     let mut guard = if let Some(writer) = setup {
         Some(writer.lock().await)
@@ -112,8 +115,13 @@ async fn exchange(
         None
     };
     let route = if let Some(mailbox) = guard.as_deref_mut() {
+        let route = if connect {
+            NetworkSetupRoute::bootstrap_control
+        } else {
+            NetworkSetupRoute::preparation_only
+        };
         Some(
-            NetworkSetupRoute::preparation_only(
+            route(
                 mailbox,
                 NetworkSetupLimits {
                     minimum_credential_bytes: 8,

@@ -107,7 +107,7 @@ async fn start(
         .await
         .expect("AP startup timeout");
         crate::http_view::set_ap_ready();
-        crate::http_ap::serve_acknowledged(stack, None, |_| {})
+        crate::http_ap::serve_acknowledged(stack, None, false, |_| {})
             .await
             .expect("AP sockets must remain available");
     })

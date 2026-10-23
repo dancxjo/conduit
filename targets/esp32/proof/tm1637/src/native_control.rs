@@ -1,5 +1,5 @@
-//! UART offer management beneath Root; no Body lifecycle or authority issuer.
-//! An offer may prepare retained private SDK configuration, without radio effects.
+//! UART management and autonomous Root setup polling; no Body lifecycle.
+//! Root setup advances independently of UART input through its selected kernel.
 use crate::{
     native_command::{Command, CommandBuffer},
     native_root::NativeRoot,
@@ -16,8 +16,11 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
     offer(root, &mut uart, &mut output).await?;
     loop {
         let mut byte = [0];
-        if uart.read_async(&mut byte).await.map_err(|_| ())? == 0 {
-            return Err(());
+        root.advance_setup().await;
+        match with_timeout(Duration::from_millis(100), uart.read_async(&mut byte)).await {
+            Err(_) => continue,
+            Ok(Ok(0)) | Ok(Err(_)) => return Err(()),
+            Ok(Ok(_)) => {}
         }
         let command = with_timeout(Duration::from_secs(5), async {
             let mut command = CommandBuffer::new();
@@ -45,15 +48,20 @@ async fn offer(
     uart: &mut Uart<'_, Async>,
     output: &mut [u8],
 ) -> Result<(), ()> {
-    let configuration = root.prepare_network_configuration();
+    let configuration = root.control_status().as_bytes();
+    let (failure_phase, failure_reason) = root.control_failure();
+    let (steps, dispatches, receipt) = root.control_progress();
+    let mut binding = [0; 512];
+    let len = serde_json_core::to_slice(&root.control_binding(), &mut binding).map_err(|_| ())?;
+    let binding = core::str::from_utf8(&binding[..len]).map_err(|_| ())?;
     let memory = crate::sdk_memory::stats();
     let root_memory = esp_alloc::HEAP.stats();
-    let mut memory_json = heapless::String::<512>::new();
+    let mut memory_json = heapless::String::<1280>::new();
     use core::fmt::Write;
     write!(
         memory_json,
-        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"advertisement\":",
-        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready()
+        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"advertisement\":",
+        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding
     )
     .map_err(|_| ())?;
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.

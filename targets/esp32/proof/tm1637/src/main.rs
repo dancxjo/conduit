@@ -11,6 +11,8 @@ use esp_hal::{delay::Delay, main};
 #[cfg(feature = "ap")]
 mod boot;
 #[cfg(feature = "native-root")]
+mod native_authority;
+#[cfg(feature = "native-root")]
 mod native_command;
 #[cfg(feature = "native-root")]
 mod native_control;
@@ -20,6 +22,8 @@ mod native_credentials;
 mod native_entry;
 #[cfg(feature = "native-root")]
 mod native_network;
+#[cfg(feature = "native-root")]
+mod native_play;
 #[cfg(feature = "native-root")]
 mod native_root;
 #[cfg(feature = "native-root")]

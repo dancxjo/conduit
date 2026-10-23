@@ -226,11 +226,40 @@ pub fn network_attachment_sign_offer(
     implementation_id: ImplementationId,
     artifact_id: ArtifactId,
 ) -> CapabilityOffer {
+    attachment_sign_offer(
+        capability_id,
+        implementation_id,
+        artifact_id,
+        "conduit.network/attachment-sign-usb@1",
+    )
+}
+
+pub const NETWORK_ATTACHMENT_LOCAL_PROFILE: &str = "conduit.network/attachment-sign-local@1";
+/// The caller retains an actual bounded local receipt sink. This describes its
+/// implementation; it does not create a sink, an attachment or authority.
+pub fn network_attachment_sign_local_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+) -> CapabilityOffer {
+    attachment_sign_offer(
+        capability_id,
+        implementation_id,
+        artifact_id,
+        NETWORK_ATTACHMENT_LOCAL_PROFILE,
+    )
+}
+fn attachment_sign_offer(
+    capability_id: CapabilityId,
+    implementation_id: ImplementationId,
+    artifact_id: ArtifactId,
+    profile: &str,
+) -> CapabilityOffer {
     BackOfferBuilder::new(
         network_attachment_sign_contract(),
         Back {
             capability_id,
-            execution_profile_id: ExecutionProfileId::from("conduit.network/attachment-sign-usb@1"),
+            execution_profile_id: ExecutionProfileId::from(profile),
             implementation_id,
             artifact_id,
             host_calls: vec![HostCallRequirement {

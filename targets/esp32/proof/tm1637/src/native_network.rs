@@ -6,7 +6,7 @@ use conduit_network_join_call::installation::{NetworkNativeIdentity, ReadyNetwor
 use embassy_time::Duration;
 
 type Adapter = Esp32ApStationSwitch<'static, 'static, crate::services::Owner>;
-type Provider = Esp32NetworkJoinProvider<'static, 'static, crate::services::Owner>;
+pub(crate) type Provider = Esp32NetworkJoinProvider<'static, 'static, crate::services::Owner>;
 const ATTEMPT_SECONDS: u64 = 15;
 const CLEANUP_SECONDS: u64 = 5;
 const RESOURCE: &str = "pool/esp32/wifi-station";
@@ -18,6 +18,7 @@ pub struct NativeNetwork {
     adapter: Option<Adapter>,
     ready: Option<ReadyNetworkJoinBase<Provider>>,
     sdk: crate::sdk_memory::NativeSdkReservation,
+    selected: bool,
 }
 impl NativeNetwork {
     pub fn new(radio: crate::network::Radio, sdk: crate::sdk_memory::NativeSdkReservation) -> Self {
@@ -29,6 +30,7 @@ impl NativeNetwork {
             adapter: None,
             ready: None,
             sdk,
+            selected: false,
         }
     }
     pub fn ap_stack(&self) -> Option<embassy_net::Stack<'static>> {
@@ -42,7 +44,10 @@ impl NativeNetwork {
         self.ready.is_some()
     }
     pub fn has_staged_configuration(&self) -> bool {
-        self.configuration.is_some() || self.adapter.is_some() || self.ready.is_some()
+        self.selected
+            || self.configuration.is_some()
+            || self.adapter.is_some()
+            || self.ready.is_some()
     }
     pub fn stage(&mut self, configuration: esp_radio::wifi::sta::StationConfig) {
         assert!(self.configuration.is_none() && self.adapter.is_none() && !self.is_ready());
@@ -125,6 +130,17 @@ impl NativeNetwork {
                 .expect("validated nonempty current native identity"),
         );
         Ok(())
+    }
+    pub fn ready(&self) -> Option<&ReadyNetworkJoinBase<Provider>> {
+        self.ready.as_ref()
+    }
+    pub fn ready_slot(&mut self) -> &mut Option<ReadyNetworkJoinBase<Provider>> {
+        &mut self.ready
+    }
+    pub fn mark_selected(&mut self) {
+        if self.ready.is_none() {
+            self.selected = true;
+        }
     }
     pub fn append_to_advertisement(&self, host: &mut c::HostAdvertisement) -> Result<(), ()> {
         if let Some(ready) = &self.ready {

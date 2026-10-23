@@ -26,17 +26,22 @@ pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static
                 }
                 let ready = Cell::new(0_u8);
                 let next = select(
-                    crate::http_ap::serve_acknowledged(stack, setup.clone(), |service| {
-                        let bit = match service {
-                            crate::http_ap::ServiceReady::Dhcp => 1,
-                            crate::http_ap::ServiceReady::Http0 => 2,
-                            crate::http_ap::ServiceReady::Http1 => 4,
-                        };
-                        ready.set(ready.get() | bit);
-                        if ready.get() == 7 {
-                            MAILBOX.acknowledge(command, ServiceState::Ready);
-                        }
-                    }),
+                    crate::http_ap::serve_acknowledged(
+                        stack,
+                        setup.clone(),
+                        setup.is_some(),
+                        |service| {
+                            let bit = match service {
+                                crate::http_ap::ServiceReady::Dhcp => 1,
+                                crate::http_ap::ServiceReady::Http0 => 2,
+                                crate::http_ap::ServiceReady::Http1 => 4,
+                            };
+                            ready.set(ready.get() | bit);
+                            if ready.get() == 7 {
+                                MAILBOX.acknowledge(command, ServiceState::Ready);
+                            }
+                        },
+                    ),
                     MAILBOX.next_command(),
                 )
                 .await;
