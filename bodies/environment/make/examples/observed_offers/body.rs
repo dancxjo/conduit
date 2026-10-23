@@ -19,7 +19,7 @@ pub fn propose(
     native_offer: &c::HostAdvertisement,
     admission_directory: &Path,
     output: &Path,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<BodyLifecycleSession, Box<dyn Error>> {
     let observations = document(&admission_directory.join("observations.json"))?;
     let observed: c::HostAdvertisement = serde_json::from_value(
         observations
@@ -71,5 +71,5 @@ pub fn propose(
             "capability_possession_issued":false,
         }))?,
     )?;
-    Ok(())
+    Ok(owner)
 }

@@ -43,7 +43,7 @@ pub(super) fn prove_body_construction(root: &Path) -> Result<(), Box<dyn Error>>
     let admission = capture_body_admission(root)?;
     capture_and_plan_with_body(root, Some(&admission)).map(|_| ())
 }
-fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
+pub(super) fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
     execute(
         Command::new("cargo")
             .current_dir(root)
@@ -75,7 +75,7 @@ fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, Box<dyn Err
 fn capture_and_plan(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
     capture_and_plan_with_body(root, None)
 }
-fn capture_and_plan_with_body(
+pub(super) fn capture_and_plan_with_body(
     root: &Path,
     admission: Option<&Path>,
 ) -> Result<std::path::PathBuf, Box<dyn Error>> {

@@ -330,7 +330,7 @@ fn run_flash(
     write_receipt(&root.join(receipt), &record, opts)
 }
 
-fn provision_espflash(root: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
+pub(super) fn provision_espflash(root: &Path) -> Result<PathBuf, Box<dyn std::error::Error>> {
     if std::env::consts::OS != "linux" || std::env::consts::ARCH != "x86_64" {
         return Err("pinned espflash bundle currently supports x86_64 Linux only".into());
     }

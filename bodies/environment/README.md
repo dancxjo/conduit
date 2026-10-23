@@ -1205,3 +1205,19 @@ reservation identity substitution and successful dormant ownership transfer. The
 ESP32 build passes. Physical native preparation, the persistent Body owner and
 attributed start/release remain unproved; the diagnostic kernel image currently
 on the board has not been replaced by this new control path.
+
+`cargo xtask prove environment owner-prepare-esp32` provisions a private Unix
+owner key under the host data directory (`conduit/environment-owner`), builds Root
+with only its public key, saves an exact image receipt, and flashes the attended
+ESP32. It then performs ordinary Host admission, captures current offers, stages
+the exact assignment, and retains a real host-side Body owner and prospective
+`NativeBodyBinding` across signed inspection, reservation and preparation. The
+private seed remains outside the repository and firmware. Its directory/file
+permissions are 0700/0600; mismatched public material, permissive seed files and
+symlinks refuse rather than silently replacing keys.
+
+This command is a finite attended preparation proof. The owner exits after its
+final receipt; it does not establish durable owner restart, attributed Body
+start, execution release or overnight sampling. Hardware success remains subject
+to the actual retained native/kernel memory closure, with failures retained in
+the capture rather than replaced by a fixture.
