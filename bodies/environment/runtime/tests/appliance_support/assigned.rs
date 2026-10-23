@@ -227,3 +227,29 @@ fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allo
         assert_eq!(effects.get(), 0);
     }
 }
+
+/// Preparation diagnostic over the same independently pinned computation text.
+/// Values and native providers are excluded; these are requested heap bytes.
+pub fn report_computation_memory(recipe: &Recipe) {
+    for text in recipe.programs() {
+        let ((driver, selector), memory) = allocation_probe::observe(|| {
+            if text.key == c::AssignedIdentity::from_text("program") {
+                let program =
+                    conduit_plot::PortableExpressionProgram::from_canonical_hex(text.text).unwrap();
+                (
+                    CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
+                        .unwrap(),
+                    None,
+                )
+            } else {
+                let selector = c::StructuredSelector::from_canonical_hex(text.text).unwrap();
+                (
+                    CaptureBack::selector(1024),
+                    Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).unwrap()),
+                )
+            }
+        });
+        eprintln!("environment_computation_memory pointer_bits={} node={} text_bytes={} memory={memory:?}", usize::BITS, text.node, text.text.len());
+        drop((driver, selector));
+    }
+}

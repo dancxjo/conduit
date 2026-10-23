@@ -990,3 +990,11 @@ the broad sixteen-port profile to 10,584 bytes; the prepared object falls from
 [measurement](evidence/2026-10-23-unary-kernel/measurement.json). These are object
 sizes, not stack high-water or complete MCU memory-closure evidence. Software
 heap preparation remains 92,679 peak bytes, above the current Root arena.
+
+Per-computation [32-bit preparation measurements](evidence/2026-10-23-computation-memory/measurement.json)
+identify the authored DHT decoder as the largest software component: 75,917
+peak and 40,042 retained requested heap bytes when constructed separately.
+The other six computations retain between 3,012 and 4,177 bytes each. Individual
+peaks are not additive, and these numbers exclude other live storage and
+allocator overhead. This identifies the next memory-admission work; it does
+not justify a larger Root arena or claim a physical installation.

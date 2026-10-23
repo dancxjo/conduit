@@ -1,0 +1,50 @@
+{
+  "proof_class": "32-bit-linux-cpu-preparation",
+  "tests_passed": 14,
+  "computations": [
+    {
+      "node": 4,
+      "text_bytes": 29798,
+      "heap_peak": 75917,
+      "heap_retained": 40042
+    },
+    {
+      "node": 5,
+      "text_bytes": 3604,
+      "heap_peak": 8321,
+      "heap_retained": 4177
+    },
+    {
+      "node": 6,
+      "text_bytes": 1738,
+      "heap_peak": 4451,
+      "heap_retained": 3012
+    },
+    {
+      "node": 8,
+      "text_bytes": 1058,
+      "heap_peak": 3857,
+      "heap_retained": 3857
+    },
+    {
+      "node": 9,
+      "text_bytes": 1070,
+      "heap_peak": 3528,
+      "heap_retained": 3528
+    },
+    {
+      "node": 10,
+      "text_bytes": 1072,
+      "heap_peak": 3529,
+      "heap_retained": 3529
+    },
+    {
+      "node": 11,
+      "text_bytes": 1058,
+      "heap_peak": 3857,
+      "heap_retained": 3857
+    }
+  ],
+  "scope": "Each computation constructed separately from independently pinned Make text. Excludes native owners, values, other drivers, recipe storage and allocator overhead. Individual peaks are not additive.",
+  "physical_memory_admission_proved": false
+}

@@ -174,6 +174,9 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         .node;
     let (tables, drivers, mut selectors, values) = if native {
         let recipe = assigned_software::Recipe::prepare(&plan, &lowered, &image, &projection);
+        if scenario == 0 && !overnight {
+            assigned_software::report_computation_memory(&recipe);
+        }
         // The constrained constructor retains no rich Source, Host advertisement,
         // Plan, lowering, software offer catalog or Make image.
         drop((source, host, plan, lowered, software, image, tables));
