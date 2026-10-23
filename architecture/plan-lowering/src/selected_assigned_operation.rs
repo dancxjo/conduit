@@ -5,11 +5,14 @@ use crate::selected_operation::{
 };
 #[path = "assigned_configuration.rs"]
 mod configuration_check;
+#[path = "assigned_operation_input.rs"]
+mod input;
 use conduit_core as c;
 use conduit_kernel::{NodeId, PortId};
+pub use input::AssignedOperationInput;
 
 pub struct SelectedAssignedOperationPlan<'a> {
-    pub bytes: &'a [u8],
+    pub input: AssignedOperationInput<'a>,
     pub maxima: c::AssignedPlanMaxima,
     pub requirements: c::AssignedPlanRequirements<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
@@ -90,16 +93,19 @@ fn bind_configured_for_subject(
 ) -> Result<NodeId, E> {
     let wrong = || E::WrongBinding;
     let id = c::AssignedIdentity::from_text;
-    if selected.bytes.get(8..10) != Some(c::ASSIGNED_NATIVE_PLAN_SCHEMA.to_le_bytes().as_slice()) {
+    if selected.input.header().get(8..10)
+        != Some(c::ASSIGNED_NATIVE_PLAN_SCHEMA.to_le_bytes().as_slice())
+    {
         return Err(wrong());
     }
-    let view = c::decode_assigned_plan_with_computations(
-        selected.bytes,
-        selected.maxima,
-        selected.requirements,
-        selected.computations,
-    )
-    .map_err(|_| wrong())?;
+    let view = selected
+        .input
+        .decode(
+            selected.maxima,
+            selected.requirements,
+            selected.computations,
+        )
+        .map_err(|_| wrong())?;
     let active = selected.active;
     if view.plan != id(claim.plan_id.as_str())
         || view.fragment != id(selected.fragment_id.as_str())
@@ -115,7 +121,7 @@ fn bind_configured_for_subject(
     {
         return Err(wrong());
     }
-    configuration_check::check(selected.bytes, selected.node, configuration)?;
+    configuration_check::check(selected.input, selected.node, configuration)?;
     let scope = matching_scope(table, claim)?;
     if scope.capability_id.as_str() != native.capability
         || scope.authority_contract_id.as_str() != native.authority
@@ -133,7 +139,7 @@ fn bind_configured_for_subject(
     let mut calls = 0;
     let mut resources = 0;
     let mut binding = None;
-    for record in c::AssignedPlanRecords::new(selected.bytes).map_err(|_| wrong())? {
+    for record in selected.input.records().map_err(|_| wrong())? {
         let record = record.map_err(|_| wrong())?;
         let data = record.payload;
         if !matches!(
@@ -232,7 +238,7 @@ fn bind_configured_for_subject(
     {
         return Err(wrong());
     }
-    for record in c::AssignedPlanRecords::new(selected.bytes).map_err(|_| wrong())? {
+    for record in selected.input.records().map_err(|_| wrong())? {
         let record = record.map_err(|_| wrong())?;
         if record.tag == c::ASSIGNED_RESOURCE
             && u16_at(record.payload, 0)? == selected.node.0

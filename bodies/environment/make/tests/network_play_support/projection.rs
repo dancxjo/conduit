@@ -91,7 +91,7 @@ impl Projection {
         node: NodeId,
     ) -> SelectedAssignedOperationPlan<'a> {
         SelectedAssignedOperationPlan {
-            bytes: self.native.assignment(),
+            input: conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(self.native.assignment()),
             maxima: self.maxima,
             requirements: self.requirements(),
             computations: Self::computations(),

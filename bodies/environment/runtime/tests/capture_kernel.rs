@@ -389,6 +389,13 @@ fn a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity() {
 
 #[test]
 fn assigned_native_facts_cannot_substitute_the_local_grant_or_attachment() {
+    assigned_native_fact_control(false);
+}
+#[test]
+fn borrowed_native_facts_cannot_substitute_the_local_grant_or_attachment() {
+    assigned_native_fact_control(true);
+}
+fn assigned_native_fact_control(borrowed: bool) {
     let (ready, _) = pulse::ready(0);
     let (plan, lowered) = plan::prepare(&ready);
     let image = conduit_embedded_build::generate_embedded_plan_with_computations(
@@ -425,7 +432,12 @@ fn assigned_native_facts_cannot_substitute_the_local_grant_or_attachment() {
         projection.bytes[start..start + 32].copy_from_slice(&digest);
         let (ready, effects) = pulse::ready(0);
         assert_eq!(
-            pulse::bind_assigned(ready, &plan, &lowered, &projection).err(),
+            if borrowed {
+                pulse::bind_assigned_records(ready, &plan, &lowered, &projection)
+            } else {
+                pulse::bind_assigned(ready, &plan, &lowered, &projection)
+            }
+            .err(),
             Some(conduit_pulse_capture::owner::PulseCallRefusal::WrongBinding),
             "native field offset {offset}"
         );

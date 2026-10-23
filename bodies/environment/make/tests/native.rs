@@ -251,6 +251,13 @@ fn stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation() {
 
 #[test]
 fn body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start() {
+    body_fragment_control(false);
+}
+#[test]
+fn borrowed_native_input_preserves_real_body_and_fragment_custody() {
+    body_fragment_control(true);
+}
+fn body_fragment_control(borrowed: bool) {
     use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
@@ -263,8 +270,12 @@ fn body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start() 
         limits(),
     )
     .unwrap();
-    let mut owner = body_owner(&native, &host.host_id, &host.boot_id, false);
-    native.propose_to_body(&mut owner, vec![]).unwrap();
+    let (mut owner, birth_memory) =
+        allocation_probe::observe(|| body_owner(&native, &host.host_id, &host.boot_id, false));
+    let (_, proposal_memory) = allocation_probe::observe(|| {
+        native.propose_to_body(&mut owner, vec![]).unwrap();
+    });
+    eprintln!("body_custody_preparation borrowed={borrowed} birth_peak={} proposal_peak={} (host-side rich owner; not MCU admission)", birth_memory.peak_bytes, proposal_memory.peak_bytes);
     let body_play = conduit_body::BodyPlayIdentity::bind(&owner.realization().unwrap().plan, 1);
     let fragment_play =
         c::bind_active_play(&native.plan().plan_id, &host.host_id, &host.boot_id, 0);
@@ -283,8 +294,13 @@ fn body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start() 
     assert_eq!((allocated.allocations, allocated.reallocations), (0, 0));
     let projection = assignment::NativeProjection::prepare(native.image());
     // Existing native binder, unchanged: its own fragment identity remains canonical.
-    let selected =
-        pulse::bind_assigned(ready, native.plan(), native.lowered(), &projection).unwrap();
+    let selected = if borrowed {
+        pulse::bind_assigned_records(ready, native.plan(), native.lowered(), &projection)
+    } else {
+        pulse::bind_assigned(ready, native.plan(), native.lowered(), &projection)
+    }
+    .unwrap();
+    drop(projection);
     assert_eq!(
         selected.0.inspection().scope.active_play_id,
         fragment_play.active_play_id
@@ -399,7 +415,7 @@ fn retained_advertisement(
     (software, host)
 }
 
-#[path = "native_support/recipe.rs"]
-mod recipe;
 #[path = "native_support/observed_offers.rs"]
 mod observed_offers;
+#[path = "native_support/recipe.rs"]
+mod recipe;

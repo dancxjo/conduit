@@ -141,7 +141,10 @@ fn check(inputs: usize, outputs: usize, configuration: Vec<c::ConfigurationEntry
         resource_class: "machine/radio-attachment",
     };
     let selected = || SelectedAssignedOperationPlan {
-        bytes: &bytes,
+        input:
+            conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(
+                &bytes,
+            ),
         maxima,
         requirements: c::AssignedPlanRequirements {
             host: c::AssignedIdentity::from_text(fragment.host_id.as_str()),

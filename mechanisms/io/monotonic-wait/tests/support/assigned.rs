@@ -4,6 +4,13 @@ use conduit_embedded_build as e;
 use conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan;
 #[test]
 fn assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits() {
+    assigned_timer_control(false);
+}
+#[test]
+fn borrowed_assignment_preserves_slot_then_transfers_and_waits() {
+    assigned_timer_control(true);
+}
+fn assigned_timer_control(borrowed: bool) {
     let state = Rc::new(State::default());
     let mut slot = Some(installation::ready(state.clone()));
     let (mut fragment, _, _, _) = fixture::selected();
@@ -55,8 +62,21 @@ fn assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits() {
     let bytes = e::encode_assigned_native_plan(&image, maxima).unwrap();
     let calls = [AssignedIdentity::from_text(WAIT_HOST_CALL_CONTRACT)];
     let resources: Vec<_> = image.resources.iter().map(|r| r.resource).collect();
+    let records: Vec<_> = AssignedPlanRecords::new(&bytes)
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
     let selected = |active| SelectedAssignedOperationPlan {
-        bytes: &bytes,
+        input: if borrowed {
+            conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Records {
+                header: &bytes[..ASSIGNED_PLAN_HEADER_BYTES],
+                records: &records,
+            }
+        } else {
+            conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(
+                &bytes,
+            )
+        },
         maxima,
         requirements: AssignedPlanRequirements {
             host: AssignedIdentity::from_text(fragment.host_id.as_str()),
@@ -107,6 +127,8 @@ fn assigned_timer_preserves_slot_on_refusal_then_transfers_and_waits() {
     )
     .unwrap();
     assert!(slot.is_none());
+    drop(records);
+    drop(bytes);
     let allocations = allocation_probe::observe(|| {
         immediate(owner.invoke(
             lowered.nodes[0].node,

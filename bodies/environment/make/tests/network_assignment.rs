@@ -17,6 +17,13 @@ mod possession;
 
 #[test]
 fn network_assignment_preserves_its_independent_subject_and_native_possession() {
+    network_assignment_control(false);
+}
+#[test]
+fn borrowed_network_assignment_preserves_subject_and_native_possession() {
+    network_assignment_control(true);
+}
+fn network_assignment_control(borrowed: bool) {
     let kind = conduit_net::network_join_contract();
     let subject = c::KindId::from(conduit_net::NETWORK_CONFIG_SUBJECT);
     let mut scope = possession::scope(subject.as_str());
@@ -120,8 +127,19 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
         authority: conduit_net::NETWORK_CONFIG_AUTHORITY,
         resource_class: conduit_net::WIFI_STATION_RESOURCE_CLASS,
     };
+    let records: Vec<_> = c::AssignedPlanRecords::new(&bytes)
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
     let selected = || SelectedAssignedOperationPlan {
-        bytes: &bytes,
+        input: if borrowed {
+            AssignedOperationInput::Records {
+                header: &bytes[..c::ASSIGNED_PLAN_HEADER_BYTES],
+                records: &records,
+            }
+        } else {
+            AssignedOperationInput::Contiguous(&bytes)
+        },
         maxima,
         requirements: c::AssignedPlanRequirements {
             host: c::AssignedIdentity::from_text(fragment.host_id.as_str()),
@@ -229,6 +247,8 @@ fn network_assignment_preserves_its_independent_subject_and_native_possession() 
         ready_base.bind_assigned(table, handle, claim, &contract, selected())
     });
     let mut owner = owner.unwrap();
+    drop(records);
+    drop(bytes);
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
     assert_eq!(effects.get(), 0);
     let mut request = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];

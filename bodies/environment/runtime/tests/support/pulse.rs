@@ -100,7 +100,7 @@ pub fn bind(
     plan: &Plan,
     lowered: &LoweredPlanFragment,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, None, 1)
+    bind_mode(ready, plan, lowered, None, 1, false)
 }
 pub fn bind_assigned(
     ready: ReadyPulseBase<Provider>,
@@ -108,7 +108,7 @@ pub fn bind_assigned(
     lowered: &LoweredPlanFragment,
     projection: &super::assignment::NativeProjection,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, Some(projection), 1)
+    bind_mode(ready, plan, lowered, Some(projection), 1, false)
 }
 /// Explicit CPU Root policy budget, independent of received assignment bytes.
 pub fn bind_assigned_budget(
@@ -118,7 +118,15 @@ pub fn bind_assigned_budget(
     projection: &super::assignment::NativeProjection,
     operations: u32,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
-    bind_mode(ready, plan, lowered, Some(projection), operations)
+    bind_mode(ready, plan, lowered, Some(projection), operations, false)
+}
+pub fn bind_assigned_records(
+    ready: ReadyPulseBase<Provider>,
+    plan: &Plan,
+    lowered: &LoweredPlanFragment,
+    projection: &super::assignment::NativeProjection,
+) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
+    bind_mode(ready, plan, lowered, Some(projection), 1, true)
 }
 fn bind_mode(
     ready: ReadyPulseBase<Provider>,
@@ -126,6 +134,7 @@ fn bind_mode(
     lowered: &LoweredPlanFragment,
     projection: Option<&super::assignment::NativeProjection>,
     operations: u32,
+    borrowed: bool,
 ) -> Result<(PulseHostCall<Provider>, NodeId), PulseCallRefusal> {
     let fragment = &plan.fragments[0];
     let gear = fragment
@@ -206,13 +215,28 @@ fn bind_mode(
         .unwrap()
         .node;
     let owner = if let Some(projection) = projection {
+        let records = if borrowed {
+            AssignedPlanRecords::new(&projection.bytes)
+                .map_err(|_| PulseCallRefusal::WrongBinding)?
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|_| PulseCallRefusal::WrongBinding)?
+        } else {
+            Vec::new()
+        };
         ready.bind_assigned(
             table,
             handle,
             claim,
             &PulseReadContract::prepare().unwrap(),
             conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan {
-                bytes: &projection.bytes,
+                input: if borrowed {
+                    conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Records {
+                        header: projection.bytes.get(..ASSIGNED_PLAN_HEADER_BYTES).ok_or(PulseCallRefusal::WrongBinding)?,
+                        records: &records,
+                    }
+                } else {
+                    conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput::Contiguous(&projection.bytes)
+                },
                 maxima: super::assignment::NativeProjection::maxima(),
                 requirements: projection.required(),
                 computations: projection.profile(),

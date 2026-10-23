@@ -4,12 +4,12 @@ use conduit_core as c;
 use conduit_kernel::NodeId;
 
 pub(super) fn check(
-    bytes: &[u8],
+    input: super::AssignedOperationInput<'_>,
     node: NodeId,
     expected: &[c::ConfigurationEntry],
 ) -> Result<(), E> {
     let mut count = 0;
-    for record in c::AssignedPlanRecords::new(bytes).map_err(|_| E::WrongBinding)? {
+    for record in input.records().map_err(|_| E::WrongBinding)? {
         let record = record.map_err(|_| E::WrongBinding)?;
         if record.tag != c::ASSIGNED_CONFIGURATION {
             continue;
