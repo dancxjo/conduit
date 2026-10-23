@@ -11,6 +11,7 @@ mod pressure_receipt;
 mod profile_receipt;
 #[path = "ordinary_domain_proof/compositor_semantic_recovery.rs"]
 mod receipt;
+mod retained_receipt;
 mod stale_capture;
 mod stopped_receipt;
 
@@ -124,11 +125,18 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         &manifest.image_id,
         guest,
     )?;
+    let retained_pairs = retained_receipt::validate(
+        &transcript,
+        &manifest.profile_id,
+        &manifest.build_id,
+        &manifest.image_id,
+        guest,
+    )?;
     let observed = receipt::validate(&transcript)?;
     let pressure = pressure_receipt::validate(&transcript)?;
     stale_capture::validate_final(&transcript, &capture)?;
     let record = serde_json::json!({
-        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@5",
+        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@6",
         "proof_class":"freestanding-emulator","fixture":true,
         "proof_feature":"compositor-semantic-recovery-proof",
         "same_uninstrumented_product_binary":false,
@@ -136,7 +144,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "memory_mib":512,"vcpus":1},
         "budget_basis":"existing conduitos-native.host.conduit; actual admitted product profile, not minimum memory",
         "build":built,"image":assembled,"native_make_manifest":manifest,"admitted_profile":budget,
-        "stopped_lifecycle":stopped,
+        "stopped_lifecycle":stopped,"retained_pairs":retained_pairs,
         "observations":observed,"pressure_observations":pressure,
         "stale_show_capture":capture,
         "transcript_sha256":super::report::sha256_file(&log)?,
