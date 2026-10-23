@@ -13,8 +13,8 @@ pub(super) struct PreparedStructuredExpression {
 enum PreparedShape {
     Input,
     Constant(Vec<u8>),
-    Selected(super::member_selection::PreparedMemberSelection),
-    SequenceSelected(super::sequence_selection::PreparedSequenceSelection),
+    Selected(Box<super::member_selection::PreparedMemberSelection>),
+    SequenceSelected(Box<super::sequence_selection::PreparedSequenceSelection>),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
     Variant {
@@ -34,12 +34,18 @@ struct PreparedField {
 }
 
 struct PreparedChild {
-    value_type: StructuredInfoType,
-    type_prefix: Vec<u8>,
+    output: ChildOutput,
     evaluator: PreparedPortableExpressionEvaluator,
+}
+enum ChildOutput {
+    Leaf,
+    Structured,
 }
 
 impl PreparedStructuredExpression {
+    pub(super) fn type_prefix(&self) -> &[u8] {
+        &self.type_prefix
+    }
     pub(super) fn new(
         program: ProgramView<'_>,
         prepared_input: &PreparedInput,
@@ -61,17 +67,17 @@ impl PreparedStructuredExpression {
                 };
                 PreparedShape::Constant(constant.evaluate(&[])?)
             }
-            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
+            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(Box::new(
                 super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
-            ),
+            )),
             PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
-                PreparedShape::SequenceSelected(
+                PreparedShape::SequenceSelected(Box::new(
                     super::sequence_selection::PreparedSequenceSelection::new(
                         program.root,
                         program.input_type,
                         prepared_input,
                     )?,
-                )
+                ))
             }
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
@@ -220,16 +226,21 @@ impl PreparedStructuredExpression {
 
 impl PreparedChild {
     fn append_node(&mut self, input: &[u8], output: &mut Vec<u8>) -> Result<(), Refusal> {
-        let encoded = self.evaluator.evaluate(input)?;
-        match self.value_type.shape() {
-            StructuredInfoTypeShape::Leaf(_) => {
+        self.evaluator.evaluate(input)?;
+        let encoded = self.evaluator.output_bytes();
+        match &self.output {
+            ChildOutput::Leaf => {
                 push(output, 0)?;
                 push_len(output, encoded.len())?;
                 append(output, encoded)
             }
-            _ => {
+            ChildOutput::Structured => {
+                let type_prefix = self
+                    .evaluator
+                    .output_type_prefix()
+                    .ok_or(Refusal::InvalidProgram)?;
                 let node = encoded
-                    .strip_prefix(self.type_prefix.as_slice())
+                    .strip_prefix(type_prefix)
                     .ok_or(Refusal::InvalidProgram)?;
                 append(output, node)
             }
@@ -248,13 +259,32 @@ fn child(
         output_type: &node.value_type,
         root: node,
     };
+    // Preserve independent canonical Type validation during preparation, then
+    // compare with the evaluator's immutable prefix before releasing this copy.
+    let type_prefix = node
+        .value_type
+        .canonical_bytes()
+        .map_err(|_| Refusal::InvalidProgram)?;
+    let leaf = matches!(node.value_type.shape(), StructuredInfoTypeShape::Leaf(_));
+    let expected_prefix = if leaf {
+        drop(type_prefix);
+        None
+    } else {
+        Some(type_prefix)
+    };
+    let evaluator = PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?;
+    if let Some(expected) = expected_prefix {
+        if evaluator.output_type_prefix() != Some(expected.as_slice()) {
+            return Err(Refusal::InvalidProgram);
+        }
+    }
     Ok(PreparedChild {
-        type_prefix: node
-            .value_type
-            .canonical_bytes()
-            .map_err(|_| Refusal::InvalidProgram)?,
-        value_type: node.value_type.clone(),
-        evaluator: PreparedPortableExpressionEvaluator::prepare(child, prepared_input.clone())?,
+        output: if leaf {
+            ChildOutput::Leaf
+        } else {
+            ChildOutput::Structured
+        },
+        evaluator,
     })
 }
 

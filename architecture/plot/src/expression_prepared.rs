@@ -4,7 +4,7 @@ use crate::{
     BinaryOperator, PortableExpressionEvaluationRefusal as Refusal, PortableExpressionNode,
     PortableExpressionOperation, PortableExpressionProgram, UnaryOperator,
 };
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
@@ -40,6 +40,19 @@ use primitive::{
 };
 use structured::PreparedStructuredExpression;
 
+fn prepare_info_kind(
+    value_type: &conduit_core::StructuredInfoType,
+) -> Result<Cow<'static, str>, Refusal> {
+    let name = leaf_info_kind(value_type)?;
+    let standard = kind_name(leaf_kind(value_type)?);
+    Ok(if name == standard {
+        Cow::Borrowed(standard)
+    } else {
+        // Dynamic profiles and other exact names keep their original identity.
+        Cow::Owned(name.into())
+    })
+}
+
 /// A prepared primitive-only evaluator. Construction owns every allocation;
 /// `evaluate` uses fixed stack values and one capacity-stable output buffer.
 pub struct PreparedPortableExpressionEvaluator {
@@ -55,7 +68,7 @@ pub struct PreparedPortableExpressionEvaluator {
 enum PreparedInput {
     Primitive {
         kind: PrimitiveInfoKind,
-        info_kind: String,
+        info_kind: Cow<'static, str>,
         nominal_type: Option<SharedBytes>,
         quantity_profile: conduit_core::QuantityValueProfile,
         maximum_bytes: Option<u32>,
@@ -104,7 +117,7 @@ enum PreparedRoot {
 struct PreparedNode {
     quantity_profile: conduit_core::QuantityValueProfile,
     kind: PrimitiveInfoKind,
-    info_kind: String,
+    info_kind: Cow<'static, str>,
     operation: PreparedOperation,
 }
 
@@ -155,8 +168,10 @@ enum PreparedOperation {
         when_true: Box<PreparedNode>,
         when_false: Box<PreparedNode>,
     },
-    Projection(PreparedMemberSelection),
-    SequenceSelection(sequence_selection::PreparedSequenceSelection),
+    // Reserve selector objects only for nodes that use them, during preparation.
+    // Keeping selector buffers inline inflated arithmetic nodes as well.
+    Projection(Box<PreparedMemberSelection>),
+    SequenceSelection(Box<sequence_selection::PreparedSequenceSelection>),
     Widen(Box<PreparedNode>),
     TextMaterial(Box<PreparedNode>),
     Inspection(inspection::PreparedInspection),
@@ -226,7 +241,7 @@ impl PreparedPortableExpressionEvaluator {
         let input = match program.input_type.shape() {
             StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
                 kind: leaf_kind(&program.input_type)?,
-                info_kind: leaf_info_kind(&program.input_type)?.into(),
+                info_kind: prepare_info_kind(&program.input_type)?,
                 nominal_type: None,
                 quantity_profile,
                 maximum_bytes: program.input_maximum_bytes,
@@ -236,7 +251,7 @@ impl PreparedPortableExpressionEvaluator {
             {
                 PreparedInput::Primitive {
                     kind: leaf_kind(&program.input_type)?,
-                    info_kind: leaf_info_kind(&program.input_type)?.into(),
+                    info_kind: prepare_info_kind(&program.input_type)?,
                     quantity_profile,
                     maximum_bytes: program.input_maximum_bytes,
                     nominal_type: Some(
@@ -408,6 +423,16 @@ impl PreparedPortableExpressionEvaluator {
                 .map_err(Refusal::OutputValueConstraint)?;
         }
         Ok(&self.output)
+    }
+
+    // Immutable after preparation. Structured children compare against this
+    // admitted prefix without retaining another identical schema byte buffer.
+    fn output_type_prefix(&self) -> Option<&[u8]> {
+        match &self.root {
+            PreparedRoot::Primitive { nominal_type, .. }
+            | PreparedRoot::ScalarTape { nominal_type, .. } => nominal_type.as_deref(),
+            PreparedRoot::Structured(root) => Some(root.type_prefix()),
+        }
     }
 
     /// Most recent prepared result, borrowed by a kernel Back until its Step
