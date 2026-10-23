@@ -3,6 +3,48 @@ use super::NativeSoftwareRecipe;
 use std::fmt::{self, Write};
 
 impl NativeSoftwareRecipe {
+    /// Emit only graph/configuration pins for independent firmware provisioning.
+    /// This omits portable software bodies and all current native authority.
+    pub fn write_layout_rust(&self, out: &mut impl Write) -> fmt::Result {
+        writeln!(
+            out,
+            "// Generated Make layout pins; independently provision through firmware."
+        )?;
+        writeln!(out, "use conduit_core as c;")?;
+        self.write_records(out)?;
+        writeln!(
+            out,
+            "#[rustfmt::skip]\nstatic CALLS: [c::AssignedIdentity; {}] = [",
+            self.host_calls.len()
+        )?;
+        for call in &self.host_calls {
+            writeln!(out, "c::AssignedIdentity({:?}),", call.0)?;
+        }
+        writeln!(out, "];\nstatic RESOURCES: &[u16] = &{:?};", self.resources)?;
+        writeln!(out, "pub fn requirements(host: c::AssignedIdentity, boot: c::AssignedIdentity) -> c::AssignedPlanRequirements<'static> {{ c::AssignedPlanRequirements {{ host, boot, host_calls: &CALLS, resources: RESOURCES, remote_bindings: &[] }} }}")?;
+        writeln!(out, "pub fn layout(source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity) -> Result<conduit_environment_runtime::assigned::ResidentLayout<'static>, ()> {{")?;
+        writeln!(
+            out,
+            "if source.expanded_plot_digest != {:?} {{ return Err(()); }}",
+            self.source.expanded_plot_digest
+        )?;
+        writeln!(out, "Ok(conduit_environment_runtime::assigned::ResidentLayout {{ records: &RECORDS, counts: {:?} }})\n}}", self.counts)
+    }
+    fn write_records(&self, out: &mut impl Write) -> fmt::Result {
+        writeln!(
+            out,
+            "#[rustfmt::skip]\nstatic RECORDS: [c::AssignedRecordRequirement; {}] = [",
+            self.records.len()
+        )?;
+        for record in &self.records {
+            writeln!(
+                out,
+                "c::AssignedRecordRequirement {{ tag: {}, payload_digest: {:?} }},",
+                record.tag, record.payload_digest
+            )?;
+        }
+        writeln!(out, "];")
+    }
     /// Emit a standalone Rust module with `resident()` borrowing static data.
     /// Provision this module through the trusted firmware build, separately
     /// from assignments. It contains no current Host, Boot, Plan or authority.
@@ -15,19 +57,7 @@ impl NativeSoftwareRecipe {
         )?;
         writeln!(out, "use conduit_core as c;")?;
         writeln!(out, "use conduit_environment_runtime::{{appliance::assigned::{{ResidentAppliance, ResidentComputation, ResidentRoles, ResidentSoftwareOffer}}, assigned::ResidentLayout}};")?;
-        writeln!(
-            out,
-            "static RECORDS: [c::AssignedRecordRequirement; {}] = [",
-            self.records.len()
-        )?;
-        for record in &self.records {
-            writeln!(
-                out,
-                "c::AssignedRecordRequirement {{ tag: {}, payload_digest: {:?} }},",
-                record.tag, record.payload_digest
-            )?;
-        }
-        writeln!(out, "];")?;
+        self.write_records(out)?;
         write_material(out, &self.computations, &self.texts, &self.offers)?;
         writeln!(out, "pub fn resident() -> ResidentAppliance<'static> {{")?;
         writeln!(

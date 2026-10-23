@@ -3,6 +3,7 @@
 //! This preparation step neither authorizes effects nor admits evaluator storage.
 use conduit_core as c;
 use conduit_kernel as k;
+use core::mem::MaybeUninit;
 #[path = "assigned/record_input.rs"]
 mod record_input;
 use k::scheduler::{
@@ -103,6 +104,21 @@ impl<
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
     ) -> Result<Self, AssignedKernelRefusal> {
+        let mut output = MaybeUninit::uninit();
+        Self::prepare_input_into(input, maxima, required, computations, layout, &mut output)?;
+        // SAFETY: the shared builder initializes every field before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
+    /// Writes every field only after all checks succeed; Err leaves output alone.
+    #[inline(never)]
+    pub(crate) fn prepare_input_into(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+        output: &mut MaybeUninit<Self>,
+    ) -> Result<(), AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
         let schema = u16_at(input.header(), 8)?;
         if !matches!(
@@ -293,14 +309,19 @@ impl<
         }
         routes.seal()?;
         calls.seal()?;
-        Ok(Self {
-            identity,
-            nodes,
-            cords,
-            routes,
-            calls,
-            startup_order,
-        })
+        let target = output.as_mut_ptr();
+        // SAFETY: output exclusively owns aligned storage for Self. Each field
+        // receives its complete initialized value, without reading uninitialized
+        // storage or creating a reference to it. No refusal follows these writes.
+        unsafe {
+            core::ptr::addr_of_mut!((*target).identity).write(identity);
+            core::ptr::addr_of_mut!((*target).nodes).write(nodes);
+            core::ptr::addr_of_mut!((*target).cords).write(cords);
+            core::ptr::addr_of_mut!((*target).routes).write(routes);
+            core::ptr::addr_of_mut!((*target).calls).write(calls);
+            core::ptr::addr_of_mut!((*target).startup_order).write(startup_order);
+        }
+        Ok(())
     }
     /// Prepare existing production Backs in the exact dependency-respecting
     /// assigned order. No Play may start until this succeeds for every node.

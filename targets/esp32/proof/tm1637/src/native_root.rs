@@ -22,6 +22,11 @@ pub struct NativeRoot {
     play: crate::native_play::NativePlay,
     offer_generation: u64,
     software: Option<alloc::boxed::Box<crate::native_software::Software>>,
+    pub(crate) assignment: Option<
+        alloc::boxed::Box<
+            conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
+        >,
+    >,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
@@ -87,6 +92,7 @@ impl NativeRoot {
                 crate::native_software::prepare().expect("initialized resident software"),
             ),
             credential_writer,
+            assignment: None,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse,
             contract: PulseReadContract::prepare().unwrap(),

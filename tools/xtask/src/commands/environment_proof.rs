@@ -18,6 +18,9 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
     if arguments == ["software-ready-esp32"] {
         return software_ready::prove(&root);
     }
+    if arguments == ["assignment-ingress-esp32"] {
+        return software_ready::prove_ingress(&root);
+    }
     if arguments == ["network-fallback"] {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -449,7 +452,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, network-fallback, software-ready-esp32, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, network-fallback, software-ready-esp32, assignment-ingress-esp32, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

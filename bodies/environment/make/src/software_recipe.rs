@@ -19,6 +19,8 @@ pub enum SoftwareRecipeRefusal {
 #[derive(Debug, PartialEq, Eq)]
 pub struct NativeSoftwareRecipe {
     records: Vec<c::AssignedRecordRequirement>,
+    host_calls: Vec<c::AssignedIdentity>,
+    resources: Vec<u16>,
     source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity,
     cadence: conduit_time::TickConfiguration,
     texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
@@ -81,6 +83,8 @@ impl PreparedNativeAppliance {
             cadence: conduit_time::parse_tick_configuration(&self.plan().fragments[0].placements.iter().find(|g|g.kind_id.as_str()==conduit_time::TICK_KIND).ok_or(E::Source)?.configuration).map_err(|_|E::Source)?,
             source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity::from_expanded(&self.plan().fragments[0].expanded_plot_id),
             records: self.resident_records().to_vec(),
+            host_calls: self.image().host_calls.iter().map(|call| c::AssignedIdentity::from_text(&call.contract_id)).collect(),
+            resources: self.image().resources.iter().map(|resource| resource.resource).collect(),
             texts: self
                 .image()
                 .configuration

@@ -5,8 +5,10 @@ use crate::{
     assigned::*, observation::ObservationContract, publication::*, CaptureBack,
     PreparedCaptureSelector,
 };
+use alloc::boxed::Box;
 use conduit_core as c;
 use conduit_kernel::{self as k, ValueStorage};
+use core::mem::MaybeUninit;
 
 #[path = "resident_offers.rs"]
 mod resident_offers;
@@ -165,6 +167,10 @@ pub struct ValidatedAssignedAppliance {
     construction: resident_software::Construction,
 }
 impl ValidatedAssignedAppliance {
+    /// Validated descriptive identity; this confers no native possession or Play.
+    pub fn identity(&self) -> c::AssignedPlanView {
+        self.tables.identity
+    }
     pub fn admit(
         bytes: &[u8],
         maxima: c::AssignedPlanMaxima,
@@ -194,30 +200,89 @@ impl ValidatedAssignedAppliance {
             resident,
         )
     }
+    /// Preparation-only heap destination for constrained stacks. The same
+    /// admission fills this storage; refusal drops it without exposing tables.
+    pub fn admit_records_boxed(
+        header: &[u8],
+        records: &[c::AssignedRecord<'_>],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        resident: &ResidentAppliance<'_>,
+    ) -> Result<Box<Self>, NativePreparationRefusal> {
+        let mut output = Box::<Self>::new_uninit();
+        Self::admit_input_into(
+            crate::assigned::RecordInput::Records { header, records },
+            maxima,
+            required,
+            resident,
+            &mut output,
+        )?;
+        // SAFETY: the common admission writes the complete value before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
     fn admit_input(
         input: crate::assigned::RecordInput<'_>,
         maxima: c::AssignedPlanMaxima,
         required: c::AssignedPlanRequirements<'_>,
         resident: &ResidentAppliance<'_>,
     ) -> Result<Self, NativePreparationRefusal> {
-        let tables = NativeTables::prepare_input(
+        let mut output = MaybeUninit::uninit();
+        Self::admit_input_into(input, maxima, required, resident, &mut output)?;
+        // SAFETY: the common admission writes the complete value before Ok.
+        Ok(unsafe { output.assume_init() })
+    }
+    #[inline(never)]
+    fn admit_input_into(
+        input: crate::assigned::RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        resident: &ResidentAppliance<'_>,
+        output: &mut MaybeUninit<Self>,
+    ) -> Result<(), NativePreparationRefusal> {
+        let target = output.as_mut_ptr();
+        // SAFETY: the tables field has the same layout as MaybeUninit<NativeTables>.
+        // We create only a reference to that uninitialized storage, never to Self
+        // or uninitialized tables. The parent output is exclusively borrowed.
+        let tables = unsafe {
+            &mut *core::ptr::addr_of_mut!((*target).tables).cast::<MaybeUninit<NativeTables>>()
+        };
+        NativeTables::prepare_input_into(
             input,
             maxima,
             required,
             resident.computations,
             &resident.layout,
+            tables,
         )
         .map_err(NativePreparationRefusal::Tables)?;
+        // SAFETY: this disjoint field is exclusively owned uninitialized storage.
+        let construction = unsafe {
+            &mut *core::ptr::addr_of_mut!((*target).construction)
+                .cast::<MaybeUninit<resident_software::Construction>>()
+        };
+        if let Err(error) = Self::finish_input(input, resident, construction) {
+            // SAFETY: the successful table builder initialized this field.
+            unsafe {
+                tables.assume_init_drop();
+            }
+            return Err(error);
+        }
+        Ok(())
+    }
+    #[inline(never)]
+    fn finish_input(
+        input: crate::assigned::RecordInput<'_>,
+        resident: &ResidentAppliance<'_>,
+        output: &mut MaybeUninit<resident_software::Construction>,
+    ) -> Result<(), NativePreparationRefusal> {
         let roles = resident.roles;
         let count = numeric(input, roles.tick, "count")?;
         let period_ms = numeric(input, roles.tick, "period-ms")?;
         let construction =
             resident_software::Construction::prepare(&resident.software_spec(), count, period_ms)?;
         validate_roles(input, roles)?;
-        Ok(Self {
-            tables,
-            construction,
-        })
+        output.write(construction);
+        Ok(())
     }
     /// Compatibility preparation after assignment admission. Native Roots may
     /// instead retain software before planning and use `bind_retained` later.

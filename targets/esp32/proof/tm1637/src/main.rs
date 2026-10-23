@@ -8,12 +8,16 @@ use conduit_tm1637_wire::{transmit, Packet};
 use esp_backtrace as _;
 #[cfg(not(feature = "ap"))]
 use esp_hal::{delay::Delay, main};
+#[cfg(feature = "native-root")]
+mod appliance_layout;
 #[cfg(feature = "ap")]
 mod boot;
 #[cfg(feature = "native-root")]
-mod native_authority;
-#[cfg(feature = "native-root")]
 mod native_appliance_policy;
+#[cfg(feature = "native-root")]
+mod native_assignment;
+#[cfg(feature = "native-root")]
+mod native_authority;
 #[cfg(feature = "native-root")]
 mod native_command;
 #[cfg(feature = "native-root")]

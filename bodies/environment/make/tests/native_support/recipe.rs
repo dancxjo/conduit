@@ -71,6 +71,14 @@ fn resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current(
     if let Some(path) = std::env::var_os("CONDUIT_RECIPE_PROOF_OUTPUT") {
         std::fs::write(path, &first_rust).unwrap();
     }
+    let mut layout = String::new();
+    first_recipe.write_layout_rust(&mut layout).unwrap();
+    let mut next_layout = String::new();
+    second_recipe.write_layout_rust(&mut next_layout).unwrap();
+    assert_eq!(layout, next_layout);
+    if let Some(path) = std::env::var_os("CONDUIT_LAYOUT_PROOF_OUTPUT") {
+        std::fs::write(path, layout).unwrap();
+    }
     assert_eq!((first_effects.get(), next_effects.get()), (0, 0));
 }
 #[test]

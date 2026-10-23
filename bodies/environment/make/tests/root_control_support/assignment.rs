@@ -142,6 +142,30 @@ pub(super) fn round_trip(
     });
     assert!(result.is_ok());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let (identity, memory) = allocation_probe::observe(|| {
+        let boxed = ValidatedAssignedAppliance::admit_records_boxed(
+            decoded.header,
+            borrowed_records,
+            limits.assignment,
+            required,
+            &resident,
+        )
+        .unwrap();
+        boxed.identity()
+    });
+    assert_eq!(identity, contiguous.unwrap());
+    assert_eq!(
+        (
+            memory.allocations,
+            memory.reallocations,
+            memory.deallocations
+        ),
+        (1, 0, 1)
+    );
+    assert_eq!(
+        memory.requested_bytes,
+        core::mem::size_of::<ValidatedAssignedAppliance>()
+    );
     let mut foreign_pins = resident.layout.records.to_vec();
     foreign_pins[0].payload_digest[0] ^= 1;
     let foreign = conduit_environment_runtime::appliance::assigned::ResidentAppliance {
@@ -166,6 +190,24 @@ pub(super) fn round_trip(
     assert!(result.is_err());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     let (result, memory) = allocation_probe::observe(|| {
+        ValidatedAssignedAppliance::admit_records_boxed(
+            decoded.header,
+            borrowed_records,
+            limits.assignment,
+            required,
+            &foreign,
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!(
+        (
+            memory.allocations,
+            memory.reallocations,
+            memory.deallocations
+        ),
+        (1, 0, 1)
+    );
+    let (result, memory) = allocation_probe::observe(|| {
         ValidatedAssignedAppliance::admit(
             projected.assignment(),
             limits.assignment,
@@ -188,6 +230,32 @@ pub(super) fn round_trip(
     assert!(result.is_err());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     let mut insufficient = limits;
+    // Refusal after table construction must retire the partially initialized
+    // destination as well as the preparation-only box.
+    let mut different_cadence = resident.cadence.clone();
+    different_cadence.count += 1;
+    let different = conduit_environment_runtime::appliance::assigned::ResidentAppliance {
+        cadence: different_cadence,
+        ..resident
+    };
+    let (result, memory) = allocation_probe::observe(|| {
+        ValidatedAssignedAppliance::admit_records_boxed(
+            decoded.header,
+            borrowed_records,
+            limits.assignment,
+            required,
+            &different,
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!(
+        (
+            memory.allocations,
+            memory.reallocations,
+            memory.deallocations
+        ),
+        (1, 0, 1)
+    );
     insufficient.image.maximum_resources = 1;
     assert!(PreparedNativeAppliance::prepare(
         source,

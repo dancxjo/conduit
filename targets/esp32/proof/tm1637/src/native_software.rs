@@ -28,3 +28,19 @@ pub fn source_facts() -> ([u8; 32], conduit_time::TickConfiguration) {
     let spec = material::spec();
     (spec.source.expanded_plot_digest, spec.cadence)
 }
+pub fn resident(
+) -> Result<conduit_environment_runtime::appliance::assigned::ResidentAppliance<'static>, ()> {
+    let spec = material::spec();
+    Ok(
+        conduit_environment_runtime::appliance::assigned::ResidentAppliance {
+            layout: crate::appliance_layout::layout(spec.source)?,
+            cadence: spec.cadence,
+            source: spec.source,
+            computations: spec.computations,
+            roles: spec.roles,
+        },
+    )
+}
+pub fn computation_records() -> &'static [conduit_core::AssignedRecord<'static>] {
+    material::computation_records()
+}

@@ -5,6 +5,7 @@ pub enum Command {
     Offer,
     SoftwareOffer,
     AppliancePolicy,
+    AssignmentTransfer,
     Unsupported,
     TooLarge,
 }
@@ -35,6 +36,8 @@ impl CommandBuffer {
                     Command::SoftwareOffer
                 } else if bytes == b"appliance-policy" {
                     Command::AppliancePolicy
+                } else if bytes == b"assignment-transfer" {
+                    Command::AssignmentTransfer
                 } else {
                     Command::Unsupported
                 }
@@ -70,6 +73,13 @@ mod tests {
         for byte in b"software-offer\n" {
             if *byte == b'\n' {
                 assert_eq!(buffer.push(*byte), Some(Command::SoftwareOffer));
+            } else {
+                assert_eq!(buffer.push(*byte), None);
+            }
+        }
+        for byte in b"assignment-transfer\n" {
+            if *byte == b'\n' {
+                assert_eq!(buffer.push(*byte), Some(Command::AssignmentTransfer));
             } else {
                 assert_eq!(buffer.push(*byte), None);
             }

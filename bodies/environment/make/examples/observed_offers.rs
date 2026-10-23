@@ -74,6 +74,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .map_err(|why| format!("Resident recipe: {why:?}"))?;
     recipe.write_resident_rust(&mut resident)?;
     fs::write(directory.join("uninstalled-resident.rs"), resident)?;
+    let mut layout = String::new();
+    recipe.write_layout_rust(&mut layout)?;
+    fs::write(directory.join("uninstalled-layout.rs"), layout)?;
     let calls: Vec<_> = prepared
         .image()
         .host_calls

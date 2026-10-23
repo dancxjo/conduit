@@ -98,3 +98,33 @@ or admit a network Host Call. Physical startup with both runners on 22 October
 reported 66,896 free heap bytes after radio initialization and resumed valid
 68.36°F/53% RH readings with acknowledged display writes. Station association,
 link-loss recovery and sustained coexistence remain unproved.
+
+
+## Native Root assignment staging
+
+With the native-root image running on a fresh Boot and UART0 connected through
+USB, run from the repository root:
+
+```sh
+cargo xtask prove environment assignment-ingress-esp32
+```
+
+This captures actual initialized offers and Root policy, makes an ordinary
+appliance Plan on the planning host, and sends its 8 KiB-bounded Source-reference
+transfer to Root. Root checks the current Host/Boot, canonical assignment,
+independently provisioned graph/configuration pins, roles and cadence before
+retaining ordinary runtime tables. Wrong Source, stale Boot, corrupted canonical
+digest and duplicate staging are exercised. Captures and receipts remain under
+`target/environment-software-ready/<capture>/`.
+
+Root retains one staged assignment until reset; repeating the proof in that Boot
+refuses as already staged. The request has a five-second packet deadline and
+both ready and result replies have two-second deadlines. It reuses the existing
+8 KiB UART buffer and borrows Source computation records from firmware.
+
+`src/appliance_layout.rs` is trusted Make-generated provisioning material,
+separate from the received packet. Its full Source digest guard requires renewed
+provisioning when checked meaning changes. Native call tails still need binding
+to actual retained owners and local opaque authority. Staged tables are separate
+from Body/Play installation and complete runtime memory admission; this path
+starts no climate sampling, display output or recorder.
