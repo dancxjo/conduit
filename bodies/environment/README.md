@@ -1117,5 +1117,7 @@ its own 4 KiB limit. Neither a returned signature nor an admission credential
 installs an environmental Body, issues effect authority or starts a Play.
 The responder validates current Host/Boot/offer generation; the Body authority
 checks expiry in its own clock domain and rejects replay. CPU conformance uses
-the production responder and ordinary Body verifier. Physical responder and
-membership proof remain outstanding until the new image is flashed and tested.
+the production responder and ordinary Body verifier. The supported physical entrance is `cargo xtask prove environment body-admission-esp32`.
+It passes on the attended HW-463 board; retained evidence is in
+`evidence/2026-10-23-physical-body-admission/`. This establishes Host proof and
+host-side membership, while owner-to-Root installation and Play remain unfinished.

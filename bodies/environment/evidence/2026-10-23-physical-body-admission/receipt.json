@@ -1,0 +1,13 @@
+{
+  "proof_class": "physical-ambient-admission",
+  "firmware_source": "4d502c095",
+  "elf_sha256": "91ac44473eabc0f0750dfce75929b1ba4b2cb2cdd7e3ef36394fc5212673f58a",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/ca2ae8876e40c8bfc9e36431723959c1",
+  "capture": "target/environment-body-admission/1792782604",
+  "body_installed_on_mcu": false,
+  "play_started": false,
+  "physical_stale_boot_refused": true,
+  "tampering_refused": true,
+  "replay_refused": true
+}

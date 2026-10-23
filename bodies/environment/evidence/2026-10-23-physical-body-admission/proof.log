@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+     Running `target/environment-main-host/debug/conduit-xtask-dispatch prove environment body-admission-esp32`
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `dev` profile [unoptimized] target(s) in 0.80s
+{"completed": true, "proof_class": "physical-ambient-admission", "host": "esp32/b0a732286178", "boot": "boot/ca2ae8876e40c8bfc9e36431723959c1", "body_installed_on_mcu": false, "play_started": false}
