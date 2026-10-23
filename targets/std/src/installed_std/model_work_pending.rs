@@ -1,14 +1,14 @@
 //! One ordinary scheduler request owns the already prepared model adapter.
 //! This holds no second queue, scheduler, provider, or borrowed input value.
 use super::{
-    model_work_host::{self, Completion},
     InstalledScheduler,
+    model_work_host::{self, Completion},
 };
 use crate::hosted_model_work::HostedModelWorkAdapter;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    scheduler::{HostCallCancellation, HostCallRequest},
     BoundedValueRef,
+    scheduler::{HostCallCancellation, HostCallRequest},
 };
 
 #[derive(Clone, Copy)]
@@ -49,10 +49,10 @@ impl<'a> InstalledModelWorkHost<'a> {
             // dispatched request cannot overwrite that owner or grow a queue.
             return Ok(Some(Completion::Refused));
         }
-        let adapter = match self.adapter.as_mut() {
-            Some(adapter) => Some(&mut **adapter),
-            None => None,
-        };
+        let adapter = self
+            .adapter
+            .as_mut()
+            .map(|adapter| -> &mut (dyn HostedModelWorkAdapter + 'static) { &mut **adapter });
         let completion = model_work_host::execute(placement, input, adapter, output)?;
         self.last_request = Some(request);
         if completion.is_none() {
