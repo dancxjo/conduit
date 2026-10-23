@@ -90,6 +90,48 @@ fn execute(corrupt: bool) {
         .unwrap()
         .placement_id
         .clone();
+    let basis = conduit_face::FaceBasis {
+        body_id: None,
+        wake_id: None,
+        source_document_id: Some(fragment.source_document_id.clone()),
+        checked_plot_id: Some(fragment.checked_plot_id.clone()),
+        expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
+        plan_id: Some(fragment.plan_id.clone()),
+        active_play_id: Some(active.active_play_id.clone()),
+        sign_ids: vec![],
+    };
+    let make_face =
+        |basis| conduit_environment_face::PreparedRecordingFace::prepare(basis, 1, 64, 4).unwrap();
+    assert!(matches!(
+        PreparedRecordingBrowserFace::prepare(
+            fragment,
+            plan.lowered(),
+            prepared.read_nodes[0],
+            &active,
+            make_face(basis.clone())
+        ),
+        Err(RecordingBrowserFaceRefusal::Binding)
+    ));
+    let mut foreign_basis = basis.clone();
+    foreign_basis.plan_id = Some("fixture/foreign-plan".into());
+    assert!(matches!(
+        PreparedRecordingBrowserFace::prepare(
+            fragment,
+            plan.lowered(),
+            prepared.recovery_node,
+            &active,
+            make_face(foreign_basis)
+        ),
+        Err(RecordingBrowserFaceRefusal::Binding)
+    ));
+    let mut face = PreparedRecordingBrowserFace::prepare(
+        fragment,
+        plan.lowered(),
+        prepared.recovery_node,
+        &active,
+        make_face(basis),
+    )
+    .unwrap();
     let recovery = prepared.recovery_node;
     let mut kernel = prepared.kernel;
     let mut pending = None;
@@ -142,6 +184,8 @@ fn execute(corrupt: bool) {
             Err(BrowserReadRefusal::Identity)
         );
         assert_eq!(recovered(&kernel), RecoveredHistory::default());
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, 0);
         assert_eq!(
             reads
                 .complete(&mut kernel, request, scope, Ok(Some(&bytes)))
@@ -153,6 +197,8 @@ fn execute(corrupt: bool) {
             }
         );
         assert_eq!(recovered(&kernel), RecoveredHistory::default());
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, 0);
         assert!(reads
             .complete(&mut kernel, request, scope, Ok(Some(&bytes)))
             .is_err());
@@ -175,6 +221,18 @@ fn execute(corrupt: bool) {
             }
         }
         assert!(terminal);
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, if corrupt { 0 } else { 1 });
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, if corrupt { 0 } else { 1 });
+        if corrupt {
+            face.publish_refusal(
+                conduit_environment_face::RecordingRecoveryFailure::InvalidContent,
+            )
+            .unwrap();
+            assert_eq!(face.current().revision, 1);
+        }
+
         assert_eq!(recovered(&kernel).samples, if corrupt { 0 } else { 1 });
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));

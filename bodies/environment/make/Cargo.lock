@@ -301,7 +301,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-browser-runtime",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-environment-runtime",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "serde",
@@ -341,6 +343,7 @@ dependencies = [
  "conduit-core",
  "conduit-embedded-build",
  "conduit-environment-browser",
+ "conduit-environment-face",
  "conduit-environment-http",
  "conduit-environment-runtime",
  "conduit-face",

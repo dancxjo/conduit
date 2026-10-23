@@ -291,10 +291,20 @@ version = "0.1.0"
 dependencies = [
  "conduit-browser-runtime",
  "conduit-core",
+ "conduit-environment-face",
  "conduit-environment-runtime",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "serde",
+]
+
+[[package]]
+name = "conduit-environment-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-face",
 ]
 
 [[package]]

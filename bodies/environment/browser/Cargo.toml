@@ -7,6 +7,8 @@ publish = false
 [workspace]
 
 [dependencies]
+conduit-environment-face = { path = "../face" }
+conduit-face = { path = "../../../semantics/face", default-features = false }
 conduit-core = { path = "../../../architecture/core" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }

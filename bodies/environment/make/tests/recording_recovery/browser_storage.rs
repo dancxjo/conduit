@@ -109,6 +109,30 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
         &active,
     )
     .unwrap();
+    let face = conduit_environment_face::PreparedRecordingFace::prepare(
+        conduit_face::FaceBasis {
+            body_id: Some(body_play.body_id.clone()),
+            wake_id: Some(body_play.wake_id.clone()),
+            source_document_id: Some(fragment.source_document_id.clone()),
+            checked_plot_id: Some(fragment.checked_plot_id.clone()),
+            expanded_plot_id: Some(fragment.expanded_plot_id.clone()),
+            plan_id: Some(fragment.plan_id.clone()),
+            active_play_id: Some(active.active_play_id.clone()),
+            sign_ids: vec![],
+        },
+        15,
+        960,
+        16,
+    )
+    .unwrap();
+    let mut face = PreparedRecordingBrowserFace::prepare(
+        fragment,
+        plan.lowered(),
+        prepared.recovery_node,
+        &active,
+        face,
+    )
+    .unwrap();
     let recovery = prepared.recovery_node;
     let mut kernel = prepared.kernel;
     // Actual admission remains a fixture. Use the ordinary retained lifecycle
@@ -137,6 +161,8 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
         back.recovered()
     };
     assert_eq!(recovered(&kernel), RecoveredHistory::default());
+    face.refresh(&kernel).unwrap();
+    assert_eq!(face.current().revision, 0);
     std::fs::write(
         output.join("requests.json"),
         serde_json::to_vec(&serde_json::json!({
@@ -164,6 +190,8 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
         serde_json::from_slice(&std::fs::read(restored_file).unwrap()).unwrap();
     assert_eq!(returned.len(), 15);
     assert_eq!(recovered(&kernel), RecoveredHistory::default());
+    face.refresh(&kernel).unwrap();
+    assert_eq!(face.current().revision, 0);
     let mut seen = [false; 15];
     let ((), memory) = allocation_probe::observe(|| {
         // Request sequences are node-local. Equal sequence with another
@@ -219,6 +247,8 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
                 k::HostCallDisposition::Completed
             );
             assert_eq!(recovered(&kernel), RecoveredHistory::default());
+            face.refresh(&kernel).unwrap();
+            assert_eq!(face.current().revision, 0);
         }
         let mut drained = false;
         for _ in 0..4000 {
@@ -228,6 +258,13 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
             }
         }
         assert!(drained);
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, 1);
+        face.refresh(&kernel).unwrap();
+        assert_eq!(face.current().revision, 1);
+        let response = conduit_environment_http::recording_response(face.current(), true).unwrap();
+        assert!(response.contains("960"));
+
         assert_eq!(
             recovered(&kernel),
             RecoveredHistory {

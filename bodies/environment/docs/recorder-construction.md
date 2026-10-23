@@ -257,3 +257,21 @@ The public recording proof includes these refusal cases. The actual IndexedDB
 proof now uses the same binding before dispatch and completion, then checks
 Lull invalidation. Membership and attributable start are still explicitly CPU
 fixtures; actual browser admission and production transport remain unfinished.
+
+## Committed recovery Face in the browser realization
+
+`PreparedRecordingBrowserFace` binds a fresh existing `PreparedRecordingFace`
+to the exact selected recovery placement, ordinary lowering and fragment Play
+provenance. It borrows the production recovery Back's committed range and feeds
+that range into the existing Face projection. It stores no parallel progress
+counter. Pending storage and validated but unconsumed completions leave the Face
+unchanged; repeated projection of the same committed range is idempotent.
+Root may publish an observed refusal through this same Face. No failure is
+inferred merely because progress is absent.
+
+The HTTP Mask consumes this exact Face. The actual IndexedDB proof checks an
+empty Face while all reads remain pending, then one revision for the committed
+960-sample recovery and allocation-free HTTP formatting. The focused storage
+proof also checks foreign Face provenance, a non-recovery node and corrupt input.
+Root still owns the exact kernel/Face pairing and current lifecycle checks; this
+projection creates no Body admission, transport, authority or live web page.
