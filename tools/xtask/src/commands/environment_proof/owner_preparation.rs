@@ -27,6 +27,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "native_owner",
                 "--example",
                 "native_owner_key",
+                "--example",
+                "native_admission",
             ])
             .env("CARGO_TARGET_DIR", host_target(root)),
     )?;
@@ -104,7 +106,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
             ])
             .arg(&elf),
     )?;
-    let admission = software_ready::capture_body_admission(root)?;
+    let admission = software_ready::capture_ready_body_admission(root)?;
     let capture = software_ready::capture_and_plan_with_body(root, Some(&admission))?;
     execute(
         Command::new("python3")

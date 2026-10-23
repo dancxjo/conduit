@@ -20,16 +20,24 @@ port.dtr = True
 port.rts = True
 pending = bytearray()
 observations = []
+startup_log = bytearray()
+startup_truncated = False
 
 
 def receive(predicate, seconds=8, readiness_ping=None):
+    global startup_truncated
     deadline = time.monotonic() + seconds
     next_ping = time.monotonic()
     while time.monotonic() < deadline:
         if readiness_ping is not None and time.monotonic() >= next_ping:
             port.write(readiness_ping)
             next_ping = time.monotonic() + 2
-        pending.extend(port.read(8192))
+        incoming = port.read(8192)
+        if readiness_ping is not None:
+            remaining = 65536 - len(startup_log)
+            startup_log.extend(incoming[:remaining])
+            startup_truncated |= len(incoming) > remaining
+        pending.extend(incoming)
         if len(pending) > 16384:
             raise RuntimeError('UART ingress capacity exceeded')
         while b'\n' in pending:
@@ -41,6 +49,10 @@ def receive(predicate, seconds=8, readiness_ping=None):
                 value = json.loads(line)
             except ValueError:
                 continue
+            if not isinstance(value, dict):
+                continue
+            if len(observations) == 32:
+                raise RuntimeError('UART observation capacity exceeded')
             observations.append(value)
             if predicate(value):
                 return value
@@ -108,6 +120,11 @@ try:
                       'body_installed_on_mcu': False, 'play_started': False}))
 finally:
     port.close()
+    (args.output / 'startup-uart.log').write_bytes(startup_log)
+    (args.output / 'startup-diagnostics.json').write_text(json.dumps({
+        'maximum_bytes': 65536, 'captured_bytes': len(startup_log),
+        'truncated': startup_truncated, 'maximum_observations': 32,
+    }, indent=2) + '\n')
     (args.output / 'observations.json').write_text(json.dumps(observations, indent=2) + '\n')
     if process is not None and process.poll() is None:
         process.terminate()

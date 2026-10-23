@@ -57,6 +57,13 @@ pub(super) fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, 
             ])
             .env("CARGO_TARGET_DIR", host_target(root)),
     )?;
+    capture_ready_body_admission(root)
+}
+/// Caller just built the current verifier. Open UART immediately after flashing
+/// so a startup panic is retained rather than lost during a redundant build.
+pub(super) fn capture_ready_body_admission(
+    root: &Path,
+) -> Result<std::path::PathBuf, Box<dyn Error>> {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();

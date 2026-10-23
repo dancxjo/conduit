@@ -20,3 +20,14 @@ refusal precedence and ranking retain their existing behavior.
 This is function-frame evidence, not complete call-graph stack admission or
 physical worker/start success. The physical preparation workflow is recorded
 separately when it terminates.
+
+The planner-only image flashed successfully but still failed before the Root
+readiness offer. A reset captured a stack-guard write during ordinary integer
+literal evaluation. Therefore the isolated numerical planner frame is a verified
+resource improvement, not a complete startup fix. Unit/quantity literal scratch
+is the next preparation boundary under investigation.
+
+Correction to the earlier task notes: `_stack_start=0x3ffe0000` minus
+`_stack_end=0x3ffd8ec4` is 28,988 bytes, not the previously reported 29,020.
+The prior verified image's span was 29,028 bytes. These linked spans do not
+replace an admitted complete call-stack bound.
