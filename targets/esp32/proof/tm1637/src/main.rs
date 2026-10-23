@@ -28,6 +28,8 @@ mod native_play;
 mod native_root;
 #[cfg(feature = "native-root")]
 mod native_source;
+#[cfg(feature = "native-root")]
+mod native_wait;
 #[cfg(feature = "ap")]
 mod network;
 #[cfg(all(feature = "ap", not(feature = "native-root")))]

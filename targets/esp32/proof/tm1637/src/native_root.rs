@@ -25,6 +25,7 @@ pub struct NativeRoot {
     network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
     contract: PulseReadContract,
+    wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
     boot: c::BootId,
 }
@@ -35,6 +36,7 @@ impl NativeRoot {
         boot: &crate::boot::ObservedBoot,
         network_source: conduit_plot::ExpandedCanonicalPlot,
         sdk_reservation: crate::sdk_memory::NativeSdkReservation,
+        wait: conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>,
     ) -> Self {
         let issuer = crate::native_authority::RootIssuer::observe(boot)
             .expect("initialized hardware entropy for Root issuance");
@@ -84,6 +86,7 @@ impl NativeRoot {
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse,
             contract: PulseReadContract::prepare().unwrap(),
+            wait: Some(wait),
             host,
             boot,
         }
@@ -268,6 +271,10 @@ impl NativeRoot {
         if let Some(source) = &self.credentials {
             source
                 .append_to_advertisement(&mut advertisement)
+                .map_err(|_| ())?;
+        }
+        if let Some(wait) = &self.wait {
+            wait.append_to_advertisement(&mut advertisement)
                 .map_err(|_| ())?;
         }
         self.play.append_offer(&mut advertisement);

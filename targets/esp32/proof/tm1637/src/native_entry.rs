@@ -18,9 +18,19 @@ async fn main(spawner: Spawner) {
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
+    // SAFETY: the actual TimerGroup was consumed by esp_rtos::start above.
+    // Root retains one pending software-timer slot; Play admission is separate.
+    let wait =
+        unsafe { crate::native_wait::prepare(&boot) }.expect("initialized monotonic timer slot");
     let source = crate::native_source::load();
-    let mut root =
-        crate::native_root::NativeRoot::prepare(sensor, radio, &boot, source, sdk_reservation);
+    let mut root = crate::native_root::NativeRoot::prepare(
+        sensor,
+        radio,
+        &boot,
+        source,
+        sdk_reservation,
+        wait,
+    );
     root.start_preparation_service(spawner)
         .await
         .expect("Root preparation service must start");

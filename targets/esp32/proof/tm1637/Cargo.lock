@@ -237,6 +237,7 @@ dependencies = [
  "conduit-esp32-pulse-capture",
  "conduit-face",
  "conduit-kernel",
+ "conduit-monotonic-wait",
  "conduit-net",
  "conduit-network-join-call",
  "conduit-plan-lowering",
@@ -310,6 +311,16 @@ version = "0.1.0"
 dependencies = [
  "conduit-audio",
  "conduit-core",
+]
+
+[[package]]
+name = "conduit-monotonic-wait"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "conduit-time",
 ]
 
 [[package]]
