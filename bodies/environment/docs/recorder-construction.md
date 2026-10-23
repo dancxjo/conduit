@@ -109,6 +109,23 @@ Root must also obtain and retain its ordered reference catalog through admitted
 state. This source does not discover a catalog, reserve manifest slots or prove
 that referenced content has been published.
 
+## Ordered batch Source
+
+`RecordingBatchRecoverySource` compiles the catalog-selected ordered references
+into ordinary checked meaning. Each reference has its own snapshot-read Value
+and explicit singleton Flow. The existing `flow/concat/finite` law drains each
+left stream before forwarding the next, ending at one shared recovery sink.
+The [checked Source receipt](../evidence/2026-10-23-batch-recovery-source/measurement.json)
+records 60 gears and 59 cords for 15 generations; the declared 16-generation
+boundary checks at 64 gears. Empty, duplicate, incompatible and oversized
+reference sets refuse. Changing reference order changes the checked result.
+
+This compiler creates no provider, residence, authority or start. Root must
+prepare separate retained software owners, select each exact storage generation,
+admit the ordinary whole-batch Plan and bind its production kernel routing.
+The currently prepared recovery kernel realizes one generation; it does not
+silently broaden that selection to the batch.
+
 ## Batches, recovery and Face
 
 `PreparedRecordingBatch` initializes every encoder, publication Back and commit

@@ -1,0 +1,19 @@
+{
+  "proof_class": "checked-and-expanded-source",
+  "overnight_generations": 15,
+  "overnight_gears": 60,
+  "overnight_cords": 59,
+  "maximum_generations": 16,
+  "maximum_gears": 64,
+  "source_tests_passed": 2,
+  "existing_recovery_tests_passed": 6,
+  "strict_make_clippy": true,
+  "ordinary_batch_plan_admitted": false,
+  "batch_kernel_installed": false,
+  "new_firmware_flashed": false,
+  "notes": [
+    "Uses existing snapshot-read Values, explicit singleton Flows and ordered finite concatenation; no browser-side ordering policy is introduced.",
+    "The compiler retains exact portable references and creates no Host, Boot, offer, authority, residence or Play.",
+    "Separate retained software owners, exact storage selections, the ordinary Plan and whole-batch kernel routing still need connection."
+  ]
+}

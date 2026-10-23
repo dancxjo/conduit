@@ -1,0 +1,16 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.80s
+     Running tests/recording_recovery.rs (target/debug/deps/recording_recovery-557f5fa00c462ced)
+
+running 8 tests
+test batch_source::empty_duplicate_foreign_and_over_capacity_batch_meaning_refuses ... ok
+test admission::full_first_class_recording_fits_the_snapshot_text_profile ... ok
+test checked_generation_read_and_recovery_use_independent_resource_and_authority ... ok
+test execution::lowered_recovery_requires_the_selected_read_before_committing_history ... ok
+test admission::stale_tables_and_unavailable_software_refuse_before_other_transfers ... ok
+test wrong_generation_or_absent_resource_cannot_become_a_recovery_plan ... ok
+test execution::lowered_recovery_refuses_failed_cancelled_and_invalid_reads ... ok
+test batch_source::overnight_batch_has_exact_reads_and_ordered_finite_concat_in_checked_source ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.72s
+
