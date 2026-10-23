@@ -29,10 +29,30 @@ output capacity are prepared before Play. The ordinary calling-thread Play
 proof counts allocation/reallocation requests and checks unchanged kernel value
 capacity. Native call-capacity exhaustion returns a refusal with no output.
 
-This synchronous profile advertises no interruptible cancellation and no model
-cache. Broader warm reuse, cancellation, stale completion and session retirement
-acceptance remain #5695. Disposable process cleanup does not claim graceful ORT
-session retirement, physical residency, or a real-time execution guarantee.
+The development lifecycle uses the existing kernel's pending Host Call custody,
+not a model scheduler. One fixed transport request/reply slot belongs to the
+exact request and prepared worker. Polling keeps ordinary operator cancellation
+responsive; cancellation revokes publication before closing pipes, killing and
+reaping that worker. Global operator cancellation retires the selected model
+owner before the kernel clears its request table. Late/stale replies cannot
+become outputs. A fresh worker requires fresh host preparation; Play never
+silently reloads a lost, cancelled or exhausted session.
+
+Completed Plays may retain the same already warmed, immutable preparation.
+Runtime/model/precision/provider/profile/admission identities remain fixed;
+this is not a cross-artifact cache. Normal owner retirement explicitly unloads
+native dependencies. Parent pending canonical input and two metadata readers
+are prepared before Play; native framing remains fixed9/8bytes with one-byte
+acknowledgement. The preparation pipe handshake has one30-second Host deadline,
+including Bootstrap, Ready and final admission ACK. That bounds pipe waiting,
+not arbitrary filesystem/spawn/kernel stalls or native execution time.
+
+The profile advertises cancellation and no model cache. It does not claim
+graceful ORT internal shutdown, physical residency, hard real-time execution,
+or interruption at a particular native CPU instruction. Native adversarial
+proof pauses the actual prepared worker and observes its queued request before
+normal operator Stop; that is pending-operation cancellation, not a native
+computation performance measurement.
 
 Run the repository proof with the explicitly configured installed runtime:
 
@@ -48,6 +68,11 @@ reference against the production prepared Host Call owner. A single remaining
 native invocation must still succeed after reference refusal, then refuse on
 capacity exhaustion. That negative is a direct Host Call control; positive
 cases separately run the complete production kernel.
+
+The entrance also executes strict pending-input/refusal controls, ordinary
+controlled Value Plays and actual native retained-worker reuse/cancellation/loss.
+Native worker identity, runtime/model digests, separate Play identities and raw
+outcomes remain explicit. Fixture-provider controls do not establish ORT execution.
 
 Normal CI compiles the installed-runtime tests and runs ordinary profile units.
 The supported entrance explicitly selects the installed-runtime tests; it cannot

@@ -7,5 +7,5 @@ mod supervisor;
 mod worker;
 pub use ledger::{BackingLedger, BackingRole, BackingSpan, SharedPoolUse};
 pub use profile::{NativeBackingGrant, NativeBackingRefusal, NativeCpuProfile};
-pub use supervisor::PreparedNativeModel;
+pub use supervisor::{NativeRequestId, PreparedNativeModel};
 pub use worker::worker_main;

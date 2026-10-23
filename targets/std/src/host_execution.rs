@@ -193,13 +193,34 @@ impl StdHost {
         output: &mut W,
         timer: &mut T,
     ) -> Result<StdRunReport, String> {
-        self.run_external_plot_with_mode_to(
+        self.run_external_plot_controlled_to(
             fragment,
             inputs,
             output_adapter,
             output,
             timer,
             &RunControl::default(),
+        )
+    }
+
+    /// Execute exact input Values with ordinary operator cancellation custody.
+    #[allow(clippy::too_many_arguments)]
+    pub fn run_external_plot_controlled_to<W: Write, T: TimerAdapter>(
+        &mut self,
+        fragment: PlanFragment,
+        inputs: &[ExternalForeInput],
+        output_adapter: &mut dyn ExternalForeOutputAdapter,
+        output: &mut W,
+        timer: &mut T,
+        control: &RunControl,
+    ) -> Result<StdRunReport, String> {
+        self.run_external_plot_with_mode_to(
+            fragment,
+            inputs,
+            output_adapter,
+            output,
+            timer,
+            control,
             false,
         )
     }
