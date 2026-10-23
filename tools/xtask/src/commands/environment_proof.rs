@@ -2,10 +2,15 @@
 use super::execute;
 #[path = "environment_proof/browser.rs"]
 mod browser;
+#[path = "environment_proof/wait.rs"]
+mod wait;
 use std::{error::Error, process::Command};
 
 pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["wait"] {
+        return wait::prove(&root);
+    }
     if arguments == ["network-fallback"] {
         let stamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)?
@@ -458,7 +463,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, network-fallback, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment wait, specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, network-fallback, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(
