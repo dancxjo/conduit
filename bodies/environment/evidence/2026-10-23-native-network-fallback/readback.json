@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.environment/network-restoration-readback@1",
+  "source_head": "9ce49543306dd28c6ccdd07ed2712d0f0d55e93b",
+  "boot_id": "boot/473cafe4319f2ac75b1847241d0c7385",
+  "firmware_evidence": "../2026-10-23-owner-retirement/owner-root-image.json",
+  "route": "/network",
+  "http_status": 200,
+  "body_bytes": 862,
+  "body_sha256": "522309202f824b4faabac8a7402398cac67fcd5ea7fde9cf66895666c1378f41",
+  "setup_form_present": true,
+  "separate_post_run_readback": true,
+  "appliance_root_route_status": 503,
+  "appliance_face_available": false,
+  "initial_offer_generation": 1,
+  "restored_offer_generation": 3,
+  "station_success_claimed": false
+}
