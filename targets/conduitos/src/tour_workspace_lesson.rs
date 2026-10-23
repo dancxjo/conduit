@@ -98,7 +98,7 @@ pub(super) fn measured_text_height(
     text: &str,
     width: u16,
 ) -> Result<u16, TourWorkspaceSceneRefusal> {
-    #[cfg(feature = "native-compositor")]
+    #[cfg(feature = "native-compositor-core")]
     {
         let height = crate::display::typography::TextLayout::new(
             text,
@@ -109,7 +109,7 @@ pub(super) fn measured_text_height(
         .finish_height();
         u16::try_from(height).map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)
     }
-    #[cfg(not(feature = "native-compositor"))]
+    #[cfg(not(feature = "native-compositor-core"))]
     {
         crate::display::text_height(text, width)
             .map_err(|_| TourWorkspaceSceneRefusal::MissingRegion)

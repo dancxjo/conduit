@@ -5,6 +5,7 @@ use std::collections::BTreeSet;
 
 pub(super) struct ResolvedPresentation {
     pub presenter: Option<PresenterSelection>,
+    pub supplemental: Vec<PresenterSelection>,
     pub host_calls: Vec<String>,
     pub facilities: Vec<String>,
 }
@@ -17,29 +18,38 @@ pub(super) fn resolve(
     bases: &[(String, String)],
     resources: &[ResourceBudget],
 ) -> Result<ResolvedPresentation, Vec<ConfigurationDiagnostic>> {
-    // A legacy package default without metadata retains its existing contract.
-    // A metadata-backed default participates in the same checked selection as
-    // other realizations; it cannot hide a selected alternative or ambiguity.
-    let can_derive =
-        default.is_none_or(|value| catalog.presenters.contains_key(&value.implementation_id));
-    let mut candidates = if can_derive {
+    let anchor_selected = default.is_some_and(|value| {
         catalog
             .presenters
-            .iter()
-            .filter(|(_, metadata)| target_matches(&metadata.targets, target))
-            .filter(|(_, metadata)| {
-                presenter_roots_are_selected(
-                    &metadata.prerequisites,
-                    catalog,
-                    bases,
-                    resources,
-                    &mut BTreeSet::new(),
-                )
+            .get(&value.implementation_id)
+            .is_none_or(|metadata| {
+                target_matches(&metadata.targets, target)
+                    && presenter_roots_are_selected(
+                        &metadata.prerequisites,
+                        catalog,
+                        bases,
+                        resources,
+                        &mut BTreeSet::new(),
+                    )
             })
-            .collect::<Vec<_>>()
-    } else {
-        Vec::new()
-    };
+    });
+    let mut candidates = catalog
+        .presenters
+        .iter()
+        .filter(|(id, _)| {
+            !anchor_selected || default.is_none_or(|value| value.implementation_id != **id)
+        })
+        .filter(|(_, metadata)| target_matches(&metadata.targets, target))
+        .filter(|(_, metadata)| {
+            presenter_roots_are_selected(
+                &metadata.prerequisites,
+                catalog,
+                bases,
+                resources,
+                &mut BTreeSet::new(),
+            )
+        })
+        .collect::<Vec<_>>();
     candidates.sort_by(|left, right| left.0.cmp(right.0));
     if candidates.len() > 1 {
         return Err(vec![ConfigurationDiagnostic::AmbiguousFaceRealization {
@@ -75,14 +85,26 @@ pub(super) fn resolve(
                 default_selection().expect("matching default exists")
             } else {
                 PresenterSelection {
-                    id: "presenter/main".into(),
+                    id: default.filter(|_| anchor_selected).map_or_else(
+                        || "presenter/main".into(),
+                        |anchor| format!("{}/derived", anchor.id),
+                    ),
                     implementation: id.clone(),
                     interactive: true,
                 }
             }
         })
         .or_else(default_selection);
+    // A selected fixed package presenter is an independent product anchor.
+    // Selected resource-backed presentation supplements that existing entrance.
+    let mut supplemental = Vec::new();
+    if let (Some(anchor), Some(selected)) = (default, presenter.as_ref()) {
+        if anchor_selected && selected.implementation != anchor.implementation_id {
+            supplemental.push(default_selection().expect("anchor exists"));
+        }
+    }
     Ok(ResolvedPresentation {
+        supplemental,
         presenter,
         host_calls,
         facilities,

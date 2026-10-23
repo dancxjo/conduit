@@ -83,7 +83,7 @@ fn selected_scanout_and_surface_choose_alternative_to_serial_default() {
     assert_eq!(r.facilities, ["compositor/native@1"]);
 }
 #[test]
-fn selected_default_cannot_hide_a_second_eligible_realization() {
+fn selected_fixed_anchor_and_one_resource_backed_realization_are_both_retained() {
     let mut bases = bases();
     bases.push(("serial/text".into(), "uart".into()));
     let result = resolve(
@@ -93,10 +93,12 @@ fn selected_default_cannot_hide_a_second_eligible_realization() {
         &catalog(),
         &bases,
         &[surface()],
-    );
-    assert!(
-        matches!(result, Err(errors) if errors == vec![ConfigurationDiagnostic::AmbiguousFaceRealization { implementations: vec!["graphics".into(), "serial".into()] }])
-    );
+    )
+    .unwrap();
+    let graphical = result.presenter.unwrap();
+    assert_eq!(graphical.implementation, "graphics");
+    assert_ne!(graphical.id, result.supplemental[0].id);
+    assert_eq!(result.supplemental[0].implementation, "serial");
 }
 #[test]
 fn missing_or_mismatched_roots_do_not_derive_graphics() {
@@ -116,7 +118,7 @@ fn missing_or_mismatched_roots_do_not_derive_graphics() {
     }
 }
 #[test]
-fn legacy_default_without_metadata_keeps_its_existing_selection() {
+fn legacy_anchor_is_retained_with_selected_graphics() {
     let legacy = TargetPresenter {
         implementation_id: "legacy".into(),
         ..default()
@@ -130,5 +132,28 @@ fn legacy_default_without_metadata_keeps_its_existing_selection() {
         &[surface()],
     )
     .unwrap();
-    assert_eq!(r.presenter.unwrap().implementation, "legacy");
+    assert_eq!(r.presenter.unwrap().implementation, "graphics");
+    assert_eq!(r.supplemental[0].implementation, "legacy");
+}
+
+#[test]
+fn fixed_anchor_does_not_hide_two_optional_realizations() {
+    let mut catalog = catalog();
+    let graphics = catalog.presenters["graphics"].clone();
+    catalog.presenters.insert("other-graphics".into(), graphics);
+    let mut bases = bases();
+    bases.push(("serial/text".into(), "uart".into()));
+    let result = resolve(
+        Some(&default()),
+        &[],
+        TARGET,
+        &catalog,
+        &bases,
+        &[surface()],
+    );
+    assert!(matches!(result, Err(errors) if errors == vec![
+        ConfigurationDiagnostic::AmbiguousFaceRealization {
+            implementations: vec!["graphics".into(), "other-graphics".into()]
+        }
+    ]));
 }
