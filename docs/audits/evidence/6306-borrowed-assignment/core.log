@@ -1,0 +1,14 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-assigned-records-dev/architecture/assigned-plan)
+    Finished `test` profile [unoptimized] target(s) in 0.36s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/debug/deps/conduit_assigned_plan-326c3cdefb42efcd)
+
+running 7 tests
+test execution::tests::activation_and_one_terminal_receipt_round_trip_and_bind_every_identity ... ok
+test records::tests::field_extents_cannot_wrap_the_host_pointer_width ... ok
+test sha256::tests::matches_fips_vectors_across_padding_boundaries ... ok
+test record_view_tests::record_view_refuses_unrepresentable_lengths_and_inventory_before_growth ... ok
+test single_source::tests::exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift ... ok
+test record_view_tests::borrowed_records_preserve_all_schemas_and_single_mutation_refusals ... ok
+test record_view_tests::incremental_hash_matches_legacy_at_every_split_and_padding_boundary ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
