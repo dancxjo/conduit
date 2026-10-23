@@ -10,7 +10,9 @@ use core::{
 const HEADER: usize = core::mem::size_of::<usize>();
 
 #[cfg(feature = "native-root")]
-pub const SDK_BYTES: usize = 120 * 1024;
+pub const SDK_BYTES: usize = 72 * 1024;
+#[cfg(feature = "native-root")]
+pub const ROOT_BYTES: usize = 112 * 1024;
 #[cfg(feature = "native-root")]
 static SDK_HEAP: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
 
@@ -39,7 +41,9 @@ impl NativeSdkReservation {
 }
 
 /// Called once before RTOS/radio startup. The total backing remains 184 KiB:
-/// 64 KiB for Root Rust allocations and 32+88 KiB for the SDK C boundary.
+/// 64+48 KiB for Root Rust allocations and 32+40 KiB for the SDK C boundary.
+/// This is a fixed partition before radio startup, not borrowing or fallback.
+/// Complete appliance and SDK work admission remains a separate requirement.
 #[cfg(feature = "native-root")]
 pub fn initialize() -> NativeSdkReservation {
     use core::{
@@ -48,12 +52,21 @@ pub fn initialize() -> NativeSdkReservation {
     };
     static INITIALIZED: AtomicBool = AtomicBool::new(false);
     assert!(!INITIALIZED.swap(true, Ordering::SeqCst));
+    assert_eq!(esp_alloc::HEAP.stats().size, 64 * 1024);
+    assert_eq!(esp_alloc::HEAP.used(), 0);
+    #[esp_hal::ram(reclaimed)]
+    static mut ROOT: [MaybeUninit<u32>; 48 * 1024 / 4] = [MaybeUninit::uninit(); 48 * 1024 / 4];
     static mut FIRST: [MaybeUninit<u32>; 32 * 1024 / 4] = [MaybeUninit::uninit(); 32 * 1024 / 4];
     #[esp_hal::ram(reclaimed)]
-    static mut SECOND: [MaybeUninit<u32>; 88 * 1024 / 4] = [MaybeUninit::uninit(); 88 * 1024 / 4];
+    static mut SECOND: [MaybeUninit<u32>; 40 * 1024 / 4] = [MaybeUninit::uninit(); 40 * 1024 / 4];
     // SAFETY: uniquely initialized, disjoint internal static backing, retained
-    // for this Boot. Root never adds these regions to its global allocator.
+    // for this Boot. SDK regions never enter Root's global allocator.
     unsafe {
+        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+            ptr::addr_of_mut!(ROOT).cast(),
+            48 * 1024,
+            esp_alloc::MemoryCapability::Internal.into(),
+        ));
         SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
             ptr::addr_of_mut!(FIRST).cast(),
             32 * 1024,
@@ -61,12 +74,13 @@ pub fn initialize() -> NativeSdkReservation {
         ));
         SDK_HEAP.add_region(esp_alloc::HeapRegion::new(
             ptr::addr_of_mut!(SECOND).cast(),
-            88 * 1024,
+            40 * 1024,
             esp_alloc::MemoryCapability::Internal.into(),
         ));
     }
     assert_eq!(SDK_HEAP.stats().size, SDK_BYTES);
-    assert_eq!(esp_alloc::HEAP.stats().size, 64 * 1024);
+    assert_eq!(esp_alloc::HEAP.stats().size, ROOT_BYTES);
+    assert_eq!(ROOT_BYTES + SDK_BYTES, 184 * 1024);
     self_check();
     NativeSdkReservation { _private: () }
 }

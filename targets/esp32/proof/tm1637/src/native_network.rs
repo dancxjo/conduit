@@ -55,7 +55,7 @@ impl NativeNetwork {
     }
     /// Root's cooperative profile admits one attempt, no SDK retry, and one
     /// separately bounded restoration. It is not a hard real-time SDK WCET claim.
-    /// SDK C allocation is confined to this retained 120 KiB reservation, with
+    /// SDK C allocation is confined to this retained fixed reservation, with
     /// null/Pressure on exhaustion and no Root-heap fallback. Configuration strings
     /// were prepared before this transfer; no credential is cloned or consumed.
     pub fn prepare(&mut self, host: &c::HostId, boot: &c::BootId) -> Result<(), ()> {
