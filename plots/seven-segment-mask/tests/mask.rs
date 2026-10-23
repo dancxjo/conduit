@@ -379,3 +379,64 @@ fn mask_fits_decimal_and_colon_capabilities_before_show_publication() {
         ))
     );
 }
+
+#[test]
+fn subject_selection_preserves_a_rich_parent_face_and_preparation_bounds() {
+    let mut parent = face("19.8°C", "59%", true, true);
+    for index in 1..16 {
+        let identity = format!("other-{index}");
+        parent.subjects.push(FaceSubject {
+            identity: identity.clone(),
+            role: FaceRole::Info,
+            name: identity.clone(),
+        });
+        parent.properties.push(FaceProperty {
+            subject: identity,
+            name: "temperature".into(),
+            value: FacePropertyValue::Text("unrelated subject".into()),
+        });
+    }
+    for index in parent.properties.len()..64 {
+        parent.properties.push(property(
+            &format!("other-{index}"),
+            FacePropertyValue::Count(0),
+        ));
+    }
+    let basis = parent.basis.clone();
+    let parent = parent.with_basis(basis).unwrap();
+    let before = parent.clone();
+    let selected = PreparedEnvironmentFace::prepare(&parent, "environment").unwrap();
+    let show = render(
+        &selected,
+        SevenSegmentSelection::Temperature,
+        &SevenSegmentLook::fahrenheit(),
+    );
+    assert_eq!(text(&show.show), "67.6F");
+    assert_eq!(show.face_content_id, parent.identity.as_str());
+    assert_eq!(show.face_revision, parent.revision);
+    assert_eq!(parent, before);
+    let mut oversized = parent.clone();
+    oversized.subjects.push(FaceSubject {
+        identity: "overflow".into(),
+        role: FaceRole::Info,
+        name: "Overflow".into(),
+    });
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare(&oversized, "environment"),
+        Err(FaceProjectionRefusal::TooLarge)
+    ));
+    let mut oversized = parent.clone();
+    oversized
+        .properties
+        .push(property("overflow", FacePropertyValue::Count(0)));
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare(&oversized, "environment"),
+        Err(FaceProjectionRefusal::TooLarge)
+    ));
+    let mut corrupted = parent;
+    corrupted.properties[0].value = FacePropertyValue::Count(1);
+    assert!(matches!(
+        PreparedEnvironmentFace::prepare(&corrupted, "environment"),
+        Err(FaceProjectionRefusal::InvalidFace)
+    ));
+}
