@@ -12,6 +12,12 @@ The Body specification requests the appliance and eligible Masks. Exact Plans
 select the actual implementations and finite resources; a board label or an
 installed operating system is not a ready offer or storage authority.
 
+The selected physical target is a Raspberry Pi 3 Model B+ with an HDMI screen.
+The initial OS preference is Raspberry Pi OS 64-bit, subject to inspection of the
+installed image. Its exact Make/Host profile must be added or verified; profiles
+for a Pi 4 or an ARMv6 board are not evidence for this board. A local HDMI Mask
+and a remote browser Mask should consume the same semantic Face.
+
 ## State that must survive a change of Host
 
 Body identity and membership, recording identity and committed observation
@@ -46,5 +52,5 @@ remain visible. Merely rebooting the Pi into another image proves none of this.
 
 Current repository inspection found reviewed Raspberry Pi OS packaging for
 newer aarch64 profiles and an ARMv6 ConduitOS substrate including Model B+ v1.2.
-An unspecified old Model B has not yet been matched to either profile. This
+The selected Pi 3B+ has not yet been matched to a reviewed exact profile. This
 record is the requested construction target, not an implementation claim.
