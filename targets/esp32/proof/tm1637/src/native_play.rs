@@ -138,8 +138,7 @@ impl NativePlay {
         {
             return Err(());
         }
-        let active =
-            c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
+        let active = issuer.reserve_play(fragment)?;
         self.prepared = Some(kernel);
         let (table, handle, claim) = issuer.issue(
             source.as_ref().ok_or(())?.native_identity(),

@@ -51,6 +51,8 @@ pub struct RootIssuer {
     boot: c::BootId,
     key: [u8; 32],
     issued: [bool; 2],
+    last_play_sequence: u64,
+    reserved_play: Option<c::ActivePlayIdentity>,
 }
 impl RootIssuer {
     pub fn observe(boot: &crate::boot::ObservedBoot) -> Result<Self, ()> {
@@ -67,7 +69,28 @@ impl RootIssuer {
             boot: boot.into(),
             key,
             issued: [false; 2],
+            last_play_sequence: 0,
+            reserved_play: None,
         })
+    }
+    /// Allocate in this actual Host/Boot, independently of any Body-local
+    /// counter. Reservation is identity custody only: it neither starts Play,
+    /// issues a capability nor retires an earlier active provider.
+    pub fn reserve_play(
+        &mut self,
+        fragment: &c::PlanFragment,
+    ) -> Result<c::ActivePlayIdentity, ()> {
+        if fragment.host_id != self.host
+            || fragment.boot_id != self.boot
+            || !c::verify_plan_fragment(fragment)
+        {
+            return Err(());
+        }
+        let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
+        let active = c::bind_active_play(&fragment.plan_id, &self.host, &self.boot, sequence);
+        self.reserved_play = Some(active.clone());
+        self.last_play_sequence = sequence;
+        Ok(active)
     }
     pub fn grant(
         &self,
@@ -108,7 +131,14 @@ impl RootIssuer {
             || fragment.host_id != self.host
             || fragment.boot_id != self.boot
             || !c::verify_plan_fragment(fragment)
-            || *active != c::bind_active_play(&fragment.plan_id, &self.host, &self.boot, 1)
+            || self.reserved_play.as_ref() != Some(active)
+            || *active
+                != c::bind_active_play(
+                    &fragment.plan_id,
+                    &self.host,
+                    &self.boot,
+                    active.play_sequence,
+                )
         {
             return Err(());
         }

@@ -83,6 +83,15 @@ fn production_root_control_dispatches_once_and_retains_failure_cleanup_without_a
             &grants,
         )
         .unwrap();
+        // A Root may already have reserved an identity without starting it.
+        // The actual installer must use the next Root sequence, not a Body or
+        // setup-local literal. Other scenarios retain the first-sequence path.
+        let expected_sequence = if ack && failure.is_none() {
+            issuer.reserve_play(&prepared.plan().fragments[0]).unwrap();
+            2
+        } else {
+            1
+        };
         let mut source = Some(source);
         let mut join = Some(join);
         play.install(&prepared, &mut source, &mut join, &mut issuer)
@@ -90,6 +99,7 @@ fn production_root_control_dispatches_once_and_retains_failure_cleanup_without_a
         assert!(source.is_none() && join.is_none() && play.installed() && play.attempted());
         let active = play.active().unwrap();
         assert_eq!(active.plan_id, prepared.plan().fragments[0].plan_id);
+        assert_eq!(active.play_sequence, expected_sequence);
         let ((), memory) = allocation_probe::observe(|| {
             run(play.run());
             run(play.run());
@@ -195,3 +205,6 @@ fn issuer_requires_entropy_and_never_falls_back_to_a_fixture_key() {
     }
     fixtures::entropy_mode(0);
 }
+
+#[path = "root_control_support/sequences.rs"]
+mod sequences;

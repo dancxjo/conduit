@@ -827,3 +827,14 @@ refusal, distinct from malformed content and cancellation. The recording proof
 checks this with the real kernel and explicit CPU read-completion fixtures,
 including zero execution allocations. Browser installation, actual storage
 acknowledgement and recorder membership/Line are still separate requirements.
+
+The ESP32 Root issuer reserves Play identities from one checked monotonic
+Host/Boot sequence before issuing possession. A computable canonical Play
+identity alone is insufficient: it must match Root's retained reservation.
+Invalid fragment, Host or Boot requests preserve the counter and current
+reservation; exhaustion refuses rather than wrapping. Reservation neither starts
+Play nor retires an earlier provider. The setup installer uses this allocator,
+and its one acknowledged credential/join budget is not renewed by another
+reservation. CPU conformance covers current and superseded reservations and
+execution after an earlier unused reservation. Environmental Body installation
+and producer-to-recorder admission remain separate work.
