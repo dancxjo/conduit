@@ -58,9 +58,8 @@ fn parse(buffer: &[u8; CAPACITY], encoded: Encoded) -> serde_json::Value {
     assert!(buffer[encoded.length..].iter().all(|b| *b == 0));
     serde_json::from_slice(&buffer[PREFIX.len()..encoded.length - 1]).unwrap()
 }
-#[test]
-fn maximum_numeric_cost_fields_and_escaped_identity_are_lossless() {
-    let cost = DomainCost {
+fn maximum_cost() -> DomainCost {
+    DomainCost {
         entries: u64::MAX,
         interrupt_entries: u64::MAX,
         source_timer_interrupts: u64::MAX,
@@ -79,7 +78,12 @@ fn maximum_numeric_cost_fields_and_escaped_identity_are_lossless() {
         scheduler_returns: u64::MAX,
         preemptions: u64::MAX,
         reserved_bytes: u32::MAX,
-    };
+    }
+}
+
+#[test]
+fn maximum_numeric_cost_fields_and_escaped_identity_are_lossless() {
+    let cost = maximum_cost();
     let value = "quoted\" slash\\ line\n tab\t return\r nul\0 backspace\u{8} emoji🦀";
     let record = snapshot(value, &cost);
     let mut buffer = [0; CAPACITY];
@@ -204,13 +208,7 @@ fn guest_image_digest_retains_every_borrowed_byte_without_hex_allocation() {
 #[test]
 fn prepared_record_and_incomplete_paths_make_no_heap_allocation_calls() {
     // Preparation and JSON parsing are deliberately outside the measured closure.
-    let cost = DomainCost {
-        entries: u64::MAX,
-        setup_ticks: u64::MAX,
-        teardown_zeroed_bytes: u32::MAX,
-        reserved_bytes: u32::MAX,
-        ..DomainCost::default()
-    };
+    let cost = maximum_cost();
     let normal = snapshot("escaped\"\\\n", &cost);
     let long = "\"\\\n".repeat(CAPACITY);
     let oversized = snapshot(&long, &cost);
