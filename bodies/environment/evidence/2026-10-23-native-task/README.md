@@ -34,3 +34,8 @@ a Source literal. Its linked CPU stack span was 29,020 bytes, compared with
 insufficient. These partition changes are compilation evidence only. The prior
 verified image is being restored while the actual preparation call-stack closure
 is investigated. No Body start, native dispatch or task-ready receipt was reached.
+
+Restoration of the prior verified ELF completed. A fresh read-only UART offer
+confirmed Root responsiveness, with no Body/native plan installed and no
+appliance kernel prepared in this new Boot. The old reservation from the prior
+Boot is not reused. The held-task image remains unverified and is not installed.
