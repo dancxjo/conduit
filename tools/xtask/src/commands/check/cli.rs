@@ -92,6 +92,8 @@ pub enum CheckSuite {
     ProsodyCommitment,
     /// Check committed noun/verb pronunciation and installed compact PCM.
     RecordPronunciation,
+    /// Check supplied committed vocative custody and installed compact PCM.
+    CommittedVocative,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

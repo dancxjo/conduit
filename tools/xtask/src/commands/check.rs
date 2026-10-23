@@ -10,6 +10,8 @@ mod asr_common_language;
 mod canonical_export;
 #[path = "../suites/categorical_runtime.rs"]
 mod categorical_runtime;
+#[path = "../suites/committed_vocative.rs"]
+mod committed_vocative;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
 #[path = "../suites/expression_baseline.rs"]
@@ -118,6 +120,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::AsrCommonLanguage => run_suite(asr_common_language::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
+        CheckSuite::CommittedVocative => run_suite(committed_vocative::STEPS, &root, opts),
         CheckSuite::RecordPronunciation => run_suite(record_pronunciation::STEPS, &root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
