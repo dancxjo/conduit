@@ -199,3 +199,6 @@ mod back;
 
 #[path = "recording_recovery/installation.rs"]
 mod installation;
+
+#[path = "recording_recovery/reference_source.rs"]
+mod reference_source;

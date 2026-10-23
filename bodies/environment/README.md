@@ -391,6 +391,9 @@ HW-463 sample descriptor or claiming initialized sensor/radio providers.
 
 ## Recorder representation boundary
 
+See [Recorder construction](docs/recorder-construction.md) for the current
+checker, readiness, storage and Face APIs, their proof scope and remaining gaps.
+
 `PreparedObservationQuantityForms` packs a validated `Dht11Observation` using
 the two quantity Forms already authored in `dht11.conduit`: two bytes for
 Temperature followed by two for humidity Ratio. Unpacking reconstructs the

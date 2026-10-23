@@ -14,7 +14,7 @@ fn source() -> conduit_plot::ExpandedCanonicalPlot {
     let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
     conduit_plot::expand_canonical_plot(&checked, "recorder", &profiles).unwrap()
 }
-fn host() -> c::HostAdvertisement {
+pub(super) fn host() -> c::HostAdvertisement {
     c::HostAdvertisement {
         protocol_version: c::PROTOCOL_VERSION,
         host_id: "fixture/recorder".into(),
@@ -39,7 +39,10 @@ fn ready(source: &conduit_plot::ExpandedCanonicalPlot) -> ReadyRecordingRecovery
     )
     .unwrap()
 }
-fn plan(source: &conduit_plot::ExpandedCanonicalPlot, host: &c::HostAdvertisement) -> c::Plan {
+pub(super) fn plan(
+    source: &conduit_plot::ExpandedCanonicalPlot,
+    host: &c::HostAdvertisement,
+) -> c::Plan {
     let hosts = core::slice::from_ref(host);
     let placements = conduit_planner::default_expanded_placements(source, hosts).unwrap();
     conduit_planner::plan_expanded_canonical_with_options(

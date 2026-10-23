@@ -7,12 +7,13 @@ use conduit_core as c;
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecoveryInstallationRefusal {
     Source,
+    References(RecordingReferenceRefusal),
     Initialization(RecordingHistoryRefusal),
     Advertisement,
     Selection,
     AlreadySelected,
 }
-pub struct ReadyRecordingRecovery {
+pub struct ReadyRecordingSoftware<B> {
     host: c::HostId,
     boot: c::BootId,
     source: c::SourceDocumentId,
@@ -21,8 +22,10 @@ pub struct ReadyRecordingRecovery {
     gear: c::GearId,
     generation: Option<c::OfferGeneration>,
     offer: c::CapabilityOffer,
-    back: Option<RecordingRecoveryBack>,
+    back: Option<B>,
 }
+pub type ReadyRecordingRecovery = ReadyRecordingSoftware<RecordingRecoveryBack>;
+pub type ReadyRecordingGenerations = ReadyRecordingSoftware<RecordingReferenceSource>;
 impl ReadyRecordingRecovery {
     /// Root supplies checked meaning, actual current recorder residence, and
     /// independently authenticated historical producer context. These are
@@ -36,8 +39,51 @@ impl ReadyRecordingRecovery {
         contract: &ObservationContract,
         maximum_chunks: u16,
     ) -> Result<Self, RecoveryInstallationRefusal> {
+        let back = RecordingRecoveryBack::prepare(producer, contract, maximum_chunks)
+            .map_err(RecoveryInstallationRefusal::Initialization)?;
+        Self::from_prepared(
+            source,
+            host,
+            boot,
+            recovery_kind(),
+            back,
+            "recovery",
+            "recording-recovery",
+        )
+    }
+}
+impl ReadyRecordingGenerations {
+    pub fn prepare_generations(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: c::HostId,
+        boot: c::BootId,
+        references: &[c::BoundedResourceRef],
+        maximum_generations: u16,
+    ) -> Result<Self, RecoveryInstallationRefusal> {
+        let back = RecordingReferenceSource::prepare(references, maximum_generations)
+            .map_err(RecoveryInstallationRefusal::References)?;
+        Self::from_prepared(
+            source,
+            host,
+            boot,
+            generation_source_kind(),
+            back,
+            "generations",
+            "recording-generations",
+        )
+    }
+}
+impl<B> ReadyRecordingSoftware<B> {
+    fn from_prepared(
+        source: &conduit_plot::ExpandedCanonicalPlot,
+        host: c::HostId,
+        boot: c::BootId,
+        kind: c::Kind,
+        back: B,
+        role: &str,
+        artifact: &str,
+    ) -> Result<Self, RecoveryInstallationRefusal> {
         use RecoveryInstallationRefusal as E;
-        let kind = recovery_kind();
         let mut matches = source
             .gears
             .iter()
@@ -56,16 +102,16 @@ impl ReadyRecordingRecovery {
         {
             return Err(E::Source);
         }
-        let back = RecordingRecoveryBack::prepare(producer, contract, maximum_chunks)
-            .map_err(E::Initialization)?;
-        let id = format!("environment/recovery/{}", gear.gear_id.as_str());
+        let id = format!("environment/{role}/{}", gear.gear_id.as_str());
+        let profile = format!("conduit.environment/prepared-{role}@1");
+        let artifact = format!("conduit-environment-runtime/{artifact}@1");
         let offer = c::BackOfferBuilder::new(
             kind,
             c::Back {
                 capability_id: id.as_str().into(),
-                execution_profile_id: "conduit.environment/prepared-recovery@1".into(),
+                execution_profile_id: profile.as_str().into(),
                 implementation_id: id.as_str().into(),
-                artifact_id: "conduit-environment-runtime/recording-recovery@1".into(),
+                artifact_id: artifact.as_str().into(),
                 host_calls: vec![],
                 resource_requirements: vec![],
                 authority_requirements: vec![],
@@ -112,7 +158,7 @@ impl ReadyRecordingRecovery {
         &mut self,
         fragment: &c::PlanFragment,
         placement: &c::PlacementId,
-    ) -> Result<RecordingRecoveryBack, RecoveryInstallationRefusal> {
+    ) -> Result<B, RecoveryInstallationRefusal> {
         use RecoveryInstallationRefusal as E;
         if !c::verify_plan_fragment(fragment)
             || fragment.host_id != self.host

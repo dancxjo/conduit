@@ -11,16 +11,24 @@ mod installation;
 mod publication;
 mod reader;
 mod recovery_back;
+mod reference_source;
 mod snapshot;
 use alloc::string::String;
 pub use batch::{PreparedRecordingBatch, PreparedRecordingGeneration, RecordingBatchRefusal};
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
-pub use installation::{ReadyRecordingRecovery, RecoveryInstallationRefusal};
+pub use installation::{
+    ReadyRecordingGenerations, ReadyRecordingRecovery, ReadyRecordingSoftware,
+    RecoveryInstallationRefusal,
+};
 pub use publication::PreparedRecordingInput;
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
 pub use recovery_back::{install_recovery_kind, recovery_kind, RecordingRecoveryBack};
+pub use reference_source::{
+    generation_source_kind, install_generation_source_kind, RecordingReferenceRefusal,
+    RecordingReferenceSource,
+};
 pub use snapshot::{PreparedRecordingSnapshot, RecordingSnapshotRefusal};
 #[allow(dead_code)]
 mod forms {
