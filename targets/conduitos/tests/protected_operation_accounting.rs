@@ -4,7 +4,7 @@ use conduit_core::{
     SliceReturn,
 };
 use conduitos_compositor_core::wire::{
-    decode_request, decode_response, encode_request, encode_response, Envelope, Request, Response,
+    Envelope, Request, Response, decode_request, decode_response, encode_request, encode_response,
 };
 #[test]
 fn existing_wire_envelope_and_immutable_bytes_remain_the_only_operation_identity() {
