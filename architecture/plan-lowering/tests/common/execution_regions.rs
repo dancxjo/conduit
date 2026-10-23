@@ -127,6 +127,7 @@ pub(crate) fn lane_host(
             capacity_units: capacity,
             content: None,
             compute: Some(ComputePoolContract {
+                protected_preemption: None,
                 service_guarantee: ComputeServiceGuarantee::Shared,
                 architecture_base_id: ArchitectureBaseId::from("base"),
                 architecture_base_kind: ArchitectureBaseKind::HostedOs,

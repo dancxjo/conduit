@@ -3,6 +3,10 @@
 //! This seals selection, not availability or a reservation. The target must
 //! check current offers/observations, operation owners and full backing before
 //! Play. It never chooses threads from authored Source or invents connectivity.
+#[path = "execution_regions/protected.rs"]
+mod protected;
+pub use protected::*;
+
 use alloc::vec::Vec;
 use conduit_core::*;
 

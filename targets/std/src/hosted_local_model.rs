@@ -109,6 +109,7 @@ pub(crate) fn resource_offers(
             conduit_ai::LOCAL_MODEL_COMPUTE_RESOURCE,
             limits.compute.maximum_lanes,
             conduit_core::ComputePoolContract {
+                protected_preemption: None,
                 service_guarantee: conduit_core::ComputeServiceGuarantee::Shared,
                 architecture_base_id: conduit_core::ArchitectureBaseId::from(
                     "std/hosted-compute@1",

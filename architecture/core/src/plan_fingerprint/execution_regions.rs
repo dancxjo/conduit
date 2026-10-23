@@ -1,5 +1,5 @@
 //! Exact execution-region and worker-storage commitments.
-use crate::{push_resource_binding, push_string, push_u32, ExecutionRegion};
+use crate::{push_resource_binding, push_string, push_u32, ExecutionRegion, ExecutionScheduling};
 use alloc::vec::Vec;
 
 pub(super) fn push_canonical(canonical: &mut Vec<u8>, regions: &[ExecutionRegion]) {
@@ -11,11 +11,24 @@ pub(super) fn push_canonical(canonical: &mut Vec<u8>, regions: &[ExecutionRegion
             push_string(canonical, placement.as_str());
         }
         push_string(canonical, region.execution_profile_id.as_str());
-        canonical.push(u8::from(region.scheduling.worker_storage().is_some()));
-        if let Some(storage) = region.scheduling.worker_storage() {
-            push_resource_binding(canonical, &storage.binding);
-            push_u32(canonical, storage.stack_bytes);
-            push_u32(canonical, storage.scratch_bytes);
+        match &region.scheduling {
+            // Preserve the existing tags and every following byte exactly.
+            ExecutionScheduling::CooperativeBoundedStep => canonical.push(0),
+            ExecutionScheduling::PartitionedBoundedStep { storage } => {
+                canonical.push(1);
+                push_resource_binding(canonical, &storage.binding);
+                push_u32(canonical, storage.stack_bytes);
+                push_u32(canonical, storage.scratch_bytes);
+            }
+            ExecutionScheduling::ProtectedPreemptibleStep { policy, context } => {
+                canonical.push(2);
+                push_string(canonical, policy.accounting.profile_id());
+                push_u32(canonical, policy.quantum_interrupts);
+                push_u32(canonical, policy.total_interrupts);
+                push_resource_binding(canonical, &context.binding);
+                push_u32(canonical, context.bytes);
+                push_u32(canonical, context.alignment);
+            }
         }
         push_u32(canonical, region.lane_count);
         push_resource_binding(canonical, &region.lane_resource);
@@ -33,3 +46,6 @@ pub(super) fn push_canonical(canonical: &mut Vec<u8>, regions: &[ExecutionRegion
         canonical.push(u8::from(region.isolation_required));
     }
 }
+
+#[cfg(test)]
+mod tests;

@@ -121,6 +121,7 @@ pub(super) fn initialize(
                 capacity_units: u32::from(config.lanes),
                 content: None,
                 compute: Some(ComputePoolContract {
+                    protected_preemption: None,
                     service_guarantee: ComputeServiceGuarantee::Shared,
                     architecture_base_id: base_id.as_str().into(),
                     architecture_base_kind: ArchitectureBaseKind::HostedOs,
