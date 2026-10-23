@@ -60,7 +60,11 @@ station address succeed. SDK internal memory/work still require separate finite
 Root admission; cross-compilation does not establish that budget or physical
 network success.
 
-The entire withdrawal, association and DHCP attempt shares one absolute deadline.
+Root prepares a nonzero attempt duration before Play. Its absolute deadline is
+established at the first authorized invocation, so planning or delivery latency
+cannot consume the radio budget before execution. The attempt is marked spent
+before any radio work; cancellation cannot restart it. The entire withdrawal,
+association and DHCP attempt shares that one absolute deadline.
 A guard checks time before each work poll and after it, rejecting work started
 expired and synchronous completion after expiry. The timer still supplies expiry
 wakes, and synchronous native work remains non-preemptible. Deterministic guard

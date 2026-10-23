@@ -11,6 +11,7 @@ use esp_radio::wifi::Config;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Esp32JoinPreparationRefusal {
     Configuration,
+    AttemptBudget,
     CleanupBudget,
     Attachment(NetworkJoinError),
 }
@@ -18,7 +19,7 @@ pub enum Esp32JoinPreparationRefusal {
 /// through success, cancellation and Root-supervised restoration.
 pub struct Esp32NetworkJoinProvider<'a, 'd, S> {
     radio: Esp32ApStationSwitch<'a, 'd, S>,
-    attempt: Esp32Deadline,
+    attempt_budget: Duration,
     cleanup_budget: Duration,
     cleanup_deadline: Option<Instant>,
     attachment: Option<AttachmentRecord>,
@@ -29,6 +30,9 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// Play. SDK configuration owns its already allocated credential buffer;
     /// this provider compares the runtime Host Call request without copying it.
     /// Encoding reserved attachment metadata here establishes no physical truth.
+    /// Root admits a finite duration now. Its single absolute deadline starts at
+    /// the first authorized invocation, so planning time consumes no radio budget.
+    /// Cancellation still spends the attempt; another invocation cannot restart it.
     ///
     /// # Safety
     /// Root must own the exact initialized controller, stacks and service task,
@@ -38,7 +42,7 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// provider contract. A cross-target build alone proves none of those bounds.
     pub unsafe fn prepare(
         radio: Esp32ApStationSwitch<'a, 'd, S>,
-        attempt: Instant,
+        attempt_budget: Duration,
         cleanup_budget: Duration,
         attachment: NetworkAttachmentInfo<'_>,
     ) -> Result<Self, Esp32JoinPreparationRefusal> {
@@ -49,12 +53,15 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
         {
             return Err(Esp32JoinPreparationRefusal::Configuration);
         }
+        if attempt_budget.as_ticks() == 0 {
+            return Err(Esp32JoinPreparationRefusal::AttemptBudget);
+        }
         if cleanup_budget.as_ticks() == 0 {
             return Err(Esp32JoinPreparationRefusal::CleanupBudget);
         }
         Ok(Self {
             radio,
-            attempt: Esp32Deadline(attempt),
+            attempt_budget,
             cleanup_budget,
             cleanup_deadline: None,
             attachment: Some(
@@ -85,10 +92,16 @@ impl<S: AccessPointServices> NetworkJoinProvider for Esp32NetworkJoinProvider<'_
         }
         self.invoked = true;
         let radio = &mut self.radio;
-        let deadline = self.attempt.0;
+        let deadline =
+            Instant::now()
+                .checked_add(self.attempt_budget)
+                .ok_or(StationAttemptFailure {
+                    phase: StationPhase::WithdrawAccessPoint,
+                    reason: StationFailure::Deadline,
+                })?;
+        let mut attempt = Esp32Deadline(deadline);
         let mut phase = StationPhase::WithdrawAccessPoint;
-        let result = self
-            .attempt
+        let result = attempt
             .run(async {
                 conduit_net::guard_operation_deadline(radio.withdraw_access_point(), || {
                     Instant::now() >= deadline
