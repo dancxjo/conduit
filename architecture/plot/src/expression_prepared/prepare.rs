@@ -181,17 +181,17 @@ pub(super) fn prepare_node(
             )?)
         }
         PortableExpressionOperation::SemanticCall { kind: call, .. } if call == "sequence/at" => {
-            PreparedOperation::SequenceSelection(
+            PreparedOperation::SequenceSelection(Box::new(
                 sequence_selection::PreparedSequenceSelection::new(
                     node,
                     input_type,
                     prepared_input,
                 )?,
-            )
+            ))
         }
-        PortableExpressionOperation::Projection { .. } => PreparedOperation::Projection(
+        PortableExpressionOperation::Projection { .. } => PreparedOperation::Projection(Box::new(
             member_selection::prepare(node, input_type, prepared_input)?,
-        ),
+        )),
         _ => {
             return Err(Refusal::UnsupportedType(
                 "structured expression runtime".into(),

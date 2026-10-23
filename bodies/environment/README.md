@@ -1042,3 +1042,15 @@ limits or a justification for shrinking the SDK arena. Retained
 identifies the exact flashed ELF. The corresponding 32-bit appliance proof
 accounts separately for 2,880 sign-backing bytes and 15,504 value-backing bytes;
 its object sizes do not establish ESP32 stack or complete memory admission.
+
+The ordinary prepared expression evaluator now boxes its large member/sequence
+selector variants during preparation, so unused selector-buffer capacity is
+not repeated in every arithmetic node. On the same 32-bit workload this reduces
+software peak/retained requested heap by 1,584 bytes, to 91,095/90,736 bytes.
+The tradeoff is 34 additional preparation allocations; one small frame
+projection grows by four requested bytes. Execution remains allocation-free
+across all seven overnight scenarios, and focused expression conformance,
+strict Clippy and the ESP32 cross-check pass. See the retained
+[measurement](evidence/2026-10-23-expression-selector-storage/measurement.json).
+No authored decoder or semantic contract changes, no firmware reflash and no
+complete MCU admission are claimed from this private storage improvement.

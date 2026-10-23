@@ -13,8 +13,8 @@ pub(super) struct PreparedStructuredExpression {
 enum PreparedShape {
     Input,
     Constant(Vec<u8>),
-    Selected(super::member_selection::PreparedMemberSelection),
-    SequenceSelected(super::sequence_selection::PreparedSequenceSelection),
+    Selected(Box<super::member_selection::PreparedMemberSelection>),
+    SequenceSelected(Box<super::sequence_selection::PreparedSequenceSelection>),
     Record(Vec<PreparedField>),
     Collection(Vec<PreparedChild>),
     Variant {
@@ -61,17 +61,17 @@ impl PreparedStructuredExpression {
                 };
                 PreparedShape::Constant(constant.evaluate(&[])?)
             }
-            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(
+            PortableExpressionOperation::Projection { .. } => PreparedShape::Selected(Box::new(
                 super::member_selection::prepare(program.root, program.input_type, prepared_input)?,
-            ),
+            )),
             PortableExpressionOperation::SemanticCall { kind, .. } if kind == "sequence/at" => {
-                PreparedShape::SequenceSelected(
+                PreparedShape::SequenceSelected(Box::new(
                     super::sequence_selection::PreparedSequenceSelection::new(
                         program.root,
                         program.input_type,
                         prepared_input,
                     )?,
-                )
+                ))
             }
             PortableExpressionOperation::Tuple(values) => {
                 let fields = values
