@@ -650,3 +650,13 @@ four shapes and reject extra ports or a substituted trusted shape. Existing
 Host Call bounds, Base possession, current identities, resources and authority
 checks remain required. This enables endpoint binding; it does not initialize
 a private credential Base or install the physical network control Play.
+
+`NetworkCredentialsHostCall` retains a private `CredentialSource` behind the
+selected credential contract and independent credential-reader authority subject.
+It checks the exact current Plan/Play, Base/resource binding and opaque possession
+before reading the source once. Wrong requests, replay, revoked possession and
+short output buffers cannot read the mailbox. The real private mailbox is tested
+through this owner with acknowledged and unacknowledged page submissions, with
+no execution allocation. Root must own erasure of the caller's admitted output
+buffer after credential custody ends. Native assigned credential binding, actual
+initialized private Base projection and physical page/control installation remain.

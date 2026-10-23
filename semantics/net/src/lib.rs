@@ -197,7 +197,7 @@ pub fn network_credentials_offer(
     .build()
 }
 
-fn network_credentials_contract() -> Kind {
+pub fn network_credentials_contract() -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: None,
