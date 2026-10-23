@@ -54,6 +54,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "network_play",
                 "--test",
                 "root_control",
+                "--test",
+                "native_face_mask",
                 "--",
                 "--nocapture",
             ])
