@@ -1241,3 +1241,13 @@ ordinary dormant scheduler retained. The real Body owner stayed alive through
 the exchange, then the finite proof process exited. Attributed start/release,
 execution/service memory closure, Face publication and physical overnight
 recording remain unfinished. The flashed device is prepared and unstarted.
+
+The native execution bridge now separates bounded parameter extraction, provider
+invocation and correlated kernel completion. A pending timer or sensor future
+borrows its provider, leaving the ordinary kernel free to advance other Steps.
+The target and CPU conformance use the same storage assembly. CPU controls cover
+960 logical samples, concurrent pending-clock/reading publication, cancellation,
+late completions, pressure, provider failure and revoked possession, without Play
+allocation. See `evidence/2026-10-23-native-dispatch/` for the exact proof scope.
+Worker/task admission and signed start/release remain unfinished; the new bridge
+has not replaced the physically prepared image or dispatched a physical reading.

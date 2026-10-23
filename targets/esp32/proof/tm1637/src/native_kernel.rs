@@ -1,28 +1,10 @@
 //! Prepare the ordinary scheduler from retained software. Never step it here.
 //! Native ownership, authenticated installation and Body start remain separate.
+use crate::native_kernel_storage::assemble;
+pub use crate::native_kernel_storage::{Kernel, PreparedKernel};
 use alloc::boxed::Box;
-use conduit_environment_runtime::{
-    appliance::{assigned::*, ApplianceBack},
-    PreparedCaptureSelector,
-};
-use conduit_kernel::{self as k, scheduler::FixedScheduler};
-pub type Kernel = FixedScheduler<
-    ApplianceBack,
-    k::HostedValueStore,
-    k::HostedSignLog,
-    NODES,
-    CORDS,
-    PORTS,
-    CORDS,
-    { NODES * PORTS },
-    CORDS,
-    NODES,
-    NODES,
->;
-pub struct PreparedKernel {
-    _kernel: Box<Kernel>,
-    _selectors: Box<[Option<PreparedCaptureSelector>; NODES]>,
-}
+use conduit_environment_runtime::{appliance::assigned::*, PreparedCaptureSelector};
+use conduit_kernel as k;
 /// Conservative additional live preparation bound. The already retained drivers
 /// and value backing are counted by Root's current heap usage, not allocated again.
 /// Native capability/control admission still needs its own actual proof.
@@ -59,33 +41,6 @@ pub fn prepare(
     let prepared = PreparedResidentSoftware::bind_boxed_retained(software, assignment)
         .map_err(|_| "software-binding")?;
     assemble(prepared, signs)
-}
-#[inline(never)]
-fn assemble(
-    prepared: Box<PreparedAssignedAppliance<k::HostedValueStore>>,
-    signs: k::HostedSignLog,
-) -> Result<PreparedKernel, &'static str> {
-    let prepared = {
-        let boxed = prepared;
-        *boxed
-    }; // Retire the moved-out box at this block boundary, before scheduler allocation.
-    let selectors = Box::new(prepared.selectors);
-    let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
-        NODES,
-        CORDS,
-        prepared.tables.nodes,
-        prepared.tables.cords,
-        prepared.tables.routes,
-        prepared.tables.calls,
-        prepared.drivers,
-        prepared.values,
-        signs,
-    )
-    .map_err(|_| "kernel-tables")?;
-    Ok(PreparedKernel {
-        _kernel: kernel,
-        _selectors: selectors,
-    })
 }
 pub async fn report(
     root: &mut crate::native_root::NativeRoot,

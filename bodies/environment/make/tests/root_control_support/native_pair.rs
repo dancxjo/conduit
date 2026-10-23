@@ -8,10 +8,32 @@ use conduit_plan_lowering::selected_assigned_operation::AssignedOperationInput a
 use conduit_pulse_capture::{
     installation::ReadyPulseBase, owner::PulseReadProvider, PulseReadContract,
 };
-struct Timer(Rc<Cell<usize>>);
+#[path = "native_dispatch.rs"]
+mod dispatch;
+struct Timer {
+    effects: Rc<Cell<usize>>,
+    pending: Rc<Cell<bool>>,
+    active: Rc<Cell<bool>>,
+    failure: Option<w::WaitProviderFailure>,
+    pending_after_first: bool,
+}
+struct PendingWait(Rc<Cell<bool>>);
+impl Drop for PendingWait {
+    fn drop(&mut self) {
+        self.0.set(false);
+    }
+}
 impl w::MonotonicWaitProvider for Timer {
     async fn wait(&mut self, _: u64) -> Result<(), w::WaitProviderFailure> {
-        self.0.set(self.0.get() + 1);
+        self.effects.set(self.effects.get() + 1);
+        self.active.set(true);
+        let _pending = PendingWait(self.active.clone());
+        if let Some(failure) = self.failure {
+            return Err(failure);
+        }
+        if self.pending.get() && (!self.pending_after_first || self.effects.get() > 1) {
+            core::future::pending::<()>().await;
+        }
         Ok(())
     }
 }
@@ -35,7 +57,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             records: &records,
         },
     ] {
-        for wrong_role in [true, false] {
+        for behavior in 0..7 {
+            let wrong_role = behavior % 2 == 0;
             let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
             let active = issuer
                 .reserve_assigned_play(assignment, &fragment.plan_id, &fragment.fragment_id)
@@ -43,6 +66,8 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             let (pulse, pulse_effects) =
                 super::super::pulse::fresh(pulse.native_identity().clone());
             let timer_effects = Rc::new(Cell::new(0));
+            let pending = Rc::new(Cell::new(false));
+            let active_wait = Rc::new(Cell::new(false));
             // SAFETY: inert, exclusive, bounded CPU slot; no hardware claim.
             let timer = unsafe {
                 w::ReadyMonotonicWaitBase::new(
@@ -52,7 +77,17 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                         resource_bytes: 32,
                         maximum_duration_ms: 60000,
                     },
-                    Timer(timer_effects.clone()),
+                    Timer {
+                        effects: timer_effects.clone(),
+                        pending: pending.clone(),
+                        active: active_wait.clone(),
+                        pending_after_first: behavior == 5,
+                        failure: match behavior {
+                            2 => Some(w::WaitProviderFailure::Pressure),
+                            3 => Some(w::WaitProviderFailure::ProviderUnavailable),
+                            _ => None,
+                        },
+                    },
                 )
             }
             .unwrap();
@@ -110,6 +145,17 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                 );
             }
             assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 0));
+            pending.set(behavior == 1 || behavior == 5);
+            dispatch::check(
+                prepared,
+                resident,
+                required,
+                bound,
+                &pulse_effects,
+                &timer_effects,
+                &active_wait,
+                behavior,
+            );
         }
     }
 }
