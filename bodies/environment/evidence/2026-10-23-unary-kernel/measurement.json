@@ -1,0 +1,21 @@
+{
+  "proof_class": "32-bit-linux-cpu-kernel-execution",
+  "tests_passed": 14,
+  "ports_per_node": 1,
+  "scheduler_object_bytes": 10584,
+  "sixteen_port_scheduler_object_bytes": 38256,
+  "scheduler_object_saving_bytes": 27672,
+  "prepared_object_bytes": 4508,
+  "software_heap_peak_bytes": 92679,
+  "value_backing_bytes": 15504,
+  "all_authored_input_output_ordinals_checked": true,
+  "all_seven_960_sample_scenarios_passed": true,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "esp32_native_root_release_cross_check": true,
+  "complete_mcu_memory_closure_claimed": false,
+  "notes": [
+    "Object size is not stack high-water.",
+    "CPU ABI and allocator accounting do not prove ESP32 sizes or physical operation."
+  ]
+}

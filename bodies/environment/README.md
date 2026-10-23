@@ -978,3 +978,15 @@ unchanged; the separated phases eliminate assignment-buffer overlap when
 firmware actually uses the emitted static texts. CPU fixtures retain owned
 recipe text separately. Neither this lifetime proof nor the ESP32 cross-check
 establishes the complete physical MCU memory closure or a Body start.
+
+The constrained appliance now reserves one port ordinal per node, matching
+every input and output in the checked authored graph. Its kernel conformance
+compares the exact cords/fuel with ordinary lowering, verifies unused broad
+input slots are empty and executes all seven overnight outcomes. Incoming
+ports outside this finite profile refuse; changing the authored Fore requires
+renewing admission. On i686 the scheduler object falls from 38,256 bytes for
+the broad sixteen-port profile to 10,584 bytes; the prepared object falls from
+6,760 to 4,508 bytes. See the retained
+[measurement](evidence/2026-10-23-unary-kernel/measurement.json). These are object
+sizes, not stack high-water or complete MCU memory-closure evidence. Software
+heap preparation remains 92,679 peak bytes, above the current Root arena.

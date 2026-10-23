@@ -38,7 +38,7 @@ use conduit_kernel::{
 };
 const N: usize = 15;
 const C: usize = 14;
-const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+const P: usize = conduit_environment_runtime::appliance::assigned::PORTS;
 const R: usize = N * P;
 #[test]
 fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
@@ -112,6 +112,11 @@ fn run(scenario: usize, native: bool, overnight: bool) {
     }
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let image = appliance_support::native_image(&plan, &lowered);
+    assert!(image
+        .input_ports
+        .iter()
+        .chain(&image.output_ports)
+        .all(|port| usize::from(port.port) < P));
     let projection = assignment::NativeProjection::prepare(&image);
     let (mut owner, pulse_node) = pulse::bind_assigned_budget(
         ready,
@@ -124,7 +129,14 @@ fn run(scenario: usize, native: bool, overnight: bool) {
     let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
     assert_eq!(
         tables.nodes,
-        core::array::from_fn(|i| lowered.node_specs[i])
+        core::array::from_fn(|i| {
+            let rich = lowered.node_specs[i];
+            assert!(rich.input_cords[P..].iter().all(Option::is_none));
+            conduit_kernel::scheduler::NodeSpec {
+                input_cords: core::array::from_fn(|port| rich.input_cords[port]),
+                maximum_step_fuel: rich.maximum_step_fuel,
+            }
+        })
     );
     assert_eq!(
         tables.cords,
@@ -237,6 +249,26 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         k::HostedSignLog::new(sign_slots, sign_bytes).unwrap(),
     )
     .unwrap();
+    if scenario == 0 && native {
+        let broad = core::mem::size_of::<
+            FixedScheduler<
+                Driver,
+                k::HostedValueStore,
+                k::HostedSignLog,
+                N,
+                C,
+                16,
+                C,
+                { N * 16 },
+                C,
+                N,
+                N,
+            >,
+        >();
+        let tight = core::mem::size_of_val(&kernel);
+        assert!(tight < broad);
+        eprintln!("environment_kernel_storage pointer_bits={} ports_per_node={P} object_bytes={tight} sixteen_port_object_bytes={broad}", usize::BITS);
+    }
     let mut drained = false;
     let mut waits = 0_u64;
     let mut peak_items = 0;

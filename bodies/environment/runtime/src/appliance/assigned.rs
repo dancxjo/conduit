@@ -10,7 +10,9 @@ use conduit_kernel::{self as k, ValueStorage};
 
 pub const NODES: usize = 15;
 pub const CORDS: usize = 14;
-pub const PORTS: usize = 16;
+// The checked appliance uses one input/output ordinal per node. Expanding its
+// Fore requires renewing this profile; incoming extra ports are refused.
+pub const PORTS: usize = 1;
 pub type NativeTables = AssignedKernelTables<NODES, CORDS, PORTS, { NODES * PORTS }, CORDS, NODES>;
 /// Trusted Make facts tied to this resident artifact, never inferred from the
 /// incoming assignment. Native pulse/wait providers remain separately owned.

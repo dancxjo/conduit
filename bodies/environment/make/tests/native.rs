@@ -34,7 +34,7 @@ use conduit_environment_runtime::{
 };
 const N: usize = 15;
 const C: usize = 14;
-const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+const P: usize = conduit_environment_runtime::appliance::assigned::PORTS;
 fn limits() -> NativeApplianceLimits {
     NativeApplianceLimits {
         image: e::EmbeddedImageBounds {
@@ -118,7 +118,14 @@ fn real_authored_source_is_prepared_against_supplied_offers_without_effects() {
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
     assert_eq!(
         tables.nodes,
-        core::array::from_fn(|i| prepared.lowered().node_specs[i])
+        core::array::from_fn(|i| {
+            let rich = prepared.lowered().node_specs[i];
+            assert!(rich.input_cords[P..].iter().all(Option::is_none));
+            conduit_kernel::scheduler::NodeSpec {
+                input_cords: core::array::from_fn(|port| rich.input_cords[port]),
+                maximum_step_fuel: rich.maximum_step_fuel,
+            }
+        })
     );
     let stale = c::AssignedPlanRequirements {
         boot: c::AssignedIdentity::from_text("stale"),
