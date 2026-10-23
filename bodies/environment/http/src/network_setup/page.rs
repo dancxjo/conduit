@@ -5,6 +5,17 @@ use super::{
 };
 use core::fmt::Write;
 
+pub fn preparation_page(
+    limits: NetworkSetupLimits,
+) -> Result<heapless::String<2048>, NetworkSetupRefusal> {
+    limits.validate()?;
+    let mut body = heapless::String::<1536>::new();
+    write!(body, "<!doctype html><html lang=en><meta charset=utf-8><title>Prepare Wi-Fi</title><h1>Prepare Wi-Fi configuration</h1><p>Network connection is not enabled in this setup image. Submitting retains private settings for preparation only; it does not start joining a network.</p><form method=post action=/network><label>Network name<input name=ssid required autocomplete=off></label><label>Password<input type=password name=password required minlength={} maxlength={} autocomplete=off></label><button>Prepare configuration</button></form>", limits.minimum_credential_bytes, limits.maximum_credential_bytes).map_err(|_| NetworkSetupRefusal::TooLarge)?;
+    let mut response = heapless::String::new();
+    write!(response, "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{}", body.len(), body).map_err(|_| NetworkSetupRefusal::TooLarge)?;
+    Ok(response)
+}
+
 pub fn network_setup_page(
     limits: NetworkSetupLimits,
 ) -> Result<heapless::String<2048>, NetworkSetupRefusal> {
@@ -25,6 +36,12 @@ pub struct PendingNetworkResponse<'a> {
     pending: bool,
 }
 impl<'a> PendingNetworkResponse<'a> {
+    pub fn preparation_response(&self) -> heapless::String<768> {
+        const BODY: &str = "<!doctype html><html lang=en><title>Configuration received</title><h1>Configuration received</h1><p>Private settings are retained for preparation. No network join has started; connecting is not enabled in this setup image.</p></html>";
+        let mut response = heapless::String::new();
+        write!(response, "HTTP/1.1 202 Accepted\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n{}", BODY.len(), BODY).expect("fixed response fits");
+        response
+    }
     pub fn prepare(
         mailbox: &'a mut NetworkSetupMailbox,
         input: NetworkSetupInput,

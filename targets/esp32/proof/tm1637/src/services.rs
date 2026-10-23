@@ -1,4 +1,5 @@
 //! Actual socket-task ownership for the attended bench. No Body/Plan identity.
+use conduit_environment_http::network_setup::NetworkSetupWriter;
 use conduit_environment_http::service_control::{
     ServiceControl, ServiceMailbox, ServiceMode, ServiceState,
 };
@@ -7,21 +8,25 @@ use embassy_futures::select::{select, Either};
 use embassy_net::Stack;
 pub static MAILBOX: ServiceMailbox = ServiceMailbox::new();
 #[embassy_executor::task]
-pub async fn run(stack: Stack<'static>) {
+pub async fn run(stack: Stack<'static>, setup: Option<NetworkSetupWriter<'static>>) {
     let mut command = MAILBOX.next_command().await;
     loop {
         match command.mode {
             ServiceMode::Stopped => {
-                conduit_environment_http::set_ap_unavailable();
+                if setup.is_none() {
+                    conduit_environment_http::set_ap_unavailable();
+                }
                 // The running future was dropped before reaching this branch.
                 MAILBOX.acknowledge(command, ServiceState::Stopped);
                 command = MAILBOX.next_command().await;
             }
             ServiceMode::Running => {
-                conduit_environment_http::set_ap_unavailable();
+                if setup.is_none() {
+                    conduit_environment_http::set_ap_unavailable();
+                }
                 let ready = Cell::new(0_u8);
                 let next = select(
-                    crate::http_ap::serve_acknowledged(stack, |service| {
+                    crate::http_ap::serve_acknowledged(stack, setup.clone(), |service| {
                         let bit = match service {
                             crate::http_ap::ServiceReady::Dhcp => 1,
                             crate::http_ap::ServiceReady::Http0 => 2,
@@ -38,7 +43,9 @@ pub async fn run(stack: Stack<'static>) {
                 // select owns and has now dropped all socket/request futures.
                 match next {
                     Either::First(_) => {
-                        conduit_environment_http::set_ap_unavailable();
+                        if setup.is_none() {
+                            conduit_environment_http::set_ap_unavailable();
+                        }
                         MAILBOX.acknowledge(command, ServiceState::Failed);
                         command = MAILBOX.next_command().await;
                     }
@@ -51,22 +58,30 @@ pub async fn run(stack: Stack<'static>) {
 /// The composition root retains this unique handle across mode changes.
 /// Cancelling an operation leaves the task owned; the next generation supersedes
 /// its pending command. Completion is based on actual socket-task evidence.
-pub struct Owner(ServiceControl<'static>);
+pub struct Owner {
+    control: ServiceControl<'static>,
+    observations: bool,
+}
 impl conduit_esp32_network_switch::AccessPointServices for Owner {
     async fn withdraw(&mut self) -> Result<(), conduit_net::StationFailure> {
-        conduit_environment_http::set_ap_unavailable();
-        self.0
+        if self.observations {
+            conduit_environment_http::set_ap_unavailable();
+        }
+        self.control
             .request(ServiceMode::Stopped)
             .await
             .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
     }
     async fn restore(&mut self) -> Result<(), conduit_net::StationFailure> {
-        self.0
+        self.control
             .request(ServiceMode::Running)
             .await
             .map_err(|_| conduit_net::StationFailure::ProviderUnavailable)
     }
 }
-pub fn control() -> Owner {
-    Owner(MAILBOX.claim_control(32).unwrap())
+pub fn control(observations: bool) -> Owner {
+    Owner {
+        control: MAILBOX.claim_control(32).unwrap(),
+        observations,
+    }
 }

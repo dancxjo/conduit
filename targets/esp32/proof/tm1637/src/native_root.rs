@@ -8,7 +8,9 @@ pub struct NativeRoot {
     credentials: conduit_network_join_call::credential_installation::ReadyCredentialBase<
         crate::native_credentials::RootCredentialSource,
     >,
-    _credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
+    credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
+    station_config: Option<esp_radio::wifi::sta::StationConfig>,
+    services: Option<crate::services::Owner>,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
     contract: PulseReadContract,
     _controller: esp_radio::wifi::WifiController<'static>,
@@ -61,7 +63,9 @@ impl NativeRoot {
         let (credentials, credential_writer) = crate::native_credentials::prepare(&host, &boot);
         Self {
             credentials,
-            _credential_writer: credential_writer,
+            credential_writer,
+            station_config: None,
+            services: None,
             pulse,
             contract: PulseReadContract::prepare().unwrap(),
             _controller: radio.controller,
@@ -70,6 +74,47 @@ impl NativeRoot {
             _ap_config: radio.ap_config,
             host,
             boot,
+        }
+    }
+    /// Fixed Root bootstrap service, independent of Body/Face installation. Two
+    /// HTTP listeners and one DHCP socket share one finite private submission.
+    pub async fn start_preparation_service(
+        &mut self,
+        spawner: embassy_executor::Spawner,
+    ) -> Result<(), ()> {
+        use conduit_esp32_network_switch::AccessPointServices;
+        spawner.spawn(
+            crate::services::run(self._stacks.0, Some(self.credential_writer.clone()))
+                .map_err(|_| ())?,
+        );
+        let mut services = crate::services::control(false);
+        embassy_time::with_timeout(embassy_time::Duration::from_secs(5), services.restore())
+            .await
+            .map_err(|_| ())?
+            .map_err(|_| ())?;
+        self.services = Some(services);
+        Ok(())
+    }
+    /// Preparation never consumes the selected source or changes radio mode.
+    /// Once configured, subsequent offers reuse the retained SDK configuration.
+    pub fn prepare_network_configuration(&mut self) -> &'static [u8] {
+        use conduit_environment_http::network_setup::NetworkSetupRefusal as E;
+        if self.station_config.is_some() {
+            return b"prepared";
+        }
+        let Ok(mailbox) = self.credential_writer.try_lock() else {
+            return b"busy";
+        };
+        match mailbox
+            .prepare_acknowledged(conduit_esp32_network_switch::prepare_station_configuration)
+        {
+            Ok(Ok(config)) => {
+                self.station_config = Some(config);
+                b"prepared"
+            }
+            Ok(Err(_)) => b"refused",
+            Err(E::NoSubmission | E::NotAcknowledged) => b"waiting",
+            Err(_) => b"refused",
         }
     }
     /// Projection is made from the still-retained provider each time. It is an

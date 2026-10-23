@@ -24,14 +24,14 @@ mod native_root;
 mod network;
 #[cfg(all(feature = "ap", not(feature = "native-root")))]
 mod network_entry;
-#[cfg(all(feature = "ap", not(feature = "native-root")))]
+#[cfg(feature = "ap")]
 mod services;
 // Reuse the existing allocation-free appliance service bench and DHCP grammar.
 #[cfg(all(feature = "capture", not(feature = "native-root")))]
 mod capture;
 #[cfg(not(feature = "native-root"))]
 mod electrical;
-#[cfg(all(feature = "ap", not(feature = "native-root")))]
+#[cfg(feature = "ap")]
 #[path = "../../../../rp2040/proof/dht11/src/http_ap.rs"]
 mod http_ap;
 #[cfg(all(feature = "live", not(feature = "native-root")))]

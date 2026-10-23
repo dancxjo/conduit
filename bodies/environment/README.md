@@ -788,7 +788,19 @@ Actual SDK configuration and control Play installation remain unfinished.
 
 The ESP32 Root preparation image now initializes and retains that actual private
 source alongside the GPIO Base, under the observed Host and Boot. Its writer is
-retained for later service installation. This is initialized-source availability,
+retained by Root. The earlier physical receipt covers initialized-source availability,
 not credential presence, a network join offer, an installed control Play or Body
 birth. The management UART exclusively owns its output after initialization and
 starts offers on a fresh line, avoiding truncated startup logging in the protocol.
+
+The updated Root preparation image starts the fixed DHCP/two-listener HTTP
+service with that writer. `/network` explicitly collects preparation input only;
+its acknowledgement says that no join has started. Reading routes return 503
+instead of constructing a fictional observation Face. An `offer` request
+try-locks the mailbox, prepares and retains the SDK station configuration once,
+and reports `network_configuration` as waiting, busy, refused or prepared without
+revealing submitted bytes. The selected credential source retains the same input
+for its later admitted Host Call. The service uses the existing five-second
+connection deadline, including mailbox custody, and five-second startup deadline.
+This new image still needs physical service/submission proof. The deployed
+temperature/RH bench is unchanged; actual network control remains uninstalled.

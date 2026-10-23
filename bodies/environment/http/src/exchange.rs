@@ -7,6 +7,7 @@ use zeroize::Zeroizing;
 pub struct NetworkSetupRoute<'a> {
     mailbox: &'a mut NetworkSetupMailbox,
     limits: NetworkSetupLimits,
+    preparation_only: bool,
 }
 impl<'a> NetworkSetupRoute<'a> {
     /// Root installs this alongside its actual private credential source and
@@ -18,7 +19,21 @@ impl<'a> NetworkSetupRoute<'a> {
         limits: NetworkSetupLimits,
     ) -> Result<Self, NetworkSetupRefusal> {
         limits.validate()?;
-        Ok(Self { mailbox, limits })
+        Ok(Self {
+            mailbox,
+            limits,
+            preparation_only: false,
+        })
+    }
+    /// Root bootstrap input custody before a control Play is installed. Reading
+    /// routes return unavailable rather than inventing a Body/Face basis.
+    pub fn preparation_only(
+        mailbox: &'a mut NetworkSetupMailbox,
+        limits: NetworkSetupLimits,
+    ) -> Result<Self, NetworkSetupRefusal> {
+        let mut route = Self::new(mailbox, limits)?;
+        route.preparation_only = true;
+        Ok(route)
     }
 }
 #[derive(Debug, PartialEq, Eq)]
@@ -31,6 +46,7 @@ pub enum ExchangeRefusal {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ExchangeOutcome {
     Reading,
+    ReadingUnavailable,
     NetworkPage,
     SubmissionAcknowledged,
     NotFound,
@@ -71,19 +87,33 @@ pub async fn exchange<T: Read + Write>(
         }
     };
     match (parsed, route) {
+        (Some(NetworkHttpRequest::Reading { .. }), Some(route)) if route.preparation_only => {
+            write(io, b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await?;
+            Ok(ExchangeOutcome::ReadingUnavailable)
+        }
         (Some(NetworkHttpRequest::Reading { json }), _) => {
             write(io, crate::response(now(), json).as_bytes()).await?;
             Ok(ExchangeOutcome::Reading)
         }
         (Some(NetworkHttpRequest::Page), Some(route)) => {
-            let page = network_setup_page(route.limits).map_err(ExchangeRefusal::Submission)?;
+            let page = if route.preparation_only {
+                preparation_page(route.limits)
+            } else {
+                network_setup_page(route.limits)
+            }
+            .map_err(ExchangeRefusal::Submission)?;
             write(io, page.as_bytes()).await?;
             Ok(ExchangeOutcome::NetworkPage)
         }
         (Some(NetworkHttpRequest::Join(input)), Some(route)) => {
             let pending = PendingNetworkResponse::prepare(route.mailbox, input)
                 .map_err(ExchangeRefusal::Submission)?;
-            write(io, pending.response().as_bytes()).await?;
+            let response = if route.preparation_only {
+                pending.preparation_response()
+            } else {
+                pending.response()
+            };
+            write(io, response.as_bytes()).await?;
             pending
                 .response_flushed()
                 .map_err(ExchangeRefusal::Submission)?;

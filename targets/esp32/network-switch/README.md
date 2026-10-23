@@ -84,4 +84,6 @@ before Play and explicitly disables the SDK's default connection retry. The
 selected provider refuses configurations outside that profile or with retries
 enabled, including binary SSIDs whose SDK string view loses bytes. This is SDK
 representation preparation, not submission consumption or permission to join.
-The Root page-to-configuration caller remains to be installed.
+The Root preparation image calls this after an acknowledged submission when
+the operator requests its offer. The selected control Play remains uninstalled;
+configuration preparation makes no station-ready claim.

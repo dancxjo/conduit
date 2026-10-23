@@ -8,7 +8,7 @@ pub use channel::{
     NetworkSetupChannel, NetworkSetupReadRefusal, NetworkSetupReader, NetworkSetupWriter,
 };
 pub use form::{NetworkSetupInput, NetworkSetupLimits, NetworkSetupRefusal};
-pub use page::{network_setup_page, PendingNetworkResponse};
+pub use page::{network_setup_page, preparation_page, PendingNetworkResponse};
 pub use request::{NetworkHttpRefusal, NetworkHttpRequest, NetworkRequestBuffer};
 
 /// Opaque local correlation, not a Host/Boot identity or an authority token.

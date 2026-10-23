@@ -25,7 +25,7 @@ async fn main(spawner: Spawner) {
     } = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("radio entropy must be initialized");
     boot.print();
-    let mut services = crate::services::control();
+    let mut services = crate::services::control(true);
     services.restore().await.unwrap();
     conduit_environment_http::set_ap_ready();
     esp_println::println!(

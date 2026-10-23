@@ -18,13 +18,16 @@ async fn main(spawner: Spawner) {
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
-    let root = crate::native_root::NativeRoot::prepare(sensor, radio, &boot);
+    let mut root = crate::native_root::NativeRoot::prepare(sensor, radio, &boot);
+    root.start_preparation_service(spawner)
+        .await
+        .expect("Root preparation service must start");
     let uart = Uart::new(p.UART0, UartConfig::default())
         .expect("Root UART0 must initialize")
         .with_rx(p.GPIO3)
         .with_tx(p.GPIO1)
         .into_async();
-    crate::native_control::serve(&root, uart)
+    crate::native_control::serve(&mut root, uart)
         .await
         .expect("Root UART management failed");
 }

@@ -1,4 +1,8 @@
 //! Fixed-capacity DHCP and HTTP service over the existing AP network base.
+use conduit_environment_http::{
+    exchange::NetworkSetupRoute,
+    network_setup::{NetworkSetupLimits, NetworkSetupWriter},
+};
 use conduit_rp2040_network_realization::{answer_appliance_dhcp, DhcpLeasePool};
 use core::{
     future::{poll_fn, Future},
@@ -22,13 +26,14 @@ pub enum ServiceReady {
 /// future retires all three sockets and their in-flight request futures.
 pub async fn serve_acknowledged(
     stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
     ready: impl Fn(ServiceReady),
 ) -> Result<(), ()> {
     let _ = select(
         dhcp(stack, &ready),
         select(
-            http(stack, ServiceReady::Http0, &ready),
-            http(stack, ServiceReady::Http1, &ready),
+            http(stack, setup.clone(), ServiceReady::Http0, &ready),
+            http(stack, setup, ServiceReady::Http1, &ready),
         ),
     )
     .await;
@@ -62,6 +67,7 @@ async fn dhcp(stack: Stack<'static>, ready: &impl Fn(ServiceReady)) -> Result<()
 }
 async fn http(
     stack: Stack<'static>,
+    setup: Option<NetworkSetupWriter<'static>>,
     service: ServiceReady,
     ready: &impl Fn(ServiceReady),
 ) -> Result<(), ()> {
@@ -85,15 +91,41 @@ async fn http(
         };
         result.map_err(|_| ())?;
         {
-            let _ = with_timeout(Duration::from_secs(5), exchange(&mut socket)).await;
+            let _ = with_timeout(
+                Duration::from_secs(5),
+                exchange(&mut socket, setup.as_ref()),
+            )
+            .await;
             socket.close();
             let _ = with_timeout(Duration::from_secs(1), socket.flush()).await;
         }
         socket.abort();
     }
 }
-async fn exchange(socket: &mut TcpSocket<'_>) -> Result<(), ()> {
-    conduit_environment_http::exchange::exchange(socket, || Instant::now().as_millis(), None)
+async fn exchange(
+    socket: &mut TcpSocket<'_>,
+    setup: Option<&NetworkSetupWriter<'static>>,
+) -> Result<(), ()> {
+    let mut guard = if let Some(writer) = setup {
+        Some(writer.lock().await)
+    } else {
+        None
+    };
+    let route = if let Some(mailbox) = guard.as_deref_mut() {
+        Some(
+            NetworkSetupRoute::preparation_only(
+                mailbox,
+                NetworkSetupLimits {
+                    minimum_credential_bytes: 8,
+                    maximum_credential_bytes: 63,
+                },
+            )
+            .map_err(|_| ())?,
+        )
+    } else {
+        None
+    };
+    conduit_environment_http::exchange::exchange(socket, || Instant::now().as_millis(), route)
         .await
         .map(|_| ())
         .map_err(|_| ())

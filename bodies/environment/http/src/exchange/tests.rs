@@ -154,6 +154,51 @@ fn setup_route_requires_root_installation_and_page_never_claims_join_success() {
 }
 
 #[test]
+fn preparation_route_has_no_face_or_join_claim_and_retains_private_input_after_flush() {
+    let mut mailbox = NetworkSetupMailbox::new(1);
+    for request in [
+        b"GET / HTTP/1.1\r\n\r\n".as_slice(),
+        b"GET /reading HTTP/1.1\r\n\r\n",
+    ] {
+        let mut socket = Socket::new(request);
+        let route = NetworkSetupRoute::preparation_only(&mut mailbox, limits()).unwrap();
+        assert_eq!(
+            poll(exchange(&mut socket, || 0, Some(route))),
+            Poll::Ready(Ok(ExchangeOutcome::ReadingUnavailable))
+        );
+        assert!(socket.output[..socket.written].starts_with(b"HTTP/1.1 503"));
+    }
+    let mut socket = Socket::new(b"GET /network HTTP/1.1\r\n\r\n");
+    let route = NetworkSetupRoute::preparation_only(&mut mailbox, limits()).unwrap();
+    assert_eq!(
+        poll(exchange(&mut socket, || 0, Some(route))),
+        Poll::Ready(Ok(ExchangeOutcome::NetworkPage))
+    );
+    assert!(core::str::from_utf8(&socket.output[..socket.written])
+        .unwrap()
+        .contains("does not start joining"));
+    let request = post();
+    let mut socket = Socket::new(request.as_bytes());
+    let ((), allocation) = allocation_probe::observe(|| {
+        let route = NetworkSetupRoute::preparation_only(&mut mailbox, limits()).unwrap();
+        assert_eq!(
+            poll(exchange(&mut socket, || 0, Some(route))),
+            Poll::Ready(Ok(ExchangeOutcome::SubmissionAcknowledged))
+        );
+        let prepared = mailbox
+            .prepare_acknowledged(|request| (request.ssid.len(), request.credential.len()))
+            .unwrap();
+        assert_eq!(prepared, (11, 16));
+        assert!(mailbox.has_acknowledged());
+    });
+    assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    let response = core::str::from_utf8(&socket.output[..socket.written]).unwrap();
+    assert!(response.contains("No network join has started"));
+    assert!(!response.contains("fixture-password"));
+    assert!(!response.contains("Fixture LAN"));
+}
+
+#[test]
 fn shared_socket_custody_blocks_source_until_exchange_flushes_or_cancels() {
     let request = post();
     for pending_flush in [false, true] {

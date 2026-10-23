@@ -1,16 +1,17 @@
-//! Read-only UART management beneath Root; no Body lifecycle or authority issuer.
+//! UART offer management beneath Root; no Body lifecycle or authority issuer.
+//! An offer may prepare retained private SDK configuration, without radio effects.
 use crate::{
     native_command::{Command, CommandBuffer},
     native_root::NativeRoot,
 };
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
-const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"advertisement\":";
+const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"network_configuration\":\"";
 const REFUSED: &[u8] =
     b"{\"event\":\"native-root-request-refused\",\"native_plan_installed\":false}\n";
 /// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
 /// reception has a five-second deadline and each response has two seconds.
-pub async fn serve(root: &NativeRoot, mut uart: Uart<'static, Async>) -> Result<(), ()> {
+pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Result<(), ()> {
     let mut output = [0; 8192];
     offer(root, &mut uart, &mut output).await?;
     loop {
@@ -39,11 +40,18 @@ pub async fn serve(root: &NativeRoot, mut uart: Uart<'static, Async>) -> Result<
         }
     }
 }
-async fn offer(root: &NativeRoot, uart: &mut Uart<'_, Async>, output: &mut [u8]) -> Result<(), ()> {
+async fn offer(
+    root: &mut NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    output: &mut [u8],
+) -> Result<(), ()> {
+    let configuration = root.prepare_network_configuration();
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.
     let length = root.write_offer(output)?;
     with_timeout(Duration::from_secs(2), async {
         write_all(uart, PREFIX).await?;
+        write_all(uart, configuration).await?;
+        write_all(uart, b"\",\"advertisement\":").await?;
         write_all(uart, &output[..length]).await?;
         write_all(uart, b"}\n").await
     })

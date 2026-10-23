@@ -28,6 +28,13 @@ impl NetworkSetupChannel {
 #[derive(Clone)]
 pub struct NetworkSetupWriter<'a>(&'a Mutex<CriticalSectionRawMutex, NetworkSetupMailbox>);
 impl NetworkSetupWriter<'_> {
+    /// Root preparation can inspect custody without waiting behind a socket.
+    pub fn try_lock(
+        &self,
+    ) -> Result<MutexGuard<'_, CriticalSectionRawMutex, NetworkSetupMailbox>, NetworkSetupReadRefusal>
+    {
+        self.0.try_lock().map_err(|_| NetworkSetupReadRefusal::Busy)
+    }
     /// Root must bound the entire connection, including lock acquisition. The
     /// ordinary HTTP response guard retains exclusive custody across flush.
     pub async fn lock(&self) -> MutexGuard<'_, CriticalSectionRawMutex, NetworkSetupMailbox> {
