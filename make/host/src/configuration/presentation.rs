@@ -1,5 +1,5 @@
 //! Presenter selection from selected Base/resource roots, with a target default.
-use super::{ConfigurationDiagnostic, target_matches};
+use super::{target_matches, ConfigurationDiagnostic};
 use crate::{MakeCatalog, PresenterSelection, ResourceBudget, TargetPresenter};
 use std::collections::BTreeSet;
 
