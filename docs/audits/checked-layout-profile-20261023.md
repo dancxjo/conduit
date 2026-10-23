@@ -249,3 +249,14 @@ indicator, focus geometry and unchanged hit binding. Both negative and positive
 logs are retained. This is CPU preparation/raster evidence, not a selected ordinary
 native runtime or new QEMU capture. Native grant admission and platform proof remain
 open before #5608/#6159 completion.
+
+
+Current dev synchronization includes merged #6278 at `3f801610e`. The merge
+was clean. All24 native Mask checks pass afterward, including actual stale
+submission regressions, and strict all-target Clippy for native, Face and native
+offers passes. The complete native Face-scene subtree is byte-identical to
+`4dbc34893`, retaining the135 passing scene checks and focused four-choice result.
+The final retained logs are `post-pressure-merge-mask-tests.log.gz` and
+`post-pressure-merge-clippy.log.gz`. No new CI campaign was queued for this held
+preparation branch. Normal-runtime selection and required QEMU admission/proof
+are the next remaining implementation boundary.
