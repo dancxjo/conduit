@@ -1,0 +1,295 @@
+    Blocking waiting for file lock on build directory
+    Finished `dev` profile [unoptimized] target(s) in 7.09s
+     Running `target/environment-main-host/debug/conduit-xtask-dispatch check angle-reference`
+» [angle.reference] Transport typed Angle through symbolic pi and a certified selected numerical Back
+  $ cargo test --locked -p conduit-core --test angle_reference --test enclosed_binary64 --test enclosed_numerical_realization --test numerical_realization --test numerical_float_realization -p conduit-plot --test angle_reference --test angle_trigonometry -p conduit-std-host --test angle_radian_projection --test numerical_offers --test numerical_installed_play -- --nocapture
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/assigned-plan)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/kernel)
+   Compiling zeroize v1.9.0
+   Compiling memchr v2.8.3
+   Compiling thiserror v2.0.20
+   Compiling serde_json v1.0.151
+   Compiling cobs v0.3.0
+   Compiling postcard v1.1.3
+   Compiling curve25519-dalek v4.1.3
+   Compiling signature v2.2.0
+   Compiling unicode-normalization v0.1.25
+   Compiling ed25519 v2.2.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+   Compiling libc v0.2.189
+   Compiling hybrid-array v0.4.15
+   Compiling cpufeatures v0.3.1
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling siphasher v1.0.3
+   Compiling phf_shared v0.11.3
+   Compiling static-automata-macros v1.0.3
+   Compiling option-ext v0.2.0
+   Compiling dirs-sys v0.5.0
+   Compiling static-automata v1.0.3
+   Compiling str-newtype v2.0.0
+   Compiling phf v0.11.3
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling isolang v2.4.0
+   Compiling langtag v1.1.0
+   Compiling anyhow v1.0.104
+   Compiling dirs v6.0.0
+   Compiling sha2 v0.11.0
+   Compiling unicode-segmentation v1.13.3
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/model)
+   Compiling ring v0.17.14
+   Compiling rand_core v0.6.4
+   Compiling rustls-pki-types v1.15.1
+   Compiling inout v0.1.4
+   Compiling cipher v0.4.4
+   Compiling crossbeam-utils v0.8.23
+   Compiling universal-hash v0.5.1
+   Compiling untrusted v0.9.0
+   Compiling rand_core v0.10.1
+   Compiling opaque-debug v0.3.1
+   Compiling poly1305 v0.8.0
+   Compiling crossbeam-epoch v0.9.21
+   Compiling chacha20 v0.9.1
+   Compiling zerocopy v0.8.57
+   Compiling aead v0.5.2
+   Compiling base64 v0.23.1
+   Compiling arrayvec v0.7.8
+   Compiling log v0.4.34
+   Compiling bytes v1.12.1
+   Compiling http v1.5.0
+   Compiling noise-protocol v0.2.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling crossbeam-deque v0.8.8
+   Compiling httparse v1.10.1
+   Compiling getrandom v0.4.3
+   Compiling adler2 v2.0.1
+   Compiling once_cell v1.21.4
+   Compiling scopeguard v1.2.0
+   Compiling smallvec v1.16.1
+   Compiling parking_lot_core v0.9.12
+   Compiling rustls v0.23.45
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.8.9
+   Compiling num-traits v0.2.19
+   Compiling rayon-core v1.13.0
+   Compiling rand_chacha v0.3.1
+   Compiling noise-rust-crypto v0.6.2
+   Compiling rustls-webpki v0.103.15
+   Compiling chacha20 v0.10.2
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/runtime)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay)
+   Compiling either v1.18.0
+   Compiling rayon v1.12.0
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/protected-line)
+   Compiling rand v0.10.3
+   Compiling rand v0.8.8
+   Compiling ordered-float v3.9.2
+   Compiling parking_lot v0.12.5
+   Compiling ureq-proto v0.6.4
+   Compiling webpki-roots v1.0.9
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
+   Compiling sha1 v0.11.0
+   Compiling num_cpus v1.17.0
+   Compiling data-encoding v2.11.1
+   Compiling utf8-zero v0.8.1
+   Compiling percent-encoding v2.3.2
+   Compiling qrcode v0.14.1
+   Compiling ureq v3.4.2
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/ai)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/signal)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/wire)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/host)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/offers)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/bluetooth)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/make)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/tutorial)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/conduitos/make)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/speech)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/raspberry-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/avr/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/graph)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/finance)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/patchbay/application)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/body)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/tour)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/observatory)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/synth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/birth)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/little-seismograph/fixture)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/network-r1)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/proof/conformance/alife-distributed)
+   Compiling tungstenite v0.30.0
+   Compiling instant-distance v0.6.1
+   Compiling getrandom v0.3.4
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/rp2040/network-realization)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling deranged v0.5.8
+   Compiling leb128fmt v0.1.0
+   Compiling rustix v1.1.5
+   Compiling powerfmt v0.2.0
+   Compiling time-core v0.1.9
+   Compiling num-conv v0.2.2
+   Compiling time v0.3.55
+   Compiling wasm-encoder v0.259.0
+   Compiling bitflags v2.13.2
+   Compiling bumpalo v3.20.3
+   Compiling unicode-width v0.2.2
+   Compiling linux-raw-sys v0.12.1
+   Compiling wast v259.0.0
+   Compiling yasna v0.6.0
+   Compiling pem v4.0.0
+   Compiling fastrand v2.5.0
+   Compiling tempfile v3.27.0
+   Compiling rcgen v0.14.10
+   Compiling wat v1.259.0
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/workspace)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 15s
+     Running tests/angle_reference.rs (target/environment-main-host/debug/deps/angle_reference-bbdc970083efaefa)
+
+running 3 tests
+test target_prefix_is_exact_and_origins_are_not_guessed ... ok
+test reference_law_keeps_pi_symbolic_and_original_angle_exact ... ok
+test symbolic_target_uses_existing_certified_enclosure_or_refuses ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/enclosed_binary64.rs (target/environment-main-host/debug/deps/enclosed_binary64-59609cd4413f16ef)
+
+running 3 tests
+test an_exact_representable_point_needs_no_invented_error ... ok
+test unsupported_precision_and_finite_work_refuse_during_preparation ... ok
+test angle_pi_source_midpoint_and_machine_rounding_remain_distinct ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.39s
+
+     Running tests/enclosed_numerical_realization.rs (target/environment-main-host/debug/deps/enclosed_numerical_realization-e3442d12fa96fa6d)
+
+running 3 tests
+test zero_tolerance_refuses_symbolic_source_before_play ... ok
+test full_symbolic_certificate_recomputes_and_roundtrips_without_rational_pi ... ok
+test forged_machine_target_or_work_budget_cannot_survive_certificate_verification ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.43s
+
+     Running tests/numerical_float_realization.rs (target/environment-main-host/debug/deps/numerical_float_realization-07f36d16fa4a1615)
+
+running 4 tests
+test ieee_signed_zero_survives_property_and_forged_target_or_error_kind_refuse ... ok
+test property_retains_complete_operation_order_and_rechecks_cancellation_error ... ok
+test exact_and_binary64_share_source_and_precision_is_checked_before_admission ... ok
+test failed_recomputation_spends_the_outer_verifiers_actual_arithmetic_budget ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/numerical_realization.rs (target/environment-main-host/debug/deps/numerical_realization-40d7dabc1340baa3)
+
+running 3 tests
+test source_range_precision_and_domain_failures_do_not_weaken_meaning ... ok
+test one_source_has_exact_and_outward_machine_realizations ... ok
+test typed_offer_property_recomputes_and_rejects_forged_certificate ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/angle_reference.rs (target/environment-main-host/debug/deps/angle_reference-4024f01576c3bc42)
+
+running 3 tests
+test explicit_projection_preserves_original_angle_in_the_source_record ... ok
+test prepared_reference_writer_matches_exact_receipts_without_play_allocations ... ok
+test scalars_wrong_dimensions_and_unrelated_origins_are_not_implicit_radians ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.69s
+
+     Running tests/angle_trigonometry.rs (target/environment-main-host/debug/deps/angle_trigonometry-65a791c18b164138)
+
+running 6 tests
+test tangent_poles_and_unsupported_radian_projection_keep_named_domain_reasons ... ok
+test declared_rational_turn_unit_retains_non_decimal_angle_denotation ... ok
+test source_carrier_preserves_original_angle_while_numeric_projection_is_separate ... ok
+test known_constant_poles_refuse_during_preparation_before_any_play ... ok
+test scalar_and_wrong_dimension_calls_fail_angle_typechecking ... ok
+test exact_literal_and_dynamic_angle_calls_preserve_denotation_without_play_growth ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests/angle_radian_projection.rs (target/environment-main-host/debug/deps/angle_radian_projection-f8ef4eb1cc0178a8)
+
+running 3 tests
+test impossible_precision_refuses_before_any_play_or_offer_installation ... ok
+test startup_reference_refuses_scalars_wrong_units_and_alias_cycles ... ok
+angle-source=SourceDocumentId("22ee697da7af2964678b412240dae80848d7608dfc3cc19f7fffb5ff879cdaf8") plan=PlanId("d35d90334badaf8f1728ab78d4c1ead347c281d024ec37837d92578d93d7a415") play=ActivePlayId("c372b8e59074e4ae1a704424d82741e9afe3f05fad9315eaf985dc16a3664e04") original=1turn reference-law=physical/angle-turn-radian-2pi@1
+test original_angle_reaches_a_certified_binary64_receipt_through_installed_plan_play ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.63s
+
+     Running tests/angle_trigonometry.rs (target/environment-main-host/debug/deps/angle_trigonometry-2d7d096558fcc23c)
+
+running 1 test
+test installed_angle_values_keep_units_denotation_and_separate_numeric_projection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests/numerical_installed_play.rs (target/environment-main-host/debug/deps/numerical_installed_play-ed873a6f993b0318)
+
+running 1 test
+NUMERICAL_INSTALLED_EVIDENCE source=75bb1f72de865a78a7a7c36222bc52304db361ef8b325129b5cb7fa1d56743ee checked=bf1458ea641af8199c02b85cd7256523c8e75892813f0e6a84b1ceaae61a4cc5 expanded=4251cd14aff74d2edeb700d86a8e8a86e89757a9dda3573e6fc2bd05ef9cbd6d plan=7899251dc2f4274bf32ad5dbb0e30f6c93925d85b8e3c827c529427ae1f38c39 play=1055c4f3a2b7a229c783ffb777030195f825caa24c3da083640c11a5484d959b
+test installed_exact_and_binary64_receipts_preserve_one_authored_denotation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.42s
+
+     Running tests/numerical_offers.rs (target/environment-main-host/debug/deps/numerical_offers-71a5be36edc697a2)
+
+running 2 tests
+test generation_exhaustion_never_wraps_or_partially_installs ... ok
+test preparing_offers_changes_generation_once_and_refusal_is_transactional ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.20s
