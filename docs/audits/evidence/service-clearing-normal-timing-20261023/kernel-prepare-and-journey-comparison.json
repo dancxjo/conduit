@@ -1,0 +1,89 @@
+{
+  "rows": [
+    {
+      "arm": "baseline",
+      "source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+      "trial": 0,
+      "process_phase": "first-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 934570184,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 34.020398339,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "e582fc9b1ec5e6c1090a134b01cc104cc8a1cce1dbb669426a731a0c48b2be51",
+      "retained_timing": "baseline-trial-0-timing.json.gz"
+    },
+    {
+      "arm": "baseline",
+      "source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+      "trial": 1,
+      "process_phase": "repeated-fresh-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 965352676,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 32.321365726,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "825d8ed9ed9579d15b306348a2b6cd3a338f8c52581ac476c0c1eb4ca7521390",
+      "retained_timing": "baseline-trial-1-timing.json.gz"
+    },
+    {
+      "arm": "baseline",
+      "source": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+      "trial": 2,
+      "process_phase": "repeated-fresh-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 939970852,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 35.44598618,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "9aa93d46b15f39616c08ba4f8ab6a47acc8b142595ddab903f571103f9455a0e",
+      "retained_timing": "baseline-trial-2-timing.json.gz"
+    },
+    {
+      "arm": "optimized",
+      "source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+      "trial": 0,
+      "process_phase": "first-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 802026038,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 25.76265091,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "8c4733e5600f433608c7791daa20a1e509028c76364d42d5b97e7676130b432b",
+      "retained_timing": "optimized-trial-0-timing.json.gz"
+    },
+    {
+      "arm": "optimized",
+      "source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+      "trial": 1,
+      "process_phase": "repeated-fresh-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 835772072,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 26.036856503,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "902422d7de3bd2957e1cb72391fd69b03a16bcd049a0a3807087c13ed112edc6",
+      "retained_timing": "optimized-trial-1-timing.json.gz"
+    },
+    {
+      "arm": "optimized",
+      "source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+      "trial": 2,
+      "process_phase": "repeated-fresh-process",
+      "kernel_prepare_count": 1,
+      "kernel_prepare_raw_ticks": 761758792,
+      "kernel_prepare_refused": 0,
+      "journey_seconds": 24.397296595,
+      "clock": "x86-tsc-lfence",
+      "frequency_hz": null,
+      "timing_sha256": "77ec90b13055a309877ee8c38cca0243547fe27072548671d1803c6b7974336c",
+      "retained_timing": "optimized-trial-2-timing.json.gz"
+    }
+  ],
+  "limits": "Raw instrumented nested phase ticks; no calibration, subtraction or causal speedup; source-pinned fixed arm order/host caches uncontrolled"
+}

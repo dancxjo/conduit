@@ -1,0 +1,37 @@
+{
+  "source": "dc429ecabe6b887013e06d321c94fa5f640389d0",
+  "base": "e57706b15e65f075d6cfa9783de3c5fe44836b2c",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--test",
+    "service_slot_lifecycle",
+    "--",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "started": 1792761033.309197,
+  "status": "completed",
+  "classification": "Internal focused real service-store lifecycle test; historical native pairs retain their own measured sources",
+  "exit_code": 0,
+  "finished": 1792761197.3777337,
+  "log_sha256": "de6c3752afb9023dcf2072cddb25ea03fc5b6a83cc57c22afa621245c66e8c4f",
+  "clean_after": true,
+  "executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-delivery-focused-dc429ecab/service_slot_lifecycle-139a2269e3772516",
+      "sha256": "d07a1a5f2893a69188d45b37c3e57e496ac931eb11812ad8028dc758a0e8b8ef"
+    }
+  ]
+}

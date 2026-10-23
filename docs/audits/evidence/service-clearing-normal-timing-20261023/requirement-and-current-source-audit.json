@@ -1,0 +1,698 @@
+{
+  "schema": "conduit.local/6183-final-delivery-requirement-audit@1",
+  "audited_utc": "2026-10-23T12:53:59.715874+00:00",
+  "observed_local_origin_dev": "22eb7d9fc5bd90bcec04c150d1cb15c266ba4782",
+  "remote_fetch_performed": false,
+  "live_issue_snapshot_sha256": "f311be47ee3706d0d072df3517e863391ea1aa10b6550df6b30a111b28d2be36",
+  "original_scope": "Parent #6175, foundation #5113 (closed). Related #6181 (larger compositor service domain), #6180 (timing). \n## Problem\nx86_64 `arch/x86_64/domain_transition.rs` switches CR3 on entry/return; protection costs, TLB effects, shared-window copies, register/interrupt preservation and service launch cost are not independently attributed for repeated ordinary services.\n## Outcome\nPublish source-pinned exact no-op and payload sweep measurements for CPL3 entry/exit, trap, page-table switch, memory copies, hot/warm domain return and staged IPC. Only optimize a demonstrated hot cost while retaining isolation, capability checks and correct faults.\n## Work\n- Benchmark 0/short/bounded-large requests, reused vs fresh domain, nested timer preemption and fault paths; distinguish raw TSC from calibrated time.\n- Evaluate stable mappings and PCID tagging where CPU feature and correct invalidation/ASID lifetime make it safe; unsupported CPUs retain conservative path.\n- Verify flush/revocation on domain restart or reused PCID, no stale sibling/Root mappings, no FPU or interrupt-state leakage; compare kernel timing and total responsive-journey wall clock.\n## Acceptance\nReproducible baseline and before/after evidence with exact source/CPU/QEMU, semantic/protection equivalence and negative isolation tests. No speculative PCID deployment, no weakening page/I/O privilege, no source-level concurrency/scheduler redefinition.",
+  "requirements": [
+    {
+      "requirement": "Source-pinned0/short/bounded-large CPL3 entry/exit, fresh/reused and hot/warm return",
+      "status": "PASS measured; publication of final consolidated index pending",
+      "evidence": "Historical96a9/4e363 twenty0/8/256B samples (18fresh/reused pluspreempt/fault), exactinstances and request/wholeentry/response/setup/teardown.30staged0/256/4096/16384/65536B samples plus8typednegatives.",
+      "limits": "Historicalexactsource retained;96a9alreadyoptimized/prooforacle, never use as unoptimized arm.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Trap-path attribution",
+      "status": "PASS bounded software envelope; final packet publication pending",
+      "evidence": "Actualb088 supportednative exit0:20entry-state/terminal-return/Rootrestore rows; exactSource/ELF/ISO/transcript, matchedtwoemptycontrols,20actualflags equality.",
+      "limits": "AfterCPL3origincheck\u2192postPOPFQ excludeshardwaredelivery; preemptterminalstartabsent=null; Rootrestoreoverlapsreturn. No puretrap/IRET or fullIRQ preservation claim.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Page-table switch and TLB effects",
+      "status": "PASS measured conservative path and evaluation",
+      "evidence": "Historical96a9 CR3 twentyentry/return instructionenvelopes plusmatchedemptycontrols; realCPUIDPCIDbit17clear, conservative2switches/flushesperentry.",
+      "limits": "Instructionenvelope notisolatedTLBflush cost. Stableperdomainmappings persist; noPCIDimplemented/allocated. SupportedPCIDreuse is conditional, not a missing deployment gate.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Memory-copy/shared-window/stagedIPC attribution",
+      "status": "PASS measured historical source",
+      "evidence": "96a9combined30fullspanstop-window samples,8typedRoot/guest/quarantine refusals; six64KiBfresh/reused underunchangedgrant1 withcombinedinstrumentation.",
+      "limits": "Admission/copy, wholeentry+guest, returncorrelation/copy+validation boundaries;2finiteRootbuffers notwholeheap;fixtureprotocol notnewproductionprotocol.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Register/control-state/interrupt preservation attribution and negatives",
+      "status": "PASS bounded component coverage; no full IRQ claim",
+      "evidence": "96a9 sixcallee-savedpush/pop envelopes withcontrols; IRQhandler envelope/counted16userIRQs preempt sample; b088realentry-controlstate and RootrestorationthroughCR3/stack/pops/POPFQ; actualsaved-vs-restoredflagsequality20rows; x87#NM/Root+sibling/timercontrols passed.",
+      "limits": "HistoricalIRQenvelopebeginsafterguestregistersave andincludesRootRusthandler. Threeb088intervals arenottotalhardwaretrap/fullIRQlatency; noFPUFXSAVEintroduced whereguestFPUdenied. Progresscomments previously named broader fullpreservation as unestablished; originalOutcome doesnotrequiretimingeveryinstruction/entireIRQpath.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Nested timer interruption and fault paths; no interrupt/FPU state leakage",
+      "status": "PASS intended timer-in-active-CPL3 control",
+      "evidence": "Historicalbaselinepreemptrow16userIRQs withmatchingbackendcount; b088preemptreturn4/2, terminalnull, restorepresent; privileged#GP269/1; currentx87#NMvector7terminalRoot+sibling marker, domain-contextchecks andtimercoexistence.",
+      "limits": "Nestedmeans timerinterruptinsideactiveprotectedentry; norecursiveprotectedentry/arbitraryIRQdepth/schedulerchangeclaim.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Flush/revocation/restart/staleRoot+sibling/isolation negatives",
+      "status": "PASS paired protection and current trap appliance",
+      "evidence": "d2fc/7fbb supportednativepair bothPASS26hostiles, restartzero,stalehandle/instance,Root+sibling; b08826hostiles+8MiBretained/8MiBscratch+restartzero andcompositor/timer/x87actualsourceboundreceipts. Criticalbackend/grant/profile/lifecyclegitobjects unchanged1f\u2192currentdev.",
+      "limits": "b088storageisbaseline1f/81eb, NOToptimizedstorage. Optimizationequivalencecomesfrom7fbbpair,notmislabelledb088execution. NoDMA/driver/physicalconfinementclaim.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Only optimize a demonstrated hot cost, retain privileges/capability checks",
+      "status": "PASS prepared exact minimal delta; NOT DELIVERED",
+      "evidence": "ac825setupclearing93.5304\u201396.6607%(median96.5075%)rawouterinterval; twofileduplicateinstallclearremoval+newactualstorageLeasefail/drop/duplicate/mutatecontrol.2ffeoptimizedstorageblobsmatch7fbbexactly.",
+      "limits": "Claimssameinheritedzero-invariant;partialfailure/mutableviewdirty/dropclearpreserved. NoPCID,grant/deadline/profile/authoritychange, fullstoreprooforacle, orsourceconcurrencychange.",
+      "next_step": "Prepare3fileproductPR oncurrentdev, runfocusedowningcompile/test andnormalrequiredCI; no newcustomnativepairunlessrelevantsemanticdeltaappears."
+    },
+    {
+      "requirement": "Kernel timing and total responsive-journey wall-clock comparison",
+      "status": "PASS exact measured paired sources; final publication pending",
+      "evidence": "1f/2ffelatencythreefirst/repeatedfreshprocesseseach,0failed/excluded;174framesindependentlychecked. Rawkernelprepareandboot/input plusHostInstantjourney arrays retained. BothcanonicalfirstattemptsPASS24historicalsteps/27frames each,actualproductimagejoins,54PNGverified.",
+      "limits": "Buildtimeexcludedfromjourney;latencyappliance!=canonicalimage. Hostorder/cache/loaduncontrolled;reportobservedarraysratherthancausalpercent/statisticalgain. Laterproductroutes changed; noautomaticprooflater27stepjourney.",
+      "next_step": "No new bespoke runtime run required for this criterion."
+    },
+    {
+      "requirement": "Exactsource/CPU/QEMU/reproducibility, reviewed delivery/relevantchecks",
+      "status": "INCOMPLETE DELIVERY",
+      "evidence": "Historicalsourcepinnedpackets+remoterefs;normalpairbatchCPU/QEMU/tool/env/source/rawhashes;newb088receipt/independentreview. Alllocalruntimecriteria abovehaveboundedexactevidence.",
+      "limits": "LocalproofdoesnotmeanCandidate/acceptedmerge/relevantIntegration. Originalissueisimplementation/measurementdelivery, notstablepublicationreleaseacceptance.",
+      "next_step": "Publishconsolidatedpacket+minimalproductPR;normalCandidate/merge/relevantacceptednativechecks; finalobjectcomparisonbeforeissueclosure. Do notstart anotherbespokenormal/protectionmatrixsolelybecauseotherdevfileschanged."
+    }
+  ],
+  "protected_production_correspondence": {
+    "baseline": "1f7278327cfeb41e0fb2b86218efcde1cffaea83",
+    "current_dev": "22eb7d9fc5bd90bcec04c150d1cb15c266ba4782",
+    "unchanged_file_count": 130,
+    "exact_files": [
+      {
+        "path": "architecture/assigned-plan/Cargo.toml",
+        "baseline_and_current_blob": "d6bca99396887485ca65080d42b94dbc3dd6c0a0"
+      },
+      {
+        "path": "architecture/assigned-plan/src/computation.rs",
+        "baseline_and_current_blob": "504b7632d77d435577b9dba8d908635b3051a880"
+      },
+      {
+        "path": "architecture/assigned-plan/src/execution.rs",
+        "baseline_and_current_blob": "e07c2a6525ed2885efb7661e5bbd08ae238dba43"
+      },
+      {
+        "path": "architecture/assigned-plan/src/lib.rs",
+        "baseline_and_current_blob": "c4b5acec5de46746ecdbc9806f2e4b169a5ae33e"
+      },
+      {
+        "path": "architecture/assigned-plan/src/native.rs",
+        "baseline_and_current_blob": "13f868eb5001ad9eadbefd238fd2a8a8b4847fde"
+      },
+      {
+        "path": "architecture/assigned-plan/src/records.rs",
+        "baseline_and_current_blob": "3ca0dcf0a3b64e10e8bbee409e5b13093c76ef4f"
+      },
+      {
+        "path": "architecture/assigned-plan/src/sha256.rs",
+        "baseline_and_current_blob": "3957e57255f3e30da6724dff511b6e4f4786f3c8"
+      },
+      {
+        "path": "architecture/assigned-plan/src/single_source.rs",
+        "baseline_and_current_blob": "ad8e1bb58d0fb290548d55a914a8768e18424a46"
+      },
+      {
+        "path": "architecture/plan-lowering/Cargo.toml",
+        "baseline_and_current_blob": "47805e34e6898155583a16bb3c08bd8fe06a1966"
+      },
+      {
+        "path": "architecture/plan-lowering/src/activation_fragment.rs",
+        "baseline_and_current_blob": "10f0412d5fd8a7ca4550c27717831a3ce650d90a"
+      },
+      {
+        "path": "architecture/plan-lowering/src/execution_regions.rs",
+        "baseline_and_current_blob": "bd526589549191b604263a18ed34821e1864b984"
+      },
+      {
+        "path": "architecture/plan-lowering/src/execution_regions/kernel_tables.rs",
+        "baseline_and_current_blob": "65c89212158b92fbd30d49c8749b22b0a182e1f7"
+      },
+      {
+        "path": "architecture/plan-lowering/src/execution_regions/resource_offers.rs",
+        "baseline_and_current_blob": "642d2d59abc7bf0e80e3b7c06bb7aa9c8130d377"
+      },
+      {
+        "path": "architecture/plan-lowering/src/execution_regions/transfers.rs",
+        "baseline_and_current_blob": "bc503e8ba511aa116bb4e2f2adb5e1473db0a62e"
+      },
+      {
+        "path": "architecture/plan-lowering/src/execution_regions/value_storage.rs",
+        "baseline_and_current_blob": "568f4799d165cfa8aecc8c2318df06167aa6c3c4"
+      },
+      {
+        "path": "architecture/plan-lowering/src/fragment_set.rs",
+        "baseline_and_current_blob": "4f37ea097bf309c8d1427b8405640c5aa44d42af"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lib.rs",
+        "baseline_and_current_blob": "5333183f6be775740a30ede361fc8c791af13ebc"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering.rs",
+        "baseline_and_current_blob": "e7a703e2d0a2c9ab763ce6d574d0030725468348"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/admission.rs",
+        "baseline_and_current_blob": "67dc55719d0106b0fa544714c1bead552c56ffe4"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/error.rs",
+        "baseline_and_current_blob": "7b80a30e3e783f7c96e574da4574b7325a2def04"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/fore_value.rs",
+        "baseline_and_current_blob": "80f0af9d0e8831b57c450b7120e26cf9e4bbdf4e"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/fusion.rs",
+        "baseline_and_current_blob": "4c45aa3f4b2a3733f871ccfe585089d51278aa2d"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/fusion_dag.rs",
+        "baseline_and_current_blob": "642787ab87b888b1b8f859e7f72dea021957f2c9"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/ports.rs",
+        "baseline_and_current_blob": "a01f72abb4efd3488d47474d054f75783f5c766f"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/profile.rs",
+        "baseline_and_current_blob": "88db9cc014f5213ce98cad89744db21a70a5f5c9"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/remote.rs",
+        "baseline_and_current_blob": "77ee01a68dd85d137866ed89fb81c40038e68e6c"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/shared_pool.rs",
+        "baseline_and_current_blob": "94db210789d6651b16d3f770eb68fbb7b81f80a6"
+      },
+      {
+        "path": "architecture/plan-lowering/src/lowering/state.rs",
+        "baseline_and_current_blob": "c71c07b4359c7de3a10e850b8aa8a5fdca795a54"
+      },
+      {
+        "path": "architecture/plan-lowering/src/selected_assigned_operation.rs",
+        "baseline_and_current_blob": "311cc2428beb6c89b1578a942e87c5dd748b7cc1"
+      },
+      {
+        "path": "architecture/plan-lowering/src/selected_operation.rs",
+        "baseline_and_current_blob": "2eb1c3137be5507b0dba17081d9635f4fac88eea"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime.rs",
+        "baseline_and_current_blob": "0fb6b5285344163c8d92d405ee85277dce4aa0bb"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/cost_dependency_tests.rs",
+        "baseline_and_current_blob": "f3fdfaefaba1823d0487d81d679a19b4eceb158e"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/cost_tests.rs",
+        "baseline_and_current_blob": "e7c20af285a6f83f1e606ce9bd5fab480cacdff1"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/costs.rs",
+        "baseline_and_current_blob": "34e2e48d2540eeebd6c0d9fa99f19713d1db809b"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/fair_progress_tests.rs",
+        "baseline_and_current_blob": "e9c3e3ce94df15f1166aac71e767ac564c8ba942"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/tests.rs",
+        "baseline_and_current_blob": "6d8908021fd6db6c19e31118107036f409d7576d"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/waiting.rs",
+        "baseline_and_current_blob": "7180353fb6ad24cd7e75e6b3258807f059e72199"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/waiting/policy.rs",
+        "baseline_and_current_blob": "ee00962ff6898a7daefab305e7ab60e32854adf1"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/waiting_policy_tests.rs",
+        "baseline_and_current_blob": "cb5ef1747d16c8d2da9f3a041cadf8ffb1b30f9b"
+      },
+      {
+        "path": "architecture/plan-lowering/src/shared_pool_runtime/waiting_tests.rs",
+        "baseline_and_current_blob": "8111b939bf3fea71e1a5261d8d47a10ce694c6ed"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/activation_fragment.rs",
+        "baseline_and_current_blob": "406d246e7ca8308af83851ae156a700441b617f4"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/common/execution_regions.rs",
+        "baseline_and_current_blob": "20c35aedbcfff50ad6a788f989816977fb4f93a8"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/execution_region_tables.rs",
+        "baseline_and_current_blob": "8e0a8c1dae9ce30f75ea94468f892c8a77705a72"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/execution_regions.rs",
+        "baseline_and_current_blob": "a106e071b112be6cb825fac035fd7f8168ce17b5"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/execution_worker_storage.rs",
+        "baseline_and_current_blob": "daf4392136b022ebfd48929c074255523fc20598"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/fragment_set_fore.rs",
+        "baseline_and_current_blob": "aa3c82969a6bcc4139bd9db7e372837da38ac50d"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/fragment_set_state.rs",
+        "baseline_and_current_blob": "1b50f285d0e13030f1be785d4d8bec76bbf2e8ef"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/local_coalescing.rs",
+        "baseline_and_current_blob": "4fce69614a241f743366a9d932c68f5859f54975"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/lowering_boundary.rs",
+        "baseline_and_current_blob": "d7823295f0043173f1052a4e8dea1a619e349600"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/remote_value_envelope.rs",
+        "baseline_and_current_blob": "78c7995041d9456dffe28a9432289a3cd8a02310"
+      },
+      {
+        "path": "architecture/plan-lowering/tests/sealed_state.rs",
+        "baseline_and_current_blob": "5fe328a101c4eb44fb17e4de1b4e7a371421cdaf"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/acpi.rs",
+        "baseline_and_current_blob": "3710b343c078bb5cb515bd582ec13cfcad072618"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/cpu.rs",
+        "baseline_and_current_blob": "2b7d2b6c26c4c18a61f73579afc1b512edf4f48d"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/deadline.rs",
+        "baseline_and_current_blob": "d51abaeb806c8f5b2c2ad0809727a49f61e78876"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/deadline/monotonic.rs",
+        "baseline_and_current_blob": "84b848fc6f15471f895cd465eea53ea5520035fe"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/domain_budget.rs",
+        "baseline_and_current_blob": "90ed2e12a705f2fb922284b7cdbf56d794344ae5"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/domain_memory.rs",
+        "baseline_and_current_blob": "b5ce57173c0c74e9a85f98745944129a9bfc8af7"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/domain_transition.rs",
+        "baseline_and_current_blob": "937e22ef06acaa85f75036934c57823c187ea554"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/entropy.rs",
+        "baseline_and_current_blob": "d2ecf8aebcf4a16f4abde746acc20c678648d6bc"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/ftdi_line.rs",
+        "baseline_and_current_blob": "7fa2979c380b7fb891fe31165efb985514a1e03f"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/ftdi_line_tests.rs",
+        "baseline_and_current_blob": "732503e5cd66573d93af287e5311e527c7108ac7"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/ftdi_line_transfer.rs",
+        "baseline_and_current_blob": "98ab22caa4a5e53c6ec36c3267797e12a751cd44"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/gdt.rs",
+        "baseline_and_current_blob": "f09d7f9082f0aab099c7e67899ebc985377ea67f"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid.rs",
+        "baseline_and_current_blob": "095f9bfd98931e8fe2733f2284870e479dbc6c68"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_interrupt.rs",
+        "baseline_and_current_blob": "252869013973048c813d34277b419e255122e551"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_interrupt_tests.rs",
+        "baseline_and_current_blob": "b7a37fe64f6ee9e22258f046f23ce23779e0d791"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer.rs",
+        "baseline_and_current_blob": "29fd9efd78a59a5dbbf979fc433d5006c15841a0"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer_session.rs",
+        "baseline_and_current_blob": "7acb7efcfd616943882c2670b713280da47118dc"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer_session_tests.rs",
+        "baseline_and_current_blob": "c065f1c2af8dbe0787193fb569077681066ae2fb"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer_test_fixture.rs",
+        "baseline_and_current_blob": "5e8813d59389e7cfa44d21b847ad491a8d264c01"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer_tests.rs",
+        "baseline_and_current_blob": "2fc8a0bc289d7931f78051084770a9802e89007e"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_pointer_transfer.rs",
+        "baseline_and_current_blob": "d685767783e02cef243684d7eb080022c25cfbfe"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_report.rs",
+        "baseline_and_current_blob": "470424e209abe0a37ff3b633b5ead8d15d3f3206"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_session.rs",
+        "baseline_and_current_blob": "929d8e11bd2fca7cf4d93a27fd2b7c4179950346"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_tests.rs",
+        "baseline_and_current_blob": "1fa8b829923bf9c5db7497b4b962d6fc187de158"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/hid_transfer_ring.rs",
+        "baseline_and_current_blob": "144d1ad985d66e38230843bad71c130577148265"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/i2c_pci.rs",
+        "baseline_and_current_blob": "9a1e276b5ad97f92cdbe6d5794dcaf4ae77be24f"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/i2c_ports.rs",
+        "baseline_and_current_blob": "260999fe08a5de2528a05090f3d522feff2fad6a"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/idt.rs",
+        "baseline_and_current_blob": "94fdfc0ab4539146d0cff38eaae83d0231d74510"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/interrupt_controller.rs",
+        "baseline_and_current_blob": "75a5db589c12b00fa0a1fb6e7f58fcd37a3a2fed"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/io.rs",
+        "baseline_and_current_blob": "1f2625024e15a66e4c7c0b323d77596b9b1254ea"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/irq.rs",
+        "baseline_and_current_blob": "3ad67b3bbb51c7266597c985b19a7fac2a72056e"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/mmio.rs",
+        "baseline_and_current_blob": "83d581e4b5c207989dfb2166b6ed16643f0c63fe"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/mod.rs",
+        "baseline_and_current_blob": "c48804388be3b517bd67dc735d102436a713d170"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/opl2.rs",
+        "baseline_and_current_blob": "715b964af31531371571831db6a63284f8976be9"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/pc_speaker.rs",
+        "baseline_and_current_blob": "84b12960cd25d5b7959a46dcbed22d0b1e848225"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/pic.rs",
+        "baseline_and_current_blob": "2635da213d7111f02789f73700b15c2ff7421c61"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/pit.rs",
+        "baseline_and_current_blob": "83489c75245b780e18c7782e22242076d7afe362"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/protected_execution.rs",
+        "baseline_and_current_blob": "dcf58cd6f0e8615225ee035524835268053fcec3"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/providers.rs",
+        "baseline_and_current_blob": "a303e538011941ec8a64aa919157a3efe642b57b"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/ps2.rs",
+        "baseline_and_current_blob": "0c2945283da5b08fec3c79afe8159ba33c8b7efd"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/ps2_tests.rs",
+        "baseline_and_current_blob": "ed240c8ac1fdc2ca04a045d24dea72aee54c9a67"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/reboot.rs",
+        "baseline_and_current_blob": "ff912fd928e1fb5d8eaf97e61c63a7a4d0868b97"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/serial.rs",
+        "baseline_and_current_blob": "dbd7032d5685b258a5c377cbbc8ccf2561f05e27"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/service_domain.rs",
+        "baseline_and_current_blob": "32b9b2ab1eb8e2d970ce41ae8cd407ab0bcd689a"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/service_memory.rs",
+        "baseline_and_current_blob": "1b3381d4ccf078d948be349258c724894e8caf16"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/service_memory/storage.rs",
+        "baseline_and_current_blob": "06e64b493227408ba718d82f4baa3e7e45fd7aff"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/service_memory/tests.rs",
+        "baseline_and_current_blob": "9e59eeef4e063f39154579799bb89a1a20fcf2a7"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/virtio_net.rs",
+        "baseline_and_current_blob": "dded527bde39e9d35d63c096e37001d0935a4f06"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/virtio_net_pci.rs",
+        "baseline_and_current_blob": "ac05f75d46a0d0cd250c1c0d1c4166144489a118"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/virtio_net_tests.rs",
+        "baseline_and_current_blob": "0fb81fc04d99745b0294a51a790df5ec79e9802a"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/xhci.rs",
+        "baseline_and_current_blob": "08ebb55f82e22c295e1fca67d48d4f1252ead45e"
+      },
+      {
+        "path": "targets/conduitos/src/arch/x86_64/xhci_pci.rs",
+        "baseline_and_current_blob": "56e3942a65313f700978dfaff12742688a7f1cae"
+      },
+      {
+        "path": "targets/conduitos/src/domain_image.rs",
+        "baseline_and_current_blob": "087a9b727d322ad7ecbec23b12f03576816d45c3"
+      },
+      {
+        "path": "targets/conduitos/src/domain_scope_identity.rs",
+        "baseline_and_current_blob": "07a7d0de970e4cf27e5f46bf1ef6a338e9f327ab"
+      },
+      {
+        "path": "targets/conduitos/src/domain_timer_gate.rs",
+        "baseline_and_current_blob": "8d9f283eccd995dc823a5cd7665eb21ea2262722"
+      },
+      {
+        "path": "targets/conduitos/src/domain_timer_scope.rs",
+        "baseline_and_current_blob": "b93f4abd109917e4dfe6392ded1a7861ee87cdca"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor.rs",
+        "baseline_and_current_blob": "bff7fac1fbcecb7e53d379a6457648f71974bdef"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/display_grant.rs",
+        "baseline_and_current_blob": "e02aec58c26e9d7d9eb7a321b4c57bf6ebe27361"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/display_grant/recovery_tests.rs",
+        "baseline_and_current_blob": "b572c16a40665d019d1a20c47205e1e0296303d4"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/display_owner.rs",
+        "baseline_and_current_blob": "d491bcf30459f013bc10071f07641d3517b8c53c"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/frame_grant.rs",
+        "baseline_and_current_blob": "af5c0f830cfc0b98c549c811faf78b2202f2cadb"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/raster_staging.rs",
+        "baseline_and_current_blob": "3c236e4f54e97c0256642fb634e6cf61da9f8a00"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/raster_staging/tests.rs",
+        "baseline_and_current_blob": "ff862790be63f5f7bef25540b85f22d30b883b04"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/session_owner.rs",
+        "baseline_and_current_blob": "9a7282eb4f120e6188908d6c542d3c479f2302da"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/session_owner/frame_failures.rs",
+        "baseline_and_current_blob": "15f768e8d14c1022e648f2ebe7951eb06caa0cd6"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/session_owner/handoff_tests.rs",
+        "baseline_and_current_blob": "3f3456272189cf1133dd7d6fa148504aa36443d1"
+      },
+      {
+        "path": "targets/conduitos/src/protected_compositor/session_owner/tests.rs",
+        "baseline_and_current_blob": "486c708d4e1c5cde1d9aad7272ce0aab3fc3136b"
+      },
+      {
+        "path": "targets/conduitos/src/protected_region.rs",
+        "baseline_and_current_blob": "d02b68a280ec6ca0016a794b6ecaa805009e3493"
+      },
+      {
+        "path": "targets/conduitos/src/protected_region/body_binding.rs",
+        "baseline_and_current_blob": "3f171fafa97444682eb72e95a3ddfae8e3384e11"
+      },
+      {
+        "path": "targets/conduitos/src/protected_region/body_binding/tests.rs",
+        "baseline_and_current_blob": "9f17961e185fdde75be5ad08e5f193ebbbce673d"
+      },
+      {
+        "path": "targets/conduitos/src/protected_region/tests.rs",
+        "baseline_and_current_blob": "b54adce70b10974ae681698f0b55f1f2bf061766"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime.rs",
+        "baseline_and_current_blob": "b1426bfc8e7124963a92169b628dc84fc2d4e087"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime/face.rs",
+        "baseline_and_current_blob": "08ec421bc6b67baf6ed1118f68cde3d8a7093fd7"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime/ledger.rs",
+        "baseline_and_current_blob": "dabf778a3fedde4edbd5b6132dc21a87385e8f9a"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime/ledger_tests.rs",
+        "baseline_and_current_blob": "ba7e8a68b10d14548fca24247886e1953f55c567"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime/morse.rs",
+        "baseline_and_current_blob": "ca74a8ab26f5209297736bc30b4b2efce756873c"
+      },
+      {
+        "path": "targets/conduitos/src/protected_runtime/text.rs",
+        "baseline_and_current_blob": "d6a05b678e44ca28ed09944c52b69e5db4b86697"
+      },
+      {
+        "path": "targets/conduitos/src/service_memory.rs",
+        "baseline_and_current_blob": "150fa4c2da3937420704c9d53ea6afaa7a1d7e5d"
+      },
+      {
+        "path": "targets/conduitos/src/service_memory/tests.rs",
+        "baseline_and_current_blob": "e80ade709a31854a7b2893089675c9fd89221754"
+      }
+    ],
+    "qualification": "130 selected owning files include production code and associated controls; exact low-level backend/grant/profile/lifecycle and assigned-plan/lowering objects, not whole dependency or image identity. High-level Source/Patchbay authority and Collection Host offer selection differ as recorded."
+  },
+  "minimal_product_delta": [
+    {
+      "path": "targets/conduitos/src/arch/x86_64/service_memory.rs",
+      "current_dev_blob": "1b3381d4ccf078d948be349258c724894e8caf16",
+      "prepared_and_measured_optimized_blob": "3e677597d398d31872d0f6e7aa8c3af976aa7558"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/service_memory/storage.rs",
+      "current_dev_blob": "06e64b493227408ba718d82f4baa3e7e45fd7aff",
+      "prepared_and_measured_optimized_blob": "1db71b469f85e00f535848ee45a541af4ec16683"
+    },
+    {
+      "path": "targets/conduitos/tests/service_slot_lifecycle.rs",
+      "current_dev_blob": null,
+      "prepared_and_measured_optimized_blob": "22df490e524e79fa85db2d6db296af11900d927b"
+    }
+  ],
+  "broader_changed_product_paths_since_normal_pair": [
+    "targets/conduitos/src/native_face_mask.rs",
+    "targets/conduitos/src/native_face_mask/canonical_publication_tests.rs",
+    "targets/conduitos/src/native_face_mask/collection_tests.rs",
+    "targets/conduitos/src/native_face_mask/input.rs",
+    "targets/conduitos/src/native_face_mask/preparation.rs",
+    "targets/conduitos/src/native_face_mask/producer.rs",
+    "targets/conduitos/src/native_face_mask/submission_tests.rs",
+    "targets/conduitos/src/native_mask_play/interaction.rs",
+    "targets/conduitos/src/native_mask_play/prepared.rs",
+    "targets/conduitos/src/native_workset.rs",
+    "targets/conduitos/src/native_workset/application_delivery.rs",
+    "targets/conduitos/src/native_workset/inspection_sources.rs",
+    "targets/conduitos/src/ordinary_domain_proof/compositor_semantic_recovery.rs",
+    "targets/conduitos/src/ordinary_domain_proof/compositor_semantic_recovery/pressure.rs",
+    "targets/conduitos/src/ordinary_domain_proof/compositor_semantic_recovery/stale.rs",
+    "targets/conduitos/src/product_front_door.rs",
+    "targets/conduitos/src/product_front_door/face_workspace.rs",
+    "targets/conduitos/src/product_front_door/face_workspace_editor_admission_tests.rs",
+    "targets/conduitos/src/product_front_door/face_workspace_source_storage_tests.rs",
+    "targets/conduitos/src/product_front_door/face_workspace_tests.rs",
+    "targets/conduitos/src/product_front_door/native_action_evidence.rs",
+    "targets/conduitos/src/product_front_door/startup/tests.rs",
+    "targets/conduitos/src/protected_application.rs",
+    "targets/conduitos/src/protected_application/canonical_patchbay.rs",
+    "targets/conduitos/src/protected_application/return_tests.rs",
+    "targets/conduitos/src/protected_application/source_authority.rs"
+  ],
+  "broader_changes_assessment": "CurrentCollection/nativeFaceproducer/preparation andSource/Patchbayauthority/routes differ; not claimedbyteidentical orhistoricalnormalrouteexecution. Theseareindependentacceptedproductchanges; selectedx86servicepool/map/entry/grant/lifecycle/assigned-plan/loweringremainexact. Minimalclearingdelta appliesunchanged; normalrequiredcurrentnativeCIcoversintegration, nojustifiedcustompairrepeatfromunrelatedroutesalone.",
+  "trap_disabled_assembly": {
+    "base": "81eb177c545d383606c0f44edf37332e85dea30a",
+    "candidate": "5160fe5ebd875c4b35e682317cc7d1ba39f1ddcb",
+    "measured_trap_source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+    "entry_return_assembly_blob_matches_static_candidate": true,
+    "actual_disabled_text_bytes": 701,
+    "actual_semantic_relocations": 28,
+    "actual_text_sha256": "0f617abb46d41b9c2c6c89723d9b5d8d5be0d4a47afaf0d56bc971196e62fa25",
+    "receipt": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-trap-static-review/llvm-assembly-receipt.json",
+    "qualification": "ActualRust/LLVMstandaloneassemblyandselectors, notwholeConduitOSlinkidentity; proofenabledinstrumentationhasseparatenativeexecution."
+  },
+  "new_runtime_run_decision": {
+    "required_bespoke_runs_now": 0,
+    "reason": "Originalnamedcomponentscoveredatdeclaredhistorical/currentmeasuredsources; minimaloptimizedproductionblobsalreadyexactpairednativeandnormalruntime. Reusewithsourceboundaries, publishratherthanrelabelfresh.",
+    "required_remaining_validation": "Finalcurrentdev3filePRfocusedlifecyclecompile/test, normalrequiredCandidateandacceptedrelevantnativeIntegration; investigateonlyactualfailure/relevantsemanticchange.",
+    "reopen_runtime_need_if": [
+      "clearing/claim/releaseinvariantchanges",
+      "entry/map/grant/profile/lifecycleimplementationchangessemantically",
+      "newtimingclaimrequiressamemeasuredcurrentbinary",
+      "normalCIexposesrealregression"
+    ]
+  },
+  "packet_plan": [
+    "Threefileclearingproductdeltaonly;addconciseevidenceindex/docslinkingexactpublishedhistoricalcomponentpackets.",
+    "Addnormalpair+traplosslessreceipts/logs/reviews/arrayswithmeasuredvsdocumentaryheadanddistinctimageclasses.",
+    "Retainalloriginalfailednormalarms,nativepreparatoryfailures,andrawcountercontrols.",
+    "DescribePCIDnotadvertised/noimplementationandtimer-in-CPL3scope;noinventedphysical/fullIRQ/pureIRETgate.",
+    "Review/normalCandidate/merge/relevantacceptedchecks,comparefinalthreeproductblobsandcriticalunchangedpaths,thenclose6183withexactscope."
+  ],
+  "actions": "Readonlygitobjects/localreceipts;noGH/build/cache/sourcechanges.",
+  "host_grant_boundary": {
+    "unchanged_subtrees": [
+      "targets/conduitos/mask-offer",
+      "architecture/core/src"
+    ],
+    "changed_callsite": "native_face_mask/preparation.rs selects the existing Collection offer explicitly; profile/grant implementation unchanged. Source/Patchbay authority restricts EditCurrent for targets without Plan, not low-level page/I/O grants.",
+    "assessment": "Current high-level product behavior is not byte-identical. No weakening of pool/map/entry/lease/profile/grant primitives found; normal required current native CI remains an integration gate."
+  },
+  "root_refreshed_correspondence": {
+    "current_remote_dev": "e57706b15e65f075d6cfa9783de3c5fe44836b2c",
+    "exact_files_verified": 130,
+    "bad": [],
+    "claim": "Only listed owning objects exact; later SourceUI/routes and std nativeadapter remain separate shared-source changes"
+  }
+}
