@@ -1,5 +1,7 @@
 //! Root provisioning policy, never a received grant or a fixture issuer. One
 //! acknowledged private setup may read once and attempt one selected join.
+#[path = "native_wait_authority.rs"]
+mod wait;
 use conduit_core as c;
 use conduit_network_join_call::installation::NetworkNativeIdentity;
 use sha2::{Digest, Sha256};
@@ -51,6 +53,7 @@ pub struct RootIssuer {
     boot: c::BootId,
     key: [u8; 32],
     issued: [bool; 2],
+    wait_issued: bool,
     last_play_sequence: u64,
     reserved_play: Option<c::ActivePlayIdentity>,
 }
@@ -69,6 +72,7 @@ impl RootIssuer {
             boot: boot.into(),
             key,
             issued: [false; 2],
+            wait_issued: false,
             last_play_sequence: 0,
             reserved_play: None,
         })

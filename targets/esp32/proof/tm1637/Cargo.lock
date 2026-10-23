@@ -246,6 +246,7 @@ dependencies = [
  "conduit-pulse-capture",
  "conduit-rp2040-network-realization",
  "conduit-seven-segment-mask",
+ "conduit-time",
  "conduit-tm1637-wire",
  "embassy-executor",
  "embassy-futures",

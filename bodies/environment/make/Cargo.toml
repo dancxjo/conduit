@@ -37,6 +37,7 @@ conduit-plot = { path = "../../../architecture/plot", features = ["flat-image"] 
 serde_json = "1"
 
 [dev-dependencies]
+conduit-monotonic-wait = { path = "../../../mechanisms/io/monotonic-wait" }
 conduit-environment-face = { path = "../face" }
 serde = { version = "1", features = ["derive"] }
 conduit-web = { path = "../../../semantics/web", default-features = false }

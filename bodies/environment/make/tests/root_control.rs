@@ -1,6 +1,7 @@
 //! Production MCU composition logic with CPU-only entropy/Boot/radio providers.
 //! No physical Root, network, image attestation or Body installation is claimed.
 extern crate self as esp_hal;
+extern crate alloc;
 use conduit_core as c;
 use conduit_environment_http::network_setup::*;
 use conduit_net as net;
@@ -208,3 +209,6 @@ fn issuer_requires_entropy_and_never_falls_back_to_a_fixture_key() {
 
 #[path = "root_control_support/sequences.rs"]
 mod sequences;
+
+#[path = "root_control_support/wait.rs"]
+mod wait;
