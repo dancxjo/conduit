@@ -26,8 +26,11 @@ type ComponentLayoutGroup = {
     break_policy: ComponentLayoutBreak
     gap_em_sixteenths: U16 in 0..=256
     padding_em_sixteenths: U16 in 0..=256
-    grow: U8 in 0..=16
-    shrink: U8 in 0..=16
+# Inline weights negotiate logical inline extent only. They are not CSS
+# main-axis flex or vertical/block flexible space. Native first consumer admits
+# inline_shrink 0 (preferred is required) or 1 (minimum is required).
+    inline_grow: U8 in 0..=16
+    inline_shrink: U8 in 0..=16
 }
 
 type ComponentLayoutGrid = {

@@ -15,6 +15,9 @@ pub fn component_layout_type() -> conduit_core::StructuredInfoType {
 
 /// The existing Fore identity with an explicit contract revision and required
 /// layout configuration. Existing component-mask@2 construction is unchanged.
+/// ComponentRecipeInfo supplies existing identity and typed region bindings;
+/// ComponentLayoutInfo owns @3 composition. Legacy gutter/reflow/column fields
+/// and geometry_for_width remain @2 geometry, not a second @3 layout authority.
 #[cfg(feature = "plot-catalog")]
 pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
     use conduit_core::*;
@@ -26,10 +29,10 @@ pub fn layout_component_mask_kind(maximum_bytes: u32) -> conduit_core::Kind {
         ComponentLayoutBreak::AccessibleContinuation,
         BoundedSequence::try_from_iter([child(1), child(2)]).unwrap(),
         8,
-        0,
         ComponentLayoutAlignment::Stretch,
-        8,
+        0,
         1,
+        8,
     )
     .unwrap();
     let layout = ComponentLayoutInfo::new(

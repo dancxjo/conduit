@@ -122,3 +122,44 @@ native Mask tests and strict native all-target Clippy pass. A first native
 compile found an older generated Face output in the shared cross-worktree cache;
 forcing the current build script to regenerate its output corrected that local
 cache state. The failed diagnostics and positive results are retained separately.
+
+
+## First native row/column consumer (preparation only)
+
+The native preparation path now consumes the checked layout using selected ink
+metrics, bottom-up demands and top-down inline allocation. Both authored
+candidates are measured; lexicographic page count and total fragment block
+extent select the result, with authored order breaking ties. There is no fixed
+viewport breakpoint. Weights are named `inline_grow` and `inline_shrink` to make
+their axis explicit; they do not claim CSS main-axis or block flex behavior.
+Grid and unsupported shrink weights refuse this consumer and retain the complete
+generic fallback. Version-two configuration remains on its existing path.
+
+Accessible continuations take the largest safe prefix fitting remaining height,
+row and command budgets. Declared Keep groups and associated field clusters
+that fit a fresh page remain indivisible. Continuations retain inherited group
+padding. Each split scans at most twenty rows. Original semantic item/chunk
+indices determine traversal; geometry does not reorder controls. Limits remain
+48 commands, 192 text bytes and twenty rows per page.
+
+A real-domain CPU conformance case compiles the reviewed Crèche and Todo sources
+and retains their complete content, control identities, disjoint rows, actual
+frame hit targets and original Face at 1280×800, 640×480 and 320×480. Wide cases
+must actually use two columns; narrow Crèche must collapse coherently. The first
+wide Crèche assertion exposed coarse fragment packing: wide measured two pages
+and 1112 block units, losing to narrow at two pages and 1040. Safe-prefix packing
+reduced wide to two pages and 852 without a domain-specific rule. At 320 pixels,
+wide needs five pages versus four for narrow. A separate initial Todo assertion
+used the absent TextEntry region; correcting it to the real Collection region
+retains the two-column requirement. Both negative records are preserved.
+
+Ten mechanical tests, the real-domain six-extent case and strict all-target
+Clippy for native, Face and native offers pass. These are preparation/CPU results.
+The ordinary Host offer remains test-fenced. Candidate storage is bounded by
+MAX_ROWS, but the simultaneous current/best candidate peak has not yet been
+measured and admitted in the freestanding application grant. No normal-runtime,
+QEMU, browser or complete #6159 acceptance is claimed. Grid, block flexibility,
+selected runtime admission and required platform proof remain open.
+
+All twenty-one existing native Mask tests also pass after installing the optional
+layout dispatch; their log is retained as `native-layout-dispatch-tests.log.gz`.

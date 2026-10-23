@@ -3,6 +3,10 @@ use super::*;
 use crate::display::typography::Typography;
 use alloc::string::String;
 
+#[path = "layout/mechanical.rs"]
+mod mechanical;
+pub(super) use mechanical::admit as admit_mechanical;
+
 #[path = "layout/configured.rs"]
 mod configured;
 #[cfg(test)]

@@ -107,3 +107,57 @@ impl NativeFaceScene {
         Ok(scene)
     }
 }
+
+impl NativeFaceScene {
+    /// Consume checked structure over its exact immutable Face. This entrypoint
+    /// alone does not establish selected Back custody or Show acknowledgement.
+    pub fn prepare_structured(
+        structure: &conduit_face::PreparedComponentLayout<'_>,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        let mut scene = Self::prepare_with_input(
+            structure.face().clone(),
+            width,
+            height,
+            interaction_admitted,
+        )?;
+        let (mut primary, details) = document::prepare(&scene.face, interaction_admitted)?;
+        for item in &mut primary {
+            item.region_order = item.subject_index.and_then(|subject| {
+                structure
+                    .recipe()
+                    .subject_regions
+                    .get(subject)
+                    .copied()
+                    .flatten()
+            });
+            item.region = item
+                .region_order
+                .and_then(|region| structure.recipe().recipe.regions().as_slice().get(region))
+                .map(|region| *region.group());
+        }
+        let scale = expression.expression.text_scale_percent;
+        let typography = Typography::new(expression.expression.typography);
+        let padding = match expression.expression.density {
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        scene.primary =
+            layout::admit_mechanical(primary, scene.screen, structure, scale, padding, typography)?;
+        scene.details = layout::admit_with_expression_selected(
+            details,
+            scene.screen,
+            SPACE_XL,
+            1,
+            scale,
+            padding,
+            typography,
+        )?;
+        scene.text_scale_percent = scale;
+        scene.typography = typography;
+        Ok(scene)
+    }
+}

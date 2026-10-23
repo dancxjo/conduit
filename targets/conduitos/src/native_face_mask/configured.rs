@@ -31,36 +31,57 @@ impl NativeFaceMask {
             configuration.recipe.canonical_value(),
         )
         .map_err(|_| NativeFaceMaskError::Plan)?;
-        let scene = match conduit_face::prepare_component_recipe(recipe, face) {
-            Ok(prepared) => {
-                let configured = NativeFaceScene::prepare_configured(
+        // Preparation failures and renderer capacity failures retain separate
+        // reasons. Neither can turn a partial configured scene into a Show.
+        let configured = if let Some(layout) = &configuration.layout {
+            let layout =
+                conduit_core::StructuredInfoValue::from_canonical_bytes(layout.canonical_value())
+                    .map_err(|_| NativeFaceMaskError::Plan)?;
+            conduit_face::prepare_component_layout(layout, recipe, face)
+                .map(|prepared| {
+                    NativeFaceScene::prepare_structured(
+                        &prepared,
+                        width,
+                        height,
+                        interaction_admitted,
+                        &expression,
+                    )
+                })
+                .map_err(|error| alloc::format!("LayoutPreparation({error:?})"))
+        } else {
+            conduit_face::prepare_component_recipe(recipe, face)
+                .map(|prepared| {
+                    NativeFaceScene::prepare_configured(
+                        face.clone(),
+                        width,
+                        height,
+                        interaction_admitted,
+                        &prepared,
+                        &expression,
+                    )
+                })
+                .map_err(|error| alloc::format!("{error:?}"))
+        };
+        let scene = match configured {
+            Ok(Ok(scene)) => Ok(scene),
+            Ok(Err(
+                error @ (FaceSceneError::InvalidExtent
+                | FaceSceneError::DocumentBound
+                | FaceSceneError::SceneBound
+                | FaceSceneError::UnsupportedStructure),
+            )) => {
+                fallback = Some(alloc::format!("ConfiguredLayout({error:?})"));
+                NativeFaceScene::prepare_visual_fallback(
                     face.clone(),
                     width,
                     height,
                     interaction_admitted,
-                    &prepared,
                     &expression,
-                );
-                match configured {
-                    Err(
-                        error @ (FaceSceneError::InvalidExtent
-                        | FaceSceneError::DocumentBound
-                        | FaceSceneError::SceneBound),
-                    ) => {
-                        fallback = Some(alloc::format!("ConfiguredLayout({error:?})"));
-                        NativeFaceScene::prepare_visual_fallback(
-                            face.clone(),
-                            width,
-                            height,
-                            interaction_admitted,
-                            &expression,
-                        )
-                    }
-                    result => result,
-                }
+                )
             }
-            Err(error) => {
-                fallback = Some(alloc::format!("{error:?}"));
+            Ok(Err(error)) => Err(error),
+            Err(reason) => {
+                fallback = Some(reason);
                 NativeFaceScene::prepare_visual_fallback(
                     face.clone(),
                     width,

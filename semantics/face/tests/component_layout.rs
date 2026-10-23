@@ -64,10 +64,10 @@ fn group(children: Vec<ComponentLayoutChild>) -> ComponentLayoutGroup {
         ComponentLayoutBreak::AccessibleContinuation,
         BoundedSequence::try_from_iter(children).unwrap(),
         8,
-        1,
         ComponentLayoutAlignment::Stretch,
-        16,
         1,
+        1,
+        16,
     )
     .unwrap()
 }
@@ -388,28 +388,28 @@ fn node_column(
     g: ComponentLayoutGroup,
 ) -> Result<ComponentLayoutNode, conduit_plot::rust_binding::NativeBindingRefusal> {
     ComponentLayoutNode::column(
-        g.block_alignment().clone(),
-        g.break_policy().clone(),
+        *g.block_alignment(),
+        *g.break_policy(),
         g.children().clone(),
         *g.gap_em_sixteenths(),
-        *g.grow(),
-        g.inline_alignment().clone(),
+        *g.inline_alignment(),
+        *g.inline_grow(),
+        *g.inline_shrink(),
         *g.padding_em_sixteenths(),
-        *g.shrink(),
     )
 }
 fn row(
     g: ComponentLayoutGroup,
 ) -> Result<ComponentLayoutNode, conduit_plot::rust_binding::NativeBindingRefusal> {
     ComponentLayoutNode::row(
-        g.block_alignment().clone(),
-        g.break_policy().clone(),
+        *g.block_alignment(),
+        *g.break_policy(),
         g.children().clone(),
         *g.gap_em_sixteenths(),
-        *g.grow(),
-        g.inline_alignment().clone(),
+        *g.inline_alignment(),
+        *g.inline_grow(),
+        *g.inline_shrink(),
         *g.padding_em_sixteenths(),
-        *g.shrink(),
     )
 }
 fn grid(
