@@ -1,8 +1,9 @@
-//! Finite, read-only Root management framing. No request contains authority.
+//! Finite Root management framing. Requests cannot install or start a Body.
 pub const MAXIMUM_REQUEST_BYTES: usize = 64;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Command {
     Offer,
+    Admission,
     SoftwareOffer,
     AppliancePolicy,
     AssignmentTransfer,
@@ -30,7 +31,9 @@ impl CommandBuffer {
                 let bytes = self.bytes[..self.used]
                     .strip_suffix(b"\r")
                     .unwrap_or(&self.bytes[..self.used]);
-                if bytes == b"offer" {
+                if bytes == b"CONDUIT_BODY_ADVERTISE_V1" {
+                    Command::Admission
+                } else if bytes == b"offer" {
                     Command::Offer
                 } else if bytes == b"software-offer" {
                     Command::SoftwareOffer
@@ -80,6 +83,13 @@ mod tests {
         for byte in b"assignment-transfer\n" {
             if *byte == b'\n' {
                 assert_eq!(buffer.push(*byte), Some(Command::AssignmentTransfer));
+            } else {
+                assert_eq!(buffer.push(*byte), None);
+            }
+        }
+        for byte in b"CONDUIT_BODY_ADVERTISE_V1\n" {
+            if *byte == b'\n' {
+                assert_eq!(buffer.push(*byte), Some(Command::Admission));
             } else {
                 assert_eq!(buffer.push(*byte), None);
             }

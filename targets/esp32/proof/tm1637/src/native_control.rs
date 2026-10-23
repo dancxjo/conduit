@@ -35,6 +35,17 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
         })
         .await;
         match command {
+            Ok(Ok(Command::Admission)) => {
+                // Malformed proof requests retire only this exchange, not Root.
+                if crate::native_admission_wire::serve(root, &mut uart, &mut output)
+                    .await
+                    .is_err()
+                {
+                    with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
+                        .await
+                        .map_err(|_| ())??;
+                }
+            }
             Ok(Ok(Command::AssignmentTransfer)) => {
                 crate::native_assignment::receive(root, &mut uart, &mut output).await?
             }

@@ -302,6 +302,7 @@ dependencies = [
 name = "conduit-esp32-tm1637-probe"
 version = "0.1.0"
 dependencies = [
+ "conduit-body",
  "conduit-core",
  "conduit-environment-http",
  "conduit-environment-make",
@@ -321,6 +322,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "conduit-time",
  "conduit-tm1637-wire",
+ "ed25519-dalek",
  "embassy-executor",
  "embassy-futures",
  "embassy-net",

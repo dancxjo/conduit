@@ -218,3 +218,6 @@ mod pulse;
 mod policy;
 #[path = "root_control_support/assignment.rs"]
 mod native_assignment;
+
+#[path = "root_control_support/admission.rs"]
+mod admission;

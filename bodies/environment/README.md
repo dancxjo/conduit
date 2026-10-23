@@ -1101,3 +1101,21 @@ authority and Body start remain fixtures, and files carry the proof transport
 between the native kernel and Chromium. It does not establish the real browser
 recorder's Body/Line lifecycle, durable Root catalog-seed custody, MCU climate
 memory closure or a physical overnight deployment.
+
+## Native Host admission proof
+
+The ESP32 Root preparation image answers `CONDUIT_BODY_ADVERTISE_V1` on its
+bounded UART management carrier using the existing Body ambient challenge and
+proof documents. Its Boot-local Ed25519 key comes from hardware TRNG with no
+zero-entropy fallback. The actual current native advertisement and public key
+are observation material: the owner must authorize the expected device/key
+before the ordinary AdmissionManager verifies and consumes a challenge.
+
+The UART carrier admits an 8 KiB advertisement, a 1 KiB challenge, five seconds
+to receive it and two seconds per response. The original Pico USB carrier keeps
+its own 4 KiB limit. Neither a returned signature nor an admission credential
+installs an environmental Body, issues effect authority or starts a Play.
+The responder validates current Host/Boot/offer generation; the Body authority
+checks expiry in its own clock domain and rejects replay. CPU conformance uses
+the production responder and ordinary Body verifier. Physical responder and
+membership proof remain outstanding until the new image is flashed and tested.

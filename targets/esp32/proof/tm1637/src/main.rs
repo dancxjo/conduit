@@ -19,6 +19,10 @@ mod native_assignment;
 #[cfg(feature = "native-root")]
 mod native_authority;
 #[cfg(feature = "native-root")]
+mod native_admission;
+#[cfg(feature = "native-root")]
+mod native_admission_wire;
+#[cfg(feature = "native-root")]
 mod native_command;
 #[cfg(feature = "native-root")]
 mod native_control;

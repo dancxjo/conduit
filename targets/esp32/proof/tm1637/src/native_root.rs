@@ -6,6 +6,8 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    admission: crate::native_admission::NativeAdmission,
+    admission_freshness: u64,
     network_preparation: Option<
         Result<
             crate::network_planning::PreparedNetworkSetup,
@@ -81,7 +83,16 @@ impl NativeRoot {
         }
         .unwrap();
         let (credentials, credential_writer) = crate::native_credentials::prepare(&host, &boot);
+        let mut seed = [0; 32];
+        esp_hal::rng::Trng::try_new()
+            .expect("Root admission entropy")
+            .read(&mut seed);
+        let admission = crate::native_admission::NativeAdmission::new(seed)
+            .expect("Root admission requires nonzero entropy");
+        seed.fill(0);
         Self {
+            admission,
+            admission_freshness: 0,
             network_preparation: None,
             network_source,
             credentials: Some(credentials),
@@ -100,6 +111,40 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    pub fn write_admission_offer(&mut self, output: &mut [u8]) -> Result<usize, ()> {
+        self.admission_freshness = self.admission_freshness.checked_add(1).ok_or(())?;
+        #[derive(serde::Serialize)]
+        struct Offer<'a> {
+            protocol: u16,
+            advertisement: &'a c::HostAdvertisement,
+            friendly_label: &'static str,
+            verifying_key: [u8; 32],
+            freshness_sequence: u64,
+        }
+        let advertisement = self.advertisement()?;
+        let offer = Offer {
+            protocol: conduit_body::PICO_ADMISSION_PROTOCOL,
+            advertisement: &advertisement,
+            friendly_label: "Conduit climate ESP32",
+            verifying_key: self.admission.verifying_key(),
+            freshness_sequence: self.admission_freshness,
+        };
+        let output = output
+            .get_mut(..crate::native_admission::MAXIMUM_ADVERTISEMENT_BYTES)
+            .ok_or(())?;
+        serde_json_core::to_slice(&offer, output).map_err(|_| ())
+    }
+    pub fn sign_admission(
+        &self,
+        challenge: &conduit_body::PicoAdmissionChallenge<'_>,
+    ) -> Result<[u8; 64], ()> {
+        self.admission.sign(
+            challenge,
+            self.host.as_str(),
+            self.boot.as_str(),
+            self.offer_generation,
+        )
     }
     pub fn offer_scope(&self) -> (&c::HostId, &c::BootId, c::OfferGeneration) {
         (
