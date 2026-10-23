@@ -1,6 +1,6 @@
 //! Explicit selected-Back preparation for the version-three contract.
-//! Ordinary Host advertisements do not offer this Back. Callers must possess
-//! an observed matching offer; availability is not inferred from the consumer.
+//! Deployment explicitly offers initialized layout support. Callers must retain
+//! an observed matching offer; availability is not inferred from viewport size.
 use super::*;
 use conduit_core::*;
 use conduit_face::{ConfiguredMaskConfiguration, layout_component_mask_kind};
@@ -92,6 +92,54 @@ pub fn prepare_layout_component_document(
             capability: NATIVE_LAYOUT_COMPONENT_CAPABILITY,
         },
     )
+}
+
+/// Deployment entrance for a native consumer implementing checked layouts.
+/// Storage and surface possession remain the caller's explicit preparation.
+/// Older native advertisements retain their version-two contract.
+pub fn native_layout_host_advertisement(
+    host: &HostId,
+    boot: &BootId,
+    generation: u64,
+    surface: &BaseProviderEntry,
+    profile: NativeMaskStorageProfile,
+) -> HostAdvertisement {
+    let mut offer = renderer_host_for_profile(
+        Adapter::Native,
+        host,
+        boot,
+        generation,
+        Some(surface),
+        profile,
+    );
+    // This deployment realizes the new contract instead of advertising two
+    // configured renderers and duplicating their startup schemas in every join.
+    offer
+        .capabilities
+        .retain(|back| back.capability_id.as_str() != "renderer-conduitos-component");
+    offer
+        .capabilities
+        .push(layout_resource_renderer_offer(profile));
+    offer
+}
+
+/// Select from the exact observed offer. A malformed advertised layout Back
+/// refuses in checked planning; only its absence retains the older contract.
+pub(super) fn prepare_offered_component_document(
+    host: &HostAdvertisement,
+    sources: (&str, &str),
+    root: &str,
+    profile: NativeMaskStorageProfile,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    if host
+        .capabilities
+        .iter()
+        .any(|offer| offer.capability_id.as_str() == NATIVE_LAYOUT_COMPONENT_CAPABILITY)
+    {
+        prepare_layout_component_document(host, sources.1, root, profile)
+    } else {
+        configured::prepare_component_document(host, sources.0, root, profile)
+    }
 }
 
 #[cfg(test)]

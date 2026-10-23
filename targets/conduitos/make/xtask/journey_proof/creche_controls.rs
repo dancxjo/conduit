@@ -1,10 +1,10 @@
 //! Separate finite real-QMP Crèche control proof. No product/UI state is added.
 use super::super::{qemu_artifacts::Artifacts, qmp};
 use super::{
-    creche_choices, face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError,
-    JourneyIdentity,
+    ConduitosError, JourneyIdentity, creche_choices, face_correspondence, hid_qmp, io_error,
+    journey_input, refusal,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod custody;
 mod evidence;
@@ -164,7 +164,7 @@ pub(super) fn exercise(
             "final_image_id":metadata["target_build_manifest"]["image_id"],"canonical_build_metadata":metadata,"boot_sign":boot,"initial_world":world,
         }),
         json!({
-            "route":"explicitly selected creche-mask-columns baseline with checked component/recipe and acknowledged Source/Show chain; no retrospective initial-recipe claim",
+            "route":"explicitly selected creche-mask-columns baseline with checked component/recipe/layout and acknowledged Source/Show chain; no retrospective initial-recipe claim",
             "arrival_acknowledged_face":arrival.record,"selected_recipe":selected_recipe,
             "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
@@ -251,7 +251,7 @@ fn keys_for(bytes: &[u8]) -> Result<Vec<Vec<String>>, ConduitosError> {
                 _ => {
                     return Err(refusal(
                         "probe name needs unsupported HID spelling; no Source changed",
-                    ))
+                    ));
                 }
             })
         })

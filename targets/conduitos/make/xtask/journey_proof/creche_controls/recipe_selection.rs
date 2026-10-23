@@ -99,16 +99,9 @@ pub(super) fn select(
         new_show(&seen_shows, &fresh.record["show"]["show_id"])?;
         fields(record, &previous, &fresh.record, &boot, choice)?;
         seen_shows.push(fresh.record["show"]["show_id"].clone());
-        let identity = json!({"component":record["configuration"]["component"],
-            "recipe_canonical_sha256":record["configuration"]["recipe_canonical_sha256"],
-            "recipe_canonical_bytes":record["configuration"]["recipe_canonical_bytes"]});
-        if configuration
-            .as_ref()
-            .is_some_and(|prior| prior != &identity)
-        {
-            return Err(refusal(
-                "two F6 selections changed checked component or recipe",
-            ));
+        let identity = structure_identity(&record["configuration"]);
+        if let Some(prior) = &configuration {
+            unchanged_structure(prior, &identity)?;
         }
         configuration = Some(identity);
         previous = fresh.record;
@@ -125,6 +118,22 @@ pub(super) fn select(
         "physical_evidence":false}),
     )
 }
+fn structure_identity(configuration: &Value) -> Value {
+    json!({"component":configuration["component"],
+        "recipe_canonical_sha256":configuration["recipe_canonical_sha256"],
+        "recipe_canonical_bytes":configuration["recipe_canonical_bytes"],
+        "layout_canonical_sha256":configuration["layout_canonical_sha256"],
+        "layout_canonical_bytes":configuration["layout_canonical_bytes"]})
+}
+fn unchanged_structure(prior: &Value, next: &Value) -> Result<(), ConduitosError> {
+    if prior != next {
+        return Err(refusal(
+            "two F6 selections changed checked component, recipe or layout",
+        ));
+    }
+    Ok(())
+}
+
 fn new_show(seen: &[Value], fresh: &Value) -> Result<(), ConduitosError> {
     if fresh.as_str().is_none_or(str::is_empty) || seen.contains(fresh) {
         return Err(refusal("recipe selection replayed a prior Show"));
@@ -197,12 +206,16 @@ fn fields(
             .iter()
             .any(|key| config["component"][*key].as_str().is_none_or(str::is_empty))
         || config["component"]["source_document_id"] != show["mask_plot"]["source_document_id"]
-        || config["recipe_canonical_bytes"]
-            .as_u64()
-            .is_none_or(|n| n == 0)
-        || config["recipe_canonical_sha256"]
-            .as_str()
-            .is_none_or(|h| h.len() != 64 || !h.bytes().all(|b| b.is_ascii_hexdigit()))
+        || ["recipe_canonical_bytes", "layout_canonical_bytes"]
+            .iter()
+            .any(|key| config[*key].as_u64().is_none_or(|n| n == 0))
+        || ["recipe_canonical_sha256", "layout_canonical_sha256"]
+            .iter()
+            .any(|key| {
+                config[*key]
+                    .as_str()
+                    .is_none_or(|h| h.len() != 64 || !h.bytes().all(|b| b.is_ascii_hexdigit()))
+            })
         || expression["outcome"] != "Selected"
         || expression["platform_forced_colors"] != false
         || expression["accessibility_overrides"]

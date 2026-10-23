@@ -260,3 +260,43 @@ The final retained logs are `post-pressure-merge-mask-tests.log.gz` and
 `post-pressure-merge-clippy.log.gz`. No new CI campaign was queued for this held
 preparation branch. Normal-runtime selection and required QEMU admission/proof
 are the next remaining implementation boundary.
+
+## Explicit normal native deployment (in preparation)
+
+The normal product now explicitly offers the @3 layout Back and the existing
+configured wrappers select it only from that exact observed offer. Legacy
+advertisement APIs remain @2. A malformed advertised new Back refuses rather
+than silently downgrading. The actual Mask Play dispatches the selected new
+renderer through its existing finite renderer realization. CPU evidence: 24
+actual native Mask tests, 11 Mask Play tests, 10 deployment offer tests, 10
+collector tests and four boot collector tests pass. These are not a new QEMU
+run. Current collector receipts require exact new implementation/capability
+identities and both recipe and layout canonical fingerprints; old or mixed
+renderer tuples refuse, and Look changes cannot substitute layout structure.
+
+### Join prerequisite #6288
+
+The first real-product join tests caught `JoinError::Bound`. Replacing the old
+configured Back with the new one (rather than advertising both) leaves the
+representative 64-byte Host/Boot advertisement at 32,570 bytes. Its complete
+serial observation is 33,310 bytes and routed request is 33,205 bytes. Neither
+fits the former 32 KiB envelope. Both negative runs and the size diagnostic
+are retained beside the positive checks. No configuration or semantic contract
+is omitted, no fabricated smaller default is installed, and no fallback
+renderer is removed to make the packet fit.
+
+#6288 explicitly admits a 48 KiB serial envelope and WebSocket frame, with the
+maximum binary payload excluding the same 14-byte framing overhead. The pure
+protected Network codec and local codec share the same ceiling, checked by a
+compile-time equality assertion. Fixed local receive/transmit arrays grow by
+16 KiB each; protected framer receive/transmit, State input/output and Root
+frame/payload auxiliary storage grow by 16 KiB per corresponding buffer. The
+protected 16 KiB exchange window remains unchanged and carries chunks. The
+Network heap grant and Application private grant remain unchanged. Actual
+native admission remains required; CPU bounds checks do not prove memory
+headroom. Semantic scene limits remain 48 commands, 192-byte text, 20 rows and
+eight retained surfaces. Exact-product serial/routed tests now pass, retain
+non-membership/no-Plan/no-Play facts, test longer identities and refuse oversized
+requests. Four fixed-storage WebSocket checks and final strict all-target Clippy
+for native, Face, native offers and Network core pass. Required QEMU remains
+pending.

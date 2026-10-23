@@ -1,5 +1,5 @@
-use super::{validate, GuestBootSign};
-use serde_json::{json, Value};
+use super::{GuestBootSign, validate};
+use serde_json::{Value, json};
 
 fn arrival() -> (GuestBootSign, Value) {
     let boot = GuestBootSign {
@@ -48,6 +48,7 @@ fn arrival_refuses_creche_renderers_before_commons() {
     for implementation in [
         "face/renderer-conduitos-native@1",
         "face/renderer-conduitos-component@1",
+        "face/renderer-conduitos-layout-component@1",
     ] {
         let (boot, mut journey) = arrival();
         journey["presenter_implementation_id"] = json!(implementation);

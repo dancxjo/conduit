@@ -4,6 +4,7 @@ use alloc::{string::String, vec, vec::Vec};
 use conduit_body::{
     BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology, BodyPlan, BodyPlayIdentity, ResidentPlot,
 };
+#[cfg(test)]
 pub use conduit_conduitos_mask_offer::native_host_advertisement;
 pub(super) use conduit_conduitos_mask_offer::{Adapter, MaskStage, prepare_stage};
 use conduit_core::HostId;

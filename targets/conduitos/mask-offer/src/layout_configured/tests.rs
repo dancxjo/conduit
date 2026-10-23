@@ -1,4 +1,4 @@
-//! Planning/custody only. The ordinary advertisement does not select this Back.
+//! Exact observed deployment selects the contract; legacy advertisements stay unchanged.
 use super::*;
 
 const SOURCE: &str = r#"
@@ -55,9 +55,23 @@ fn host(profile: NativeMaskStorageProfile) -> HostAdvertisement {
             .iter()
             .any(|offer| { offer.kind_id.as_str() == NATIVE_LAYOUT_COMPONENT_RENDERER_KIND })
     );
+    let legacy = match profile {
+        NativeMaskStorageProfile::Standard => {
+            native_host_advertisement(&host.host_id, &host.boot_id, 1, &provider)
+        }
+        NativeMaskStorageProfile::Collection => {
+            collection_native_host_advertisement(&host.host_id, &host.boot_id, 1, &provider)
+        }
+    };
+    assert_eq!(legacy, host);
+    let deployed =
+        native_layout_host_advertisement(&host.host_id, &host.boot_id, 1, &provider, profile);
+    host.capabilities
+        .retain(|offer| offer.capability_id.as_str() != "renderer-conduitos-component");
     host.capabilities
         .push(layout_resource_renderer_offer(profile));
-    host
+    assert_eq!(deployed, host);
+    deployed
 }
 
 #[test]
@@ -147,5 +161,113 @@ fn reviewed_creche_and_todo_sources_plan_both_structural_alternatives() {
         assert!(configuration.layout.is_some());
         assert_eq!(configuration.invocation_path[0], root);
         assert_eq!(configuration.host_id, host.host_id);
+    }
+}
+
+fn actual_wrappers(
+    host: &HostAdvertisement,
+    profile: NativeMaskStorageProfile,
+) -> Vec<Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError>> {
+    use conduit_face::{ComponentVisualSelection, CrecheComponentRecipe, TodoComponentRecipe};
+    let selection = ComponentVisualSelection::default();
+    let mut results = Vec::new();
+    for recipe in [
+        CrecheComponentRecipe::SingleColumn,
+        CrecheComponentRecipe::ResponsiveColumns,
+    ] {
+        results.push(match profile {
+            NativeMaskStorageProfile::Standard => {
+                prepare_selected_creche_stage_from_offer(host, recipe, selection)
+            }
+            NativeMaskStorageProfile::Collection => {
+                prepare_collection_creche_stage_from_offer(host, selection, recipe)
+            }
+        });
+    }
+    for recipe in [TodoComponentRecipe::Flat, TodoComponentRecipe::Grouped] {
+        results.push(match profile {
+            NativeMaskStorageProfile::Standard => {
+                prepare_selected_component_stage_from_offer(host, selection, recipe)
+            }
+            NativeMaskStorageProfile::Collection => {
+                prepare_collection_component_stage_from_offer(host, selection, recipe)
+            }
+        });
+    }
+    results
+}
+
+#[test]
+fn actual_wrappers_select_only_explicitly_deployed_layout_at_each_storage_profile() {
+    for profile in [
+        NativeMaskStorageProfile::Standard,
+        NativeMaskStorageProfile::Collection,
+    ] {
+        let deployed = host(profile);
+        let mut legacy = deployed.clone();
+        legacy
+            .capabilities
+            .retain(|offer| offer.capability_id.as_str() != NATIVE_LAYOUT_COMPONENT_CAPABILITY);
+        legacy
+            .capabilities
+            .push(configured::configured_resource_renderer_offer_for_profile(
+                profile,
+            ));
+        for (host, layout) in [(&legacy, false), (&deployed, true)] {
+            for result in actual_wrappers(host, profile) {
+                let (stage, configuration) = result.unwrap();
+                assert_eq!(configuration.layout.is_some(), layout);
+                assert_eq!(configuration.host_id, host.host_id);
+                assert_eq!(
+                    configuration.component.source_document_id,
+                    stage.planned_mask.mask.plot_identity.source_document_id
+                );
+                let expected = if layout {
+                    NATIVE_LAYOUT_COMPONENT_RENDERER_KIND
+                } else {
+                    NATIVE_COMPONENT_RENDERER_KIND
+                };
+                let selected = stage
+                    .planned_mask
+                    .plan
+                    .fragments
+                    .iter()
+                    .flat_map(|fragment| &fragment.placements)
+                    .find(|placement| placement.kind_id.as_str() == expected)
+                    .unwrap();
+                assert_eq!(selected.host_calls[0].maximum_input_bytes, profile.bytes());
+                assert_eq!(selected.host_calls[0].maximum_output_bytes, profile.bytes());
+                assert_eq!(
+                    selected
+                        .configuration
+                        .iter()
+                        .any(|field| field.key == "layout"),
+                    layout
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn malformed_advertised_layout_refuses_actual_wrappers_instead_of_downgrading() {
+    for profile in [
+        NativeMaskStorageProfile::Standard,
+        NativeMaskStorageProfile::Collection,
+    ] {
+        let mut malformed = host(profile);
+        let offer = malformed
+            .capabilities
+            .iter_mut()
+            .find(|offer| offer.capability_id.as_str() == NATIVE_LAYOUT_COMPONENT_CAPABILITY)
+            .unwrap();
+        // A correct capability name does not authenticate the old renderer as @3.
+        *offer = configured::configured_resource_renderer_offer_for_profile(profile);
+        offer.capability_id = NATIVE_LAYOUT_COMPONENT_CAPABILITY.into();
+        assert!(
+            actual_wrappers(&malformed, profile)
+                .into_iter()
+                .all(|result| result.is_err())
+        );
     }
 }

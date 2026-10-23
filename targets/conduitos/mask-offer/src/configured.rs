@@ -88,9 +88,9 @@ pub fn prepare_selected_component_stage_from_offer(
     selection: ComponentVisualSelection,
     recipe: TodoComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    prepare_component_document(
+    layout_configured::prepare_offered_component_document(
         host,
-        TODO_COMPONENT_MASK_SOURCE,
+        (TODO_COMPONENT_MASK_SOURCE, TODO_LAYOUT_MASK_SOURCE),
         selection.todo_root(recipe),
         NativeMaskStorageProfile::Standard,
     )
@@ -108,9 +108,9 @@ pub fn prepare_selected_creche_stage_from_offer(
     recipe: CrecheComponentRecipe,
     selection: ComponentVisualSelection,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    prepare_component_document(
+    layout_configured::prepare_offered_component_document(
         host,
-        CRECHE_COMPONENT_MASK_SOURCE,
+        (CRECHE_COMPONENT_MASK_SOURCE, CRECHE_LAYOUT_MASK_SOURCE),
         selection.creche_root(recipe),
         NativeMaskStorageProfile::Standard,
     )

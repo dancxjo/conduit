@@ -1,7 +1,7 @@
 //! CPU checked Source/Plan/Mask/scanout proof; actual QEMU remains separate.
 use super::*;
 use crate::native_face_scene::raster_layout_tests::Pixels;
-use conduit_face::{CrecheComponentRecipe, prepare_component_recipe};
+use conduit_face::{CrecheComponentRecipe, prepare_component_layout};
 use conduit_human::{KeyModifiers, KeyTransition};
 
 #[test]
@@ -35,7 +35,19 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
                 3
             );
             let configuration = mask.component_configuration().unwrap();
-            let prepared = prepare_component_recipe(
+            assert_eq!(
+                configuration.implementation_id.as_str(),
+                "face/renderer-conduitos-layout-component@1"
+            );
+            let prepared = prepare_component_layout(
+                conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    configuration
+                        .layout
+                        .as_ref()
+                        .expect("selected layout contract")
+                        .canonical_value(),
+                )
+                .unwrap(),
                 conduit_core::StructuredInfoValue::from_canonical_bytes(
                     configuration.recipe.canonical_value(),
                 )
@@ -43,15 +55,20 @@ fn checked_creche_masks_admit_three_fields_and_present_both_column_counts() {
                 &face,
             )
             .unwrap();
-            let columns = prepared.geometry_for_width(width).unwrap().columns;
+            assert_eq!(prepared.face(), &face);
             assert_eq!(
-                columns,
-                if width == 1280 && recipe == CrecheComponentRecipe::ResponsiveColumns {
+                prepared.structure().candidates().len(),
+                if recipe == CrecheComponentRecipe::ResponsiveColumns {
                     2
                 } else {
                     1
                 }
             );
+            let columns = if width == 1280 && recipe == CrecheComponentRecipe::ResponsiveColumns {
+                2
+            } else {
+                1
+            };
             let mut pixels = Pixels::new(width, height);
             mask.present(face.clone(), 1, 1, &mut pixels).unwrap();
             assert_eq!(mask.component_fallback(), None);
