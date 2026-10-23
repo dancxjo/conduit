@@ -21,6 +21,7 @@ pub(super) fn emit(
     snapshots: [DisplayObservation; 6],
     ack: AckRef,
     fresh_ack: AckRef,
+    zero: zero_record::Audit,
 ) {
     let [
         prepared,
@@ -130,5 +131,6 @@ pub(super) fn emit(
         arch::early_write(&buffer[..length]);
         arch::early_write(b"\n");
     }
-    arch::early_write(b"CONDUIT_COMPOSITOR_STOPPED_LIFECYCLE_RESULT {\"schema\":\"conduit.conduitos/compositor-stopped-lifecycle-result@1\",\"status\":\"completed\",\"stopped_owner_cancellation\":true,\"unfinished_upload_fenced\":true,\"staging_released\":true,\"old_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"same_retained_grant\":true,\"fresh_semantic_show_and_progress\":true,\"whole_zero_audited\":false,\"asynchronous_cancel\":false,\"guest_cpu_fault\":false,\"malformed_reply\":false,\"physical_scanout\":false}\n");
+    zero_record::emit(grant, &prepared.guest_image_sha256, ack, zero);
+    arch::early_write(b"CONDUIT_COMPOSITOR_STOPPED_LIFECYCLE_RESULT {\"schema\":\"conduit.conduitos/compositor-stopped-lifecycle-result@2\",\"status\":\"completed\",\"stopped_owner_cancellation\":true,\"unfinished_upload_fenced\":true,\"staging_released\":true,\"old_clients_refused\":true,\"stale_drop_preserves_replacement\":true,\"same_retained_grant\":true,\"fresh_semantic_show_and_progress\":true,\"whole_zero_audited\":true,\"asynchronous_cancel\":false,\"guest_cpu_fault\":false,\"malformed_reply\":false,\"physical_scanout\":false}\n");
 }

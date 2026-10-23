@@ -1,5 +1,5 @@
 //! Explicit stopped-owner cancellation and restart with the real embedded guest.
-//! No asynchronous cancellation, CPU fault, malformed reply or exhaustive-zero claim.
+//! No asynchronous cancellation, CPU fault, malformed reply or physical claim.
 use super::*;
 use crate::protected_compositor::{
     lifecycle::{
@@ -14,6 +14,8 @@ use conduitos_compositor_core::{
 };
 #[path = "cancellation/record.rs"]
 mod record;
+#[path = "cancellation/zero_record.rs"]
+mod zero_record;
 
 fn unfinished_upload(owner: &SharedDisplayOwner, session: SessionId) -> Handle {
     let mut owner = owner.borrow_mut();
@@ -117,8 +119,38 @@ pub(super) fn run() {
     let revision = draft.revision();
     // No guest entry or borrowed raster/chunk is running. Publication is fenced
     // before clearing; this is stopped-owner cancellation, not async preemption.
+    let capacity_bytes = old_owner
+        .borrow()
+        .preparation_report()
+        .staging_reserved_bytes;
+    let zero_token = arch::arm_service_zero_witness(
+        crate::service_memory::ServiceProfile::Compositor,
+        before.service.instance,
+    )
+    .unwrap_or_else(|_| refuse("cancel-zero-arm"));
+    if !old_owner
+        .borrow_mut()
+        .arm_staging_zero_witness(before.service.instance, zero_token.ordinal())
+    {
+        refuse("cancel-staging-zero-arm");
+    }
     old_owner.borrow_mut().quarantine();
     let disposed = old_owner.borrow().lifecycle_observation();
+    // Consume before fresh preparation could clear/reuse the old physical store.
+    let private_zero =
+        arch::take_service_zero_witness(zero_token).unwrap_or_else(|_| refuse("cancel-zero-take"));
+    let staging_zero = old_owner
+        .borrow_mut()
+        .take_staging_zero_witness()
+        .unwrap_or_else(|| refuse("cancel-staging-zero-take"));
+    let zero = zero_record::validate(
+        private_zero,
+        staging_zero,
+        zero_token,
+        before,
+        disposed,
+        capacity_bytes,
+    );
     if old_owner.borrow().sessions.active_session().is_some()
         || disposed.staging_live_bytes != 0
         || disposed.disposal_raw_ticks.is_none()
@@ -230,6 +262,7 @@ pub(super) fn run() {
         ],
         ack,
         fresh_ack,
+        zero,
     );
     fresh_owner.borrow_mut().quarantine();
 }
