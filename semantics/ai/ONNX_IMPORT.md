@@ -20,8 +20,10 @@ signature identity, graph name and ordered mappings in both directions.
 
 Graph-local names map explicitly to existing `ModelSignature` ports. Local model
 names do not become universal semantic port names. Input and output counts must
-match exactly, every mapping is unique within its direction, and every port is
-required. A matched port has one exact dtype, rank and finite dimension envelope.
+match exactly and every mapping is unique within its direction. Graph-required
+inputs and all outputs remain required; the held optional-input extension below
+admits absence only for inspected dynamic-optional inputs. A matched port has one
+exact dtype, rank and finite dimension envelope.
 Fixed graph dimensions require that exact dimension in the semantic signature;
 symbolic dimensions use its finite bounds. Repeated symbols require consistent
 bounds across inputs and outputs. `validate_named_inputs` and
@@ -38,7 +40,7 @@ bounded by these limits. There is no Play implementation in this component.
 The initial profile accepts dense i8/u8/i16/u16/i32/u32/i64/u64/f32/f64 tensor
 ports. An explicitly declared empty shape is a rank-zero scalar: exactly one
 element, zero axes and exactly its dtype width. An absent shape remains unknown
-and refuses. Unknown dimensions, zero dimensions, string/bool/half tensors, optional/sequence/map/sparse/opaque port types, node attributes,
+and refuses. Unknown dimensions, zero dimensions, string/bool/half tensors, sequence/map/sparse/opaque port types, node attributes,
 multi-device node configurations, sparse initializers, training graphs and
 local functions refuse. Every top-level initializer is inspected for external
 storage. Attributes and other nested graph/tensor carriers refuse entirely so
@@ -101,3 +103,31 @@ those fixtures. The supported model-inference suite passed 68 tests across 24 ta
 Source `9cacd3ca8d8ae486112ba81d1f35b692c25505f1`; the source-bound receipt is in
 `docs/audits/evidence/rank-zero-imported-model-20261021`. CI/Integration/merge
 remain delivery gates.
+
+## Optional-input preparation (#6312)
+
+This held development branch inspects genuine dynamic optional tensor inputs
+only with ONNX IR 8 or newer. Graph-derived presence must match the canonical
+model signature exactly. An absent optional input is omitted from the existing
+named bundle; present values retain the same tensor checks. Owned and borrowed
+symbol tables bind only actual values in the current invocation, and output
+names remain mandatory. Nested optional types and optional outputs refuse.
+Initializer-defined defaults and approved external tensor data remain unsupported.
+
+All possible input maxima still participate in preparation admission. A zero-byte
+actual inference invocation is allowed after that admission; other compute
+operations retain their existing positive-input rule. Positive offer capacities,
+queue item limits, model/output/working-memory bounds and selected Back identity
+remain checked. No new provider authority or Core Option carrier is introduced.
+
+Two immutable Identity fixtures have exact graph-hash-bound Backs: one projects
+the required input while ignoring an unused optional hint, and the other returns
+an inline constant with both graph inputs optional. Prepared tests cover ordinary
+Source/Plan/Play, absent/present/absent and empty/present/empty invocations,
+pre-effect refusals, current symbols and allocator effects. They are registered
+in `cargo +stable xtask check model-inference --locked`.
+
+These tests are prepared but have not been compiled or executed. Numeric-policy
+fixture migration and present-optional IEEE/finite-only controls follow #6309's
+delivery handoff. No current-source test pass, ONNX checker, ORT execution,
+rendered Patchbay proof, merged delivery or parent #5219 completion is claimed.
