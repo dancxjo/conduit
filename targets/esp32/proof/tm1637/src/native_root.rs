@@ -105,6 +105,20 @@ impl NativeRoot {
     pub fn software(&self) -> Option<&crate::native_software::Software> {
         self.software.as_deref()
     }
+    /// Root policy over still-retained providers. A projected grant is not a
+    /// locally issued capability, Play reservation or Body start.
+    pub fn appliance_policy_grants(&self) -> Result<[c::AuthorityGrant; 2], ()> {
+        self.software.as_ref().ok_or(())?;
+        let wait = self.wait.as_ref().ok_or(())?;
+        let (_, cadence) = crate::native_software::source_facts();
+        if cadence.count == 0 {
+            return Err(());
+        }
+        Ok([
+            self.issuer.grant_pulse(self.pulse.native_identity())?,
+            self.issuer.grant_wait(wait.native_identity())?,
+        ])
+    }
     pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
         &self.network_source
     }

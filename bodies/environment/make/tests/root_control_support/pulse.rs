@@ -26,6 +26,7 @@ fn pulse_and_wait_have_independent_finite_root_authority_for_the_same_source() {
     let mut native = pulse_fixture::identity();
     native.boot_id = "boot/current".into();
     let (pulse, effects) = pulse_fixture::ready_with_identity(0, native.clone());
+    assert_eq!(pulse.native_identity(), &native);
     let timer_identity = w::WaitNativeIdentity {
         host_id: native.host_id.clone(),
         boot_id: native.boot_id.clone(),
@@ -71,6 +72,7 @@ fn pulse_and_wait_have_independent_finite_root_authority_for_the_same_source() {
         issuer.grant_pulse(&native).unwrap(),
         issuer.grant_wait(&timer_identity).unwrap(),
     ];
+    let grants = super::policy::round_trip(&source, &host, grants);
     let selected = source
         .plan_local(&host, &["conduit.base/local@1".into()], &grants)
         .unwrap();

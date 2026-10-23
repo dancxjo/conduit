@@ -39,6 +39,21 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
             Ok(Ok(Command::SoftwareOffer)) => {
                 crate::native_software_offer::write(root, &mut uart).await?
             }
+            Ok(Ok(Command::AppliancePolicy)) => {
+                let encoded = crate::native_appliance_policy::encode(root, &mut output);
+                with_timeout(Duration::from_secs(2), async {
+                    write_all(&mut uart, b"\n").await?;
+                    match encoded {
+                        Ok(len) => {
+                            write_all(&mut uart, &output[..len]).await?;
+                            write_all(&mut uart, b"\n").await
+                        }
+                        Err(()) => write_all(&mut uart, REFUSED).await,
+                    }
+                })
+                .await
+                .map_err(|_| ())??;
+            }
             Ok(Err(())) => return Err(()),
             _ => with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
                 .await

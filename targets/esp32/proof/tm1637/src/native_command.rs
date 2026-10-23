@@ -4,6 +4,7 @@ pub const MAXIMUM_REQUEST_BYTES: usize = 64;
 pub enum Command {
     Offer,
     SoftwareOffer,
+    AppliancePolicy,
     Unsupported,
     TooLarge,
 }
@@ -32,6 +33,8 @@ impl CommandBuffer {
                     Command::Offer
                 } else if bytes == b"software-offer" {
                     Command::SoftwareOffer
+                } else if bytes == b"appliance-policy" {
+                    Command::AppliancePolicy
                 } else {
                     Command::Unsupported
                 }
@@ -67,6 +70,13 @@ mod tests {
         for byte in b"software-offer\n" {
             if *byte == b'\n' {
                 assert_eq!(buffer.push(*byte), Some(Command::SoftwareOffer));
+            } else {
+                assert_eq!(buffer.push(*byte), None);
+            }
+        }
+        for byte in b"appliance-policy\n" {
+            if *byte == b'\n' {
+                assert_eq!(buffer.push(*byte), Some(Command::AppliancePolicy));
             } else {
                 assert_eq!(buffer.push(*byte), None);
             }

@@ -214,3 +214,5 @@ mod sequences;
 mod wait;
 #[path = "root_control_support/pulse.rs"]
 mod pulse;
+#[path = "root_control_support/policy.rs"]
+mod policy;

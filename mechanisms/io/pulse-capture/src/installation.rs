@@ -36,6 +36,11 @@ pub enum PulseInstallationRefusal {
     Advertisement,
 }
 impl<P: PulseReadProvider> ReadyPulseBase<P> {
+    /// Borrow the identity of this retained owner for Root policy projection.
+    /// The borrowed facts confer no capability or independent Ready ownership.
+    pub fn native_identity(&self) -> &PulseNativeIdentity {
+        &self.identity
+    }
     /// Retain exclusively owned electrical resources before advertising them.
     ///
     /// # Safety

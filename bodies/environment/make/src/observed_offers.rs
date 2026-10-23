@@ -15,6 +15,7 @@ pub enum NativeOfferRefusal {
     Cadence,
     Installed,
     Software,
+    Authority,
 }
 
 #[derive(Deserialize)]

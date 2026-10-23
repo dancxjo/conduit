@@ -45,12 +45,17 @@ try:
     port.open()
     before = request(b'offer', 'native-root-offer', 8)
     software = request(b'software-offer', 'native-software-offer', 14)
+    policy = request(b'appliance-policy', 'native-appliance-policy', 8)
     after = request(b'offer', 'native-root-offer', 8)
     for field in ['host_id', 'boot_id', 'offer_generation']:
-        assert before['advertisement'][field] == software[field] == after['advertisement'][field]
+        assert before['advertisement'][field] == software[field] == policy[field] == after['advertisement'][field]
     assert not software['body_installed'] and not software['native_plan_installed']
     assert (software['count'], software['period_ms']) == (960, 60000)
     assert len(software['source_identity']) == 32
+    assert policy['source_identity'] == software['source_identity']
+    assert (policy['count'], policy['period_ms']) == (software['count'], software['period_ms'])
+    assert not policy['body_installed'] and not policy['native_plan_installed'] and not policy['capability_possession_issued']
+    assert len(policy['authority_grants']) == 2
     caps = software['capabilities']
     assert len(caps) == 13
     assert len({c['capability_id'] for c in caps}) == 13

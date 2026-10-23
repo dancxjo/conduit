@@ -13,6 +13,8 @@ mod boot;
 #[cfg(feature = "native-root")]
 mod native_authority;
 #[cfg(feature = "native-root")]
+mod native_appliance_policy;
+#[cfg(feature = "native-root")]
 mod native_command;
 #[cfg(feature = "native-root")]
 mod native_control;

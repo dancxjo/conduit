@@ -17,8 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("capture exceeded finite host ingress bound".into());
     }
     let replies: Vec<serde_json::Value> = serde_json::from_slice(&bytes)?;
-    let [before, software, after] = replies.as_slice() else {
-        return Err("expected three scoped Root replies".into());
+    let [before, software, policy, after] = replies.as_slice() else {
+        return Err("expected four scoped Root replies".into());
     };
     for root in [before, after] {
         if root["event"] != "native-root-offer"
@@ -38,15 +38,32 @@ fn main() -> Result<(), Box<dyn Error>> {
             &serde_json::from_value(after["advertisement"].clone())?,
         )
         .map_err(|why| format!("Root offer composition: {why:?}"))?;
+    let grants = recipe
+        .observe_appliance_policy(&advertisement, &serde_json::to_vec(policy)?)
+        .map_err(|why| format!("Root policy: {why:?}"))?;
+    let plan = source.plan_local(&advertisement, &["conduit.base/local@1".into()], &grants)?;
+    if !conduit_core::verify_plan(&plan) {
+        return Err("ordinary Plan verification refused".into());
+    }
+    fs::write(
+        directory.join("uninstalled-plan.json"),
+        serde_json::to_vec_pretty(&plan)?,
+    )?;
     let receipt = serde_json::json!({
-        "proof_class": "source-checked-composition-of-captured-root-offers",
+        "proof_class": "source-checked-appliance-planning-from-captured-root-policy",
         "host_id": advertisement.host_id,
         "boot_id": advertisement.boot_id,
         "offer_generation": advertisement.offer_generation,
         "capabilities": advertisement.capabilities.len(),
         "bases": advertisement.bases.len(),
         "resources": advertisement.resources.len(),
-        "authority_issued": false,
+        "authority_grants_observed": grants.len(),
+        "plan_prepared": true,
+        "plan_id": plan.plan_id,
+        "fragment_count": plan.fragments.len(),
+        "placements": plan.fragments[0].placements.len(),
+        "cords": plan.fragments[0].connections.len(),
+        "capability_possession_issued": false,
         "body_started": false,
         "plan_installed": false
     });
