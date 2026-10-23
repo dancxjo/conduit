@@ -418,6 +418,10 @@ pub(crate) mod raster_layout_tests;
 mod navigation_tests;
 
 #[cfg(test)]
+#[path = "native_face_scene/inputless_tests.rs"]
+mod inputless_tests;
+
+#[cfg(test)]
 #[path = "native_face_scene/creche_navigation_tests.rs"]
 mod creche_navigation_tests;
 
