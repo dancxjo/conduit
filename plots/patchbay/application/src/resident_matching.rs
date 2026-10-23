@@ -137,6 +137,14 @@ impl PatchbayApplicationPort {
                     bounds_error = Some(FaceFragmentError::InvalidIdentity);
                     return false;
                 }
+                if content.subjects.iter().enumerate().any(|(index, subject)| {
+                    content.subjects[index + 1..]
+                        .iter()
+                        .any(|next| next.identity == subject.identity)
+                }) {
+                    bounds_error = Some(FaceFragmentError::DuplicateSubject);
+                    return false;
+                }
                 let matches = face.is_none_or(|face| {
                     content
                         .subjects
@@ -231,15 +239,45 @@ mod tests {
         };
         // Exercise aggregate capacity with repeated graph facts. This deliberately
         // malformed test graph is not admitted into any product or runtime.
-        let mut cord = port.plots[0].graph.cords[0].clone();
+        let original = port.plots[0].graph.clone();
+        let mut cord = original.cords[0].clone();
         cord.source_port = "absent/source".into();
         cord.sink_port = "absent/sink".into();
-        port.plots[0].graph.cords = alloc::vec![cord; conduit_face::MAX_FACE_PROPERTIES / 6 + 1];
+        port.plots[0].graph.cords = (0..conduit_face::MAX_FACE_PROPERTIES / 6 + 1)
+            .map(|index| {
+                let mut cord = cord.clone();
+                cord.identity = format!("bounds/cord/{index}");
+                cord
+            })
+            .collect();
         let full = port.face_fragment(basis.clone(), &body, true).unwrap_err();
         assert_eq!(
             full,
             super::super::PatchbayFaceProjectionError::InvalidFragment(
                 FaceFragmentError::TooManyProperties
+            )
+        );
+        assert_eq!(
+            port.validate_projection_bounds(basis.clone(), &body),
+            Err(full)
+        );
+        // Duplicate Source declarations are invalid even when every count fits.
+        // Bypass preparation only to compare both validators' refusal contract.
+        port.plots[0].graph = original.clone();
+        port.plots[0].plan_id = None;
+        port.plots.push(super::super::PatchbayActivePlot {
+            graph: original,
+            title: "Duplicate Source".into(),
+            checked_plot_id: port.plots[0].checked_plot_id.clone(),
+            plan_id: None,
+            state: super::super::PatchbayActivePlotState::CheckedSource,
+            focused: false,
+        });
+        let full = port.face_fragment(basis.clone(), &body, true).unwrap_err();
+        assert_eq!(
+            full,
+            super::super::PatchbayFaceProjectionError::InvalidFragment(
+                FaceFragmentError::DuplicateSubject
             )
         );
         assert_eq!(port.validate_projection_bounds(basis, &body), Err(full));
