@@ -1,0 +1,29 @@
+{
+  "proof_class": "ordinary-planner-with-retained-software-and-explicit-storage-fixtures",
+  "generations": 15,
+  "gears": 60,
+  "cords": 59,
+  "read_host_calls": 15,
+  "retained_software_owners": 45,
+  "all_software_selection_preflights_passed": true,
+  "wrong_gear_selection_refused": true,
+  "ambiguous_base_resource_provenance_refused": true,
+  "missing_authority_refused": true,
+  "swapped_generation_choices_refused": true,
+  "one_time_transfer_and_post_transfer_unavailability": true,
+  "recording_suite_tests_passed": 40,
+  "strict_runtime_and_make_clippy": true,
+  "ordinary_batch_plan_prepared": true,
+  "batch_kernel_installed": false,
+  "actual_root_memory_work_admission": false,
+  "live_recorder_body": false,
+  "live_line": false,
+  "new_firmware_flashed": false,
+  "notes": [
+    "Generation, singleton, ordered concatenation and recovery Backs are actually initialized and retained before their offers are appended.",
+    "The caller supplies current per-gear choices; the existing ordinary Planner validates them. This creates no parallel placement engine.",
+    "Storage and grants remain explicitly named CPU fixtures with separate per-generation Base/pool provenance.",
+    "Each planned read is checked against its exact configured portable reference; class equality alone cannot select a generation.",
+    "The current prepared recovery kernel handles one generation. Whole-batch kernel transfer/execution and actual browser-provider custody remain incomplete."
+  ]
+}

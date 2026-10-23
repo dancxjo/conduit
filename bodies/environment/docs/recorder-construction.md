@@ -120,11 +120,26 @@ records 60 gears and 59 cords for 15 generations; the declared 16-generation
 boundary checks at 64 gears. Empty, duplicate, incompatible and oversized
 reference sets refuse. Changing reference order changes the checked result.
 
-This compiler creates no provider, residence, authority or start. Root must
-prepare separate retained software owners, select each exact storage generation,
-admit the ordinary whole-batch Plan and bind its production kernel routing.
-The currently prepared recovery kernel realizes one generation; it does not
-silently broaden that selection to the batch.
+This compiler creates no provider, residence, authority or start.
+`prepare_generation_for` and `prepare_singleton_for` initialize separate retained
+software for an exact checked gear. `ReadyRecordingConcat` retains the existing
+ordered concatenation Back with the same checked terminal contracts. The legacy
+unique-gear constructors still refuse an ambiguous repeated Kind.
+
+`current_selection` exposes a retained owner's last advertised choice only while
+its Back remains available. Root supplies those exact current per-gear choices,
+actual storage residence and independent grants to
+`PreparedRecordingRecovery::prepare_batch`, which uses the ordinary Planner.
+Every read must match its configured generation; missing authority, swapped
+generations and ambiguous Base/pool provenance refuse. Rejected choices consume
+no software; successful transfer removes that owner's reported availability.
+The [batch Plan receipt](../evidence/2026-10-23-batch-recovery-plan/measurement.json)
+checks 45 actual retained software owners and 15 explicit storage fixtures.
+
+Root must still admit the complete memory/work closure, bind actual browser
+providers and transfer the whole batch into its production kernel before Body
+start. The currently prepared recovery kernel realizes one generation; it does
+not silently broaden that selection to the batch.
 
 ## Batches, recovery and Face
 
