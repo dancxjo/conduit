@@ -11,6 +11,7 @@ use crate::{display::DisplayError, protected_region::DomainCost};
 use alloc::{rc::Rc, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
 use sha2::{Digest, Sha256};
+#[cfg(feature = "native-compositor")]
 #[path = "lifecycle_emission.rs"]
 mod lifecycle_emission;
 
@@ -46,7 +47,9 @@ pub(crate) struct DisplayOwner {
     report: PreparationReport,
     grant: SharedDisplayGrant,
     guest_image_sha256: [u8; 32],
+    #[cfg(feature = "native-compositor")]
     observation_make: Option<crate::make::MakeRecord>,
+    #[cfg(feature = "native-compositor")]
     observation_seen: u8,
     staging_preparation_raw_ticks: Option<u64>,
     preparation_raw_ticks: Option<u64>,
@@ -109,7 +112,9 @@ impl DisplayOwner {
             report,
             grant,
             guest_image_sha256,
+            #[cfg(feature = "native-compositor")]
             observation_make: None,
+            #[cfg(feature = "native-compositor")]
             observation_seen: 0,
             staging_preparation_raw_ticks: super::lifecycle::elapsed(
                 staging_started,
