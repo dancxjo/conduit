@@ -111,8 +111,12 @@ impl NativeFirstFrame {
         let face = draft
             .face(&mask.birth_basis(ENCOUNTER))
             .map_err(|_| "first-frame-draft-face-invalid")?;
+        mask.present_read_only(face, 1, 1, display)
+            .map_err(|error| error.as_str())?;
+        // Local Mask reading keys need a real input reader too. This Host has
+        // none; preserve the owner's Face and qualify the existing Mask chrome.
         let composition = mask
-            .present_read_only(face, 1, 1, display)
+            .show_local_notice("Read only: no local input", display)
             .map_err(|error| error.as_str())?;
         Ok(Self {
             mask,

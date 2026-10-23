@@ -99,6 +99,19 @@ fn canonical_arrival_retains_checked_mask_show_and_exact_source_publication() {
     assert_eq!(show.show.plan_id, frame.composition.plan_id);
     assert_eq!(show.show.active_play_id, frame.composition.active_play_id);
     assert_eq!(show.show.lifecycle, ManifestationLifecycle::Available);
+    let rendered = frame.mask.scene().unwrap().frame().unwrap();
+    assert!(
+        rendered
+            .scene
+            .commands()
+            .iter()
+            .any(|command| { command.payload() == "Read only: no local input" })
+    );
+    assert!(
+        !rendered.scene.commands().iter().any(|command| {
+            command.payload().contains("PgUp") || command.payload().contains("F2")
+        })
+    );
     assert!(display.writes > 0);
     assert!(matches!(
         frame.mask.scene().unwrap().interaction(
