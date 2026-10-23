@@ -159,6 +159,20 @@ fn browser_todo_resource_requests_publish_then_restore_only_after_storage_acknow
 }
 
 #[test]
+fn full_recording_field_reaches_snapshot_storage_without_json_tree_limits() {
+    // A recorder's 64 packed 21-byte samples occupy 2,688 hex characters.
+    // Snapshot storage validates JSON text, not the separate JSON tree profile.
+    let content = format!(r#"{{"records":"{}"}}"#, "00".repeat(64 * 21));
+    let (mut writer, fragment) = prepare(true, content.as_bytes(), true).unwrap();
+    let DriveStatus::Effect(pending) = drive(&mut writer, &fragment).unwrap() else {
+        panic!("full recording text did not reach storage")
+    };
+    let effect = resource_effect::describe(&writer, &pending).unwrap();
+    assert_eq!(effect.effect_kind, "resource-publish");
+    assert!(effect.record.unwrap().ends_with(content.as_bytes()));
+}
+
+#[test]
 fn browser_resource_missing_authority_and_failed_storage_never_become_success() {
     assert!(prepare(true, b"[]", false).is_err());
     let (mut scheduler, fragment) = prepare(true, b"[]", true).unwrap();
