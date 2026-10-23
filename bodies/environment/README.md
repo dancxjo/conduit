@@ -784,7 +784,7 @@ refusal. This path neither allocates nor authorizes a radio operation itself;
 Root must admit the callback's preparation memory separately. The HTTP proof
 checks flush/custody ordering, refusal without consumption, exact later input,
 zero mailbox allocation and compile-time refusal of escaping secret references.
-Actual SDK configuration and control Play installation remain unfinished.
+Actual control Play installation remains unfinished.
 
 The ESP32 Root preparation image now initializes and retains that actual private
 source alongside the GPIO Base, under the observed Host and Boot. Its writer is
@@ -802,5 +802,7 @@ and reports `network_configuration` as waiting, busy, refused or prepared withou
 revealing submitted bytes. The selected credential source retains the same input
 for its later admitted Host Call. The service uses the existing five-second
 connection deadline, including mailbox custody, and five-second startup deadline.
-This new image still needs physical service/submission proof. The deployed
-temperature/RH bench is unchanged; actual network control remains uninstalled.
+The [physical Root input receipt](evidence/2026-10-23-esp32-root-input/README.md)
+now records actual AP/DHCP/HTTP service and a private fixture submission followed
+by three prepared offers under one Boot. The temperature/RH bench was restored
+afterward; actual network control remains uninstalled.

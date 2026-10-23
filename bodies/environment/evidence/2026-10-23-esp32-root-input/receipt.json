@@ -1,0 +1,44 @@
+{
+  "source_commit": "1cb0f4a6e76ff8ad417bfb40c9a3447ed78b3435",
+  "firmware_sha256": "a45079bc7f2ed6e7bd0825ebb4aec1d1430ab1fadccaf0cda631a645e96bc62f",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/e0795690330df433e4f05fb4b5203f2f",
+  "boot_current": false,
+  "http_status": {
+    "preparation_page": 200,
+    "reading_unavailable": 503,
+    "private_submission": 202
+  },
+  "same_boot_prepared_offers": 3,
+  "credential_echo": false,
+  "body_installed": false,
+  "native_plan_installed": false,
+  "station_join_or_fallback_proof": false,
+  "serial_reset_note": "Opening USB serial resets this board. A first observation lost the volatile submission; accepted proof held serial open across HTTP submission and all three offers.",
+  "runtime_image_attestation": null,
+  "artifacts": {
+    "flash.log": "2ebcec246aa90ffe1a398cbaf847fa096ba2dae0426aa5d6b12e791127c05935",
+    "page.html": "2198edf2303333a8ebb8031106c7237a2261fce6c98d674e95c8d154ec26ca0c",
+    "held-serial-submission.html": "0579b7568b0951904aa296d4e40cf4d7d91b5c57bc0788aaf53bd2e9d62095b8",
+    "prepared-serial.log": "90c64bffc46b674f4b89bacfd8a35cb611b35b45b4f63e950b948f017e0ada0b",
+    "prepared-offers.json": "885e042cac498fe26da2ea665e8afdf47b1ceaa4d089d9f4e75bd8d955655dc5"
+  },
+  "restoration": {
+    "firmware_sha256": "91d645ebe1c88f55642108f551b16f6b9c7c5c29d874393bf514215db94e8107",
+    "acknowledged_display_events": 6,
+    "last_reading": {
+      "face_identity": "4e9592cf940f8b0b1bbac394861e54420cb9bf07513f900e6266bc62cfc2243c",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 69.8,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 15830,
+      "age_ms": 97,
+      "ap_ready": true
+    },
+    "serial_sha256": "eedf560b89ebd732bf40996d153f439a25d109442f2585f0e2d48cc253923141"
+  }
+}
