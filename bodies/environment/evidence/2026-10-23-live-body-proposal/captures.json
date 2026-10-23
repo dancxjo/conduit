@@ -1,0 +1,18 @@
+{
+  "planning_capture": "target/environment-software-ready/1792782684",
+  "admission_capture": "target/environment-body-admission/1792782682",
+  "compressed_captures": {
+    "body-proposal.json.gz": {
+      "uncompressed_sha256": "7e51c20a4d4f49f6d473222a1e5f29d883284e05689eebf66d190ad1deaf93c0",
+      "uncompressed_bytes": 163001
+    },
+    "root-replies.json.gz": {
+      "uncompressed_sha256": "1b1b19655b6b102afe906cfd1825004b4a50edfab4c56583270613722f14eb3b",
+      "uncompressed_bytes": 91607
+    },
+    "admission-observations.json.gz": {
+      "uncompressed_sha256": "1d3a05464bacb4e3081a0010d6d4cc3a4ab21e3f308a15e05df01233ee6dfbdb",
+      "uncompressed_bytes": 35789
+    }
+  }
+}

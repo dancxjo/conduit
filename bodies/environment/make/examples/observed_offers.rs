@@ -5,12 +5,15 @@ use conduit_environment_make::{
     PreparedNativeAppliance,
 };
 use std::{error::Error, fs, io::Read, path::PathBuf};
+#[path = "observed_offers/body.rs"]
+mod body;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut args = std::env::args_os().skip(1);
     let directory = PathBuf::from(args.next().ok_or("expected capture directory")?);
+    let admission = args.next().map(PathBuf::from);
     if args.next().is_some() {
-        return Err("expected one capture directory".into());
+        return Err("expected capture directory and optional local admission directory".into());
     }
     let mut bytes = Vec::new();
     fs::File::open(directory.join("replies.json"))?
@@ -56,6 +59,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         NativeApplianceLimits::resident_local(),
     )
     .map_err(|why| format!("Native construction: {why:?}"))?;
+    if let Some(admission) = admission {
+        body::propose(
+            &prepared,
+            &serde_json::from_value(before["advertisement"].clone())?,
+            &admission,
+            &directory,
+        )?;
+    }
     let plan = prepared.plan();
     if !conduit_core::verify_plan(plan) {
         return Err("ordinary Plan verification refused".into());

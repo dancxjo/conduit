@@ -17,6 +17,13 @@ pub(super) fn prove_ingress(root: &Path) -> Result<(), Box<dyn Error>> {
     )
 }
 pub(super) fn prove_body_admission(root: &Path) -> Result<(), Box<dyn Error>> {
+    capture_body_admission(root).map(|_| ())
+}
+pub(super) fn prove_body_construction(root: &Path) -> Result<(), Box<dyn Error>> {
+    let admission = capture_body_admission(root)?;
+    capture_and_plan_with_body(root, Some(&admission)).map(|_| ())
+}
+fn capture_body_admission(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
     execute(
         Command::new("cargo")
             .current_dir(root)
@@ -33,6 +40,7 @@ pub(super) fn prove_body_admission(root: &Path) -> Result<(), Box<dyn Error>> {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
+    let output = root.join(format!("target/environment-body-admission/{stamp}"));
     execute(
         Command::new("python3")
             .current_dir(root)
@@ -40,10 +48,17 @@ pub(super) fn prove_body_admission(root: &Path) -> Result<(), Box<dyn Error>> {
             .arg("--verifier")
             .arg(host_target(root).join("debug/examples/native_admission"))
             .arg("--output")
-            .arg(root.join(format!("target/environment-body-admission/{stamp}"))),
-    )
+            .arg(&output),
+    )?;
+    Ok(output)
 }
 fn capture_and_plan(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
+    capture_and_plan_with_body(root, None)
+}
+fn capture_and_plan_with_body(
+    root: &Path,
+    admission: Option<&Path>,
+) -> Result<std::path::PathBuf, Box<dyn Error>> {
     let stamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)?
         .as_secs();
@@ -55,20 +70,23 @@ fn capture_and_plan(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
             .arg("--output")
             .arg(&output),
     )?;
-    execute(
-        Command::new("cargo")
-            .current_dir(root)
-            .args([
-                "run",
-                "--locked",
-                "--manifest-path",
-                "bodies/environment/make/Cargo.toml",
-                "--example",
-                "observed_offers",
-                "--",
-            ])
-            .arg(&output)
-            .env("CARGO_TARGET_DIR", host_target(root)),
-    )?;
+    let mut command = Command::new("cargo");
+    command
+        .current_dir(root)
+        .args([
+            "run",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/make/Cargo.toml",
+            "--example",
+            "observed_offers",
+            "--",
+        ])
+        .arg(&output)
+        .env("CARGO_TARGET_DIR", host_target(root));
+    if let Some(admission) = admission {
+        command.arg(admission);
+    }
+    execute(&mut command)?;
     Ok(output)
 }

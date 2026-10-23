@@ -1121,3 +1121,11 @@ the production responder and ordinary Body verifier. The supported physical entr
 It passes on the attended HW-463 board; retained evidence is in
 `evidence/2026-10-23-physical-body-admission/`. This establishes Host proof and
 host-side membership, while owner-to-Root installation and Play remain unfinished.
+
+`cargo xtask prove environment body-construction-esp32` joins the physical
+admission and current-offer construction proofs. It retains a host-side Body
+proposal in AwaitingPlan and its biography, with no Play or MCU installation.
+It checks that admitted native facts still match Root before proposing; stale
+scope refuses. The current proposal has no admitted Mask topology because Root
+has no ready display/browser Mask owner. The proof exits after snapshotting;
+this does not replace a persistent owner or its normal restart reconciliation.
