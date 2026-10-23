@@ -81,6 +81,11 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             provider,
         })
     }
+    /// Descriptive native identity retained with this owner; not authority or
+    /// evidence of possession, and never reconstructed from a received Plan.
+    pub fn native_identity(&self) -> &NetworkNativeIdentity {
+        &self.identity
+    }
     /// Add exactly the retained provider to the matching current Host/Boot.
     /// Preparation may allocate; this performs no radio configuration or join.
     pub fn append_to_advertisement(
@@ -166,6 +171,21 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
         contract: &PreparedJoinContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<NetworkJoinHostCall<P>, JoinCallRefusal> {
+        Self::bind_selected_retained(&mut Some(self), table, handle, claim, contract, selected)
+    }
+    /// Validate native selection, exact lowering and table scope before transferring
+    /// the actual owner. Every refusal leaves the caller's initialized slot intact.
+    /// The opaque bearer is still authorized only when the Host Call is invoked.
+    /// Issued table/handle arguments are consumed; refusal never invokes a provider.
+    pub fn bind_selected_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedJoinContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NetworkJoinHostCall<P>, JoinCallRefusal> {
+        let ready = slot.as_ref().ok_or(JoinCallRefusal::OwnerUnavailable)?;
         let gear = selected
             .fragment
             .placements
@@ -173,8 +193,8 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
             .find(|g| &g.placement_id == selected.placement_id)
             .ok_or(JoinCallRefusal::WrongBinding)?;
         let base = gear.base.as_ref().ok_or(JoinCallRefusal::WrongBinding)?;
-        let i = &self.identity;
-        if !self.claim_matches(&claim)
+        let i = &ready.identity;
+        if !ready.claim_matches(&claim)
             || gear.artifact_id != i.artifact
             || gear.implementation_id != i.implementation
             || gear.execution_profile_id.as_str() != NETWORK_JOIN_EXECUTION_PROFILE
@@ -194,19 +214,22 @@ impl<P: NetworkJoinProvider> ReadyNetworkJoinBase<P> {
         {
             return Err(JoinCallRefusal::WrongBinding);
         }
-        // SAFETY: new retained the real provider. The exact native identity above
-        // preserves its initialization, resource generation and ownership scope.
-        unsafe {
-            NetworkJoinHostCall::bind_selected(
-                table,
-                handle,
-                claim,
-                self.provider,
-                self.attachment_generation,
-                contract,
-                selected,
-            )
-        }
+        let node = NetworkJoinHostCall::<P>::validate_selected(
+            &table,
+            &claim,
+            ready.attachment_generation,
+            contract,
+            selected,
+        )?;
+        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+        Ok(NetworkJoinHostCall::bound(
+            table,
+            handle,
+            claim,
+            ready.provider,
+            ready.attachment_generation,
+            node,
+        ))
     }
     /// Root supplies only independently admitted assignment/Play facts. The
     /// implementation, artifact, Base and resource identities come from this owner.

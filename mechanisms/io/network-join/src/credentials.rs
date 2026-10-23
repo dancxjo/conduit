@@ -48,6 +48,7 @@ impl PreparedCredentialContract {
 }
 #[derive(Debug, PartialEq, Eq)]
 pub enum CredentialCallRefusal {
+    OwnerUnavailable,
     Binding(SelectedCallRefusal),
     Possession,
     WrongRequest,
@@ -78,7 +79,16 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         contract: &PreparedCredentialContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, CredentialCallRefusal> {
-        Self::check_possession(&table, &claim)?;
+        let node = Self::validate_selected(&table, &claim, contract, selected)?;
+        Ok(Self::bound(table, handle, claim, source, node))
+    }
+    pub(crate) fn validate_selected(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NodeId, CredentialCallRefusal> {
+        Self::check_possession(table, claim)?;
         let gear = selected
             .fragment
             .placements
@@ -92,21 +102,30 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             return Err(CredentialCallRefusal::WrongRequest);
         }
         let node = bind_selected_operation_for_subject(
-            &table,
-            &claim,
+            table,
+            claim,
             contract.definition(),
             &contract.subject,
             selected,
         )
         .map_err(CredentialCallRefusal::Binding)?;
-        Ok(Self {
+        Ok(node)
+    }
+    pub(crate) fn bound(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        source: P,
+        node: NodeId,
+    ) -> Self {
+        Self {
             table,
             handle,
             claim,
             source,
             node,
             invoked: false,
-        })
+        }
     }
     fn check_possession(
         table: &BaseCapabilityTable,

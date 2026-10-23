@@ -94,7 +94,7 @@ fn check(acknowledged: bool, revoked: bool, assigned: bool, substituted: bool) {
         implementation: scope.implementation_id.clone(),
         base_implementation: "base/credentials/fixture@1".into(),
     };
-    let (table, handle, claim) = possession::possession(scope);
+    let (table, handle, claim) = possession::possession(scope.clone());
     let mut mailbox = NetworkSetupMailbox::new(1);
     let input = NetworkSetupInput::from_form(
         b"ssid=fixture-network&password=fixture-password",
@@ -172,11 +172,16 @@ fn check(acknowledged: bool, revoked: bool, assigned: bool, substituted: bool) {
         active: &active,
         node: lowered.nodes[0].node,
     };
+    let mut retained = Some(ready);
     let (result, binding_memory) = allocation_probe::observe(|| {
         if assigned {
-            ready.bind_assigned(table, handle, claim, &contract, selected())
+            retained
+                .take()
+                .unwrap()
+                .bind_assigned(table, handle, claim, &contract, selected())
         } else {
-            ready.bind_selected(
+            ReadyCredentialBase::bind_selected_retained(
+                &mut retained,
                 table,
                 handle,
                 claim,
@@ -197,6 +202,12 @@ fn check(acknowledged: bool, revoked: bool, assigned: bool, substituted: bool) {
         );
     }
     if substituted {
+        if !assigned {
+            assert!(
+                retained.is_some(),
+                "refusal must retain acknowledged private input"
+            );
+        }
         assert!(matches!(
             result,
             Err(CredentialCallRefusal::WrongRequest
@@ -206,6 +217,26 @@ fn check(acknowledged: bool, revoked: bool, assigned: bool, substituted: bool) {
         return;
     }
     let mut owner = result.unwrap();
+    assert!(retained.is_none());
+    if !assigned {
+        let (table, handle, claim) = possession::possession(scope);
+        assert!(matches!(
+            ReadyCredentialBase::bind_selected_retained(
+                &mut retained,
+                table,
+                handle,
+                claim,
+                &contract,
+                SelectedOperationPlan {
+                    fragment: &fragment,
+                    lowered: &lowered,
+                    active: &active,
+                    placement_id: &placement,
+                }
+            ),
+            Err(CredentialCallRefusal::OwnerUnavailable)
+        ));
+    }
     let node = lowered.nodes[0].node;
     let mut output = [0; conduit_net::MAXIMUM_JOIN_INPUT_BYTES as usize];
     let ((), allocation) = allocation_probe::observe(|| {

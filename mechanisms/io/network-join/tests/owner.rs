@@ -165,13 +165,18 @@ fn prepare_owner(
         expanded_plot_id: fragment.expanded_plot_id.clone(),
     };
     let fragment = seal_plan(identity, vec![fragment]).fragments.remove(0);
-    let lowered = lower_plan_fragment(&fragment).unwrap();
+    let mut lowered = lower_plan_fragment(&fragment).unwrap();
+    if substitution == 5 {
+        lowered.node_specs[0].maximum_step_fuel += 1;
+    }
     let active = bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 3);
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
-    let (table, handle, claim) = possession::possession(scope);
+    let (table, handle, claim) = possession::possession(scope.clone());
     let node = lowered.nodes[0].node;
-    let owner = ready.bind_selected(
+    let mut retained = Some(ready);
+    let result = ReadyNetworkJoinBase::bind_selected_retained(
+        &mut retained,
         table,
         handle,
         claim,
@@ -182,8 +187,41 @@ fn prepare_owner(
             active: &active,
             placement_id: &placement,
         },
-    )?;
-    Ok((owner, node))
+    );
+    match result {
+        Ok(owner) => {
+            assert!(retained.is_none());
+            let (table, handle, claim) = possession::possession(scope);
+            assert!(matches!(
+                ReadyNetworkJoinBase::bind_selected_retained(
+                    &mut retained,
+                    table,
+                    handle,
+                    claim,
+                    &contract,
+                    SelectedOperationPlan {
+                        fragment: &fragment,
+                        lowered: &lowered,
+                        active: &active,
+                        placement_id: &placement,
+                    }
+                ),
+                Err(JoinCallRefusal::OwnerUnavailable)
+            ));
+            Ok((owner, node))
+        }
+        Err(error) => {
+            assert!(
+                retained.is_some(),
+                "refusal must retain the actual fixture provider"
+            );
+            assert_eq!(
+                retained.as_ref().unwrap().native_identity().boot.as_str(),
+                "boot/current"
+            );
+            Err(error)
+        }
+    }
 }
 fn request() -> ([u8; MAXIMUM_JOIN_INPUT_BYTES as usize], usize) {
     let mut bytes = [0; MAXIMUM_JOIN_INPUT_BYTES as usize];
@@ -333,6 +371,16 @@ fn retained_native_identity_refuses_consistent_but_foreign_planned_metadata() {
         ));
         assert_eq!(state.effects.get(), 0);
     }
+}
+
+#[test]
+fn lowering_refusal_keeps_the_initialized_owner_before_transfer() {
+    let state = Rc::new(State::default());
+    assert!(matches!(
+        prepare_owner(state.clone(), 5),
+        Err(JoinCallRefusal::Binding(_))
+    ));
+    assert_eq!(state.effects.get(), 0);
 }
 
 #[test]

@@ -49,6 +49,11 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         }
         Ok(Self { identity, source })
     }
+    /// Descriptive native identity retained with this owner; not authority or
+    /// evidence of possession, and never reconstructed from a received Plan.
+    pub fn native_identity(&self) -> &NetworkNativeIdentity {
+        &self.identity
+    }
     pub fn append_to_advertisement(
         &self,
         advertisement: &mut HostAdvertisement,
@@ -137,6 +142,23 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         contract: &PreparedCredentialContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<NetworkCredentialsHostCall<P>, CredentialCallRefusal> {
+        Self::bind_selected_retained(&mut Some(self), table, handle, claim, contract, selected)
+    }
+    /// Validate native selection, exact lowering and table scope before transferring
+    /// the actual owner. Every refusal leaves the caller's initialized slot intact.
+    /// The opaque bearer is still authorized only when the Host Call is invoked.
+    /// Issued table/handle arguments are consumed; refusal never invokes a provider.
+    pub fn bind_selected_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NetworkCredentialsHostCall<P>, CredentialCallRefusal> {
+        let ready = slot
+            .as_ref()
+            .ok_or(CredentialCallRefusal::OwnerUnavailable)?;
         let gear = selected
             .fragment
             .placements
@@ -147,8 +169,8 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
             .base
             .as_ref()
             .ok_or(CredentialCallRefusal::WrongRequest)?;
-        let i = &self.identity;
-        if !self.claim_matches(&claim)
+        let i = &ready.identity;
+        if !ready.claim_matches(&claim)
             || gear.artifact_id != i.artifact
             || gear.implementation_id != i.implementation
             || gear.execution_profile_id.as_str() != CREDENTIAL_EXECUTION_PROFILE
@@ -168,18 +190,16 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
         {
             return Err(CredentialCallRefusal::WrongRequest);
         }
-        // SAFETY: new retained the private source. The exact native identity above
-        // preserves its initialization, resource generation and ownership scope.
-        unsafe {
-            NetworkCredentialsHostCall::bind_selected(
-                table,
-                handle,
-                claim,
-                self.source,
-                contract,
-                selected,
-            )
-        }
+        let node =
+            NetworkCredentialsHostCall::<P>::validate_selected(&table, &claim, contract, selected)?;
+        let ready = slot.take().expect("validated uniquely borrowed owner slot");
+        Ok(NetworkCredentialsHostCall::bound(
+            table,
+            handle,
+            claim,
+            ready.source,
+            node,
+        ))
     }
     /// Consume the retained actual source using independently held native facts,
     /// not implementation identities supplied by an incoming assignment.

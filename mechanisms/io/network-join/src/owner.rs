@@ -15,6 +15,7 @@ use conduit_plan_lowering::{
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum JoinCallRefusal {
+    OwnerUnavailable,
     Binding(SelectedCallRefusal),
     Possession,
     WrongBinding,
@@ -56,7 +57,19 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
         contract: &PreparedJoinContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, JoinCallRefusal> {
-        Self::check_possession(&table, &claim, generation)?;
+        let node = Self::validate_selected(&table, &claim, generation, contract, selected)?;
+        Ok(Self::bound(
+            table, handle, claim, provider, generation, node,
+        ))
+    }
+    pub(crate) fn validate_selected(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+        generation: u64,
+        contract: &PreparedJoinContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NodeId, JoinCallRefusal> {
+        Self::check_possession(table, claim, generation)?;
         let gear = selected
             .fragment
             .placements
@@ -70,17 +83,16 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             return Err(JoinCallRefusal::WrongBinding);
         }
         let node = bind_selected_operation_for_subject(
-            &table,
-            &claim,
+            table,
+            claim,
             contract.definition(),
             &contract.subject,
             selected,
         )
         .map_err(JoinCallRefusal::Binding)?;
-        Ok(Self::bound(
-            table, handle, claim, provider, generation, node,
-        ))
+        Ok(node)
     }
+
     /// # Safety
     /// Same ownership, admission and cleanup requirements as `bind_selected`.
     /// Native identity and resident requirements must be retained independently
@@ -110,7 +122,7 @@ impl<P: NetworkJoinProvider> NetworkJoinHostCall<P> {
             table, handle, claim, provider, generation, node,
         ))
     }
-    fn bound(
+    pub(crate) fn bound(
         table: BaseCapabilityTable,
         handle: BaseCapabilityHandle,
         claim: BaseOperationClaim,
