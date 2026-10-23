@@ -1,0 +1,12 @@
+{
+  "proof_class": "32-bit-linux-cpu-kernel-execution",
+  "command": "cargo xtask prove environment publication-32",
+  "tests_passed": 14,
+  "value_backing_bytes": 15504,
+  "sign_backing_bytes": 2880,
+  "sign_slots": 144,
+  "sign_logical_byte_capacity": 2862,
+  "scheduler_object_bytes": 10584,
+  "software_heap_retained_bytes": 92320,
+  "scope": "Excluded allocator overhead, resident metadata, native providers and stack high-water. CPU layout is not ESP32 ABI evidence."
+}

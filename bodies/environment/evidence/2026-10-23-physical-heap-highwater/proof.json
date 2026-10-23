@@ -1,0 +1,28 @@
+{
+  "proof_class": "physical-esp32-root-startup-and-idle-ap",
+  "elf_sha256": "a41f7200679c322fa94d790664ab72be6a9e80f3cf4b319ea9787261793100a2",
+  "source_base": "f8c2496805d14d62781df7995065214a3af0963f",
+  "firmware_patch_sha256": "09e338686b3070b3244d99d950993911736f87ebb9d2ec13ba0a7eb9b3cd6dc7",
+  "host_id": "esp32/b0a732286178",
+  "boot_id": "boot/ab3caf24fb50b65acc38090af15605fa",
+  "same_boot_offers": 5,
+  "root_heap_bytes": 65536,
+  "root_current_bytes": 9684,
+  "root_peak_bytes": 17908,
+  "sdk_heap_bytes": 122880,
+  "sdk_current_bytes": 33408,
+  "sdk_peak_bytes": 33716,
+  "heap_arenas_repartitioned": false,
+  "body_installed": false,
+  "network_control_installed": false,
+  "network_control_dispatches": [
+    0,
+    0,
+    0
+  ],
+  "notes": [
+    "Internal heap statistics estimate allocator use on this instrumented image.",
+    "These observations exclude an appliance Play, HTTP submission and station join/fallback.",
+    "Peak counters include startup and allocator self-check; idle offers do not establish worst-case SDK demand."
+  ]
+}

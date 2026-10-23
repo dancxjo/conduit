@@ -1030,3 +1030,15 @@ current Boot. CPU proof checks real Source/Plan selection, altered selections,
 retirement from fresh offers and allocation-free committed recovery. This is
 software readiness, not storage authority, a Line, browser installation or a
 Body/Play start. Root still admits and binds those independently.
+
+The Root diagnostic now enables the allocator's internal peak counters and
+reports separate Root/SDK current and peak usage. The instrumented image was
+flashed to the replacement ESP32; five offers remained in one Boot with no
+installed control Play or dispatch. Root peaked at 17,908 bytes (9,684 current),
+SDK at 33,716 (33,408 current), during startup and idle AP service. The arenas
+remain 64/120 KiB. These are observed allocator estimates, not join/fallback
+limits or a justification for shrinking the SDK arena. Retained
+[physical evidence](evidence/2026-10-23-physical-heap-highwater/proof.json)
+identifies the exact flashed ELF. The corresponding 32-bit appliance proof
+accounts separately for 2,880 sign-backing bytes and 15,504 value-backing bytes;
+its object sizes do not establish ESP32 stack or complete memory admission.

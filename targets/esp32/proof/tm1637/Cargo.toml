@@ -5,7 +5,7 @@ edition = "2021"
 publish = false
 [workspace]
 [features]
-native-root = ["conduit-environment-runtime/appliance", "dep:conduit-kernel", "dep:conduit-planner", "dep:conduit-plan-lowering", "dep:conduit-plot", "dep:sha2", "dep:conduit-network-join-call", "ap", "dep:conduit-core", "dep:serde-json-core", "conduit-esp32-pulse-capture/host-call", "conduit-pulse-capture/host-call"]
+native-root = ["esp-alloc/internal-heap-stats", "conduit-environment-runtime/appliance", "dep:conduit-kernel", "dep:conduit-planner", "dep:conduit-plan-lowering", "dep:conduit-plot", "dep:sha2", "dep:conduit-network-join-call", "ap", "dep:conduit-core", "dep:serde-json-core", "conduit-esp32-pulse-capture/host-call", "conduit-pulse-capture/host-call"]
 ap = ["live", "dep:conduit-esp32-network-switch", "dep:conduit-net", "dep:esp-radio", "dep:esp-rtos", "dep:embassy-executor", "dep:embassy-time", "dep:embassy-net", "dep:embassy-futures", "dep:static_cell", "dep:heapless", "dep:conduit-rp2040-network-realization"]
 live = ["capture", "dep:conduit-environment-runtime", "dep:conduit-environment-http", "dep:conduit-seven-segment-mask", "dep:conduit-face", "dep:esp-alloc"]
 capture = ["dep:conduit-esp32-pulse-capture", "dep:conduit-pulse-capture"]

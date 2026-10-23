@@ -60,8 +60,8 @@ async fn offer(
     use core::fmt::Write;
     write!(
         memory_json,
-        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"advertisement\":",
-        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding
+        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_sdk_heap_peak_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"native_root_heap_peak_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"network_control_installed\":{},\"network_control_failure_phase\":\"{}\",\"network_control_failure_reason\":\"{}\",\"network_control_steps\":{},\"network_control_dispatches\":[{},{},{}],\"network_control_receipt\":{},\"network_control_kernel_bytes\":{},\"network_control_binding\":{},\"advertisement\":",
+        memory.size, memory.current_usage, memory.max_usage, root_memory.size, root_memory.current_usage, root_memory.max_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready(), root.control_installed(), failure_phase, failure_reason, steps, dispatches[0], dispatches[1], dispatches[2], receipt, conduit_network_join_call::CONTROL_KERNEL_BYTES, binding
     )
     .map_err(|_| ())?;
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.

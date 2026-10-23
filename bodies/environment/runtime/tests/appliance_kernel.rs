@@ -271,6 +271,7 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         let tight = core::mem::size_of_val(&kernel);
         assert!(tight < broad);
         eprintln!("environment_kernel_storage pointer_bits={} ports_per_node={P} object_bytes={tight} sixteen_port_object_bytes={broad}", usize::BITS);
+        eprintln!("environment_additional_backing sign_slots={sign_slots} sign_logical_bytes={sign_bytes} sign_physical_bytes={} value_physical_bytes={}", kernel.signs().reserved_storage_bytes(), kernel.values().reserved_storage_bytes());
     }
     let mut drained = false;
     let mut waits = 0_u64;
