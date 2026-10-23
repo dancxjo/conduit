@@ -55,6 +55,8 @@ pub(super) fn execute_viewport(
             "canonical successful boot must use exactly one default graphical profile",
         ));
     }
+    let lifecycle =
+        super::compositor_lifecycle_collection::collect(&paths, &image, &source_commit, &digest)?;
     let headless = super::graphical_asset_proof::prove(&paths.root, &image, opts)?;
     if clean_head(&paths.root)? != source_commit {
         return Err(ConduitosError::refusal(
@@ -62,7 +64,7 @@ pub(super) fn execute_viewport(
             "source changed while building or proving the product images",
         ));
     }
-    let mut proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":source_commit, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless});
+    let mut proof = serde_json::json!({"schema":"conduit.conduitos/graphical-profile-proof@1", "proof_class":"freestanding-emulator", "source_commit":source_commit, "image_sha256":digest, "profile":profiles[0], "journey":"journey-proof.json", "physical_evidence":false, "headless_images":headless, "compositor_lifecycle":lifecycle});
     if let Some(manifest) = viewport_build {
         proof["viewport_build_manifest"] = manifest;
         let (width, height) = viewport
