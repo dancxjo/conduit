@@ -1,0 +1,31 @@
+{
+  "schema": "conduit.review/6313-borrowed-observation-bridge@1",
+  "head": "874a611f9b1bdb239c7b422a94aae3471df1dfbb",
+  "base": "3b3f539ae4b376ce6eaaecb6146c2c1533f6d4b0",
+  "status": "NO_ACTIONABLE_STATIC_FINDING_FINAL_FOCUSED_PROOF_PENDING",
+  "findings": [],
+  "supersedes_static_review_head": "b168f8f7c2cf1685bcce1be4f8be2168158195be",
+  "reviewed_delta": "Only observation_kernel.rs and sharedtestsupport/assignment.rs; no productionchanges.",
+  "conclusions": [
+    "Original pulse::bind currentselectedowner is preserved; borrowedassignmenttables remain representation/preparation evidence,not a new providergrant. Removing unnecessary NativeProjection admission doesnot remove originalauthority checks.",
+    "Observation generates actualcheckedSourceprojection inside scopeblock and receives actualborrowedreturnedtables; image/encodedpayload/descriptors drop before production FixedScheduler uses ownednodes/cords/routes/calls.",
+    "prepare/prepare_from_resident keep their original16KiB runtimeprojectionmaximum. Newtestonly prepare_with_runtime_bound explicitly passes38912 for existingobservationprofile and preserves samebound in resealedalternatecontrols.",
+    "Generated assigned runtime_state_bytes counts cordvaluebytes+signbytes+fixedtablestate (assigned_plan.rs323); this is not encodedassignmentlength or a physical/Hostgrant. The source passes unchanged48KiB encodedceiling and unchangedcomputation/countmaxima.",
+    "38912 testprojectionceiling is numericallybounded by existingfiniteobservationvaluearena; actual scheduler remains32valueslots/38912bytes and exactoriginalsignlimits. This doesnot assert allrealruntimeoverheads fit onevaluearena or enlarge a productiongrant.",
+    "Same Corevalidator/tablebuilder,contiguous-vsborrowed comparisons,staleBoot/integrity/resealedlayout/capacity exacterror parity and zeroallocation checks stayactive.",
+    "Observation adds emptyconfiguration nativegear and wires only; no additionalprogram/selector computationstage,so inventory-seven assertion remains structurallyappropriate. Actualgeneratedcount/declared19465projectionsize remain testresults ownedbyroot,not rerunhere.",
+    "Allseven originalobservation scenarios,effectcounts,typedrefusals,quantitycoordinates,drain/noimplicitretry and zeroexecalloc/realloc assertions unchanged."
+  ],
+  "negative_history": [
+    "b168 NativeProjection16KiB refusal preserved byroot; priorstaticpass is not finalsourceproof.",
+    "053 sharedfixture16KiB runtime_state_bytes refusal preserved byroot. Error is declaredruntimeprojectioncapacity,not encodedbytes."
+  ],
+  "pending": [
+    "Rootsession25240 fullruntime tests+strictalltargetClippy on874a; no resultinferred.",
+    "Reviewed newfocusedproof delivery before closing6313; original74b/643c proof cannot standin for successor."
+  ],
+  "proof_limits": [
+    "Read-only diff/source/encoderformulainspection only; no builds/tests/cache/GH/sourcewrites.",
+    "No activegrant/resourcebudget expansion,firmware/device/physical or broadworkspaceIntegrationcoverage claimed."
+  ]
+}

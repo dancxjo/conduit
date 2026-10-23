@@ -1,0 +1,22 @@
+{
+  "source": "b168f8f7c2cf1685bcce1be4f8be2168158195be",
+  "source_clean": true,
+  "started_utc": "2026-10-23T22:20:48.867049+00:00",
+  "status": "failed",
+  "steps": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "bodies/environment/runtime/Cargo.toml",
+        "--locked"
+      ],
+      "exit_code": 101,
+      "log": "work/6313-borrowed-observation-tests.log",
+      "sha256": "6d091aa1be838c56186747ecd7527869ed9e13db3f957d85351d6c378c1950f3"
+    }
+  ],
+  "finished_utc": "2026-10-23T22:23:07.127813+00:00"
+}
