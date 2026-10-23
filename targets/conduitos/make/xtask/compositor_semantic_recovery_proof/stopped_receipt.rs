@@ -5,6 +5,8 @@ use super::super::{
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
+#[path = "zero_receipt.rs"]
+mod zero_receipt;
 const PREFIX: &str = "CONDUIT_COMPOSITOR_STOPPED_LIFECYCLE ";
 const RESULT: &str = "CONDUIT_COMPOSITOR_STOPPED_LIFECYCLE_RESULT ";
 const PHASES: [&str; 8] = [
@@ -53,7 +55,7 @@ struct ResultRecord {
 fn refusal() -> ConduitosError {
     ConduitosError::refusal(
         "compositor-stopped-lifecycle-mismatch",
-        "requires eight exact source/image/grant-bound stopped-owner cancellation/disposal/restart observations and real ACK joins; no async, CPU-fault, malformed-reply, exhaustive-zero or physical claim",
+        "requires eight exact source/image/grant-bound stopped-owner cancellation/disposal/restart observations and real ACK joins; a full initialized-data zero witness; no async, CPU-fault, malformed-reply or physical claim",
     )
 }
 pub(super) fn validate(
@@ -66,7 +68,23 @@ pub(super) fn validate(
     let mut records = Vec::with_capacity(8);
     let mut values = Vec::with_capacity(8);
     let mut result = None;
+    let mut zero = None;
     for line in serial.split_inclusive('\n') {
+        if line.starts_with(zero_receipt::PREFIX.trim_end()) {
+            let payload = line
+                .strip_prefix(zero_receipt::PREFIX)
+                .ok_or_else(refusal)?;
+            if !line.ends_with('\n')
+                || line.len() > 4096
+                || records.len() != 8
+                || zero.is_some()
+                || result.is_some()
+            {
+                return Err(refusal());
+            }
+            zero = Some(zero_receipt::validate(payload, &records)?);
+            continue;
+        }
         let payload = if let Some(payload) = line.strip_prefix(PREFIX) {
             Some((false, payload))
         } else {
@@ -82,7 +100,8 @@ pub(super) fn validate(
             let decoded: ResultRecord = serde_json::from_str(payload).map_err(|_| refusal())?;
             if result.is_some()
                 || records.len() != 8
-                || decoded.schema != "conduit.conduitos/compositor-stopped-lifecycle-result@1"
+                || zero.is_none()
+                || decoded.schema != "conduit.conduitos/compositor-stopped-lifecycle-result@2"
                 || decoded.status != "completed"
                 || !decoded.stopped_owner_cancellation
                 || !decoded.unfinished_upload_fenced
@@ -91,7 +110,7 @@ pub(super) fn validate(
                 || !decoded.stale_drop_preserves_replacement
                 || !decoded.same_retained_grant
                 || !decoded.fresh_semantic_show_and_progress
-                || decoded.whole_zero_audited
+                || !decoded.whole_zero_audited
                 || decoded.asynchronous_cancel
                 || decoded.guest_cpu_fault
                 || decoded.malformed_reply
@@ -101,7 +120,7 @@ pub(super) fn validate(
             }
             result = Some(serde_json::from_str::<Value>(payload).map_err(|_| refusal())?);
         } else {
-            if records.len() == 8 || result.is_some() {
+            if records.len() == 8 || result.is_some() || zero.is_some() {
                 return Err(refusal());
             }
             let record: Record = serde_json::from_str(payload).map_err(|_| refusal())?;
@@ -181,7 +200,7 @@ pub(super) fn validate(
         return Err(refusal());
     }
     Ok(
-        json!({"records":values,"result":result,"measurement_clock":"uncalibrated-raw-tsc","matched_cold_warm_claim":false}),
+        json!({"records":values,"zero_witness":zero.ok_or_else(refusal)?,"result":result,"measurement_clock":"uncalibrated-raw-tsc","matched_cold_warm_claim":false}),
     )
 }
 
