@@ -1,0 +1,711 @@
+{
+  "source": "4cc7afae50ca1b591f0c077a9c4d0401af89ab82",
+  "tree": "248eccb1f38dec7c6e49bade9732d49e8abab0e8",
+  "scope": "Actual supported normal ProductHost prerequisite experiment on parent643c; excludes merged6315/dev3306; not complete6318 staged/grant acceptance or Candidate/Integration/physical proof.",
+  "files": [
+    {
+      "original_path": "runner-source.py",
+      "bytes": 5326,
+      "sha256": "ac86c8db8ff9c133bac6939d279aef16475bb8c29068f95c0e5ddbe6ca4ccbce",
+      "gzip_path": "runner-source.py.gz",
+      "gzip_bytes": 2349,
+      "gzip_sha256": "7e5d192e115585bbc3f951fb3756103c3260a9ed088b11f6434216d52347bbe5"
+    },
+    {
+      "original_path": "receipt.json",
+      "bytes": 36914,
+      "sha256": "b7590fd02532f0575b82f55a0653b4cc37842b03a3ffff2fe1438233a9ab8b27",
+      "gzip_path": "receipt.json.gz",
+      "gzip_bytes": 3943,
+      "gzip_sha256": "71e18b9052c1e1936e75eb811d7de8173f9d486a3a878b35438de3b8ddbce86e"
+    },
+    {
+      "original_path": "0-command.log",
+      "bytes": 52899,
+      "sha256": "b98465993cf24e0e6482b4eae7948ca231d11db32ad6ff56953e9061f1cf4022",
+      "gzip_path": "0-command.log.gz",
+      "gzip_bytes": 6280,
+      "gzip_sha256": "cc0f3507526524bd598209932ea1c4088e70d170c72c7a1bc2334d6a38839a7c"
+    },
+    {
+      "original_path": "1-command.log",
+      "bytes": 963,
+      "sha256": "cdd1adbd76ed17682fa903603831b549bbea5519df56ebdf5dcbd31e6b2c6a04",
+      "gzip_path": "1-command.log.gz",
+      "gzip_bytes": 384,
+      "gzip_sha256": "03f414c6fbd7757e570801062c60b6ca081476a70358a68ca1cf84d6e9eb7beb"
+    },
+    {
+      "original_path": "host/conduitos-x86_64.iso",
+      "bytes": 83224576,
+      "sha256": "e35a4d99235071e11813c9ab8a993e978481bcd067c577f2c963070011ee43e4",
+      "gzip_path": "host/conduitos-x86_64.iso.gz",
+      "gzip_bytes": 9808742,
+      "gzip_sha256": "71962cef40248dbe5a61196f2a0b1b7f1f1ea5cdb3f2e809cd723bef4dfa3d44"
+    },
+    {
+      "original_path": "host/resolved-image.json",
+      "bytes": 4453,
+      "sha256": "3aa31765373dc5b6d29abe4026e58b9d2a2db1b4c4c98649d063292d051433b4",
+      "gzip_path": "host/resolved-image.json.gz",
+      "gzip_bytes": 1066,
+      "gzip_sha256": "72834e1a894d74feab4b22a0fb48b6da49af38b588871440eaf6fb3d14dbf512"
+    },
+    {
+      "original_path": "host/conduitos-kernel.elf",
+      "bytes": 78952024,
+      "sha256": "cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5",
+      "gzip_path": "host/conduitos-kernel.elf.gz",
+      "gzip_bytes": 8655019,
+      "gzip_sha256": "c4664f08165ae6480c85029be393b35d851cbd05acd232a108f7365eb1af59ae"
+    },
+    {
+      "original_path": "host/build-manifest.json",
+      "bytes": 4269,
+      "sha256": "20c4fd471c8c8518020e22ce5c37ccba5733fdd2f06cf025a59925a79f8c510c",
+      "gzip_path": "host/build-manifest.json.gz",
+      "gzip_bytes": 1420,
+      "gzip_sha256": "935224bab9a2ba6646e20903ff5eae7cd61688413e52df92416fe64d4f3746f0"
+    },
+    {
+      "original_path": "native/x86_64/journey-serial.log",
+      "bytes": 3280983,
+      "sha256": "a9c1a2a55cad5f7c460f922ebd96385e40a2f2591de602c3c3e93ee533329802",
+      "gzip_path": "native/x86_64/journey-serial.log.gz",
+      "gzip_bytes": 210797,
+      "gzip_sha256": "387391e50489521f7f436d1dd47f143a8187e1c360e43f4859ae9ec20e554801"
+    },
+    {
+      "original_path": "native/x86_64/conduitos.iso",
+      "bytes": 83224576,
+      "sha256": "e35a4d99235071e11813c9ab8a993e978481bcd067c577f2c963070011ee43e4",
+      "gzip_path": "native/x86_64/conduitos.iso.gz",
+      "gzip_bytes": 9808742,
+      "gzip_sha256": "71962cef40248dbe5a61196f2a0b1b7f1f1ea5cdb3f2e809cd723bef4dfa3d44"
+    },
+    {
+      "original_path": "native/x86_64/native-shell-paired-linear.json",
+      "bytes": 4535129,
+      "sha256": "c7f010810720b7b14265cc43cf0f265976cfe10c3442df3cc8d9b2ccc2b4096a",
+      "gzip_path": "native/x86_64/native-shell-paired-linear.json.gz",
+      "gzip_bytes": 359995,
+      "gzip_sha256": "55914e96e96c5ee3f8b39a181080fb7c1d49accb9330947f48a45d4c823dff98"
+    },
+    {
+      "original_path": "native/x86_64/memory-lantern-native-edit.json",
+      "bytes": 5053,
+      "sha256": "4e997e9ea815595a2622de7dbe1f798f0385b39c6299a26547eac60d2138d39b",
+      "gzip_path": "native/x86_64/memory-lantern-native-edit.json.gz",
+      "gzip_bytes": 2310,
+      "gzip_sha256": "6305c67ccfb54832cd4cff65c4e75d6df906516cc86fab2ee5aad3b7b1b52ca4"
+    },
+    {
+      "original_path": "native/x86_64/make-record.rs",
+      "bytes": 684,
+      "sha256": "e6ec43c100960c9e3a4566fac118e189d7551cf51a0f5e734533b59ea20b26e6",
+      "gzip_path": "native/x86_64/make-record.rs.gz",
+      "gzip_bytes": 435,
+      "gzip_sha256": "b037f92a7f4e77ff2767dda51e0615d682ccb7e3fca1bea16a3b3514edbb54b4"
+    },
+    {
+      "original_path": "native/x86_64/journey-qemu-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_path": "native/x86_64/journey-qemu-stderr.log.gz",
+      "gzip_bytes": 20,
+      "gzip_sha256": "ac73670af3abed54ac6fb4695131f4099be9fbe39d6076c5d0264a6bbdae9d83"
+    },
+    {
+      "original_path": "native/x86_64/journey-proof.json",
+      "bytes": 1494451,
+      "sha256": "e930f0b412c1a6bf77768bf9d21b7854e73d1108c8022f3f7a141d7125ee939b",
+      "gzip_path": "native/x86_64/journey-proof.json.gz",
+      "gzip_bytes": 112092,
+      "gzip_sha256": "a943cfb2dd8c41195cd873b1e0f93b04df63f0c61b8d38469a08cd6550ee3c3a"
+    },
+    {
+      "original_path": "native/x86_64/privilege-inventory-cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5-product-host.map",
+      "bytes": 22783585,
+      "sha256": "c8fea999efe72933daae2ed478adddb4f5d7a4fafa2f50bb270e4721109fc896",
+      "gzip_path": "native/x86_64/privilege-inventory-cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5-product-host.map.gz",
+      "gzip_bytes": 1305253,
+      "gzip_sha256": "f9e53d12019a5994440ede3387b41e35b2f9471db514f6d9173e3e151b17726f"
+    },
+    {
+      "original_path": "native/x86_64/conduitos",
+      "bytes": 78952024,
+      "sha256": "cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5",
+      "gzip_path": "native/x86_64/conduitos.gz",
+      "gzip_bytes": 8655019,
+      "gzip_sha256": "c4664f08165ae6480c85029be393b35d851cbd05acd232a108f7365eb1af59ae"
+    },
+    {
+      "original_path": "native/x86_64/build.json",
+      "bytes": 319,
+      "sha256": "d4350119fdab2beda9a396f43c2c8abd91f756e306517e6af8826956c64e35ee",
+      "gzip_path": "native/x86_64/build.json.gz",
+      "gzip_bytes": 236,
+      "gzip_sha256": "1dbd1e12b7c776d78d77319f0e0d27fb8858fb497d34c44d9faf946ea1b6b8a3"
+    },
+    {
+      "original_path": "native/x86_64/journey-qmp.log",
+      "bytes": 221721,
+      "sha256": "e1f925dca0a09b5cc1fb154f6be1a48fbd04a7a0a7f1a07063c8dd1f2c24f088",
+      "gzip_path": "native/x86_64/journey-qmp.log.gz",
+      "gzip_bytes": 13301,
+      "gzip_sha256": "f34da7785dfad84e1f203ccd39ffc5bd15ecda62a7f9930faa014f47cfad02e8"
+    },
+    {
+      "original_path": "native/x86_64/privilege-inventory-cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5-product-host.json",
+      "bytes": 63200,
+      "sha256": "f5509a075be3600e9454ab0e745ae08d2cf1d17972327b05ae5d5a01302ae02a",
+      "gzip_path": "native/x86_64/privilege-inventory-cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5-product-host.json.gz",
+      "gzip_bytes": 8492,
+      "gzip_sha256": "5844b2a99ffba2b3e5c0608c5ee6011e1bdaa1919743199fcd358fbcce61c0f9"
+    },
+    {
+      "original_path": "native/x86_64/image.json",
+      "bytes": 335,
+      "sha256": "b56a5f16102773722bf738afa2a13fe2037ca3169800e95da913d499dfbf693a",
+      "gzip_path": "native/x86_64/image.json.gz",
+      "gzip_bytes": 243,
+      "gzip_sha256": "f10f2ec893ddf25410c892b7af0dd30c119e19e5c670e7dbf3046259b11a1007"
+    },
+    {
+      "original_path": "native/x86_64/x86_64-product-journey-proof.json",
+      "bytes": 1494451,
+      "sha256": "e930f0b412c1a6bf77768bf9d21b7854e73d1108c8022f3f7a141d7125ee939b",
+      "gzip_path": "native/x86_64/x86_64-product-journey-proof.json.gz",
+      "gzip_bytes": 112092,
+      "gzip_sha256": "a943cfb2dd8c41195cd873b1e0f93b04df63f0c61b8d38469a08cd6550ee3c3a"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-editorial-compact.png",
+      "bytes": 160029,
+      "sha256": "3a752c248917166016c0d1ebabc436a8604f2cb05ad42a53171219d7604ff541",
+      "gzip_path": "native/x86_64/journey-frames/creche-editorial-compact.png.gz",
+      "gzip_bytes": 88666,
+      "gzip_sha256": "b89f7e750e8a6fdb4c153597c68618d468f3de87d7f9280900d9787589ce1d56"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-diagram.png",
+      "bytes": 153567,
+      "sha256": "8317450081291ec96fdf112693e61121c5cc0101770dfaa8d33752294ecaa17b",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-diagram.png.gz",
+      "gzip_bytes": 75553,
+      "gzip_sha256": "49e56f054b129e0e00918dc28662da977af1d05ece5f896cca23e91d91ccec5e"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-pointer-four-restored.png",
+      "bytes": 159477,
+      "sha256": "636f803e182fe6c380c5da2fa7660813579be0dc32a0f0aa395fb82a48eaf7f4",
+      "gzip_path": "native/x86_64/journey-frames/creche-pointer-four-restored.png.gz",
+      "gzip_bytes": 87371,
+      "gzip_sha256": "6d3b353b90f06acf43c689d4ce4d9335634987de4106b768c184bf7d3bcc5e5d"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-gear-details.png",
+      "bytes": 244399,
+      "sha256": "c9909ce6dc3ffdf79cd75f0a3f26b5fd1dd4cd42779c464ac0526b4b75f4a1f3",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-gear-details.png.gz",
+      "gzip_bytes": 97242,
+      "gzip_sha256": "c12d706819d35825e1f0203517d36f815d50ff20c85fee1219f8111a3f5cc735"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-diagram-returned.png",
+      "bytes": 153231,
+      "sha256": "bd8e3dcd2e67beeaa076c4cd6ff2aa03cdf1a35979cbb2bbe21403db63066044",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-diagram-returned.png.gz",
+      "gzip_bytes": 75277,
+      "gzip_sha256": "3930d7d8b060fe6a0621a21528d12c1479845fef117f47bf7fede5c87f8a1788"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-engineering-spacious.png",
+      "bytes": 141344,
+      "sha256": "08f1b5f570fb8f8828b50851edbddc7d062c3cf961df1b5e9a70ac3711f3f809",
+      "gzip_path": "native/x86_64/journey-frames/creche-engineering-spacious.png.gz",
+      "gzip_bytes": 82630,
+      "gzip_sha256": "6fd5aaafe8ac6457896a27c10e5856584327d194087c389d925c6dd4c6db0308"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/protected-keyboard-canvas.png",
+      "bytes": 70191,
+      "sha256": "3d3a127d007486a9ee03ed2f5c7321d3c2a39ce607ed594d1d7f15ef4da28043",
+      "gzip_path": "native/x86_64/journey-frames/protected-keyboard-canvas.png.gz",
+      "gzip_bytes": 30099,
+      "gzip_sha256": "f315d3760b70029b1caabec87d29413db9e2d1919015154b14df4886e224b029"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-pointer-three-selected.png",
+      "bytes": 159546,
+      "sha256": "b97a3ddfb2b85c0e0c720f60f6263c1db5a1a2aba2a2f36452edc8c7b77b1883",
+      "gzip_path": "native/x86_64/journey-frames/creche-pointer-three-selected.png.gz",
+      "gzip_bytes": 87198,
+      "gzip_sha256": "166c990347e2fae98fd1e6657b517ae7de97dda335c350131c2cbaa5b7729f9b"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-mask-replanned.png",
+      "bytes": 145479,
+      "sha256": "8591bf36751ce16905d857ebad85b137ff5c24e1d02a30c9f69b248194098cb8",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-mask-replanned.png.gz",
+      "gzip_bytes": 61840,
+      "gzip_sha256": "af857a91e5de71bcbf2fbbcfe5f4b57d53efe73481e1abd772bb14c27e4f7a9b"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/wake-refused.png",
+      "bytes": 127887,
+      "sha256": "cb8fd3598561861ad91e8618fa75917d4f8bf52adecbc42686f0b3f018c8e637",
+      "gzip_path": "native/x86_64/journey-frames/wake-refused.png.gz",
+      "gzip_bytes": 67231,
+      "gzip_sha256": "a3e79718805506c0a8bedbcab2e9f5c05ce86b56a17eb64942c839ed30bae6b0"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-four-restored.png",
+      "bytes": 159405,
+      "sha256": "de866ef3b912661457eda6b4978c603626ba81778b5025769f4ab7fe65dfbd10",
+      "gzip_path": "native/x86_64/journey-frames/creche-four-restored.png.gz",
+      "gzip_bytes": 87462,
+      "gzip_sha256": "1ae89647d1e10ae0b0497f361e7c27cd8582505e778e7ca6714ff4f6cbad7d25"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-inspected-other-and-returned.png",
+      "bytes": 156686,
+      "sha256": "979489ef24bcaadf0199686febabfd2c208fca0eb43b215ad96494d21cd131f5",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-inspected-other-and-returned.png.gz",
+      "gzip_bytes": 72694,
+      "gzip_sha256": "5a550c2f05233a7517926ece1b4c55a7cae9c688ba0afb13d70475709f039306"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/body-stopped.png",
+      "bytes": 200427,
+      "sha256": "3bcfa1b773374a3793b83b09c9018a8b4ca0b67892c623e85e514c2ff8d7ded9",
+      "gzip_path": "native/x86_64/journey-frames/body-stopped.png.gz",
+      "gzip_bytes": 88043,
+      "gzip_sha256": "11bef71c4f014301c4132804d27f603ee493d461be243953a8cb88aaabec7c58"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/manifest.json",
+      "bytes": 477110,
+      "sha256": "151c85c359b8ce8757bcdd9ed3781474705568f9fdf0946f094355696d8903af",
+      "gzip_path": "native/x86_64/journey-frames/manifest.json.gz",
+      "gzip_bytes": 23955,
+      "gzip_sha256": "e50ca887364bcae5233e598a79a86a8fd4737606299fe40dfdde9cb75a321317"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-fourth-checked.png",
+      "bytes": 159424,
+      "sha256": "f1011a04fbd4eef6ae29d9ad7f841be5c587c81dd2e5f50f53fd17560e95b7c8",
+      "gzip_path": "native/x86_64/journey-frames/creche-fourth-checked.png.gz",
+      "gzip_bytes": 87010,
+      "gzip_sha256": "ed0b39eafb18f846d411856928fe3ca51c331be66755f715d304a9a2d530bf38"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/front-door-ready.png",
+      "bytes": 49977,
+      "sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+      "gzip_path": "native/x86_64/journey-frames/front-door-ready.png.gz",
+      "gzip_bytes": 16107,
+      "gzip_sha256": "7af5b5edc92fd7cac350fa09356ecbca819bf93c590eea44dbcdf00e648e62ff"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-ready.png",
+      "bytes": 159273,
+      "sha256": "69b0c24751d6adddc29d767b317ecc22b00732bd13a409e8c873e8dca9f6664b",
+      "gzip_path": "native/x86_64/journey-frames/creche-ready.png.gz",
+      "gzip_bytes": 87886,
+      "gzip_sha256": "d2d782c759e576e8692280ef5cddcbeee7b38d81f0f02cd7dd0dc44439cd923d"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/body-playing.png",
+      "bytes": 69206,
+      "sha256": "530c7374c091382a3c0c2d482cb9a75960fc4e3bba2842d15c68e8efd383550e",
+      "gzip_path": "native/x86_64/journey-frames/body-playing.png.gz",
+      "gzip_bytes": 29690,
+      "gzip_sha256": "7393a8f87d34f674228935d1a743dbee6799731ba9e76d719718b985d7e12952"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-three-selected.png",
+      "bytes": 159477,
+      "sha256": "9e8e0e6136916640c56e5ac0d0006b67f20f85a83c2365b28de0d796f4f07d09",
+      "gzip_path": "native/x86_64/journey-frames/creche-three-selected.png.gz",
+      "gzip_bytes": 86760,
+      "gzip_sha256": "c5a1eb4c791ebc0aa9ae4cece4205efd3a4dfbf5dfb8a4c21a47b596f903a05b"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/home-returned.png",
+      "bytes": 57471,
+      "sha256": "fe616c17f21f54999dc4eed2ce53c5c81cb3ac24b6124a9611ca7159c210ce9b",
+      "gzip_path": "native/x86_64/journey-frames/home-returned.png.gz",
+      "gzip_bytes": 21771,
+      "gzip_sha256": "fe2191d2892e518970dba42ed4b41a72747df17fd800cd4555cef119fa9ba465"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-face.png",
+      "bytes": 156686,
+      "sha256": "979489ef24bcaadf0199686febabfd2c208fca0eb43b215ad96494d21cd131f5",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-face.png.gz",
+      "gzip_bytes": 72694,
+      "gzip_sha256": "5a550c2f05233a7517926ece1b4c55a7cae9c688ba0afb13d70475709f039306"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-engineering-compact.png",
+      "bytes": 159273,
+      "sha256": "69b0c24751d6adddc29d767b317ecc22b00732bd13a409e8c873e8dca9f6664b",
+      "gzip_path": "native/x86_64/journey-frames/creche-engineering-compact.png.gz",
+      "gzip_bytes": 87886,
+      "gzip_sha256": "d2d782c759e576e8692280ef5cddcbeee7b38d81f0f02cd7dd0dc44439cd923d"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/home.png",
+      "bytes": 69206,
+      "sha256": "530c7374c091382a3c0c2d482cb9a75960fc4e3bba2842d15c68e8efd383550e",
+      "gzip_path": "native/x86_64/journey-frames/home.png.gz",
+      "gzip_bytes": 29690,
+      "gzip_sha256": "7393a8f87d34f674228935d1a743dbee6799731ba9e76d719718b985d7e12952"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/creche-editorial-spacious.png",
+      "bytes": 142050,
+      "sha256": "e5bdc9ee4153b12838fe620984783c90d64f47e0eb511dcc01a53d616e7ccc39",
+      "gzip_path": "native/x86_64/journey-frames/creche-editorial-spacious.png.gz",
+      "gzip_bytes": 83508,
+      "gzip_sha256": "2236cd23135bbda14cebe299e4320be03e5c02ae682e761f6871e3164c2c3c16"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/protected-memory-lantern.png",
+      "bytes": 64177,
+      "sha256": "93292a113dd32d1e80901692aa89768cd86f9e6b17d7f0f326a0ec7f307dbd86",
+      "gzip_path": "native/x86_64/journey-frames/protected-memory-lantern.png.gz",
+      "gzip_bytes": 16975,
+      "gzip_sha256": "a7f87e762398c5a86f73c8367cfcb28f7046235c518d9c7d563406ff5babdd74"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-reentered.png",
+      "bytes": 56472,
+      "sha256": "4ad16974f2597a5e29daece8d315c2db05c5d7ebf4e2155c44d1a3771d938529",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-reentered.png.gz",
+      "gzip_bytes": 20777,
+      "gzip_sha256": "21fceda42b21ccc1350086661a16feabd9a7373060328dd0f859ec8af79ea013"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-source-editor-loaded.png",
+      "bytes": 102455,
+      "sha256": "5d5fc8e52b4fde220ae07cceee33fb58d10d6fb8a17f4c53e6ff46fce1144d63",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-source-editor-loaded.png.gz",
+      "gzip_bytes": 39146,
+      "gzip_sha256": "ebde872dd6fd1b07f7093f025c763c6be8c6e2ac7cbb80bd5ffc91db88257c18"
+    },
+    {
+      "original_path": "native/x86_64/journey-frames/patchbay-workspace.png",
+      "bytes": 156686,
+      "sha256": "979489ef24bcaadf0199686febabfd2c208fca0eb43b215ad96494d21cd131f5",
+      "gzip_path": "native/x86_64/journey-frames/patchbay-workspace.png.gz",
+      "gzip_bytes": 72694,
+      "gzip_sha256": "5a550c2f05233a7517926ece1b4c55a7cae9c688ba0afb13d70475709f039306"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/source-selected.png",
+      "bytes": 156759,
+      "sha256": "24bf49b7ad1d2c9334f328d6e8693a1376217128c13f5104a31accd80b94bf5b",
+      "gzip_path": "native/x86_64/patchbay-checked-source/source-selected.png.gz",
+      "gzip_bytes": 72792,
+      "gzip_sha256": "8a5d69ee2c144a0738c66ec582cd10367f4c02fa4920e8e58750146493510b2f"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/manifest.json",
+      "bytes": 534240,
+      "sha256": "31690bae53344e39ab8ea549587ba156fcb5a7f8a87b130d58deaf856649b293",
+      "gzip_path": "native/x86_64/patchbay-checked-source/manifest.json.gz",
+      "gzip_bytes": 35592,
+      "gzip_sha256": "0b266922332db1e8fad2cb22bde043f52d179c34da471a3e5eb74180123ae403"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/details-port.png",
+      "bytes": 321551,
+      "sha256": "9cc124c09dab4daaf2010b60f514132f49efde0c0385e12d86eb109afc92b96a",
+      "gzip_path": "native/x86_64/patchbay-checked-source/details-port.png.gz",
+      "gzip_bytes": 154359,
+      "gzip_sha256": "8953d26c62bda62b90af853569b7377aaae77a9b27291fdf6cc07935548cf091"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/details-gear.png",
+      "bytes": 321536,
+      "sha256": "7773b47c422d5464677a86bc050dc587366116f3769b2e3c6380331fb6a1a9f2",
+      "gzip_path": "native/x86_64/patchbay-checked-source/details-gear.png.gz",
+      "gzip_bytes": 154089,
+      "gzip_sha256": "8652da9534017b4a9100de002b2b19f5a7e44133e71e2308411bb402c30e0e64"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/diagram-backward-000.png",
+      "bytes": 210797,
+      "sha256": "dfe428fe35a0c65e5deb10bcae6de21ee9d2593f1c36cc2eab299f35180fb286",
+      "gzip_path": "native/x86_64/patchbay-checked-source/diagram-backward-000.png.gz",
+      "gzip_bytes": 110603,
+      "gzip_sha256": "04019560f281a85752e6c724fe5a6130575edd55b780b1e4c25c58bd5d2eb0b3"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/details-cord.png",
+      "bytes": 351202,
+      "sha256": "2f89a2fac6e38a3eabd0ea44cec93729f064e0fa708729ce43c46ea2205c9a91",
+      "gzip_path": "native/x86_64/patchbay-checked-source/details-cord.png.gz",
+      "gzip_bytes": 160382,
+      "gzip_sha256": "9881eab9fdd4a98fc8d037008fd7d7e12be09e714860823a045c84485bcc2189"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/diagram-forward-000.png",
+      "bytes": 210797,
+      "sha256": "dfe428fe35a0c65e5deb10bcae6de21ee9d2593f1c36cc2eab299f35180fb286",
+      "gzip_path": "native/x86_64/patchbay-checked-source/diagram-forward-000.png.gz",
+      "gzip_bytes": 110603,
+      "gzip_sha256": "04019560f281a85752e6c724fe5a6130575edd55b780b1e4c25c58bd5d2eb0b3"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-checked-source/diagram-forward-001.png",
+      "bytes": 127961,
+      "sha256": "6a097495c66104d29f3bc103c37d7adab799f1d6ba76930cbb856481cb30c0b2",
+      "gzip_path": "native/x86_64/patchbay-checked-source/diagram-forward-001.png.gz",
+      "gzip_bytes": 57438,
+      "gzip_sha256": "4e099b22f14ce8a9621276c1ad4a13867b2f2f94e0bd97878fc63d7105fe95ee"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-016.png",
+      "bytes": 306321,
+      "sha256": "effadde82df2de6ebe72f6ba156badf59d81f76709a1376eedd4330521a4083b",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-016.png.gz",
+      "gzip_bytes": 146738,
+      "gzip_sha256": "99bbf3aedec79587df2d96532e3f752bd223f288db78912e91233eaf0088d773"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-014.png",
+      "bytes": 350371,
+      "sha256": "95a2c49c6bc772db02ec09bfd12a3604a010f314285f3cd3f0e58cdb75f6ae51",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-014.png.gz",
+      "gzip_bytes": 154404,
+      "gzip_sha256": "5efdb32c753a45314033a840cca25b4a70a7dca72bc66cf001a2cdb9e2417a11"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-013.png",
+      "bytes": 307031,
+      "sha256": "59355ad27c064659c64f2eb375f79a38561a022743e2ca145f2f308f9c372666",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-013.png.gz",
+      "gzip_bytes": 131671,
+      "gzip_sha256": "1fc5469684d7301b533c5e4dda4d33adfa873eb6486f270f0d0e0ad03819b123"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-018.png",
+      "bytes": 235951,
+      "sha256": "faa0dec8132028bf308beeba58cd0655b89b88bcfe31e495a9b03e030161f58d",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-018.png.gz",
+      "gzip_bytes": 104709,
+      "gzip_sha256": "b95e17148f18589ab26c9e6dedd25f25c259e1114bf85b06f3c17ad2d9e4863b"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-001.png",
+      "bytes": 240373,
+      "sha256": "7a2429bfe2c92b42ec8913faf93d56341ebcc92fa17cbb7bb5cafd0a39ee361b",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-001.png.gz",
+      "gzip_bytes": 95055,
+      "gzip_sha256": "41fb7fd44034b0c0dcc18f022667b131e9f01f7844fef72160f97a379223de23"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-011.png",
+      "bytes": 349945,
+      "sha256": "9dc4ce4b70fa8e3bb2c984eecff402b39045cdb5c053d55ab87fefca85970837",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-011.png.gz",
+      "gzip_bytes": 164725,
+      "gzip_sha256": "f5d76fd2502e56bbd784935603a6b35bcd3ba761bb362d278d824274d815b0a7"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-017.png",
+      "bytes": 317253,
+      "sha256": "d5494423a998a74f658ddf1e572d3ca27b8cf1094fa9a012bf887aa51f8c2aef",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-017.png.gz",
+      "gzip_bytes": 147933,
+      "gzip_sha256": "d0e3f577a5a8f0a8f12a7f3d99a05d16e35423957cd6007c79dcd3882957e788"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/manifest.json",
+      "bytes": 26926,
+      "sha256": "1bd23a971fdc5b99691f587af9e4276304b2875fd1daf96aa199bc05f13573ab",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/manifest.json.gz",
+      "gzip_bytes": 2974,
+      "gzip_sha256": "ff6b71517d8c96a44b887f1beedbcebc8f9b7469e244e587dbdac362f789f58e"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-009.png",
+      "bytes": 381993,
+      "sha256": "c31d5752187554cc7b0f0dee7ba746a2f0b86b9974e972ef007a0317cd226e88",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-009.png.gz",
+      "gzip_bytes": 181488,
+      "gzip_sha256": "de3a433b0360842cda8ae3d7d0a0cf261b87627186f1384fb475c72142c7a205"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-015.png",
+      "bytes": 387048,
+      "sha256": "15d3eb29239d974346f377a479c178e8555678d4cca40eb71cf8beb4e39d0b40",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-015.png.gz",
+      "gzip_bytes": 174814,
+      "gzip_sha256": "4f571b3c3eb20defaedcb652a721bb310d06318ace7ad8907ff0505bfb5ce678"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-012.png",
+      "bytes": 316132,
+      "sha256": "f08fdf1dfd60f03e1a98df9b3eb769c2976df34be27dfe8ff03c5593a06dd31b",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-012.png.gz",
+      "gzip_bytes": 143803,
+      "gzip_sha256": "78b50c6ccb1e2889cee65c9bc3650dd30ca49be20e72dccb4edbfc41e863a07e"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-019.png",
+      "bytes": 313255,
+      "sha256": "774340e1714e4c5fbca3cc59bd5d15f984f34d1527009c44674945c21c1fc5cd",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-019.png.gz",
+      "gzip_bytes": 158168,
+      "gzip_sha256": "ac498ada9cb5f02ef3262035a65a644b82acc014d9e48e5668c5d89293ddf814"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-020.png",
+      "bytes": 351128,
+      "sha256": "2258c38e44a050cbde80a2445d487eed79f25478c5f1e69ee441179949bb0839",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-020.png.gz",
+      "gzip_bytes": 131806,
+      "gzip_sha256": "b5e0d5dc6949892400fc46512c6238edb2fe1fe63a2a47b652345a0f0bcd2211"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-003.png",
+      "bytes": 414416,
+      "sha256": "0d3217aafdd3cfd5d483abdb9e8053fbc8dd5840d17983c7d185a22f471c0f5f",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-003.png.gz",
+      "gzip_bytes": 172267,
+      "gzip_sha256": "2a00d066d2a9e55dace8fe3e3a4f3da311b2ea5ee1bd25a6ae599a843962c6f6"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-008.png",
+      "bytes": 351978,
+      "sha256": "2a94b0b2cbd4884836b2667c90950caaf77305931e61ddcd9b9d3212e2c91c52",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-008.png.gz",
+      "gzip_bytes": 189342,
+      "gzip_sha256": "cb5ea5d60e340c47e27292aedb54acf7180c9f2276e6710df35da9dfe28ffdcf"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-005.png",
+      "bytes": 150257,
+      "sha256": "41f800305034dff65ee382b4e09743fd51cc39a943c555c803e7c1479ddca56a",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-005.png.gz",
+      "gzip_bytes": 60511,
+      "gzip_sha256": "7ca74874e69fe668ef327a1d58c1586744b9c27a7b356bddbf7ea0814a2af872"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-007.png",
+      "bytes": 340084,
+      "sha256": "0881296b9fbd84e8d954d3afb726c3061a0e95a98e0d601e3d915a8a8773a0d7",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-007.png.gz",
+      "gzip_bytes": 139077,
+      "gzip_sha256": "cb4664cfb6559a886dd0bc28c1eb64e4b981adb7e103d6f411d2c8d3fce421e5"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-006.png",
+      "bytes": 226095,
+      "sha256": "5c6e8ae1682f73ad3f5dfb82f9e74d1c44eb5fadec17d8911b855bbd455266a2",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-006.png.gz",
+      "gzip_bytes": 79934,
+      "gzip_sha256": "ea9b0b5128ffb9237d75e582f7ba09eeebf898be82d1486ae854b41ecb407311"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-004.png",
+      "bytes": 153904,
+      "sha256": "f4fe79a08c10a173e6f33962d737644bc71f9299ceed0368af5172eda5126db0",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-004.png.gz",
+      "gzip_bytes": 64527,
+      "gzip_sha256": "9c280d4ad7db1100b71926cbffdba838678cfb37f58ce36211d994761c678151"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-002.png",
+      "bytes": 329178,
+      "sha256": "c23a6ca68ad2447deaa18f89677a9437d382a2d656b3d7d174e927f3f6d754dc",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-002.png.gz",
+      "gzip_bytes": 135509,
+      "gzip_sha256": "671b1675ca6556b8367bff90783d3e71040bec076706edadc39f6852af18517c"
+    },
+    {
+      "original_path": "native/x86_64/patchbay-refusal-details/details-010.png",
+      "bytes": 355470,
+      "sha256": "6d2ee745d0fe96b0dff1bd7f9e3947375bf25b6b69b30a8bbf5cd05b1d020ff7",
+      "gzip_path": "native/x86_64/patchbay-refusal-details/details-010.png.gz",
+      "gzip_bytes": 183121,
+      "gzip_sha256": "01e160ed217da092cc61c326b1d6554c33476f32d39f2f832eda2a7f3b1b6a07"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8",
+      "gzip_path": "native/x86_64/iso-root/limine.conf.gz",
+      "gzip_bytes": 180,
+      "gzip_sha256": "fcba442f117cb470fa727a2d3659aada30683b53f294541602aee8b905262b31"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2",
+      "gzip_path": "native/x86_64/iso-root/boot/conduit-spore.bin.gz",
+      "gzip_bytes": 96,
+      "gzip_sha256": "5d720cfa01deeb74efbc3024269edd4a1cf0f1a30f87e1a969cb083984cafc17"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/conduit-build.json",
+      "bytes": 4453,
+      "sha256": "3aa31765373dc5b6d29abe4026e58b9d2a2db1b4c4c98649d063292d051433b4",
+      "gzip_path": "native/x86_64/iso-root/boot/conduit-build.json.gz",
+      "gzip_bytes": 1066,
+      "gzip_sha256": "72834e1a894d74feab4b22a0fb48b6da49af38b588871440eaf6fb3d14dbf512"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/conduitos",
+      "bytes": 78952024,
+      "sha256": "cba3e88b2af137ba1f2f8e45dc5f46185c06069b71e1ba72a854d57aedc19cf5",
+      "gzip_path": "native/x86_64/iso-root/boot/conduitos.gz",
+      "gzip_bytes": 8655019,
+      "gzip_sha256": "c4664f08165ae6480c85029be393b35d851cbd05acd232a108f7365eb1af59ae"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8",
+      "gzip_path": "native/x86_64/iso-root/boot/limine/limine-bios-cd.bin.gz",
+      "gzip_bytes": 20512,
+      "gzip_sha256": "5384e0344ea532001808ecdc34cdf7018e0b1ac50bf305110c47d79d4d2727bd"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06",
+      "gzip_path": "native/x86_64/iso-root/boot/limine/limine-uefi-cd.bin.gz",
+      "gzip_bytes": 786630,
+      "gzip_sha256": "51ceb5516b24201232e320db9b20ec95566799db538022caf985228809b97951"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a",
+      "gzip_path": "native/x86_64/iso-root/boot/limine/limine-bios.sys.gz",
+      "gzip_bytes": 156568,
+      "gzip_sha256": "ddb0c1f4a31fe902186f73a18afc371c49da27398493b1c2684fd65c27c30bbc"
+    },
+    {
+      "original_path": "native/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19",
+      "gzip_path": "native/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI.gz",
+      "gzip_bytes": 164306,
+      "gzip_sha256": "38bd85cf1f53787b3860e9817f3876fbf8385f7553b812b531287ee5385c2dad"
+    },
+    {
+      "original_path": "independent-review.json",
+      "bytes": 2342,
+      "sha256": "b07d16b0eee846bb9eaaf2e65166b70ec24420172d7dae62dc0b336a281314f7",
+      "gzip_path": "independent-review.json.gz",
+      "gzip_bytes": 1310,
+      "gzip_sha256": "2feea7240b7a00ffb7cb9749c467335cc6353054fbc22a33c7a9a4ccb74d4fd3"
+    }
+  ]
+}
