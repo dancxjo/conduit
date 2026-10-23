@@ -732,3 +732,19 @@ producer Boot time. Encoding and sealing allocate nothing during execution.
 The returned reference bytes are an expected Host Call output, not a durable
 receipt. Actual selected snapshot invocation/completion, committed-cursor
 advancement and recorder membership/Line integration remain outstanding.
+
+`RecordingSnapshotBack` crosses the ordinary snapshot Host Call protocol rather
+than exposing a public “mark durable” method. Before requesting storage it checks
+the complete fixed-size chunk against the selected producer context, semantic
+Type, Forms and sample count. A completed call must return the exact selected
+reference. Only the kernel's committed completion Step publishes the sequence
+range to its read-only observer. Output pressure, failure, denial, cancellation,
+wrong references and corrupt input cannot advance that observer. One Back owns
+one publication; retries and additional generations are not implicit.
+
+`cargo xtask prove environment recording` exercises this Back in the production
+fixed kernel, plus cancellation between staging and commit and blocked output.
+Execution allocates nothing. Numeric placement and external storage completions
+in this proof are explicit CPU fixtures: browser installation, actual storage
+acknowledgement, recorder membership/Line, cross-chunk recovery and physical
+endurance are still required for a deployed recorder appliance.

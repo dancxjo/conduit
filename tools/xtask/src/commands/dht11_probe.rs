@@ -92,6 +92,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "recording_chunks",
                     "--test",
                     "recording_recovery",
+                    "--test",
+                    "recording_publication",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target/environment-runtime")),
         );
