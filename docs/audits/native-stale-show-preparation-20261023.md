@@ -85,7 +85,9 @@ pixels and receipt hashes. PNG SHA256 is
 `06bb657b272033294582ace97c287601e395ec1470d811919ecad9681faf8435`;
 decoded RGBA SHA256 is
 `7a57a886aac6e863ffc9da71be6c94a8042be4e9acc7db17fd3ac14df17b6e58`.
-The original image was visually inspected. ISO SHA256 is
+The original image was visually inspected. Strict owning-package native
+all-target Clippy also passes with warnings denied; its full log is retained
+in the packet. ISO SHA256 is
 `c9d7921c1eba9d8a182da7b4321cbcaf610fd035319b5bad45d6bf176e836fad`.
 
 This earns the explicit appliance's visible stale-Show case, not ordinary-product
