@@ -90,10 +90,12 @@ impl DomainBackend for ServiceDomain {
             .clock_binding
             .as_mut()
             .and_then(|binding| binding.take(self.instance, &context));
-        #[cfg(feature = "ordinary-domain-proof")]
-        let result = domain_transition::enter_context_with_clock(context, budget, permit)?;
-        #[cfg(not(feature = "ordinary-domain-proof"))]
-        let result = domain_transition::enter_context_with_budget(context, budget)?;
+        let result = domain_transition::enter_context_with_budget(
+            context,
+            budget,
+            #[cfg(feature = "ordinary-domain-proof")]
+            permit,
+        )?;
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;

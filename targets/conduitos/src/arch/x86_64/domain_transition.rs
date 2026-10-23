@@ -61,29 +61,15 @@ pub(super) fn enter(
 }
 
 pub(super) fn enter_context(context: EntryContext) -> Result<TransitionReturn, DomainRefusal> {
-    enter_context_with_budget(context, domain_budget::EntryBudget::Ordinary)
-}
-
-pub(super) fn enter_context_with_budget(
-    context: EntryContext,
-    profile: domain_budget::EntryBudget,
-) -> Result<TransitionReturn, DomainRefusal> {
-    enter_context_impl(
+    enter_context_with_budget(
         context,
-        profile,
+        domain_budget::EntryBudget::Ordinary,
         #[cfg(feature = "ordinary-domain-proof")]
         None,
     )
 }
-#[cfg(feature = "ordinary-domain-proof")]
-pub(super) fn enter_context_with_clock(
-    context: EntryContext,
-    profile: domain_budget::EntryBudget,
-    permit: Option<super::clock_boundary::Permit>,
-) -> Result<TransitionReturn, DomainRefusal> {
-    enter_context_impl(context, profile, permit)
-}
-fn enter_context_impl(
+
+pub(super) fn enter_context_with_budget(
     context: EntryContext,
     profile: domain_budget::EntryBudget,
     #[cfg(feature = "ordinary-domain-proof")] permit: Option<super::clock_boundary::Permit>,
