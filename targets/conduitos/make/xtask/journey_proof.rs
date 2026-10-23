@@ -281,13 +281,7 @@ fn execute_with_viewport(
 
         keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
 
-        journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_HOME_CHECKPOINT returned",
-            "journey-home-timeout",
-        )?;
+        face_input::open_home(&serial_path, &mut child, &mut qmp, &mut reader)?;
         artifacts.capture(&mut qmp, &mut reader, "home", true)?;
         journey_input::open_hub_plot(
             &mut qmp,
