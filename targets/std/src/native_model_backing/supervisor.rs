@@ -15,6 +15,7 @@ use std::{
         Arc,
     },
 };
+mod preparation_io;
 mod transport;
 use transport::Exchange;
 static NEXT_TRANSPORT: AtomicU64 = AtomicU64::new(1);
@@ -91,16 +92,22 @@ impl PreparedNativeModel {
             .stdout
             .take()
             .ok_or(NativeBackingRefusal::Protocol)?;
+        nonblocking(&input)?;
+        nonblocking(&output)?;
+        let deadline = preparation_io::Deadline::new(
+            std::time::Instant::now() + super::profile::PREPARATION_IO_TIMEOUT,
+        );
         protocol::send(
-            &mut input,
+            &mut deadline.io(&mut input),
             &Bootstrap {
                 profile,
                 grant,
                 graph: resource.resource().bytes().to_vec(),
             },
-        )?;
-        let ready: Prepared =
-            protocol::receive(&mut output).map_err(|error| classify(&mut guard.child, error))?;
+        )
+        .map_err(|error| deadline.classify(error))?;
+        let ready: Prepared = protocol::receive(&mut deadline.io(&mut output))
+            .map_err(|error| deadline.classify(classify(&mut guard.child, error)))?;
         let ledger = match ready {
             Prepared::Ready(v) => *v,
             Prepared::Refused(e) => return Err(e),
@@ -113,12 +120,11 @@ impl PreparedNativeModel {
         if observed != ledger {
             return Err(NativeBackingRefusal::InvalidLedger);
         }
-        input
+        let mut prepared_input = deadline.io(&mut input);
+        prepared_input
             .write_all(b"G")
-            .and_then(|()| input.flush())
-            .map_err(|_| NativeBackingRefusal::Io)?;
-        nonblocking(&input)?;
-        nonblocking(&output)?;
+            .and_then(|()| prepared_input.flush())
+            .map_err(|_| deadline.classify(NativeBackingRefusal::Io))?;
         let transport = NEXT_TRANSPORT
             .fetch_update(Ordering::AcqRel, Ordering::Acquire, |value| {
                 value.checked_add(1)
