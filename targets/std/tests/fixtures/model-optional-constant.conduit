@@ -1,0 +1,9 @@
+# Exact constant Identity graph with two genuine dynamic-optional tensor inputs.
+plot linear-model (
+    >> inputs: NamedTensorBundle <= 262144B
+    outputs: NamedTensorBundle <= 262144B >>
+) {
+    model: model/infer(signature = { identity: "test/optional-constant@1", compatibility_version: 1, operations: [infer(empty)], inputs: [{ identity: "input", semantic_kind: "data/tensor@1", presence: optional(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 2 }) }], maximum_bytes: 8, numeric_policy: ieee(empty) } }) }, { identity: "hint", semantic_kind: "data/tensor@1", presence: optional(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 2 }) }], maximum_bytes: 8, numeric_policy: ieee(empty) } }) }], outputs: [{ identity: "input", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 2 }) }], maximum_bytes: 8, numeric_policy: ieee(empty) } }) }] })
+    inputs >> model.inputs
+    model.outputs >> outputs
+}.
