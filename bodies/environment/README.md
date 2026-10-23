@@ -873,8 +873,8 @@ assigned preparation after dropping the rich preparation objects on the assigned
 path. Wrong Host/Boot, colliding or mislabelled roles, altered computations and
 insufficient wait storage refuse before software allocation or provider effects.
 Both paths use the production kernel without execution allocations. On the
-64-bit CPU, assignment-based software preparation peaks at 150,803 new heap
-bytes and retains 118,776; preallocated value storage, assignment bytes, resident
+64-bit CPU, assignment-based software preparation originally peaked at 150,803 new heap
+bytes and retained 118,776; preallocated value storage, assignment bytes, resident
 metadata and native owners are outside that measurement. The complete MCU
 closure remains unproven. The ESP32 native-root feature compiles this appliance
 profile, but no physical appliance installation is claimed.
@@ -896,3 +896,19 @@ ESP32's serial port with both DTR and RTS asserted allowed three Root offers to
 be read in the previously observed Boot; deasserting them sequentially during
 open had caused the earlier resets. An observer timeout does not retire or reset
 the device's independently owned setup operation.
+
+Make now produces an owned `NativeSoftwareRecipe` from its checked ordinary Plan
+and generated image. It carries resident roles, exact record counts, normalized
+layout/configuration fingerprints and the exact computation inventory. It can
+outlive the rich Make state; it contains no Host, Boot or Plan identity fields.
+Root must authenticate and pin that recipe separately from incoming assignments.
+CPU proof verifies equal recipes across fresh Boots while the assignments and
+Plans change, and different recipes when authored cadence changes. The default
+960-minute workload is preserved from Source, rather than duplicated in Rust.
+
+Assignment preparation now initializes the largest temporary evaluator first,
+before retaining observation/publication codecs. Execution still follows the
+admitted tables. The same 64-bit CPU measurement reports 119,307 new peak heap
+bytes (118,776 retained), excluding the separately preallocated value store,
+assignment bytes, resident metadata and native owners. This reduces preparation
+peak; it still does not establish the complete MCU memory closure.

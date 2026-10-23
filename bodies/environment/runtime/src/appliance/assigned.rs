@@ -14,13 +14,59 @@ pub const PORTS: usize = 16;
 pub type NativeTables = AssignedKernelTables<NODES, CORDS, PORTS, { NODES * PORTS }, CORDS, NODES>;
 /// Trusted Make facts tied to this resident artifact, never inferred from the
 /// incoming assignment. Native pulse/wait providers remain separately owned.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ResidentRoles {
     pub pulse: k::NodeId,
     pub tick: k::NodeId,
     pub trigger: k::NodeId,
     pub observation: k::NodeId,
     pub publications: [k::NodeId; 4],
+}
+impl ResidentRoles {
+    /// Compiler-side association of checked Make nodes. Root must retain the
+    /// result independently; incoming node labels cannot establish this trust.
+    pub fn from_nodes<'a>(
+        nodes: impl IntoIterator<Item = (u16, &'a str)>,
+    ) -> Result<Self, NativePreparationRefusal> {
+        let kinds = [
+            conduit_pulse_capture::PULSE_READ_KIND,
+            conduit_time::TICK_KIND,
+            conduit_time::TICK_TRIGGER_KIND,
+            crate::observation::KIND,
+            PublicationChannel::Reading.kind_id(),
+            PublicationChannel::CaptureTimeout.kind_id(),
+            PublicationChannel::ProviderFailure.kind_id(),
+            PublicationChannel::GeometryRefusal.kind_id(),
+        ];
+        let mut found = [None; 8];
+        let mut seen = [false; NODES];
+        for (node, kind) in nodes {
+            let previous = seen
+                .get_mut(usize::from(node))
+                .ok_or(NativePreparationRefusal::Roles)?;
+            if *previous {
+                return Err(NativePreparationRefusal::Roles);
+            }
+            *previous = true;
+            if let Some(index) = kinds.iter().position(|expected| *expected == kind) {
+                if found[index].is_some() {
+                    return Err(NativePreparationRefusal::Roles);
+                }
+                found[index] = Some(k::NodeId(node));
+            }
+        }
+        if seen.contains(&false) || found.contains(&None) {
+            return Err(NativePreparationRefusal::Roles);
+        }
+        let nodes = found.map(|node| node.expect("complete role closure"));
+        Ok(Self {
+            pulse: nodes[0],
+            tick: nodes[1],
+            trigger: nodes[2],
+            observation: nodes[3],
+            publications: [nodes[4], nodes[5], nodes[6], nodes[7]],
+        })
+    }
 }
 pub struct ResidentAppliance<'a> {
     pub layout: ResidentLayout<'a>,
@@ -101,6 +147,38 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
         let wait = values
             .store(&c::encode_monotonic_duration(period_ms))
             .map_err(E::Storage)?;
+        let program_key = c::AssignedIdentity::from_text("program");
+        let selector_key = c::AssignedIdentity::from_text("selector");
+        // Prepare the largest temporary evaluator first, while other retained
+        // codecs/publications do not yet occupy the admission arena. This is
+        // preparation ordering only; runtime order remains the admitted tables.
+        let mut initialized = [false; NODES];
+        for _ in 0..resident.computations.requirements.len() {
+            let computation = resident
+                .computations
+                .requirements
+                .iter()
+                .filter(|r| !initialized[usize::from(r.node)])
+                .max_by_key(|r| r.text_bytes)
+                .ok_or(E::Roles)?;
+            let node = usize::from(computation.node);
+            initialized[node] = true;
+            let text = computation_text(bytes, computation)?;
+            let driver = if computation.key == program_key {
+                let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
+                    .map_err(init)?;
+                CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
+                    .map_err(init)?
+            } else if computation.key == selector_key {
+                let selector = c::StructuredSelector::from_canonical_hex(text).map_err(init)?;
+                selectors[node] =
+                    Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).map_err(init)?);
+                CaptureBack::selector(1024)
+            } else {
+                return Err(E::Configuration);
+            };
+            drivers[node] = Some(ApplianceBack::Native(driver));
+        }
         drivers[usize::from(roles.tick.0)] = Some(ApplianceBack::Tick(
             conduit_time::TickBack::counted(wait, count).ok_or(E::Configuration)?,
         ));
@@ -122,42 +200,6 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
                 )
                 .map_err(init)?,
             );
-        }
-        let program_key = c::AssignedIdentity::from_text("program");
-        let selector_key = c::AssignedIdentity::from_text("selector");
-        for record in c::AssignedPlanRecords::new(bytes).map_err(|_| E::Configuration)? {
-            let record = record.map_err(|_| E::Configuration)?;
-            if record.tag != c::ASSIGNED_CONFIGURATION {
-                continue;
-            }
-            let data = record.payload;
-            let node = usize::from(u16::from_le_bytes(
-                data[..2].try_into().map_err(|_| E::Configuration)?,
-            ));
-            let Some(computation) = resident.computations.requirements.iter().find(|r| {
-                usize::from(r.node) == node && data.get(2..18) == Some(r.key.0.as_slice())
-            }) else {
-                continue;
-            };
-            if drivers[node].is_some() || data.get(18) != Some(&3) {
-                return Err(E::Configuration);
-            }
-            let text = core::str::from_utf8(data.get(19..).ok_or(E::Configuration)?)
-                .map_err(|_| E::Configuration)?;
-            let driver = if computation.key == program_key {
-                let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
-                    .map_err(init)?;
-                CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
-                    .map_err(init)?
-            } else if computation.key == selector_key {
-                let selector = c::StructuredSelector::from_canonical_hex(text).map_err(init)?;
-                selectors[node] =
-                    Some(PreparedCaptureSelector::prepare(selector, 1024, 1024).map_err(init)?);
-                CaptureBack::selector(1024)
-            } else {
-                return Err(E::Configuration);
-            };
-            drivers[node] = Some(ApplianceBack::Native(driver));
         }
         if drivers.iter().any(Option::is_none) {
             return Err(E::Roles);
@@ -231,4 +273,33 @@ fn validate_roles(bytes: &[u8], roles: ResidentRoles) -> Result<(), NativePrepar
         }
     }
     Ok(())
+}
+
+fn computation_text<'a>(
+    bytes: &'a [u8],
+    computation: &c::AssignedComputationRequirement,
+) -> Result<&'a str, NativePreparationRefusal> {
+    let mut result = None;
+    for record in
+        c::AssignedPlanRecords::new(bytes).map_err(|_| NativePreparationRefusal::Configuration)?
+    {
+        let record = record.map_err(|_| NativePreparationRefusal::Configuration)?;
+        let data = record.payload;
+        if record.tag == c::ASSIGNED_CONFIGURATION
+            && data.get(..2) == Some(computation.node.to_le_bytes().as_slice())
+            && data.get(2..18) == Some(computation.key.0.as_slice())
+        {
+            if result.is_some() || data.get(18) != Some(&3) {
+                return Err(NativePreparationRefusal::Configuration);
+            }
+            result = Some(
+                core::str::from_utf8(
+                    data.get(19..)
+                        .ok_or(NativePreparationRefusal::Configuration)?,
+                )
+                .map_err(|_| NativePreparationRefusal::Configuration)?,
+            );
+        }
+    }
+    result.ok_or(NativePreparationRefusal::Configuration)
 }

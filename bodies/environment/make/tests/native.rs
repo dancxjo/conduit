@@ -1,4 +1,5 @@
-//! Only pulse capture is simulated. Make never creates a Ready provider.
+//! Pulse/timer and Boot are CPU fixtures. Make retains actual software owners
+//! but never creates a Ready native provider or claims physical installation.
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
 mod allocation_probe;
 #[global_allocator]
@@ -63,7 +64,7 @@ fn limits() -> NativeApplianceLimits {
 fn real_authored_source_is_prepared_against_supplied_offers_without_effects() {
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let bases = ["conduit.base/local@1".into()];
     assert!(PreparedNativeAppliance::prepare(&source, &host, &bases, &[], limits()).is_err());
     let prepared =
@@ -137,6 +138,23 @@ fn real_authored_source_is_prepared_against_supplied_offers_without_effects() {
         PreparedNativeAppliance::prepare(&source, &host, &bases, &[pulse::grant()], small).is_err()
     );
     assert_eq!(effects.get(), 0);
+    let expected_cadence = (source.count, source.period_ms);
+    let recipe = prepared.software_recipe().unwrap();
+    let assignment = prepared.assignment().to_vec();
+    drop((prepared, source, host, _software));
+    let values = conduit_kernel::FixedValueStore::<2, 1024>::new(2048).unwrap();
+    let assigned =
+        conduit_environment_runtime::appliance::assigned::PreparedAssignedAppliance::prepare(
+            &assignment,
+            limits().assignment,
+            required,
+            &recipe.resident(),
+            values,
+        )
+        .unwrap();
+    assert_eq!((assigned.count, assigned.period_ms), expected_cadence);
+    assert_eq!(assigned.tables.nodes, tables.nodes);
+    assert_eq!(effects.get(), 0);
 }
 
 /// CPU fixture membership, not an authenticated physical board or started Play.
@@ -201,7 +219,7 @@ fn body_owner(
 fn native_construction_enters_the_real_body_proposal_without_inventing_a_play() {
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let prepared = PreparedNativeAppliance::prepare(
         &source,
         &host,
@@ -236,7 +254,7 @@ fn native_construction_enters_the_real_body_proposal_without_inventing_a_play() 
 fn stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation() {
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let prepared = PreparedNativeAppliance::prepare(
         &source,
         &host,
@@ -292,7 +310,7 @@ fn body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start() 
     use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let native = PreparedNativeAppliance::prepare(
         &source,
         &host,
@@ -339,7 +357,7 @@ fn body_binding_refuses_identity_substitution_membership_loss_and_revocation() {
     use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let native = PreparedNativeAppliance::prepare(
         &source,
         &host,
@@ -398,7 +416,7 @@ fn a_different_retained_body_play_cannot_confirm_the_prepared_binding() {
     use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal as E};
     let source = construction::compile_default().unwrap();
     let (ready, effects) = pulse::ready(0);
-    let host = appliance_support::advertisement(&source, &ready);
+    let (_software, host) = retained_advertisement(&source, &ready);
     let native = PreparedNativeAppliance::prepare(
         &source,
         &host,
@@ -418,3 +436,24 @@ fn a_different_retained_body_play_cannot_confirm_the_prepared_binding() {
     assert_eq!(binding.fragment_play(&owner), Err(E::NotStarted));
     assert_eq!(effects.get(), 0);
 }
+
+fn retained_advertisement(
+    source: &construction::ApplianceSource,
+    ready: &conduit_pulse_capture::installation::ReadyPulseBase<pulse::Provider>,
+) -> (
+    conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
+    c::HostAdvertisement,
+) {
+    let mut software =
+        conduit_environment_runtime::appliance::software::ReadySoftwareBacks::prepare(
+            source,
+            pulse::identity().host_id,
+            pulse::identity().boot_id,
+        )
+        .unwrap();
+    let host = appliance_support::advertisement(source, &mut software, ready);
+    (software, host)
+}
+
+#[path = "native_support/recipe.rs"]
+mod recipe;
