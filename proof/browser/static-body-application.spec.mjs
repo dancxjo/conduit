@@ -117,16 +117,60 @@ test("static Handbook applications retain independent local Bodies through use, 
     await journey.capture(page, { id: "try", title: "Run the clock lesson",
       action: "Restore the clock source and press Try in my Handbook.",
       observation: "The checked clock joins the same Body and runs through a newly admitted Plan and Play." });
-    await page.getByRole("button", { name: "Open in Patchbay", exact: true }).first().click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Open in Patchbay", exact: true }).click();
     await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
-    await assertHandbookInspection(page, example);
-    let inspected = await current(page);
+    const graph = await assertHandbookInspection(page, example);
+    const editForm = graph.locator('[data-owner-action="patchbay.edit.current"]');
+    await expect(editForm).toBeVisible();
+    const selectedPlot = graph.locator('[data-face-role="Plot"]').filter({ has: page.locator('[data-owner-action="patchbay.edit.current"]') });
+    const disclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
+      .getAttribute('data-owner-disclosure'));
+    expect(disclosure[2]).toBe(`plot/${example.selectedPlot}`);
+    await expect(graph.locator('li').filter({ hasText: `body-plan-id: ${example.planId}` })).toHaveCount(1);
+    await expect(graph.locator('li').filter({ hasText: `observed-body-play-id: ${example.playId}` })).toHaveCount(1);
+    const clockGear = graph.locator('[data-face-role="Gear"]').filter({
+      has: page.getByRole("heading", { name: / Gear · time\/every$/ }),
+    });
+    await expect(clockGear).toHaveCount(1);
+    const subjectName = await clockGear.getByRole("heading").textContent();
+    await clockGear.locator('summary').click();
+    const semanticFact = clockGear.locator('li').filter({ hasText: /^semantic-id: / });
+    await expect(semanticFact).toHaveCount(1);
+    const subject = (await semanticFact.textContent()).slice('semantic-id: '.length);
+    expect(subject.length).toBeGreaterThan(0);
+    // Demonstrate actual editor routing: start from a different displayed lesson.
+    // This changes the local draft selection, without installing another Plot.
+    await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "Turn keystrokes into text" });
+    await expect(editor).not.toHaveValue(originalSource);
+    const beforeTypedEdit = await current(page);
+    const subjectInput = editForm.getByLabel("Subject to edit", { exact: true });
+    if (await subjectInput.evaluate(node => node.tagName === "SELECT")) await subjectInput.selectOption(subject);
+    else await subjectInput.fill(subject);
+    await editForm.getByRole("button", { name: "Edit a subject", exact: true }).click();
+    await expect(page.locator("[data-check]")).toHaveText(`Edit ${subjectName} in clock-demo. Changes remain drafts until you press Try.`);
+    await expect(page.getByLabel("Choose an example", { exact: true })).toHaveValue("clock-demo");
+    await expect(editor).toHaveValue(originalSource);
+    await expect(editor).toBeFocused();
+    // The completed owner handler releases the retained request and republishes
+    // available actions; opening Source itself must not apply a workset change.
+    await expect(editForm.getByRole("button", { name: "Edit a subject", exact: true })).toBeEnabled();
+    const afterTypedEdit = await current(page);
+    expect(afterTypedEdit.bodyId).toBe(beforeTypedEdit.bodyId);
+    expect(afterTypedEdit.planId).toBe(beforeTypedEdit.planId);
+    expect(afterTypedEdit.playId).toBe(beforeTypedEdit.playId);
+    expect(afterTypedEdit.installedPlots).toEqual(beforeTypedEdit.installedPlots);
+    let inspected = afterTypedEdit;
     expect(inspected.bodyId).toBe(first.bodyId);
     expect(inspected.selectedPlot).toEqual(example.selectedPlot);
     expect(inspected.foreground.checked_plot_id).not.toBe(example.selectedPlot);
-    await journey.capture(page, { id: "inspect", title: "Inspect the running clock",
-      action: "Press Open in Patchbay, choose the clock, focus its output-port facts, and press Enter.",
-      observation: "The resident Patchbay shows the clock's source-derived gears, typed ports, and cord. Keyboard-opened output-port facts retain focus, and the Face names this Body's actual Plan and Play." });
+    await testInfo.attach("handbook-canonical-patchbay-edit.json", {
+      body: JSON.stringify({ action: "patchbay.edit.current", subject, beforeTypedEdit, afterTypedEdit,
+        observation: "Actual offered typed Edit opened the matching checked Source; no source change until Try" }, null, 2),
+      contentType: "application/json",
+    });
+    await journey.capture(page, { id: "inspect", title: "Open the running clock's Source",
+      action: "Open Patchbay, Inspect clock-demo, and invoke Edit a subject for the clock Gear while another lesson is displayed.",
+      observation: "The checked typed request opens clock-demo's original Source and focuses its editor. Opening it preserves the Body Plan, Play, and installed workset." });
     await page.screenshot({ path: testInfo.outputPath("02-real-patchbay.png"), fullPage: true });
 
     const originalExample = example;
@@ -135,6 +179,13 @@ test("static Handbook applications retain independent local Bodies through use, 
     await editor.fill(editedSource);
     await expect(page.locator("[data-check]")).toHaveText("Edited source — not checked or applied yet. Try it to check and apply the change.");
     await assertHandbookInspection(page, originalExample);
+    const unchangedDisclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
+      .getAttribute('data-owner-disclosure'));
+    expect(unchangedDisclosure[2]).toBe(`plot/${originalExample.selectedPlot}`);
+    const draftOnly = await current(page);
+    expect(draftOnly.selectedPlot).toBe(originalExample.selectedPlot);
+    expect(draftOnly.planId).toBe(originalExample.planId);
+    expect(draftOnly.playId).toBe(originalExample.playId);
     await expect(highlighting).toHaveText(editedSource, { useInnerText: false });
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     // Applying the edit returns to the selected Plot. Its visible checker
@@ -156,9 +207,15 @@ test("static Handbook applications retain independent local Bodies through use, 
     await expect(page.getByLabel("Choose an example", { exact: true })).toBeEnabled();
     await page.getByLabel("Choose an example", { exact: true }).selectOption({ label: "A ticker you can stop" });
     await expect(editor).toHaveValue(editedSource);
-    await page.getByRole("button", { name: "Open in Patchbay", exact: true }).click();
+    await page.locator(".handbook-controls").getByRole("button", { name: "Open in Patchbay", exact: true }).click();
     await inspectHandbookPlot(page, example.selectedPlot, example.bodyId);
     await assertHandbookInspection(page, example);
+    await expect(editForm).toBeVisible();
+    const editedDisclosure = JSON.parse(await selectedPlot.locator('details[data-owner-disclosure]').first()
+      .getAttribute('data-owner-disclosure'));
+    expect(editedDisclosure[2]).toBe(`plot/${example.selectedPlot}`);
+    await expect(graph.locator('li').filter({ hasText: `body-plan-id: ${example.planId}` })).toHaveCount(1);
+    await expect(graph.locator('li').filter({ hasText: `observed-body-play-id: ${example.playId}` })).toHaveCount(1);
     inspected = await current(page);
     await page.screenshot({ path: testInfo.outputPath("02b-edited-clock-patchbay.png"), fullPage: true });
 

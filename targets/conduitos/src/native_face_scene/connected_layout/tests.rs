@@ -162,9 +162,15 @@ fn cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages() {
                 .iter()
                 .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
                 .count();
-            assert!(frame.scene.commands().iter().any(|c| {
-                c.payload()
-                    .contains(&format!("{shown}/4 cords shown · {} omitted", 4 - shown))
+            let hint = if width < 640 {
+                "F2/F3"
+            } else {
+                "F2 all facts · F3 return"
+            };
+            let notice = format!("{shown}/4 cords shown · {} omitted · {hint}", 4 - shown);
+            assert!(frame.scene.commands().iter().any(|command| {
+                command.payload().ends_with(&notice)
+                    && (width < 640 || command.payload().contains("Tab subjects"))
             }));
             scene.turn_page(true);
         }

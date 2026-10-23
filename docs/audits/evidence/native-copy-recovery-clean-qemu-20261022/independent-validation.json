@@ -1,0 +1,19 @@
+{
+  "source_identity": "8cb316cabc361d0db055e008733cd81a35a8d9f4",
+  "outer_command_exit": 0,
+  "guest_exit_required_by_collector": 33,
+  "independently_verified": [
+    "exact source across receipts",
+    "ELF hash",
+    "transcript hash",
+    "unique complete observation",
+    "twelve affirmative semantic checks",
+    "four explicit nonclaims",
+    "Make profile/build/image binding",
+    "unchanged 256 MiB arena and ceiling"
+  ],
+  "iso_sha256": "6b97e573c7ddf28944d005c080a0c096ef21e9011bc3afb0ba3c7e422f18a9a2",
+  "fixture": true,
+  "ordinary_product": false,
+  "prior_143_qualification_preserved": true
+}

@@ -1,0 +1,1000 @@
+{
+  "checkpoints": [
+    {
+      "checkpoint": "front-door-ready",
+      "elapsed_millis": 4164,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "front-door-ready",
+        "height": 480,
+        "non_background_pixels": 304964,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7410a42af83ea0a1321e57216b8739f6c6011e97e6130ebbd152b4ee11a54ce3",
+        "png": "front-door-ready.png",
+        "png_bytes": 31831,
+        "png_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+        "width": 640
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_binding": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "limine": "12.5.2",
+        "memory_regions": 16,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "born_sign_id": null,
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "0443a456d8a36e1b0ebdd34ed15679515d6dbdfec0a1c2513eb810fa544bb90f",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_id": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "ef455e215b3aa15185c816ca01ce796efbc81483e4b783ae3f362ae3ac3dca9d",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "presenter/native-graphical@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 4115389498,
+        "clock": "std::time::Instant",
+        "frame_request_start": 4115569027,
+        "frame_response_end": 4164705823,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 0,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": null,
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 24125,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "creche-controls-ready",
+      "elapsed_millis": 5203,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "creche-controls-ready",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "e834b8aa4b0289c1547d1e65278d38b44288ebdf0d0c34a6b91c56e93dcde7ea",
+        "png": "creche-controls-ready.png",
+        "png_bytes": 72269,
+        "png_sha256": "622eb111bf96cb1c884ea64cd49a9a832cb9cc2008be342e8cc0b9a58e3031c5",
+        "width": 640
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_binding": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "limine": "12.5.2",
+        "memory_regions": 16,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "born_sign_id": null,
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_id": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "e1949c8d9acde3ce1acf400254ff36849e5b5fde8d0bdf7a3689224e0a32d304",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 5147904442,
+        "clock": "std::time::Instant",
+        "frame_request_start": 5151943668,
+        "frame_response_end": 5203623201,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 1,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "d61efaefd986eb11c036929b217a51b68a9a7b16a01928034bc419d2960f41bc",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "show": {
+            "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+            "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+            "face_revision": 1,
+            "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "ec872f70642059dbcfce05e50a506803fad1c68a8fdd1ac67507b4e75be79d21",
+              "body_id": null,
+              "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+              "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+              "face_revision": 1,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+              "lifecycle": "Available",
+              "manifestation_id": "4785e23c1116adbbe6b4c02510fc189900c81786a5f8851374a6b25122fb3348",
+              "offer_generation": 1,
+              "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+              "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+              "play_sequence": 3,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "ec872f70642059dbcfce05e50a506803fad1c68a8fdd1ac67507b4e75be79d21",
+                  "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+                  "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+                  "failure": null,
+                  "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "4785e23c1116adbbe6b4c02510fc189900c81786a5f8851374a6b25122fb3348",
+                  "offer_generation": 1,
+                  "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+                  "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "ec872f70642059dbcfce05e50a506803fad1c68a8fdd1ac67507b4e75be79d21",
+                  "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+                  "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+                  "failure": null,
+                  "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+                  "lifecycle": "Available",
+                  "manifestation_id": "4785e23c1116adbbe6b4c02510fc189900c81786a5f8851374a6b25122fb3348",
+                  "offer_generation": 1,
+                  "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+                  "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+                  "play_sequence": 3,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "4785e23c1116adbbe6b4c02510fc189900c81786a5f8851374a6b25122fb3348",
+            "mask_active_play_id": "ec872f70642059dbcfce05e50a506803fad1c68a8fdd1ac67507b4e75be79d21",
+            "mask_plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+            "mask_plot": {
+              "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+              "expanded_plot_id": "4cf678e9ebfcfbd6ff7bb63aa0438af18f7c945a60b4a628173e89cc15eba5d6",
+              "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+            },
+            "offer_generation": 1,
+            "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 114244,
+      "unchanged": false
+    },
+    {
+      "checkpoint": "failure",
+      "elapsed_millis": 6779,
+      "expected_change": false,
+      "frame": {
+        "checkpoint": "failure",
+        "height": 480,
+        "non_background_pixels": 302536,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7af168713dd2dbcb5a88a8a4a60bd339787c2daa92c3c098089e950974437a1e",
+        "png": "failure.png",
+        "png_bytes": 51377,
+        "png_sha256": "7307d4ceeb3c7559f275d2c79c0880c17c5db70056387fc942fe67b90deda701",
+        "width": 640
+      },
+      "guest_boot_record": {
+        "arch": "x86_64",
+        "artifacts": 1,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "command_line_bytes": 38,
+        "firmware": "x86-bios",
+        "framebuffers": 1,
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_binding": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "limine": "12.5.2",
+        "memory_regions": 16,
+        "offer_generation": 1,
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "qemu_profile": "q35-single-cpu-512m-normal-product",
+        "runtime_arena_bytes": 268435456,
+        "schema": "conduit.conduitos.boot-sign/v1",
+        "status": "accepted"
+      },
+      "guest_record": {
+        "active_play_id": null,
+        "body_id": null,
+        "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+        "born_sign_id": null,
+        "build_id": "build:sha256:3859179428e1c2b90406d166957f326da649342047790d2faf852217ec96881e",
+        "checked_plot_id": null,
+        "cord_ids": [],
+        "expanded_plot_id": null,
+        "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+        "friendly_name": null,
+        "fulfilled_sign_id": null,
+        "gear_ids": [],
+        "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+        "image_id": "image:sha256:a076988d4a36c1fb72ee8c12359ded256615a4d1d0f5a730c7ffe385d40980c6",
+        "input_count": 0,
+        "input_sign_id": null,
+        "kernel_sign_gap": null,
+        "loss_kind": null,
+        "loss_sign_id": null,
+        "lull_sign_id": null,
+        "manifestation_id": "e1949c8d9acde3ce1acf400254ff36849e5b5fde8d0bdf7a3689224e0a32d304",
+        "offer_generation": 1,
+        "part_id": null,
+        "partition_plan_id": null,
+        "plan_id": null,
+        "plan_sign_id": null,
+        "play_sign_id": null,
+        "port_ids": [],
+        "presenter_implementation_id": "face/renderer-conduitos-component@1",
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "recovery": null,
+        "request_id": null,
+        "result": null,
+        "result_omitted_bytes": 0,
+        "result_sign_id": null,
+        "revision": 1,
+        "source_document_id": null,
+        "status": "world",
+        "text_editor_active": false,
+        "text_editor_label": null,
+        "wake_id": null,
+        "wake_sign_id": null,
+        "workload_revision": null,
+        "workload_sign_id": null
+      },
+      "health_refusal": null,
+      "host_observation": {
+        "checkpoint_start": 6725137514,
+        "clock": "std::time::Instant",
+        "frame_request_start": 6730639133,
+        "frame_response_end": 6779744273,
+        "interpretation": "Observer intervals include serial reading and QMP capture. They are not input-to-paint latency; QMP acceptance is not guest input acceptance.",
+        "units": "nanoseconds"
+      },
+      "index": 2,
+      "journey_step_ids": [],
+      "native_receipts": {
+        "latest_acknowledged_face": {
+          "basis": {
+            "active_play_id": null,
+            "body_id": null,
+            "checked_plot_id": "4daaeae0c9ec77a1f7a29a3ab8295addda5b8e3e3c1dcf20dbe64b7d2f3769b9",
+            "expanded_plot_id": "fc232899398a9ba099f582376491a44283052c3c2dc5b58e943dabd70ae7556b",
+            "plan_id": "d61efaefd986eb11c036929b217a51b68a9a7b16a01928034bc419d2960f41bc",
+            "sign_ids": [],
+            "source_document_id": "29b5e33746a3c352df6ccc7141a707d4e6ed37bfb9c84ba97b2b8beedf697d5b",
+            "wake_id": null
+          },
+          "context": {
+            "basis": [],
+            "identity": "face/context/general"
+          },
+          "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+          "face_revision": 2,
+          "show": {
+            "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+            "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+            "face_revision": 2,
+            "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+            "lifecycle": "Available",
+            "manifestation": {
+              "active_play_id": "3996f9a422b044c25e6b7a28e5ba7a7417e1784649831fc93b03cf7555d19c57",
+              "body_id": null,
+              "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+              "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+              "face_revision": 2,
+              "failure": null,
+              "front_subject": "birth/conduitos/creche/current",
+              "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+              "lifecycle": "Available",
+              "manifestation_id": "873b4319154968930dcb1cf0188abbd2f0f904df3029fb057177f221c84dac74",
+              "offer_generation": 1,
+              "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+              "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+              "play_sequence": 4,
+              "presenter_artifact_id": "conduitos/native-compositor@1",
+              "presenter_capability_id": "renderer-conduitos-component",
+              "presenter_implementation_id": "face/renderer-conduitos-component@1",
+              "signs": [
+                {
+                  "active_play_id": "3996f9a422b044c25e6b7a28e5ba7a7417e1784649831fc93b03cf7555d19c57",
+                  "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+                  "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+                  "failure": null,
+                  "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+                  "lifecycle": "Prepared",
+                  "manifestation_id": "873b4319154968930dcb1cf0188abbd2f0f904df3029fb057177f221c84dac74",
+                  "offer_generation": 1,
+                  "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+                  "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+                  "play_sequence": 4,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-prepared"
+                },
+                {
+                  "active_play_id": "3996f9a422b044c25e6b7a28e5ba7a7417e1784649831fc93b03cf7555d19c57",
+                  "boot_id": "23b31b04469b876df701df5507e69cf6d43ff1ca37f0654eeef35a0bdc5856ae",
+                  "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+                  "failure": null,
+                  "host_id": "b98e9222091b30745c28cfa1ae5dcb352003c56a7da7973e9e42fe6a9fce6229",
+                  "lifecycle": "Available",
+                  "manifestation_id": "873b4319154968930dcb1cf0188abbd2f0f904df3029fb057177f221c84dac74",
+                  "offer_generation": 1,
+                  "placement_id": "ec0a4fc4d88d493766379f3457074008a0ec94f3601777bf185d14399db55ef2",
+                  "plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+                  "play_sequence": 4,
+                  "presenter_implementation_id": "face/renderer-conduitos-component@1",
+                  "sign_id": "conduitos/mask/render-available"
+                }
+              ],
+              "target_subject": "conduitos/creche/face",
+              "wake_id": null
+            },
+            "manifestation_id": "873b4319154968930dcb1cf0188abbd2f0f904df3029fb057177f221c84dac74",
+            "mask_active_play_id": "3996f9a422b044c25e6b7a28e5ba7a7417e1784649831fc93b03cf7555d19c57",
+            "mask_plan_id": "2a32c4ddbe5013e6ad88b4663bca513d9f255e01e400ac316958b90b4113e989",
+            "mask_plot": {
+              "checked_plot_id": "d329bed9178fd32bad8445b248df4d2b9a9338c1afbe796209437276bb131cde",
+              "expanded_plot_id": "4cf678e9ebfcfbd6ff7bb63aa0438af18f7c945a60b4a628173e89cc15eba5d6",
+              "source_document_id": "67d03fcd386d5067c8d77b28b144309197964d971dbb6df576483a82250b3752"
+            },
+            "offer_generation": 1,
+            "show_id": "show/d791a32603519b7343984e96c4e403328018002e726e68de381672fe875929ba"
+          }
+        },
+        "latest_action": null,
+        "meaning": "latest serial receipts; current foreground can be the restored application scene"
+      },
+      "native_timing": null,
+      "serial_byte_end": 156202,
+      "unchanged": false
+    }
+  ],
+  "context": {
+    "capture_contract": {
+      "maximum_checkpoints": 30
+    },
+    "graphical_profile": {
+      "code": "DejaVu Sans Mono",
+      "fallback": "pinned Unifont",
+      "primary": "DejaVu Sans",
+      "primitive": false,
+      "profile": "conduitos/graphical/dejavu-v1"
+    },
+    "image_sha256": "e653458edf639dc739795fee61030cb58ad0f944e1a9ca531cad599939742cb0",
+    "process_stop": {
+      "cause": "harness-stop-after-failure",
+      "code": null,
+      "status": "signal: 9 (SIGKILL)"
+    },
+    "qemu_argv": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "512M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "none",
+      "-device",
+      "VGA,edid=on,xres=640,yres=480",
+      "-monitor",
+      "none",
+      "-qmp",
+      "unix:/tmp/cj-1595026.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/journey-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+      "-device",
+      "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/live/x86_64-pc/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ],
+    "source_commit": "d08759af44aca1b5d5dcbf57589ac5e687495035",
+    "viewport_guest_evidence": {
+      "evidence": "guest Mask display bounds with prior acknowledged Show",
+      "focus_records": [
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 147
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/c1d85ac742f2834591ce0b321d343c284051efb0f32906564e2de2fb957b82d1"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 57,
+            "width": 588,
+            "x": 40,
+            "y": 224
+          },
+          "page": 3,
+          "pages": 6,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/e04ee8ee4791d95f151304220e8be5301ffc0ba49aeff1211db29858c90a1e46"
+        },
+        {
+          "action_id": "creche.name",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 147
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.plot.0",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 244
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.plot.1",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 288
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.plot.2",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 332
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.plot.3",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 376
+          },
+          "page": 2,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 147
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.naming",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 191
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": null,
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 282
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "ff31f399a13f0d9aabeb3d377b940a017d64627362dcf1734fb2cb31be95439c",
+          "face_revision": 1,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 326
+          },
+          "page": 3,
+          "pages": 3,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/21f5fe6fde530a9a5a6c7725e4708287fde47be27c91408d183998b5e9399edc"
+        },
+        {
+          "action_id": "creche.search",
+          "argument_name": "value",
+          "display_bounds": {
+            "height": 480,
+            "width": 640,
+            "x": 0,
+            "y": 0
+          },
+          "face_id": "000768d56860b09c4d9b1560c337ba5e1da51e9c874f35c72e38c2595899bb1d",
+          "face_revision": 2,
+          "hit_bounds": {
+            "height": 36,
+            "width": 588,
+            "x": 40,
+            "y": 147
+          },
+          "page": 4,
+          "pages": 4,
+          "schema": "conduit.creche-focus/v1",
+          "show_id": "show/d791a32603519b7343984e96c4e403328018002e726e68de381672fe875929ba"
+        }
+      ],
+      "provider_format": "not serialized by ordinary product receipt"
+    },
+    "viewport_request": {
+      "height": 480,
+      "provider_format": "not serialized; actual Mask display bounds and QMP pixels checked",
+      "selection": "stdVGA EDID preference; actual boot selection must match",
+      "width": 640
+    },
+    "visual_contract": {
+      "display": "std-vga",
+      "dynamic_identity_pixels": "allowed",
+      "height": 480,
+      "minimum_non_background_pixels": 64,
+      "mode": "invariant",
+      "width": 640
+    }
+  },
+  "failure": {
+    "detail": "filter concealed selected Plot review from primary disclosure",
+    "reason": "face-journey-refused"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/visual-journey@1",
+  "serial_path": "/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/target/conduitos/x86_64/journey-serial.log",
+  "status": "failed"
+}

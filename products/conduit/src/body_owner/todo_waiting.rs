@@ -6,8 +6,8 @@
 use super::{debug, state, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
 use conduit_core::{
-    port_id, AuthorityGrant, ConnectionTrack, ResourceAccessMode, ResourceContentRequirement,
-    TerminalDisposition,
+    port_id, AuthorityGrant, CancellationReason, ConnectionTrack, ResourceAccessMode,
+    ResourceContentRequirement, TerminalDisposition,
 };
 use conduit_face::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_kernel::KernelEventKind;
@@ -320,8 +320,14 @@ impl TodoWaitingWorker {
         Ok(admission)
     }
 
+    /// Terminal progress consumed the thread; this does not imply a commit.
+    pub(crate) fn is_finished(&self) -> bool {
+        self.thread.is_none()
+    }
+
     /// Return `Some(committed state)` only after the exact terminal report has
-    /// one acknowledged committed Fore and no failure. `None` is still active.
+    /// one acknowledged committed Fore and no failure. `None` is pending or a
+    /// clean idle cancellation; `is_finished` distinguishes these outcomes.
     pub(crate) fn progress(
         &mut self,
         owner: &mut Owner,
@@ -374,6 +380,23 @@ impl TodoWaitingWorker {
         if proposed.play.as_ref() != Some(&report.play) {
             return Err("Todo worker returned a different Play".into());
         }
+        // Staged/admitted actions remain uncertain on cancellation.
+        let idle_cancelled = report.terminal
+            == (TerminalDisposition::Cancelled {
+                reason: CancellationReason::OperatorRequested,
+            })
+            && report.failure.is_none()
+            && report.cleanup_failure.is_none()
+            && self.accepted_interaction.is_none()
+            && self.accepted_mask.is_none()
+            && report.live_fore_status.is_some_and(|status| {
+                status.queue_accepted == 0 && status.kernel_admitted == 0 && status.queued == 0
+            })
+            && count == 0
+            && report.fore_deliveries.is_empty()
+            && report.fore_pending_output.is_none()
+            && report.requests.is_empty()
+            && report.terminal_sign.active_play_id == Some(report.play.active_play_id.clone());
         let committed = if report.terminal == TerminalDisposition::Completed
             && report.failure.is_none()
             && report.cleanup_failure.is_none()
@@ -460,6 +483,9 @@ impl TodoWaitingWorker {
         owner.todo_live = None;
         if committed.is_none() {
             owner.todo_verified = None;
+        }
+        if idle_cancelled {
+            return Ok(None);
         }
         committed
             .ok_or("Todo waiting Play did not commit one checkpoint".into())

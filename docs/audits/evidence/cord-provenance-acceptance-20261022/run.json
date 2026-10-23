@@ -1,0 +1,145 @@
+{
+  "source": "a560015402ee08b641c2fac7334d3df6bf3345d4",
+  "clean": true,
+  "checks": [
+    {
+      "name": "plot-origins",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "connection_origin"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 38.41942739486694,
+      "passed": 3
+    },
+    {
+      "name": "semantic-generated",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--test",
+        "semantic_expression_call"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 8.296252250671387,
+      "passed": 7
+    },
+    {
+      "name": "graph",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "patchbay-graph",
+        "--test",
+        "authoring_compatibility"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 220.71526455879211,
+      "passed": 6
+    },
+    {
+      "name": "owner",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "patchbay-application",
+        "--test",
+        "resident_commands"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 74.99217987060547,
+      "passed": 5
+    },
+    {
+      "name": "editor",
+      "command": [
+        "node",
+        "--test",
+        "targets/browser/handbook/patchbay-editor.test.mjs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.31363844871520996,
+      "passed": 7
+    },
+    {
+      "name": "relational-generation",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "relational_glyph_expands"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.5710954666137695,
+      "passed": 2
+    },
+    {
+      "name": "cord-location",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-plot",
+        "--lib",
+        "reference_cord_retains_source_extent_without_changing_semantics"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.5345504283905029,
+      "passed": 1
+    },
+    {
+      "name": "portable-projection",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-patchbay-workbench",
+        "--lib",
+        "portable_projection_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 247.24218559265137,
+      "passed": 7
+    },
+    {
+      "name": "consumer-boundary",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-patchbay-workbench",
+        "--lib",
+        "portable_graph_boundary_tests"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.4536099433898926,
+      "passed": 1
+    }
+  ]
+}

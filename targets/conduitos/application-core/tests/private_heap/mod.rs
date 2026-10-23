@@ -1,4 +1,5 @@
 mod canonical;
+mod graph_abort;
 mod initialize;
 use conduitos_application_core::{
     data::{self, Command, Initial, Reply},
@@ -11,6 +12,8 @@ use std::{
     alloc::{GlobalAlloc, Layout, System},
     sync::atomic::{AtomicBool, AtomicUsize, Ordering},
 };
+static ALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
+static DEALLOCATIONS: AtomicUsize = AtomicUsize::new(0);
 static ACTIVE: AtomicBool = AtomicBool::new(false);
 static LIVE: AtomicUsize = AtomicUsize::new(0);
 static PEAK: AtomicUsize = AtomicUsize::new(0);
@@ -55,6 +58,7 @@ fn rounded(layout: Layout) -> usize {
 // grant before activating routing; all other host allocations remain on System.
 unsafe impl GlobalAlloc for Routed {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        ALLOCATIONS.fetch_add(1, Ordering::Relaxed);
         if !ACTIVE.load(Ordering::Relaxed) {
             return unsafe { System.alloc(layout) };
         }
@@ -72,6 +76,7 @@ unsafe impl GlobalAlloc for Routed {
         pointer
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+        DEALLOCATIONS.fetch_add(1, Ordering::Relaxed);
         if guest(pointer) {
             LIVE.fetch_sub(rounded(layout), Ordering::Relaxed);
             unsafe { PrivateHeap.dealloc(pointer, layout) };
@@ -103,6 +108,25 @@ fn on_caller<T>(operation: impl FnOnce() -> T) -> T {
     let value = operation();
     ACTIVE.store(active, Ordering::SeqCst);
     value
+}
+/// Includes every continuation and final phase transition. GlobalAlloc's
+/// default realloc crosses alloc/dealloc, so both hidden growth and destruction
+/// are detected, including calls routed outside the private grant.
+fn graph_entry_without_heap(state: &mut State, request: Request, transfer: &mut [u8]) -> Response {
+    let before = (
+        ALLOCATIONS.load(Ordering::Relaxed),
+        DEALLOCATIONS.load(Ordering::Relaxed),
+    );
+    let response = state.execute(request, transfer).unwrap();
+    let after = (
+        ALLOCATIONS.load(Ordering::Relaxed),
+        DEALLOCATIONS.load(Ordering::Relaxed),
+    );
+    assert_eq!(
+        after, before,
+        "graph preparation entry performed heap activity"
+    );
+    response
 }
 fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply {
     let input = on_caller(|| data::encode_command(command).unwrap());
@@ -138,23 +162,36 @@ fn exchange(state: &mut State, command: &Command, transfer: &mut [u8]) -> Reply 
     let mut response = state.execute(Request::Commit, transfer).unwrap();
     if matches!(command, Command::Graph { .. }) {
         assert_eq!(response, Response::Ready);
-        assert_eq!(
-            state.execute(Request::GraphSerialize, transfer),
-            Ok(Response::Ready)
-        );
-        assert_eq!(
-            state.execute(Request::GraphValidate, transfer),
-            Ok(Response::Ready)
-        );
+        for phase in [
+            conduitos_application_core::wire::GraphPhase::Serialize,
+            conduitos_application_core::wire::GraphPhase::Validate,
+        ] {
+            let limit = match phase {
+                conduitos_application_core::wire::GraphPhase::Serialize => {
+                    data::GRAPH_SERIALIZE_TURNS
+                }
+                conduitos_application_core::wire::GraphPhase::Validate => {
+                    data::GRAPH_VALIDATE_TURNS
+                }
+            };
+            let mut progress =
+                conduitos_application_core::wire::GraphProgress::new(phase, limit).unwrap();
+            loop {
+                let response =
+                    graph_entry_without_heap(state, progress.request().unwrap(), transfer);
+                if progress.accept(response).unwrap() {
+                    break;
+                }
+            }
+        }
         for offset in (0..data::MAX_DECODED_JSON_BYTES).step_by(data::GRAPH_PACK_BYTES) {
-            response = state
-                .execute(
-                    Request::GraphPack {
-                        offset: offset as u32,
-                    },
-                    transfer,
-                )
-                .unwrap();
+            response = graph_entry_without_heap(
+                state,
+                Request::GraphPack {
+                    offset: offset as u32,
+                },
+                transfer,
+            );
             if matches!(response, Response::Blob { .. }) {
                 break;
             }
@@ -235,8 +272,9 @@ pub fn run() {
     // Root's caller-side command was prepared outside this grant. Inside the
     // service this measures incoming, typed decode, controllers and outgoing.
     ACTIVE.store(true, Ordering::SeqCst);
-    let mut state = State::default();
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
+    graph_abort::run(&applications, &mut transfer);
+    let mut state = State::default();
     STAGE.store(1, Ordering::Relaxed);
     initialize::initialize(&mut state, &applications, &mut transfer);
     report("after Init peak=", PEAK.load(Ordering::Relaxed));

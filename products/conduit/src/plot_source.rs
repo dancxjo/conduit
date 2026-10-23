@@ -186,7 +186,7 @@ fn dsp_source_backs_for(
     }
 }
 
-fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+pub(crate) fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     // These catalogs contain only this executable's compiled semantic contracts.
     // Check them once, then give each Source its own mutable copy. Host offers,
     // authority and each authored document are still admitted independently.

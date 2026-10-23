@@ -24,3 +24,25 @@ docs/audits/evidence/startup-refusal-20261021/**/*-prologue.txt -text whitespace
 docs/audits/evidence/startup-refusal-20261021/**/source.patch -text whitespace=-trailing-space,-blank-at-eof
 # Retain the original native membership control log, including its terminal newline.
 docs/audits/evidence/native-proof-resume-20261022/membership-bound-after.log -text whitespace=-blank-at-eof
+
+# Source-pinned native proof logs retain firmware CRLF and terminal whitespace.
+# Limit this rule to the delivered packets; source and prose keep normal checks.
+docs/audits/evidence/native-baseline-integration-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-combined-product-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-controls-final-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-copy-recovery-clean-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-copy-recovery-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-creche-search-disclosure-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-creche-search-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-input-refusal-cpu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-input-refusal-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-missing-graphics-diagnostic-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-missing-graphics-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-owner-overrides-negative-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-prepared-frame-budget-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-resolved-paint-contrast-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-root-return-admission-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-unicode-controls-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-unicode-reflow-bound-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/native-unicode-reflow-qemu-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol
+docs/audits/evidence/patchbay-legacy-fence-20261022/**/*.log -text whitespace=-trailing-space,-blank-at-eof,cr-at-eol

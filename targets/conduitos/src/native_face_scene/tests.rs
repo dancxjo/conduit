@@ -485,14 +485,32 @@ fn primary_action_exposes_only_current_finite_text_choices() {
     )
     .unwrap();
     let scene = NativeFaceScene::prepare(current.clone(), 640, 480).unwrap();
+    let primary = scene
+        .primary
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(primary.contains("Interval in milliseconds · Left/Right choose"));
+    let details = scene
+        .details
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(details.contains("one of the canonical values"));
+    for value in ["1000", "2000", "250", "500"] {
+        assert!(
+            details.contains(&alloc::format!("{value:?}")),
+            "Details lost choice {value}"
+        );
+    }
     assert!(scene.primary.iter().any(|row| {
-        row.text
-            .contains("Interval in milliseconds · Left/Right choose")
-            && row.control
-                == Some(FaceControl {
-                    action: 0,
-                    argument: Some(0),
-                })
+        row.control
+            == Some(FaceControl {
+                action: 0,
+                argument: Some(0),
+            })
     }));
     assert_eq!(
         text_field::choices(&current, 0).unwrap().as_slice(),
@@ -562,6 +580,8 @@ fn primary_action_exposes_only_current_finite_text_choices() {
         current.disclosures,
     )
     .unwrap();
+    // The native finite chooser admits 32 choices; larger contracts retain
+    // exact Details and the typed-entry path rather than dropping alternatives.
     let crowded_scene = NativeFaceScene::prepare(crowded, 640, 480).unwrap();
     assert!(
         crowded_scene
@@ -569,6 +589,20 @@ fn primary_action_exposes_only_current_finite_text_choices() {
             .iter()
             .any(|row| row.text.contains("Enter a value"))
     );
+    let details = crowded_scene
+        .details
+        .iter()
+        .map(|row| row.text.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    assert!(details.contains("one of the canonical values"));
+    for value in 0u8..33 {
+        let value = alloc::format!("{value:02}");
+        assert!(
+            details.contains(&alloc::format!("{value:?}")),
+            "Details lost overflow choice {value}"
+        );
+    }
 }
 
 #[test]

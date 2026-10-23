@@ -1,0 +1,26 @@
+warning: field `plan_id` is never read
+  --> targets/conduitos/src/native_workset/patchbay_ingress.rs:72:9
+   |
+68 | pub(super) struct Ingress {
+   |                   ------- field in this struct
+...
+72 |     pub plan_id: PlanId,
+   |         ^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduitos` (lib) generated 1 warning
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/pagination-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 1.32s
+     Running tests/canonical_root_returns.rs (/home/dancxjo/Documents/Codex/2026-10-19/goal-6038/work/native-origin-target/debug/deps/canonical_root_returns-8f56d68f4e6a2961)
+
+running 6 tests
+test protected_application::return_tests::genuine_sparse_selection_commits_once_after_root_return_admission ... ok
+test protected_application::return_tests::genuine_edit_proposal_retains_the_predecessor_graph_and_consumes_publication ... ok
+test protected_application::return_tests::dishonest_refusal_cannot_move_root_and_next_projection_detects_guest_drift ... ok
+test protected_application::return_tests::substituted_edit_proposal_cannot_change_predecessor_graph_or_subject ... ok
+test protected_application::return_tests::forged_success_cannot_override_stale_unknown_or_wrong_target_input ... ok
+test protected_application::return_tests::substituted_selection_targets_revisions_and_proposals_quarantine_before_commit ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.81s
+

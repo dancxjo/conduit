@@ -67,10 +67,10 @@ impl Owner {
             // &self cannot clear outer mutable snapshots, so invalidate every
             // accessor immediately. The next mutable boundary retires siblings.
             self.failed.set(true);
-            if let Ok(mut slot) = self.service.try_borrow_mut() {
-                if let Some(mut service) = slot.take() {
-                    service.quarantine();
-                }
+            if let Ok(mut slot) = self.service.try_borrow_mut()
+                && let Some(mut service) = slot.take()
+            {
+                service.quarantine();
             }
         }
         result

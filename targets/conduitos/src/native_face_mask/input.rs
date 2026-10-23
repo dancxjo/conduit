@@ -10,13 +10,15 @@ impl NativeFaceMask {
         sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<NativeFaceMaskInput, NativeFaceMaskError> {
+        self.input_refusal = None;
         if !self.route_keyboard()? {
             return Err(NativeFaceMaskError::Face);
         }
         let show = self.show().ok_or(NativeFaceMaskError::Face)?.clone();
         let scene = self.scene.as_mut().ok_or(NativeFaceMaskError::Face)?;
-        let cleared_notice =
-            event.transition() == KeyTransition::Pressed && scene.clear_local_notice();
+        let cleared_notice = event.transition() == KeyTransition::Pressed
+            && !(0xe0..=0xe7).contains(&event.usage())
+            && scene.clear_local_notice();
         let result = scene.key(event, &show, sequence);
         let result = self.present_input_result(result, display)?;
         if cleared_notice && matches!(result, FaceSceneInput::Unchanged) {
@@ -64,6 +66,7 @@ impl NativeFaceMask {
         sequence: u64,
         display: &mut impl PixelTarget,
     ) -> Result<NativeFaceMaskInput, NativeFaceMaskError> {
+        self.input_refusal = None;
         let route = self
             .compositor
             .route_pointer(x, y, true)
@@ -107,6 +110,14 @@ impl NativeFaceMask {
         }
     }
 
+    /// Custody of this input's completed local notice repaint, never an owner
+    /// action acceptance. Reset on input and semantic publication replacement.
+    pub fn acknowledged_input_refusal(&self) -> Option<(FaceSceneError, &'static str)> {
+        self.show()?;
+        let reason = self.input_refusal?;
+        Some((reason, refusal_notice(reason)?))
+    }
+
     /// Refusal scanout never acknowledges a new semantic Show or consumes input.
     /// Preserve the original machine-readable error after presenting the notice.
     fn present_input_result(
@@ -114,9 +125,29 @@ impl NativeFaceMask {
         result: Result<FaceSceneInput, FaceSceneError>,
         display: &mut impl PixelTarget,
     ) -> Result<FaceSceneInput, NativeFaceMaskError> {
-        if matches!(result, Err(FaceSceneError::StaleFace)) {
-            self.show_local_notice("Stale: refresh", display)?;
+        self.input_refusal = None;
+        if let Some(reason) = result.as_ref().err().copied()
+            && let Some(notice) = refusal_notice(reason)
+        {
+            self.show_local_notice(notice, display)?;
+            self.input_refusal = Some(reason);
         }
         result.map_err(NativeFaceMaskError::Scene)
     }
 }
+
+fn refusal_notice(error: FaceSceneError) -> Option<&'static str> {
+    match error {
+        FaceSceneError::StaleFace => Some("Stale: refresh"),
+        FaceSceneError::UnknownControl => Some("Refresh"),
+        FaceSceneError::UnavailableAction => Some("Unavailable"),
+        FaceSceneError::UnsupportedInput => Some("Unsupported"),
+        FaceSceneError::InputBound => Some("Too long"),
+        FaceSceneError::IncompleteInput => Some("Enter value"),
+        _ => None,
+    }
+}
+
+#[cfg(test)]
+#[path = "refusal_tests.rs"]
+mod refusal_tests;

@@ -101,3 +101,27 @@ fn delegated_conduitos_retains_workspace_enabled_features() {
         "delegated {package} loses features: {missing:?}"
     );
 }
+
+#[test]
+fn native_model_backing_is_optional_and_std_ci_exercises_api23_without_downloads() {
+    let default = features(&["-p", "conduit-std-host", "--no-default-features"]);
+    assert!(!default.contains_key("ort-sys"));
+    let step = WorkspaceShard::TestHostsStd.package_test_step().unwrap();
+    let feature_argument = step
+        .args
+        .windows(2)
+        .find(|pair| pair[0] == "--features")
+        .unwrap()[1];
+    assert!(feature_argument
+        .split(',')
+        .any(|f| f == "conduit-std-host/native-model-backing"));
+    let selected = features(&[
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "native-model-backing",
+    ]);
+    let native = &selected["ort-sys"];
+    assert!(native.contains("api-23") && native.contains("disable-linking"));
+    assert!(!native.contains("download-binaries") && !native.contains("api-24"));
+}

@@ -6,7 +6,10 @@
 //! byte ceiling; this does not enlarge wire, heap or execution grants.
 mod backend;
 mod de;
+mod graph_validation;
 mod preflight;
+mod streaming_preflight;
+pub(crate) use graph_validation::GraphValidation;
 mod ser;
 use super::Refusal;
 use serde::{Serialize, de::DeserializeOwned};
@@ -57,3 +60,7 @@ pub(super) fn decode_validated<T: DeserializeOwned>(bytes: &[u8]) -> Result<T, R
 
 #[cfg(test)]
 mod tests;
+
+pub(crate) const fn streaming_step_bytes() -> usize {
+    streaming_preflight::STEP_BYTES
+}

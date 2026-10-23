@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.proof-execution-qualification/v1",
+  "source_commit": "70ed87ef863c0f9aefd743dd065fbd35fcdc9755",
+  "command": "cargo +stable xtask make conduitos compositor-semantic-recovery-proof",
+  "outer_tool_session": 9905,
+  "outer_exit_status": 143,
+  "terminal_log_message": "PROVED semantic compositor copy recovery in a separate native Make-profile appliance",
+  "receipt_written_and_transcript_hash_verified": true,
+  "qualification": "Guest/harness receipt completed and validated; outer tool session returned 143. Do not claim clean zero-exit invocation, normal product or physical display recovery."
+}

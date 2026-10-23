@@ -1,3 +1,5 @@
+extern crate std;
+
 use super::*;
 use crate::{
     data::Command,
@@ -275,6 +277,16 @@ fn reusable_workspace_preserves_exact_wire_and_graph_custody_bytes() {
     }
     let original = include_bytes!("../../../tests/fixtures/startup.catz");
     let fixture: Fixture = decode(original).unwrap();
+    // Explicit mechanical migration of retained typed fixture bytes. Ordinary
+    // runs still require exact encoder/workspace equality below.
+    if let Some(path) = std::env::var_os("CONDUIT_NATIVE_STARTUP_FIXTURE_EXPORT") {
+        let path = std::path::PathBuf::from(path);
+        assert!(
+            path.is_absolute(),
+            "startup fixture export requires an absolute path"
+        );
+        std::fs::write(path, encode(&fixture).unwrap()).unwrap();
+    }
     assert_eq!(encode(&fixture).unwrap(), original);
     assert_eq!(workspace.encode(&fixture).unwrap(), original);
     let Fixture::Init { applications } = fixture;

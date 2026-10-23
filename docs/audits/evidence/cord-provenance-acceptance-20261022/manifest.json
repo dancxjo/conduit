@@ -1,0 +1,72 @@
+{
+  "schema": "conduit.audit/cord-provenance-acceptance@1",
+  "executed_source": "a560015402ee08b641c2fac7334d3df6bf3345d4",
+  "source_clean": true,
+  "passed": 39,
+  "files": [
+    {
+      "file": "plot-origins.log.gz",
+      "raw_bytes": 2000,
+      "raw_sha256": "4ecdff66fdd99eed1f4a54ae1e695489b77736f69f1b0f20d7bb9b82c4e2ff47",
+      "stored_bytes": 697,
+      "stored_sha256": "d422fc408d9f8b1d06e92b7a3c69d99b0ff30363f52baaa560ce32da57080eee"
+    },
+    {
+      "file": "semantic-generated.log.gz",
+      "raw_bytes": 1080,
+      "raw_sha256": "4352bd7770e4904bdbe27a89b0d56dd76b61fc6de19c51a31ae9f0e62891ca10",
+      "stored_bytes": 510,
+      "stored_sha256": "38ef12961c54d4d079f6f937fc8240856e9f987a72c3105943f6daed0f8d21b1"
+    },
+    {
+      "file": "graph.log.gz",
+      "raw_bytes": 4913,
+      "raw_sha256": "504189202cd99ccb6d7b45f5c5824ed9ae2e587fbf19e95623c4e48edc1283dd",
+      "stored_bytes": 1021,
+      "stored_sha256": "a13edf67e6d1f465a85f32efe3184ac95b207e4b63f788c5a957853bdf23f643"
+    },
+    {
+      "file": "owner.log.gz",
+      "raw_bytes": 6356,
+      "raw_sha256": "cef4b4d507cd165b00f69901ef9a76f1dbc5584a578bd504edb2ca86dad37ae5",
+      "stored_bytes": 1100,
+      "stored_sha256": "7a2d6b58f6540341898d35ac75cf9f91edc36e68b7481d52341b06534d14450c"
+    },
+    {
+      "file": "editor.log.gz",
+      "raw_bytes": 764,
+      "raw_sha256": "03bc9b1e192d7fae1f9b4da3ef8eb08e03fc9d9e9c77e9f4d4bb5dd9c1ad2a43",
+      "stored_bytes": 428,
+      "stored_sha256": "4b705084d81572b6591dc6a5c7acaeb58104886a7a184bd76f241783ebc301af"
+    },
+    {
+      "file": "relational-generation.log.gz",
+      "raw_bytes": 557,
+      "raw_sha256": "7aa60bcad73ea85a9b04706f734df424d0603c29d7f34edc68bd77a44d4e9909",
+      "stored_bytes": 359,
+      "stored_sha256": "e437c4ce2cf502e3419eb555e8446fcb0c20c251f49fbca40cce347b2576b2c8"
+    },
+    {
+      "file": "cord-location.log.gz",
+      "raw_bytes": 458,
+      "raw_sha256": "9c3f6ff8d2d88762bb946ccd84f1c4418d3298021bc476cbc7ca34efe7549f02",
+      "stored_bytes": 336,
+      "stored_sha256": "605904adf7a70d35ae017f2651db585e50dd8b56686aed5555a11443699fd498"
+    },
+    {
+      "file": "portable-projection.log.gz",
+      "raw_bytes": 16709,
+      "raw_sha256": "bd83fb43a1da303ce0a5cfc96d0a3f9fb8fdf903b50df2034417c1b1c2ff03a7",
+      "stored_bytes": 2754,
+      "stored_sha256": "6ff38d0da641df0b99a8bbf962c9ffd9b8faad47918aefb42ea17301c94300c0"
+    },
+    {
+      "file": "consumer-boundary.log.gz",
+      "raw_bytes": 483,
+      "raw_sha256": "fb69b3e3ef640c2d0a5bf25d65dd07cbd0137190449475f08996ffecd673c465",
+      "stored_bytes": 350,
+      "stored_sha256": "735495f61372675104ac3e7559f8cc15403cff881ad48fd38a5fd4f430c0ad4c"
+    }
+  ],
+  "proof_class": "deterministic-hosted-source-provenance-and-projection"
+}

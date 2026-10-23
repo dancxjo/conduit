@@ -22,7 +22,10 @@ pub(super) fn exercise(
         &args.face.expected_status,
         Some(&args.expected_action_id),
     )?;
-    let baseline = latest(serial)?;
+    // Initial owner activation uses the generic Mask. Explicitly select the
+    // ordinary checked component before comparing its required-item variant.
+    select(qmp, reader, false, "f6")?;
+    let baseline = wait_component(serial, child, &before["show_id"])?;
     let (original, _) = decode(&baseline)?;
     if serde_json::to_value(&original).ok().as_ref() != Some(&owner_before["face"])
         || baseline["expression"]["expression"]["density"] != "compact"
@@ -301,11 +304,6 @@ fn validate_action_receipt(
 fn action_records(serial: &Path) -> Result<Vec<Value>, ConduitosError> {
     parse_records(&bounded_serial(serial)?, OWNER_ACTION)
 }
-fn latest(serial: &Path) -> Result<Value, ConduitosError> {
-    parse_records(&bounded_serial(serial)?, COMPONENT)?
-        .pop()
-        .ok_or_else(|| refusal("native-todo-fallback-component-absent"))
-}
 fn wait_component(
     serial: &Path,
     child: &mut Child,
@@ -313,10 +311,11 @@ fn wait_component(
 ) -> Result<Value, ConduitosError> {
     let deadline = Instant::now() + Duration::from_secs(120);
     loop {
-        let record = latest(serial)?;
-        if record["acknowledged_show"]["show_id"] != *prior {
-            decode(&record)?;
-            return Ok(record);
+        if let Some(record) = parse_records(&bounded_serial(serial)?, COMPONENT)?.pop() {
+            if record["acknowledged_show"]["show_id"] != *prior {
+                decode(&record)?;
+                return Ok(record);
+            }
         }
         wait_or_refuse(child, deadline, "native-todo-fallback-ack-timeout")?;
     }

@@ -1,0 +1,62 @@
+{
+  "status": "passed",
+  "captures": 14,
+  "checks": [
+    {
+      "file": "front-door-ready.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-ready.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-primary-1.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-primary-2.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-primary-3.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-details-1.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-details-11.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-details-21.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-input-incomplete.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-controls-probe-name.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-naming-welsh.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-naming-pointer-focused.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-naming-tradition-restored.png",
+      "chunks": 3
+    },
+    {
+      "file": "creche-naming-exact-name-restored.png",
+      "chunks": 3
+    }
+  ]
+}
