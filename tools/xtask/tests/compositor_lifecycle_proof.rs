@@ -309,3 +309,57 @@ fn actual_encoder_emergency_wire_shape_refuses_with_retained_reason() {
         Refusal::Malformed
     );
 }
+
+#[test]
+fn appliance_ack_join_requires_one_exact_tuple_and_all_four_counters() {
+    let serial = lines(&fixture());
+    let ack: proof::AckRef =
+        serde_json::from_value(fixture()[5]["snapshot"]["ack"].clone()).unwrap();
+    let expected_cost: proof::Cost = serde_json::from_value(cost(14)).unwrap();
+    assert_eq!(proof::verify_ack(&serial, &ack, &expected_cost), Ok(()));
+    let frame = serial
+        .lines()
+        .find(|line| line.starts_with("CONDUIT_COMPOSITOR_SERVICE_FRAME "))
+        .unwrap();
+    assert_eq!(
+        proof::verify_ack("", &ack, &expected_cost),
+        Err(Refusal::Ack)
+    );
+    assert_eq!(
+        proof::verify_ack(&(serial.clone() + frame + "\n"), &ack, &expected_cost),
+        Err(Refusal::Ack)
+    );
+    for field in [
+        "service_instance",
+        "namespace",
+        "frame_sequence",
+        "guest_sequence",
+    ] {
+        let value = match field {
+            "service_instance" => ack.instance,
+            "namespace" => ack.namespace,
+            "frame_sequence" => ack.frame_sequence,
+            _ => ack.guest_sequence,
+        };
+        let altered = serial.replace(
+            &format!("{field}={value} "),
+            &format!("{field}={} ", value + 100),
+        );
+        assert_eq!(
+            proof::verify_ack(&altered, &ack, &expected_cost),
+            Err(Refusal::Ack)
+        );
+    }
+    for field in [
+        "entries",
+        "privilege_transitions",
+        "address_space_switches",
+        "scheduler_returns",
+    ] {
+        let altered = serial.replace(&format!("{field}=14"), &format!("{field}=15"));
+        assert_eq!(
+            proof::verify_ack(&altered, &ack, &expected_cost),
+            Err(Refusal::Ack)
+        );
+    }
+}
