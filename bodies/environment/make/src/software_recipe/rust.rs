@@ -40,8 +40,8 @@ impl NativeSoftwareRecipe {
             "];\nstatic TEXTS: [ResidentComputation<'static>; {}] = [",
             self.texts.len()
         )?;
-        for (node, key, text) in &self.texts {
-            writeln!(out, "ResidentComputation {{ node: {node}, key: c::AssignedIdentity({:?}), text: {text:?} }},", key.0)?;
+        for (node, key, text, bytes) in &self.texts {
+            writeln!(out, "ResidentComputation {{ node: {node}, key: c::AssignedIdentity({:?}), text: {text:?}, canonical_bytes: Some(&{bytes:?}) }},", key.0)?;
         }
         writeln!(
             out,

@@ -16,7 +16,7 @@ pub enum SoftwareRecipeRefusal {
 #[derive(Debug, PartialEq, Eq)]
 pub struct NativeSoftwareRecipe {
     records: Vec<c::AssignedRecordRequirement>,
-    texts: Vec<(u16, c::AssignedIdentity, String)>,
+    texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
     computations: Vec<c::AssignedComputationRequirement>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     roles: ResidentRoles,
@@ -74,6 +74,18 @@ impl PreparedNativeAppliance {
                         entry.node,
                         c::AssignedIdentity::from_text(&entry.key),
                         text.clone(),
+                        text.as_bytes()
+                            .as_chunks::<2>()
+                            .0
+                            .iter()
+                            .map(|pair| {
+                                u8::from_str_radix(
+                                    core::str::from_utf8(pair).expect("checked hex"),
+                                    16,
+                                )
+                                .expect("checked hex")
+                            })
+                            .collect(),
                     ))
                 })
                 .collect(),
@@ -91,10 +103,11 @@ impl NativeSoftwareRecipe {
     pub fn resident_computations(&self) -> impl ExactSizeIterator<Item = ResidentComputation<'_>> {
         self.texts
             .iter()
-            .map(|(node, key, text)| ResidentComputation {
+            .map(|(node, key, text, bytes)| ResidentComputation {
                 node: *node,
                 key: *key,
                 text,
+                canonical_bytes: Some(bytes),
             })
     }
 

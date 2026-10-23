@@ -104,8 +104,10 @@ impl<V: ValueStorage> PreparedAssignedAppliance<V> {
         resident: &ResidentAppliance<'_>,
         values: V,
     ) -> Result<Self, NativePreparationRefusal> {
-        ValidatedAssignedAppliance::admit(bytes, maxima, required, resident)?
-            .initialize_with(|computation| computation_text(bytes, computation), values)
+        ValidatedAssignedAppliance::admit(bytes, maxima, required, resident)?.initialize_with(
+            |computation| Ok((computation_text(bytes, computation)?, None)),
+            values,
+        )
     }
 }
 /// Independently provisioned firmware data, not a received assignment or grant.
@@ -114,6 +116,8 @@ pub struct ResidentComputation<'a> {
     pub node: u16,
     pub key: c::AssignedIdentity,
     pub text: &'a str,
+    /// Optional Make-decoded bytes. Checked against the pinned text before allocation.
+    pub canonical_bytes: Option<&'a [u8]>,
 }
 /// Owns validated current tables and Source cadence; borrows no assignment bytes.
 /// Admission is not native possession, Body start, authority or memory admission.
@@ -212,6 +216,9 @@ impl ValidatedAssignedAppliance {
             } else {
                 return Err(E::Configuration);
             };
+            if !resident_bytes_match(text) {
+                return Err(E::Configuration);
+            }
             if c::AssignedComputationRequirement::from_text(text.node, key, text.text)
                 .map_err(|_| E::Configuration)?
                 != *expected
@@ -224,7 +231,7 @@ impl ValidatedAssignedAppliance {
                 resident
                     .iter()
                     .find(|text| text.node == expected.node && text.key == expected.key)
-                    .map(|text| text.text)
+                    .map(|text| (text.text, text.canonical_bytes))
                     .ok_or(E::Configuration)
             },
             values,
@@ -232,7 +239,9 @@ impl ValidatedAssignedAppliance {
     }
     fn initialize_with<'a, V: ValueStorage>(
         self,
-        text: impl Fn(&c::AssignedComputationRequirement) -> Result<&'a str, NativePreparationRefusal>,
+        text: impl Fn(
+            &c::AssignedComputationRequirement,
+        ) -> Result<(&'a str, Option<&'a [u8]>), NativePreparationRefusal>,
         mut values: V,
     ) -> Result<PreparedAssignedAppliance<V>, NativePreparationRefusal> {
         use NativePreparationRefusal as E;
@@ -263,10 +272,15 @@ impl ValidatedAssignedAppliance {
                 .ok_or(E::Roles)?;
             let node = usize::from(computation.node);
             initialized[node] = true;
-            let text = text(computation)?;
+            let (text, canonical_bytes) = text(computation)?;
             let driver = if computation.key == program_key {
-                let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(text)
-                    .map_err(init)?;
+                let program = match canonical_bytes {
+                    Some(bytes) => {
+                        conduit_plot::PortableExpressionProgram::from_canonical_bytes(bytes)
+                    }
+                    None => conduit_plot::PortableExpressionProgram::from_canonical_hex(text),
+                }
+                .map_err(init)?;
                 CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
                     .map_err(init)?
             } else if computation.key == selector_key {
@@ -402,4 +416,28 @@ fn computation_text<'a>(
         }
     }
     result.ok_or(NativePreparationRefusal::Configuration)
+}
+
+// Compare without a decode buffer; hexadecimal spelling remains part of the
+// independently pinned assignment identity. The ordinary parser validates bytes.
+fn resident_bytes_match(value: &ResidentComputation<'_>) -> bool {
+    let Some(bytes) = value.canonical_bytes else {
+        return true;
+    };
+    if bytes.len().checked_mul(2) != Some(value.text.len()) {
+        return false;
+    }
+    bytes
+        .iter()
+        .zip(value.text.as_bytes().as_chunks::<2>().0.iter())
+        .all(|(byte, pair)| {
+            let digit = |n| match n {
+                b'0'..=b'9' => Some(n - b'0'),
+                b'a'..=b'f' => Some(n - b'a' + 10),
+                _ => None,
+            };
+            digit(pair[0])
+                .zip(digit(pair[1]))
+                .is_some_and(|(hi, lo)| *byte == (hi << 4) | lo)
+        })
 }

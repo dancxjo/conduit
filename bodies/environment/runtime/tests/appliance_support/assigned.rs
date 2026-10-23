@@ -4,7 +4,7 @@ use super::*;
 use conduit_environment_runtime::appliance::assigned::{ResidentAppliance, ResidentRoles};
 pub struct Recipe {
     records: Vec<c::AssignedRecordRequirement>,
-    texts: Vec<(u16, c::AssignedIdentity, String)>,
+    texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     roles: ResidentRoles,
 }
@@ -65,6 +65,18 @@ impl Recipe {
                         entry.node,
                         c::AssignedIdentity::from_text(&entry.key),
                         text.clone(),
+                        text.as_bytes()
+                            .as_chunks::<2>()
+                            .0
+                            .iter()
+                            .map(|pair| {
+                                u8::from_str_radix(
+                                    core::str::from_utf8(pair).expect("checked hex"),
+                                    16,
+                                )
+                                .expect("checked hex")
+                            })
+                            .collect(),
                     ))
                 })
                 .collect(),
@@ -77,11 +89,12 @@ impl Recipe {
     ) -> Vec<conduit_environment_runtime::appliance::assigned::ResidentComputation<'_>> {
         self.texts
             .iter()
-            .map(|(node, key, text)| {
+            .map(|(node, key, text, bytes)| {
                 conduit_environment_runtime::appliance::assigned::ResidentComputation {
                     node: *node,
                     key: *key,
                     text,
+                    canonical_bytes: Some(bytes),
                 }
             })
             .collect()
@@ -202,7 +215,7 @@ fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allo
     let image = appliance_support::native_image(&plan, &lowered);
     let projection = assignment::NativeProjection::prepare(&image);
     let recipe = Recipe::prepare(&plan, &lowered, &image, &projection);
-    for mode in 0..5 {
+    for mode in 0..7 {
         let admitted = ValidatedAssignedAppliance::admit(
             &projection.bytes,
             assignment::NativeProjection::maxima(),
@@ -211,6 +224,8 @@ fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allo
         )
         .unwrap();
         let mut texts = recipe.programs();
+        let mut changed = texts[0].canonical_bytes.unwrap().to_vec();
+        changed[0] ^= 1;
         match mode {
             0 => {
                 texts.pop();
@@ -218,7 +233,9 @@ fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allo
             1 => texts[1] = texts[0],
             2 => texts[0].text = "00",
             3 => texts[0].node = u16::MAX,
-            _ => texts[0].key = c::AssignedIdentity::from_text("unknown"),
+            4 => texts[0].key = c::AssignedIdentity::from_text("unknown"),
+            5 => texts[0].canonical_bytes = Some(&changed),
+            _ => texts[0].canonical_bytes = Some(&changed[..changed.len() - 1]),
         }
         let values = k::FixedValueStore::<1, 8>::new(8).unwrap();
         let (result, memory) = allocation_probe::observe(|| admitted.initialize(&texts, values));
@@ -234,8 +251,10 @@ pub fn report_computation_memory(recipe: &Recipe) {
     for text in recipe.programs() {
         let ((driver, selector), memory) = allocation_probe::observe(|| {
             if text.key == c::AssignedIdentity::from_text("program") {
-                let program =
-                    conduit_plot::PortableExpressionProgram::from_canonical_hex(text.text).unwrap();
+                let program = conduit_plot::PortableExpressionProgram::from_canonical_bytes(
+                    text.canonical_bytes.unwrap(),
+                )
+                .unwrap();
                 (
                     CaptureBack::expression(&program, c::PortTemporal::Flow { closes: true })
                         .unwrap(),
