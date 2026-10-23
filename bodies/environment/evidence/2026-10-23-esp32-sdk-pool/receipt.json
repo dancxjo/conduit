@@ -1,0 +1,55 @@
+{
+  "source_commit": "cf195bb0224273d6ee88da6f4291accb1e1dd8d6",
+  "firmware_sha256": "b4885e54b0e55b6b7e4e24b83a68c07a4f6931180811d37f5c788eaf96544010",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/593f75b84409c0a2a545e135e8222745",
+  "boot_current": false,
+  "sdk_pool_bytes": 122880,
+  "root_pool_bytes": 65536,
+  "total_backing_bytes": 188416,
+  "observed_sdk_used_bytes": [
+    33408,
+    33408,
+    33408,
+    33408
+  ],
+  "observed_root_used_bytes": [
+    5200,
+    5200,
+    5200,
+    5200
+  ],
+  "complete_offers": 4,
+  "boot_allocator_checks_passed": true,
+  "body_installed": false,
+  "native_plan_installed": false,
+  "network_join_attempted": false,
+  "runtime_image_attestation": null,
+  "sdk_package_versions_changed": false,
+  "root_and_ap_builds": "passed",
+  "root_and_ap_strict_clippy": "passed",
+  "restoration": {
+    "display_acks": 6,
+    "last_reading": {
+      "face_identity": "4e9592cf940f8b0b1bbac394861e54420cb9bf07513f900e6266bc62cfc2243c",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 69.8,
+      "relative_humidity_percent": 52,
+      "sampled_at_boot_ms": 15830,
+      "age_ms": 97,
+      "ap_ready": true
+    }
+  },
+  "artifacts": {
+    "serial.log": "f913a90f620760a73e772c43dda561b916f3a1ba69e146e96114d257db1a8dcd",
+    "offers.json": "f35c83275500f3dde00e368716f5115d4b1d4fc26ef4340b24bb721600867e2c",
+    "flash.log": "c23b610b6d60251ea0e53dfce131233c0f76210ab3138d4b6bcd1adaff74304a",
+    "restore.log": "6ca958f2197954e114ece9c1d3b39f0e516276f2591a79cb244fd25183a5a3c7",
+    "restored-serial.log": "c945b3ef0663632aa9c0b9210a6db016fe299c630f368e0cb69cac74aec7b296",
+    "heap-symbols.txt": "9aef921d480b5c8f5ffd847e75963a8e5725db674adfad3e01b9c518578c1d83"
+  }
+}
