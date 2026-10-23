@@ -177,9 +177,11 @@ pub(super) fn run() {
         refuse("cancel-restart-identity");
     }
     let fresh_cost = fresh_owner.borrow().service_cost();
+    // Direct owner quarantine makes this retained client session stale. The
+    // client did not itself encounter a transport failure (ServiceLost).
     if old.submit(held_input.clone())
         != Err(NativeFaceMaskError::Compositor(
-            NativeCompositorError::ServiceLost,
+            NativeCompositorError::StaleIdentity,
         ))
         || old.route_keyboard().is_ok()
         || draft.revision() != revision
