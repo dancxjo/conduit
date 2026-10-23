@@ -64,6 +64,8 @@ pub async fn receive(
         body_installed: bool,
         native_plan_installed: bool,
         appliance_kernel_prepared: bool,
+        execution_context_prepared: bool,
+        execution_context_bytes: Option<usize>,
         kernel_additional_preparation_bound: Option<usize>,
         capability_possession_issued: bool,
     }
@@ -117,6 +119,8 @@ pub async fn receive(
         body_installed: false,
         native_plan_installed: false,
         appliance_kernel_prepared: root.appliance_kernel_prepared(),
+        execution_context_prepared: root.execution_context_prepared(),
+        execution_context_bytes: root.execution_context_bytes(),
         kernel_additional_preparation_bound: crate::native_kernel::requirements()
             .ok()
             .map(|(bytes, _)| bytes),

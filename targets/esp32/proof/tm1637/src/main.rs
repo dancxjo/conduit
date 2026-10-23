@@ -43,6 +43,8 @@ mod native_kernel_storage;
 #[cfg(feature = "native-root")]
 mod native_service;
 #[cfg(feature = "native-root")]
+mod native_worker;
+#[cfg(feature = "native-root")]
 mod native_owner_control;
 #[cfg(feature = "native-root")]
 mod native_owner_reservation;

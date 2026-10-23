@@ -11,7 +11,10 @@ impl NativeRoot {
         &self,
         token: crate::native_owner_control::AuthenticatedRequest<'_>,
     ) -> Result<PreparationPermit, &'static str> {
-        if self.native_bindings.is_some() || self.appliance_kernel.is_some() {
+        if self.native_bindings.is_some()
+            || self.appliance_kernel.is_some()
+            || self.execution.is_some()
+        {
             return Err("already-native-prepared");
         }
         self.owner_reservation
@@ -20,14 +23,25 @@ impl NativeRoot {
             .authorize_preparation(token)
     }
     pub fn native_possession_prepared(&self) -> bool {
-        self.native_bindings.is_some()
+        self.native_bindings.is_some() || self.execution.is_some()
+    }
+    pub fn execution_context_prepared(&self) -> bool {
+        self.execution.is_some()
+    }
+    pub fn execution_context_bytes(&self) -> Option<usize> {
+        self.execution
+            .as_ref()
+            .map(|execution| core::mem::size_of_val(&**execution))
     }
     pub fn prepare_native_assignment(
         &mut self,
         permit: PreparationPermit,
         wire: &[u8],
     ) -> Result<(), &'static str> {
-        if self.native_bindings.is_some() || self.appliance_kernel.is_some() {
+        if self.native_bindings.is_some()
+            || self.appliance_kernel.is_some()
+            || self.execution.is_some()
+        {
             return Err("already-native-prepared");
         }
         let reservation = self.owner_reservation.as_ref().ok_or("owner-unreserved")?;
@@ -98,6 +112,15 @@ impl NativeRoot {
             &mut self.assignment,
         )?);
         self.assignment_seal = None;
+        let stats = esp_alloc::HEAP.stats();
+        let needed = core::mem::size_of::<super::DeviceExecution>() + 8192;
+        if stats.size.saturating_sub(stats.current_usage) < needed {
+            return Err("execution-context-capacity");
+        }
+        self.execution = Some(crate::native_worker::Execution::boxed_retained(
+            &mut self.appliance_kernel,
+            &mut self.native_bindings,
+        )?);
         Ok(())
     }
 }

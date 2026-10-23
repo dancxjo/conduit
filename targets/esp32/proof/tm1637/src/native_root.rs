@@ -7,7 +7,10 @@ use conduit_core as c;
 use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
+pub(crate) type DeviceExecution =
+    crate::native_worker::Execution<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
 pub struct NativeRoot {
+    execution: Option<alloc::boxed::Box<DeviceExecution>>,
     native_bindings: Option<
         crate::native_authority::NativeBindings<
             Esp32PulseCapture<'static>,
@@ -108,6 +111,7 @@ impl NativeRoot {
         let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
             .expect("installed owner public key must be valid and non-weak");
         Self {
+            execution: None,
             native_bindings: None,
             owner_control,
             owner_reservation: None,
@@ -203,7 +207,7 @@ impl NativeRoot {
         Ok(())
     }
     pub fn appliance_kernel_prepared(&self) -> bool {
-        self.appliance_kernel.is_some()
+        self.appliance_kernel.is_some() || self.execution.is_some()
     }
     pub fn write_admission_offer(&mut self, output: &mut [u8]) -> Result<usize, ()> {
         self.admission_freshness = self.admission_freshness.checked_add(1).ok_or(())?;

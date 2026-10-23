@@ -233,3 +233,6 @@ mod native_owner_reservation;
 mod native_kernel_storage;
 #[path = "../../../../targets/esp32/proof/tm1637/src/native_service.rs"]
 mod native_service;
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_worker.rs"]
+mod native_worker;

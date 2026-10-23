@@ -1251,3 +1251,13 @@ late completions, pressure, provider failure and revoked possession, without Pla
 allocation. See `evidence/2026-10-23-native-dispatch/` for the exact proof scope.
 Worker/task admission and signed start/release remain unfinished; the new bridge
 has not replaced the physically prepared image or dispatched a physical reading.
+
+The target worker now owns finite pulse/timer request queues and a two-slot reply
+queue around the ordinary kernel. It advances Steps while native futures remain
+pending, wakes on completion, and observes actual committed publications. CPU
+conformance covers 960 logical samples, concurrent publication, native failure,
+revocation, cancellation and fenced abandonment with no Play allocation. Kernel
+and native ownership transfer to one boxed context without cloning; Root guards
+that context separately while retaining 8 KiB control headroom. See
+`evidence/2026-10-23-native-worker/` for exact scope and measurements. Actual task
+admission and signed start/release are not wired, and the worker is not flashed.

@@ -1,5 +1,7 @@
 //! Execute the target's exact dispatcher/assembly over inert CPU providers.
 use super::*;
+#[path = "native_worker.rs"]
+mod worker;
 use conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware;
 use conduit_kernel::{self as k, scheduler::SchedulerStatus};
 use core::{
@@ -57,6 +59,18 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     let mut failure = None;
     let mut drained = false;
     let mut cancelled = false;
+    if behavior >= 7 {
+        worker::check(
+            storage,
+            native,
+            pulse_effects,
+            timer_effects,
+            active_wait,
+            resident.cadence.count,
+            behavior,
+        );
+        return;
+    }
     if behavior == 6 {
         let ((), memory) = allocation_probe::observe(|| late_reply(&mut storage, &mut native));
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));

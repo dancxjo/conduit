@@ -57,7 +57,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
             records: &records,
         },
     ] {
-        for behavior in 0..7 {
+        for behavior in 0..14 {
             let wrong_role = behavior % 2 == 0;
             let mut issuer = native_authority::RootIssuer::observe(&boot::ObservedBoot).unwrap();
             let active = issuer
@@ -81,10 +81,10 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                         effects: timer_effects.clone(),
                         pending: pending.clone(),
                         active: active_wait.clone(),
-                        pending_after_first: behavior == 5,
+                        pending_after_first: behavior == 5 || behavior == 9,
                         failure: match behavior {
-                            2 => Some(w::WaitProviderFailure::Pressure),
-                            3 => Some(w::WaitProviderFailure::ProviderUnavailable),
+                            2 | 10 => Some(w::WaitProviderFailure::Pressure),
+                            3 | 11 => Some(w::WaitProviderFailure::ProviderUnavailable),
                             _ => None,
                         },
                     },
@@ -145,7 +145,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
                 );
             }
             assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 0));
-            pending.set(behavior == 1 || behavior == 5);
+            pending.set(matches!(behavior, 1 | 5 | 8 | 9 | 13));
             dispatch::check(
                 prepared,
                 resident,

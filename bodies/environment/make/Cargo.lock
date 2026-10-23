@@ -363,6 +363,8 @@ dependencies = [
  "conduit-time",
  "conduit-web",
  "ed25519-dalek",
+ "embassy-futures",
+ "embassy-sync",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -995,6 +997,12 @@ dependencies = [
  "subtle",
  "zeroize",
 ]
+
+[[package]]
+name = "embassy-futures"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc2d050bdc5c21e0862a89256ed8029ae6c290a93aecefc73084b3002cdebb01"
 
 [[package]]
 name = "embassy-sync"
