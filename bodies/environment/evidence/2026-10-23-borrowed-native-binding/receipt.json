@@ -1,0 +1,14 @@
+{
+  "code_commit": "de8205ca4",
+  "proof_class": "cpu-native-binding-with-borrowed-records-and-target-build",
+  "rich_body_birth_peak_bytes": 149039,
+  "rich_body_proposal_peak_bytes": 181607,
+  "current_root_heap_bytes": 114688,
+  "current_staged_root_heap_used_bytes": 82564,
+  "current_root_free_bytes": 32124,
+  "physical_native_binding_claimed": false,
+  "body_installed_on_device": false,
+  "new_image_flashed": false,
+  "rebuilt_elf_sha256": "e6e4988f13f700e6b119a182c933fbbb3be2cbdde8275ba4ab6a80b8a8029f93",
+  "native_binding_input_source_sha256": "ee3a941885ab946d9d035c92edb49ddde9df92c4fcbf6def68ba486f0706840d"
+}
