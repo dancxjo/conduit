@@ -93,9 +93,48 @@ pub(crate) fn exact_boundary<'a>(
     Ok(port)
 }
 
+/// Closed one-Face protocol: inject and close before exposing the scheduler.
+/// Three values cover its Face, Show and interaction without reserving storage
+/// for input items that this installed protocol can never receive.
+pub(crate) fn single_face_scheduler(
+    fragment: &conduit_core::PlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+    face: &[u8],
+) -> Result<MaskScheduler, String> {
+    let input = exact_boundary(&lowered.fore_ports, "face", PortDirection::Input)?;
+    if face.len() > input.byte_capacity as usize {
+        return Err("browser Mask Face exceeds its sealed Fore bound".into());
+    }
+    let mut scheduler = prepare_scheduler(fragment, lowered, 3)?;
+    if scheduler
+        .admit_remote_input(input.endpoint, input.cord, 0, face)
+        .map_err(|error| format!("inject browser Mask Face: {error:?}"))?
+        != (conduit_kernel::scheduler::RemoteIngressOutcome::Accepted { sequence: 0 })
+    {
+        return Err("browser Mask did not admit exact Face".into());
+    }
+    scheduler
+        .close_remote_input(input.endpoint, input.cord)
+        .map_err(|error| format!("close browser Mask Face: {error:?}"))?;
+    Ok(scheduler)
+}
+#[cfg(test)]
 pub(crate) fn mask_scheduler(
     fragment: &conduit_core::PlanFragment,
     lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<MaskScheduler, String> {
+    let value_slots = lowered
+        .fore_ports
+        .iter()
+        .filter(|port| port.direction == PortDirection::Input)
+        .try_fold(3u16, |total, port| total.checked_add(port.item_capacity))
+        .ok_or("browser Mask value item budget overflow")?;
+    prepare_scheduler(fragment, lowered, value_slots)
+}
+fn prepare_scheduler(
+    fragment: &conduit_core::PlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+    value_slots: u16,
 ) -> Result<MaskScheduler, String> {
     if fragment.placements.len() != 1 || lowered.cords.len() != 3 {
         return Err("browser Mask Plan has an unexpected finite shape".into());
@@ -135,16 +174,6 @@ pub(crate) fn mask_scheduler(
     bindings
         .seal()
         .map_err(|error| format!("seal browser Mask host calls: {error:?}"))?;
-    // Every admitted input queue item may own a distinct Face. While that
-    // queue is refilled, the active Host Call can retain a consumed Face,
-    // its Show and an interaction. Admit those three lifecycle values in
-    // addition to the exact planned input queue capacity.
-    let value_slots = lowered
-        .fore_ports
-        .iter()
-        .filter(|port| port.direction == PortDirection::Input)
-        .try_fold(3u16, |total, port| total.checked_add(port.item_capacity))
-        .ok_or("browser Mask value item budget overflow")?;
     let value_bytes = MASK_BYTES
         .checked_mul(u32::from(value_slots))
         .ok_or("browser Mask value byte budget overflow")?;

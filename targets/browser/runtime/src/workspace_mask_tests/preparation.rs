@@ -39,10 +39,23 @@ fn installed_mask_preparation_preserves_admitted_body_plan_and_refuses_missing_r
         9,
     )
     .unwrap();
-    // This fixture admits four queued input Faces plus the active Face, Show
-    // and interaction. The remaining reservation is per-slot metadata.
-    assert!(installed.reserved_value_storage_bytes() >= 7 * MASK_BYTES as usize);
-    assert!(installed.reserved_value_storage_bytes() < 8 * MASK_BYTES as usize);
+    // The installed protocol already injected and closed its sole Face input.
+    // Its Face, Show and interaction retain exactly three prepared value slots.
+    assert!(installed.reserved_value_storage_bytes() >= 3 * MASK_BYTES as usize);
+    assert!(installed.reserved_value_storage_bytes() < 4 * MASK_BYTES as usize);
+    let fragment = &installed.planned.plan.fragments[0];
+    let lowered = lower_plan_fragment(fragment).unwrap();
+    let input =
+        execution::exact_boundary(&lowered.fore_ports, "face", PortDirection::Input).unwrap();
+    assert!(matches!(
+        installed.scheduler.admit_remote_input(
+            input.endpoint,
+            input.cord,
+            1,
+            &serde_json::to_vec(&face).unwrap()
+        ),
+        Err(conduit_kernel::scheduler::SchedulerError::RemoteSequenceRejected)
+    ));
     assert_eq!(installed.observation().body_plan, admitted);
     assert_eq!(installed.observation().face, face);
     assert_eq!(
