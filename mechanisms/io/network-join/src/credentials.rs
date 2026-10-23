@@ -2,6 +2,10 @@
 use conduit_core::*;
 use conduit_kernel::{HostCallId, NodeId, RequestId};
 use conduit_net::*;
+use conduit_plan_lowering::selected_assigned_operation::{
+    bind_selected_assigned_operation_for_subject, AssignedNativeIdentity,
+    SelectedAssignedOperationPlan,
+};
 use conduit_plan_lowering::selected_operation::*;
 
 pub const CREDENTIAL_RESOURCE_CLASS: &str = "conduit.network/private-credentials@1";
@@ -74,20 +78,7 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
         contract: &PreparedCredentialContract,
         selected: SelectedOperationPlan<'_>,
     ) -> Result<Self, CredentialCallRefusal> {
-        let mut entries = table.inspections();
-        let entry = entries.next().ok_or(CredentialCallRefusal::Possession)?;
-        if entries.next().is_some()
-            || entry.scope.authority_contract_id.as_str() != NETWORK_CREDENTIALS_AUTHORITY
-            || entry.scope.maximum_operations != 1
-            || entry.scope.maximum_in_flight != 1
-            || entry.scope.maximum_parameter_bytes < 1
-            || entry.scope.maximum_result_bytes < MAXIMUM_JOIN_INPUT_BYTES
-            || claim.parameter_bytes != 1
-            || claim.work_units != 1
-        {
-            return Err(CredentialCallRefusal::Possession);
-        }
-        drop(entries);
+        Self::check_possession(&table, &claim)?;
         let gear = selected
             .fragment
             .placements
@@ -105,6 +96,59 @@ impl<P: CredentialSource> NetworkCredentialsHostCall<P> {
             &claim,
             contract.definition(),
             &contract.subject,
+            selected,
+        )
+        .map_err(CredentialCallRefusal::Binding)?;
+        Ok(Self {
+            table,
+            handle,
+            claim,
+            source,
+            node,
+            invoked: false,
+        })
+    }
+    fn check_possession(
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
+    ) -> Result<(), CredentialCallRefusal> {
+        let mut entries = table.inspections();
+        let entry = entries.next().ok_or(CredentialCallRefusal::Possession)?;
+        if entries.next().is_some()
+            || entry.scope.authority_contract_id.as_str() != NETWORK_CREDENTIALS_AUTHORITY
+            || entry.scope.maximum_operations != 1
+            || entry.scope.maximum_in_flight != 1
+            || entry.scope.maximum_parameter_bytes < 1
+            || entry.scope.maximum_result_bytes < MAXIMUM_JOIN_INPUT_BYTES
+            || claim.parameter_bytes != 1
+            || claim.work_units != 1
+        {
+            return Err(CredentialCallRefusal::Possession);
+        }
+        Ok(())
+    }
+    /// # Safety
+    /// Same source ownership and admission requirements as `bind_selected`.
+    /// Root must retain native identities independently of incoming bytes.
+    pub unsafe fn bind_assigned(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        source: P,
+        contract: &PreparedCredentialContract,
+        native: AssignedNativeIdentity<'_>,
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<Self, CredentialCallRefusal> {
+        Self::check_possession(&table, &claim)?;
+        if native.resource_class != CREDENTIAL_RESOURCE_CLASS {
+            return Err(CredentialCallRefusal::WrongRequest);
+        }
+        let node = bind_selected_assigned_operation_for_subject(
+            &table,
+            &claim,
+            contract.definition(),
+            &contract.subject,
+            native,
             selected,
         )
         .map_err(CredentialCallRefusal::Binding)?;

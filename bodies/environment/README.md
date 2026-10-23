@@ -669,3 +669,11 @@ The checked network Play proof now dispatches both credential and join requests
 through their selected owners; its dispatcher no longer reads the mailbox
 directly. Root authority/presence and radio remain explicit CPU fixtures. Actual
 MCU installation and native assigned credential binding remain outstanding.
+
+The retained credential Base now also binds the ordinary native assigned-plan
+projection. Native implementation/artifact/Base/resource identities come from
+that owner, not assignment bytes. CPU fixtures exercise both rich and assigned
+binding with actual private mailbox submissions, revocation, replay and a
+substituted artifact. Assigned binding and execution allocate nothing. The ESP32
+network adapter cross-check passes; this is compilation evidence, not firmware
+installation or a physical network transition.

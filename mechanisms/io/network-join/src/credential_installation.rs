@@ -7,6 +7,9 @@ use crate::{
 use alloc::vec;
 use conduit_core::*;
 use conduit_net::*;
+use conduit_plan_lowering::selected_assigned_operation::{
+    AssignedNativeIdentity, SelectedAssignedOperationPlan,
+};
 use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
 pub const CREDENTIAL_CAPABILITY: &str = "conduit/network-credentials@1";
 pub const CREDENTIAL_BASE_KIND: &str = "machine/private-credentials";
@@ -174,6 +177,44 @@ impl<P: CredentialSource> ReadyCredentialBase<P> {
                 claim,
                 self.source,
                 contract,
+                selected,
+            )
+        }
+    }
+    /// Consume the retained actual source using independently held native facts,
+    /// not implementation identities supplied by an incoming assignment.
+    pub fn bind_assigned(
+        self,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<NetworkCredentialsHostCall<P>, CredentialCallRefusal> {
+        if !self.claim_matches(&claim) {
+            return Err(CredentialCallRefusal::WrongRequest);
+        }
+        let i = &self.identity;
+        let native = AssignedNativeIdentity {
+            capability: CREDENTIAL_CAPABILITY,
+            execution_profile: CREDENTIAL_EXECUTION_PROFILE,
+            artifact: i.artifact.as_str(),
+            base: i.base.as_str(),
+            base_implementation: i.base_implementation.as_str(),
+            mechanism: CREDENTIAL_BASE_KIND,
+            authority: NETWORK_CREDENTIALS_AUTHORITY,
+            resource_class: CREDENTIAL_RESOURCE_CLASS,
+        };
+        // SAFETY: new retained the actual initialized source and native identity;
+        // the common binder checks exact assignment/current possession.
+        unsafe {
+            NetworkCredentialsHostCall::bind_assigned(
+                table,
+                handle,
+                claim,
+                self.source,
+                contract,
+                native,
                 selected,
             )
         }
