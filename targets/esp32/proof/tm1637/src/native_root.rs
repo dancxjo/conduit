@@ -16,14 +16,9 @@ pub struct NativeRoot {
         crate::native_credentials::RootCredentialSource,
     >,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
-    station_config: Option<esp_radio::wifi::sta::StationConfig>,
-    services: Option<crate::services::Owner>,
+    network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
     contract: PulseReadContract,
-    _controller: esp_radio::wifi::WifiController<'static>,
-    _stacks: (embassy_net::Stack<'static>, embassy_net::Stack<'static>),
-    _ap_address: embassy_net::StaticConfigV4,
-    _ap_config: esp_radio::wifi::ap::AccessPointConfig,
     host: c::HostId,
     boot: c::BootId,
 }
@@ -33,6 +28,7 @@ impl NativeRoot {
         radio: crate::network::Radio,
         boot: &crate::boot::ObservedBoot,
         network_source: conduit_plot::ExpandedCanonicalPlot,
+        sdk_reservation: crate::sdk_memory::NativeSdkReservation,
     ) -> Self {
         let (host, boot) = boot.ids();
         let host: c::HostId = host.into();
@@ -74,14 +70,9 @@ impl NativeRoot {
             network_source,
             credentials,
             credential_writer,
-            station_config: None,
-            services: None,
+            network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse,
             contract: PulseReadContract::prepare().unwrap(),
-            _controller: radio.controller,
-            _stacks: radio.stacks,
-            _ap_address: radio.ap_address,
-            _ap_config: radio.ap_config,
             host,
             boot,
         }
@@ -125,38 +116,59 @@ impl NativeRoot {
     ) -> Result<(), ()> {
         use conduit_esp32_network_switch::AccessPointServices;
         spawner.spawn(
-            crate::services::run(self._stacks.0, Some(self.credential_writer.clone()))
-                .map_err(|_| ())?,
+            crate::services::run(
+                self.network.ap_stack().ok_or(())?,
+                Some(self.credential_writer.clone()),
+            )
+            .map_err(|_| ())?,
         );
         let mut services = crate::services::control(false);
         embassy_time::with_timeout(embassy_time::Duration::from_secs(5), services.restore())
             .await
             .map_err(|_| ())?
             .map_err(|_| ())?;
-        self.services = Some(services);
+        self.network.retain_services(services);
         Ok(())
     }
     /// Preparation never consumes the selected source or changes radio mode.
     /// Once configured, subsequent offers reuse the retained SDK configuration.
     pub fn prepare_network_configuration(&mut self) -> &'static [u8] {
         use conduit_environment_http::network_setup::NetworkSetupRefusal as E;
-        if self.station_config.is_some() {
+        if self.network.is_ready() {
             return b"prepared";
         }
-        let Ok(mailbox) = self.credential_writer.try_lock() else {
-            return b"busy";
+        if self.network.has_staged_configuration() {
+            // A refused preparation still retains its initialized owner. The
+            // one-submission diagnostic never overwrites or silently retries it.
+            return b"refused";
+        }
+        let configuration = {
+            let Ok(mailbox) = self.credential_writer.try_lock() else {
+                return b"busy";
+            };
+            mailbox
+                .prepare_acknowledged(conduit_esp32_network_switch::prepare_station_configuration)
         };
-        match mailbox
-            .prepare_acknowledged(conduit_esp32_network_switch::prepare_station_configuration)
-        {
+        match configuration {
             Ok(Ok(config)) => {
-                self.station_config = Some(config);
+                self.network.stage(config);
+                if self.network.prepare(&self.host, &self.boot).is_err() {
+                    return b"refused";
+                }
+                // The retained provider changes the truthful offer generation.
+                // Preparation is fresh; old refusal/Plan material is discarded.
+                if self.prepare_network_plan().is_err() {
+                    return b"refused";
+                }
                 b"prepared"
             }
             Ok(Err(_)) => b"refused",
             Err(E::NoSubmission | E::NotAcknowledged) => b"waiting",
             Err(_) => b"refused",
         }
+    }
+    pub fn network_ready(&self) -> bool {
+        self.network.is_ready()
     }
     /// Projection is made from the still-retained provider each time. It is an
     /// offer, not authority, membership, a Body birth or an installed native Play.
@@ -168,7 +180,7 @@ impl NativeRoot {
             protocol_version: c::PROTOCOL_VERSION,
             host_id: self.host.clone(),
             boot_id: self.boot.clone(),
-            offer_generation: c::OfferGeneration(1),
+            offer_generation: c::OfferGeneration(if self.network.is_ready() { 2 } else { 1 }),
             profile: "environment/esp32-native-root@1".into(),
             bases: alloc::vec![],
             resources: alloc::vec![],
@@ -181,6 +193,7 @@ impl NativeRoot {
         self.credentials
             .append_to_advertisement(&mut advertisement)
             .map_err(|_| ())?;
+        self.network.append_to_advertisement(&mut advertisement)?;
         Ok(advertisement)
     }
 }

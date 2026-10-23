@@ -10,7 +10,7 @@ use esp_hal::{
 async fn main(spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
     esp_alloc::heap_allocator!(size: 64 * 1024);
-    crate::sdk_memory::initialize();
+    let sdk_reservation = crate::sdk_memory::initialize();
     let timer = TimerGroup::new(p.TIMG0);
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timer.timer0, interrupts.software_interrupt0);
@@ -19,7 +19,8 @@ async fn main(spawner: Spawner) {
     let radio = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
     let source = crate::native_source::load();
-    let mut root = crate::native_root::NativeRoot::prepare(sensor, radio, &boot, source);
+    let mut root =
+        crate::native_root::NativeRoot::prepare(sensor, radio, &boot, source, sdk_reservation);
     root.start_preparation_service(spawner)
         .await
         .expect("Root preparation service must start");

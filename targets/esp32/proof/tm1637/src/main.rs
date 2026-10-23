@@ -19,6 +19,8 @@ mod native_credentials;
 #[cfg(feature = "native-root")]
 mod native_entry;
 #[cfg(feature = "native-root")]
+mod native_network;
+#[cfg(feature = "native-root")]
 mod native_root;
 #[cfg(feature = "native-root")]
 mod native_source;

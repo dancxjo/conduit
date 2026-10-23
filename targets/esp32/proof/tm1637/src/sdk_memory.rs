@@ -25,10 +25,23 @@ fn heap() -> &'static esp_alloc::EspHeap {
     }
 }
 
+/// Unique proof that this Boot initialized the SDK's actual isolated backing.
+/// It admits storage only; Root must separately bound operations and cleanup.
+#[cfg(feature = "native-root")]
+pub struct NativeSdkReservation {
+    _private: (),
+}
+#[cfg(feature = "native-root")]
+impl NativeSdkReservation {
+    pub fn bytes(&self) -> usize {
+        SDK_HEAP.stats().size
+    }
+}
+
 /// Called once before RTOS/radio startup. The total backing remains 184 KiB:
 /// 64 KiB for Root Rust allocations and 32+88 KiB for the SDK C boundary.
 #[cfg(feature = "native-root")]
-pub fn initialize() {
+pub fn initialize() -> NativeSdkReservation {
     use core::{
         mem::MaybeUninit,
         sync::atomic::{AtomicBool, Ordering},
@@ -55,6 +68,7 @@ pub fn initialize() {
     assert_eq!(SDK_HEAP.stats().size, SDK_BYTES);
     assert_eq!(esp_alloc::HEAP.stats().size, 64 * 1024);
     self_check();
+    NativeSdkReservation { _private: () }
 }
 
 #[cfg(feature = "native-root")]

@@ -52,8 +52,8 @@ async fn offer(
     use core::fmt::Write;
     write!(
         memory_json,
-        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"advertisement\":",
-        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage, root.network_source().source_document_id.as_str(), root.network_plan_status()
+        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"prechecked_network_source\":\"{}\",\"network_plan_preparation\":\"{}\",\"native_network_ready\":{},\"advertisement\":",
+        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage, root.network_source().source_document_id.as_str(), root.network_plan_status(), root.network_ready()
     )
     .map_err(|_| ())?;
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.
