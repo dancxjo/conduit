@@ -25,7 +25,7 @@ fn recorder_proposal_and_fragment_identity_require_the_retained_body_start() {
     let recorder = prepared();
     let fragment = &recorder.plan().fragments[0];
     let mut owner = support::body_owner(
-        recorder.body_plot_plan().plot,
+        recorder.resident_plot(),
         &fragment.host_id,
         &fragment.boot_id,
         false,
@@ -64,7 +64,7 @@ fn recorder_cannot_propose_to_foreign_membership_or_substitute_a_fragment_play()
     let recorder = prepared();
     let fragment = &recorder.plan().fragments[0];
     let mut stale = support::body_owner(
-        recorder.body_plot_plan().plot,
+        recorder.resident_plot(),
         &fragment.host_id,
         &"fixture/stale-boot".into(),
         false,
@@ -77,7 +77,7 @@ fn recorder_cannot_propose_to_foreign_membership_or_substitute_a_fragment_play()
     assert_eq!(stale.evidence(), &before);
     assert!(stale.realization().is_none());
     let mut wrong = support::body_owner(
-        recorder.body_plot_plan().plot,
+        recorder.resident_plot(),
         &fragment.host_id,
         &fragment.boot_id,
         true,
@@ -89,7 +89,7 @@ fn recorder_cannot_propose_to_foreign_membership_or_substitute_a_fragment_play()
     ));
     assert_eq!(wrong.evidence(), &before);
     let mut owner = support::body_owner(
-        recorder.body_plot_plan().plot,
+        recorder.resident_plot(),
         &fragment.host_id,
         &fragment.boot_id,
         false,

@@ -19,14 +19,16 @@ Make Clippy pass. The ESP32 optimized release build passes with the same three
 unused issuance warnings; no new image was flashed. These controls use explicit
 CPU providers/issuers, not physical native binding or a device Body start.
 
-The rich lifecycle preparation control measures birth peak 149,039 bytes and
-proposal peak 181,607 bytes for both storage forms. The current Root heap is
-114,688 bytes total, with 82,564 retained after physical table staging. These
-host-side rich-path measurements exceed the current total Root heap, not merely
-its 32,124 free bytes. This does not measure every possible lifecycle producer,
-but it rules out directly transplanting this tested rich path onto the current
-MCU profile. Bounded Body custody/specification representation is needed next;
-using descriptive packet identities as a substitute would not establish custody.
+The original capture reports birth peak 149,039 bytes and proposal peak
+181,607 bytes. A subsequent fixture correction found that birth included a
+rich Plan clone used only to obtain its Source/checked-Plot identity pair.
+The corrected capture in `../2026-10-23-body-custody-metadata/` measures birth
+peak 6,455 bytes; proposal remains 181,607 bytes. Preserve the original log and
+receipt as historical measurements, not the cost of Body birth itself.
+The rich proposal exceeds the Root's 114,688-byte heap. The existing preparation
+contract keeps that rich owner on the planning host and delivers bounded
+assignment/custody through authenticated Root admission. Physical native binding
+and that authenticated installation bridge remain unproved.
 
 The initial public proof dispatch reused the other worktree's cached launcher
 from a shared target directory and refused the new proof name. It did not run

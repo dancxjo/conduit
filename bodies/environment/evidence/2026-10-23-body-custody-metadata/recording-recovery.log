@@ -1,0 +1,24 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 1.25s
+     Running tests/recording_recovery.rs (target/environment-main-host/debug/deps/recording_recovery-c9ef3cbe46259589)
+
+running 16 tests
+test batch_source::empty_duplicate_foreign_and_over_capacity_batch_meaning_refuses ... ok
+test admission::full_first_class_recording_fits_the_snapshot_text_profile ... ok
+test checked_generation_read_and_recovery_use_independent_resource_and_authority ... ok
+test body_lifecycle::recorder_cannot_propose_to_foreign_membership_or_substitute_a_fragment_play ... ok
+test software_preparation::late_publication_collision_drops_new_owners_without_changing_supplied_offers ... ok
+test body_lifecycle::recorder_proposal_and_fragment_identity_require_the_retained_body_start ... ok
+test admission::stale_tables_and_unavailable_software_refuse_before_other_transfers ... ok
+test batch_execution::stale_batch_tables_and_unavailable_owner_refuse_before_other_transfers ... ok
+test execution::lowered_recovery_requires_the_selected_read_before_committing_history ... ok
+test software_preparation::missing_foreign_or_unoffered_read_choices_leave_the_host_unchanged ... ok
+test wrong_generation_or_absent_resource_cannot_become_a_recovery_plan ... ok
+test batch_plan::complete_batch_plan_selects_separate_retained_owners_and_exact_generations ... ok
+test execution::lowered_recovery_refuses_failed_cancelled_and_invalid_reads ... ok
+test batch_execution::failed_cancelled_and_invalid_batch_reads_do_not_publish_history ... ok
+test batch_source::overnight_batch_has_exact_reads_and_ordered_finite_concat_in_checked_source ... ok
+test batch_execution::reverse_read_completion_still_recovers_all_overnight_chunks_in_source_order_without_allocations ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.95s
+

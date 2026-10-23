@@ -180,7 +180,7 @@ fn body_owner(
     boot: &c::BootId,
     wrong_source: bool,
 ) -> conduit_body::BodyLifecycleSession {
-    body_support::body_owner(prepared.body_plot_plan().plot, host, boot, wrong_source)
+    body_support::body_owner(prepared.resident_plot(), host, boot, wrong_source)
 }
 #[test]
 fn native_construction_enters_the_real_body_proposal_without_inventing_a_play() {
@@ -204,7 +204,7 @@ fn native_construction_enters_the_real_body_proposal_without_inventing_a_play() 
         conduit_body::WakeLifecycle::AwaitingPlan
     );
     assert_eq!(proposal.plan.plots[0].plan, *prepared.plan());
-    assert_eq!(proposal.plan.plots[0].plot, prepared.body_plot_plan().plot);
+    assert_eq!(proposal.plan.plots[0].plot, prepared.resident_plot());
     assert_eq!(proposal.wake.body_id, before.body_id);
     assert_eq!(owner.evidence().friendly_name, "Mica Quail");
     assert!(owner.evidence().records.len() > before.records.len());
@@ -270,6 +270,13 @@ fn body_fragment_control(borrowed: bool) {
         limits(),
     )
     .unwrap();
+    let (resident, metadata_memory) = allocation_probe::observe(|| native.resident_plot());
+    assert_eq!(
+        resident.source_document_id,
+        native.plan().source_document_id
+    );
+    assert_eq!(resident.checked_plot_id, native.plan().checked_plot_id);
+    assert!(metadata_memory.peak_bytes < 1024);
     let (mut owner, birth_memory) =
         allocation_probe::observe(|| body_owner(&native, &host.host_id, &host.boot_id, false));
     let (_, proposal_memory) = allocation_probe::observe(|| {

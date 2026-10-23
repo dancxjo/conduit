@@ -227,13 +227,17 @@ impl PreparedRecordingRecovery {
             &fragment.boot_id,
         )
     }
+    /// Workset identity only; does not clone the rich Plot Plan.
+    pub fn resident_plot(&self) -> conduit_body::ResidentPlot {
+        conduit_body::ResidentPlot::new(
+            self.plan.source_document_id.clone(),
+            self.plan.checked_plot_id.clone(),
+        )
+    }
     /// Preparation material for the ordinary Body owner, never a start receipt.
     pub fn body_plot_plan(&self) -> conduit_body::BodyPlotPlan {
         conduit_body::BodyPlotPlan {
-            plot: conduit_body::ResidentPlot::new(
-                self.plan.source_document_id.clone(),
-                self.plan.checked_plot_id.clone(),
-            ),
+            plot: self.resident_plot(),
             plan: self.plan.clone(),
         }
     }

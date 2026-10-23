@@ -87,7 +87,7 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
     let fragment = &plan.plan().fragments[0];
     let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
     let mut body = support::body_owner(
-        plan.body_plot_plan().plot,
+        plan.resident_plot(),
         &fragment.host_id,
         &fragment.boot_id,
         false,

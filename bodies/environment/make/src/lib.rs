@@ -10,9 +10,9 @@ pub use recording_recovery::{
 };
 mod source_recipe;
 pub use source_recipe::NativeSoftwareSourceRecipe;
-mod observed_policy;
 mod native_limits;
 mod observed_offers;
+mod observed_policy;
 pub use observed_offers::NativeOfferRefusal;
 mod software_recipe;
 pub use software_recipe::{NativeSoftwareRecipe, SoftwareRecipeRefusal};
@@ -128,15 +128,18 @@ impl PreparedNativeAppliance {
             selected_offers,
         })
     }
-    /// Supply this exact checked Source/Plan partition to the ordinary Body
-    /// owner. Useful when the Body has other Plots; none are implicitly removed.
-    /// This host-side preparation clone confers no presence or execution claim.
+    /// Workset identity only; does not clone the rich Plot Plan.
+    pub fn resident_plot(&self) -> conduit_body::ResidentPlot {
+        conduit_body::ResidentPlot::new(
+            self.plan.source_document_id.clone(),
+            self.plan.checked_plot_id.clone(),
+        )
+    }
+    /// Supply this checked Source/Plan partition to the ordinary Body owner.
+    /// This host-side rich Plan clone confers no presence or execution claim.
     pub fn body_plot_plan(&self) -> conduit_body::BodyPlotPlan {
         conduit_body::BodyPlotPlan {
-            plot: conduit_body::ResidentPlot::new(
-                self.plan.source_document_id.clone(),
-                self.plan.checked_plot_id.clone(),
-            ),
+            plot: self.resident_plot(),
             plan: self.plan.clone(),
         }
     }

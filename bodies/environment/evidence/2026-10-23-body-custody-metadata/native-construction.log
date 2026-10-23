@@ -1,0 +1,138 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.16s
+     Running `target/environment-main-host/debug/conduit-xtask-dispatch prove environment native-construction`
+    Finished `test` profile [unoptimized] target(s) in 0.12s
+     Running unittests src/lib.rs (target/environment-main-host/debug/deps/conduit_assigned_plan-326c3cdefb42efcd)
+
+running 7 tests
+test sha256::tests::matches_fips_vectors_across_padding_boundaries ... ok
+test records::tests::field_extents_cannot_wrap_the_host_pointer_width ... ok
+test execution::tests::activation_and_one_terminal_receipt_round_trip_and_bind_every_identity ... ok
+test record_view_tests::record_view_refuses_unrepresentable_lengths_and_inventory_before_growth ... ok
+test single_source::tests::exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift ... ok
+test record_view_tests::borrowed_records_preserve_all_schemas_and_single_mutation_refusals ... ok
+test record_view_tests::incremental_hash_matches_legacy_at_every_split_and_padding_boundary ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+    Finished `test` profile [unoptimized] target(s) in 1.12s
+     Running tests/assigned_plan.rs (target/environment-main-host/debug/deps/assigned_plan-4c7cab2964b742a9)
+
+running 5 tests
+test bounded_face_label_survives_the_assigned_image_exactly ... ok
+test resource_cord_is_carried_without_serializing_bearer_authority ... ok
+test one_remote_assigned_plan_has_a_deterministic_golden_round_trip ... ok
+test local_assigned_plan_has_a_deterministic_golden_round_trip ... ok
+test assigned_plan_refuses_identity_inventory_capacity_and_global_mutations ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+   Compiling conduit-network-join-call v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/network-join)
+    Finished `test` profile [unoptimized] target(s) in 4.07s
+     Running tests/assignment_transfer.rs (target/environment-main-host/debug/deps/assignment_transfer-3735a65825faf6f0)
+
+running 3 tests
+test encoder_requires_all_resident_records_exactly_once_and_respects_output_bound ... ok
+test source_slots_tags_and_finite_capacities_are_checked ... ok
+test every_truncation_and_extra_byte_refuses_without_allocation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/credential_owner.rs (target/environment-main-host/debug/deps/credential_owner-e5f32e73595e6874)
+
+running 2 tests
+test native_command::tests::fragmented_requests_refuse_overflow_and_never_infer_execution_permission ... ok
+test actual_private_mailbox_requires_current_selected_possession_and_response_ack ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native.rs (target/environment-main-host/debug/deps/native-3d0cc575bcfb0cde)
+
+running 13 tests
+body_custody_preparation borrowed=true birth_peak=6455 proposal_peak=181607 (host-side rich owner; not MCU admission)
+resident_software_offer_array_bytes=55655
+test recipe::only_initialized_resident_software_lends_exact_host_free_offer_bytes ... ok
+test body_binding_refuses_identity_substitution_membership_loss_and_revocation ... ok
+test borrowed_native_input_preserves_real_body_and_fragment_custody ... ok
+test observed_offers::stale_scope_source_cadence_and_forged_software_refuse ... ok
+test real_authored_source_is_prepared_against_supplied_offers_without_effects ... ok
+test stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation ... ok
+test native_construction_enters_the_real_body_proposal_without_inventing_a_play ... ok
+test observed_offers::retained_physical_offers_compose_exactly_without_inventing_native_facts ... ok
+test a_different_retained_body_play_cannot_confirm_the_prepared_binding ... ok
+body_custody_preparation borrowed=false birth_peak=6455 proposal_peak=181607 (host-side rich owner; not MCU admission)
+test recipe::resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current ... ok
+test body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start ... ok
+test recipe::source_bootstrap_initializes_before_planning_then_accepts_exact_realization ... ok
+test recipe::recipe_cadence_is_pinned_and_compiler_role_mapping_refuses_ambiguous_nodes ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/network_assignment.rs (target/environment-main-host/debug/deps/network_assignment-5c856a32ce35d665)
+
+running 2 tests
+test borrowed_network_assignment_preserves_subject_and_native_possession ... ok
+test network_assignment_preserves_its_independent_subject_and_native_possession ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/network_play.rs (target/environment-main-host/debug/deps/network_play-b21d0ce5a0aac16b)
+
+running 1 test
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+test checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.32s
+
+     Running tests/root_control.rs (target/environment-main-host/debug/deps/root_control-bcefc2c9ec7e1afa)
+
+running 7 tests
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+
+     Running tests/selected_port_shapes.rs (target/environment-main-host/debug/deps/selected_port_shapes-bb9e9a90c8d706b1)
+
+running 2 tests
+test assigned_configuration_matches_independent_source_exactly ... ok
+test source_sink_and_single_pair_shapes_bind_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Locking 55 packages to latest compatible versions
+   Compiling conduit-environment-resident-recipe-proof v0.0.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-resident-recipe-proof)
+    Finished `test` profile [unoptimized] target(s) in 0.39s
+     Running unittests src/lib.rs (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-runtime/debug/deps/conduit_environment_resident_recipe_proof-097fd64ecd4b418f)
+
+running 1 test
+test independently_emitted_layout_is_bound_to_the_same_checked_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+running 1 test
+test tests::fragmented_requests_refuse_overflow_and_never_infer_execution_permission ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
