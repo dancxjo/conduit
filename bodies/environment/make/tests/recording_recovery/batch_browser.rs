@@ -4,7 +4,7 @@ use conduit_browser_runtime::resource_snapshot::PreparedSnapshotRecord;
 use conduit_environment_browser::*;
 use conduit_kernel::{self as k, scheduler::*};
 #[path = "../recording_browser/binding.rs"]
-mod binding;
+pub(super) mod binding;
 
 #[test]
 fn browser_reads_complete_only_the_original_kernel_request() {

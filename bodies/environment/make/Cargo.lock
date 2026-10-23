@@ -357,6 +357,7 @@ dependencies = [
  "conduit-semantic-catalog",
  "conduit-time",
  "conduit-web",
+ "serde",
  "serde_json",
  "sha2 0.10.9",
 ]

@@ -1,5 +1,7 @@
 //! Focused environmental Body, Mask and native target proof dispatch.
 use super::execute;
+#[path = "environment_proof/browser.rs"]
+mod browser;
 use std::{error::Error, process::Command};
 
 pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
@@ -17,24 +19,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         );
     }
     if arguments == ["recording-browser"] {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--manifest-path",
-                    "bodies/environment/make/Cargo.toml",
-                    "--locked",
-                    "--features",
-                    "browser-storage-proof",
-                    "--test",
-                    "recording_browser",
-                    "--",
-                    "--ignored",
-                    "--nocapture",
-                ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
-        );
+        return browser::prove(&root);
     }
     if arguments == ["recording-storage"] {
         execute(

@@ -266,3 +266,7 @@ mod batch_execution;
 #[cfg(feature = "browser-storage-proof")]
 #[path = "recording_recovery/batch_browser.rs"]
 mod batch_browser;
+
+#[cfg(feature = "browser-storage-proof")]
+#[path = "recording_recovery/browser_storage.rs"]
+mod browser_storage;
