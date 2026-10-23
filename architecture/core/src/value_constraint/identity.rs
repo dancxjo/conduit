@@ -6,19 +6,33 @@ impl CheckedValueContract {
     /// larger semantic identity. Authored spelling and Host representation are
     /// deliberately absent.
     pub fn identity_bytes(&self) -> Vec<u8> {
-        let mut canonical = b"conduit.value-contract@3\0".to_vec();
+        let mut canonical = Vec::new();
+        self.visit_identity_bytes(|bytes| canonical.extend_from_slice(bytes));
+        canonical
+    }
+
+    /// Stream the identical canonical encoding without allocating scratch.
+    /// The visitor borrows each chunk only for the duration of its call.
+    pub fn visit_identity_bytes(&self, visit: impl FnMut(&[u8])) {
+        let mut canonical = IdentityWriter(visit);
+        canonical.extend_from_slice(b"conduit.value-contract@3\0");
         push_bytes(&mut canonical, self.value_kind.as_str().as_bytes());
         push_u32(&mut canonical, self.maximum_bytes);
         push_u32(&mut canonical, self.constraints.len() as u32);
         for constraint in &self.constraints {
             constraint.push_identity(&mut canonical);
         }
-        canonical
+    }
+
+    pub fn identity_byte_len(&self) -> usize {
+        let mut length = 0;
+        self.visit_identity_bytes(|bytes| length += bytes.len());
+        length
     }
 }
 
 impl ValueConstraint {
-    fn push_identity(&self, canonical: &mut Vec<u8>) {
+    fn push_identity(&self, canonical: &mut IdentityWriter<impl FnMut(&[u8])>) {
         match self {
             Self::NearQuantity {
                 source_kind,
@@ -152,22 +166,32 @@ impl ValueConstraint {
     }
 }
 
-fn push_u32(canonical: &mut Vec<u8>, value: u32) {
+fn push_u32(canonical: &mut IdentityWriter<impl FnMut(&[u8])>, value: u32) {
     canonical.extend_from_slice(&value.to_le_bytes());
 }
 
-fn push_bytes(canonical: &mut Vec<u8>, value: &[u8]) {
+fn push_bytes(canonical: &mut IdentityWriter<impl FnMut(&[u8])>, value: &[u8]) {
     push_u32(canonical, value.len() as u32);
     canonical.extend_from_slice(value);
 }
 
-fn push_optional<T>(
-    canonical: &mut Vec<u8>,
+fn push_optional<T, F: FnMut(&[u8])>(
+    canonical: &mut IdentityWriter<F>,
     value: Option<&T>,
-    push: impl FnOnce(&mut Vec<u8>, &T),
+    push: impl FnOnce(&mut IdentityWriter<F>, &T),
 ) {
     canonical.push(u8::from(value.is_some()));
     if let Some(value) = value {
         push(canonical, value);
+    }
+}
+
+struct IdentityWriter<F>(F);
+impl<F: FnMut(&[u8])> IdentityWriter<F> {
+    fn push(&mut self, byte: u8) {
+        (self.0)(&[byte]);
+    }
+    fn extend_from_slice(&mut self, bytes: &[u8]) {
+        (self.0)(bytes);
     }
 }

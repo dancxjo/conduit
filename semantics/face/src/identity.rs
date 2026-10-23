@@ -7,6 +7,10 @@ use crate::{Face, FacePropertyValue, FaceRelationshipKind, FaceRole};
 
 impl Face {
     pub(crate) fn content_digest(&self) -> String {
+        hex(&self.content_digest_bytes())
+    }
+
+    pub(crate) fn content_digest_bytes(&self) -> [u8; 32] {
         let mut digest = Sha256::new();
         hash_string(&mut digest, "conduit.face/face@1");
         digest.update(self.revision.to_le_bytes());
@@ -98,17 +102,13 @@ impl Face {
                 }
                 FacePropertyValue::TypedValue { contract, bytes } => {
                     digest.update([8]);
-                    let identity = contract.identity_bytes();
-                    digest.update((identity.len() as u32).to_le_bytes());
-                    digest.update(identity);
+                    hash_contract(&mut digest, contract);
                     digest.update((bytes.len() as u32).to_le_bytes());
                     digest.update(bytes);
                 }
                 FacePropertyValue::ValueContract(contract) => {
                     digest.update([7]);
-                    let identity = contract.identity_bytes();
-                    digest.update((identity.len() as u32).to_le_bytes());
-                    digest.update(identity);
+                    hash_contract(&mut digest, contract);
                 }
             }
         }
@@ -118,8 +118,7 @@ impl Face {
         }
         self.hash_semantics(&mut digest);
         self.hash_temporal(&mut digest);
-        let bytes: [u8; 32] = digest.finalize().into();
-        hex(&bytes)
+        digest.finalize().into()
     }
 }
 
@@ -197,4 +196,45 @@ fn hex(bytes: &[u8]) -> String {
         output.push(DIGITS[(byte & 0x0f) as usize] as char);
     }
     output
+}
+
+pub(crate) fn hash_contract(digest: &mut Sha256, contract: &conduit_core::CheckedValueContract) {
+    digest.update((contract.identity_byte_len() as u32).to_le_bytes());
+    contract.visit_identity_bytes(|bytes| digest.update(bytes));
+}
+
+impl Face {
+    /// Validate changed content and reseal its exact revision in storage reserved
+    /// by the original constructor. This does not advance revision or provenance.
+    /// Callers exclusively own the Face until this succeeds; failed content is
+    /// never a publishable revision. Editing must obey its own admitted bounds.
+    pub fn reseal_prepared(&mut self) -> Result<(), crate::FaceError> {
+        self.validate_content()?;
+        if self.identity.0.capacity() < 64 {
+            return Err(crate::FaceError::TooManyBytes);
+        }
+        let bytes = self.content_digest_bytes();
+        self.identity.0.clear();
+        const DIGITS: &[u8; 16] = b"0123456789abcdef";
+        for byte in bytes {
+            self.identity.0.push(DIGITS[(byte >> 4) as usize] as char);
+            self.identity.0.push(DIGITS[(byte & 15) as usize] as char);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn identity_matches(&self) -> bool {
+        let identity = self.identity.as_str().as_bytes();
+        if identity.len() != 64 {
+            return false;
+        }
+        const DIGITS: &[u8; 16] = b"0123456789abcdef";
+        self.content_digest_bytes()
+            .iter()
+            .enumerate()
+            .all(|(i, b)| {
+                identity[2 * i] == DIGITS[(b >> 4) as usize]
+                    && identity[2 * i + 1] == DIGITS[(b & 15) as usize]
+            })
+    }
 }

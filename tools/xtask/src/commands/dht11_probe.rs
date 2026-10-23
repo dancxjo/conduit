@@ -112,6 +112,16 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         .as_slice()
         == ["face"]
     {
+        for (package, test) in [
+            ("conduit-core", "value_constraint_transport"),
+            ("conduit-face", "prepared_revision"),
+        ] {
+            execute(
+                Command::new("cargo")
+                    .current_dir(&root)
+                    .args(["test", "--locked", "-p", package, "--test", test]),
+            )?;
+        }
         return execute(
             Command::new("cargo")
                 .current_dir(&root)
