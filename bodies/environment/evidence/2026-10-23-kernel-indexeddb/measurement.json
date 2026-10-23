@@ -1,0 +1,39 @@
+{
+  "schema": "conduit.environment/kernel-indexeddb-proof@1",
+  "implementation_commit": "7428f58d3",
+  "entrance": "cargo xtask prove environment recording-browser",
+  "proof_class": "native production kernel with Chromium IndexedDB provider over fixture file transport",
+  "kernel_requests": 15,
+  "samples_recovered": 960,
+  "logical_elapsed_ms": 57600000,
+  "completion_order": "reverse dispatch order",
+  "equal_node_local_sequence_foreign_placement": "refused before pending mutation",
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "browser": "pinned Chromium, one worker, zero retries",
+  "page_reload_before_reads": true,
+  "strict_clippy": [
+    "environment-make recording_recovery test with browser-storage-proof",
+    "xtask-dispatch"
+  ],
+  "artifacts": [
+    {
+      "name": "requests.json",
+      "bytes": 177491,
+      "sha256": "0bda17841b319b26ba2abf3fbbd0d77e7a1810596cc8cfcfe4996308e0a98bf3"
+    },
+    {
+      "name": "restored.json",
+      "bytes": 173639,
+      "sha256": "9031bdeaf8c2cf0a20e34e63d28258abe442af1861d7f5956bb0d6bed16c3c36"
+    }
+  ],
+  "remaining": [
+    "actual browser recorder Body and Line lifecycle",
+    "production transport instead of proof files",
+    "durable Root catalog-seed custody",
+    "complete physical MCU climate memory admission",
+    "successful real-network station join and Body-derived mDNS",
+    "physical overnight deployment"
+  ]
+}

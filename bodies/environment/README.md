@@ -1079,3 +1079,20 @@ actual store, current Body lifecycle and admitted memory/work closure.
 
 The [browser/kernel read receipt](evidence/2026-10-23-browser-kernel-reads/measurement.json)
 records this CPU boundary and the remaining live-recorder obligations.
+
+### Original kernel reads through IndexedDB
+
+`cargo xtask prove environment recording-browser` now also holds the production
+15-generation recovery kernel pending while pinned Chromium publishes the
+records, reloads the page and services its exact prepared browser read effects.
+Returned scope and record bytes complete the original requests in reverse order;
+only subsequent kernel steps publish the recovered 960-sample history. Equal
+node-local request sequences from different placements cannot be interchanged.
+Completion and kernel execution allocate nothing. See the
+[retained receipt and transport artifacts](evidence/2026-10-23-kernel-indexeddb/measurement.json).
+
+This combines actual storage I/O with production kernel correlation. Host
+authority and Body start remain fixtures, and files carry the proof transport
+between the native kernel and Chromium. It does not establish the real browser
+recorder's Body/Line lifecycle, durable Root catalog-seed custody, MCU climate
+memory closure or a physical overnight deployment.
