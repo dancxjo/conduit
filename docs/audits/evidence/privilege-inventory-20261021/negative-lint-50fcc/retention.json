@@ -1,0 +1,23 @@
+{
+  "source_commit": "50fcc74e8b8872f9d7afd49df9482a4d98782916",
+  "status": "stopped-strict-clippy-failed",
+  "focused_tests": {
+    "passed": 9,
+    "failed": 0,
+    "ignored": 0
+  },
+  "clippy_exit_code": 101,
+  "reason": "clippy::items_after_test_module in privilege_inventory.rs:125; production helper items follow test module",
+  "unstarted": [
+    "fmt",
+    "normal graphical build",
+    "positive inventory verifier",
+    "resealed foreign-map negative verifier"
+  ],
+  "sha256": {
+    "6176-50fcc-checks.json": "7796b9e70773155e664b3802b5068f172140723f9cb6bf6ce4bee00baf87b608",
+    "6176-50fcc-focused-tests.log": "f6c814d48072097ec65e6d67ae9a02fc450faf2b73e1d85bf378fc31a49c3fa7",
+    "6176-50fcc-strict-clippy.log": "4eecb2ca3ff61ae7334bccaf1b6fa067449e9e67d5a9b13f492f98373f469265",
+    "6176-run-50-checks.py": "a54eb9ca8a20f1d4d001d0df9b8f77eacf58a8cb3043d55e0d6d34556f353498"
+  }
+}
