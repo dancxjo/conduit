@@ -89,7 +89,14 @@ fn run(scenario: usize) {
             },
         )
         .unwrap();
-        let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
+        // Observation's existing value arena also bounds its larger projection;
+        // the raw sensor fixture retains its separate 16-KiB projection profile.
+        let tables = assignment::prepare_with_runtime_bound::<N, C, P, R, C, N>(
+            &image,
+            &image,
+            scenario == 0,
+            38912,
+        );
         assert_eq!(
             tables.nodes,
             core::array::from_fn(|i| lowered.node_specs[i])
