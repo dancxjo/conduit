@@ -4,7 +4,7 @@ use super::NativeRoot;
 use crate::{native_owner_control as owner, native_owner_receipt as ack};
 impl NativeRoot {
     pub async fn apply_owner_lifecycle(
-        &self,
+        &mut self,
         token: owner::AuthenticatedRequest<'_>,
     ) -> Result<ack::Receipt, &'static str> {
         let operation = token.operation();
@@ -40,7 +40,11 @@ impl NativeRoot {
                         }
                         if matches!(
                             status.phase,
-                            "failed" | "drained" | "cleanup-refused" | "ownership-refused"
+                            "failed"
+                                | "drained"
+                                | "cleanup-refused"
+                                | "ownership-refused"
+                                | "retired"
                         ) {
                             return Err("worker-quiescence-refused");
                         }
@@ -51,6 +55,13 @@ impl NativeRoot {
                 .map_err(|_| "worker-quiescence-timeout")??;
                 ack::State::Quiesced
             }
+            owner::Operation::Retire => {
+                if self.retired_native.is_some() {
+                    return Err("native-already-retired");
+                }
+                self.retired_native = Some(worker.retire()?);
+                ack::State::Retired
+            }
             _ => return Err("operation-not-installed"),
         };
         Ok(ack::Receipt {
@@ -58,6 +69,11 @@ impl NativeRoot {
             state,
             snapshot: None,
         })
+    }
+    pub fn retired_native_attachments(&self) -> Option<[u64; 2]> {
+        self.retired_native
+            .as_ref()
+            .map(|native| [native.pulse.1.generation, native.wait.1.generation])
     }
     pub fn copy_worker_publication(
         &self,

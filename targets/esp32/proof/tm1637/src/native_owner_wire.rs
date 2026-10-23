@@ -90,16 +90,17 @@ pub async fn receive(
                     },
                     Err(reason) => Some(reason),
                 },
-                owner::Operation::Start | owner::Operation::Release | owner::Operation::Cancel => {
-                    match root.apply_owner_lifecycle(token).await {
-                        Ok(receipt) => {
-                            acknowledgement = Some(receipt);
-                            applied = true;
-                            None
-                        }
-                        Err(reason) => Some(reason),
+                owner::Operation::Start
+                | owner::Operation::Release
+                | owner::Operation::Cancel
+                | owner::Operation::Retire => match root.apply_owner_lifecycle(token).await {
+                    Ok(receipt) => {
+                        acknowledgement = Some(receipt);
+                        applied = true;
+                        None
                     }
-                }
+                    Err(reason) => Some(reason),
+                },
             }
         }
         Err(owner::Refusal::Disabled) => Some("owner-control-disabled"),

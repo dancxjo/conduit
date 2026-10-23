@@ -54,6 +54,11 @@ pub struct Outcome {
     pub cleanup: Result<(), k::Failure>,
     pub progress: Progress,
 }
+/// Physical providers returned without any old capability table, handle or claim.
+pub struct RetiredProviders<P, W> {
+    pub pulse: (P, conduit_pulse_capture::owner::PulseAttachment),
+    pub wait: (W, conduit_monotonic_wait::WaitAttachment),
+}
 /// Retain these exact owners and queues through task admission and terminal
 /// acknowledgement. Neither constructing nor sizing a future polls a Step.
 pub struct Execution<P, W> {
@@ -89,6 +94,50 @@ impl<P: PulseReadProvider, W: MonotonicWaitProvider> Execution<P, W> {
             storage.take().expect("preflighted kernel"),
             native.take().expect("preflighted native owners"),
         )))
+    }
+    /// Cancel an unpolled held execution without inventing a completed run.
+    pub fn cancel_held(&mut self) -> Result<Outcome, &'static str> {
+        if self.begun || self.retired.is_some() {
+            return Err("execution-not-unpolled");
+        }
+        self.begun = true;
+        let cleanup = service::quiesce(&mut self.storage, &mut self.native);
+        self.retired = Some(cleanup);
+        Ok(Outcome {
+            exit: Exit::Cancelled,
+            cleanup,
+            progress: self.progress,
+        })
+    }
+    /// Retirement is post-Play custody transfer, not permission to reuse this
+    /// execution or its old claims. Preflight both owners before consuming either.
+    #[inline(never)]
+    pub fn retire_retained(
+        execution: &mut Option<Box<Self>>,
+    ) -> Result<RetiredProviders<P, W>, &'static str> {
+        let current = execution.as_ref().ok_or("execution-unavailable")?;
+        if current.retired != Some(Ok(())) {
+            return Err("execution-cleanup-unconfirmed");
+        }
+        for inspection in [
+            current.native.pulse.inspection(),
+            current.native.wait.inspection(),
+        ] {
+            if inspection.lifecycle != conduit_core::CapabilityLifecycle::Revoked
+                || inspection.in_flight_operations != 0
+            {
+                return Err("native-retirement-unavailable");
+            }
+        }
+        let Self { native, .. } = *execution.take().expect("preflighted execution");
+        let mut pulse = Some(native.pulse);
+        let mut wait = Some(native.wait);
+        Ok(RetiredProviders {
+            pulse: conduit_pulse_capture::owner::PulseHostCall::retire_retained(&mut pulse)
+                .expect("exclusively preflighted pulse"),
+            wait: conduit_monotonic_wait::MonotonicWaitHostCall::retire_retained(&mut wait)
+                .expect("exclusively preflighted wait"),
+        })
     }
     /// Size the exact unpolled invocation type, including its control/observer.
     /// The actual task pool and enclosing task frame remain separate admission.

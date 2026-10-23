@@ -127,14 +127,14 @@ try:
             assert len(encoded) <= 2048 and len(signature) == 64
             carry(frame, wire)
         if args.mode == 'run':
-            for _ in range(44):
+            for _ in range(45):
                 frame = host_line()
                 if frame.get('event') == 'owner-run-complete':
                     receipt = frame
                     break
                 if frame.get('event') != 'owner-command':
                     raise RuntimeError('unexpected retained owner event')
-                if frame['request']['operation'] not in ['Release', 'Inspect', 'Cancel']:
+                if frame['request']['operation'] not in ['Release', 'Inspect', 'Cancel', 'Retire']:
                     raise RuntimeError('unexpected run operation')
                 carry(frame, wire)
             else:
@@ -148,7 +148,8 @@ try:
             raise RuntimeError('retained owner refused preparation')
     port.write(b'offer\n')
     after = event('native-root-offer')
-    assert after['appliance_kernel_prepared'] and not after['assignment_staged']
+    assert after['appliance_kernel_prepared'] == (args.mode != 'run')
+    assert not after['assignment_staged']
     assert not after['body_installed'] and not after['native_plan_installed']
     receipt.update(proof_class='physical-owner-' + args.mode,
                    root_heap_used_bytes=after['native_root_heap_used_bytes'],
@@ -169,6 +170,7 @@ finally:
     # from an unsigned control reply or a merely requested operation.
     receipt['body_start_attributed'] = (args.capture / 'body-started-evidence.json').is_file()
     receipt['body_lulled_after_quiescence'] = (args.capture / 'body-lulled-evidence.json').is_file()
+    receipt['worker_retirement_acknowledged'] = (args.capture / 'owner-retired.json').is_file()
     receipt['worker_release_acknowledged'] = (args.capture / 'owner-release.json').is_file()
     (args.capture / 'native-owner-uart.bin').write_bytes(raw_ingress)
     receipt['carrier_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()

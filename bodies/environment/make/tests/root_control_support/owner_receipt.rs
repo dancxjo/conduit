@@ -155,3 +155,38 @@ fn observed_receipt_authenticates_exact_committed_snapshot_metadata() {
             .is_err());
     }
 }
+
+#[test]
+fn retired_receipt_cannot_be_substituted_by_quiescence_or_another_command() {
+    let root = admission::responder::NativeAdmission::new([17; 32]).unwrap();
+    let mut request = owner_control::request();
+    request.operation = native_owner_control::Operation::Retire;
+    let command = request.transcript().unwrap();
+    let receipt = Receipt {
+        command,
+        state: State::Retired,
+        snapshot: None,
+    };
+    let signature = root.sign_owner_receipt(&receipt);
+    assert!(receipt
+        .verify(&root.verifying_key(), &command, State::Retired, &signature)
+        .is_ok());
+    assert_eq!(
+        receipt
+            .verify(&root.verifying_key(), &command, State::Quiesced, &signature)
+            .err(),
+        Some(Refusal::Scope)
+    );
+    request.operation = native_owner_control::Operation::Cancel;
+    assert_eq!(
+        receipt
+            .verify(
+                &root.verifying_key(),
+                &request.transcript().unwrap(),
+                State::Retired,
+                &signature
+            )
+            .err(),
+        Some(Refusal::Scope)
+    );
+}

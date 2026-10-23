@@ -29,6 +29,7 @@ struct Reply<'a> {
     execution_context_prepared: bool,
     execution_context_bytes: Option<usize>,
     worker: Option<crate::native_task::Status>,
+    retired_native_attachments: Option<[u64; 2]>,
     kernel_additional_preparation_bound: Option<usize>,
     capability_possession_issued: bool,
     acknowledgement: Option<&'a crate::native_owner_receipt::Receipt>,
@@ -90,6 +91,7 @@ pub(super) fn encode(
         execution_context_prepared: root.execution_context_prepared(),
         execution_context_bytes: root.execution_context_bytes(),
         worker: snapshot.or_else(|| root.worker_status()),
+        retired_native_attachments: root.retired_native_attachments(),
         kernel_additional_preparation_bound: crate::native_kernel::requirements()
             .ok()
             .map(|(bytes, _)| bytes),

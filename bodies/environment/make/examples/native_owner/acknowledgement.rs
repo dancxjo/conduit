@@ -35,6 +35,7 @@ impl AdmittedBoot {
             control::Operation::Start => receipt::State::StartedHeld,
             control::Operation::Release => receipt::State::Released,
             control::Operation::Cancel => receipt::State::Quiesced,
+            control::Operation::Retire => receipt::State::Retired,
             _ => return Err("not a lifecycle acknowledgement".into()),
         };
         self.verify(request, reply, state)?;

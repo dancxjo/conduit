@@ -1,9 +1,6 @@
 //! Real single-executor task custody. Ready means the task owns its prepared
 //! resources, never that a Body started. No Step is polled before release.
-use crate::{
-    native_root::DeviceExecution,
-    native_worker::{Exit, Outcome, Progress},
-};
+use crate::{native_root::DeviceExecution, native_worker::Exit};
 use alloc::boxed::Box;
 use core::cell::RefCell;
 use embassy_executor::Spawner;
@@ -85,7 +82,7 @@ fn update(f: impl FnOnce(&mut State)) {
 /// Exclusive Root handle to one actual task registration. It cannot be cloned
 /// or deserialized into a second task, reservation, or release authority.
 pub struct Handle {
-    _slot: &'static Slot,
+    slot: &'static Slot,
 }
 impl Handle {
     pub async fn wait_ready(&self) {
@@ -135,7 +132,12 @@ impl Handle {
             let mut state = state.borrow_mut();
             if matches!(
                 state.status.phase,
-                "quiesced" | "drained" | "failed" | "cleanup-refused" | "ownership-refused"
+                "quiesced"
+                    | "drained"
+                    | "failed"
+                    | "cleanup-refused"
+                    | "ownership-refused"
+                    | "retired"
             ) {
                 return false;
             }
@@ -146,6 +148,26 @@ impl Handle {
         if signal {
             COMMAND.signal(Command::Cancel);
         }
+    }
+    /// Only Root's exact authenticated retirement may take terminal custody.
+    pub fn retire(
+        &self,
+    ) -> Result<
+        crate::native_worker::RetiredProviders<
+            conduit_esp32_pulse_capture::Esp32PulseCapture<'static>,
+            crate::native_wait::EspWait,
+        >,
+        &'static str,
+    > {
+        if self.status().phase != "quiesced" {
+            return Err("worker-not-quiesced");
+        }
+        let providers = DeviceExecution::retire_retained(&mut self.slot.execution.borrow_mut())?;
+        update(|state| {
+            state.status.phase = "retired";
+            state.status.context_bytes = 0;
+        });
+        Ok(providers)
     }
     /// Copy under the short critical section; parsing/Mask work happens outside.
     pub fn copy_publication(&self, output: &mut [u8]) -> Result<Option<Status>, &'static str> {
@@ -192,7 +214,7 @@ pub fn prepare(
     match worker(slot) {
         Ok(token) => {
             spawner.spawn(token);
-            Ok(Handle { _slot: slot })
+            Ok(Handle { slot: slot })
         }
         Err(_) => {
             *execution = slot.execution.borrow_mut().take();
@@ -220,15 +242,7 @@ async fn held(slot: &'static Slot) {
     });
     READY.signal(());
     let outcome = match COMMAND.wait().await {
-        Command::Cancel => {
-            let cleanup =
-                crate::native_service::quiesce(&mut execution.storage, &mut execution.native);
-            Outcome {
-                exit: Exit::Cancelled,
-                cleanup,
-                progress: Progress::default(),
-            }
-        }
+        Command::Cancel => execution.cancel_held().expect("held task has never run"),
         Command::Release => {
             update(|state| {
                 state.status.phase = "running";
@@ -289,9 +303,10 @@ async fn held(slot: &'static Slot) {
         state.status.cleanup_failure = outcome.cleanup.is_err();
         native_status(&mut state.status, &execution);
     });
-    // Retain the actual terminal kernel/providers/evidence. This task registration
-    // cannot be recycled into a fresh Play or claim automatic restart recovery.
-    let _retained = execution;
+    // Publish actual terminal custody before yielding. Root may subsequently
+    // retire it with an authenticated exact-scope command. The task registration
+    // itself stays one-use; this is not automatic rearm or restart recovery.
+    slot.execution.replace(Some(execution));
     core::future::pending::<()>().await;
 }
 

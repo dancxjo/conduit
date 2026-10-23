@@ -11,7 +11,10 @@ use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub(crate) type DeviceExecution =
     crate::native_worker::Execution<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
+type DeviceProviders =
+    crate::native_worker::RetiredProviders<Esp32PulseCapture<'static>, crate::native_wait::EspWait>;
 pub struct NativeRoot {
+    retired_native: Option<DeviceProviders>,
     worker: Option<crate::native_task::Handle>,
     worker_spawner: Option<embassy_executor::Spawner>,
     execution: Option<alloc::boxed::Box<DeviceExecution>>,
@@ -115,6 +118,7 @@ impl NativeRoot {
         let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
             .expect("installed owner public key must be valid and non-weak");
         Self {
+            retired_native: None,
             worker: None,
             worker_spawner: None,
             execution: None,
@@ -213,7 +217,7 @@ impl NativeRoot {
         Ok(())
     }
     pub fn appliance_kernel_prepared(&self) -> bool {
-        self.appliance_kernel.is_some() || self.execution.is_some() || self.worker.is_some()
+        self.appliance_kernel.is_some() || self.execution_context_prepared()
     }
     pub fn write_admission_offer(&mut self, output: &mut [u8]) -> Result<usize, ()> {
         self.admission_freshness = self.admission_freshness.checked_add(1).ok_or(())?;

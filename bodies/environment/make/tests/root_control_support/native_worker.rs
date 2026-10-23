@@ -34,6 +34,24 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
     assert_eq!((memory.allocations, memory.reallocations), (1, 0));
     assert_eq!(memory.requested_bytes, core::mem::size_of_val(&*execution));
     assert_eq!((&*execution.storage.kernel) as *const _, original_kernel);
+    let mut retained = Some(execution);
+    let (refused, memory) = allocation_probe::observe(|| Execution::retire_retained(&mut retained));
+    assert_eq!(refused.err(), Some("execution-cleanup-unconfirmed"));
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    execution = retained.take().unwrap();
+    assert_eq!((&*execution.storage.kernel) as *const _, original_kernel);
+    if behavior == 14 {
+        let (cancelled, memory) = allocation_probe::observe(|| execution.cancel_held());
+        let cancelled = cancelled.unwrap();
+        assert_eq!(cancelled.exit, Exit::Cancelled);
+        assert_eq!(cancelled.cleanup, Ok(()));
+        assert_eq!(cancelled.progress, Default::default());
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+        assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 0));
+        retire(execution);
+        return;
+    }
+
     if behavior == 12 {
         execution
             .native
@@ -101,6 +119,7 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         });
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert_eq!((pulse_effects.get(), timer_effects.get()), (0, 1));
+        retire(execution);
         return;
     }
     let (outcome, memory) = allocation_probe::observe(|| {
@@ -178,4 +197,22 @@ pub(super) fn check<P: PulseReadProvider, W: w::MonotonicWaitProvider>(
         })
     ));
     assert_eq!(replay.progress, outcome.progress);
+    assert_eq!(
+        execution.cancel_held().err(),
+        Some("execution-not-unpolled")
+    );
+    retire(execution);
+}
+fn retire<P: PulseReadProvider, W: w::MonotonicWaitProvider>(execution: Box<Execution<P, W>>) {
+    let mut retained = Some(execution);
+    let (providers, memory) =
+        allocation_probe::observe(|| Execution::retire_retained(&mut retained));
+    let providers = providers.unwrap();
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert!(providers.pulse.1.generation > 0 && providers.wait.1.generation > 0);
+    assert!(retained.is_none());
+    assert_eq!(
+        Execution::retire_retained(&mut retained).err(),
+        Some("execution-unavailable")
+    );
 }

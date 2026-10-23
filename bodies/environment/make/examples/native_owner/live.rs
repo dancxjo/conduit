@@ -129,6 +129,16 @@ pub(super) fn run(
         output.join("body-lulled-evidence.json"),
         serde_json::to_vec_pretty(owner.evidence())?,
     )?;
+    let request = scope.request(control::Operation::Retire, last_inspection + 2, active);
+    let retired = exchange(key, request)?;
+    admitted.transition(
+        &scope.request(control::Operation::Retire, last_inspection + 2, active),
+        &retired,
+    )?;
+    fs::write(
+        output.join("owner-retired.json"),
+        serde_json::to_vec_pretty(&retired)?,
+    )?;
     let samples = observations?;
     if samples != 3 {
         return Err("finite physical run did not obtain three valid observations".into());
@@ -139,7 +149,7 @@ pub(super) fn run(
         "body_id":scope.body_play.body_id,"fragment_play":active,
         "device_start_attributed":true,"owner_retained_through_execution":true,
         "physical_observations":samples,"body_faces":samples,"worker_quiesced":true,
-        "body_active":false,"overnight_recording_claimed":false})
+        "body_active":false,"worker_retired":true,"overnight_recording_claimed":false})
     );
     Ok(())
 }

@@ -32,7 +32,11 @@ impl NativeRoot {
                 .is_some_and(|worker| worker.status().native_live)
     }
     pub fn execution_context_prepared(&self) -> bool {
-        self.execution.is_some() || self.worker.is_some()
+        self.execution.is_some()
+            || self
+                .worker
+                .as_ref()
+                .is_some_and(|w| w.status().phase != "retired")
     }
     pub fn execution_context_bytes(&self) -> Option<usize> {
         self.execution_context_prepared()

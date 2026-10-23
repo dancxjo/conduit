@@ -15,6 +15,7 @@ pub enum Operation {
     Start = 3,
     Release = 4,
     Cancel = 5,
+    Retire = 6,
 }
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
