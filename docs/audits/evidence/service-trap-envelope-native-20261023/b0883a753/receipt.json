@@ -1,0 +1,125 @@
+{
+  "source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "ordinary-domain-proof",
+    "--locked"
+  ],
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_CONDUITOS_TARGET_ROOT": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-trap-native-b0883a753/native"
+  },
+  "status": "completed",
+  "started": 1792757152.1468618,
+  "attempts": 1,
+  "classification": "Actual native architecture protection fixture; no normal-product or physical claim",
+  "exit_code": 0,
+  "finished": 1792759382.1027195,
+  "log_sha256": "2eadc90109959246cc86b42aa217c0ac80b250b3d4931bbc6020533ee00b4bfa",
+  "clean_after": true,
+  "files": [
+    {
+      "path": "native/x86_64/build.json",
+      "bytes": 335,
+      "sha256": "a60c223078792b6adbb670fa9f87e98c23ecc9f87c78ef8ac5f3ff714b2aafc7"
+    },
+    {
+      "path": "native/x86_64/compositor-copy-recovery-fixture-proof.json",
+      "bytes": 1630,
+      "sha256": "9a56a3d5bb5a590b39b750caf7c70c425a6440e401ff80a01c3b164dd094730c"
+    },
+    {
+      "path": "native/x86_64/compositor-guest-fixture-proof.json",
+      "bytes": 1546,
+      "sha256": "47a1a90cc8356ad18e03e9cb28328cc71a46e9a4a6ec6159a264444ba5e64c3c"
+    },
+    {
+      "path": "native/x86_64/compositor-hostile-broker-fixture-proof.json",
+      "bytes": 2423,
+      "sha256": "b780ebd1c1dfd33a9a30229b52750b2e431f958eba94458e1a76a5f23c03bfcb"
+    },
+    {
+      "path": "native/x86_64/conduitos",
+      "bytes": 61318712,
+      "sha256": "f64215465648aed9783f0490ae4d9231bcb9f59c8f6746e5dabc24d477b41447"
+    },
+    {
+      "path": "native/x86_64/conduitos.iso",
+      "bytes": 65585152,
+      "sha256": "07956ef6f55a4f1f3dd1cd38fc9ec0f94cb6ecd2cdb8cbfc6a5acf2c654fcf6f"
+    },
+    {
+      "path": "native/x86_64/image.json",
+      "bytes": 351,
+      "sha256": "f8d2df51a764229a5dab889b82f04c08e86b1dd57251887d815f2197abab3237"
+    },
+    {
+      "path": "native/x86_64/iso-root/EFI/BOOT/BOOTX64.EFI",
+      "bytes": 348160,
+      "sha256": "d257add3b8ca480470c50ba5e55899702f19b10d9b29dc8d4a5db97fc4fb8b19"
+    },
+    {
+      "path": "native/x86_64/iso-root/boot/conduit-spore.bin",
+      "bytes": 32768,
+      "sha256": "c8cbe120fe65ff55707947700aeb2a35aa187adc139623e323099c7dfab23dc2"
+    },
+    {
+      "path": "native/x86_64/iso-root/boot/conduitos",
+      "bytes": 61318712,
+      "sha256": "f64215465648aed9783f0490ae4d9231bcb9f59c8f6746e5dabc24d477b41447"
+    },
+    {
+      "path": "native/x86_64/iso-root/boot/limine/limine-bios-cd.bin",
+      "bytes": 24576,
+      "sha256": "2527f2866dcc76ec305e9eb62fb146de5e74a1bd98f2117610aea08d9d82efc8"
+    },
+    {
+      "path": "native/x86_64/iso-root/boot/limine/limine-bios.sys",
+      "bytes": 302836,
+      "sha256": "2a7831809e75b7590448440b437229f1a5bca5bd06040dbb545877e2205e735a"
+    },
+    {
+      "path": "native/x86_64/iso-root/boot/limine/limine-uefi-cd.bin",
+      "bytes": 3145728,
+      "sha256": "e4cf6021a85aeac457ac710b844fdb76b0d06ea87e79846e72eb1639ab874d06"
+    },
+    {
+      "path": "native/x86_64/iso-root/limine.conf",
+      "bytes": 247,
+      "sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8"
+    },
+    {
+      "path": "native/x86_64/ordinary-domain-proof.log",
+      "bytes": 41111,
+      "sha256": "c6654ca283711506822c00a14638dae9fa185cf849bcb71143a3129e87f584ee"
+    },
+    {
+      "path": "native/x86_64/privilege-inventory-f64215465648aed9783f0490ae4d9231bcb9f59c8f6746e5dabc24d477b41447-architecture-proof-appliance.json",
+      "bytes": 66610,
+      "sha256": "44ef2d07d7bc4d2b17a3ee762f63f3f6c48d8887a87632b734426bce32aa48b3"
+    },
+    {
+      "path": "native/x86_64/privilege-inventory-f64215465648aed9783f0490ae4d9231bcb9f59c8f6746e5dabc24d477b41447-architecture-proof-appliance.map",
+      "bytes": 6944341,
+      "sha256": "16d4d0ba88fade137a71475f60bc93a075e6ada8857ef78dd23b2aff5c1112bc"
+    },
+    {
+      "path": "native/x86_64/service-memory-fixture-proof.json",
+      "bytes": 1169,
+      "sha256": "58587242fb9120d7a08b2024b5f72e71a51fd97f239d5f8e3867781144afdb03"
+    },
+    {
+      "path": "native/x86_64/service-trap-envelope-proof.json",
+      "bytes": 15768,
+      "sha256": "428aa2af60e0990168a5d928750913a5cf7da50d47285163b7f34ad0feb6ffc5"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "base_source": "81eb177c545d383606c0f44edf37332e85dea30a",
+  "candidate_source": "5160fe5ebd875c4b35e682317cc7d1ba39f1ddcb",
+  "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+  "target": "x86_64-unknown-none",
+  "actual_selectors": {
+    "user_data": 51,
+    "user_code": 43
+  },
+  "disabled_text_and_semantic_relocation_entries_identical": true,
+  "relocation_entries": 28,
+  "disabled_text_sha256": "0f617abb46d41b9c2c6c89723d9b5d8d5be0d4a47afaf0d56bc971196e62fa25",
+  "enabled_assembly_compiled": true,
+  "initial_checker_negative": "The raw readelf header reports different physical object-file section offsets (0xaf8 versus0xb00); source-generated wrapper metadata differs. Initial full-output equality assertion failed. Actual701textbytes and all28relocation entries are identical; raw reports retained, no compilation repeated.",
+  "scope": "Exact production global_asm bodies/selectors compiled by native Rust/LLVM; not whole package linking or execution"
+}

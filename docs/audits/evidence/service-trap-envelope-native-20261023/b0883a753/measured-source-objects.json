@@ -1,0 +1,18 @@
+{
+  "source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+  "base": "81eb177c545d383606c0f44edf37332e85dea30a",
+  "objects": {
+    "targets/conduitos/make/xtask/ordinary_domain_proof.rs": "752639124fe778943fd8fe4a083deabd104d80f6",
+    "targets/conduitos/make/xtask/ordinary_domain_proof/trap_envelope.rs": "7075302171de910aad36f2037b50a58379248158",
+    "targets/conduitos/make/xtask/ordinary_domain_proof/trap_envelope_tests.rs": "51226a3e1ab95c270f645aea09434e70e6fdddae",
+    "targets/conduitos/src/arch/x86_64/domain_transition.rs": "2345de853a1afb52824e41465bdde79c6b2b1d6b",
+    "targets/conduitos/src/arch/x86_64/domain_transition/entry_return.S": "4f9aca72588f4da236f984ed2913a1fd1e7532d2",
+    "targets/conduitos/src/arch/x86_64/domain_transition/trap_observation.rs": "85fd94e8e53b4dddbd451384fc71310fc38e645a",
+    "targets/conduitos/src/lib.rs": "1840abe1be81c26171f3ac7dabf4b3292633b90d",
+    "targets/conduitos/src/ordinary_domain_proof.rs": "69671f03a2e26ca1bd33bd19058a38a3db92ab3e",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory.rs": "627da82c5244dd64eabea70e57464fc99bb095ef",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope.rs": "88b2250c901f2cf2deeafdcc727c76e8ee65f93a",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope/conformance_tests.rs": "34eabba82a7bc41d33788f13d4cbf7f13623c0fd",
+    "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope/wire.rs": "17e544fc5a756e8b623ae790662f008fcc318bd8"
+  }
+}

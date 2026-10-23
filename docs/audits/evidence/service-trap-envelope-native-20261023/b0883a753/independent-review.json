@@ -1,0 +1,369 @@
+{
+  "schema": "conduit.local/6183-trap-native-independent-review@1",
+  "status": "PASS",
+  "source": "b0883a7531d30d98f7704e29906027c7e7b7bfdf",
+  "receipt_sha256": "4e2bec95acf5d7354a2554fd32ad9b12062284ba3be48f107abed3fbf1ea0ae8",
+  "actual_elf_sha256": "f64215465648aed9783f0490ae4d9231bcb9f59c8f6746e5dabc24d477b41447",
+  "actual_iso_sha256": "07956ef6f55a4f1f3dd1cd38fc9ec0f94cb6ecd2cdb8cbfc6a5acf2c654fcf6f",
+  "actual_transcript_sha256": "c6654ca283711506822c00a14638dae9fa185cf849bcb71143a3129e87f584ee",
+  "verified_retained_files": 19,
+  "native_command_attempts": 1,
+  "native_command_exit": 0,
+  "rows": 20,
+  "flags_preserved_observed_rows": 20,
+  "preempt_terminal_interval": null,
+  "overlap": true,
+  "additive": false,
+  "full_irq_preservation": false,
+  "source_flags_check": "saved Root PUSHFQ stack value compared to actual post-POPFQ PUSHFQ; fixed raw snapshot equality, not schema constant",
+  "unchanged_owning_objects": [
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/service_memory.rs",
+      "blob": "024cbdced434a1ab72066a3f227a396abed467a2",
+      "unchanged_from": "81eb177c"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/compositor.rs",
+      "blob": "72d197a29dc3f166e3af98116b39d37ff3a6aa70",
+      "unchanged_from": "81eb177c"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/compositor_hostile.rs",
+      "blob": "d533d4b4b01303b8f27c84c6623ee436696e3804",
+      "unchanged_from": "81eb177c"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/compositor_recovery.rs",
+      "blob": "ff2afd752584931334b760d407c8abc11847056d",
+      "unchanged_from": "81eb177c"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/protected_timer_proof.rs",
+      "blob": "272464b694602a88969b03ec5581ab75be074eac",
+      "unchanged_from": "81eb177c"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/x87.rs",
+      "blob": "a6ef835c3e310bc950b996d894c6aedefddd7af7",
+      "unchanged_from": "81eb177c"
+    }
+  ],
+  "sidecars_exact_raw_serial_and_build_join": [
+    "service-memory-fixture-proof.json",
+    "compositor-guest-fixture-proof.json",
+    "compositor-hostile-broker-fixture-proof.json",
+    "compositor-copy-recovery-fixture-proof.json"
+  ],
+  "protection": {
+    "ring3_hostile_entries": 26,
+    "retained_bytes": 8388608,
+    "scratch_bytes": 8388608,
+    "restart_boundary_zero": true,
+    "x87_actual_vector7_terminal_root_sibling_survival": true,
+    "timer_coexistence": true,
+    "compositor_hostile_cases": 4,
+    "existing_collector_predicates_removed": 0
+  },
+  "raw_tick_samples": [
+    {
+      "case": "noop",
+      "mode": "fresh",
+      "instances": [
+        8,
+        9,
+        10
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        4040,
+        9744,
+        6918
+      ],
+      "terminal_return_ticks": [
+        16764,
+        28250,
+        27480
+      ],
+      "root_restore_ticks": [
+        16424,
+        27508,
+        26608
+      ],
+      "entry_control_ticks": [
+        142,
+        182,
+        298
+      ],
+      "return_control_ticks": [
+        66,
+        320,
+        64
+      ]
+    },
+    {
+      "case": "noop",
+      "mode": "reused",
+      "instances": [
+        11,
+        11,
+        11
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        7570,
+        3972,
+        2418
+      ],
+      "terminal_return_ticks": [
+        26852,
+        20772,
+        19712
+      ],
+      "root_restore_ticks": [
+        25794,
+        20522,
+        19464
+      ],
+      "entry_control_ticks": [
+        322,
+        122,
+        62
+      ],
+      "return_control_ticks": [
+        316,
+        108,
+        104
+      ]
+    },
+    {
+      "case": "8-byte-text",
+      "mode": "fresh",
+      "instances": [
+        12,
+        13,
+        14
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        6074,
+        7858,
+        7046
+      ],
+      "terminal_return_ticks": [
+        28798,
+        30490,
+        30960
+      ],
+      "root_restore_ticks": [
+        28170,
+        29608,
+        30512
+      ],
+      "entry_control_ticks": [
+        288,
+        410,
+        542
+      ],
+      "return_control_ticks": [
+        324,
+        190,
+        316
+      ]
+    },
+    {
+      "case": "8-byte-text",
+      "mode": "reused",
+      "instances": [
+        15,
+        15,
+        15
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        7604,
+        4906,
+        2098
+      ],
+      "terminal_return_ticks": [
+        28022,
+        21062,
+        20172
+      ],
+      "root_restore_ticks": [
+        27566,
+        20840,
+        19914
+      ],
+      "entry_control_ticks": [
+        112,
+        344,
+        68
+      ],
+      "return_control_ticks": [
+        66,
+        76,
+        68
+      ]
+    },
+    {
+      "case": "256-byte-text",
+      "mode": "fresh",
+      "instances": [
+        16,
+        17,
+        18
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        6588,
+        7110,
+        7234
+      ],
+      "terminal_return_ticks": [
+        27478,
+        31114,
+        29966
+      ],
+      "root_restore_ticks": [
+        27092,
+        29756,
+        29644
+      ],
+      "entry_control_ticks": [
+        340,
+        408,
+        416
+      ],
+      "return_control_ticks": [
+        96,
+        452,
+        94
+      ]
+    },
+    {
+      "case": "256-byte-text",
+      "mode": "reused",
+      "instances": [
+        19,
+        19,
+        19
+      ],
+      "trials": [
+        0,
+        1,
+        2
+      ],
+      "entry_state_ticks": [
+        8974,
+        5236,
+        2140
+      ],
+      "terminal_return_ticks": [
+        28968,
+        21852,
+        19986
+      ],
+      "root_restore_ticks": [
+        28432,
+        21250,
+        19770
+      ],
+      "entry_control_ticks": [
+        334,
+        280,
+        70
+      ],
+      "return_control_ticks": [
+        64,
+        202,
+        76
+      ]
+    },
+    {
+      "case": "timer-preempt",
+      "mode": "fresh",
+      "instances": [
+        20
+      ],
+      "trials": [
+        0
+      ],
+      "entry_state_ticks": [
+        6506
+      ],
+      "terminal_return_ticks": [
+        null
+      ],
+      "root_restore_ticks": [
+        38320
+      ],
+      "entry_control_ticks": [
+        164
+      ],
+      "return_control_ticks": [
+        64
+      ]
+    },
+    {
+      "case": "privileged-fault",
+      "mode": "fresh",
+      "instances": [
+        21
+      ],
+      "trials": [
+        0
+      ],
+      "entry_state_ticks": [
+        7254
+      ],
+      "terminal_return_ticks": [
+        27740
+      ],
+      "root_restore_ticks": [
+        27308
+      ],
+      "entry_control_ticks": [
+        188
+      ],
+      "return_control_ticks": [
+        88
+      ]
+    }
+  ],
+  "limits": [
+    "Raw emulator TSC ticks; no calibration or conversion to physical time.",
+    "Counter overhead is included; both adjacent counter controls reported with no subtraction.",
+    "Root restoration is nested in terminal software-return interval; never sum intervals.",
+    "Preemption did not enter gate/fault terminal start, so null is absence, never zero.",
+    "Intervals exclude hardware trap delivery, pure IRET, caller work and full IRQ preservation.",
+    "Proof-only instrumentation on architecture appliance, not normal-product timing.",
+    "One matrix process/fixed ordering; fresh first trials contain cold path effects, uncontrolled host caches and emulator scheduling.",
+    "Existing protection checks pass under instrumented source; unchanged disabled production assembly/accepted-source delivery remains separately evidenced.",
+    "No physical/human/DMA/driver/semanticShow/full6183completion claim."
+  ],
+  "remaining_gates": [
+    "Optimization delivery and source correspondence to eventual accepted dev.",
+    "Retain historical normal pair and this instrumented architecture proof as distinct sources/proof classes.",
+    "Any broader #6183 component attribution/physical acceptance is not supplied by these three software envelopes."
+  ]
+}

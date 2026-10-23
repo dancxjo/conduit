@@ -1,0 +1,9 @@
+{
+  "base_source": "81eb177c545d383606c0f44edf37332e85dea30a",
+  "candidate_source": "5160fe5ebd875c4b35e682317cc7d1ba39f1ddcb",
+  "assembler": "GNU as --64, actual selectors51/43",
+  "disabled_text_and_relocations_identical": true,
+  "disabled_text_sha256": "1a100ddfcf87037ea524f012c335b7d5ee9e37d448ff4e6c84d0192fbc75eace",
+  "enabled_assembled": true,
+  "limits": "Standalone assembler check, not Rust native compilation/linking or execution"
+}
