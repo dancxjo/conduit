@@ -218,3 +218,6 @@ fn a_resealed_plan_cannot_replace_independently_retained_tick_configuration() {
 
 #[path = "support/installation.rs"]
 mod installation;
+
+#[path = "support/assigned.rs"]
+mod assigned;

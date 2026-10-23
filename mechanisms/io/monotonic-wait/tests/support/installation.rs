@@ -1,7 +1,7 @@
 //! Installed ownership is fixture-only; no physical timer is asserted here.
 use super::*;
 use conduit_plan_lowering::lowering::lower_plan_fragment;
-fn identity() -> WaitNativeIdentity {
+pub(super) fn identity() -> WaitNativeIdentity {
     let scope = fixture::scope();
     WaitNativeIdentity {
         host_id: scope.host_id,
@@ -24,7 +24,7 @@ fn attachment() -> WaitAttachment {
         maximum_duration_ms: 1000,
     }
 }
-fn ready(state: Rc<State>) -> ReadyMonotonicWaitBase<Provider> {
+pub(super) fn ready(state: Rc<State>) -> ReadyMonotonicWaitBase<Provider> {
     // SAFETY: inert CPU timer fixture is retained and follows the tested drop law.
     unsafe { ReadyMonotonicWaitBase::new(identity(), attachment(), Provider(state)) }.unwrap()
 }

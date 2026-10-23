@@ -172,6 +172,37 @@ pub(crate) fn checked_binding(
     selection: SelectedOperationPlan<'_>,
 ) -> Result<NodeId, WaitCallRefusal> {
     use WaitCallRefusal as E;
+    let kind = checked_contract(table, claim, attachment, configuration)?;
+    let node = bind_selected_configured_operation(
+        table,
+        claim,
+        SelectedOperationContract {
+            kind: &kind,
+            call: c::WAIT_HOST_CALL_CONTRACT,
+            input_bytes: PARAMETER_BYTES,
+            output_bytes: 0,
+            resource_bytes: attachment.resource_bytes,
+        },
+        configuration,
+        selection,
+    )
+    .map_err(|error| match error {
+        conduit_plan_lowering::selected_operation::SelectedCallRefusal::WrongBinding => {
+            E::WrongBinding
+        }
+        conduit_plan_lowering::selected_operation::SelectedCallRefusal::Possession => E::Possession,
+    })?;
+    Ok(node)
+}
+
+/// Common finite Source and possession checks before either projection binds.
+pub(crate) fn checked_contract(
+    table: &c::BaseCapabilityTable,
+    claim: &c::BaseOperationClaim,
+    attachment: WaitAttachment,
+    configuration: &[c::ConfigurationEntry],
+) -> Result<c::Kind, WaitCallRefusal> {
+    use WaitCallRefusal as E;
     let mut entries = table.inspections();
     let scope = &entries.next().ok_or(E::Possession)?.scope;
     if entries.next().is_some()
@@ -225,24 +256,5 @@ pub(crate) fn checked_binding(
         return Err(E::Possession);
     }
     drop(entries);
-    let node = bind_selected_configured_operation(
-        table,
-        claim,
-        SelectedOperationContract {
-            kind: &kind,
-            call: c::WAIT_HOST_CALL_CONTRACT,
-            input_bytes: PARAMETER_BYTES,
-            output_bytes: 0,
-            resource_bytes: attachment.resource_bytes,
-        },
-        configuration,
-        selection,
-    )
-    .map_err(|error| match error {
-        conduit_plan_lowering::selected_operation::SelectedCallRefusal::WrongBinding => {
-            E::WrongBinding
-        }
-        conduit_plan_lowering::selected_operation::SelectedCallRefusal::Possession => E::Possession,
-    })?;
-    Ok(node)
+    Ok(kind)
 }

@@ -36,3 +36,11 @@ The ESP32 Root initializes its concrete provider only after RTOS monotonic-clock
 initialization and retains one pending-wait slot. Complete clock/task/kernel
 memory admission, assigned installation and actual climate Body start remain
 separate. Readiness alone starts no wait or running appliance.
+
+`bind_assigned_retained` applies the same finite Source and local capability
+checks to the constrained native assignment. Configuration keys, types, values
+and order must match Root's independently retained checked Source. A stale Boot
+or changed configuration leaves the timer slot available. Only complete
+preflight transfers it. CPU tests encode an ordinary assignment, refuse stale
+and missing expectations, then transfer and invoke without Play allocation.
+This does not claim physical assigned timer installation.

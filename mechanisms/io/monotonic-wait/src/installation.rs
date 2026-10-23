@@ -1,4 +1,6 @@
 //! Retained initialized timer slot, offered before planning and transferred once.
+#[path = "assigned.rs"]
+mod assigned;
 use crate::*;
 use alloc::vec;
 use conduit_core::*;
