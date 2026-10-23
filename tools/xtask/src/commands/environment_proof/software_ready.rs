@@ -1,6 +1,6 @@
 //! Capture actual Root ownership reports, then check Source and compose offers
 //! on the planning host. No authority issuance or installation is performed.
-use super::execute;
+use super::{execute, host_target};
 use std::{error::Error, path::Path, process::Command};
 
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
@@ -41,7 +41,7 @@ fn capture_and_plan(root: &Path) -> Result<std::path::PathBuf, Box<dyn Error>> {
                 "--",
             ])
             .arg(&output)
-            .env("CARGO_TARGET_DIR", root.join("target")),
+            .env("CARGO_TARGET_DIR", host_target(root)),
     )?;
     Ok(output)
 }

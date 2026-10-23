@@ -8,7 +8,16 @@ mod native_construction;
 mod software_ready;
 #[path = "environment_proof/wait.rs"]
 mod wait;
-use std::{error::Error, process::Command};
+use std::{
+    error::Error,
+    path::{Path, PathBuf},
+    process::Command,
+};
+fn host_target(root: &Path) -> PathBuf {
+    std::env::var_os("CARGO_TARGET_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| root.join("target"))
+}
 
 pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
@@ -51,7 +60,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "recording_recovery",
                     "batch_browser",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         )?;
         execute(Command::new("cargo").current_dir(&root).args([
             "test",
@@ -73,7 +82,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "recording_recovery",
                     "full_first_class_recording_fits_the_snapshot_text_profile",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         )?;
         for filter in ["resource_snapshot", "resource_effect"] {
             execute(Command::new("cargo").current_dir(&root).args([
@@ -109,7 +118,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
             } else {
                 command.arg(test);
             }
-            command.env("CARGO_TARGET_DIR", root.join("target"));
+            command.env("CARGO_TARGET_DIR", host_target(&root));
             execute(&mut command)?;
         }
         return Ok(());
@@ -127,7 +136,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
             Command::new("cargo")
                 .current_dir(&root)
                 .args(["test", "--locked", "--manifest-path", manifest])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments == ["recording"] {
@@ -159,7 +168,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--test",
                     "recording_recovery",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments == ["display-esp32"]
@@ -238,7 +247,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--manifest-path",
                     "mechanisms/io/tm1637/Cargo.toml",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments == ["cadence"] {
@@ -265,7 +274,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--test",
                     "cadence",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments
@@ -284,7 +293,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--manifest-path",
                     "bodies/environment/face/Cargo.toml",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments == ["publication"] || arguments == ["publication-32"] {
@@ -311,7 +320,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
             command.args(["--target", "i686-unknown-linux-gnu", "--", "--nocapture"]);
             command.env("CARGO_TARGET_DIR", root.join("target/environment-i686"));
         } else {
-            command.env("CARGO_TARGET_DIR", root.join("target"));
+            command.env("CARGO_TARGET_DIR", host_target(&root));
         }
         return execute(&mut command);
     }
@@ -343,7 +352,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--manifest-path",
                     "bodies/environment/runtime/Cargo.toml",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments
@@ -414,7 +423,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--features",
                     "plot-catalog,host-call",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments
@@ -441,7 +450,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                     "--manifest-path",
                     "plots/seven-segment-mask/Cargo.toml",
                 ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
+                .env("CARGO_TARGET_DIR", host_target(&root)),
         );
     }
     if arguments
@@ -464,6 +473,6 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                 "--manifest-path",
                 "bodies/environment/make/Cargo.toml",
             ])
-            .env("CARGO_TARGET_DIR", root.join("target")),
+            .env("CARGO_TARGET_DIR", host_target(&root)),
     )
 }

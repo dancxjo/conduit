@@ -1,6 +1,6 @@
 //! CPU construction, then actual compilation of the Make-emitted resident data.
 //! Identity/entropy/native providers remain fixtures; this builds no firmware.
-use super::execute;
+use super::{execute, host_target};
 use std::{error::Error, fs, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     execute(Command::new("cargo").current_dir(root).args([
@@ -57,7 +57,7 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--",
                 "--nocapture",
             ])
-            .env("CARGO_TARGET_DIR", root.join("target"))
+            .env("CARGO_TARGET_DIR", host_target(root))
             .env("CONDUIT_RECIPE_PROOF_OUTPUT", &generated)
             .env("CONDUIT_LAYOUT_PROOF_OUTPUT", &layout)
             .env("CONDUIT_SOURCE_RECIPE_PROOF_OUTPUT", &source_generated),
