@@ -111,6 +111,52 @@ pub(crate) fn digest(input: &[u8]) -> [u8; 32] {
     output
 }
 
+/// Incremental canonical framing hash, retaining one block regardless of record size.
+pub(crate) struct State {
+    words: [u32; 8],
+    block: [u8; 64],
+    used: usize,
+    bytes: u64,
+}
+impl State {
+    pub(crate) fn new() -> Self {
+        Self {
+            words: INITIAL,
+            block: [0; 64],
+            used: 0,
+            bytes: 0,
+        }
+    }
+    pub(crate) fn update(&mut self, mut input: &[u8]) {
+        self.bytes = self.bytes.wrapping_add(input.len() as u64);
+        while !input.is_empty() {
+            let count = (64 - self.used).min(input.len());
+            self.block[self.used..self.used + count].copy_from_slice(&input[..count]);
+            self.used += count;
+            input = &input[count..];
+            if self.used == 64 {
+                compress(&mut self.words, &self.block);
+                self.used = 0;
+            }
+        }
+    }
+    pub(crate) fn finish(mut self) -> [u8; 32] {
+        self.block[self.used..].fill(0);
+        self.block[self.used] = 0x80;
+        if self.used >= 56 {
+            compress(&mut self.words, &self.block);
+            self.block.fill(0);
+        }
+        self.block[56..].copy_from_slice(&self.bytes.wrapping_mul(8).to_be_bytes());
+        compress(&mut self.words, &self.block);
+        let mut result = [0; 32];
+        for (index, word) in self.words.iter().enumerate() {
+            result[index * 4..index * 4 + 4].copy_from_slice(&word.to_be_bytes());
+        }
+        result
+    }
+}
+
 fn compress(state: &mut [u32; 8], block: &[u8; 64]) {
     // SHA-256 needs only the previous sixteen schedule words. Keeping the
     // rolling window is equivalent to the 64-word expansion and leaves tiny
