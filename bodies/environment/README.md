@@ -817,3 +817,13 @@ nor claims durable acknowledgement. Each generation still requires independent
 snapshot authorization and restoration through the existing browser executor.
 The recording proof recovers 64 chunks (4,096 samples) without execution
 allocations; this is deterministic CPU recovery, not an overnight browser run.
+
+`RecordingRecoveryBack` receives the existing snapshot-read Fore's JSON through
+the production kernel. Two preallocated workspaces keep candidate content
+separate from committed recovery. Only `step_committed` exposes the next chunk
+to a Mask; discarded Steps, failed reads, corrupt input and cancellation cannot
+advance the retained history. Exhausting the admitted chunk count is a storage
+refusal, distinct from malformed content and cancellation. The recording proof
+checks this with the real kernel and explicit CPU read-completion fixtures,
+including zero execution allocations. Browser installation, actual storage
+acknowledgement and recorder membership/Line are still separate requirements.

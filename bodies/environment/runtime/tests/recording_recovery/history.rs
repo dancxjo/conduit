@@ -4,7 +4,7 @@ use conduit_environment_runtime::{
     observation::{ObservationContract, PreparedObservationQuantityForms},
     recording::*,
 };
-fn context() -> RecordingContext<'static> {
+pub(super) fn context() -> RecordingContext<'static> {
     // Explicit CPU producer identity; no installed Host or durable receipt.
     static HOST: std::sync::LazyLock<HostId> = std::sync::LazyLock::new(|| "sensor/test".into());
     static BOOT: std::sync::LazyLock<BootId> = std::sync::LazyLock::new(|| "boot/test".into());
@@ -18,7 +18,7 @@ fn context() -> RecordingContext<'static> {
         play: &PLAY,
     }
 }
-fn chunk(events: &[(u64, u64)]) -> String {
+pub(super) fn chunk(events: &[(u64, u64)]) -> String {
     let contract = ObservationContract::prepare().unwrap();
     let mut chunk = PreparedRecordingChunk::prepare(context(), &contract).unwrap();
     for &(sequence, time) in events {

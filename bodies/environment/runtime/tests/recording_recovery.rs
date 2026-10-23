@@ -193,3 +193,6 @@ fn full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses() {
 
 #[path = "recording_recovery/history.rs"]
 mod history;
+
+#[path = "recording_recovery/back.rs"]
+mod back;
