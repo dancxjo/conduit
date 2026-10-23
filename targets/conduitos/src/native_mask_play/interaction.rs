@@ -24,13 +24,22 @@ impl NativeMaskInteractionSession {
             .expect("rendered session retains its receipt")
     }
 
+    /// Borrowed preflight preserves this fresh pending session when a delayed
+    /// occurrence names an older Face or Show. Validation uses renderer custody.
+    pub fn validate_interaction(
+        &self,
+        interaction: &FaceInteraction,
+    ) -> Result<(), NativeMaskPlayError> {
+        interaction
+            .validate_against(&self.play.renderer.face, self.show())
+            .map_err(NativeMaskPlayError::Interaction)
+    }
+
     pub fn interact(
         mut self,
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeMaskPlayError> {
-        interaction
-            .validate_against(&self.play.renderer.face, self.show())
-            .map_err(NativeMaskPlayError::Interaction)?;
+        self.validate_interaction(&interaction)?;
         let bytes = interaction.encode();
         if bytes.len() > self.play.interaction_fore.byte_capacity as usize
             || bytes.len() > INTERACTION_VALUE_BYTES

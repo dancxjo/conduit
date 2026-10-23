@@ -11,6 +11,7 @@ mod pressure_receipt;
 mod profile_receipt;
 #[path = "ordinary_domain_proof/compositor_semantic_recovery.rs"]
 mod receipt;
+mod stale_capture;
 
 pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let (built, manifest) = build::compositor_semantic_recovery::execute(opts)?;
@@ -25,6 +26,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     let log = paths.target.join("compositor-semantic-recovery-proof.log");
     let _ = fs::remove_file(&log);
     let serial = format!("file:{}", log.display());
+    let socket = std::env::temp_dir().join(format!("conduit-semantic-{}.sock", std::process::id()));
+    let qmp = format!("unix:{},server=on,wait=off", socket.display());
     let mut child = Command::new("qemu-system-x86_64")
         .args([
             "-M",
@@ -41,6 +44,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "none",
             "-serial",
             &serial,
+            "-qmp",
+            &qmp,
             "-no-reboot",
             "-net",
             "none",
@@ -57,6 +62,15 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         .spawn()
         .map_err(|error| refusal("semantic-recovery-qemu-unavailable", error.to_string()))?;
     let deadline = Instant::now() + Duration::from_secs(60);
+    let capture = match stale_capture::capture(&socket, &log, &paths.target, &mut child, deadline) {
+        Ok(capture) => capture,
+        Err(error) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            let _ = fs::remove_file(&socket);
+            return Err(error);
+        }
+    };
     let status = loop {
         if let Some(status) = child
             .try_wait()
@@ -75,6 +89,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         thread::sleep(Duration::from_millis(10));
     };
     let transcript = fs::read_to_string(&log).unwrap_or_default();
+    let _ = fs::remove_file(&socket);
     if status.code() != Some(33) {
         return Err(refusal(
             "semantic-recovery-guest-failed",
@@ -90,8 +105,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
     )?;
     let observed = receipt::validate(&transcript)?;
     let pressure = pressure_receipt::validate(&transcript)?;
+    stale_capture::validate_final(&transcript, &capture)?;
     let record = serde_json::json!({
-        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@3",
+        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@4",
         "proof_class":"freestanding-emulator","fixture":true,
         "proof_feature":"compositor-semantic-recovery-proof",
         "same_uninstrumented_product_binary":false,
@@ -100,6 +116,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "budget_basis":"existing conduitos-native.host.conduit; actual admitted product profile, not minimum memory",
         "build":built,"native_make_manifest":manifest,"admitted_profile":budget,
         "observations":observed,"pressure_observations":pressure,
+        "stale_show_capture":capture,
         "transcript_sha256":super::report::sha256_file(&log)?,
     });
     fs::write(

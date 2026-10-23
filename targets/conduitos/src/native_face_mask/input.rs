@@ -2,6 +2,52 @@
 use super::*;
 
 impl NativeFaceMask {
+    /// The exact interaction returned by this Mask Plot is still a request to
+    /// the caller's semantic owner. It does not mutate Birth or Body state.
+    pub fn submit(
+        &mut self,
+        interaction: FaceInteraction,
+    ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.compositor
+            .validate_active_session()
+            .map_err(NativeFaceMaskError::Compositor)?;
+        if !self.interaction_admitted {
+            return Err(NativeFaceMaskError::InputUnavailable);
+        }
+        self.session
+            .as_ref()
+            .ok_or(NativeFaceMaskError::Face)?
+            .validate_interaction(&interaction)
+            .map_err(NativeFaceMaskError::Mask)?;
+        self.session
+            .take()
+            .ok_or(NativeFaceMaskError::Face)?
+            .interact(interaction)
+            .map_err(NativeFaceMaskError::Mask)
+    }
+
+    /// A stale occurrence cannot consume the current session. Its notice is a
+    /// local repaint, not a new semantic Show or an owner action acceptance.
+    pub fn submit_with_display(
+        &mut self,
+        interaction: FaceInteraction,
+        display: &mut impl PixelTarget,
+    ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
+        self.input_refusal = None;
+        let result = self.submit(interaction);
+        if matches!(
+            result.as_ref(),
+            Err(NativeFaceMaskError::Mask(NativeMaskPlayError::Interaction(
+                conduit_face::FaceInteractionRefusal::StaleShow
+                    | conduit_face::FaceInteractionRefusal::StaleFace
+            )))
+        ) {
+            self.show_local_notice("Stale: refresh", display)?;
+        }
+        result
+    }
+
     /// Key translation and local reading state belong to this Mask. A
     /// submitted semantic action exits through the same admitted Mask Fore.
     pub fn key(
@@ -102,7 +148,7 @@ impl NativeFaceMask {
                 interaction,
                 next_focus,
             } => self
-                .submit(*interaction)
+                .submit_with_display(*interaction, display)
                 .map(|correlation| NativeFaceMaskInput::Submitted {
                     correlation,
                     next_focus,

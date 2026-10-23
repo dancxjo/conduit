@@ -1,12 +1,14 @@
 //! Actual Mask/Show boundary after Root copy failure, using the product renderer.
-//! Counting writes are fixture scanout acknowledgements, not physical display.
+//! Actual emulator framebuffer copy with an intentionally failing wrapper.
 #[path = "compositor_semantic_recovery/pressure.rs"]
 mod pressure;
+#[path = "compositor_semantic_recovery/stale.rs"]
+mod stale;
 
 use super::refuse;
 use crate::{
     arch,
-    display::{DisplayError, DisplayFormat, PixelTarget},
+    display::{DisplayError, DisplayFormat, PixelTarget, RawDisplay},
     native_compositor::NativeCompositorError,
     native_face_mask::{NativeFaceMask, NativeFaceMaskError},
     native_face_scene::FaceControl,
@@ -24,31 +26,22 @@ use conduit_face::{Face, FaceInteraction, ManifestationLifecycle, MaskShow};
 const HOST: &str = "fixture/semantic-copy-recovery/host";
 const BOOT: &str = "fixture/semantic-copy-recovery/boot";
 const SURFACE: &str = "fixture/semantic-copy-recovery/surface";
-fn format() -> DisplayFormat {
-    DisplayFormat {
-        width: 640,
-        height: 480,
-        pitch: 2560,
-        bits_per_pixel: 32,
-        red_shift: 16,
-        green_shift: 8,
-        blue_shift: 0,
-    }
-}
 struct Target {
+    display: RawDisplay,
     fail: bool,
     writes: u32,
     refused: u32,
 }
 impl PixelTarget for Target {
     fn format(&self) -> DisplayFormat {
-        format()
+        self.display.format()
     }
-    fn write_pixel(&mut self, _: u32, _: u32, _: u32) -> Result<(), DisplayError> {
+    fn write_pixel(&mut self, x: u32, y: u32, pixel: u32) -> Result<(), DisplayError> {
         if self.fail {
             self.refused += 1;
             return Err(DisplayError::Lost);
         }
+        self.display.write_pixel(x, y, pixel)?;
         self.writes = self
             .writes
             .checked_add(1)
@@ -117,6 +110,9 @@ fn fresh_owner(grant: &SharedDisplayGrant) -> SharedDisplayOwner {
         .unwrap_or_else(|_| refuse("semantic-recovery-owner"))
 }
 pub(super) fn run() {
+    let display = crate::boot::framebuffer_display()
+        .unwrap_or_else(|_| refuse("semantic-recovery-framebuffer"));
+    let format = display.format();
     let mut provider = crate::product_bases::fixture_surface_provider();
     let grant: SharedDisplayGrant = Rc::new(
         DisplayGrant::new(
@@ -124,7 +120,7 @@ pub(super) fn run() {
             BootId::from(BOOT),
             OfferGeneration(1),
             provider.entry.base_id.clone(),
-            format(),
+            format,
         )
         .unwrap_or_else(|_| refuse("semantic-recovery-grant")),
     );
@@ -138,6 +134,7 @@ pub(super) fn run() {
         .face(&basis)
         .unwrap_or_else(|_| refuse("semantic-recovery-face"));
     let mut target = Target {
+        display,
         fail: false,
         writes: 0,
         refused: 0,
@@ -200,6 +197,9 @@ pub(super) fn run() {
     let fresh_face = draft
         .face(&fresh_basis)
         .unwrap_or_else(|_| refuse("semantic-recovery-fresh-face"));
+    if fresh_face != face {
+        refuse("semantic-recovery-same-source-face");
+    }
     target.fail = false;
     let before = target.writes;
     // present is the public atomic boundary: it returns only after actual
@@ -223,6 +223,14 @@ pub(super) fn run() {
         refuse("semantic-recovery-fresh-ack");
     }
     let input = interaction(&fresh, &fresh_face, &show, 2);
+    stale::capture_refusal(
+        &mut fresh,
+        &fresh_face,
+        &show,
+        &held_input,
+        &draft,
+        &mut target,
+    );
     let correlation = fresh
         .submit(input.clone())
         .unwrap_or_else(|_| refuse("semantic-recovery-submit"));

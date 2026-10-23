@@ -444,26 +444,6 @@ impl NativeFaceMask {
         Ok(composition)
     }
 
-    /// The exact interaction returned by this Mask Plot is still a request to
-    /// the caller's semantic owner. It does not mutate Birth or Body state.
-    pub fn submit(
-        &mut self,
-        interaction: FaceInteraction,
-    ) -> Result<MaskInteractionCorrelation, NativeFaceMaskError> {
-        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
-        self.compositor
-            .validate_active_session()
-            .map_err(NativeFaceMaskError::Compositor)?;
-        if !self.interaction_admitted {
-            return Err(NativeFaceMaskError::InputUnavailable);
-        }
-        self.session
-            .take()
-            .ok_or(NativeFaceMaskError::Face)?
-            .interact(interaction)
-            .map_err(NativeFaceMaskError::Mask)
-    }
-
     fn repaint(
         &mut self,
         display: &mut impl PixelTarget,
@@ -498,3 +478,7 @@ mod creche_tests;
 #[cfg(test)]
 #[path = "native_face_mask/tests.rs"]
 pub(crate) mod tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/submission_tests.rs"]
+mod submission_tests;
