@@ -1,0 +1,98 @@
+{
+  "verified-inventory.json": {
+    "sha256": "9669197b8a868c5833fff2d3fe7a250c9cf12b684c521cdc40518ae97df4c1c0",
+    "bytes": 18995,
+    "original_sha256": "9669197b8a868c5833fff2d3fe7a250c9cf12b684c521cdc40518ae97df4c1c0",
+    "original_bytes": 18995
+  },
+  "retention.json": {
+    "sha256": "b92d34209801e6311804a68bf4cbaf4107dabad8244b358e6e4fec7fb492ee0a",
+    "bytes": 4399,
+    "original_sha256": "b92d34209801e6311804a68bf4cbaf4107dabad8244b358e6e4fec7fb492ee0a",
+    "original_bytes": 4399
+  },
+  "negative-substitution.json": {
+    "sha256": "308a2e58d6230fd1f0337c5d1921026e202971aa422b1e3380224f7c0501c038",
+    "bytes": 449,
+    "original_sha256": "308a2e58d6230fd1f0337c5d1921026e202971aa422b1e3380224f7c0501c038",
+    "original_bytes": 449
+  },
+  "6176-803526c84-checks.json": {
+    "sha256": "f216340c7c0d2464b43b8b251142fd0d063ce71beea2c3209f2bbb2f78d3b247",
+    "bytes": 1865,
+    "original_sha256": "f216340c7c0d2464b43b8b251142fd0d063ce71beea2c3209f2bbb2f78d3b247",
+    "original_bytes": 1865
+  },
+  "builder/build.json": {
+    "sha256": "3a8d53aa5a4462b03654f9ac994c44789a99276c8eee25616e4582fff5d2a1f2",
+    "bytes": 319,
+    "original_sha256": "3a8d53aa5a4462b03654f9ac994c44789a99276c8eee25616e4582fff5d2a1f2",
+    "original_bytes": 319
+  },
+  "builder/image.json": {
+    "sha256": "f6542c939d1c110c8a636e6a9a9a3519e6fbf26e6797310e0f38f6cdb9b7beac",
+    "bytes": 335,
+    "original_sha256": "f6542c939d1c110c8a636e6a9a9a3519e6fbf26e6797310e0f38f6cdb9b7beac",
+    "original_bytes": 335
+  },
+  "product/build-manifest.json": {
+    "sha256": "627e9364d44df873f065b6af6b5f13e1e62e48f532e56548ec9df64a336c00eb",
+    "bytes": 4269,
+    "original_sha256": "627e9364d44df873f065b6af6b5f13e1e62e48f532e56548ec9df64a336c00eb",
+    "original_bytes": 4269
+  },
+  "product/resolved-image.json": {
+    "sha256": "b3866d109577ab4c7b170faff2f49d501f8520aad9499c29f2d54e26128c6bab",
+    "bytes": 4453,
+    "original_sha256": "b3866d109577ab4c7b170faff2f49d501f8520aad9499c29f2d54e26128c6bab",
+    "original_bytes": 4453
+  },
+  "builder/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.json": {
+    "sha256": "459a9cc7d7a4ee60df3b4125aff771d6a99bad525297e57da06800bb868db990",
+    "bytes": 63036,
+    "original_sha256": "459a9cc7d7a4ee60df3b4125aff771d6a99bad525297e57da06800bb868db990",
+    "original_bytes": 63036
+  },
+  "negative-foreign-map/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.json": {
+    "sha256": "a73a2a4a1a789543dea1455f527785823cad1ccb3172e2ebd92114210ed871bb",
+    "bytes": 71668,
+    "original_sha256": "a73a2a4a1a789543dea1455f527785823cad1ccb3172e2ebd92114210ed871bb",
+    "original_bytes": 71668
+  },
+  "positive.log.gz": {
+    "sha256": "7f210baf1a3468c3177f67cfbaa19d34204f381550c2a3f9e058162f8175a9be",
+    "bytes": 335,
+    "original_sha256": "6af59b59916ad27ef62d3563a1c109db18ce8c15476e311c1dc3664220da5fb8",
+    "original_bytes": 1432
+  },
+  "foreign-map-refusal.log.gz": {
+    "sha256": "4867f01b45c0150f6c318542213eb69700ca2bc4d208905a27b5327de65b610a",
+    "bytes": 392,
+    "original_sha256": "b95944d41953719d78a4f566f25d865499385a37061cd9648a4f81970bd9e773",
+    "original_bytes": 1400
+  },
+  "6176-803526c84-focused-tests.log.gz": {
+    "sha256": "e76c7c9ecd9ae259e1693403bd099bd57b76b2d804314d2405b1903464b7f6cb",
+    "bytes": 929,
+    "original_sha256": "c72b285d7f6094a984715983a27cce861adf81337eb52f106b67c24c0d174bb7",
+    "original_bytes": 3042
+  },
+  "6176-803526c84-strict-clippy.log.gz": {
+    "sha256": "7d14614f6708161203e87ad90dc55ab853db3f68244f7daeb7e9741d94caacdf",
+    "bytes": 250,
+    "original_sha256": "3f25c95dff7805015751cfb868fc330d2bec1803614c03e7397ce421706f043f",
+    "original_bytes": 460
+  },
+  "6176-803526c84-fmt.log.gz": {
+    "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+    "bytes": 20,
+    "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "original_bytes": 0
+  },
+  "6176-803526c84-normal-build.log.gz": {
+    "sha256": "2b3a60aafca28fc20d6504ffaebc445061d435178e97487b5c7162d831464468",
+    "bytes": 4530,
+    "original_sha256": "e46b7f80b2156fc7ca936c5e77435c8b30909f48dd047abe9284bf0a3aabecb5",
+    "original_bytes": 29374
+  }
+}

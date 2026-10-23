@@ -20,7 +20,7 @@ mod backbone;
 pub(super) mod compositor_semantic_recovery;
 pub(super) mod ia32_domain;
 pub(super) mod loongarch64_domain;
-mod privilege_inventory;
+pub(super) mod privilege_inventory;
 pub(super) mod riscv64_domain;
 
 pub fn execute_architecture_proof(
