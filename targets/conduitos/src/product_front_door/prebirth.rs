@@ -10,9 +10,15 @@ pub(super) fn enter_commons(
 ) -> Result<CompositionReceipt, &'static str> {
     door.open_home().map_err(|error| error.as_str())?;
     arrival.suspend()?;
-    let receipt = presenter
-        .present(door, display)
-        .map_err(|error| error.as_str())?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let presented = presenter.present_lifecycle_checkpoint(
+        door,
+        display,
+        crate::protected_compositor::lifecycle::sign::Checkpoint::InitialHub,
+    );
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    let presented = presenter.present(door, display);
+    let receipt = presented.map_err(|error| error.as_str())?;
     journey_sign::write_observation(b"CONDUIT_COMMONS_CHECKPOINT zero-body-hub\n");
     Ok(receipt)
 }
