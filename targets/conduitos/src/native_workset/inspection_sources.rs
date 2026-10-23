@@ -38,6 +38,11 @@ mod tests {
     fn installed_inspection_has_real_source_boundaries_and_no_realization() {
         let target = vision("plan/inspecting-body".into()).unwrap();
         assert!(target.plan.is_none());
+        let heap_witness: patchbay_graph::PatchbayGraph = serde_json::from_str(include_str!(
+            "../../application-core/tests/fixtures/vision-graph.json"
+        ))
+        .unwrap();
+        assert_eq!(target.graph, heap_witness);
         assert_eq!(target.graph.plot_name, "vision");
         assert_eq!(target.graph.gears.len(), 8);
         assert_eq!(target.graph.cords.len(), 16);

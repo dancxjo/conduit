@@ -47,6 +47,41 @@ pub(super) fn run(applications: &[Option<Initial>; 4], transfer: &mut [u8]) {
         };
         assert_eq!(graph, targets[usize::from(target)].as_ref().unwrap().graph);
     }
+    // Canonical projection of the selected Source shares this exact grant too.
+    assert!(matches!(
+        exchange(
+            &mut state,
+            &Command::PatchbayCanonical { slot: 0 },
+            transfer
+        ),
+        Reply::Prepared
+    ));
+    let query = on_caller(|| {
+        let Some(Initial::Tutorial { evidence }) = &applications[1] else {
+            unreachable!()
+        };
+        Command::PatchbayFragment {
+            slot: 0,
+            body: evidence.body_id.clone(),
+            basis: conduit_face::FaceContributionBasis {
+                checked_plot_id: "checked/source-owner".into(),
+                plan_id: "plan/body".into(),
+                active_play_id: "play/source-owner".into(),
+                required_interaction_context: None,
+            },
+            actions_admitted: true,
+        }
+    });
+    let Reply::PatchbayFragment { fragment, .. } = exchange(&mut state, &query, transfer) else {
+        panic!("canonical Source projection");
+    };
+    assert!(
+        !fragment
+            .actions
+            .iter()
+            .any(|action| action.identity == patchbay_application::EDIT_CURRENT_ACTION_ID)
+    );
+    drop(fragment);
     drop(state);
     assert_eq!(LIVE.load(Ordering::Relaxed), 0);
     assert!(!unsafe { private_heap::exhausted() });

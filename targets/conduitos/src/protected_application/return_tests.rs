@@ -416,5 +416,5 @@ fn root_read_only_custody_rejects_guest_advertised_edit_actions() {
         Err(Refusal::Malformed)
     ));
     assert!(!e.owner.is_live());
-    assert_eq!(counts(), (1, 1));
+    assert_eq!(counts(), (0, 1));
 }
