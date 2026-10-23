@@ -9,13 +9,7 @@ pub(super) fn install_physical(
     mode: PhysicalMode,
 ) -> Result<(), ProtocolCallRefusal> {
     match mode {
-        #[cfg(all(
-            feature = "native-owner-network",
-            any(
-                target_arch = "x86_64",
-                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
-            )
-        ))]
+        #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
         PhysicalMode::UsbEthernet => {
             registry
                 .install(

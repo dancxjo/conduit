@@ -23,7 +23,7 @@ pub enum ProtocolCallRefusal {
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
     UsbIsochronous(crate::arch::UsbIsochronousCallRefusal),
-    #[cfg(feature = "native-owner-network")]
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     EthernetFrame(crate::ethernet_frame::installation::EthernetFrameNativeRefusal),
     Storage(crate::storage_base::transaction_owner::StorageTransactionRefusal),
     InvalidPlan,
@@ -42,7 +42,7 @@ impl ProtocolCallRefusal {
         use I2cCallRefusal as I2c;
         use SelectorCallRefusal as Selector;
         let (code, detail) = match self {
-            #[cfg(feature = "native-owner-network")]
+            #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
             Self::EthernetFrame(error) => {
                 use crate::ethernet_frame::installation::EthernetFrameNativeRefusal as E;
                 match error {
@@ -248,7 +248,7 @@ fn write_failure(error: &crate::arch::EndpointWriteNativeRefusal) -> (FailureCod
 
 #[cfg(all(test, target_arch = "x86_64"))]
 mod tests {
-    #[cfg(feature = "native-owner-network")]
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     #[test]
     fn network_retention_is_distinct_from_binding_and_authority_refusal() {
         use crate::ethernet_frame::installation::EthernetFrameNativeRefusal as E;
