@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::{
-    BaseSelection, DriverSelection, HOST_PROFILE_SCHEMA, HostBounds, HostPolicy, HostProfile,
-    MakeCatalog, MakePackageSet, ResourceBudget, TargetSelection, validate_profile,
+    validate_profile, BaseSelection, DriverSelection, HostBounds, HostPolicy, HostProfile,
+    MakeCatalog, MakePackageSet, ResourceBudget, TargetSelection, HOST_PROFILE_SCHEMA,
 };
 
 pub const HOST_CONFIGURATION_SCHEMA: u32 = 1;
