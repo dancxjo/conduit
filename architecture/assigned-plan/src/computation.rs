@@ -118,7 +118,7 @@ impl<'a> Validation<'a> {
 }
 fn canonical_hex(bytes: &[u8]) -> bool {
     !bytes.is_empty()
-        && bytes.len().is_multiple_of(2)
+        && bytes.len() & 1 == 0
         && bytes
             .iter()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(b))

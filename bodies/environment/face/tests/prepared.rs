@@ -193,3 +193,53 @@ fn a_recent_retained_observation_stays_fresh_when_the_latest_capture_fails() {
     });
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
 }
+
+#[test]
+fn inspection_time_prevents_stale_reading_resurrection() {
+    let mut owner = PreparedObservationFace::prepare(basis(), 3, 30000).unwrap();
+    owner
+        .publish(Some((q("20°C"), q("50%"))), SensorStatus::Available, 100)
+        .unwrap();
+    owner.at(30101).unwrap();
+    let prior = owner.current().clone();
+    assert_eq!(
+        owner.publish(
+            None,
+            SensorStatus::Unavailable(SensorFailure::Checksum),
+            200
+        ),
+        Err(PublicationRefusal::ClockReversed)
+    );
+    assert_eq!(owner.current(), &prior);
+    assert_eq!(owner.at(30100), Err(PublicationRefusal::ClockReversed));
+    assert_eq!(owner.current(), &prior);
+    owner.at(30200).unwrap();
+    assert_eq!(
+        owner.publish(
+            None,
+            SensorStatus::Unavailable(SensorFailure::Checksum),
+            30150
+        ),
+        Err(PublicationRefusal::ClockReversed)
+    );
+    owner
+        .publish(
+            None,
+            SensorStatus::Unavailable(SensorFailure::Checksum),
+            30300,
+        )
+        .unwrap();
+    assert!(owner
+        .current()
+        .properties
+        .iter()
+        .any(|p| p.name == "fresh" && p.value == FacePropertyValue::Flag(false)));
+    owner
+        .publish(Some((q("21°C"), q("51%"))), SensorStatus::Available, 30400)
+        .unwrap();
+    assert!(owner
+        .current()
+        .properties
+        .iter()
+        .any(|p| p.name == "fresh" && p.value == FacePropertyValue::Flag(true)));
+}

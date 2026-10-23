@@ -1,7 +1,8 @@
 //! Real keyboard negative exercise; no fixture callback or alternate ingress.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{face_correspondence, hid_qmp, io_error, journey_input, stage_count, ConduitosError};
-use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+use std::{os::unix::net::UnixStream, path::Path, process::Child};
 
 pub(super) fn unavailable_wake(
     serial_path: &Path,
@@ -11,7 +12,7 @@ pub(super) fn unavailable_wake(
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
     let before = face_correspondence::refused_wake_count(
-        &fs::read_to_string(serial_path).map_err(io_error)?,
+        &live_serial::read_complete(serial_path).map_err(io_error)?,
     )?;
     let handled_before = stage_count(serial_path, "CONDUIT_PRODUCT_ACTION handled wake")?;
     journey_input::key_pair(qmp, reader, "f4", "journey-unavailable-wake")?;
@@ -33,6 +34,26 @@ pub(super) fn unavailable_wake(
     // rather than a changed image, establishes the refusal.
     artifacts.capture(qmp, reader, "wake-refused", false)?;
     Ok(())
+}
+
+/// Correlate this navigation with a new, complete guest checkpoint. Earlier
+/// visits and `returned-to-plot` records cannot authorize this capture.
+pub(super) fn open_home(
+    serial_path: &Path,
+    child: &mut Child,
+    qmp: &mut UnixStream,
+    reader: &mut qmp::Reader,
+) -> Result<(), ConduitosError> {
+    let marker = "CONDUIT_HOME_CHECKPOINT returned\n";
+    let before = stage_count(serial_path, marker)?;
+    journey_input::key_pair(qmp, reader, "esc", "journey-home")?;
+    hid_qmp::wait_for_stage_count(
+        serial_path,
+        child,
+        marker,
+        before + 1,
+        "journey-home-timeout",
+    )
 }
 
 pub(super) fn return_and_reenter(

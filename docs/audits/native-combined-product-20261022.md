@@ -36,3 +36,21 @@ These are browser and freestanding-emulator proofs, not physical or human
 accessibility evidence. Large checked-Source inspection/continuation (#6257),
 remaining scene/provider acceptance, Candidate/Integration and normal merge
 remain separate requirements. Parent issues are not closed by this packet.
+
+### Home capture qualification
+
+The original `home.png` shows Keyboard canvas and does **not** establish visual
+Home acceptance. Its retained serial prefix ends at byte 1,005,690 and contains
+three complete `CONDUIT_HOME_CHECKPOINT returned` records. The previous sibling
+selection already produced the third (offset 978,483). The new return requested
+for this capture produces the fourth record at offset 1,011,951, after that
+capture's serial prefix. The old wait accepted a previous visit's checkpoint.
+Original images, serial and receipts remain unchanged.
+
+The harness now counts complete Home-return records before issuing Escape and
+requires one additional record before capture. The newline also excludes the
+separate `returned-to-plot` event. Strict all-targets xtask Clippy and workspace
+formatting pass for this correction. A fresh normal QEMU journey and visual
+inspection remain required; this correction does not retroactively validate
+the original Home image or claim the renderer itself is correct. Current dev's
+independent GraphSerialize work-budget failure is tracked by #6263.

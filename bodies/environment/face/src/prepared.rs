@@ -24,7 +24,7 @@ pub struct PreparedObservationFace {
     measurement: Option<[FaceProperty; 3]>,
     failure: Option<FaceProperty>,
     maximum_samples: u32,
-    last_publication_ms: u64,
+    last_observed_ms: u64,
     stale_after_ms: u64,
 }
 impl PreparedObservationFace {
@@ -91,7 +91,7 @@ impl PreparedObservationFace {
             ]),
             failure: Some(property("sensor-failure", FacePropertyValue::Text(reason))),
             maximum_samples,
-            last_publication_ms: 0,
+            last_observed_ms: 0,
             stale_after_ms,
         })
     }
@@ -105,7 +105,7 @@ impl PreparedObservationFace {
         now: u64,
     ) -> Result<(), PublicationRefusal> {
         use PublicationRefusal as R;
-        if now < self.last_publication_ms {
+        if now < self.last_observed_ms {
             return Err(R::ClockReversed);
         }
         let sequence = self.count("sequence");
@@ -182,14 +182,14 @@ impl PreparedObservationFace {
             && now - self.count("sampled-at-boot-ms") <= self.stale_after_ms;
         *self.value_mut("fresh") = FacePropertyValue::Flag(fresh);
         *self.value_mut("sequence") = FacePropertyValue::Count(sequence + 1);
-        self.last_publication_ms = now;
+        self.last_observed_ms = now;
         self.seal()
     }
 
     /// Freshness is explicit Face truth; a Mask never infers it from cached
     /// display text. Repeated inspection of the same state retains its identity.
     pub fn at(&mut self, now: u64) -> Result<&Face, PublicationRefusal> {
-        if now < self.last_publication_ms {
+        if now < self.last_observed_ms {
             return Err(PublicationRefusal::ClockReversed);
         }
         let expired = self.measurement.is_none()
@@ -198,6 +198,7 @@ impl PreparedObservationFace {
             *self.value_mut("fresh") = FacePropertyValue::Flag(false);
             self.seal()?;
         }
+        self.last_observed_ms = now;
         Ok(&self.face)
     }
     pub fn current(&self) -> &Face {

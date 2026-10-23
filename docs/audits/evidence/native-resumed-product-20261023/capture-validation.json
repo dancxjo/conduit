@@ -1,0 +1,26 @@
+[
+  {
+    "status": "passed",
+    "captures": 27,
+    "checks": [
+      "PNG length",
+      "PNG SHA256",
+      "dimensions",
+      "independent stdlib PNG decode",
+      "RGBA SHA256",
+      "PNG chunk CRC32"
+    ]
+  },
+  {
+    "status": "passed",
+    "captures": 20,
+    "checks": [
+      "PNG length",
+      "PNG SHA256",
+      "dimensions",
+      "independent stdlib PNG decode",
+      "RGBA SHA256",
+      "PNG chunk CRC32"
+    ]
+  }
+]
