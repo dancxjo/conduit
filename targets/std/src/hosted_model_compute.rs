@@ -33,6 +33,8 @@ pub struct ModelComputeExecution<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModelComputeAdapterTerminal<'a> {
+    /// One admitted invocation remains owned by the prepared provider.
+    Pending,
     Produced(ModelComputeExecution<'a>),
     Refused(ModelComputeRefusal),
     Cancelled,
@@ -63,6 +65,10 @@ pub trait ModelComputeAdapter {
         &mut self,
         invocation: ModelComputeInvocation<'_>,
     ) -> ModelComputeAdapterTerminal<'_>;
+    /// Poll the same pending invocation; synchronous providers never enter here.
+    fn poll(&mut self) -> ModelComputeAdapterTerminal<'_> {
+        ModelComputeAdapterTerminal::Failed
+    }
     fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal<'_>, ModelComputeRefusal>;
     fn unload(&mut self) -> Result<(), ModelComputeRefusal>;
 }
