@@ -95,3 +95,13 @@ provider disconnection, physical/human evidence, or the wide two-panel/four-choi
 layout requirement. The screenshot's primary page shows three choices with
 explicit continuation; it does not establish that all four are visible together.
 #5608/#5994 and normal merged acceptance retain those separate obligations.
+
+## Refreshed onto merged Source inspection
+
+After #6274 merged, this branch merged `dev` b5fc3ae759cf9351fc807901fd48bb16c4d24569 without conflicts. Both actual submission regressions pass on source 132e114e2 after a fresh owning-package compile:
+
+```sh
+cargo +stable test -p conduitos --features native-compositor native_face_mask::submission_tests
+```
+
+The compressed `post-source-submission-tests.log.gz` retains this local result. This is compile/CPU regression evidence for the combined source; the earlier measured QEMU packet retains its original source identity and was not relabelled or rerun. Current Candidate and merge acceptance remain separate gates.
