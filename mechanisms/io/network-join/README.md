@@ -44,3 +44,12 @@ profile and resource generation. Constrained assignments are checked against
 native identity supplied by the retained owner rather than by the incoming bytes.
 The common opaque-capability checks still apply. These are CPU conformance proofs;
 the firmware composition root does not yet install or advertise this network Base.
+
+`NetworkControlBack` supplies the finite credentials source and attachment-sign
+sink around the ordinary join Host Call Back. All three use the production
+scheduler's request/completion path; the source forwards the exact completed
+value reference. Private state advances only after transactional I/O commit in
+the new endpoints. No radio callback, credential policy or scheduler is hidden
+in these Backs. Numeric-kernel fixtures verify one request per operation, source
+closure, exact failure forwarding, and no join after missing/cancelled credentials.
+They do not establish a checked Plot installation or physical network effects.
