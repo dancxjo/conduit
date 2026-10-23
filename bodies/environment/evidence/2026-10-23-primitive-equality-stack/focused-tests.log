@@ -1,0 +1,24 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 11.61s
+     Running tests/prepared_expression_scratch_bounds.rs (target/debug/deps/prepared_expression_scratch_bounds-e9784b97ef2b41da)
+
+running 3 tests
+test bounded_identity_preserves_exact_wire_without_evaluation_allocations ... ok
+test construction_and_selection_can_exceed_the_admitted_input_envelope ... ok
+test seventy_two_packet_selection_reserves_input_bounded_scratch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/structured_expression_equality.rs (target/debug/deps/structured_expression_equality-efefc5e65848296b)
+
+running 6 tests
+test nested_quantity_equality_keeps_exact_unit_conversion_law ... ok
+test nested_records_compare_each_exact_member ... ok
+test vectors_compare_actual_length_order_and_exact_f32_members ... ok
+test malformed_structured_input_refuses_without_allocation ... ok
+test variants_compare_tags_and_ieee_bits_instead_of_float_arithmetic ... ok
+test foreign_operand_type_and_non_boolean_structured_comparison_refuse_before_play ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
