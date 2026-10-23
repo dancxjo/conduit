@@ -304,6 +304,7 @@ fn tensor(dimensions: u64) -> ModelTensorConstraint {
                 .expect("research embedding dimensions are positive"),
         }],
         dimensions * 8,
+        conduit_ai::ModelTensorNumericPolicy::Ieee,
     )
     .unwrap()
 }

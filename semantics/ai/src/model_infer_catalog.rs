@@ -92,6 +92,7 @@ pub fn model_infer_contract() -> Result<Kind, String> {
         )
         .map_err(|e| format!("signature axis: {e:?}"))?],
         4,
+        crate::ModelTensorNumericPolicy::Ieee,
     )
     .map_err(|e| format!("signature tensor: {e:?}"))?;
     let input = crate::ModelPortConstraint::from_parts(

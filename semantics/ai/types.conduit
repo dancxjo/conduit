@@ -155,10 +155,17 @@ type ModelAxisConstraint = {
 type ModelTensorElements = sequence TensorElement in 1..=8
 type ModelTensorAxes = sequence ModelAxisConstraint in 0..=8
 
+type ModelTensorNumericPolicy =
+    ieee
+    | finite_only
+
+form ai/model-tensor-numeric-policy = ModelTensorNumericPolicy as u8
+
 type ModelTensorConstraint = {
     elements: ModelTensorElements
     axes: ModelTensorAxes
     maximum_bytes: U64 in 1..=18446744073709551615
+    numeric_policy: ModelTensorNumericPolicy
 }
 
 type ModelValueConstraint =

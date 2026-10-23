@@ -24,6 +24,7 @@ fn constraint() -> ModelValueConstraint {
                 },
             ],
             64,
+            conduit_ai::ModelTensorNumericPolicy::Ieee,
         )
         .unwrap(),
     )

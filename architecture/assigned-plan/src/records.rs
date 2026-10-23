@@ -47,6 +47,15 @@ pub struct AssignedPlanRecords<'a> {
     cursor: usize,
 }
 impl<'a> AssignedPlanRecords<'a> {
+    // Shared decoder validates the full envelope before iteration. Record
+    // access remains checked; this does not manufacture an admitted view.
+    pub(crate) fn payload_records(bytes: &'a [u8]) -> Self {
+        Self {
+            bytes,
+            cursor: ASSIGNED_PLAN_HEADER_BYTES,
+        }
+    }
+
     pub fn new(bytes: &'a [u8]) -> Result<Self, AssignedPlanRefusal> {
         if bytes.len() < ASSIGNED_PLAN_HEADER_BYTES
             || usize::from(read_u16(bytes, 10)?) != bytes.len()

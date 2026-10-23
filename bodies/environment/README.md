@@ -120,6 +120,11 @@ structural inventory before table preparation; The explicit schema-5 kernel proj
 and pressure policies on the wire. The legacy schema-4 encoder and tiny-host
 admission remain unchanged; the kernel loader refuses that incomplete projection. It validates startup dependencies and prepares Backs in the assigned
 order. Record access shares the assigned format's bounds-checked reader.
+`AssignedKernelTables::prepare_records` accepts a canonical header with borrowed
+record payloads, using the same Core validator and the same table builder as the
+contiguous entrance. Both produce owned execution tables without allocation;
+borrowing records supplies no authority or resident provenance. The existing
+layout policy and schema eligibility remain unchanged.
 
 The host proof executes the decoded tables for all five sensor outcomes and
 checks equality with ordinary lowering. A replacement Boot produces a fresh Plan

@@ -337,7 +337,12 @@ fn validate_tensor(
             return Err(RelationRefusal::ShapeMismatch);
         }
     }
-    Ok(())
+    let inline = match &value.backing {
+        conduit_data::TensorBacking::Inline(payload) => Some(payload.as_slice()),
+        conduit_data::TensorBacking::Resource(_) => None,
+    };
+    crate::model_tensor_numeric::validate(constraint.numeric_policy, value.element, inline)
+        .map_err(|_| RelationRefusal::InvalidValue)
 }
 
 fn same_native_set(left: &[RelationVariableIdentity], right: &[RelationVariableIdentity]) -> bool {

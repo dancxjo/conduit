@@ -1,6 +1,6 @@
 # Membership encounter readiness budget (#6283)
 
-Accepted source `99dd81720a961598e2a1d453350153514770eb1b` failed
+Development source `99dd81720a961598e2a1d453350153514770eb1b` failed
 [Integration 39972384625](https://github.com/dancxjo/conduit/actions/runs/39972384625),
 browser job 120490238731. The last membership Host-loss case failed the local
 10-second durable-service readiness timer with empty output; the other 268
@@ -50,12 +50,19 @@ This was a repository evidence-format failure before browser execution, not a
 failed browser attempt. Full-delta whitespace validation is required before
 the successor Candidate; the focused fixture/product sources are unchanged.
 
+## Integration with native phase diagnostics
+
+This packet retains the independently measured fixture version and its original
+source/product hashes. The combined implementation in #6301 retains the same
+readiness correction together with shared pipe-close cleanup and the bounded
+[native startup phase diagnostic](native-startup-phases-20261023.md). Those
+additional diagnostics are not claimed for this packet's historical runs.
 
 ## Subsequent Candidate and integration handoff
 
 Candidate [39988912769](https://github.com/dancxjo/conduit/actions/runs/39988912769)
 completed successfully for the historical repair head, including the full browser
-suite. Its source and conclusion are retained in candidate-receipt.json.
+suite. Its source and conclusion are retained in [candidate-receipt.json](evidence/6283-membership-startup/candidate-receipt.json).
 This establishes Candidate eligibility, not accepted dev/stable Integration.
 
 [PR #6301](https://github.com/dancxjo/conduit/pull/6301) subsequently integrated
