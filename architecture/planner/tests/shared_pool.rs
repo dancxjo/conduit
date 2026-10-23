@@ -256,6 +256,7 @@ fn shared_pool_preserves_each_workers_selected_compute_entitlement() {
         class_id: ResourceClassId::from("resource/compute"),
         capacity_units: 8,
         compute: Some(ComputePoolContract {
+            protected_preemption: None,
             service_guarantee: ComputeServiceGuarantee::Reserved,
             architecture_base_id: ArchitectureBaseId::from("hosted/cpu"),
             architecture_base_kind: ArchitectureBaseKind::HostedOs,
