@@ -41,6 +41,23 @@ Birth a Body, then select directly from the active plots after automatic Wake/Pl
 Rebuild with `workshop` after source changes; `workshop-boot` verifies and boots
 the retained image without rebuilding it.
 
+### AArch64 firmware framebuffer (development)
+
+The optional AArch64 `virt` PROFILE renders a read-only Crèche snapshot through
+QEMU's firmware framebuffer. With the AArch64 image tools and matching QEMU UEFI
+firmware prepared:
+
+```sh
+cargo xtask make host build targets/conduitos/profiles/conduitos-aarch64-graphical.host.conduit --output target/host-build/aarch64-graphics
+cargo xtask make host verify target/host-build/aarch64-graphics --boot
+```
+
+Verification captures two fresh guests and stops them. This Host has no local
+keyboard or pointer provider; the canonical `live aarch64` selection remains the
+serial profile. See the [real frames and source/machine/refusal evidence](../../docs/proof/conduitos-aarch64-firmware-frame.md).
+The five-architecture comparison and persistent launcher remain tracked in
+[#6057](https://github.com/dancxjo/conduit/issues/6057).
+
 ### Prepare IA-32 UEFI firmware
 
 Before `cargo xtask make conduitos live-boot ia32 --locked`, prepare and

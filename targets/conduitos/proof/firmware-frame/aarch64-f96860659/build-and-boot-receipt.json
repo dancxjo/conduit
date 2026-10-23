@@ -1,0 +1,53 @@
+{
+  "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "status": "commands-passed-review-pending",
+  "started": 1792795883.6066077,
+  "commands": [
+    {
+      "name": "build",
+      "arguments": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-aarch64-graphical.host.conduit",
+        "--output",
+        "target/host-build/6057-aarch64-f96860659"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-aarch64/build.log",
+      "started": 1792795883.6334555,
+      "pid": 117993,
+      "exit_code": 0,
+      "finished": 1792796722.0885568,
+      "log_sha256": "1e1ba1edc16ce80a2d9214ed9cd801be2357b52ff371689d4b1b2dbdde2646ec"
+    },
+    {
+      "name": "boot",
+      "arguments": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "target/host-build/6057-aarch64-f96860659",
+        "--boot"
+      ],
+      "log": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/current-aarch64/boot.log",
+      "started": 1792796722.2876322,
+      "pid": 135384,
+      "exit_code": 0,
+      "finished": 1792796905.1603277,
+      "log_sha256": "d4d67c33913774560d07dfadfe182d4e8df1c36859f7d42d143bdffd662b8ebc"
+    }
+  ],
+  "accepted_release": false,
+  "finished": 1792796905.1628919,
+  "capture_directories": [
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796883864780448",
+    "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/conduitos/aarch64/aarch64-frame-137119-1792796894790246523"
+  ],
+  "clean_after": true,
+  "source_unchanged": true,
+  "product_directory": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-aarch64-f96860659"
+}

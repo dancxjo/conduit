@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `target/debug/conduit-xtask-dispatch make host verify target/host-build/6057-aarch64-f96860659 --boot`
+    Finished `dev` profile [unoptimized] target(s) in 0.20s
+     Running `target/debug/xtask make host verify target/host-build/6057-aarch64-f96860659 --boot`
+xtask error: ConduitOS proof refusal [firmware-frame-source-dirty]: commit or preserve source changes before retained graphical proof
