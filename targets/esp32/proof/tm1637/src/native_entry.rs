@@ -9,8 +9,8 @@ use esp_hal::{
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
     let p = esp_hal::init(esp_hal::Config::default().with_cpu_clock(CpuClock::max()));
-    esp_alloc::heap_allocator!(size: 96 * 1024);
-    esp_alloc::heap_allocator!(#[esp_hal::ram(reclaimed)] size: 88 * 1024);
+    esp_alloc::heap_allocator!(size: 64 * 1024);
+    crate::sdk_memory::initialize();
     let timer = TimerGroup::new(p.TIMG0);
     let interrupts = SoftwareInterruptControl::new(p.SW_INTERRUPT);
     esp_rtos::start(timer.timer0, interrupts.software_interrupt0);

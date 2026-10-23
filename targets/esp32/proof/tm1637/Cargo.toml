@@ -15,7 +15,7 @@ conduit-core = { path = "../../../../architecture/core", optional = true }
 serde-json-core = { version = "=0.6.0", optional = true }
 conduit-esp32-network-switch = { path = "../../network-switch", optional = true }
 conduit-net = { path = "../../../../semantics/net", optional = true }
-esp-radio = { version = "=0.18.0", features = ["wifi", "esp32", "unstable"], optional = true }
+esp-radio = { version = "=0.18.0", default-features = false, features = ["wifi", "esp32", "unstable"], optional = true }
 esp-rtos = { version = "=0.3.0", features = ["embassy", "esp-radio", "esp32"], optional = true }
 embassy-executor = { version = "=0.10.0", optional = true }
 embassy-time = { version = "=0.5.1", optional = true }
@@ -28,7 +28,7 @@ conduit-environment-runtime = { path = "../../../../bodies/environment/runtime",
 conduit-environment-http = { path = "../../../../bodies/environment/http", optional = true }
 conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
 conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
-esp-alloc = { version = "=0.10.0", features = ["esp32"], optional = true }
+esp-alloc = { version = "=0.10.0", default-features = false, features = ["esp32", "global-allocator"], optional = true }
 conduit-esp32-pulse-capture = { path = "../../pulse-capture", optional = true }
 conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", optional = true }
 conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }

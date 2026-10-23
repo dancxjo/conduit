@@ -103,14 +103,22 @@ The constructor's actual-resource and finite SDK admission requirements remain
 unchanged. Root still needs to admit those resources and install the selected
 control Play; compilation and strict linting establish no physical join proof.
 
-The pinned SDK's C allocation entrypoints (`malloc_internal`, `calloc_internal`
-and `realloc_internal`) forward to the configured `esp-alloc` heap and return a
-null pointer on exhaustion. The retained Root preparation ELF has exactly the
-96 KiB and 88 KiB heap backing symbols declared by its entry point, plus the
-single allocator object. This establishes the inspected allocation path and
-fixed arena extent, not a complete per-provider reservation or worst-case work
-bound. Root must still admit the whole native reservation and runtime storage
-before advertising the selected join provider.
+The native Root image now partitions the existing 184 KiB backing into a 64 KiB
+Root Rust heap and a private 120 KiB SDK C heap. Its `sdk_memory` boundary supplies
+the C allocation entrypoints with checked size arithmetic, zeroed calloc,
+payload-preserving realloc and null on exhaustion. SDK `InternalMemory` uses
+that same C boundary: the pinned radio's default allocator feature and
+`esp-alloc` compatibility exports are disabled. The SDK heap never falls back
+to the Root heap. The attended AP bench retains its prior shared arena.
+
+Before RTOS/radio startup, native Root exercises allocation, calloc zeroing,
+reallocation, overflow and exhaustion; it verifies live SDK allocation does not
+change Root usage and that releasing it restores the SDK pool. The physical
+[pool receipt](../../../bodies/environment/evidence/2026-10-23-esp32-sdk-pool/README.md)
+records four offers after actual DHCP/HTTP startup: 33,408/122,880 SDK bytes and
+5,200/65,536 Root bytes. This establishes the allocator boundary and initialization,
+not complete kernel/storage/work admission or physical joining. Root still
+needs to admit the complete selected provider before offering a join Base.
 
 SDK `OutOfMemory` now becomes `StationFailure::Pressure` during configuration,
 association or restoration, rather than being reported as provider loss. The

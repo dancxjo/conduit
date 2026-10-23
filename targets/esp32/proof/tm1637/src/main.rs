@@ -25,6 +25,8 @@ mod network;
 #[cfg(all(feature = "ap", not(feature = "native-root")))]
 mod network_entry;
 #[cfg(feature = "ap")]
+mod sdk_memory;
+#[cfg(feature = "ap")]
 mod services;
 // Reuse the existing allocation-free appliance service bench and DHCP grammar.
 #[cfg(all(feature = "capture", not(feature = "native-root")))]

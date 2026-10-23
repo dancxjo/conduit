@@ -46,12 +46,22 @@ async fn offer(
     output: &mut [u8],
 ) -> Result<(), ()> {
     let configuration = root.prepare_network_configuration();
+    let memory = crate::sdk_memory::stats();
+    let root_memory = esp_alloc::HEAP.stats();
+    let mut memory_json = heapless::String::<256>::new();
+    use core::fmt::Write;
+    write!(
+        memory_json,
+        "\",\"native_sdk_heap_bytes\":{},\"native_sdk_heap_used_bytes\":{},\"native_root_heap_bytes\":{},\"native_root_heap_used_bytes\":{},\"advertisement\":",
+        memory.size, memory.current_usage, root_memory.size, root_memory.current_usage
+    )
+    .map_err(|_| ())?;
     // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.
     let length = root.write_offer(output)?;
     with_timeout(Duration::from_secs(2), async {
         write_all(uart, PREFIX).await?;
         write_all(uart, configuration).await?;
-        write_all(uart, b"\",\"advertisement\":").await?;
+        write_all(uart, memory_json.as_bytes()).await?;
         write_all(uart, &output[..length]).await?;
         write_all(uart, b"}\n").await
     })
