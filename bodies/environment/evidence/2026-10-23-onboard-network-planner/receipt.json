@@ -1,0 +1,59 @@
+{
+  "source_commit": "254cc141fe90e54ff5a2341dadfd8b8d8bc4484d",
+  "firmware_sha256": "d0926e9939b8707cd816502a95ffa87fad505069fb1a3b7988003c6f1f6f7b49",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/f23d726384252c261dd180114eea1a1d",
+  "boot_current": false,
+  "prechecked_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+  "planner": "ordinary shared no_std preparation",
+  "planning_outcomes": [
+    "capability-unavailable",
+    "capability-unavailable",
+    "capability-unavailable",
+    "capability-unavailable"
+  ],
+  "root_used_bytes": [
+    9636,
+    9636,
+    9636,
+    9636
+  ],
+  "sdk_used_bytes": [
+    33408,
+    33408,
+    33408,
+    33408
+  ],
+  "body_installed": false,
+  "native_plan_installed": false,
+  "network_join_attempted": false,
+  "credential_submitted": false,
+  "validation": {
+    "cargo xtask prove environment native-construction": "11 tests passed, including missing capability/authority, stale Boot grants and fresh Plan identity probes",
+    "cargo xtask prove environment root-esp32": "passed",
+    "strict CPU and MCU clippy": "passed"
+  },
+  "restoration": {
+    "display_acks": 7,
+    "last_reading": {
+      "face_identity": "c540ff12933bfb4481bc7700898fde7204f6a81ff4f4b829bd2c6c04ffe4a2e7",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 69.08,
+      "relative_humidity_percent": 53,
+      "sampled_at_boot_ms": 15849,
+      "age_ms": 3211,
+      "ap_ready": true
+    }
+  },
+  "artifacts": {
+    "offers.json": "7f2db4290351dd16a7c4d367944edee7becff6870a30988e40870690ed6bb151",
+    "serial.log": "f2591fcd1a78893fb9eb0374f85b101c4821cdcf4c28de0bbe16a0315017b674",
+    "flash.log": "7b2d6b38318c4efa6314b8bd5971837664247838a14e67c5d8d674abbd97ec53",
+    "restore.log": "087798694b3e4982cf65d7f47e328f5229606b9c148fe1bd8556cca25204d057",
+    "restored-serial.log": "cffca03b20e57e0351d62272becf351fc5212ac7b3e1039239569dc6af876b94"
+  }
+}
