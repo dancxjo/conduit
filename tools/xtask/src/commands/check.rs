@@ -10,6 +10,8 @@ mod asr_common_language;
 mod canonical_export;
 #[path = "../suites/categorical_runtime.rs"]
 mod categorical_runtime;
+#[path = "../suites/committed_vocative.rs"]
+mod committed_vocative;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
 #[path = "../suites/expression_baseline.rs"]
@@ -30,6 +32,8 @@ mod parser_scorer;
 mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
+#[path = "../suites/privilege_inventory.rs"]
+mod privilege_inventory;
 #[path = "../suites/prosody_commitment.rs"]
 mod prosody_commitment;
 #[path = "../suites/record_pronunciation.rs"]
@@ -108,6 +112,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::CanonicalExport => run_suite(canonical_export::STEPS, &root, opts),
+        CheckSuite::PrivilegeInventory => run_suite(privilege_inventory::STEPS, &root, opts),
         CheckSuite::CategoricalRuntime => run_suite(categorical_runtime::STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::ModelNativeBacking => run_suite(model_native_backing::STEPS, &root, opts),
@@ -115,6 +120,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::AsrCommonLanguage => run_suite(asr_common_language::STEPS, &root, opts),
         CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
+        CheckSuite::CommittedVocative => run_suite(committed_vocative::STEPS, &root, opts),
         CheckSuite::RecordPronunciation => run_suite(record_pronunciation::STEPS, &root, opts),
         CheckSuite::ProsodyCommitment => run_suite(prosody_commitment::STEPS, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),

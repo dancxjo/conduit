@@ -1,0 +1,141 @@
+{
+  "observed_utc": "2026-10-23T15:47:39.032253+00:00",
+  "source": "e913761296b11efc776ef1060acb9e17560fc8a4",
+  "fresh_cli_sha256": "a19cfe5e51f0355e416e9ffec5bd739677439c3e306e53ad3b48170fcab3b779",
+  "fixture_source_hashes_verified": 8,
+  "phase_records": 32,
+  "native_prepared_ms": 4957.331,
+  "phases_by_duration": [
+    {
+      "phase": "catalogs",
+      "duration_ms": 3015.861
+    },
+    {
+      "phase": "birth-encounter",
+      "duration_ms": 1833.149
+    },
+    {
+      "phase": "host-construction",
+      "duration_ms": 87.447
+    },
+    {
+      "phase": "body-lock",
+      "duration_ms": 1.41
+    },
+    {
+      "phase": "boot-identity",
+      "duration_ms": 0.136
+    },
+    {
+      "phase": "ownership-selection",
+      "duration_ms": 0.129
+    },
+    {
+      "phase": "runtime-publication",
+      "duration_ms": 0.115
+    },
+    {
+      "phase": "service-lock",
+      "duration_ms": 0.091
+    },
+    {
+      "phase": "image-digest",
+      "duration_ms": 0.067
+    },
+    {
+      "phase": "installation",
+      "duration_ms": 0.065
+    },
+    {
+      "phase": "retained-recovery",
+      "duration_ms": 0.061
+    },
+    {
+      "phase": "retained-scan",
+      "duration_ms": 0.048
+    },
+    {
+      "phase": "runtime-state",
+      "duration_ms": 0.036
+    },
+    {
+      "phase": "equipment-selection",
+      "duration_ms": 0.033
+    },
+    {
+      "phase": "runtime-identity",
+      "duration_ms": 0.028
+    }
+  ],
+  "chromium_tests": 1,
+  "workers": 1,
+  "retries": 0,
+  "fixture_timeout_ms": 20000,
+  "encounter_elapsed_ms": 9086.238417,
+  "raw_log_sha256": "06db870e6ed15c0434b5c64b9bd12315244486c6159a87cad96961d668088927",
+  "staged_browser_product": "work/6267-review/target/workspace-product; retained historical assets, not rebuilt",
+  "boundary": "Internal one-case real Chromium diagnostic with fresh actual native CLI and retained browser assets, under concurrent host builds. Wall timings include scheduling/instrumentation; no CPU calibration, past CI-cause attribution, fresh full-product acceptance or issue closure claim.",
+  "retained_logs": [
+    {
+      "path": "6283-full-owning-node-controls.log.gz",
+      "raw_bytes": 3681,
+      "raw_sha256": "afed8637e6858ca6a31100789f2347c2147adb54c45fef5889218091a5a814d8"
+    },
+    {
+      "path": "6283-startup-cli-clean-head-control.log.gz",
+      "raw_bytes": 454,
+      "raw_sha256": "949f5f22534e2021646f3cdb8ef029334594a97b1187630cb29193a3e055912c"
+    },
+    {
+      "path": "6283-startup-cli-clippy.log.gz",
+      "raw_bytes": 15438,
+      "raw_sha256": "6c33648842699c22931be1bb7e303efbdd929b46fbc712e4df4e30a43d3f33ed"
+    },
+    {
+      "path": "6283-native-phases-chromium.log.gz",
+      "raw_bytes": 7358,
+      "raw_sha256": "06db870e6ed15c0434b5c64b9bd12315244486c6159a87cad96961d668088927"
+    },
+    {
+      "path": "6283-startup-cli-control.log.gz",
+      "raw_bytes": 16888,
+      "raw_sha256": "d9e7b74e5190bfe6d225b5eee30c1df086c7b4b79cb519cc2c2f2f9f45cdffdf"
+    }
+  ],
+  "validation": {
+    "node_controls": {
+      "passed": 40,
+      "failed": 0,
+      "ignored": 0,
+      "source_note": "Node/fixture blobs unchanged from36167dc71 through measured e913"
+    },
+    "actual_cli_control": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "clean_source": "e913761296b11efc776ef1060acb9e17560fc8a4"
+    },
+    "strict_clippy": {
+      "exit": 0,
+      "scope": "conduit bin and structured_diagnostics test target; -D warnings"
+    },
+    "fmt": {
+      "exit": 0,
+      "scope": "whole workspace"
+    },
+    "retained_negative": {
+      "exit": 101,
+      "reason": "Initial test module path missing; fixed with explicit path before qualified one-test and Clippy successes"
+    }
+  },
+  "source_sha256": {
+    "creche-rendezvous.spec.mjs": "4bcffe383bcbbb273bb96c7463fd9e8b900b7e518876de4fd4b41d84d04a9702",
+    "process-output.mjs": "64ef518caeebbb67235e47604653f11563d4008241b5d40acbc710132c69b84c",
+    "installed-host-encounter.mjs": "bfbbb3b5964d769718d8ea8d4c1e728087f0b5ee9368809415c0c3fd5a36c62e",
+    "process-stop.mjs": "65b68eefc5aa37e2991e21b32736b1b94c2416836e9b4fbe24f11eebfa130d34",
+    "native-startup-trace.mjs": "9300f3157e2522f70fe558b92d452e345ff598839e7fb33c6a3cbf715420aa50",
+    "../../products/conduit/src/durable_host.rs": "1f942b2065b7a78aa1a7099eef3c587bf0eb32d96318121d8f22193a38eb3121",
+    "../../products/conduit/src/durable_host/runtime_preparation.rs": "cc42144e731a84bcdebb0d9ad470300dbe2a7cb1515ca47c4706ad1d3941fa3b",
+    "../../products/conduit/src/durable_host/startup_trace.rs": "80c7171784dcfe26a4f7cce1816afa09b0e52ed59742dd198e5f470a0ee6e5a2"
+  }
+}

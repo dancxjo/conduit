@@ -6,12 +6,18 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { processOutput, preparationState } from "./process-output.mjs";
+import { stopProcess } from "./process-stop.mjs";
+import { recordNativeStartup } from "./native-startup-trace.mjs";
 import { prepareInstalledHostEncounter } from "./installed-host-encounter.mjs";
 import { openWorkspaceMachineRunner } from "./workspace-machine-test-actions.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 const fixtureSources = Object.fromEntries(await Promise.all([
   "creche-rendezvous.spec.mjs", "process-output.mjs", "installed-host-encounter.mjs",
+  "process-stop.mjs", "native-startup-trace.mjs",
+  "../../products/conduit/src/durable_host.rs",
+  "../../products/conduit/src/durable_host/runtime_preparation.rs",
+  "../../products/conduit/src/durable_host/startup_trace.rs",
 ].map(async name => [name, createHash("sha256")
   .update(await readFile(fileURLToPath(new URL(name, import.meta.url)))).digest("hex")])));
 let encounter;
@@ -36,6 +42,7 @@ test.afterEach(async ({}, testInfo) => {
   await testInfo.attach("encounter-preparation", { contentType: "application/json", path: diagnostics });
   const errors = results.filter(result => result.status === "rejected").map(result => result.reason);
   if (errors.length) throw new AggregateError([...(testInfo.error ? [testInfo.error] : []), ...errors], "Encounter cleanup failed");
+  if (!testInfo.error) expect(state.records.find(record => record.label === "native startup")?.outcome).toBe("prepared");
 });
 
 test("a rendezvous code admits one already-running raw Host through the web Crèche", async ({ page }) => {
@@ -124,9 +131,10 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
 async function startInstalledHost(state) {
   const root = fileURLToPath(new URL("../..", import.meta.url));
   const stateDir = await mkdtemp(join(tmpdir(), "conduit-creche-rendezvous-"));
-  let service;
+  let service, finishTrace;
   const close = state.own(async () => {
-    await stopProcess(service);
+    try { await stopProcess(service); }
+    finally { if (finishTrace) state.records.push(finishTrace()); }
     await rm(stateDir, { recursive: true, force: true });
   });
   try {
@@ -147,8 +155,10 @@ async function startInstalledHost(state) {
     state.check();
     service = spawn("target/debug/conduit", ["host", "service", "run", "--state-dir", stateDir], {
       cwd: root,
+      env: { ...process.env, CONDUIT_HOST_STARTUP_TRACE: "1" },
       stdio: ["ignore", "pipe", "pipe"],
     });
+    finishTrace = recordNativeStartup(service);
     await processOutput(service, / is running/, "durable host service", state);
     return { root, stateDir, close };
   } catch (error) {
@@ -156,24 +166,6 @@ async function startInstalledHost(state) {
     catch (cleanup) { throw new AggregateError([error, cleanup], "Host preparation and cleanup failed"); }
     throw error;
   }
-}
-
-function stopProcess(child) {
-  if (!child?.pid || child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const finish = error => {
-      clearTimeout(killTimeout);
-      clearTimeout(exitTimeout);
-      child.off("exit", onExit);
-      if (error) reject(error);
-      else resolve();
-    };
-    const onExit = () => finish();
-    const killTimeout = setTimeout(() => child.kill("SIGKILL"), 2_000);
-    const exitTimeout = setTimeout(() => finish(new Error("Host process did not exit during cleanup")), 5_000);
-    child.once("exit", onExit);
-    child.kill();
-  });
 }
 
 function rendezvousCode(child, state) {

@@ -1,0 +1,108 @@
+{
+  "source": "74bf191d84c1c15bad1e6f36479ac30294f0bd47",
+  "runner_pid": 2798450,
+  "status": "positive-complete-negative-pending",
+  "environment": {
+    "CARGO_TARGET_DIR": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CONDUIT_CONDUITOS_TARGET_ROOT": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/native"
+  },
+  "disk_floor_bytes": 6442450944,
+  "preflight_free_bytes": 17974472704,
+  "steps": [
+    {
+      "name": "focused-contracts",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "privilege-inventory"
+      ],
+      "started": 1792763306.738081,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/focused-contracts.log",
+      "attempt": 1,
+      "status": "passed",
+      "pid": 2798497,
+      "exit_code": 0,
+      "seconds": 348.03870368003845,
+      "sha256": "becbd467a22e2a0e53745bd40895e1031a66c0667e6c9b84afc3995c4dbb6dcd"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started": 1792763654.7773414,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/strict-clippy.log",
+      "attempt": 1,
+      "status": "passed",
+      "pid": 2812684,
+      "exit_code": 0,
+      "seconds": 250.0353262424469,
+      "sha256": "c65ece58c13bf13bc2ae6bcc58bbaf86dab358933487fc190d74efe84594ae04"
+    },
+    {
+      "name": "normal-product-build",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "host",
+        "build",
+        "targets/conduitos/profiles/conduitos-native.host.conduit",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/product",
+        "--locked"
+      ],
+      "started": 1792763904.813562,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/normal-product-build.log",
+      "attempt": 1,
+      "status": "passed",
+      "pid": 2821887,
+      "exit_code": 0,
+      "seconds": 1616.1752345561981,
+      "sha256": "f9a0c6c8c3098ab1d0fb1a9254fab45a5419df0f8aef7e30b759d44c5d0063bd"
+    },
+    {
+      "name": "positive-verifier",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "verify-privilege-inventory",
+        "--build-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/product",
+        "--inventory-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/native/x86_64",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/verified-inventory.json"
+      ],
+      "started": 1792765520.9912546,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/positive-verifier.log",
+      "attempt": 1,
+      "status": "passed",
+      "pid": 2854449,
+      "exit_code": 0,
+      "seconds": 4.0095884799957275,
+      "sha256": "78381a4019b12c3fa8e8223fe15e4052ac7d584a3e62d1050fb01c3e9bd98816"
+    }
+  ],
+  "proof_class": "source/dependency/linked-image production inventory; no QEMU or isolation execution claim",
+  "clean_after": true
+}

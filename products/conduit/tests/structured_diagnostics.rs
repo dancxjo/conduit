@@ -198,3 +198,6 @@ fn authored_ipa_context_passes_public_check_for_both_branches() {
         fs::remove_file(path).unwrap();
     }
 }
+
+#[path = "structured_diagnostics/startup.rs"]
+mod startup;

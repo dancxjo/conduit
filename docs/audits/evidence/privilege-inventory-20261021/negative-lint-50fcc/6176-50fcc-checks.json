@@ -1,0 +1,37 @@
+{
+  "source_commit": "50fcc74e8b8872f9d7afd49df9482a4d98782916",
+  "steps": [
+    {
+      "name": "focused-tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "check",
+        "privilege-inventory"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 231.43930639702012,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-50fcc-focused-tests.log"
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "xtask",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 170.83929894701578,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-50fcc-strict-clippy.log"
+    }
+  ],
+  "status": "failed"
+}

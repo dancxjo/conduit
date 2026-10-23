@@ -1,0 +1,29 @@
+# Current graphical privilege inventory verification
+
+Clean source `f39e81d2c79a45f460956f4c07cd26286f36f70d` passed the supported `cargo +stable xtask check privilege-inventory` entrance: nine tests, zero failures or ignores. The normal graphical Host build used `targets/conduitos/profiles/conduitos-native.host.conduit`, not an architecture proof appliance. Its ISO SHA256 is `0d8078aca89127c63ff654cdcda20adb26418341ad1794db957a2754f7f6810c`; its kernel SHA256 is `c45a6f8fec566b0a9d7f2859265b7619cdb17cf3681ef6309ca03697f26ba2ae`.
+
+The supported verifier recomputed the locked target-specific dependency closure at that matching clean checkout, checked the reviewed source responsibilities, associated the retained map with every actual Root ELF output section, and accepted the exact product inventory. A second invocation substituted an unrelated map while updating its hash and responsibility counts consistently. It refused before creating a verification receipt. [Receipt and original positive/negative logs](evidence/privilege-inventory-20261021/) retain their original source identity; this documentation successor does not relabel them.
+
+The complete kernel/ISO/build manifest and original map remain in the issue-sweep workspace's `work/6176-current-graphical-build` and `work/6176-current-verification`; large binaries and the 21 MiB map are not duplicated in Git. The receipt retains their identity observations and the original map digest. The logs are retained as lossless gzip files; `raw-log-sha256.json` records their original byte hashes. `SHA256SUMS` covers the small retained files.
+
+This proves exact source/dependency/linked-image association, not a computed exhaustive call graph, independently authenticated linker invocation, installed page mappings or executed service confinement. Runtime, physical and DMA isolation claims remain false. No VM was used for this inventory audit. Reviewed merge and current-source CI are still required for #6176; this does not close #6175 or #6177.
+
+The refreshed clean `50fcc74e8` source passed all nine focused tests but stopped at strict all-target Clippy before format/build/verifier work. [Exact negative receipt](evidence/privilege-inventory-20261021/negative-lint-50fcc/) preserves this boundary. A subsequent test-module ordering correction changes no verifier semantics; fresh artifact proof remains required.
+
+## Refreshed accepted-dev source
+
+Clean `803526c84e853f4a1bd122c969b1704aa45d0ad0`, including accepted dev `84dac6d02`, passed all nine supported inventory tests, strict xtask all-target Clippy, workspace formatting, actual normal graphical Host build and exact-artifact verification. A resealed unrelated map with consistently updated hash/count metadata refused at actual ELF output-section association before receipt creation. [Current receipt, commands and raw logs](evidence/privilege-inventory-20261021/current-803526c84/) retain ELF `451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce` and ISO `3304e75a3f2ff4804176b6773d28503075e8c937b9eaa0b2c1fc072d5ba688a0` identities. Source remained clean/unchanged throughout. Earlier f39 success and 50fcc lint refusal remain independent historical records; no VM or runtime isolation claim follows from this build inventory.
+
+## Current delivery preparation
+
+The inventory tooling and architecture contract are recovered onto accepted dev
+`c9d114052441930064e524ead18dd1136183068b` through the explicit #6176 ownership
+handoff. This recovery preserves current command registrations, build routing
+and product source; it does not absorb the stale branch. The historical packets
+above retain their original measured sources.
+
+Fresh focused inventory checks, a clean current-source graphical product build,
+exact-artifact verification and the self-consistent foreign-map refusal are
+still required before claiming current-source acceptance. Normal review, merge
+and relevant accepted checks remain outstanding. This preparation runs no VM
+and establishes no service, hardware, physical or DMA isolation.

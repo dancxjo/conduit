@@ -1,0 +1,152 @@
+{
+  "measured_source": "74bf191d84c1c15bad1e6f36479ac30294f0bd47",
+  "documentary_files": [
+    {
+      "original": "cross-target-cache-cleanup.json",
+      "raw_sha256": "3224e34ab2d9ff906a2b40cd9eb1903eac637e5657863fc3ee226f06b3b07531",
+      "packet_path": "cross-target-cache-cleanup.json"
+    },
+    {
+      "original": "cross-target-cache-inventory.json",
+      "raw_sha256": "ff4a42cb3166f13fda8c27d54f920b9437478b42c83ade675c1f09fb3941e9ef",
+      "packet_path": "cross-target-cache-inventory.json"
+    },
+    {
+      "original": "focused-contracts.log",
+      "raw_sha256": "becbd467a22e2a0e53745bd40895e1031a66c0667e6c9b84afc3995c4dbb6dcd",
+      "packet_path": "focused-contracts.log.gz"
+    },
+    {
+      "original": "focused-executable-custody.json",
+      "raw_sha256": "1bc5c16462fc703e6ac618c8076c8d24f68e4695ba94e566a2d67ff10eca7de9",
+      "packet_path": "focused-executable-custody.json"
+    },
+    {
+      "original": "foreign-map-negative.json",
+      "raw_sha256": "1533e69b62796ba3a3020a8175d2023e5503bbc4b546f3e47e8ac2c876bbb313",
+      "packet_path": "foreign-map-negative.json"
+    },
+    {
+      "original": "foreign-map-negative.log",
+      "raw_sha256": "7d46700d0bc3b5dac44c24bb9fae8ee1e98778f22b7b9f4cf9a1d8702da6ffef",
+      "packet_path": "foreign-map-negative.log.gz"
+    },
+    {
+      "original": "native/x86_64/build.json",
+      "raw_sha256": "7adbe12784cd3f7e48977f997657464090f7ca5b1b1c27318bb1e0f7a9c83088",
+      "packet_path": "native/x86_64/build.json"
+    },
+    {
+      "original": "native/x86_64/image.json",
+      "raw_sha256": "33fb816027c3ffba960c33ae1381132b1a7001bd10386726ca61839e8b118aac",
+      "packet_path": "native/x86_64/image.json"
+    },
+    {
+      "original": "native/x86_64/iso-root/boot/conduit-build.json",
+      "raw_sha256": "6b18517730b1260bb82486f2a0953cc74b12994596864bab7ce18bb1cf56e259",
+      "packet_path": "native/x86_64/iso-root/boot/conduit-build.json"
+    },
+    {
+      "original": "native/x86_64/iso-root/limine.conf",
+      "raw_sha256": "46c800a13fc75d7f9bde25c18dc6f2c29814f7e3f5ce24ad624fae12400dd9b8",
+      "packet_path": "native/x86_64/iso-root/limine.conf"
+    },
+    {
+      "original": "native/x86_64/make-record.rs",
+      "raw_sha256": "27daf2cf2e7ad00a065d112eff660b4f0f85f48df40d1cae3c0679a82622bb8a",
+      "packet_path": "native/x86_64/make-record.rs"
+    },
+    {
+      "original": "native/x86_64/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json",
+      "raw_sha256": "ff5d9381ae171b96b1bccdd69c480a8d3fc3887659d5615185cfcf29c2e46371",
+      "packet_path": "native/x86_64/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json"
+    },
+    {
+      "original": "native/x86_64/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map",
+      "raw_sha256": "1c48ac11a027724a281c67e832470d6ddd0c536b0688f9f08e3d9f809a86cd27",
+      "packet_path": "native/x86_64/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map.gz"
+    },
+    {
+      "original": "negative-foreign-map/build.json",
+      "raw_sha256": "7adbe12784cd3f7e48977f997657464090f7ca5b1b1c27318bb1e0f7a9c83088",
+      "packet_path": "negative-foreign-map/build.json"
+    },
+    {
+      "original": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json",
+      "raw_sha256": "836b960e0e752d0690dc37275d3115245f3c579288ee8166248fd1bd19315f9d",
+      "packet_path": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json"
+    },
+    {
+      "original": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map",
+      "raw_sha256": "16d4d0ba88fade137a71475f60bc93a075e6ada8857ef78dd23b2aff5c1112bc",
+      "packet_path": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map.gz"
+    },
+    {
+      "original": "normal-product-build.log",
+      "raw_sha256": "f9a0c6c8c3098ab1d0fb1a9254fab45a5419df0f8aef7e30b759d44c5d0063bd",
+      "packet_path": "normal-product-build.log.gz"
+    },
+    {
+      "original": "positive-verifier.log",
+      "raw_sha256": "78381a4019b12c3fa8e8223fe15e4052ac7d584a3e62d1050fb01c3e9bd98816",
+      "packet_path": "positive-verifier.log.gz"
+    },
+    {
+      "original": "product/build-manifest.json",
+      "raw_sha256": "54b74273e6288fde8c37a2e07f3f8472636ffb0595b5be4cd7c2cbcd65cedffc",
+      "packet_path": "product/build-manifest.json"
+    },
+    {
+      "original": "product/resolved-image.json",
+      "raw_sha256": "6b18517730b1260bb82486f2a0953cc74b12994596864bab7ce18bb1cf56e259",
+      "packet_path": "product/resolved-image.json"
+    },
+    {
+      "original": "run.json",
+      "raw_sha256": "56f229ba4cf17b79629ab55ab399fb00a5e3a4cb6a6cd2e7c8f679876e8ae2dd",
+      "packet_path": "run.json"
+    },
+    {
+      "original": "source-objects.json",
+      "raw_sha256": "8d2dbeeb6fc9187a5818245fd02193f326b4e97d0f81bc20ea855abd6dcea978",
+      "packet_path": "source-objects.json"
+    },
+    {
+      "original": "strict-clippy.log",
+      "raw_sha256": "c65ece58c13bf13bc2ae6bcc58bbaf86dab358933487fc190d74efe84594ae04",
+      "packet_path": "strict-clippy.log.gz"
+    },
+    {
+      "original": "verified-inventory.json",
+      "raw_sha256": "d63ebda1ae28909110fa0506587fb632b748e1d4ed57a1b5ba2cca346bbbfe65",
+      "packet_path": "verified-inventory.json"
+    },
+    {
+      "original": "workspace-format-check.json",
+      "raw_sha256": "f9bc75dadf207f60c175c259f433532f5e32e12f528fd47fd14095f7c7d1c6bf",
+      "packet_path": "workspace-format-check.json"
+    },
+    {
+      "original": "workspace-format-check.log",
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "packet_path": "workspace-format-check.log.gz"
+    },
+    {
+      "original": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json",
+      "raw_sha256": "836b960e0e752d0690dc37275d3115245f3c579288ee8166248fd1bd19315f9d",
+      "packet_path": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.json"
+    },
+    {
+      "original": "negative-foreign-map/build.json",
+      "raw_sha256": "7adbe12784cd3f7e48977f997657464090f7ca5b1b1c27318bb1e0f7a9c83088",
+      "packet_path": "negative-foreign-map/build.json"
+    },
+    {
+      "original": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map",
+      "raw_sha256": "16d4d0ba88fade137a71475f60bc93a075e6ada8857ef78dd23b2aff5c1112bc",
+      "packet_path": "negative-foreign-map/privilege-inventory-06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3-product-host.map.gz"
+    }
+  ],
+  "binary_custody": "Actual ELF/ISO/test executable remain externally at unchanged paths in original seal; not stored in Git",
+  "limits": "No runtime/VM/physical/DMA confinement or accepted CI/publication claim"
+}
