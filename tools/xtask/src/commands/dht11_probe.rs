@@ -57,6 +57,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "--test",
                     "network_assignment",
                     "--test",
+                    "selected_port_shapes",
+                    "--test",
                     "network_play",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),

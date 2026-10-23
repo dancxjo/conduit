@@ -85,12 +85,11 @@ pub fn bind_selected_assigned_operation_for_subject(
     {
         return Err(wrong());
     }
-    let [input] = definition.kind.inputs.as_slice() else {
+    if definition.kind.inputs.len() > 1 || definition.kind.outputs.len() > 1 {
         return Err(wrong());
-    };
-    let [output] = definition.kind.outputs.as_slice() else {
-        return Err(wrong());
-    };
+    }
+    let input = definition.kind.inputs.first();
+    let output = definition.kind.outputs.first();
     let mut nodes = 0;
     let mut inputs = 0;
     let mut outputs = 0;
@@ -130,7 +129,8 @@ pub fn bind_selected_assigned_operation_for_subject(
                         output
                     }
                     _ => return Err(wrong()),
-                };
+                }
+                .ok_or_else(wrong)?;
                 if u16_at(data, 2)? != PortId(0).0
                     || identity(data, 5)? != id(expected.port_id.as_str())
                     || identity(data, 21)? != id(expected.value_kind.as_str())
@@ -157,7 +157,15 @@ pub fn bind_selected_assigned_operation_for_subject(
             _ => {}
         }
     }
-    if (nodes, inputs, outputs, calls, resources) != (1, 1, 1, 1, 1) {
+    if (nodes, inputs, outputs, calls, resources)
+        != (
+            1,
+            definition.kind.inputs.len(),
+            definition.kind.outputs.len(),
+            1,
+            1,
+        )
+    {
         return Err(wrong());
     }
     let b = binding.ok_or_else(wrong)?;

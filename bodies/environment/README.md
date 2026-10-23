@@ -642,3 +642,11 @@ round-trip through the existing chunk reader without execution allocation;
 wrong-channel Types and zero sequences refuse without adding records. The caller
 must supply actual producer sample time and retain the selected producer context.
 This component owns no transport, durable storage or acknowledgement.
+
+The shared selected-operation binders now accept exact zero-or-one input/output
+shapes, permitting a credential source or an attachment sink without inventing
+an unused Plot port. Rich and ordinary native-assigned projections agree for all
+four shapes and reject extra ports or a substituted trusted shape. Existing
+Host Call bounds, Base possession, current identities, resources and authority
+checks remain required. This enables endpoint binding; it does not initialize
+a private credential Base or install the physical network control Play.

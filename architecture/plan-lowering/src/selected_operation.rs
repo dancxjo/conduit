@@ -150,12 +150,24 @@ pub fn bind_selected_operation_for_subject(
             .identity
             .placements
             .contains(&(node.node, placement_id.clone()))
-        || node.inputs.len() != 1
-        || node.outputs.len() != 1
-        || node.inputs[0].port != PortId(0)
-        || node.outputs[0].port != PortId(0)
-        || node.inputs[0].value_kind != expected.inputs[0].value_kind
-        || node.outputs[0].value_kind != expected.outputs[0].value_kind
+        || expected.inputs.len() > 1
+        || expected.outputs.len() > 1
+        || node.inputs.len() != expected.inputs.len()
+        || node.outputs.len() != expected.outputs.len()
+        || node
+            .inputs
+            .iter()
+            .zip(&expected.inputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
+        || node
+            .outputs
+            .iter()
+            .zip(&expected.outputs)
+            .any(|(port, expected)| {
+                port.port != PortId(0) || port.value_kind != expected.value_kind
+            })
     {
         return Err(SelectedCallRefusal::WrongBinding);
     }
