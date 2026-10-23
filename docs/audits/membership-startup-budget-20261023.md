@@ -57,3 +57,18 @@ source/product hashes. The combined implementation in #6301 retains the same
 readiness correction together with shared pipe-close cleanup and the bounded
 [native startup phase diagnostic](native-startup-phases-20261023.md). Those
 additional diagnostics are not claimed for this packet's historical runs.
+
+## Subsequent Candidate and integration handoff
+
+Candidate [39988912769](https://github.com/dancxjo/conduit/actions/runs/39988912769)
+completed successfully for the historical repair head, including the full browser
+suite. Its source and conclusion are retained in [candidate-receipt.json](evidence/6283-membership-startup/candidate-receipt.json).
+This establishes Candidate eligibility, not accepted dev/stable Integration.
+
+[PR #6301](https://github.com/dancxjo/conduit/pull/6301) subsequently integrated
+an equivalent membership budget repair with shared process cleanup and native
+startup tracing into dev. Its review explicitly requested preservation of these
+eight historical evidence/documentation files in a small follow-up. This follow-up
+retains that history and the source boundaries above; the current fixture remains
+the implementation integrated through #6301. PR #6300's competing fixture change
+is superseded. Issue #6283's accepted Integration obligation remains separate.
