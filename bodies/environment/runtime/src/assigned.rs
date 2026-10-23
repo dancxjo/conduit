@@ -3,9 +3,11 @@
 //! This preparation step neither authorizes effects nor admits evaluator storage.
 use conduit_core as c;
 use conduit_kernel as k;
+mod record_input;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
+use record_input::RecordInput;
 
 pub struct ResidentLayout<'a> {
     pub records: &'a [c::AssignedRecordRequirement],
@@ -63,15 +65,47 @@ impl<
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
     ) -> Result<Self, AssignedKernelRefusal> {
+        Self::prepare_input(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+        )
+    }
+    /// Admit borrowed canonical records through the same validator and table
+    /// builder. The layout and computation inventory remain independently trusted.
+    pub fn prepare_records(
+        header: &[u8],
+        records: &[c::AssignedRecord<'_>],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
+        Self::prepare_input(
+            RecordInput::Records { header, records },
+            maxima,
+            required,
+            computations,
+            layout,
+        )
+    }
+    fn prepare_input(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
         if !matches!(
-            u16_at(bytes, 8)?,
+            u16_at(input.header(), 8)?,
             c::ASSIGNED_KERNEL_PLAN_SCHEMA | c::ASSIGNED_NATIVE_PLAN_SCHEMA
         ) {
             return Err(E::Unsupported);
         }
-        let identity =
-            c::decode_assigned_plan_with_computations(bytes, maxima, required, computations)?;
+        let identity = input.decode(maxima, required, computations)?;
         if N == 0
             || N > usize::from(u16::MAX)
             || P == 0
@@ -85,7 +119,7 @@ impl<
         if identity.counts[9] != 0 || identity.counts[12] != 0 {
             return Err(E::Unsupported);
         }
-        validate_layout(bytes, layout)?;
+        validate_layout(input, layout)?;
         let mut nodes = [NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
@@ -105,7 +139,7 @@ impl<
         let mut startup_order = [k::NodeId(u16::MAX); N];
         let mut startup_positions = [usize::MAX; N];
         let mut startup_count = 0;
-        for record in c::AssignedPlanRecords::new(bytes)? {
+        for record in input.records()? {
             let record = record?;
             let data = record.payload;
             match record.tag {
@@ -227,7 +261,7 @@ impl<
         if startup_count != N {
             return Err(E::Layout);
         }
-        for record in c::AssignedPlanRecords::new(bytes)? {
+        for record in input.records()? {
             let record = record?;
             if record.tag == c::ASSIGNED_STARTUP && record.payload[0] == 0 {
                 let before = usize::from(u16_at(record.payload, 1)?);
@@ -278,13 +312,16 @@ impl<
         &self.startup_order
     }
 }
-fn validate_layout(bytes: &[u8], layout: &ResidentLayout<'_>) -> Result<(), AssignedKernelRefusal> {
+fn validate_layout(
+    input: RecordInput<'_>,
+    layout: &ResidentLayout<'_>,
+) -> Result<(), AssignedKernelRefusal> {
     use AssignedKernelRefusal as E;
     if layout.records.len() > 256 {
         return Err(E::Capacity);
     }
     let mut seen = [false; 256];
-    for record in c::AssignedPlanRecords::new(bytes)? {
+    for record in input.records()? {
         let record = record?;
         if matches!(
             record.tag,
@@ -292,7 +329,8 @@ fn validate_layout(bytes: &[u8], layout: &ResidentLayout<'_>) -> Result<(), Assi
         ) {
             continue;
         }
-        let expected = c::AssignedRecordRequirement::from_kernel_record(record, u16_at(bytes, 8)?);
+        let expected =
+            c::AssignedRecordRequirement::from_kernel_record(record, u16_at(input.header(), 8)?);
         let index = layout
             .records
             .iter()

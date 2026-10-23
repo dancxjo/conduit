@@ -1,5 +1,7 @@
 //! Real Source computations cross bounded allocation-free assignment admission.
 use conduit_core::*;
+#[path = "borrowed_tables.rs"]
+mod borrowed_tables;
 use conduit_embedded_build::{
     assigned_computation_requirements, encode_assigned_plan, GeneratedEmbeddedPlan,
 };
@@ -91,6 +93,7 @@ pub fn prepare_from_resident<
     });
     assert_eq!((allocated.allocations, allocated.reallocations), (0, 0));
     assert_eq!(tables.identity, view);
+    let tables = borrowed_tables::check(&encoded, maxima, required, profile, &layout, &tables);
     if !check_refusals {
         return tables;
     }
