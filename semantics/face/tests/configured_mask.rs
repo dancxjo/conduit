@@ -236,6 +236,11 @@ fn exact_source_and_selected_plan_bind_renderer_configuration() {
         &kind_id("test/configured-renderer"),
     )
     .unwrap();
+    assert!(prepared.layout.is_none());
+    assert!(serde_json::to_value(prepared.configuration())
+        .unwrap()
+        .get("layout")
+        .is_none());
     assert_eq!(
         prepared.component.checked_plot_id,
         checked

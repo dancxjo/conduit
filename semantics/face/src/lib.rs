@@ -259,6 +259,8 @@ mod configured_mask;
 pub use configured_mask::*;
 mod visual_expression_info;
 pub use visual_expression_info::*;
+mod component_layout_contract;
+pub use component_layout_contract::*;
 mod component_layout;
 pub use component_layout::*;
 pub use generated::{

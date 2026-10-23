@@ -122,7 +122,39 @@ pub(super) fn prepare_component_document(
     root: &str,
     profile: NativeMaskStorageProfile,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    profile.admit_host(host, "renderer-conduitos-component")?;
+    prepare_renderer_document(
+        host,
+        source,
+        root,
+        profile,
+        RendererContract {
+            component: component_mask_kind(profile.bytes()),
+            renderer: configured_resource_renderer_kind_for_profile(profile),
+            kind_name: NATIVE_COMPONENT_RENDERER_KIND,
+            back_source: BACK_SOURCE,
+            back_root: "native-component-back",
+            capability: "renderer-conduitos-component",
+        },
+    )
+}
+
+pub(super) struct RendererContract {
+    pub component: Kind,
+    pub renderer: Kind,
+    pub kind_name: &'static str,
+    pub back_source: &'static str,
+    pub back_root: &'static str,
+    pub capability: &'static str,
+}
+
+pub(super) fn prepare_renderer_document(
+    host: &HostAdvertisement,
+    source: &str,
+    root: &str,
+    profile: NativeMaskStorageProfile,
+    contract: RendererContract,
+) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
+    profile.admit_host(host, contract.capability)?;
     let mut catalog = ProfileCatalog::new();
     for projection in [
         face_interaction_kind_projection(),
@@ -134,8 +166,8 @@ pub(super) fn prepare_component_document(
     }
     for kind in [
         show_resource_source_kind(),
-        configured_resource_renderer_kind_for_profile(profile),
-        component_mask_kind(profile.bytes()),
+        contract.renderer,
+        contract.component.clone(),
     ] {
         catalog
             .insert_kind(kind)
@@ -157,15 +189,30 @@ pub(super) fn prepare_component_document(
             .ensure_structured_type(profile.value_kind().as_str(), schema)
             .map_err(|_| MaskOfferError::InvalidPlan)?;
     }
-    let back = check_syntax_document(&parse_syntax_document(BACK_SOURCE), &startup)
+    if contract
+        .component
+        .configuration
+        .iter()
+        .any(|field| field.key == "layout")
+    {
+        let schema = component_layout_type();
+        let value_kind = schema
+            .profile()
+            .map_err(|_| MaskOfferError::InvalidPlan)?
+            .value_kind()
+            .clone();
+        startup
+            .insert_structured_type("ComponentLayoutInfo", schema.clone())
+            .map_err(|_| MaskOfferError::InvalidPlan)?;
+        startup
+            .ensure_structured_type(value_kind.as_str(), schema)
+            .map_err(|_| MaskOfferError::InvalidPlan)?;
+    }
+    let back = check_syntax_document(&parse_syntax_document(contract.back_source), &startup)
         .map_err(|_| MaskOfferError::InvalidPlan)?;
     let mut backs = CanonicalBackCatalog::new();
     backs
-        .insert(
-            &component_mask_kind(profile.bytes()),
-            &back,
-            "native-component-back",
-        )
+        .insert(&contract.component, &back, contract.back_root)
         .map_err(|_| MaskOfferError::InvalidPlan)?;
     let document = check_syntax_document(&parse_syntax_document(source), &startup)
         .map_err(|_| MaskOfferError::InvalidPlan)?;
@@ -206,7 +253,7 @@ pub(super) fn prepare_component_document(
         &present_authority_requirement(kind_id("face/base/conduitos-surface@1")),
         host.host_id.clone(),
         host.boot_id.clone(),
-        CapabilityId::from("renderer-conduitos-component"),
+        CapabilityId::from(contract.capability),
     )];
     let bases = [BaseImplementationId::from("conduit.base/local@1")];
     let options = || PlanningOptions {
@@ -241,7 +288,7 @@ pub(super) fn prepare_component_document(
             options: options(),
             boundary_limits: &boundaries,
         },
-        &kind_id(NATIVE_COMPONENT_RENDERER_KIND),
+        &kind_id(contract.kind_name),
     )
     .map_err(|_| MaskOfferError::InvalidPlan)?;
     let configuration = prepared.configuration();

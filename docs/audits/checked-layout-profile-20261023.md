@@ -86,3 +86,39 @@ Compressed `native-intrinsic-tests.log.gz` and `native-intrinsic-clippy.log.gz`
 retain those results. This is CPU evidence, not a new
 QEMU or browser run. The remaining native consumer must still admit the new
 profile explicitly and implement bounded measurement, arrangement and continuation.
+
+## Versioned admission and source custody
+
+`layout_component_mask_kind` retains the ordinary component Kind identity with
+explicit contract revision `conduit.face/component-mask@3` and a required typed
+layout startup value. The version-two constructor and sources remain unchanged.
+Selected configuration retains an optional layout; absent layout is omitted
+from serialized version-two records, as checked by compatibility tests.
+
+Preparation authenticates the selected renderer's declaration, Type and concrete
+configuration. Recipe and layout must both originate as literals in the same
+checked component invocation, then pass unchanged through the exact authenticated
+Back expansion path. Sibling literals, outer substitutions, equal-byte parameter
+substitutions, altered expression forwarding and missing required layout refuse.
+This is custody of configuration, not a renderer acknowledgement.
+
+Twenty-four focused Face tests pass, including six new custody cases. The
+native offer package's eight tests pass, including the unchanged selected
+version-two paths, both existing storage profiles, and version-three planning
+with the reviewed Crèche and unrelated Todo sources. An old native offer cannot
+be relabelled to satisfy the distinct layout renderer contract.
+
+The new native selected-Back fixture is explicitly `cfg(test)`: ordinary Host
+advertisements do not offer it and production does not select it yet. This
+prevents preparation proof from advertising an unfinished renderer. Real-source
+single-column and wide/narrow alternatives preserve the existing region bindings;
+their native measurement, geometry, continuation and input proof remain required.
+Current authored invocation syntax uses one physical line; an initial multiline
+literal was rejected and corrected without changing the parser.
+
+Configuration preparation moved unchanged out of the native Mask facade into
+`native_face_mask/configured.rs` before adding a consumer. Twenty-one existing
+native Mask tests and strict native all-target Clippy pass. A first native
+compile found an older generated Face output in the shared cross-worktree cache;
+forcing the current build script to regenerate its output corrected that local
+cache state. The failed diagnostics and positive results are retained separately.

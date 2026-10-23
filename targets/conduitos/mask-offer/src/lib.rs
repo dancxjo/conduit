@@ -28,8 +28,12 @@ use conduit_plot::{
 };
 
 mod configured;
+#[cfg(test)]
+mod layout_configured;
 mod storage_profile;
 pub use configured::*;
+#[cfg(test)]
+pub use layout_configured::*;
 pub use storage_profile::*;
 
 pub const MASK_BYTES: usize = 48 * 1024;
