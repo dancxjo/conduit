@@ -3,7 +3,7 @@ use crate::{
     MAX_BLOB,
     data::{self, Command, Refusal, Reply},
     models::{Builder, Models},
-    wire::{Request, Response},
+    wire::{GraphPhase, Request, Response},
 };
 use alloc::vec::Vec;
 #[derive(Default)]
@@ -21,8 +21,16 @@ pub struct State {
     read: usize,
 }
 enum GraphReply {
-    Serialize(u8),
-    Validate(usize),
+    Serialize {
+        slot: u8,
+        turn: u32,
+        encoding: data::GraphEncoding,
+    },
+    Validate {
+        length: usize,
+        turn: u32,
+        validation: data::GraphValidation,
+    },
     Pack(data::GraphPacking),
 }
 impl State {
@@ -53,7 +61,9 @@ impl State {
         if self.graph_reply.is_some()
             && !matches!(
                 request,
-                Request::GraphSerialize | Request::GraphValidate | Request::GraphPack { .. }
+                Request::GraphSerialize { .. }
+                    | Request::GraphValidate { .. }
+                    | Request::GraphPack { .. }
             )
         {
             return Err(Refusal::Order);
@@ -156,7 +166,11 @@ impl State {
                     if self.models.is_none() {
                         return Err(Refusal::Order);
                     }
-                    self.graph_reply = Some(GraphReply::Serialize(slot));
+                    self.graph_reply = Some(GraphReply::Serialize {
+                        slot,
+                        turn: 0,
+                        encoding: data::GraphEncoding::new(),
+                    });
                     return Ok(Response::Ready);
                 }
                 let reply = match command {
@@ -251,34 +265,97 @@ impl State {
                     bytes: self.outgoing.len() as u32,
                 })
             }
-            Request::GraphSerialize => {
-                let Some(GraphReply::Serialize(slot)) = self.graph_reply.take() else {
+            Request::GraphSerialize { cursor } => {
+                let Some(GraphReply::Serialize {
+                    slot,
+                    turn,
+                    mut encoding,
+                }) = self.graph_reply.take()
+                else {
                     return Err(Refusal::Order);
                 };
+                if cursor != turn || turn >= data::GRAPH_SERIALIZE_TURNS {
+                    return Err(Refusal::Order);
+                }
                 let graph = self
                     .models
                     .as_ref()
                     .ok_or(Refusal::Order)?
                     .graph(usize::from(slot));
-                let length = self
+                let before = encoding.cursor();
+                let complete = self
                     .workspace
                     .as_mut()
                     .ok_or(Refusal::Order)?
-                    .serialize_graph(graph)?;
-                self.graph_reply = Some(GraphReply::Validate(length));
-                Ok(Response::Ready)
+                    .serialize_graph_step(graph, &mut encoding)?;
+                if encoding.cursor() <= before {
+                    return Err(Refusal::Order);
+                }
+                if complete {
+                    let length = encoding.length();
+                    self.graph_reply = Some(GraphReply::Validate {
+                        length,
+                        turn: 0,
+                        validation: data::GraphValidation::new(length)?,
+                    });
+                    Ok(Response::Ready)
+                } else {
+                    let turn = turn
+                        .checked_add(1)
+                        .filter(|turn| *turn < data::GRAPH_SERIALIZE_TURNS)
+                        .ok_or(Refusal::Bounds)?;
+                    self.graph_reply = Some(GraphReply::Serialize {
+                        slot,
+                        turn,
+                        encoding,
+                    });
+                    Ok(Response::Progress {
+                        phase: GraphPhase::Serialize,
+                        cursor: turn,
+                    })
+                }
             }
-            Request::GraphValidate => {
-                let Some(GraphReply::Validate(length)) = self.graph_reply.take() else {
+            Request::GraphValidate { cursor } => {
+                let Some(GraphReply::Validate {
+                    length,
+                    turn,
+                    mut validation,
+                }) = self.graph_reply.take()
+                else {
                     return Err(Refusal::Order);
                 };
-                let packing = self
+                if cursor != turn || turn >= data::GRAPH_VALIDATE_TURNS {
+                    return Err(Refusal::Order);
+                }
+                let before = validation.cursor();
+                let complete = self
                     .workspace
                     .as_ref()
                     .ok_or(Refusal::Order)?
-                    .validate_graph(length)?;
-                self.graph_reply = Some(GraphReply::Pack(packing));
-                Ok(Response::Ready)
+                    .validate_graph_step(length, &mut validation)?;
+                if validation.cursor() <= before {
+                    return Err(Refusal::Order);
+                }
+                if complete {
+                    self.graph_reply = Some(GraphReply::Pack(
+                        data::Workspace::begin_graph_packing(length)?,
+                    ));
+                    Ok(Response::Ready)
+                } else {
+                    let turn = turn
+                        .checked_add(1)
+                        .filter(|turn| *turn < data::GRAPH_VALIDATE_TURNS)
+                        .ok_or(Refusal::Bounds)?;
+                    self.graph_reply = Some(GraphReply::Validate {
+                        length,
+                        turn,
+                        validation,
+                    });
+                    Ok(Response::Progress {
+                        phase: GraphPhase::Validate,
+                        cursor: turn,
+                    })
+                }
             }
             Request::GraphPack { offset } => {
                 let Some(GraphReply::Pack(mut packing)) = self.graph_reply.take() else {
@@ -321,3 +398,6 @@ impl State {
 }
 #[cfg(test)]
 mod tests;
+
+// Same fixed retained metadata page as the independently linked service.
+const _: () = assert!(core::mem::size_of::<State>() + 24 <= 4096);

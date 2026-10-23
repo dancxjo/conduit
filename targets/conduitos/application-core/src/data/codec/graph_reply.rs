@@ -11,6 +11,7 @@ pub(crate) struct Packing {
     written: usize,
 }
 impl Workspace {
+    #[cfg(test)]
     pub(crate) fn serialize_graph(
         &mut self,
         graph: Option<&PatchbayGraph>,
@@ -23,8 +24,33 @@ impl Workspace {
         }
         transport_codec::encode_unvalidated(&BorrowedReply::Graph { graph }, &mut self.json)
     }
+    #[cfg(test)]
     pub(crate) fn validate_graph(&self, length: usize) -> Result<Packing, Refusal> {
         transport_codec::preflight(self.json.get(..length).ok_or(Refusal::Bounds)?)?;
+        Ok(Packing {
+            length,
+            consumed: 0,
+            written: HEADER,
+        })
+    }
+    pub(crate) fn serialize_graph_step(
+        &mut self,
+        graph: Option<&PatchbayGraph>,
+        encoding: &mut GraphEncoding,
+    ) -> Result<bool, Refusal> {
+        encoding.step(graph, &mut self.json)
+    }
+    pub(crate) fn validate_graph_step(
+        &self,
+        length: usize,
+        validation: &mut GraphValidation,
+    ) -> Result<bool, Refusal> {
+        validation.step(self.json.get(..length).ok_or(Refusal::Bounds)?)
+    }
+    pub(crate) fn begin_graph_packing(length: usize) -> Result<Packing, Refusal> {
+        if length == 0 || length > MAX_DECODED_JSON_BYTES {
+            return Err(Refusal::Bounds);
+        }
         Ok(Packing {
             length,
             consumed: 0,

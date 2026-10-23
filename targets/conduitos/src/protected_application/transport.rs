@@ -9,7 +9,7 @@ use conduitos_application_core::{
     MAX_BLOB,
     data::{self, Command, Refusal, Reply},
     memory::TRANSFER_BYTES,
-    wire::{self, Envelope, Request, Response},
+    wire::{self, Envelope, GraphPhase, GraphProgress, Request, Response},
 };
 pub(super) struct Service {
     domain: Option<ServiceDomain>,
@@ -88,7 +88,10 @@ impl Service {
                 Response::Ready,
             )
             | (Request::Commit, Response::Blob { .. } | Response::Ready)
-            | (Request::GraphSerialize | Request::GraphValidate, Response::Ready)
+            | (
+                Request::GraphSerialize { .. } | Request::GraphValidate { .. },
+                Response::Ready | Response::Progress { .. },
+            )
             | (Request::GraphPack { .. }, Response::Ready | Response::Blob { .. })
             | (Request::Read { .. }, Response::Chunk { .. }) => Ok(response),
             _ => Err(Refusal::Malformed),
@@ -103,20 +106,30 @@ impl Service {
         result
     }
     fn prepare_graph_reply(&mut self) -> Result<Response, Refusal> {
-        for (request, begin, complete) in [
+        for (phase, begin, complete) in [
             (
-                Request::GraphSerialize,
+                GraphPhase::Serialize,
                 b"CONDUIT_APPLICATION_GRAPH_REPLY serialize begin\n".as_slice(),
                 b"CONDUIT_APPLICATION_GRAPH_REPLY serialize complete\n".as_slice(),
             ),
             (
-                Request::GraphValidate,
+                GraphPhase::Validate,
                 b"CONDUIT_APPLICATION_GRAPH_REPLY validate begin\n".as_slice(),
                 b"CONDUIT_APPLICATION_GRAPH_REPLY validate complete\n".as_slice(),
             ),
         ] {
             write_observation(begin);
-            self.request(request)?;
+            let limit = match phase {
+                GraphPhase::Serialize => data::GRAPH_SERIALIZE_TURNS,
+                GraphPhase::Validate => data::GRAPH_VALIDATE_TURNS,
+            };
+            let mut progress = GraphProgress::new(phase, limit)?;
+            loop {
+                let response = self.request(progress.request()?)?;
+                if progress.accept(response)? {
+                    break;
+                }
+            }
             write_observation(complete);
         }
         write_observation(b"CONDUIT_APPLICATION_GRAPH_REPLY pack begin\n");
