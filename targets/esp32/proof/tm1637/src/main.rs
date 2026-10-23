@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
-//! Attended electrical fixture. No sensor sample, Host offer, Body or Plan claim.
+//! Attended bench plus separately selected native Root preparation mode.
+#[cfg(feature = "native-root")]
+extern crate alloc;
 #[cfg(not(feature = "live"))]
 use conduit_tm1637_wire::{transmit, Packet};
 use esp_backtrace as _;
@@ -8,20 +10,25 @@ use esp_backtrace as _;
 use esp_hal::{delay::Delay, main};
 #[cfg(feature = "ap")]
 mod boot;
+#[cfg(feature = "native-root")]
+mod native_entry;
+#[cfg(feature = "native-root")]
+mod native_root;
 #[cfg(feature = "ap")]
 mod network;
-#[cfg(feature = "ap")]
+#[cfg(all(feature = "ap", not(feature = "native-root")))]
 mod network_entry;
-#[cfg(feature = "ap")]
+#[cfg(all(feature = "ap", not(feature = "native-root")))]
 mod services;
 // Reuse the existing allocation-free appliance service bench and DHCP grammar.
-#[cfg(feature = "ap")]
+#[cfg(all(feature = "capture", not(feature = "native-root")))]
+mod capture;
+#[cfg(not(feature = "native-root"))]
+mod electrical;
+#[cfg(all(feature = "ap", not(feature = "native-root")))]
 #[path = "../../../../rp2040/proof/dht11/src/http_ap.rs"]
 mod http_ap;
-#[cfg(feature = "capture")]
-mod capture;
-mod electrical;
-#[cfg(feature = "live")]
+#[cfg(all(feature = "live", not(feature = "native-root")))]
 mod live;
 esp_bootloader_esp_idf::esp_app_desc!();
 #[cfg(not(feature = "ap"))]

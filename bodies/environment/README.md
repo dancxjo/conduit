@@ -697,3 +697,14 @@ pending flush cancels and erases the submission. Raw request buffers are erased
 on drop and responses never reflect credentials. CPU transport fixtures cover
 these paths with zero execution allocation. Firmware Root route installation and
 physical joining remain outstanding; no new firmware has been flashed.
+
+`cargo xtask prove environment root-esp32` builds a separate ESP32 native Root
+preparation mode. It consumes the real GPIO27 provider into `ReadyPulseBase`,
+retains the initialized controller and both interface stacks, and projects that
+retained pulse offer under the observed eFuse Host and radio-TRNG Boot. It does
+not read the sensor, execute an assignment, issue authority, install a Body or
+start HTTP setup services. Serial output explicitly retains false Body/Plan
+installation flags and a null image-attestation field; the implementation
+artifact label is symbolic, not an image hash. This image is build/Clippy proof
+only and has not replaced the running bench. Host-spec-driven construction,
+UART management/admission and physical installation remain incomplete.

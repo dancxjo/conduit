@@ -101,6 +101,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         || arguments == ["capture-esp32"]
         || arguments == ["live-esp32"]
         || arguments == ["ap-esp32"]
+        || arguments == ["root-esp32"]
         || arguments == ["network-esp32"]
     {
         let pulse = arguments == ["pulse-esp32"];
@@ -134,6 +135,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
             command.args(["--features", "host-call"]);
         } else if arguments == ["capture-esp32"] {
             command.args(["--features", "capture"]);
+        } else if arguments == ["root-esp32"] {
+            command.args(["--features", "native-root"]);
         } else if arguments == ["ap-esp32"] {
             command.args(["--features", "ap"]);
         } else if arguments == ["live-esp32"] {
@@ -382,7 +385,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

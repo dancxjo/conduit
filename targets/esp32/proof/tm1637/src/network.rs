@@ -53,6 +53,7 @@ pub fn start(spawner: Spawner, wifi: esp_hal::peripherals::WIFI<'static>, seed: 
         seed.rotate_left(32),
     );
     spawner.spawn(runner(station_runner).unwrap());
+    #[cfg(not(feature = "native-root"))]
     spawner.spawn(crate::services::run(stack).unwrap());
     Radio {
         controller,
