@@ -10,6 +10,7 @@ use esp_radio::wifi::{AuthenticationMethod, Config};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Esp32JoinPreparationRefusal {
+    OwnerUnavailable,
     Configuration,
     AttemptBudget,
     CleanupBudget,
@@ -33,6 +34,9 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// Root admits a finite duration now. Its single absolute deadline starts at
     /// the first authorized invocation, so planning time consumes no radio budget.
     /// Cancellation still spends the attempt; another invocation cannot restart it.
+    /// The Root ownership slot is consumed only on success. Every preparation
+    /// refusal leaves its controller, private configuration and service handle
+    /// in that slot, without a radio operation or an implicit controller drop.
     ///
     /// # Safety
     /// Root must own the exact initialized controller, stacks and service task,
@@ -41,11 +45,14 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
     /// SDK allocation, cancellation and synchronous-call work must satisfy the
     /// provider contract. A cross-target build alone proves none of those bounds.
     pub unsafe fn prepare(
-        radio: Esp32ApStationSwitch<'a, 'd, S>,
+        radio_owner: &mut Option<Esp32ApStationSwitch<'a, 'd, S>>,
         attempt_budget: Duration,
         cleanup_budget: Duration,
         attachment: NetworkAttachmentInfo<'_>,
     ) -> Result<Self, Esp32JoinPreparationRefusal> {
+        let radio = radio_owner
+            .as_ref()
+            .ok_or(Esp32JoinPreparationRefusal::OwnerUnavailable)?;
         let Config::Station(config) = &radio.station_config else {
             return Err(Esp32JoinPreparationRefusal::Configuration);
         };
@@ -66,15 +73,19 @@ impl<'a, 'd, S: AccessPointServices> Esp32NetworkJoinProvider<'a, 'd, S> {
         if cleanup_budget.as_ticks() == 0 {
             return Err(Esp32JoinPreparationRefusal::CleanupBudget);
         }
+        let attachment = AttachmentRecord::encode(attachment)
+            .map_err(Esp32JoinPreparationRefusal::Attachment)?;
+        // All fallible preparation precedes the unique ownership transfer. No
+        // allocation, clone, pinning or self-reference is introduced by it.
+        let radio = radio_owner
+            .take()
+            .ok_or(Esp32JoinPreparationRefusal::OwnerUnavailable)?;
         Ok(Self {
             radio,
             attempt_budget,
             cleanup_budget,
             cleanup_deadline: None,
-            attachment: Some(
-                AttachmentRecord::encode(attachment)
-                    .map_err(Esp32JoinPreparationRefusal::Attachment)?,
-            ),
+            attachment: Some(attachment),
             invoked: false,
         })
     }

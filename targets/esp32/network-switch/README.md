@@ -75,7 +75,8 @@ on first cleanup, which can follow a long-lived successful station attachment;
 cancellation or another cleanup call cannot reset it. All AP addressing, link and
 service acknowledgements must complete within it. No retry or new credential
 selection is hidden in the provider. Actual offer/capability issuance, the private
-page route, station HTTP/mDNS ownership and physical join/fallback remain open.
+page-to-control-Play handoff, station HTTP/mDNS ownership and physical
+join/fallback remain open.
 
 `prepare_station_configuration` is the Root preparation callback for the
 attended WPA2-personal profile: a UTF-8 SSID of 1–32 bytes and a UTF-8 passphrase
@@ -87,3 +88,17 @@ representation preparation, not submission consumption or permission to join.
 The Root preparation image calls this after an acknowledged submission when
 the operator requests its offer. The selected control Play remains uninstalled;
 configuration preparation makes no station-ready claim.
+
+The adapter owns its initialized controller, private SDK configurations and
+service-control handle. Its interface handles still refer to Root-retained
+network resources. This permits the selected provider to live in Root storage
+through a long-lived attachment without borrowing sibling Root fields or adding
+pinning, cloning or heap allocation for the ownership transfer.
+
+`Esp32NetworkJoinProvider::prepare` borrows an optional owner slot. Configuration,
+duration and attachment validation finish before it takes the owner. A refusal
+leaves the slot intact, preserving AP ownership; success empties the slot and
+returns the sole provider owner. An empty slot receives `OwnerUnavailable`.
+The constructor's actual-resource and finite SDK admission requirements remain
+unchanged. Root still needs to admit those resources and install the selected
+control Play; compilation and strict linting establish no physical join proof.

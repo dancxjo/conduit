@@ -40,17 +40,18 @@ impl OperationDeadline for Esp32Deadline {
     }
 }
 
-/// Borrow the actual controller and both independently running interfaces.
+/// Own the actual controller and service handle, retaining both independently
+/// running interfaces. No sibling Root field is borrowed by the resulting owner.
 /// Configurations and their SDK-owned strings are prepared before execution;
 /// these methods neither clone credentials nor construct growable buffers.
 pub struct Esp32ApStationSwitch<'a, 'd, S> {
-    controller: &'a mut WifiController<'d>,
+    controller: WifiController<'d>,
     ap_stack: Stack<'a>,
     station_stack: Stack<'a>,
     ap_address: StaticConfigV4,
     ap_config: Config,
     station_config: Config,
-    services: &'a mut S,
+    services: S,
     cleanup_required: bool,
 }
 impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
@@ -62,11 +63,11 @@ impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
     /// changes and complete separately bounded restoration after cancellation.
     /// Construction itself establishes none of those admission facts.
     pub unsafe fn new(
-        controller: &'a mut WifiController<'d>,
+        controller: WifiController<'d>,
         stacks: (Stack<'a>, Stack<'a>),
         ap_address: StaticConfigV4,
         configs: (AccessPointConfig, StationConfig),
-        services: &'a mut S,
+        services: S,
     ) -> Self {
         Self {
             controller,
@@ -88,7 +89,7 @@ impl<'a, 'd, S: AccessPointServices> Esp32ApStationSwitch<'a, 'd, S> {
 impl<S: AccessPointServices> StationOperations for Esp32ApStationSwitch<'_, '_, S> {
     async fn associate(&mut self) -> Result<(), StationFailure> {
         let mut guard = Association {
-            controller: self.controller,
+            controller: &mut self.controller,
             fallback: &self.ap_config,
             armed: true,
         };
