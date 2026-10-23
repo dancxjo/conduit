@@ -5,6 +5,7 @@ import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './target
 import { setup } from './targets/setup.mjs';
 import { browser } from './targets/browser.mjs';
 import { embedded } from './targets/embedded.mjs';
+import { stageCheckedSourceEvidence } from './targets/native-source-evidence.mjs';
 import { requireHostedHelloOutput } from './targets/hosted-hello.mjs';
 
 const lane = (id, family, runner, proofClass) => Object.freeze({ id, family, runner, proofClass });
@@ -95,6 +96,7 @@ function conduitos(id, directory) {
     validateNativeTextEditReceipt(journey,
       JSON.parse(readFileSync(path.join(evidence, 'memory-lantern-native-edit.json'), 'utf8')),
       readFileSync(path.join(evidence, 'journey-serial.log')));
+    stageCheckedSourceEvidence(journey, evidence, path.join(directory, 'evidence'));
     // These files enter the product directory before the caller seals its receipt.
     for (const name of ['journey-proof.json', 'native-shell-paired-linear.json', 'journey-serial.log', 'journey-qmp.log', 'memory-lantern-native-edit.json']) {
       copyFile(path.join(evidence, name), path.join(directory, 'evidence', name));
