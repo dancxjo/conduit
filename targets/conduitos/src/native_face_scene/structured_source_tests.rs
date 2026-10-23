@@ -89,8 +89,7 @@ fn reviewed_structured_sources_retain_real_domain_content_and_controls_at_all_pa
     verify_reviewed_sources(false);
 }
 
-// Acceptance remains deliberately failing on this held preparation branch:
-// preserving all current first-page material plus four choices needs56commands.
+// First-page acceptance is separate from complete continuation conformance.
 #[test]
 fn wide_creche_shows_all_four_checked_plots_on_first_page() {
     verify_reviewed_sources(true);
@@ -184,35 +183,6 @@ fn verify_reviewed_sources(require_first_page: bool) {
                     .filter(|row| row.checkbox == Some(true))
                     .collect();
                 assert_eq!(selected.len(), 4);
-                if selected.iter().any(|row| row.page != 0) {
-                    std::eprintln!(
-                        "selected={:?}",
-                        selected
-                            .iter()
-                            .map(|row| (&row.text, row.page))
-                            .collect::<Vec<_>>()
-                    );
-                    for row in &scene.primary {
-                        let cost = 1
-                            + usize::from(row.icon.is_some())
-                            + 2 * usize::from(row.checkbox.is_some())
-                            + usize::from(row.control.is_some())
-                            + usize::from(row.region_start)
-                            + usize::from(matches!(
-                                row.role,
-                                GraphicsTextRole::Title | GraphicsTextRole::Heading
-                            ));
-                        std::eprintln!(
-                            "page={} cost={} bounds={:?} checkbox={:?} subject={:?} {}",
-                            row.page,
-                            cost,
-                            row.bounds,
-                            row.checkbox,
-                            row.subject_index,
-                            row.text
-                        );
-                    }
-                }
                 assert!(
                     selected.iter().all(|row| row.page == 0),
                     "wide Crèche must show all four checked starting Plots on the first page"
@@ -224,6 +194,29 @@ fn verify_reviewed_sources(require_first_page: bool) {
                     origin(2),
                     "measured narrow composition must collapse coherently"
                 );
+            }
+            if require_first_page && width == 1280 && component == "creche-component-columns" {
+                let checked_controls = scene
+                    .primary
+                    .iter()
+                    .filter(|row| row.checkbox == Some(true))
+                    .map(|row| {
+                        let control = row.control.unwrap();
+                        (control.action, control.argument)
+                    })
+                    .collect::<BTreeSet<_>>();
+                let mut reached = BTreeSet::new();
+                for _ in 0..scene.primary.len() {
+                    if let Some(control) = scene.focus_next(true) {
+                        let key = (control.action, control.argument);
+                        if checked_controls.contains(&key) {
+                            assert_eq!(scene.page, 0);
+                            assert!(scene.frame().unwrap().scene.commands().len() <= 48);
+                            reached.insert(key);
+                        }
+                    }
+                }
+                assert_eq!(reached, checked_controls);
             }
             for page in 0..scene.pages() {
                 scene.page = page;

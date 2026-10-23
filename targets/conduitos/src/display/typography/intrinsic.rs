@@ -1,6 +1,6 @@
 //! Intrinsic demand from the same selected scalar ink used by the paint cursor.
 //! This is the native hard-wrap policy, not general shaping or CSS conformance.
-use super::{ink, selected_metrics, TextScale, TextStyle};
+use super::{TextScale, TextStyle, ink, selected_metrics};
 use crate::display::DisplayError;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

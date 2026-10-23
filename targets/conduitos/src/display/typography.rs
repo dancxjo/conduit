@@ -6,14 +6,14 @@
 
 mod coverage;
 mod selection;
-pub use selection::{selected_metrics, TextStyle, Typography};
+pub use selection::{TextStyle, Typography, selected_metrics};
 mod raster;
 pub use raster::{render_glyph, render_text, render_text_scaled, render_text_selected};
 mod preview;
 pub use preview::single_line_preview;
 mod ink;
 mod intrinsic;
-pub use intrinsic::{intrinsic_text_metrics, resolve_em_sixteenths, IntrinsicTextMetrics};
+pub use intrinsic::{IntrinsicTextMetrics, intrinsic_text_metrics, resolve_em_sixteenths};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;

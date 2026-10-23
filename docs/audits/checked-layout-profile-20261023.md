@@ -218,3 +218,34 @@ A following bounded Mask decoration change must reduce actual command cost or
 an explicit authored composition must defer material; geometry cannot invent
 source priorities or drop meaning. Freestanding resource admission and normal
 QEMU proof remain required. Block-axis flexibility is still outside this slice.
+
+
+## Compact Boolean decoration removes the first-page command conflict
+
+The retained56-versus48 failure is now corrected without changing source text,
+controls, command limits or layout priorities. A source-authorized Boolean
+choice uses the already-admitted Confirm checkmark for true or an outlined square
+for false, one graphics command each. It does not add another full button outline.
+A separate inset row outline still marks keyboard/pointer focus without relying
+on color. Generic actions retain their ordinary button decoration. No graphical
+primitive, icon vocabulary, font glyph, semantic Kind or local selection truth is
+added. The existing exact Boolean association and two-value contract remain the
+only admission for this choice realization.
+
+Measurement reserves the same command cost actually emitted. Four checked
+choices save eight commands. The stronger real wide Crèche test now passes,
+including focusing each of the four checked controls on page zero and assembling
+the focused frames within48 commands. The complete original Face, text and exact
+controls remain unchanged. Wide/narrow alternatives still use measured scores.
+
+The focused scene suite passes135 unique checks, with its existing opt-in Node
+cross-Mask case skipped; Cargo also ran the mirrored binary test target. Twenty-two
+native Mask checks pass. The dedicated four-choice focused case passes. Existing
+state/Show refusal, Unicode, scale, wrap, raster confinement, command/row pressure,
+traversal and hit checks remain active. Initial fixture failures expected obsolete
+checkbox costs/full-row boxes; pressure fixtures now add a real existing icon to
+reach their intended pressure, and frame checks verify the actual source-owned
+indicator, focus geometry and unchanged hit binding. Both negative and positive
+logs are retained. This is CPU preparation/raster evidence, not a selected ordinary
+native runtime or new QEMU capture. Native grant admission and platform proof remain
+open before #5608/#6159 completion.

@@ -1,6 +1,6 @@
 //! Allocation-free layout over one admitted graphical command payload.
 
-use super::{scaled_glyph, selected_metrics, GlyphRaster, TextRole, TextScale, TextStyle};
+use super::{GlyphRaster, TextRole, TextScale, TextStyle, scaled_glyph, selected_metrics};
 use crate::display::DisplayError;
 use conduit_face::MAX_GRAPHICS_TEXT_BYTES;
 
