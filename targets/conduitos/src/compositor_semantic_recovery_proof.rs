@@ -16,6 +16,7 @@ pub fn run(record: &boot::BootRecord) -> ! {
         record.runtime_arena.length, admitted.runtime_arena_ceiling,
     ).as_bytes());
     fixture::run();
+    fixture::run_matched_pairs();
     fixture::run_lifecycle_supplement();
     arch::deterministic_exit(true)
 }

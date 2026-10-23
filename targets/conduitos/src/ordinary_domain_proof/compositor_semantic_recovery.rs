@@ -2,6 +2,12 @@
 //! Actual emulator framebuffer copy with an intentionally failing wrapper.
 #[path = "compositor_semantic_recovery/cancellation.rs"]
 mod cancellation;
+#[path = "compositor_semantic_recovery/retained.rs"]
+mod retained;
+
+pub(super) fn run_matched_pairs() {
+    retained::run();
+}
 #[path = "compositor_semantic_recovery/pressure.rs"]
 mod pressure;
 #[path = "compositor_semantic_recovery/stale.rs"]
