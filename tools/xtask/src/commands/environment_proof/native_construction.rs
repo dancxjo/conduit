@@ -6,6 +6,10 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
     let proof = root.join("target/environment-resident-recipe-proof");
     fs::create_dir_all(proof.join("src"))?;
     let generated = proof.join("src/resident.rs");
+    let source_generated = proof.join("src/source_recipe.rs");
+    if source_generated.exists() {
+        fs::remove_file(&source_generated)?;
+    }
     if generated.exists() {
         fs::remove_file(&generated)?;
     }
@@ -33,12 +37,16 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--nocapture",
             ])
             .env("CARGO_TARGET_DIR", root.join("target"))
-            .env("CONDUIT_RECIPE_PROOF_OUTPUT", &generated),
+            .env("CONDUIT_RECIPE_PROOF_OUTPUT", &generated)
+            .env("CONDUIT_SOURCE_RECIPE_PROOF_OUTPUT", &source_generated),
     )?;
-    if !generated.is_file() {
+    if !generated.is_file() || !source_generated.is_file() {
         return Err("Make did not emit the resident recipe".into());
     }
-    fs::write(proof.join("src/lib.rs"), "pub mod resident;\n")?;
+    fs::write(
+        proof.join("src/lib.rs"),
+        "pub mod resident;\npub mod source_recipe;\n",
+    )?;
     fs::write(
         proof.join("Cargo.toml"),
         r#"[package]
@@ -49,17 +57,16 @@ publish = false
 [workspace]
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
+conduit-time = { path = "../../semantics/time", default-features = false }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }
 conduit-environment-runtime = { path = "../../bodies/environment/runtime", features = ["appliance"] }
 "#,
     )?;
-    if !proof.join("Cargo.lock").is_file() {
-        execute(
-            Command::new("cargo")
-                .current_dir(&proof)
-                .args(["generate-lockfile", "--offline"]),
-        )?;
-    }
+    execute(
+        Command::new("cargo")
+            .current_dir(&proof)
+            .args(["generate-lockfile", "--offline"]),
+    )?;
     execute(
         Command::new("cargo")
             .current_dir(&proof)

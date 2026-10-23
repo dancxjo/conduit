@@ -8,6 +8,8 @@ pub use recording_recovery::{
     PreparedRecordingRecovery, ReadyRecordingBatchSoftware, RecordingBatchRecoverySource,
     RecordingPlanningRefusal, RecordingRecoverySource, RecordingSoftwarePreparationRefusal,
 };
+mod source_recipe;
+pub use source_recipe::NativeSoftwareSourceRecipe;
 mod software_recipe;
 pub use software_recipe::{NativeSoftwareRecipe, SoftwareRecipeRefusal};
 mod execution;

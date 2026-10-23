@@ -7,16 +7,20 @@ use conduit_environment_runtime::{
     appliance::assigned::{ResidentAppliance, ResidentComputation, ResidentRoles},
     assigned::ResidentLayout,
 };
+pub(crate) use rust::write_material;
 #[derive(Debug, PartialEq, Eq)]
 pub enum SoftwareRecipeRefusal {
     Roles,
     Records(c::AssignedPlanRefusal),
     Capacity,
     Offers,
+    Source,
 }
 #[derive(Debug, PartialEq, Eq)]
 pub struct NativeSoftwareRecipe {
     records: Vec<c::AssignedRecordRequirement>,
+    source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity,
+    cadence: conduit_time::TickConfiguration,
     texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
     computations: Vec<c::AssignedComputationRequirement>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
@@ -74,6 +78,8 @@ impl PreparedNativeAppliance {
             })
             .collect::<Result<Vec<_>, E>>()?;
         Ok(NativeSoftwareRecipe {
+            cadence: conduit_time::parse_tick_configuration(&self.plan().fragments[0].placements.iter().find(|g|g.kind_id.as_str()==conduit_time::TICK_KIND).ok_or(E::Source)?.configuration).map_err(|_|E::Source)?,
+            source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity::from_expanded(&self.plan().fragments[0].expanded_plot_id),
             records: self.resident_records().to_vec(),
             texts: self
                 .image()
@@ -134,6 +140,8 @@ impl NativeSoftwareRecipe {
     /// digests are compilation constraints, never possession or storage admission.
     pub fn resident(&self) -> ResidentAppliance<'_> {
         ResidentAppliance {
+            cadence: self.cadence.clone(),
+            source: self.source,
             layout: ResidentLayout {
                 records: &self.records,
                 counts: self.counts,

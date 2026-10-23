@@ -65,42 +65,7 @@ impl ReadySoftwareBacks {
             {
                 continue;
             }
-            let (mut kind, prepared, calls) = initialize(gear, count, &sequence)?;
-            if gear.kind_id != kind.kind_id
-                || gear.kind_contract_revision != kind.kind_contract_revision
-                || gear.startup_parameters != kind.startup_parameters
-                || gear.shorthand != kind.shorthand
-                || gear.inputs != kind.inputs
-                || gear.outputs != kind.outputs
-                || gear.semantic_contract != kind.semantic_contract()
-            {
-                return Err(SoftwareRefusal::Contract);
-            }
-            kind.limits = c::CapabilityLimits {
-                max_active_instances: 1,
-                max_queue_items: 1,
-                max_queue_bytes: 4096,
-            };
-            let id = format!("environment/software/{}", gear.gear_id.as_str());
-            let offer = c::BackOfferBuilder::new(
-                kind,
-                c::Back {
-                    capability_id: id.as_str().into(),
-                    execution_profile_id: PROFILE.into(),
-                    implementation_id: id.as_str().into(),
-                    artifact_id: ARTIFACT.into(),
-                    host_calls: calls,
-                    resource_requirements: vec![],
-                    authority_requirements: vec![],
-                },
-            )
-            .build();
-            operations.push(ReadyOperation {
-                gear: gear.gear_id.clone(),
-                configuration: gear.configuration.clone(),
-                offer,
-                prepared: Some(prepared),
-            });
+            operations.push(prepare_operation(gear, count, &sequence)?);
         }
         Ok(Self {
             host,
@@ -198,6 +163,74 @@ impl ReadySoftwareBacks {
         op.prepared.take().ok_or(SoftwareRefusal::AlreadySelected)
     }
 }
+/// Make-side metadata from the ordinary portable implementation constructor.
+/// No Host/Boot, native provider, advertisement or readiness is manufactured.
+/// Temporary pure owners validate the compiled artifact and are then released.
+pub fn compile_offer_templates(
+    source: &ApplianceSource,
+) -> Result<Vec<(c::GearId, c::CapabilityOffer)>, SoftwareRefusal> {
+    let count = u32::try_from(source.count).map_err(|_| SoftwareRefusal::Count)?;
+    let sequence = PublicationSequence::prepare(source.count);
+    source
+        .expanded
+        .gears
+        .iter()
+        .filter(|gear| {
+            ![
+                conduit_pulse_capture::PULSE_READ_KIND,
+                conduit_time::TICK_KIND,
+            ]
+            .contains(&gear.kind_id.as_str())
+        })
+        .map(|gear| {
+            let operation = prepare_operation(gear, count, &sequence)?;
+            Ok((operation.gear, operation.offer))
+        })
+        .collect()
+}
+fn prepare_operation(
+    gear: &conduit_plot::CheckedGear,
+    count: u32,
+    sequence: &PublicationSequence,
+) -> Result<ReadyOperation, SoftwareRefusal> {
+    let (mut kind, prepared, calls) = initialize(gear, count, sequence)?;
+    if gear.kind_id != kind.kind_id
+        || gear.kind_contract_revision != kind.kind_contract_revision
+        || gear.startup_parameters != kind.startup_parameters
+        || gear.shorthand != kind.shorthand
+        || gear.inputs != kind.inputs
+        || gear.outputs != kind.outputs
+        || gear.semantic_contract != kind.semantic_contract()
+    {
+        return Err(SoftwareRefusal::Contract);
+    }
+    kind.limits = c::CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: 4096,
+    };
+    let id = format!("environment/software/{}", gear.gear_id.as_str());
+    let offer = c::BackOfferBuilder::new(
+        kind,
+        c::Back {
+            capability_id: id.as_str().into(),
+            execution_profile_id: PROFILE.into(),
+            implementation_id: id.as_str().into(),
+            artifact_id: ARTIFACT.into(),
+            host_calls: calls,
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build();
+    Ok(ReadyOperation {
+        gear: gear.gear_id.clone(),
+        configuration: gear.configuration.clone(),
+        offer,
+        prepared: Some(prepared),
+    })
+}
+
 fn initialize(
     gear: &conduit_plot::CheckedGear,
     count: u32,

@@ -77,10 +77,42 @@ impl ResidentRoles {
         })
     }
 }
+/// Full-width Make-side representation of the independently checked Source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ResidentSourceIdentity {
+    pub expanded_plot_digest: [u8; 32],
+}
+impl ResidentSourceIdentity {
+    pub fn from_expanded(id: &c::ExpandedPlotId) -> Self {
+        Self {
+            expanded_plot_digest: c::assigned_plan_payload_digest(id.as_str().as_bytes()),
+        }
+    }
+}
+/// Construction constraints only; contains no routing, Host, Boot or Plan.
+#[derive(Clone)]
+pub struct ResidentSoftwareSpec<'a> {
+    pub cadence: conduit_time::TickConfiguration,
+    pub source: ResidentSourceIdentity,
+    pub computations: c::AssignedComputationProfile<'a>,
+    pub roles: ResidentRoles,
+}
 pub struct ResidentAppliance<'a> {
+    pub cadence: conduit_time::TickConfiguration,
+    pub source: ResidentSourceIdentity,
     pub layout: ResidentLayout<'a>,
     pub computations: c::AssignedComputationProfile<'a>,
     pub roles: ResidentRoles,
+}
+impl ResidentAppliance<'_> {
+    pub fn software_spec(&self) -> ResidentSoftwareSpec<'_> {
+        ResidentSoftwareSpec {
+            cadence: self.cadence.clone(),
+            source: self.source,
+            computations: self.computations,
+            roles: self.roles,
+        }
+    }
 }
 #[derive(Debug, PartialEq, Eq)]
 pub enum NativePreparationRefusal {
@@ -150,7 +182,8 @@ impl ValidatedAssignedAppliance {
         let roles = resident.roles;
         let count = numeric(bytes, roles.tick, "count")?;
         let period_ms = numeric(bytes, roles.tick, "period-ms")?;
-        let construction = resident_software::Construction::prepare(resident, count, period_ms)?;
+        let construction =
+            resident_software::Construction::prepare(&resident.software_spec(), count, period_ms)?;
         validate_roles(bytes, roles)?;
         Ok(Self {
             tables,

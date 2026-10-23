@@ -185,3 +185,96 @@ fn only_initialized_resident_software_lends_exact_host_free_offer_bytes() {
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     assert_eq!(effects.get(), 0);
 }
+
+#[test]
+fn source_bootstrap_initializes_before_planning_then_accepts_exact_realization() {
+    use conduit_environment_make::NativeSoftwareSourceRecipe;
+    use conduit_environment_runtime::appliance::assigned::{
+        PreparedResidentSoftware, ValidatedAssignedAppliance,
+    };
+    let source = construction::compile_default().unwrap();
+    // No Host, native owner, advertisement or Plan exists at compilation time.
+    let bootstrap = NativeSoftwareSourceRecipe::prepare(&source).unwrap();
+    let texts: Vec<_> = bootstrap.resident_computations().collect();
+    let mut owner = Some(
+        PreparedResidentSoftware::prepare_source(
+            &bootstrap.spec(),
+            &texts,
+            conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+        )
+        .unwrap(),
+    );
+    let offers = bootstrap.resident_offers();
+    let mut changed = bootstrap.spec();
+    changed.cadence.period_ms += 1;
+    let (refused, memory) =
+        allocation_probe::observe(|| owner.as_ref().unwrap().source_offers(&changed, &offers));
+    assert!(refused.is_err());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+
+    let mut caps: Vec<c::CapabilityOffer> = owner
+        .as_ref()
+        .unwrap()
+        .source_offers(&bootstrap.spec(), &offers)
+        .unwrap()
+        .iter()
+        .map(|j| serde_json::from_slice(j).unwrap())
+        .collect();
+    let mut rust = String::new();
+    bootstrap.write_source_rust(&mut rust).unwrap();
+    if let Some(path) = std::env::var_os("CONDUIT_SOURCE_RECIPE_PROOF_OUTPUT") {
+        std::fs::write(path, &rust).unwrap();
+    }
+    assert!(!rust.contains("ResidentLayout"));
+    let (native, effects) = pulse::ready(0);
+    let mut host = appliance_support::native_advertisement(&native);
+    host.capabilities.append(&mut caps);
+    let prepared = PreparedNativeAppliance::prepare(
+        &source,
+        &host,
+        &["conduit.base/local@1".into()],
+        &[pulse::grant()],
+        limits(),
+    )
+    .unwrap();
+    let realized = prepared.software_recipe().unwrap();
+    assert_eq!(bootstrap.spec().roles, realized.resident().roles);
+    assert_eq!(bootstrap.spec().source, realized.resident().source);
+    assert_eq!(
+        bootstrap.spec().computations.requirements,
+        realized.resident().computations.requirements
+    );
+    let required = c::AssignedPlanRequirements {
+        host: c::AssignedIdentity::from_text(host.host_id.as_str()),
+        boot: c::AssignedIdentity::from_text(host.boot_id.as_str()),
+        host_calls: &prepared
+            .image()
+            .host_calls
+            .iter()
+            .map(|call| c::AssignedIdentity::from_text(&call.contract_id))
+            .collect::<Vec<_>>(),
+        resources: &prepared
+            .image()
+            .resources
+            .iter()
+            .map(|r| r.resource)
+            .collect::<Vec<_>>(),
+        remote_bindings: &[],
+    };
+    let selected = ValidatedAssignedAppliance::admit(
+        prepared.assignment(),
+        limits().assignment,
+        required,
+        &realized.resident(),
+    )
+    .unwrap();
+    let (result, memory) =
+        allocation_probe::observe(|| PreparedResidentSoftware::bind_retained(&mut owner, selected));
+    assert!(result.is_ok());
+    assert!(owner.is_none());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(effects.get(), 0);
+    let mut stale = construction::compile(1, 0).unwrap();
+    stale.count = 2;
+    assert!(NativeSoftwareSourceRecipe::prepare(&stale).is_err());
+}

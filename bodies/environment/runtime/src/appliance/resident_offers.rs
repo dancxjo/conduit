@@ -41,6 +41,14 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         resident: &ResidentAppliance<'_>,
         offers: &'a [ResidentSoftwareOffer<'a>],
     ) -> Result<ReadyResidentOffers<'a, V>, NativePreparationRefusal> {
+        self.source_offers(&resident.software_spec(), offers)
+    }
+    /// Lend availability from Source-only construction, before graph admission.
+    pub fn source_offers<'a>(
+        &'a self,
+        resident: &ResidentSoftwareSpec<'_>,
+        offers: &'a [ResidentSoftwareOffer<'a>],
+    ) -> Result<ReadyResidentOffers<'a, V>, NativePreparationRefusal> {
         use NativePreparationRefusal as E;
         let expected = resident_software::Construction::prepare(
             resident,

@@ -7,15 +7,18 @@ pub(super) struct Construction {
     pub(super) computations: [c::AssignedComputationRequirement; NODES - 8],
     pub(super) count: u64,
     pub(super) period_ms: u64,
-    layout_digest: [u8; 32],
+    source: ResidentSourceIdentity,
 }
 impl Construction {
     pub(super) fn prepare(
-        resident: &ResidentAppliance<'_>,
+        resident: &ResidentSoftwareSpec<'_>,
         count: u64,
         period_ms: u64,
     ) -> Result<Self, NativePreparationRefusal> {
         use NativePreparationRefusal as E;
+        if (count, period_ms) != (resident.cadence.count, resident.cadence.period_ms) {
+            return Err(E::Configuration);
+        }
         let roles = resident.roles;
         let mut occupied = [false; NODES];
         for node in [roles.pulse, roles.tick, roles.trigger, roles.observation]
@@ -53,12 +56,7 @@ impl Construction {
         if occupied.contains(&false) {
             return Err(E::Roles);
         }
-        let maximum_records: usize = resident.layout.counts.iter().map(|n| usize::from(*n)).sum();
-        if count > conduit_time::MAX_TICK_COUNT
-            || resident.layout.records.is_empty()
-            || resident.layout.records.len() > maximum_records
-            || resident.layout.records.len() > crate::assigned::MAXIMUM_RESIDENT_RECORDS
-        {
+        if count > conduit_time::MAX_TICK_COUNT {
             return Err(E::Configuration);
         }
         let computations = resident
@@ -66,39 +64,12 @@ impl Construction {
             .requirements
             .try_into()
             .map_err(|_| E::Roles)?;
-        // Fixed-width hash chaining pins the complete canonical resident inventory
-        // without retaining a second copy of its records in MCU heap storage.
-        let mut layout_digest =
-            c::assigned_plan_payload_digest(b"conduit.environment/resident-software@1");
-        // Layout admission treats records as a set. Preserve that meaning when
-        // fingerprinting, using bounded selection instead of an allocated sort.
-        let mut previous = None;
-        for _ in 0..resident.layout.records.len() {
-            let key = resident
-                .layout
-                .records
-                .iter()
-                .map(|r| (r.tag, r.payload_digest))
-                .filter(|key| previous.is_none_or(|p| *key > p))
-                .min()
-                .ok_or(E::Configuration)?;
-            previous = Some(key);
-            let mut bytes = [0; 65];
-            bytes[..32].copy_from_slice(&layout_digest);
-            bytes[32] = key.0;
-            bytes[33..].copy_from_slice(&key.1);
-            layout_digest = c::assigned_plan_payload_digest(&bytes);
-        }
-        let mut counts = [0; 32 + c::ASSIGNED_PLAN_COUNT_KINDS];
-        counts[..32].copy_from_slice(&layout_digest);
-        counts[32..].copy_from_slice(&resident.layout.counts);
-        layout_digest = c::assigned_plan_payload_digest(&counts);
         Ok(Self {
             roles,
             computations,
             count,
             period_ms,
-            layout_digest,
+            source: resident.source,
         })
     }
 }
@@ -121,6 +92,19 @@ impl<V: ValueStorage> PreparedResidentSoftware<V> {
         cadence: &conduit_time::TickConfiguration,
         values: V,
     ) -> Result<Self, NativePreparationRefusal> {
+        if *cadence != resident.cadence {
+            return Err(NativePreparationRefusal::Configuration);
+        }
+        Self::prepare_source(&resident.software_spec(), texts, values)
+    }
+    /// Initialize from independently checked Source constraints without a Plan
+    /// or routing layout. Assignment admission still checks its exact graph.
+    pub fn prepare_source(
+        resident: &ResidentSoftwareSpec<'_>,
+        texts: &[ResidentComputation<'_>],
+        values: V,
+    ) -> Result<Self, NativePreparationRefusal> {
+        let cadence = &resident.cadence;
         let construction = Construction::prepare(resident, cadence.count, cadence.period_ms)?;
         validate_texts(&construction, texts)?;
         Self::initialize_with(

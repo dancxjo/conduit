@@ -174,3 +174,25 @@ impl ApplianceSource {
         )
     }
 }
+
+impl ApplianceSource {
+    /// Recheck expansion provenance and derive cadence from authored Tick facts.
+    /// Public cached convenience fields cannot override the checked Source.
+    pub fn checked_cadence(&self) -> Result<conduit_time::TickConfiguration, String> {
+        self.expanded.validate_expansion().map_err(debug)?;
+        let mut ticks = self
+            .expanded
+            .gears
+            .iter()
+            .filter(|gear| gear.kind_id.as_str() == conduit_time::TICK_KIND);
+        let tick = ticks.next().ok_or_else(|| String::from("missing Tick"))?;
+        if ticks.next().is_some() {
+            return Err(String::from("ambiguous Tick"));
+        }
+        let cadence = conduit_time::parse_tick_configuration(&tick.configuration).map_err(debug)?;
+        if (cadence.count, cadence.period_ms) != (self.count, self.period_ms) {
+            return Err(String::from("cadence differs from checked Source"));
+        }
+        Ok(cadence)
+    }
+}

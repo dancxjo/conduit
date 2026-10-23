@@ -27,46 +27,13 @@ impl NativeSoftwareRecipe {
                 record.tag, record.payload_digest
             )?;
         }
-        writeln!(
-            out,
-            "];\nstatic COMPUTATIONS: [c::AssignedComputationRequirement; {}] = [",
-            self.computations.len()
-        )?;
-        for computation in &self.computations {
-            writeln!(out, "c::AssignedComputationRequirement {{ node: {}, key: c::AssignedIdentity({:?}), text_bytes: {}, text_digest: {:?} }},", computation.node, computation.key.0, computation.text_bytes, computation.text_digest)?;
-        }
-        writeln!(
-            out,
-            "];\nstatic TEXTS: [ResidentComputation<'static>; {}] = [",
-            self.texts.len()
-        )?;
-        for (node, key, text, bytes) in &self.texts {
-            writeln!(out, "ResidentComputation {{ node: {node}, key: c::AssignedIdentity({:?}), text: {text:?}, canonical_bytes: Some(&{bytes:?}) }},", key.0)?;
-        }
-        writeln!(
-            out,
-            "];\npub fn computations() -> &'static [ResidentComputation<'static>] {{ &TEXTS }}"
-        )?;
-        writeln!(
-            out,
-            "static OFFERS: [ResidentSoftwareOffer<'static>; {}] = [",
-            self.offers.len()
-        )?;
-        for (node, json) in &self.offers {
-            writeln!(
-                out,
-                "unsafe {{ ResidentSoftwareOffer::from_make({node}, &{json:?}) }},"
-            )?;
-        }
-        writeln!(
-            out,
-            "];\npub fn offers() -> &'static [ResidentSoftwareOffer<'static>] {{ &OFFERS }}"
-        )?;
+        writeln!(out, "];")?;
+        write_material(out, &self.computations, &self.texts, &self.offers)?;
         writeln!(out, "pub fn resident() -> ResidentAppliance<'static> {{")?;
         writeln!(
             out,
-            "ResidentAppliance {{ layout: ResidentLayout {{ records: &RECORDS, counts: {:?} }},",
-            self.counts
+            "ResidentAppliance {{ cadence: conduit_time::TickConfiguration {{ count: {}, period_ms: {} }}, source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity {{ expanded_plot_digest: {:?} }}, layout: ResidentLayout {{ records: &RECORDS, counts: {:?} }},",
+            self.cadence.count, self.cadence.period_ms, self.source.expanded_plot_digest, self.counts
         )?;
         writeln!(out, "computations: c::AssignedComputationProfile {{ maximum_text_bytes: {}, maximum_total_text_bytes: {}, requirements: &COMPUTATIONS }},", self.largest, self.total)?;
         let roles = self.roles;
@@ -76,4 +43,48 @@ impl NativeSoftwareRecipe {
         }
         writeln!(out, "] }} }}\n}}")
     }
+}
+
+pub(crate) fn write_material(
+    out: &mut impl Write,
+    computations: &[conduit_core::AssignedComputationRequirement],
+    texts: &[(u16, conduit_core::AssignedIdentity, String, Vec<u8>)],
+    offers: &[(u16, Vec<u8>)],
+) -> fmt::Result {
+    writeln!(
+        out,
+        "static COMPUTATIONS: [c::AssignedComputationRequirement; {}] = [",
+        computations.len()
+    )?;
+    for computation in computations {
+        writeln!(out, "c::AssignedComputationRequirement {{ node: {}, key: c::AssignedIdentity({:?}), text_bytes: {}, text_digest: {:?} }},", computation.node, computation.key.0, computation.text_bytes, computation.text_digest)?;
+    }
+    writeln!(
+        out,
+        "];\nstatic TEXTS: [ResidentComputation<'static>; {}] = [",
+        texts.len()
+    )?;
+    for (node, key, text, bytes) in texts {
+        writeln!(out, "ResidentComputation {{ node: {node}, key: c::AssignedIdentity({:?}), text: {text:?}, canonical_bytes: Some(&{bytes:?}) }},", key.0)?;
+    }
+    writeln!(
+        out,
+        "];\npub fn computations() -> &'static [ResidentComputation<'static>] {{ &TEXTS }}"
+    )?;
+    writeln!(
+        out,
+        "static OFFERS: [ResidentSoftwareOffer<'static>; {}] = [",
+        offers.len()
+    )?;
+    for (node, json) in offers {
+        writeln!(
+            out,
+            "unsafe {{ ResidentSoftwareOffer::from_make({node}, &{json:?}) }},"
+        )?;
+    }
+    writeln!(
+        out,
+        "];\npub fn offers() -> &'static [ResidentSoftwareOffer<'static>] {{ &OFFERS }}"
+    )?;
+    Ok(())
 }

@@ -7,6 +7,13 @@ pub fn advertisement(
     software: &mut conduit_environment_runtime::appliance::software::ReadySoftwareBacks,
     ready: &ReadyPulseBase<super::pulse::Provider>,
 ) -> HostAdvertisement {
+    let mut host = native_advertisement(ready);
+    software.append_to_advertisement(&mut host).unwrap();
+    host
+}
+
+/// CPU native/timer fixtures only. No portable software owner is synthesized.
+pub fn native_advertisement(ready: &ReadyPulseBase<super::pulse::Provider>) -> HostAdvertisement {
     let mut kind = conduit_time::tick_semantic_contract();
     kind.limits.max_queue_bytes = 4096;
     let capabilities = vec![BackOfferBuilder::new(
@@ -42,7 +49,6 @@ pub fn advertisement(
     ready
         .append_to_advertisement(&mut host, &PulseReadContract::prepare().unwrap())
         .unwrap();
-    software.append_to_advertisement(&mut host).unwrap();
     host
 }
 

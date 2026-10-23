@@ -18,6 +18,7 @@ name = "recording_browser"
 required-features = ["browser-storage-proof"]
 
 [dependencies]
+conduit-time = { path = "../../../semantics/time", default-features = false }
 conduit-environment-browser = { path = "../browser", optional = true }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime", default-features = false, optional = true }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["plot-catalog"] }

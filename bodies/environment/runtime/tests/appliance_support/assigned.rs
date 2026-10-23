@@ -4,6 +4,8 @@ use super::*;
 use conduit_environment_runtime::appliance::assigned::{ResidentAppliance, ResidentRoles};
 pub struct Recipe {
     records: Vec<c::AssignedRecordRequirement>,
+    source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity,
+    cadence: conduit_time::TickConfiguration,
     texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
     counts: [u8; c::ASSIGNED_PLAN_COUNT_KINDS],
     roles: ResidentRoles,
@@ -48,6 +50,8 @@ impl Recipe {
         let mut counts = [0; c::ASSIGNED_PLAN_COUNT_KINDS];
         counts.copy_from_slice(&projection.bytes[80..80 + c::ASSIGNED_PLAN_COUNT_KINDS]);
         Self {
+            cadence: conduit_time::parse_tick_configuration(&plan.fragments[0].placements.iter().find(|g|g.kind_id.as_str()==conduit_time::TICK_KIND).unwrap().configuration).unwrap(),
+            source: conduit_environment_runtime::appliance::assigned::ResidentSourceIdentity::from_expanded(&plan.fragments[0].expanded_plot_id),
             records,
             texts: image
                 .configuration
@@ -104,6 +108,8 @@ impl Recipe {
         projection: &'a assignment::NativeProjection,
     ) -> ResidentAppliance<'a> {
         ResidentAppliance {
+            cadence: self.cadence.clone(),
+            source: self.source,
             layout: conduit_environment_runtime::assigned::ResidentLayout {
                 records: &self.records,
                 counts: self.counts,
@@ -325,6 +331,22 @@ fn retained_resident_software_refuses_other_source_then_transfers_without_alloca
     .unwrap();
     let (result, memory) =
         allocation_probe::observe(|| PreparedResidentSoftware::bind_retained(&mut retained, wrong));
+    assert!(result.is_err());
+    assert!(retained.is_some());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    // Source identity remains exact even when all realized graph records match.
+    let mut different_source = recipe.resident(&projection);
+    different_source.source.expanded_plot_digest[0] ^= 1;
+    let selected = ValidatedAssignedAppliance::admit(
+        &projection.bytes,
+        assignment::NativeProjection::maxima(),
+        projection.required(),
+        &different_source,
+    )
+    .unwrap();
+    let (result, memory) = allocation_probe::observe(|| {
+        PreparedResidentSoftware::bind_retained(&mut retained, selected)
+    });
     assert!(result.is_err());
     assert!(retained.is_some());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
