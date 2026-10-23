@@ -123,7 +123,7 @@ impl From<c::QuantityFormRefusal> for ObservationRefusal {
     }
 }
 pub struct PreparedObservationCodec {
-    input: c::PreparedStructuredValueValidator,
+    input: crate::canonical_input::PreparedCanonicalInput,
     temperature: Composer,
     humidity: Composer,
     observation: Composer,
@@ -148,7 +148,7 @@ impl PreparedObservationCodec {
             Ok(bytes)
         };
         Ok(Self {
-            input: c::PreparedStructuredValueValidator::new(&contract.input, 1024)?,
+            input: crate::canonical_input::PreparedCanonicalInput::new(&contract.input, 1024)?,
             temperature: Composer::new(temperature_type, leaf_bytes(temperature_type)?)?,
             humidity: Composer::new(humidity_type, leaf_bytes(humidity_type)?)?,
             observation: Composer::new(

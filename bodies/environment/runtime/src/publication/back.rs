@@ -1,8 +1,9 @@
 //! One retained canonical value. A staged copy becomes visible only after the
 //! production kernel commits the input consumption. Readers borrow that value.
 use super::{PublicationChannel, PublicationContract, PublicationSequence};
+use crate::canonical_input::PreparedCanonicalInput;
 use alloc::{vec, vec::Vec};
-use conduit_core::{PreparedStructuredValueValidator, StructuredInfoRefusal};
+use conduit_core::StructuredInfoRefusal;
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
@@ -15,7 +16,7 @@ pub struct PublicationSnapshot<'a> {
 }
 pub struct PublicationBack {
     channel: PublicationChannel,
-    validator: PreparedStructuredValueValidator,
+    validator: PreparedCanonicalInput,
     current: Vec<u8>,
     pending: Vec<u8>,
     maximum_events: u32,
@@ -40,7 +41,7 @@ impl PublicationBack {
         )?;
         Ok(Self {
             channel: contract.channel(),
-            validator: PreparedStructuredValueValidator::new(contract.value_type(), bytes)?,
+            validator: PreparedCanonicalInput::new(contract.value_type(), bytes)?,
             current: Vec::with_capacity(bytes),
             pending: vec![0; bytes],
             maximum_events,
