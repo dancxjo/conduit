@@ -1,0 +1,93 @@
+{
+  "source_commit": "bed4142ee991962a64d34086189c1b39907b901c",
+  "checks": [
+    {
+      "name": "format",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 10.373960494995117,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-current-format.log"
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--all-targets",
+        "--features",
+        "hosted-tools,native-compositor",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 211.11479687690735,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-current-clippy.log"
+    },
+    {
+      "name": "ordinary",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "ordinary_plan::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 168.85717749595642,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-current-ordinary.log"
+    },
+    {
+      "name": "morse",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "tour_morse_kernel::contract::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 0.47855710983276367,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-current-morse.log"
+    },
+    {
+      "name": "memory",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduitos",
+        "--lib",
+        "--features",
+        "hosted-tools,native-compositor",
+        "service_memory::tests"
+      ],
+      "exit_code": 0,
+      "seconds": 0.2256479263305664,
+      "log": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-current-memory.log"
+    }
+  ]
+}

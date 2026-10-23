@@ -1,0 +1,20 @@
+{
+  "source_commit": "2a34102bd0908a9debe239250f6e26aae46b1584",
+  "parent_reviewed_repair_head": "ece9f2ca064ddb02975908e309cb60a85f2281f2",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "ordinary-domain-proof",
+    "--locked"
+  ],
+  "cargo_target": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+  "artifact_root": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6229-negative-native-artifacts",
+  "started_unix": 1792648768.3899806,
+  "handler": "unrepaired #NM fallthrough",
+  "expected_result": "failing actual x87 control",
+  "exit_code": 1,
+  "finished_unix": 1792649318.124928
+}
