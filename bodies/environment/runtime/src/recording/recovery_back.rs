@@ -38,6 +38,23 @@ pub fn recovery_kind() -> c::Kind {
     }
 }
 
+/// Install authored meaning in the ordinary checker and expansion catalogs.
+/// This registers no initialized Back, Host offer, storage or authority.
+pub fn install_recovery_kind(
+    startup: &mut conduit_plot::StartupCatalog,
+    profiles: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    let kind = recovery_kind();
+    startup.insert(conduit_plot::KindSignature {
+        kind: kind.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(kind.kind_id.as_str(), kind.checked_front())?;
+    profiles
+        .insert_kind(kind)
+        .map_err(|error| alloc::format!("{error:?}"))
+}
+
 pub struct RecordingRecoveryBack {
     current: PreparedRecordingHistory,
     pending: PreparedRecordingHistory,

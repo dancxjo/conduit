@@ -196,3 +196,6 @@ mod history;
 
 #[path = "recording_recovery/back.rs"]
 mod back;
+
+#[path = "recording_recovery/installation.rs"]
+mod installation;

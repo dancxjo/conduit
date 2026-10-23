@@ -1018,3 +1018,15 @@ during formatting. Root must still provide the actual Face and install its
 selected route; this formatter alone makes no endpoint or recorder Host live.
 The observation page no longer asserts a hard-coded sampling cadence or AP-only
 connectivity; neither follows from its semantic observation Face.
+
+`install_recovery_kind` makes `environment/recover-recording` available to the
+ordinary Source checker and expansion catalogs without creating a provider.
+`ReadyRecordingRecovery` separately owns an initialized recovery Back, advertises
+it in the actual recorder Host/Boot and transfers it once after exact ordinary
+selection. Source identities, semantic Fore, generation, bounds and realization
+all remain checked; refusals preserve the retained object. The historical
+producer context is independently supplied and can differ from the recorder's
+current Boot. CPU proof checks real Source/Plan selection, altered selections,
+retirement from fresh offers and allocation-free committed recovery. This is
+software readiness, not storage authority, a Line, browser installation or a
+Body/Play start. Root still admits and binds those independently.

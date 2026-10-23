@@ -7,6 +7,7 @@ use crate::observation::{
 mod batch;
 mod history;
 mod host_call;
+mod installation;
 mod publication;
 mod reader;
 mod recovery_back;
@@ -16,9 +17,10 @@ pub use batch::{PreparedRecordingBatch, PreparedRecordingGeneration, RecordingBa
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use history::{PreparedRecordingHistory, RecordingHistoryRefusal, RecoveredHistory};
 pub use host_call::{RecordedRange, RecordingCommitObserver, RecordingSnapshotBack};
+pub use installation::{ReadyRecordingRecovery, RecoveryInstallationRefusal};
 pub use publication::PreparedRecordingInput;
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
-pub use recovery_back::{recovery_kind, RecordingRecoveryBack};
+pub use recovery_back::{install_recovery_kind, recovery_kind, RecordingRecoveryBack};
 pub use snapshot::{PreparedRecordingSnapshot, RecordingSnapshotRefusal};
 #[allow(dead_code)]
 mod forms {
