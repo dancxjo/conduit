@@ -46,7 +46,7 @@ impl Completion {
 pub(super) fn execute(
     placement: &PlannedGear,
     input: &[u8],
-    adapter: Option<&mut dyn HostedModelWorkAdapter>,
+    adapter: Option<&mut (dyn HostedModelWorkAdapter + 'static)>,
     output: &mut Vec<u8>,
 ) -> Result<Option<Completion>, String> {
     // Inference's complete Kind/schema is validated by its Back factory before

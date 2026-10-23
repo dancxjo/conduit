@@ -49,8 +49,11 @@ impl<'a> InstalledModelWorkHost<'a> {
             // dispatched request cannot overwrite that owner or grow a queue.
             return Ok(Some(Completion::Refused));
         }
-        let completion =
-            model_work_host::execute(placement, input, self.adapter.as_deref_mut(), output)?;
+        let adapter = match self.adapter.as_mut() {
+            Some(adapter) => Some(&mut **adapter),
+            None => None,
+        };
+        let completion = model_work_host::execute(placement, input, adapter, output)?;
         self.last_request = Some(request);
         if completion.is_none() {
             output.clear();
