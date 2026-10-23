@@ -16,6 +16,7 @@ conduit-semantic-catalog = { path = "../../../semantics/catalog", default-featur
 conduit-plot = { path = "../../../architecture/plot" }
 
 [dev-dependencies]
+serde_json = "1"
 conduit-time = { path = "../../../semantics/time", features = ["kernel-step"] }
 conduit-environment-face = { path = "../face" }
 conduit-face = { path = "../../../semantics/face", default-features = false }

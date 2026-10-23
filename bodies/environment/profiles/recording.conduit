@@ -1,0 +1,12 @@
+# A recorder's status projection, not a replacement for the producer's full
+# capture evidence. Available entries retain first-class observation quantities.
+type RecordingDisposition =
+    available
+    | capture-timeout
+    | provider-failed
+    | geometry-refused
+    | short-frame
+    | malformed-length
+    | checksum
+    | invalid-payload
+form environment/recording-disposition = RecordingDisposition as u8

@@ -134,3 +134,5 @@ impl PreparedCaptureSelector {
         }
     }
 }
+
+pub mod recording;
