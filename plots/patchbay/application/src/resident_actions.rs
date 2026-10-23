@@ -49,7 +49,10 @@ impl PatchbayApplicationPort {
                 availability: availability.clone(),
             });
         }
-        if let Some(index) = self.selected_plot {
+        if let Some(index) = self
+            .selected_plot
+            .filter(|index| self.plots[*index].plan_id.is_some())
+        {
             // Reading focus is Mask-local. Editing therefore names an explicit
             // semantic subject instead of depending on a renderer's cursor.
             let mut argument = FaceActionArgument::text(

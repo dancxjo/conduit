@@ -10,7 +10,14 @@ impl PatchbayApplicationPort {
         let mut canvas = ApplicationCanvas {
             checked_plot: plot.checked_plot_id.clone(),
             expanded_plot: graph.expanded_plot_id.as_str().into(),
-            plan: plot.plan_id.as_str().into(),
+            // This legacy canvas contract requires an inspected Plan. Source-only
+            // targets use canonical graph Face or text inspection instead.
+            plan: plot
+                .plan_id
+                .as_ref()
+                .ok_or(PatchbayApplicationRefusal::UnknownAction)?
+                .as_str()
+                .into(),
             body_plan: self.body_plan_id.as_str().into(),
             play: self
                 .active_play_id

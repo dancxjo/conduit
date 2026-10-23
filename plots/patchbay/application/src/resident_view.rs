@@ -15,16 +15,23 @@ impl PatchbayApplicationPort {
             event: ApplicationEventKind::Activate,
         });
         let edit_action = actions.len();
-        actions.push(ApplicationAction {
-            id: EDIT_CURRENT_ACTION_ID.into(),
-            event: ApplicationEventKind::Activate,
-        });
+        let editable = self
+            .selected_plot
+            .is_some_and(|index| self.plots[index].plan_id.is_some());
+        if editable {
+            actions.push(ApplicationAction {
+                id: EDIT_CURRENT_ACTION_ID.into(),
+                event: ApplicationEventKind::Activate,
+            });
+        }
         let mask_action = actions.len();
         if self.mask_topology.is_some() {
             actions.push(mask::action());
         }
         let canvas_action = actions.len();
-        if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph {
+        if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph
+            && self.selected_plan_id().is_some()
+        {
             actions.push(ApplicationAction {
                 id: resident_canvas::SELECT_SUBJECT.into(),
                 event: ApplicationEventKind::Change,
@@ -44,7 +51,7 @@ impl PatchbayApplicationPort {
                 Some(0),
                 ApplicationComponent::Main,
                 "active-plots",
-                "Active plots on this body",
+                self.inventory_title(),
                 "",
                 0,
                 None,
@@ -70,6 +77,7 @@ impl PatchbayApplicationPort {
             let state = match plot.state {
                 PatchbayActivePlotState::Playing => "Playing",
                 PatchbayActivePlotState::Lulled => "Lulled",
+                PatchbayActivePlotState::CheckedSource => "Checked Source · no Plan or Play",
             };
             nodes.push(node(
                 Some(1),
@@ -111,7 +119,9 @@ impl PatchbayApplicationPort {
         if let Some(index) = self.selected_plot {
             let plot = &self.plots[index];
             let inspection = self.inspection()?;
-            if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph {
+            if self.canvas_delivery == PatchbayCanvasDelivery::InlineGraph
+                && self.selected_plan_id().is_some()
+            {
                 nodes.push(node(
                     Some(1),
                     ApplicationComponent::PatchbayCanvas,
@@ -129,7 +139,10 @@ impl PatchbayApplicationPort {
                 &format!(
                     "Expanded Plot {} · Plan {} · Body Plan {}",
                     plot.graph.expanded_plot_id.as_str(),
-                    plot.plan_id.as_str(),
+                    plot.plan_id
+                        .as_ref()
+                        .map(|plan| plan.as_str())
+                        .unwrap_or("absent (checked Source only)"),
                     self.body_plan_id.as_str()
                 ),
                 "",
@@ -173,7 +186,9 @@ impl PatchbayApplicationPort {
                     0,
                     Some(inspect_action as u8),
                 ),
-                node(
+            ]);
+            if editable {
+                nodes.push(node(
                     Some(1),
                     ApplicationComponent::Button,
                     "edit-current",
@@ -181,8 +196,8 @@ impl PatchbayApplicationPort {
                     "",
                     0,
                     Some(edit_action as u8),
-                ),
-            ]);
+                ));
+            }
         }
         if self.edit_requested {
             nodes.push(node(
@@ -249,5 +264,15 @@ fn node(
         value_capacity,
         action,
         state: ApplicationNodeState::Ready,
+    }
+}
+
+impl PatchbayApplicationPort {
+    pub(super) fn inventory_title(&self) -> &'static str {
+        if self.plots.iter().any(|plot| plot.plan_id.is_none()) {
+            "Prepared plots and checked Sources"
+        } else {
+            "Active plots on this body"
+        }
     }
 }
