@@ -48,6 +48,7 @@ fn arrival_refuses_creche_renderers_before_commons() {
     for implementation in [
         "face/renderer-conduitos-native@1",
         "face/renderer-conduitos-component@1",
+        "face/renderer-conduitos-layout-component@1",
     ] {
         let (boot, mut journey) = arrival();
         journey["presenter_implementation_id"] = json!(implementation);

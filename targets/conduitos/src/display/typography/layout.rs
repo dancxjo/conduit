@@ -49,18 +49,12 @@ impl<'a> TextLayout<'a> {
         if width == 0 {
             return Err(DisplayError::InvalidExtent);
         }
-        // Reject an indivisible ink span before paint; never silently clip or
-        // detach a following zero-advance mark to satisfy a narrow rectangle.
-        let mut remaining = value;
-        while !remaining.is_empty() {
-            let bytes = super::ink::cluster_bytes(remaining, role, scale);
-            if &remaining[..bytes] != "\n"
-                && super::ink::span(&remaining[..bytes], role, scale, 0).fresh_width()
-                    > u32::from(width)
-            {
-                return Err(DisplayError::InvalidExtent);
-            }
-            remaining = &remaining[bytes..];
+        // The production paint cursor consumes the same intrinsic minimum as
+        // mechanical preparation; marks cannot be detached to force a fit.
+        if super::intrinsic_text_metrics(value, role, text_scale_percent)?.minimum_inline
+            > u32::from(width)
+        {
+            return Err(DisplayError::InvalidExtent);
         }
         Ok(Self {
             remaining: value,

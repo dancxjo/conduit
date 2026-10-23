@@ -9,6 +9,7 @@ mod parsec_map_build;
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=look.conduit");
+    println!("cargo:rerun-if-changed=component-layout.conduit");
     let mut catalog = StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
@@ -38,7 +39,12 @@ fn main() {
         .expect("temporal instant Type installs once");
     let checked = check_syntax_document(
         &parse_syntax_document(
-            &[include_str!("types.conduit"), include_str!("look.conduit")].join("\n"),
+            &[
+                include_str!("types.conduit"),
+                include_str!("look.conduit"),
+                include_str!("component-layout.conduit"),
+            ]
+            .join("\n"),
         ),
         &catalog,
     )
@@ -116,6 +122,8 @@ fn main() {
             ]
             .into(),
             serde_record_types: [
+                "ComponentLayoutChild".into(),
+                "ComponentLayoutGroup".into(),
                 "ComponentArgumentBinding".into(),
                 "ComponentActionBinding".into(),
                 "ComponentPropertyBinding".into(),

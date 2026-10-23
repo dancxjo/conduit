@@ -11,7 +11,7 @@ use serde::Serialize;
 use crate::spore_provision::{NativeMediaProvision, RouteCertificate};
 
 pub const JOIN_SCHEMA: &str = "conduit.conduitos/serial-spawn-observation@1";
-pub const MAXIMUM_JOIN_BYTES: usize = 32 * 1024;
+pub const MAXIMUM_JOIN_BYTES: usize = 48 * 1024;
 pub const MAXIMUM_ROUTE_REQUEST_BYTES: usize =
     crate::native_network_bounds::MAXIMUM_BINARY_MESSAGE_BYTES;
 
@@ -275,6 +275,31 @@ mod tests {
     }
 
     #[test]
+    fn layout_product_offer_fits_the_admitted_serial_join_bound() {
+        let provider = crate::product_bases::fixture_surface_provider();
+        let advertisement = crate::product_bases::native_mask_host_advertisement(
+            &"a".repeat(64).into(),
+            &"b".repeat(64).into(),
+            1,
+            &provider,
+        );
+        let encoded = encode(provision(), &advertisement).unwrap();
+        assert!(encoded.len() < MAXIMUM_JOIN_BYTES);
+        let value: serde_json::Value = serde_json::from_slice(&encoded).unwrap();
+        assert_eq!(
+            value["advertisement"],
+            serde_json::to_value(&advertisement).unwrap()
+        );
+        assert_eq!(value["membership_claimed"], false);
+        assert!(!encoded.windows(32).any(|window| window == [13; 32]));
+        std::eprintln!(
+            "layout_product_join_bytes={} admitted_limit={}",
+            encoded.len(),
+            MAXIMUM_JOIN_BYTES
+        );
+    }
+
+    #[test]
     fn pending_join_retains_public_route_but_no_invitation_secret() {
         let certificate = vec![42; 128];
         let binding: [u8; 32] = Sha256::digest(&certificate).into();
@@ -312,11 +337,11 @@ mod tests {
         assert_eq!(pending.route_certificates[0].certificate_der, vec![42; 128]);
         assert!(!format!("{pending:?}").contains(&format!("{:?}", [13_u8; 32])));
 
-        let advertisement = crate::mask_control::native_host_advertisement(
-            &HostId::from("host/one"),
-            &BootId::from("boot/one"),
+        let advertisement = crate::product_bases::native_mask_host_advertisement(
+            &"a".repeat(64).into(),
+            &"b".repeat(64).into(),
             1,
-            &crate::product_bases::fixture_surface_provider().entry,
+            &crate::product_bases::fixture_surface_provider(),
         );
         let advertisement_bytes = serde_json::to_vec(&advertisement).unwrap().len();
         assert!(
@@ -333,17 +358,20 @@ mod tests {
         assert!(!request.request.plan_created);
         assert!(!request.request.play_created);
         let request_bytes = serde_json::to_vec(&request).unwrap().len();
+        std::eprintln!(
+            "layout_product_routed_bytes={request_bytes} admitted_limit={MAXIMUM_ROUTE_REQUEST_BYTES}"
+        );
         assert!(
             request_bytes <= MAXIMUM_ROUTE_REQUEST_BYTES,
             "complete native routed request is {request_bytes} bytes, bound {MAXIMUM_ROUTE_REQUEST_BYTES}"
         );
         // Representative 192-byte Host/Boot identities fit the same envelope;
         // this is not a claim that HostId has a global 192-byte maximum.
-        let long_identity = crate::mask_control::native_host_advertisement(
+        let long_identity = crate::product_bases::native_mask_host_advertisement(
             &HostId::from("h".repeat(192)),
             &BootId::from("b".repeat(192)),
             u64::MAX,
-            &crate::product_bases::fixture_surface_provider().entry,
+            &crate::product_bases::fixture_surface_provider(),
         );
         let long = prepare(provision.clone(), &long_identity).unwrap();
         let long_request = long.routed_request.unwrap();

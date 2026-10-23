@@ -2,8 +2,10 @@
 use super::ConduitosError;
 use clap::{Args, ValueEnum};
 use serde_json::{json, Value};
-// Match native progress Face custody and journey correspondence bounds.
-const MAX_RECORD_BYTES: usize = 96 * 1024;
+// Face records include the admitted checked Source graph. Match the existing
+// journey correspondence record ceiling; focus records retain their old cap.
+const MAX_FACE_RECORD_BYTES: usize = 2 * 1024 * 1024;
+const MAX_FOCUS_RECORD_BYTES: usize = 96 * 1024;
 const MAX_RECORDS: usize = 256;
 const MAX_SERIAL_BYTES: usize = 16 * 1024 * 1024;
 use std::process::Command;
@@ -59,7 +61,7 @@ impl Viewport {
         let mut focuses = Vec::new();
         for line in serial.split_inclusive('\n').filter(|l| l.ends_with('\n')) {
             if let Some(text) = line.strip_prefix("CONDUIT_NATIVE_FACE ") {
-                if shows.len() == MAX_RECORDS || text.len() > MAX_RECORD_BYTES {
+                if shows.len() == MAX_RECORDS || text.len() > MAX_FACE_RECORD_BYTES {
                     return Err(refusal("viewport Face record bound exceeded"));
                 }
                 let row: Value = serde_json::from_str(text)
@@ -67,7 +69,7 @@ impl Viewport {
                 shows.push(row["show"].clone());
             }
             if let Some(text) = line.strip_prefix("CONDUIT_CRECHE_FOCUS ") {
-                if focuses.len() == MAX_RECORDS || text.len() > MAX_RECORD_BYTES {
+                if focuses.len() == MAX_RECORDS || text.len() > MAX_FOCUS_RECORD_BYTES {
                     return Err(refusal("viewport focus record bound exceeded"));
                 }
                 let focus: Value = serde_json::from_str(text)
@@ -211,6 +213,15 @@ mod tests {
                 )
                 .is_err());
         }
+        // An admitted Source graph can exceed the old 96 KiB viewport cap;
+        // its opaque contents do not alter this guard's exact Show custody.
+        let large = json!({"show":show,"opaque_face_payload":"x".repeat(110_393)});
+        assert!(Viewport::Constrained
+            .guest(
+                &format!("CONDUIT_NATIVE_FACE {large}\nCONDUIT_CRECHE_FOCUS {focus}\n"),
+                &boot
+            )
+            .is_ok());
         let face_line = format!("CONDUIT_NATIVE_FACE {}\n", json!({"show":show}));
         let focus_line = format!("CONDUIT_CRECHE_FOCUS {focus}\n");
         assert!(Viewport::Constrained
@@ -228,12 +239,12 @@ mod tests {
         assert!(Viewport::Constrained
             .guest(&(face_line.repeat(MAX_RECORDS + 1) + &focus_line), &boot)
             .is_err());
-        for prefix in ["CONDUIT_NATIVE_FACE ", "CONDUIT_CRECHE_FOCUS "] {
+        for (prefix, maximum) in [
+            ("CONDUIT_NATIVE_FACE ", MAX_FACE_RECORD_BYTES),
+            ("CONDUIT_CRECHE_FOCUS ", MAX_FOCUS_RECORD_BYTES),
+        ] {
             assert!(Viewport::Constrained
-                .guest(
-                    &(prefix.to_owned() + &" ".repeat(MAX_RECORD_BYTES) + "{}\n"),
-                    &boot
-                )
+                .guest(&(prefix.to_owned() + &" ".repeat(maximum) + "{}\n"), &boot)
                 .is_err());
             assert!(Viewport::Constrained
                 .guest(&(prefix.to_owned() + "malformed\n"), &boot)

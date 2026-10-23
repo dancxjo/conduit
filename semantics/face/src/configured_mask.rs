@@ -23,6 +23,7 @@ pub enum ConfiguredMaskRefusal {
     RendererPlacement,
     RendererProvenance,
     RecipeNotSourceLiteral,
+    LayoutNotSourceLiteral,
     Configuration,
 }
 
@@ -42,6 +43,7 @@ pub struct PreparedConfiguredMask<'a> {
     pub renderer: &'a PlannedGear,
     pub recipe: &'a StructuredConfigurationValue,
     pub expression: &'a StructuredConfigurationValue,
+    pub layout: Option<&'a StructuredConfigurationValue>,
 }
 
 /// Compatibility name for the shared compiler/planner custody inputs.
@@ -100,20 +102,28 @@ pub fn prepare_configured_mask<'a>(
     }
     let recipe = structured_field(placement, "recipe")?;
     let expression = structured_field(placement, "expression")?;
+    let layout = selected_layout(catalog, placement)?;
     let provenance = expanded
         .expanded
         .provenance
         .iter()
         .find(|source| source.gear_id == renderer.gear_id.as_str())
         .ok_or(ConfiguredMaskRefusal::RendererProvenance)?;
-    let (component, component_invocation_path) =
-        bind_source_recipe(document, backs, &expanded.expanded.name, provenance, recipe)?;
+    let (component, component_invocation_path) = bind_source_recipe(
+        document,
+        backs,
+        &expanded.expanded.name,
+        provenance,
+        recipe,
+        layout,
+    )?;
     Ok(PreparedConfiguredMask {
         component,
         component_invocation_path,
         renderer: placement,
         recipe,
         expression,
+        layout,
     })
 }
 
@@ -143,6 +153,7 @@ fn bind_source_recipe(
     root_name: &str,
     provenance: &ExpandedGearProvenance,
     recipe: &StructuredConfigurationValue,
+    layout: Option<&StructuredConfigurationValue>,
 ) -> Result<(ConfiguredComponentSource, Vec<String>), ConfiguredMaskRefusal> {
     // Plot names themselves may contain '/'; use the authenticated root name.
     let root = document
@@ -177,6 +188,13 @@ fn bind_source_recipe(
             .startup_bindings
             .iter()
             .find(|binding| binding.name == "recipe");
+        let layout_binding = gear
+            .startup_bindings
+            .iter()
+            .find(|binding| binding.name == "layout");
+        if layout_binding.is_some() && (layout.is_none() || recipe_binding.is_none()) {
+            return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+        }
         if literal_seen && recipe_binding.is_none() {
             return Err(ConfiguredMaskRefusal::RecipeNotSourceLiteral);
         }
@@ -196,6 +214,24 @@ fn bind_source_recipe(
                         != recipe.canonical_value()
                 {
                     return Err(ConfiguredMaskRefusal::RecipeNotSourceLiteral);
+                }
+                if let Some(expected) = layout {
+                    let Some(binding) = layout_binding else {
+                        return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                    };
+                    let CanonicalStartupValue::Structured(value) = &binding.value else {
+                        return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                    };
+                    let Some(value) = value.try_concrete() else {
+                        return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                    };
+                    if value
+                        .canonical_bytes()
+                        .map_err(|_| ConfiguredMaskRefusal::Configuration)?
+                        != expected.canonical_value()
+                    {
+                        return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                    }
                 }
                 if current.startup_parameters.len() != 1
                     || current.startup_parameters[0].name != "expression"
@@ -230,6 +266,17 @@ fn bind_source_recipe(
             }
         }
         if literal_seen {
+            if layout.is_some() && recipe_binding.is_some_and(|binding| {
+                matches!(&binding.value, CanonicalStartupValue::Structured(value) if value.try_concrete().is_none())
+            }) {
+                let Some(binding) = layout_binding else {
+                    return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                };
+                if !matches!(&binding.value, CanonicalStartupValue::Structured(value)
+                    if value.parameter_reference() == Some("layout")) {
+                    return Err(ConfiguredMaskRefusal::LayoutNotSourceLiteral);
+                }
+            }
             let expression_binding = gear
                 .startup_bindings
                 .iter()
@@ -270,6 +317,8 @@ pub struct ConfiguredMaskConfiguration {
     pub implementation_id: conduit_core::ImplementationId,
     pub recipe: StructuredConfigurationValue,
     pub expression: StructuredConfigurationValue,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub layout: Option<StructuredConfigurationValue>,
 }
 
 impl PreparedConfiguredMask<'_> {
@@ -284,6 +333,61 @@ impl PreparedConfiguredMask<'_> {
             implementation_id: self.renderer.implementation_id.clone(),
             recipe: self.recipe.clone(),
             expression: self.expression.clone(),
+            layout: self.layout.cloned(),
         }
     }
+}
+
+fn selected_layout<'a>(
+    catalog: &ProfileCatalog,
+    placement: &'a PlannedGear,
+) -> Result<Option<&'a StructuredConfigurationValue>, ConfiguredMaskRefusal> {
+    let startups: Vec<_> = catalog
+        .canonical_kind(&placement.kind_id)
+        .into_iter()
+        .flat_map(|kind| kind.startup_parameters.iter())
+        .filter(|p| p.name == "layout")
+        .collect();
+    let declarations: Vec<_> = placement
+        .semantic_contract
+        .configuration
+        .iter()
+        .filter(|p| p.key == "layout")
+        .collect();
+    let values = placement
+        .configuration
+        .iter()
+        .filter(|p| p.key == "layout")
+        .count();
+    let version_three =
+        placement.kind_contract_revision.as_str() == "conduit.face/component-mask@3";
+    if startups.is_empty() && declarations.is_empty() && values == 0 && !version_three {
+        return Ok(None);
+    }
+    if startups.len() != 1 || declarations.len() != 1 || values != 1 || startups[0].has_default {
+        return Err(ConfiguredMaskRefusal::Configuration);
+    }
+    let schema = crate::component_layout_type();
+    let profile = schema
+        .profile()
+        .map_err(|_| ConfiguredMaskRefusal::Configuration)?
+        .value_kind()
+        .clone();
+    if startups[0].value_type != profile
+        || declarations[0].rule
+            != (conduit_core::KindConfigurationRule::Structured {
+                profile: profile.clone(),
+            })
+    {
+        return Err(ConfiguredMaskRefusal::Configuration);
+    }
+    let value = structured_field(placement, "layout")?;
+    let structured =
+        conduit_core::StructuredInfoValue::from_canonical_bytes(value.canonical_value())
+            .map_err(|_| ConfiguredMaskRefusal::Configuration)?;
+    <crate::ComponentLayoutInfo as conduit_plot::rust_binding::NativeRustBinding>::from_structured(
+        structured,
+    )
+    .map_err(|_| ConfiguredMaskRefusal::Configuration)?;
+    Ok(Some(value))
 }

@@ -19,7 +19,13 @@ pub fn native_mask_host_advertisement(
     generation: u64,
     provider: &NativeSurfaceProvider,
 ) -> conduit_core::HostAdvertisement {
-    crate::mask_control::native_host_advertisement(host_id, boot_id, generation, &provider.entry)
+    conduit_conduitos_mask_offer::native_layout_host_advertisement(
+        host_id,
+        boot_id,
+        generation,
+        &provider.entry,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
+    )
 }
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;

@@ -1,7 +1,7 @@
 # Bounded binary WebSocket service core
 
 This preserves the native `embedded-websocket 0.9.5` calls and the 1,024-byte
-upgrade / 32,768-byte frame / 32,754-byte binary-message ceilings. It does not
+upgrade / 49,152-byte frame / 49,138-byte binary-message ceilings. It does not
 open a socket, authenticate TLS, approve an endpoint, operate a driver or mint
 semantic delivery/Show evidence. The independently linked guest is preparation;
 no execution, timing or fragmentation proof has been run for this extraction.
@@ -14,7 +14,7 @@ provider/Boot/endpoint/certificate checks, deadlines and polling bounds.
 
 All descriptors are canonical 48-byte little-endian `CNET`, version 1, with
 nonzero boot-local instance and strictly increasing sequence. The 16 KiB transfer
-window carries **raw bytes**. MAX_BLOB is 32 KiB, not a JSON byte-array bound.
+window carries **raw bytes**. MAX_BLOB is 48 KiB, not a JSON byte-array bound.
 Input transactions are Begin(kind,total), contiguous Write(offset,count) with
 window offset zero, then Commit. Read output blobs at contiguous offsets; every
 Read descriptor's count/total/offset must match Root's current output grant.
@@ -34,7 +34,7 @@ There are no pointer-valued descriptors and no implicit restart.
 - Send: precheck empty/oversize payload as RequestTooLarge, then SendBinary input
   returns a WireFrame blob. Root copies, writes all and flushes; IO failure is
   FrameWrite and terminally releases this guest connection.
-- Receive: precheck caller output length in 1..=32,754; StartReceive(maximum) runs
+- Receive: precheck caller output length in 1..=49,138; StartReceive(maximum) runs
   one canonical codec read. Continue(consumed,written) means StepReceive without reading the stream.
   Each codec step reports consumed wire bytes and produced message bytes. Root
   checks those against its retained-wire and remaining-output ledgers and requires

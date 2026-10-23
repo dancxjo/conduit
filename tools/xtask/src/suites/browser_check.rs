@@ -56,7 +56,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "check.browser.creche-rendezvous",
         "Prove bounded one-use Crèche running-Host rendezvous codes",
         "node",
-        &["--test", "proof/browser/creche-rendezvous.test.mjs"],
+        &[
+            "--test",
+            "proof/browser/creche-rendezvous.test.mjs",
+            "proof/browser/installed-host-encounter.test.mjs",
+            "proof/browser/process-output.test.mjs",
+        ],
     ),
     Step::new(
         "check.browser.physical-host-workflow",

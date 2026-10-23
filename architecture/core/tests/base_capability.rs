@@ -293,3 +293,43 @@ fn revocation_cancellation_and_replacement_make_possession_stale() {
         Err(BaseCapabilityRefusal::Revoked)
     );
 }
+
+#[test]
+fn empty_result_authority_admits_only_empty_completions_without_broadening() {
+    let mut table = table(7);
+    let mut empty = request();
+    empty.scope.maximum_result_bytes = 0;
+    empty.authority.maximum_result_bytes = 0;
+    let mut broadened = empty.clone();
+    broadened.scope.maximum_result_bytes = 1;
+    assert_eq!(
+        table.issue(broadened).unwrap_err(),
+        BaseCapabilityRefusal::ScopeBroadening
+    );
+    let mut handle = table.issue(empty).unwrap();
+    let lease = table.authorize(&handle, &claim()).unwrap();
+    assert_eq!(
+        table.complete(&mut handle, lease.clone(), 1),
+        Err(BaseCapabilityRefusal::ResultEnvelope)
+    );
+    assert_eq!(table.inspections().next().unwrap().in_flight_operations, 1);
+    table.complete(&mut handle, lease, 0).unwrap();
+    assert_eq!(table.inspections().next().unwrap().completed_operations, 1);
+    assert_eq!(table.inspections().next().unwrap().in_flight_operations, 0);
+}
+#[test]
+fn empty_results_do_not_remove_positive_work_or_lifecycle_bounds() {
+    for missing in 0..3 {
+        let mut empty = request();
+        empty.scope.maximum_result_bytes = 0;
+        match missing {
+            0 => empty.scope.maximum_work_units = 0,
+            1 => empty.scope.maximum_in_flight = 0,
+            _ => empty.scope.maximum_operations = 0,
+        }
+        assert_eq!(
+            table(7).issue(empty).unwrap_err(),
+            BaseCapabilityRefusal::InvalidBound
+        );
+    }
+}

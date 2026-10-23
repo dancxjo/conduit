@@ -107,3 +107,71 @@ impl NativeFaceScene {
         Ok(scene)
     }
 }
+
+impl NativeFaceScene {
+    /// Consume checked structure over its exact immutable Face. This entrypoint
+    /// alone does not establish selected Back custody or Show acknowledgement.
+    pub fn prepare_structured(
+        structure: &conduit_face::PreparedComponentLayout<'_>,
+        width: u16,
+        height: u16,
+        interaction_admitted: bool,
+        expression: &conduit_face::AdmittedVisualExpression,
+    ) -> Result<Self, FaceSceneError> {
+        let face = structure.face();
+        face.validate().map_err(|_| FaceSceneError::InvalidFace)?;
+        if width < 320 || height < 240 || width > 16_384 || height > 16_384 {
+            return Err(FaceSceneError::InvalidExtent);
+        }
+        let screen = LayoutRect {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        };
+        // Prepare the selected layout directly. A generic scene's geometry is
+        // neither its prerequisite nor storage that should coexist with it.
+        let (mut primary, details) = document::prepare(face, interaction_admitted)?;
+        for item in &mut primary {
+            item.region_order = item.subject_index.and_then(|subject| {
+                structure
+                    .recipe()
+                    .subject_regions
+                    .get(subject)
+                    .copied()
+                    .flatten()
+            });
+            item.region = item
+                .region_order
+                .and_then(|region| structure.recipe().recipe.regions().as_slice().get(region))
+                .map(|region| *region.group());
+        }
+        let scale = expression.expression.text_scale_percent;
+        let typography = Typography::new(expression.expression.typography);
+        let padding = match expression.expression.density {
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
+        };
+        let primary =
+            layout::admit_mechanical(primary, screen, structure, scale, padding, typography)?;
+        let details = layout::admit_with_expression_selected(
+            details, screen, SPACE_XL, 1, scale, padding, typography,
+        )?;
+        Ok(Self {
+            primary,
+            details,
+            graph_reading: graph_reading::GraphReading::prepare(face)?,
+            face: face.clone(),
+            screen,
+            text_scale_percent: scale,
+            typography,
+            page: 0,
+            focus: None,
+            showing_details: false,
+            showing_diagram: false,
+            input: input::InputState::default(),
+            interaction_admitted,
+            local_notice: None,
+        })
+    }
+}

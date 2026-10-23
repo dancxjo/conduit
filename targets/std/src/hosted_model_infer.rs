@@ -1,8 +1,5 @@
 //! Preparation of an immutable model for the ordinary named-tensor Fore.
-use crate::hosted_model_compute::{
-    ModelComputeAdapter, ModelComputeAdapterTerminal, ModelComputeInvocation,
-};
-use crate::hosted_model_work::{HostedModelWorkAdapter, ModelWorkTerminal};
+use crate::hosted_model_compute::ModelComputeAdapter;
 use conduit_ai::model_infer_catalog::{model_infer_contract, signature_configuration};
 use conduit_ai::{AdmittedModelResource, ModelComputeOperation, ModelComputeRequirement};
 use conduit_core::*;
@@ -29,6 +26,11 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
     resource: ResourceOffer,
     next_request: u32,
     cancelled: bool,
+    unloaded: bool,
+    pending: Option<execution::PendingInference>,
+    pending_input: Vec<u8>,
+    runtime: conduit_ai::ModelComputeRuntimeIdentity,
+    output_reader: conduit_data::PreparedNamedTensorBundleView,
     prepared_output: Option<conduit_data::PreparedNamedTensorBundleOutput>,
     input_reader: conduit_data::PreparedNamedTensorBundleView,
     signature_io: conduit_ai::PreparedModelTensorIo,
@@ -190,6 +192,9 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         adapter
             .load(model.artifact().content_identity(), requirement.model_bytes)
             .map_err(|e| format!("model load: {e:?}"))?;
+        let runtime = adapter.runtime_identity().clone();
+        let output_reader = conduit_data::PreparedNamedTensorBundleView::prepare()
+            .map_err(|e| format!("model output reader preparation: {e}"))?;
         Ok(Self {
             model,
             adapter,
@@ -206,6 +211,11 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
             },
             next_request: 1,
             cancelled: false,
+            unloaded: false,
+            pending: None,
+            pending_input: Vec::with_capacity(MODEL_INFER_MAXIMUM_BYTES as usize),
+            runtime,
+            output_reader,
             prepared_output,
             input_reader,
             signature_io,
@@ -213,128 +223,7 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
     }
 }
 
-impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfer<A> {
-    fn capability_offer(&self) -> &CapabilityOffer {
-        &self.capability
-    }
-    fn resource_offer(&self) -> &ResourceOffer {
-        &self.resource
-    }
-    fn execute(
-        &mut self,
-        placement: &PlannedGear,
-        input: &[u8],
-        output: &mut Vec<u8>,
-    ) -> ModelWorkTerminal {
-        output.clear();
-        if self.cancelled {
-            return ModelWorkTerminal::Cancelled;
-        }
-        let [configuration] = placement.configuration.as_slice() else {
-            return ModelWorkTerminal::Refused;
-        };
-        let ConfigurationValue::Structured(signature) = &configuration.value else {
-            return ModelWorkTerminal::Refused;
-        };
-        if placement.capability_id != self.capability.capability_id
-            || placement.artifact_id != self.capability.implementation.artifact_id
-            || placement.implementation_id.as_str() != MODEL_INFER_IMPLEMENTATION
-            || configuration.key != "signature"
-            || placement.realization_properties != self.capability.realization_properties
-            || self
-                .capability
-                .realization_properties
-                .iter()
-                .find(|p| p.profile() == &self.signature_profile)
-                != Some(signature)
-        {
-            return ModelWorkTerminal::Refused;
-        }
-        if input.len() > MODEL_INFER_MAXIMUM_BYTES as usize {
-            return ModelWorkTerminal::MalformedInput;
-        }
-        let Ok(inputs) = self.input_reader.read(input) else {
-            return ModelWorkTerminal::MalformedInput;
-        };
-        if self.signature_io.validate_inputs(&inputs).is_err() {
-            return ModelWorkTerminal::MalformedInput;
-        }
-        let Ok(mut imported_symbols) = self.model.input_symbols(&inputs) else {
-            return ModelWorkTerminal::MalformedInput;
-        };
-        let bytes = inputs.tensor_bytes();
-        if bytes > self.maximum_input_bytes {
-            return ModelWorkTerminal::Refused;
-        }
-        let Some(next) = self.next_request.checked_add(1) else {
-            return ModelWorkTerminal::Refused;
-        };
-        let mut identity = self.model.descriptor_identity();
-        identity[..4].copy_from_slice(&self.next_request.to_le_bytes());
-        self.next_request = next;
-        // Keep admission immutable while reusing the one in-flight request.
-        self.requirement.input_bytes = bytes;
-        let inputs_identity = inputs.semantic_digest();
-        let terminal = self.adapter.execute(ModelComputeInvocation {
-            request_identity: identity,
-            artifact_identity: self.model.artifact().content_identity(),
-            checkpoint_identity: None,
-            requirement: &self.requirement,
-            inputs,
-        });
-        match terminal {
-            ModelComputeAdapterTerminal::Produced(result) => {
-                let Ok(outputs) = self.input_reader.read(result.outputs.encoded()) else {
-                    return ModelWorkTerminal::Failed;
-                };
-                if result.request_identity != identity
-                    || result.artifact_identity != self.model.artifact().content_identity()
-                    || self
-                        .model
-                        .imported_runtime()
-                        .is_some_and(|runtime| result.runtime != runtime)
-                    || result.inputs_identity != inputs_identity
-                    || result.checkpoint_identity.is_some()
-                    || self.signature_io.validate_outputs(&outputs).is_err()
-                    || imported_symbols.outputs(&outputs).is_err()
-                    || outputs.tensor_bytes() > self.requirement.output_bytes
-                {
-                    return ModelWorkTerminal::Failed;
-                }
-                let bytes: &[u8] = if let Some(prepared) = self.prepared_output.as_mut() {
-                    prepared.reset();
-                    for named in outputs.values() {
-                        if prepared.write_view(named).is_err() {
-                            return ModelWorkTerminal::Failed;
-                        }
-                    }
-                    let Ok(bytes) = prepared.encoded() else {
-                        return ModelWorkTerminal::Failed;
-                    };
-                    bytes
-                } else {
-                    result.outputs.encoded()
-                };
-                if bytes.len() > MODEL_INFER_MAXIMUM_BYTES as usize
-                    || bytes.len() > output.capacity()
-                {
-                    return ModelWorkTerminal::Failed;
-                }
-                output.extend_from_slice(bytes);
-                ModelWorkTerminal::Produced
-            }
-            ModelComputeAdapterTerminal::Refused(_) => ModelWorkTerminal::Refused,
-            ModelComputeAdapterTerminal::Cancelled => ModelWorkTerminal::Cancelled,
-            ModelComputeAdapterTerminal::ProviderLost => ModelWorkTerminal::ProviderLost,
-            ModelComputeAdapterTerminal::TimedOut => ModelWorkTerminal::TimedOut,
-            ModelComputeAdapterTerminal::Failed => ModelWorkTerminal::Failed,
-        }
-    }
-    fn cancel(&mut self) {
-        self.cancelled = true;
-        let _ = self.adapter.cancel();
-    }
-}
+mod execution;
 
 /// The existing reference-linear profile stores six little-endian binary32
 /// coefficients: two matrix rows followed by two biases. No weights supplied
