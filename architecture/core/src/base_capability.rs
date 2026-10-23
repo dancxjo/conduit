@@ -49,6 +49,7 @@ pub struct BaseCapabilityScope {
     pub resource_generation_id: ResourceGenerationId,
     pub envelope_id: CapabilityEnvelopeId,
     pub maximum_parameter_bytes: u32,
+    /// Zero permits completion only without result bytes (for example a wait).
     pub maximum_result_bytes: u32,
     pub maximum_work_units: u64,
     pub maximum_in_flight: u16,
@@ -387,7 +388,6 @@ fn validate_issue_request(
         return Err(BaseCapabilityRefusal::EmptyIdentity);
     }
     if scope.maximum_parameter_bytes == 0
-        || scope.maximum_result_bytes == 0
         || scope.maximum_work_units == 0
         || scope.maximum_in_flight == 0
         || scope.maximum_operations == 0
