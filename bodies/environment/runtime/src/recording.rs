@@ -109,9 +109,9 @@ impl PreparedRecordingChunk {
             sealed: false,
         })
     }
-    /// Inputs use one committed event sequence across all producer outcomes, not
-    /// the independent counters of individual publication endpoints. Failures never copy a
-    /// prior temperature; their four quantity bytes are absent (canonical zero).
+    /// Inputs use the shared committed PublicationSnapshot sequence across all
+    /// producer outcomes. Failures never copy a prior temperature; their four
+    /// quantity bytes are absent (canonical zero).
     pub fn append(
         &mut self,
         sequence: u64,

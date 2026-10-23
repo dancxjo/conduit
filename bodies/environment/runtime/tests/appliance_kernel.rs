@@ -113,6 +113,8 @@ fn run(scenario: usize) {
     let wait = values.store(&0_u64.to_le_bytes()).unwrap();
     let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
     let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
+    let publication_sequence =
+        conduit_environment_runtime::publication::PublicationSequence::prepare(1);
     for placement in &plan.fragments[0].startup_order {
         let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
         let gear = plan.fragments[0]
@@ -125,7 +127,12 @@ fn run(scenario: usize) {
                 .into_iter()
                 .find(|c| c.kind_id() == gear.kind_id.as_str())
             {
-                Driver::publication(&PublicationContract::prepare(channel).unwrap(), 1).unwrap()
+                Driver::publication(
+                    &PublicationContract::prepare(channel).unwrap(),
+                    1,
+                    publication_sequence.clone(),
+                )
+                .unwrap()
             } else if gear.kind_id.as_str() == conduit_time::TICK_KIND {
                 Driver::Tick(conduit_time::TickBack::counted(wait, 1).unwrap())
             } else if gear.kind_id.as_str() == conduit_time::TICK_TRIGGER_KIND {

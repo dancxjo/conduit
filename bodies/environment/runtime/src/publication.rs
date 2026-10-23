@@ -4,7 +4,9 @@ use alloc::{string::String, vec};
 use conduit_core as c;
 use conduit_plot::{KindSignature, ProfileCatalog, StartupCatalog};
 mod back;
+mod sequence;
 pub use back::{PublicationBack, PublicationSnapshot};
+pub use sequence::PublicationSequence;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PublicationChannel {

@@ -1,7 +1,7 @@
 //! Portable production driver set for the authored environmental appliance.
 //! All scheduling, routing, commit and Host Call state remain in the kernel.
 use crate::{
-    publication::{PublicationBack, PublicationContract},
+    publication::{PublicationBack, PublicationContract, PublicationSequence},
     CaptureBack,
 };
 use alloc::boxed::Box;
@@ -22,10 +22,12 @@ impl ApplianceBack {
     pub fn publication(
         contract: &PublicationContract,
         maximum_events: u32,
+        sequence: PublicationSequence,
     ) -> Result<Self, conduit_core::StructuredInfoRefusal> {
         Ok(Self::Publication(Box::new(PublicationBack::prepare(
             contract,
             maximum_events,
+            sequence,
         )?)))
     }
 }

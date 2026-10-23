@@ -624,3 +624,13 @@ Diagnostic allocation measurements are hosted observations, not MCU memory
 admission. Compiler/planner preparation remains host-side. Firmware Root
 installation, current Body lifecycle, private page routing and physical network
 transitions remain unproved by this test.
+
+Publication Backs for one local producer now require a shared
+`PublicationSequence`, prepared with a finite total event allowance. Each Back
+retains its own admitted channel limit, while snapshots carry one `u64` order
+across readings, capture timeouts, provider failures and geometry refusals.
+Staging reserves capacity; only the kernel's commit assigns the next number.
+Cancellation, replacement of an uncommitted step and dropping a staged Back
+return that reservation. The sequence is local to a Play and does not supply
+Host/Boot provenance or sample time. This closes the independent-channel-counter
+gap; durable publication, recorder transport and physical endurance remain.
