@@ -102,12 +102,19 @@ Source `9cacd3ca8d8ae486112ba81d1f35b692c25505f1`; the source-bound receipt is i
 `docs/audits/evidence/rank-zero-imported-model-20261021`. CI/Integration/merge
 remain delivery gates.
 
-
-The #6302 preparation adds an explicit `numeric_policy` to each canonical model
-tensor constraint: `ieee` preserves existing floating encodings and `finite_only`
+The #6302 development candidate adds an explicit `numeric_policy` to each
+canonical model tensor constraint: `ieee` preserves existing floating encodings and `finite_only`
 requires actual finite F32/F64 values. The policy participates in signature and
 selected Plan identity. Shared owned and borrowed validation checks inline values
 without rewriting payload bytes; finite-only floating resource descriptors refuse
 as unverifiable, rather than opening data or inferring finiteness from a digest.
-Integer encodings are finite by construction. Validation and delivery of this
-preparation remain pending; this does not close the parent acceptance gaps.
+Integer encodings are finite by construction.
+
+The supported model-inference suite passed 78 tests across 26 targets at
+`cbc66b635de725b20e220f5265207f49b49bf275`, including real checked Source, Plan
+and Play plus provider-effect/output-publication refusals. Focused strict Clippy
+passed at `c65e91c1770d13097ad716a8ab44b6ec48539c04` after two test-only error
+assertion style corrections; production objects are unchanged from the full
+suite. The refreshed delivery retains those implementation objects. Relevant
+Candidate/Integration and merge remain delivery gates. This child does not close
+the parent's optional-input, external-data or rendered-Patchbay acceptance gaps.
