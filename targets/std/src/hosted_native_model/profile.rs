@@ -72,7 +72,7 @@ pub(super) fn offer(bytes: u64) -> ModelComputeOffer {
             maximum_in_flight: 1,
             maximum_queue_items: 1,
             maximum_queue_bytes: 4,
-            cancellation_supported: false,
+            cancellation_supported: true,
             compute: ComputeCapacity {
                 class: PortableComputeClass::GeneralCpu,
                 minimum_lanes: 1,
@@ -164,6 +164,6 @@ mod tests {
             }
             assert!(offer.admits(&requested).is_err());
         }
-        assert!(!offer.limits.cancellation_supported);
+        assert!(offer.limits.cancellation_supported);
     }
 }
