@@ -331,3 +331,6 @@ fn selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial
 
 #[path = "recording_chunks/batch.rs"]
 mod batch;
+
+#[path = "recording_chunks/catalog.rs"]
+mod catalog;

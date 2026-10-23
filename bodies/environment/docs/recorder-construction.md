@@ -137,3 +137,21 @@ Retained software requests 61,926 bytes and preparation peaks at 62,285 bytes.
 Software preparation alone now fits the current 65,536-byte Root arena.
 Complete MCU admission must also cover allocator overhead, Root, native owners,
 value/sign backing, kernel and stack. The physical firmware has not changed.
+
+## Finite selected-generation catalog
+
+`PreparedRecordingCatalog` retains up to 16 ordered, exact resource-ref v1
+references in one ordinary JSON snapshot. The 15-chunk overnight workload needs
+16 storage records including this catalog. Preparation checks both the complete
+content-byte ceiling and that extra record; these checks are constraints, not
+storage reservations. Root must select and publish the catalog's own generation
+and retain its starting reference through admitted durable state separately.
+
+`PreparedRecordingCatalogReader` validates the complete bounded representation
+before replacing its previous selection. Reads allocate nothing; malformed,
+duplicate or incompatible references preserve the prior catalog. It returns
+canonical reference bytes, leaving owned decoding to subsequent preparation.
+A selected reference does not acknowledge publication, prove residence or grant
+a read. Missing listed chunks must still refuse through the actual snapshot
+Host Call; each recovered chunk must satisfy its expected producer context.
+This catalog has not yet been connected to the live recorder Body or Line.

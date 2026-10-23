@@ -5,6 +5,11 @@ use crate::observation::{
     ObservationContract, ObservationRefusal, PreparedObservationQuantityForms,
 };
 mod batch;
+mod catalog;
+pub use catalog::{
+    PreparedRecordingCatalog, PreparedRecordingCatalogReader, RecordingCatalogRefusal,
+    MAXIMUM_CATALOG_GENERATIONS,
+};
 mod history;
 mod host_call;
 mod installation;
