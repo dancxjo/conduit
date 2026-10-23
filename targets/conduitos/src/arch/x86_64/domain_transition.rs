@@ -201,10 +201,16 @@ fn enter_context_impl(
 }
 
 #[unsafe(no_mangle)]
-extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64) -> u64 {
+extern "C" fn conduitos_ordinary_timer_handler(
+    user: u64,
+    budget: u64,
+    #[cfg(feature = "ordinary-domain-proof")] saved: *const u64,
+) -> u64 {
+    #[cfg(feature = "ordinary-domain-proof")]
+    let sampled = unsafe { super::irq_envelope::before_handler(saved, user, budget) };
     #[cfg(feature = "ordinary-domain-proof")]
     super::super::domain_context_probe::observe_irq();
-    if budget != 0 {
+    let disposition = if budget != 0 {
         u64::from(domain_budget::interrupt(
             user & 3 == 3 && ACTIVE.load(Ordering::Acquire),
         ))
@@ -215,7 +221,14 @@ extern "C" fn conduitos_ordinary_timer_handler(user: u64, budget: u64) -> u64 {
         // Source timer facts remain Source facts even while a domain is running.
         super::irq::conduitos_timer_irq_handler();
         0
+    };
+    #[cfg(feature = "ordinary-domain-proof")]
+    if sampled {
+        unsafe {
+            super::irq_envelope::after_handler(saved, disposition);
+        }
     }
+    disposition
 }
 
 global_asm!(

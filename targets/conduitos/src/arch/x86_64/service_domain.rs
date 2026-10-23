@@ -82,6 +82,8 @@ impl DomainBackend for ServiceDomain {
             | ServiceProfile::Mask
             | ServiceProfile::Tls => super::domain_budget::EntryBudget::Draft,
         };
+        #[cfg(feature = "ordinary-domain-proof")]
+        super::irq_envelope::validate_entry(self.instance)?;
         let context = self.space.context()?;
         #[cfg(feature = "ordinary-domain-proof")]
         let permit = self

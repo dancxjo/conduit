@@ -22,6 +22,8 @@ conduitos_ordinary_root_gs: .quad 0
 conduitos_trap_observation: .zero 112
     .global conduitos_boundary_clock
 conduitos_boundary_clock: .zero 40
+    .global conduitos_irq_clock
+conduitos_irq_clock: .zero 16
     .endif
     .text
     .global conduitos_ordinary_enter
@@ -268,6 +270,20 @@ conduitos_ordinary_timer:
 conduitos_ordinary_budget:
     push 1
 conduitos_ordinary_irq:
+    .if {proof_envelope}
+    test byte ptr [rsp + 16], 3
+    jz conduitos_irq_start_unobserved
+    push rax
+    push rdx
+    lfence
+    rdtsc
+    lfence
+    mov dword ptr [rip + conduitos_irq_clock], eax
+    mov dword ptr [rip + conduitos_irq_clock + 4], edx
+    pop rdx
+    pop rax
+conduitos_irq_start_unobserved:
+    .endif
     push rax
     push rcx
     push rdx
@@ -288,6 +304,9 @@ conduitos_ordinary_irq:
     mov r15, rsp
     mov rdi, [rsp + 136]
     mov rsi, [rsp + 120]
+    .if {proof_envelope}
+    mov rdx, rsp
+    .endif
     and rsp, -16
     call conduitos_ordinary_timer_handler
     mov rsp, r15
@@ -295,6 +314,17 @@ conduitos_ordinary_irq:
     jz conduitos_ordinary_timer_resume
     mov eax, 4
     mov edx, 2
+    .if {proof_envelope}
+    push rax
+    push rdx
+    lfence
+    rdtsc
+    lfence
+    mov dword ptr [rip + conduitos_irq_clock + 8], eax
+    mov dword ptr [rip + conduitos_irq_clock + 12], edx
+    pop rdx
+    pop rax
+    .endif
     jmp conduitos_ordinary_return
 conduitos_ordinary_timer_resume:
     pop r15
@@ -312,6 +342,20 @@ conduitos_ordinary_timer_resume:
     pop rdx
     pop rcx
     pop rax
+    .if {proof_envelope}
+    test byte ptr [rsp + 16], 3
+    jz conduitos_irq_end_unobserved
+    push rax
+    push rdx
+    lfence
+    rdtsc
+    lfence
+    mov dword ptr [rip + conduitos_irq_clock + 8], eax
+    mov dword ptr [rip + conduitos_irq_clock + 12], edx
+    pop rdx
+    pop rax
+conduitos_irq_end_unobserved:
+    .endif
     add rsp, 8
     iretq
 

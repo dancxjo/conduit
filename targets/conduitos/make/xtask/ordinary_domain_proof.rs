@@ -13,6 +13,7 @@ mod clock_boundary;
 mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
+mod irq_envelope;
 mod service_memory;
 mod trap_envelope;
 
@@ -253,6 +254,16 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "requires the actual fixture appliance ELF",
         ));
     }
+    let guest = clock_boundary["records"][0]["guest_sha256"]
+        .as_str()
+        .ok_or_else(|| {
+            ConduitosError::refusal(
+                "service-software-irq-refused",
+                "missing exact image binding",
+            )
+        })?;
+    let irq_envelope = irq_envelope::validate(&transcript, guest)
+        .map_err(|reason| ConduitosError::refusal("service-software-irq-refused", reason))?;
     let trap_receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-trap-envelope-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
@@ -262,6 +273,7 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         "transcript_sha256": super::report::sha256_file(&serial_path)?,
         "observations": trap_envelope,
         "privilege_boundary_observations": clock_boundary,
+        "software_irq_observations": irq_envelope,
     });
     fs::write(
         paths.target.join("service-trap-envelope-proof.json"),
