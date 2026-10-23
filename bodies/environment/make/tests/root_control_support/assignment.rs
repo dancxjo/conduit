@@ -58,16 +58,40 @@ pub(super) fn round_trip(
         resources: &resources,
         remote_bindings: &[],
     };
-    let mut borrowed_records = assigned_records.clone();
-    for record in &mut borrowed_records {
-        if let Some(resident) = source_records.iter().find(|expected| **expected == *record) {
-            *record = *resident;
-        }
-    }
+    use conduit_environment_runtime::appliance::assignment_transfer as transfer;
+    let mut wire = [0; transfer::MAXIMUM_WIRE_BYTES];
+    let (encoded, memory) = allocation_probe::observe(|| {
+        transfer::encode(
+            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
+            &assigned_records,
+            source_recipe.spec().source,
+            &source_records,
+            &mut wire,
+        )
+    });
+    let encoded = encoded.unwrap();
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert!(encoded < projected.assignment().len());
+    let mut slots = [c::AssignedRecord {
+        tag: 0,
+        payload: &[],
+    }; transfer::MAXIMUM_RECORDS];
+    let (decoded, memory) = allocation_probe::observe(|| {
+        transfer::decode(
+            &wire[..encoded],
+            source_recipe.spec().source,
+            &source_records,
+            &mut slots,
+        )
+    });
+    let decoded = decoded.unwrap();
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(decoded.records, assigned_records);
+    let borrowed_records = decoded.records;
     let (borrowed, memory) = allocation_probe::observe(|| {
         c::decode_assigned_records_with_computations(
-            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
-            &borrowed_records,
+            decoded.header,
+            borrowed_records,
             limits.assignment,
             required,
             resident.computations,
@@ -82,10 +106,35 @@ pub(super) fn round_trip(
     assert_eq!(borrowed, contiguous);
     assert!(borrowed.is_ok());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    // A well-framed transfer does not establish canonical integrity.
+    let mut tampered = wire[..encoded].to_vec();
+    tampered[44 + 93] ^= 1;
+    let mut tampered_slots = [c::AssignedRecord {
+        tag: 0,
+        payload: &[],
+    }; transfer::MAXIMUM_RECORDS];
+    let altered = transfer::decode(
+        &tampered,
+        source_recipe.spec().source,
+        &source_records,
+        &mut tampered_slots,
+    )
+    .unwrap();
+    let (result, memory) = allocation_probe::observe(|| {
+        c::decode_assigned_records_with_computations(
+            altered.header,
+            altered.records,
+            limits.assignment,
+            required,
+            resident.computations,
+        )
+    });
+    assert_eq!(result, Err(c::AssignedPlanRefusal::DigestMismatch));
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     let (result, memory) = allocation_probe::observe(|| {
         ValidatedAssignedAppliance::admit_records(
-            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
-            &borrowed_records,
+            decoded.header,
+            borrowed_records,
             limits.assignment,
             required,
             &resident,
@@ -107,8 +156,8 @@ pub(super) fn round_trip(
     };
     let (result, memory) = allocation_probe::observe(|| {
         ValidatedAssignedAppliance::admit_records(
-            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
-            &borrowed_records,
+            decoded.header,
+            borrowed_records,
             limits.assignment,
             required,
             &foreign,

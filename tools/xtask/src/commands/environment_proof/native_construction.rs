@@ -37,6 +37,8 @@ pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
                 "--manifest-path",
                 "bodies/environment/make/Cargo.toml",
                 "--test",
+                "assignment_transfer",
+                "--test",
                 "native",
                 "--test",
                 "network_assignment",

@@ -100,22 +100,39 @@ fn main() -> Result<(), Box<dyn Error>> {
         recipe.resident().computations,
     )
     .map_err(|why| format!("Assignment validation: {why:?}"))?;
-    let borrowed_records: Vec<_> = conduit_core::AssignedPlanRecords::new(prepared.assignment())
+    use conduit_environment_runtime::appliance::assignment_transfer as transfer;
+    let assigned_records: Vec<_> = conduit_core::AssignedPlanRecords::new(prepared.assignment())
         .map_err(|why| format!("Assignment records: {why:?}"))?
-        .map(|record| {
-            record.map(|record| {
-                source_records
-                    .iter()
-                    .find(|resident| **resident == record)
-                    .copied()
-                    .unwrap_or(record)
-            })
-        })
         .collect::<Result<_, _>>()
         .map_err(|why| format!("Assignment record: {why:?}"))?;
-    let borrowed = conduit_core::decode_assigned_records_with_computations(
+    let mut wire = [0; transfer::MAXIMUM_WIRE_BYTES];
+    let wire_size = transfer::encode(
         &prepared.assignment()[..conduit_core::ASSIGNED_PLAN_HEADER_BYTES],
-        &borrowed_records,
+        &assigned_records,
+        source_recipe.spec().source,
+        &source_records,
+        &mut wire,
+    )
+    .map_err(|why| format!("Assignment transfer encoding: {why:?}"))?;
+    fs::write(
+        directory.join("uninstalled-assignment-transfer.bin"),
+        &wire[..wire_size],
+    )?;
+    let mut slots = [conduit_core::AssignedRecord {
+        tag: 0,
+        payload: &[],
+    }; transfer::MAXIMUM_RECORDS];
+    let decoded = transfer::decode(
+        &wire[..wire_size],
+        source_recipe.spec().source,
+        &source_records,
+        &mut slots,
+    )
+    .map_err(|why| format!("Assignment transfer framing: {why:?}"))?;
+    let borrowed_records = decoded.records;
+    let borrowed = conduit_core::decode_assigned_records_with_computations(
+        decoded.header,
+        borrowed_records,
         NativeApplianceLimits::resident_local().assignment,
         required,
         recipe.resident().computations,
@@ -126,8 +143,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     // Compiler round trip on the planning host, not device trust/provisioning.
     conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit_records(
-        &prepared.assignment()[..conduit_core::ASSIGNED_PLAN_HEADER_BYTES],
-        &borrowed_records,
+        decoded.header,
+        borrowed_records,
         NativeApplianceLimits::resident_local().assignment,
         required,
         &recipe.resident(),
@@ -179,6 +196,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "placements": plan.fragments[0].placements.len(),
         "cords": plan.fragments[0].connections.len(),
         "assignment_bytes": prepared.assignment().len(),
+        "assignment_transfer_bytes": wire_size,
+        "assignment_transfer_delivered_to_device": false,
         "borrowed_record_envelope_validated": true,
         "borrowed_table_compiler_round_trip": true,
         "assignment_record_bytes": record_bytes,

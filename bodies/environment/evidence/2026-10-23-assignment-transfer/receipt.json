@@ -1,0 +1,14 @@
+{
+  "capture": "1792777138",
+  "canonical_assignment_bytes": 46411,
+  "transfer_bytes": 7111,
+  "resident_computation_records": 7,
+  "resident_computation_bytes": 39552,
+  "wire_capacity": 8192,
+  "record_capacity": 256,
+  "resident_slot_capacity": 32,
+  "transfer_delivered_to_device": false,
+  "body_installed": false,
+  "rebuilt_elf_flashed": false,
+  "capture_sha256": "8f18a18d65bd514f04a2e9b0a33c13e26a0121d6bdb4358507cce7eb8f024495"
+}
