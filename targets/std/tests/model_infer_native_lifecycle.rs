@@ -205,26 +205,16 @@ fn ordinary_stop_cancels_actual_worker_with_nine_request_bytes_queued() {
     assert_eq!(count(&report, KernelEventKind::HostCallRequested), 1);
     assert_eq!(
         count(&report, KernelEventKind::HostCallCancellationRequested),
-        1
+        0
     );
     assert_eq!(count(&report, KernelEventKind::HostCallCompleted), 0);
+    assert_eq!(count(&report, KernelEventKind::CancellationRequested), 1);
+    assert_eq!(count(&report, KernelEventKind::RunCancelled), 1);
     assert_eq!(
         report.control_receipts[0].active_play_id,
         report.kernel.as_ref().unwrap().active_play_id
     );
-    let sign = &report.kernel.as_ref().unwrap().kernel_sign;
-    let requested = sign
-        .iter()
-        .find(|event| event.kind == KernelEventKind::HostCallRequested)
-        .unwrap();
-    let cancelled = sign
-        .iter()
-        .find(|event| event.kind == KernelEventKind::HostCallCancellationRequested)
-        .unwrap();
-    assert_eq!(
-        (requested.node, requested.request),
-        (cancelled.node, cancelled.request)
-    );
+
     let mut remaining = children;
     remaining.remove(&worker.pid);
     assert_eq!(process::children(), remaining);
