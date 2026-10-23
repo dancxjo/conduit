@@ -35,6 +35,14 @@ pub enum WaitCallRefusal {
     Capability(c::BaseCapabilityRefusal),
     Provider(WaitProviderFailure),
 }
+/// Retirement refuses without consuming the retained native owner.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WaitRetirementRefusal {
+    Unavailable,
+    InFlight,
+    NotRevoked,
+}
+
 pub struct MonotonicWaitHostCall<P> {
     table: c::BaseCapabilityTable,
     handle: c::BaseCapabilityHandle,
@@ -127,6 +135,26 @@ impl<P: MonotonicWaitProvider> MonotonicWaitHostCall<P> {
             .revoke(&self.handle)
             .map_err(WaitCallRefusal::Capability)
     }
+    /// Consume only revoked, idle possession and return the exact provider and
+    /// attachment. Refusal leaves `owner` intact. No capability, claim or Play
+    /// authority survives this transfer; a later binding needs fresh admission.
+    /// A pending invocation borrows the owner, so its provider future must be
+    /// dropped/quiesced before this exclusive retirement entrance is available.
+    pub fn retire_retained(
+        owner: &mut Option<Self>,
+    ) -> Result<(P, WaitAttachment), WaitRetirementRefusal> {
+        let current = owner.as_ref().ok_or(WaitRetirementRefusal::Unavailable)?;
+        let inspection = current.inspection();
+        if inspection.in_flight_operations != 0 {
+            return Err(WaitRetirementRefusal::InFlight);
+        }
+        if inspection.lifecycle != c::CapabilityLifecycle::Revoked {
+            return Err(WaitRetirementRefusal::NotRevoked);
+        }
+        let current = owner.take().expect("preflighted retained owner");
+        Ok((current.provider, current.attachment))
+    }
+
     pub fn inspection(&self) -> &c::CapabilityInspection {
         self.table
             .inspections()

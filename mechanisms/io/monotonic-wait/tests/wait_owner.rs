@@ -172,6 +172,14 @@ fn dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession() 
         assert_eq!(state.calls.get(), 1);
     });
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let mut retained = Some(owner);
+    let (_, memory) = allocation_probe::observe(|| {
+        let (provider, attachment) = MonotonicWaitHostCall::retire_retained(&mut retained).unwrap();
+        assert!(Rc::ptr_eq(&provider.0, &state));
+        assert_eq!(attachment.generation, 7);
+        assert!(retained.is_none());
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
 #[test]
 fn foreign_plan_and_play_cannot_bind_the_retained_native_slot() {
@@ -221,3 +229,44 @@ mod installation;
 
 #[path = "support/assigned.rs"]
 mod assigned;
+
+#[test]
+fn retirement_requires_revocation_and_returns_exact_timer_custody_once() {
+    let state = Rc::new(State::default());
+    let (owner, node) = fixture::owner(Provider(state.clone()));
+    let mut retained = Some(owner);
+    let before = retained.as_ref().unwrap().inspection().clone();
+    let (_, measured) = allocation_probe::observe(|| {
+        assert!(matches!(
+            MonotonicWaitHostCall::retire_retained(&mut retained),
+            Err(WaitRetirementRefusal::NotRevoked)
+        ));
+        assert_eq!(retained.as_ref().unwrap().inspection(), &before);
+        assert_eq!(
+            retained
+                .as_mut()
+                .unwrap()
+                .revoke(NodeId(node.0 + 1), HostCallId(0)),
+            Err(WaitCallRefusal::WrongBinding)
+        );
+        assert!(matches!(
+            MonotonicWaitHostCall::retire_retained(&mut retained),
+            Err(WaitRetirementRefusal::NotRevoked)
+        ));
+        retained
+            .as_mut()
+            .unwrap()
+            .revoke(node, HostCallId(0))
+            .unwrap();
+        let (provider, attachment) = MonotonicWaitHostCall::retire_retained(&mut retained).unwrap();
+        assert!(Rc::ptr_eq(&provider.0, &state));
+        assert_eq!(attachment.generation, 7);
+        assert!(retained.is_none());
+        assert!(matches!(
+            MonotonicWaitHostCall::retire_retained(&mut retained),
+            Err(WaitRetirementRefusal::Unavailable)
+        ));
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
+    assert_eq!(state.calls.get(), 0);
+}
