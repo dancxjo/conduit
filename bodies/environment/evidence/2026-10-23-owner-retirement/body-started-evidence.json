@@ -1,0 +1,221 @@
+{
+  "schema": "conduit.body/biography-evidence@2",
+  "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+  "friendly_name": "Mica Quail",
+  "body": {
+    "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+    "identity_derivation": "InitialWorksetBirthSignV3",
+    "workset": {
+      "plots": [
+        {
+          "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea",
+          "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6"
+        }
+      ]
+    },
+    "workload_revision": 0,
+    "birth_sequence": 527781549161496884,
+    "state": {
+      "Awake": {
+        "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4"
+      }
+    },
+    "sign_ids": [
+      "d00b5b1272a82fe34aaa434c0517ba185bb3be30088cceb9be4ba54a3566c1ce",
+      "a7e2b560921e10329e212fececc4865f1b0eb5ec46f4cbe800fcaeb4576daa80"
+    ],
+    "events": [
+      {
+        "Born": {
+          "initial_workset": {
+            "plots": [
+              {
+                "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea",
+                "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6"
+              }
+            ]
+          },
+          "workload_revision": 0,
+          "sign_id": "d00b5b1272a82fe34aaa434c0517ba185bb3be30088cceb9be4ba54a3566c1ce"
+        }
+      },
+      {
+        "Woke": {
+          "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4",
+          "sign_id": "a7e2b560921e10329e212fececc4865f1b0eb5ec46f4cbe800fcaeb4576daa80"
+        }
+      }
+    ]
+  },
+  "membership": {
+    "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+    "revision": 2,
+    "parts": [
+      {
+        "part_id": "757f17901014932d9e62bdb7641fa5ca8e29c46203cdfc413b29ecad02cba59e",
+        "state": "Admitted",
+        "current": {
+          "host_id": "esp32/b0a732286178",
+          "boot_id": "boot/473cafe4319f2ac75b1847241d0c7385",
+          "offer_generation": 1,
+          "proof_id": "127d469133ee5b2d166c0ba25ecfeb0860a5d12df458d9579a91b77d0fff95ed",
+          "sequence": 0
+        }
+      }
+    ],
+    "events": [
+      {
+        "change_id": "7aa4b4a6219176a94e8e9fa3f25b6267dc7e61f3ee1d036067ed89ab80c367ce",
+        "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+        "part_id": "757f17901014932d9e62bdb7641fa5ca8e29c46203cdfc413b29ecad02cba59e",
+        "revision": 1,
+        "sign_id": "73464c18759d26fdd6992a412e6f1cc794d86effa5a8ce1528b1cd145dd4db6b",
+        "kind": {
+          "Admitted": {
+            "proof_id": "127d469133ee5b2d166c0ba25ecfeb0860a5d12df458d9579a91b77d0fff95ed"
+          }
+        }
+      },
+      {
+        "change_id": "db0eae18b01db8c96533185bc5e1fa1947d4f4f3df668cd3de6604f2d42bea1a",
+        "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+        "part_id": "757f17901014932d9e62bdb7641fa5ca8e29c46203cdfc413b29ecad02cba59e",
+        "revision": 2,
+        "sign_id": "79cd3e1fdf3d53a531d2ca139b51d3e83d75eb6487885d9a76adcc499658727a",
+        "kind": {
+          "HostAttached": {
+            "observation": {
+              "host_id": "esp32/b0a732286178",
+              "boot_id": "boot/473cafe4319f2ac75b1847241d0c7385",
+              "offer_generation": 1,
+              "proof_id": "127d469133ee5b2d166c0ba25ecfeb0860a5d12df458d9579a91b77d0fff95ed",
+              "sequence": 0
+            }
+          }
+        }
+      }
+    ]
+  },
+  "graduation": null,
+  "records": [
+    {
+      "sequence": 527781549161496884,
+      "sign_id": "d00b5b1272a82fe34aaa434c0517ba185bb3be30088cceb9be4ba54a3566c1ce",
+      "kind": {
+        "Born": {
+          "initial_workset": {
+            "plots": [
+              {
+                "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea",
+                "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6"
+              }
+            ]
+          },
+          "workload_revision": 0
+        }
+      }
+    },
+    {
+      "sequence": 527781549161496887,
+      "sign_id": "73464c18759d26fdd6992a412e6f1cc794d86effa5a8ce1528b1cd145dd4db6b",
+      "kind": {
+        "PartAdmitted": {
+          "change_id": "7aa4b4a6219176a94e8e9fa3f25b6267dc7e61f3ee1d036067ed89ab80c367ce",
+          "part_id": "757f17901014932d9e62bdb7641fa5ca8e29c46203cdfc413b29ecad02cba59e"
+        }
+      }
+    },
+    {
+      "sequence": 527781549161496888,
+      "sign_id": "79cd3e1fdf3d53a531d2ca139b51d3e83d75eb6487885d9a76adcc499658727a",
+      "kind": {
+        "HostJoined": {
+          "change_id": "db0eae18b01db8c96533185bc5e1fa1947d4f4f3df668cd3de6604f2d42bea1a",
+          "part_id": "757f17901014932d9e62bdb7641fa5ca8e29c46203cdfc413b29ecad02cba59e",
+          "host_id": "esp32/b0a732286178",
+          "boot_id": "boot/473cafe4319f2ac75b1847241d0c7385"
+        }
+      }
+    },
+    {
+      "sequence": 527781549161496889,
+      "sign_id": "a7e2b560921e10329e212fececc4865f1b0eb5ec46f4cbe800fcaeb4576daa80",
+      "kind": {
+        "WakeEvent": {
+          "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4",
+          "event_index": 0
+        }
+      }
+    },
+    {
+      "sequence": 527781549161496890,
+      "sign_id": "3309993f9cdf9c487e0233da87fcc5449ad67de57ec5e5c9fd7c4a82d222ba02",
+      "kind": {
+        "WakeEvent": {
+          "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4",
+          "event_index": 1
+        }
+      }
+    },
+    {
+      "sequence": 527781549161496891,
+      "sign_id": "52d5db1600243471b4e04e60de5c4e39c5097eb3518e008b6ca248e5f9ad4c97",
+      "kind": {
+        "WakeEvent": {
+          "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4",
+          "event_index": 2
+        }
+      }
+    }
+  ],
+  "wakes": [
+    {
+      "wake_id": "a5892328a3bc2add373ef2644e5d2c7a0ef45cf1195887e6e67de230ed9ccbe4",
+      "body_id": "16d1890d1a99bbacfaedf8c826d35457ba3335872ee731413c0dfaf9bc4f5fc7",
+      "workset": {
+        "plots": [
+          {
+            "source_document_id": "3b2be61d35474faedeab6ca874af899f0479215b4715783e322b7b115f4210ea",
+            "checked_plot_id": "970d3a16062c47fbc699bdbfc04e4b5d343877ca9f66aa515efcfb8e602e4ee6"
+          }
+        ]
+      },
+      "workload_revision": 0,
+      "wake_sequence": 527781549161496889,
+      "lifecycle": "Playing",
+      "plans": [
+        {
+          "plan_id": "body-plan/sha256:a8d309eddd209a45dad117b9954f92b970c199e99df35d1f510d03f21f1df3d7",
+          "active_play_id": "body-play/sha256:268ba047e6b460e0aae75377f6ce1410ecd9a7fcaf2e1322d18b0a44e7605b8a",
+          "state": "Playing",
+          "hold": null
+        }
+      ],
+      "sign_ids": [
+        "a7e2b560921e10329e212fececc4865f1b0eb5ec46f4cbe800fcaeb4576daa80",
+        "3309993f9cdf9c487e0233da87fcc5449ad67de57ec5e5c9fd7c4a82d222ba02",
+        "52d5db1600243471b4e04e60de5c4e39c5097eb3518e008b6ca248e5f9ad4c97"
+      ],
+      "events": [
+        {
+          "Woke": {
+            "sign_id": "a7e2b560921e10329e212fececc4865f1b0eb5ec46f4cbe800fcaeb4576daa80"
+          }
+        },
+        {
+          "PlanReady": {
+            "plan_id": "body-plan/sha256:a8d309eddd209a45dad117b9954f92b970c199e99df35d1f510d03f21f1df3d7",
+            "sign_id": "3309993f9cdf9c487e0233da87fcc5449ad67de57ec5e5c9fd7c4a82d222ba02"
+          }
+        },
+        {
+          "PlayStarted": {
+            "plan_id": "body-plan/sha256:a8d309eddd209a45dad117b9954f92b970c199e99df35d1f510d03f21f1df3d7",
+            "active_play_id": "body-play/sha256:268ba047e6b460e0aae75377f6ce1410ecd9a7fcaf2e1322d18b0a44e7605b8a",
+            "sign_id": "52d5db1600243471b4e04e60de5c4e39c5097eb3518e008b6ca248e5f9ad4c97"
+          }
+        }
+      ]
+    }
+  ]
+}
