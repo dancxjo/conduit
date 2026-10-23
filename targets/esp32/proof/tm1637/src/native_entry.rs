@@ -23,6 +23,8 @@ async fn main(spawner: Spawner) {
     root.start_preparation_service(spawner)
         .await
         .expect("Root preparation service must start");
+    root.prepare_network_plan()
+        .expect("current initialized Root advertisement");
     let uart = Uart::new(p.UART0, UartConfig::default())
         .expect("Root UART0 must initialize")
         .with_rx(p.GPIO3)

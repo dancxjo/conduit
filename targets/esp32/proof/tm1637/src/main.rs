@@ -26,6 +26,9 @@ mod native_source;
 mod network;
 #[cfg(all(feature = "ap", not(feature = "native-root")))]
 mod network_entry;
+#[cfg(feature = "native-root")]
+#[path = "../../../../../bodies/environment/make/src/network_planning.rs"]
+mod network_planning;
 #[cfg(feature = "ap")]
 mod sdk_memory;
 #[cfg(feature = "ap")]

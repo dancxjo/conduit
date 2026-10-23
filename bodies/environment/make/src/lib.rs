@@ -2,11 +2,15 @@
 //! Source checker, planner and embedded image producer. No provider is invented.
 //! The result is construction material; Root must still authenticate it, admit
 //! current possession and storage, and advance the real Body/Wake before Play.
+extern crate alloc;
 mod execution;
 pub use execution::{NativeBodyBinding, NativeBodyBindingRefusal};
 mod network;
+mod network_planning;
 mod network_source;
-pub use network::{compile_network_setup, PreparedNativeNetworkSetup, PreparedNetworkSetup};
+pub use network::{
+    compile_network_setup, NetworkPlanningRefusal, PreparedNativeNetworkSetup, PreparedNetworkSetup,
+};
 
 use conduit_core as c;
 use conduit_embedded_build as e;

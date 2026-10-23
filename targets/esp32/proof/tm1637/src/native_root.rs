@@ -5,6 +5,12 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    network_preparation: Option<
+        Result<
+            crate::network_planning::PreparedNetworkSetup,
+            crate::network_planning::NetworkPlanningRefusal,
+        >,
+    >,
     network_source: conduit_plot::ExpandedCanonicalPlot,
     credentials: conduit_network_join_call::credential_installation::ReadyCredentialBase<
         crate::native_credentials::RootCredentialSource,
@@ -64,6 +70,7 @@ impl NativeRoot {
         .unwrap();
         let (credentials, credential_writer) = crate::native_credentials::prepare(&host, &boot);
         Self {
+            network_preparation: None,
             network_source,
             credentials,
             credential_writer,
@@ -81,6 +88,34 @@ impl NativeRoot {
     }
     pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
         &self.network_source
+    }
+    /// Use current initialized offers only. No authority or local Base is
+    /// inferred from authored meaning, SDK configuration or the UART request.
+    /// A prepared Plan remains uninstalled; admission and kernel storage are
+    /// separate. Each call replaces preparation against this same actual Boot.
+    pub fn prepare_network_plan(&mut self) -> Result<(), ()> {
+        self.network_preparation = None;
+        let host = self.advertisement()?;
+        self.network_preparation =
+            Some(crate::network_planning::PreparedNetworkSetup::from_checked(
+                &self.network_source,
+                &host,
+                &[],
+                &[],
+            ));
+        Ok(())
+    }
+    pub fn network_plan_status(&self) -> &'static str {
+        match &self.network_preparation {
+            None => "unprepared",
+            Some(Err(error)) => error.code(),
+            Some(Ok(prepared)) => {
+                // Read the retained ordinary result; this is not installation.
+                debug_assert_eq!(prepared.plan().fragments.len(), 1);
+                debug_assert!(!prepared.lowered().nodes.is_empty());
+                "prepared-uninstalled"
+            }
+        }
     }
     /// Fixed Root bootstrap service, independent of Body/Face installation. Two
     /// HTTP listeners and one DHCP socket share one finite private submission.
@@ -126,6 +161,9 @@ impl NativeRoot {
     /// Projection is made from the still-retained provider each time. It is an
     /// offer, not authority, membership, a Body birth or an installed native Play.
     pub fn write_offer(&self, output: &mut [u8]) -> Result<usize, ()> {
+        serde_json_core::to_slice(&self.advertisement()?, output).map_err(|_| ())
+    }
+    fn advertisement(&self) -> Result<c::HostAdvertisement, ()> {
         let mut advertisement = c::HostAdvertisement {
             protocol_version: c::PROTOCOL_VERSION,
             host_id: self.host.clone(),
@@ -143,6 +181,6 @@ impl NativeRoot {
         self.credentials
             .append_to_advertisement(&mut advertisement)
             .map_err(|_| ())?;
-        serde_json_core::to_slice(&advertisement, output).map_err(|_| ())
+        Ok(advertisement)
     }
 }

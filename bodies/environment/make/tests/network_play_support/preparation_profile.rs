@@ -24,6 +24,7 @@ pub fn measure(
         conduit_plot::flat_image::decode_trusted(&image).unwrap()
     });
     assert_eq!(restored, source);
+    checked_preparation(&restored, host, bases, grants, expected);
     let mut corrupt: serde_json::Value = serde_json::from_slice(&image).unwrap();
     corrupt["provenance"][0]["construction_owner"] = "not-compiler-authority".into();
     // Negative representation probe only; no returned graph is used for planning.
@@ -70,4 +71,53 @@ pub fn measure(
         compilation.peak_bytes, graph.peak_bytes, planning.peak_bytes,
         lowering.peak_bytes, planning.allocations, lowering.allocations, image.len(), decoding.peak_bytes,
     );
+}
+
+fn checked_preparation(
+    source: &conduit_plot::ExpandedCanonicalPlot,
+    host: &c::HostAdvertisement,
+    bases: &[c::BaseImplementationId],
+    grants: &[c::AuthorityGrant],
+    expected: &c::Plan,
+) {
+    use conduit_environment_make::PreparedNetworkSetup as P;
+    let prepared = P::from_checked(source, host, bases, grants).unwrap();
+    assert_eq!(prepared.plan(), expected);
+    assert_eq!(
+        P::from_checked(source, host, bases, &[])
+            .err()
+            .unwrap()
+            .code(),
+        "authority-missing"
+    );
+    let mut unavailable = host.clone();
+    unavailable.capabilities.clear();
+    assert_eq!(
+        P::from_checked(source, &unavailable, bases, grants)
+            .err()
+            .unwrap()
+            .code(),
+        "capability-unavailable"
+    );
+    // CPU authority fixture only: changing the Boot requires fresh matching
+    // grants and produces a fresh ordinary Plan, never a patched old identity.
+    let mut next = host.clone();
+    next.boot_id = "boot/next-planning-fixture".into();
+    assert_eq!(
+        P::from_checked(source, &next, bases, grants)
+            .err()
+            .unwrap()
+            .code(),
+        "authority-missing"
+    );
+    let mut next_grants = grants.to_vec();
+    for grant in &mut next_grants {
+        grant.boot_id = next.boot_id.clone();
+    }
+    let next = P::from_checked(source, &next, bases, &next_grants).unwrap();
+    assert_ne!(
+        next.plan().fragments[0].plan_id,
+        expected.fragments[0].plan_id
+    );
+    assert!(c::verify_plan(next.plan()));
 }
