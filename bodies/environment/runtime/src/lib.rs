@@ -4,6 +4,7 @@ extern crate alloc;
 #[cfg(feature = "appliance")]
 pub mod appliance;
 pub mod assigned;
+mod canonical_storage;
 #[cfg(feature = "construction")]
 pub mod construction;
 pub mod display_packets;

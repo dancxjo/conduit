@@ -14,32 +14,50 @@ use conduit_kernel::{
     Failure, FailureCode, PortId, ValueRef,
 };
 fn value(ty: &Type) -> Value {
+    coordinates(ty, 20, 50)
+}
+fn coordinates(ty: &Type, temperature: i64, humidity: i64) -> Value {
     match ty.shape() {
         Shape::Leaf(kind) => {
             let bytes = match kind.as_str() {
-                c::TEMPERATURE_INFO_ID => c::Quantity::new(20, c::Unit::Celsius).encode().to_vec(),
-                c::RATIO_INFO_ID => c::Quantity::new(50, c::Unit::Percent).encode().to_vec(),
+                c::TEMPERATURE_INFO_ID => c::Quantity::new(temperature, c::Unit::Celsius)
+                    .encode()
+                    .to_vec(),
+                c::RATIO_INFO_ID => c::Quantity::new(humidity, c::Unit::Percent)
+                    .encode()
+                    .to_vec(),
                 c::EMPTY_INFO_ID => vec![],
                 _ => vec![0],
             };
             Value::leaf(ty.clone(), bytes).unwrap()
         }
-        Shape::Collection { element, length } => {
-            Value::collection(ty.clone(), (0..length).map(|_| value(element)).collect()).unwrap()
-        }
+        Shape::Collection { element, length } => Value::collection(
+            ty.clone(),
+            (0..length)
+                .map(|_| coordinates(element, temperature, humidity))
+                .collect(),
+        )
+        .unwrap(),
         Shape::Record { fields, .. } => Value::record(
             ty.clone(),
             fields
                 .iter()
                 .map(|field| {
-                    c::StructuredFieldValue::new(field.name(), value(field.value_type())).unwrap()
+                    c::StructuredFieldValue::new(
+                        field.name(),
+                        coordinates(field.value_type(), temperature, humidity),
+                    )
+                    .unwrap()
                 })
                 .collect(),
         )
         .unwrap(),
-        Shape::Variant { cases, .. } => {
-            Value::variant(ty.clone(), cases[0].tag(), value(cases[0].payload_type())).unwrap()
-        }
+        Shape::Variant { cases, .. } => Value::variant(
+            ty.clone(),
+            cases[0].tag(),
+            coordinates(cases[0].payload_type(), temperature, humidity),
+        )
+        .unwrap(),
         _ => panic!("publication profile"),
     }
 }
@@ -55,6 +73,50 @@ fn step(back: &mut PublicationBack, bytes: &[u8], declared: u32, fuel: u16) -> (
 }
 fn commit(back: &mut PublicationBack) {
     <PublicationBack as StepBack<1>>::step_committed(back);
+}
+
+#[test]
+fn empty_publication_channels_prepare_within_one_kib() {
+    for channel in [Channel::ProviderFailure, Channel::GeometryRefusal] {
+        let contract = PublicationContract::prepare(channel).unwrap();
+        let order = PublicationSequence::prepare(1);
+        let (mut back, memory) =
+            allocation_probe::observe(|| PublicationBack::prepare(&contract, 1, order).unwrap());
+        assert!(memory.peak_bytes < 1024, "{channel:?}: {memory:?}");
+        let bytes = value(contract.value_type()).canonical_bytes().unwrap();
+        assert_eq!(
+            step(&mut back, &bytes, bytes.len() as u32, 8).0,
+            StepOutcome::Progress
+        );
+        assert!(back.snapshot().is_none());
+        commit(&mut back);
+        assert_eq!(back.snapshot().unwrap().canonical, bytes);
+    }
+}
+
+#[test]
+fn publication_storage_preserves_the_full_quantity_coordinate_width() {
+    let contract = PublicationContract::prepare(Channel::Reading).unwrap();
+    let values: Vec<_> = [(i64::MIN, i64::MIN), (i64::MAX, i64::MAX), (0, 100)]
+        .into_iter()
+        .map(|(temperature, humidity)| {
+            coordinates(contract.value_type(), temperature, humidity)
+                .canonical_bytes()
+                .unwrap()
+        })
+        .collect();
+    let mut back = PublicationBack::prepare(&contract, 3, PublicationSequence::prepare(3)).unwrap();
+    let ((), memory) = allocation_probe::observe(|| {
+        for bytes in &values {
+            assert_eq!(
+                step(&mut back, bytes, bytes.len() as u32, 8).0,
+                StepOutcome::Progress
+            );
+            commit(&mut back);
+            assert_eq!(back.snapshot().unwrap().canonical, bytes);
+        }
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
 #[test]
 fn publication_is_invisible_until_commit_and_uses_no_play_allocation() {

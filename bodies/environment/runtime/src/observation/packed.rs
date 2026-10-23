@@ -30,7 +30,10 @@ impl PreparedObservationQuantityForms {
             validator: PreparedStructuredValueValidator::new(ty, MAXIMUM_BYTES as usize)?,
             temperature: leaf("temperature")?,
             humidity: leaf("humidity")?,
-            observation: Composer::new(ty, MAXIMUM_BYTES as usize)?,
+            observation: Composer::new(
+                ty,
+                crate::canonical_storage::bytes(ty, MAXIMUM_BYTES as usize)?,
+            )?,
         })
     }
 

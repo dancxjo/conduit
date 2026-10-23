@@ -32,7 +32,12 @@ impl PublicationBack {
         maximum_events: u32,
         order: PublicationSequence,
     ) -> Result<Self, StructuredInfoRefusal> {
-        let bytes = contract.channel().maximum_bytes();
+        // Every valid canonical value fits this Type-derived bound. Retain the
+        // channel ceiling too; tightening storage does not narrow its domain.
+        let bytes = crate::canonical_storage::bytes(
+            contract.value_type(),
+            contract.channel().maximum_bytes(),
+        )?;
         Ok(Self {
             channel: contract.channel(),
             validator: PreparedStructuredValueValidator::new(contract.value_type(), bytes)?,

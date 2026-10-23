@@ -151,8 +151,14 @@ impl PreparedObservationCodec {
             input: c::PreparedStructuredValueValidator::new(&contract.input, 1024)?,
             temperature: Composer::new(temperature_type, leaf_bytes(temperature_type)?)?,
             humidity: Composer::new(humidity_type, leaf_bytes(humidity_type)?)?,
-            observation: Composer::new(&contract.observation, MAXIMUM_BYTES as usize)?,
-            result: Composer::new(&contract.output, MAXIMUM_BYTES as usize)?,
+            observation: Composer::new(
+                &contract.observation,
+                crate::canonical_storage::bytes(&contract.observation, MAXIMUM_BYTES as usize)?,
+            )?,
+            result: Composer::new(
+                &contract.output,
+                crate::canonical_storage::bytes(&contract.output, MAXIMUM_BYTES as usize)?,
+            )?,
         })
     }
     pub fn convert(&mut self, input: &[u8]) -> Result<&[u8], ObservationRefusal> {
