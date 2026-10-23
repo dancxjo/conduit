@@ -29,6 +29,9 @@ impl PreparedCredentialContract {
             subject: NETWORK_CREDENTIALS_SUBJECT.into(),
         }
     }
+    pub(crate) fn kind(&self) -> &Kind {
+        &self.kind
+    }
     fn definition(&self) -> SelectedOperationContract<'_> {
         SelectedOperationContract {
             kind: &self.kind,

@@ -18,6 +18,21 @@ mod allocation_probe;
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 #[path = "../../../../architecture/plan-lowering/tests/common/native_possession.rs"]
 mod possession;
+struct PrivateSource<'a> {
+    mailbox: NetworkSetupMailbox,
+    calls: &'a core::cell::Cell<u32>,
+}
+impl CredentialSource for PrivateSource<'_> {
+    fn take_acknowledged(&mut self, output: &mut [u8]) -> Result<usize, CredentialSourceRefusal> {
+        self.calls.set(self.calls.get() + 1);
+        self.mailbox
+            .take_acknowledged(output)
+            .map_err(|error| match error {
+                NetworkSetupRefusal::NotAcknowledged => CredentialSourceRefusal::Unacknowledged,
+                _ => CredentialSourceRefusal::Invalid,
+            })
+    }
+}
 struct Provider<'a>(&'a core::cell::Cell<u32>);
 impl NetworkJoinProvider for Provider<'_> {
     async fn join(
@@ -90,11 +105,68 @@ fn execute(acknowledged: bool) {
         planner_capabilities: vec![],
     };
     ready.append_to_advertisement(&mut host).unwrap();
-    host.capabilities.push(net::network_credentials_offer(
-        "cap/credentials".into(),
-        "impl/credentials".into(),
-        "artifact/credentials".into(),
-    ));
+    let mut mailbox = NetworkSetupMailbox::new(1);
+    let input = NetworkSetupInput::from_form(
+        b"ssid=fixture-net&password=fixture-password",
+        NetworkSetupLimits {
+            minimum_credential_bytes: 8,
+            maximum_credential_bytes: 63,
+        },
+    )
+    .unwrap();
+    let submission = mailbox.submit(input).unwrap();
+    if acknowledged {
+        mailbox.acknowledge(submission).unwrap();
+    }
+    let credential_calls = core::cell::Cell::new(0);
+    let mut credential_scope = possession::scope(net::NETWORK_CREDENTIALS_SUBJECT);
+    credential_scope.base_instance_id = "base/credentials".into();
+    credential_scope.resource_pool_id = "pool/credentials".into();
+    credential_scope.capability_id = credential_installation::CREDENTIAL_CAPABILITY.into();
+    credential_scope.implementation_id = "impl/credentials".into();
+    credential_scope.authority_contract_id = net::NETWORK_CREDENTIALS_AUTHORITY.into();
+    credential_scope.authority_grant_id = "grant/credentials".into();
+    credential_scope.operation_contract_id = net::NETWORK_CREDENTIALS_HOST_CALL.into();
+    credential_scope.maximum_parameter_bytes = 1;
+    credential_scope.maximum_result_bytes = net::MAXIMUM_JOIN_INPUT_BYTES;
+    // SAFETY: actual mailbox retained; Root identity/authority remain CPU fixtures.
+    let private = unsafe {
+        credential_installation::ReadyCredentialBase::new(
+            NetworkNativeIdentity {
+                host: credential_scope.host_id.clone(),
+                boot: credential_scope.boot_id.clone(),
+                base: "base/credentials".into(),
+                instance: credential_scope.base_instance_id.clone(),
+                provider_generation: 1,
+                resource: credential_scope.resource_pool_id.clone(),
+                resource_generation: credential_scope.resource_generation_id.clone(),
+                envelope: credential_scope.envelope_id.clone(),
+                artifact: "artifact/credentials".into(),
+                implementation: credential_scope.implementation_id.clone(),
+                base_implementation: "base/credentials@1".into(),
+            },
+            PrivateSource {
+                mailbox,
+                calls: &credential_calls,
+            },
+        )
+    }
+    .unwrap();
+    let mut stale = host.clone();
+    stale.boot_id = "boot/stale".into();
+    let original = stale.clone();
+    assert_eq!(
+        private.append_to_advertisement(&mut stale),
+        Err(NetworkInstallationRefusal::WrongBoot)
+    );
+    assert_eq!(stale, original);
+    private.append_to_advertisement(&mut host).unwrap();
+    let original = host.clone();
+    assert_eq!(
+        private.append_to_advertisement(&mut host),
+        Err(NetworkInstallationRefusal::Advertisement)
+    );
+    assert_eq!(host, original);
     host.capabilities.push(net::network_attachment_sign_offer(
         "cap/sign".into(),
         "impl/sign".into(),
@@ -123,7 +195,7 @@ fn execute(acknowledged: bool) {
             net::NETWORK_CREDENTIALS_AUTHORITY,
             net::NETWORK_CREDENTIALS_HOST_CALL,
             net::NETWORK_CREDENTIALS_SUBJECT,
-            "cap/credentials",
+            credential_installation::CREDENTIAL_CAPABILITY,
         ),
     ];
     let bases = ["conduit.base/local@1".into()];
@@ -154,6 +226,25 @@ fn execute(acknowledged: bool) {
     let join = find(net::NETWORK_JOIN_OPERATION);
     let sign = find(net::NETWORK_ATTACHMENT_SIGN_OPERATION);
     let active = c::bind_active_play(&fragment.plan_id, &host.host_id, &host.boot_id, 3);
+    credential_scope.plan_id = fragment.plan_id.clone();
+    credential_scope.active_play_id = active.active_play_id.clone();
+    let (credential_table, credential_handle, credential_claim) =
+        possession::possession(credential_scope);
+    let credential_contract = PreparedCredentialContract::prepare();
+    let mut credential_owner = private
+        .bind_selected(
+            credential_table,
+            credential_handle,
+            credential_claim,
+            &credential_contract,
+            SelectedOperationPlan {
+                fragment,
+                lowered,
+                active: &active,
+                placement_id: &lowered.nodes[usize::from(credential.0)].placement_id,
+            },
+        )
+        .unwrap();
     scope.plan_id = fragment.plan_id.clone();
     scope.active_play_id = active.active_play_id.clone();
     let (table, handle, claim) = possession::possession(scope);
@@ -212,20 +303,6 @@ fn execute(acknowledged: bool) {
                 .unwrap(),
         )
         .unwrap();
-    let mut mailbox = NetworkSetupMailbox::new(1);
-    let input = NetworkSetupInput::from_form(
-        b"ssid=fixture-net&password=fixture-password",
-        NetworkSetupLimits {
-            minimum_credential_bytes: 8,
-            maximum_credential_bytes: 63,
-        },
-    )
-    .unwrap();
-    let submission = mailbox.submit(input).unwrap();
-    if acknowledged {
-        mailbox.acknowledge(submission).unwrap();
-    }
-    let mut credential_calls = 0;
     let mut signs = 0;
     let mut finished = false;
     let mut buffer = [0; 167];
@@ -233,9 +310,14 @@ fn execute(acknowledged: bool) {
         for _ in 0..100 {
             if let Some(request) = kernel.next_host_request() {
                 let (output, failure) = if request.node == credential {
-                    credential_calls += 1;
                     assert!(kernel.host_value(request.input.value).unwrap().is_empty());
-                    match mailbox.take_acknowledged(&mut buffer) {
+                    match credential_owner.invoke(
+                        request.node,
+                        request.call,
+                        request.request,
+                        kernel.host_value(request.input.value).unwrap(),
+                        &mut buffer,
+                    ) {
                         Ok(length) => (
                             Some(
                                 k::BoundedValueRef::new(
@@ -246,7 +328,9 @@ fn execute(acknowledged: bool) {
                             ),
                             None,
                         ),
-                        Err(NetworkSetupRefusal::NotAcknowledged) => (
+                        Err(CredentialCallRefusal::Source(
+                            CredentialSourceRefusal::Unacknowledged,
+                        )) => (
                             None,
                             Some(k::Failure {
                                 code: k::FailureCode::HostCallDenied,
@@ -314,13 +398,18 @@ fn execute(acknowledged: bool) {
         }
     });
     assert!(finished);
-    if acknowledged {
-        assert_eq!(
-            mailbox.take_acknowledged(&mut buffer),
-            Err(NetworkSetupRefusal::NoSubmission)
-        );
-    }
-    assert_eq!(credential_calls, 1);
+    assert_eq!(
+        credential_owner.invoke(
+            credential,
+            k::HostCallId(0),
+            k::RequestId(0),
+            &[],
+            &mut buffer
+        ),
+        Err(CredentialCallRefusal::WrongRequest)
+    );
+    buffer.fill(0);
+    assert_eq!(credential_calls.get(), 1);
     assert_eq!(effects.get(), u32::from(acknowledged));
     assert_eq!(signs, usize::from(acknowledged));
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));

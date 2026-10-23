@@ -1,0 +1,181 @@
+//! Initialized private credential-source ownership; never inferred from metadata.
+use crate::installation::{NetworkInstallationRefusal, NetworkNativeIdentity};
+use crate::{
+    CredentialCallRefusal, CredentialSource, NetworkCredentialsHostCall,
+    PreparedCredentialContract, CREDENTIAL_RESOURCE_CLASS,
+};
+use alloc::vec;
+use conduit_core::*;
+use conduit_net::*;
+use conduit_plan_lowering::selected_operation::SelectedOperationPlan;
+pub const CREDENTIAL_CAPABILITY: &str = "conduit/network-credentials@1";
+pub const CREDENTIAL_BASE_KIND: &str = "machine/private-credentials";
+const CREDENTIAL_EXECUTION_PROFILE: &str = "conduit.network/credentials-hosted@1";
+pub struct ReadyCredentialBase<P> {
+    identity: NetworkNativeIdentity,
+    source: P,
+}
+impl<P: CredentialSource> ReadyCredentialBase<P> {
+    /// # Safety
+    /// Root must exclusively retain the actual initialized volatile source,
+    /// reserve its finite storage/work, and own its exact current identity and
+    /// resource generation. Retain this owner while advertised and withdraw the
+    /// projection before disposal. Metadata and a successful probe are insufficient.
+    pub unsafe fn new(
+        identity: NetworkNativeIdentity,
+        source: P,
+    ) -> Result<Self, NetworkInstallationRefusal> {
+        let i = &identity;
+        if [
+            i.host.as_str(),
+            i.boot.as_str(),
+            i.base.as_str(),
+            i.instance.as_str(),
+            i.resource.as_str(),
+            &i.resource_generation.0,
+            i.envelope.as_str(),
+            i.artifact.as_str(),
+            i.implementation.as_str(),
+            i.base_implementation.as_str(),
+        ]
+        .iter()
+        .any(|s| s.is_empty())
+            || i.provider_generation == 0
+        {
+            return Err(NetworkInstallationRefusal::InvalidIdentity);
+        }
+        Ok(Self { identity, source })
+    }
+    pub fn append_to_advertisement(
+        &self,
+        advertisement: &mut HostAdvertisement,
+    ) -> Result<(), NetworkInstallationRefusal> {
+        use NetworkInstallationRefusal as E;
+        let i = &self.identity;
+        if advertisement.host_id != i.host || advertisement.boot_id != i.boot {
+            return Err(E::WrongBoot);
+        }
+        if advertisement
+            .bases
+            .iter()
+            .any(|b| b.base_id == i.base || b.provider_instance_id == i.instance)
+            || advertisement
+                .capabilities
+                .iter()
+                .any(|c| c.capability_id.as_str() == CREDENTIAL_CAPABILITY)
+            || advertisement
+                .resources
+                .iter()
+                .any(|r| r.pool_id == i.resource)
+        {
+            return Err(E::Advertisement);
+        }
+        let mut registry = BaseRegistry::new(BaseRegistryLimits {
+            maximum_bases: 1,
+            maximum_capabilities_per_base: 1,
+            maximum_resources_per_base: 1,
+            maximum_advertised_capabilities: u16::try_from(
+                advertisement.capabilities.len().saturating_add(1),
+            )
+            .map_err(|_| E::Advertisement)?,
+            maximum_advertised_resources: u16::try_from(
+                advertisement.resources.len().saturating_add(1),
+            )
+            .map_err(|_| E::Advertisement)?,
+        })
+        .map_err(|_| E::Advertisement)?;
+        let mut offer = network_credentials_offer(
+            CREDENTIAL_CAPABILITY.into(),
+            i.implementation.clone(),
+            i.artifact.clone(),
+        );
+        offer.resource_requirements = vec![resource_requirement(CREDENTIAL_RESOURCE_CLASS, 1)];
+        registry
+            .register(BaseProviderEntry {
+                base_id: i.base.clone(),
+                provider_instance_id: i.instance.clone(),
+                provider_generation: i.provider_generation,
+                implementation_id: i.base_implementation.clone(),
+                mechanism_family: CREDENTIAL_BASE_KIND.into(),
+                enforcement_class: BaseEnforcementClass::Cooperative,
+                lifecycle: BaseLifecycle::Ready,
+                capabilities: vec![offer],
+                resources: vec![resource_offer(
+                    i.resource.as_str(),
+                    CREDENTIAL_RESOURCE_CLASS,
+                    1,
+                )],
+            })
+            .map_err(|_| E::Advertisement)?;
+        registry
+            .project_ready_into(advertisement)
+            .map_err(|_| E::Advertisement)?;
+        advertisement
+            .resources
+            .sort_by(|a, b| a.pool_id.cmp(&b.pool_id));
+        Ok(())
+    }
+    fn claim_matches(&self, claim: &BaseOperationClaim) -> bool {
+        let i = &self.identity;
+        claim.host_id == i.host
+            && claim.boot_id == i.boot
+            && claim.base_instance_id == i.instance
+            && claim.base_provider_generation == i.provider_generation
+            && claim.resource_pool_id == i.resource
+            && claim.resource_generation_id == i.resource_generation
+            && claim.envelope_id == i.envelope
+            && claim.implementation_id == i.implementation
+    }
+    pub fn bind_selected(
+        self,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        contract: &PreparedCredentialContract,
+        selected: SelectedOperationPlan<'_>,
+    ) -> Result<NetworkCredentialsHostCall<P>, CredentialCallRefusal> {
+        let gear = selected
+            .fragment
+            .placements
+            .iter()
+            .find(|g| &g.placement_id == selected.placement_id)
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        let base = gear
+            .base
+            .as_ref()
+            .ok_or(CredentialCallRefusal::WrongRequest)?;
+        let i = &self.identity;
+        if !self.claim_matches(&claim)
+            || gear.artifact_id != i.artifact
+            || gear.implementation_id != i.implementation
+            || gear.execution_profile_id.as_str() != CREDENTIAL_EXECUTION_PROFILE
+            || gear.capability_id.as_str() != CREDENTIAL_CAPABILITY
+            || gear.limits != contract.kind().limits
+            || base.base_id != i.base
+            || base.provider_instance_id != i.instance
+            || base.provider_generation != i.provider_generation
+            || base.implementation_id != i.base_implementation
+            || base.mechanism_family.as_str() != CREDENTIAL_BASE_KIND
+            || base.enforcement_class != BaseEnforcementClass::Cooperative
+            || !gear.authority.iter().any(|a| {
+                a.contract_id.as_str() == NETWORK_CREDENTIALS_AUTHORITY
+                    && a.host_call_contract_id.as_str() == NETWORK_CREDENTIALS_HOST_CALL
+                    && a.subject_kind.as_str() == NETWORK_CREDENTIALS_SUBJECT
+            })
+        {
+            return Err(CredentialCallRefusal::WrongRequest);
+        }
+        // SAFETY: new retained the private source. The exact native identity above
+        // preserves its initialization, resource generation and ownership scope.
+        unsafe {
+            NetworkCredentialsHostCall::bind_selected(
+                table,
+                handle,
+                claim,
+                self.source,
+                contract,
+                selected,
+            )
+        }
+    }
+}

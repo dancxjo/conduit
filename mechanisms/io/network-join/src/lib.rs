@@ -2,6 +2,7 @@
 //! Selected network Host Calls. No radio initialization or scheduling policy.
 extern crate alloc;
 mod contract;
+pub mod credential_installation;
 mod credentials;
 pub use credentials::{
     CredentialCallRefusal, CredentialSource, CredentialSourceRefusal, NetworkCredentialsHostCall,

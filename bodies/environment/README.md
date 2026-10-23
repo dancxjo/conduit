@@ -660,3 +660,12 @@ through this owner with acknowledged and unacknowledged page submissions, with
 no execution allocation. Root must own erasure of the caller's admitted output
 buffer after credential custody ends. Native assigned credential binding, actual
 initialized private Base projection and physical page/control installation remain.
+
+`ReadyCredentialBase` now retains the initialized private source and independently
+owned native identity across planning, advertises its bounded resource through
+the ordinary Base registry, and consumes that ownership into the selected read.
+Stale-Boot and duplicate projections refuse without changing the advertisement.
+The checked network Play proof now dispatches both credential and join requests
+through their selected owners; its dispatcher no longer reads the mailbox
+directly. Root authority/presence and radio remain explicit CPU fixtures. Actual
+MCU installation and native assigned credential binding remain outstanding.
