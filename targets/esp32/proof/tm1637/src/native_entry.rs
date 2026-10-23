@@ -18,7 +18,6 @@ async fn main(spawner: Spawner) {
     let seed = u64::from(esp_hal::rng::Rng::new().random());
     let radio = crate::network::start(spawner, p.WIFI, seed);
     let boot = crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
-    boot.print();
     let root = crate::native_root::NativeRoot::prepare(sensor, radio, &boot);
     let uart = Uart::new(p.UART0, UartConfig::default())
         .expect("Root UART0 must initialize")

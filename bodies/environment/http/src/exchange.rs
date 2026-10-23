@@ -9,8 +9,10 @@ pub struct NetworkSetupRoute<'a> {
     limits: NetworkSetupLimits,
 }
 impl<'a> NetworkSetupRoute<'a> {
-    /// Root installs this only alongside its admitted private credential source
-    /// and control Play. Owning an HTTP connection grants no radio authority.
+    /// Root installs this alongside its actual private credential source and
+    /// admitted HTTP service. Input custody may precede SDK/Plan preparation;
+    /// only a separately admitted control Play can cause a radio operation.
+    /// Owning an HTTP connection grants no radio authority.
     pub fn new(
         mailbox: &'a mut NetworkSetupMailbox,
         limits: NetworkSetupLimits,

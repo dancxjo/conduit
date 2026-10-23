@@ -5,7 +5,7 @@ use crate::{
 };
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
-const PREFIX: &[u8] = b"{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"advertisement\":";
+const PREFIX: &[u8] = b"\n{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"advertisement\":";
 const REFUSED: &[u8] =
     b"{\"event\":\"native-root-request-refused\",\"native_plan_installed\":false}\n";
 /// UART0 owns GPIO1 TX/GPIO3 RX. Command storage holds at most 64 bytes;
@@ -40,6 +40,7 @@ pub async fn serve(root: &NativeRoot, mut uart: Uart<'static, Async>) -> Result<
     }
 }
 async fn offer(root: &NativeRoot, uart: &mut Uart<'_, Async>, output: &mut [u8]) -> Result<(), ()> {
+    // Start a fresh line after any pre-ownership Boot ROM/SDK log fragment.
     let length = root.write_offer(output)?;
     with_timeout(Duration::from_secs(2), async {
         write_all(uart, PREFIX).await?;

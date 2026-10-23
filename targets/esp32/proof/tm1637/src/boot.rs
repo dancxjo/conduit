@@ -35,6 +35,7 @@ impl ObservedBoot {
     pub fn ids(&self) -> (&str, &str) {
         (&self.host, &self.boot)
     }
+    #[cfg(not(feature = "native-root"))]
     pub fn print(&self) {
         esp_println::println!(
             "{{\"event\":\"native-boot-observation\",\"schema\":\"conduit.environment/esp32-boot@1\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"host_offer\":false,\"body_installed\":false,\"image_sha256\":null}}",

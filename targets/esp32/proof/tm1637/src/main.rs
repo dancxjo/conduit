@@ -15,6 +15,8 @@ mod native_command;
 #[cfg(feature = "native-root")]
 mod native_control;
 #[cfg(feature = "native-root")]
+mod native_credentials;
+#[cfg(feature = "native-root")]
 mod native_entry;
 #[cfg(feature = "native-root")]
 mod native_root;

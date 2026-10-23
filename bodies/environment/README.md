@@ -765,3 +765,20 @@ The replacement ESP32 revision 3.1/4 MB has been flashed with this bench. Serial
 capture shows acknowledged alternating temperature and `H` pages with the same
 Face identity between sensor updates. AP startup is reported; the new image has
 not yet been checked over HTTP. Page-to-station control remains uninstalled.
+
+`NetworkSetupChannel` gives prepared socket writers and one non-Clone private
+reader shared custody of the existing finite mailbox. A socket retains its
+asynchronous lock through the response flush; the selected source uses a bounded
+try-lock and reports Busy separately from missing/unacknowledged input. Dropping
+a stalled response erases the submission before releasing custody. The actual
+stream exchange and concurrent writer/source fixtures exercise this boundary
+without execution allocation. Input collection may precede SDK/Plan preparation;
+collecting it grants no radio authority. The MCU route remains disabled until
+its Root service is installed.
+
+The ESP32 Root preparation image now initializes and retains that actual private
+source alongside the GPIO Base, under the observed Host and Boot. Its writer is
+retained for later service installation. This is initialized-source availability,
+not credential presence, a network join offer, an installed control Play or Body
+birth. The management UART exclusively owns its output after initialization and
+starts offers on a fresh line, avoiding truncated startup logging in the protocol.

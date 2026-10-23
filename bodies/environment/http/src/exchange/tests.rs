@@ -152,3 +152,55 @@ fn setup_route_requires_root_installation_and_page_never_claims_join_success() {
         .contains("Connect to Wi-Fi"));
     assert!(!mailbox.has_acknowledged());
 }
+
+#[test]
+fn shared_socket_custody_blocks_source_until_exchange_flushes_or_cancels() {
+    let request = post();
+    for pending_flush in [false, true] {
+        let mut channel = NetworkSetupChannel::new(1);
+        let (writer, mut reader) = channel.split();
+        let mut socket = Socket::new(request.as_bytes());
+        socket.pending_flush = pending_flush;
+        let ((), allocation) = allocation_probe::observe(|| {
+            {
+                let mut work = core::pin::pin!(async {
+                    let mut mailbox = writer.lock().await;
+                    let route = NetworkSetupRoute::new(&mut mailbox, limits()).unwrap();
+                    exchange(&mut socket, || 0, Some(route)).await
+                });
+                let result = work.as_mut().poll(&mut Context::from_waker(Waker::noop()));
+                if pending_flush {
+                    assert_eq!(result, Poll::Pending);
+                    assert_eq!(
+                        reader.has_acknowledged(),
+                        Err(NetworkSetupReadRefusal::Busy)
+                    );
+                } else {
+                    assert_eq!(
+                        result,
+                        Poll::Ready(Ok(ExchangeOutcome::SubmissionAcknowledged))
+                    );
+                }
+                // Drop cancels a stalled flush and releases actual socket custody.
+            }
+            assert_eq!(reader.has_acknowledged(), Ok(!pending_flush));
+            let mut output = [0; 167];
+            let result = reader.take_acknowledged(&mut output);
+            if pending_flush {
+                assert_eq!(
+                    result,
+                    Err(NetworkSetupReadRefusal::Input(
+                        NetworkSetupRefusal::NoSubmission
+                    ))
+                );
+            } else {
+                let request =
+                    conduit_net::decode_network_join_request(&output[..result.unwrap()]).unwrap();
+                assert_eq!(request.ssid, b"Fixture LAN");
+                assert_eq!(request.credential, b"fixture-password");
+            }
+            output.fill(0);
+        });
+        assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
+    }
+}

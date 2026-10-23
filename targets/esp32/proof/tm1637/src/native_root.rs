@@ -5,6 +5,10 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    credentials: conduit_network_join_call::credential_installation::ReadyCredentialBase<
+        crate::native_credentials::RootCredentialSource,
+    >,
+    _credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
     contract: PulseReadContract,
     _controller: esp_radio::wifi::WifiController<'static>,
@@ -54,7 +58,10 @@ impl NativeRoot {
             )
         }
         .unwrap();
+        let (credentials, credential_writer) = crate::native_credentials::prepare(&host, &boot);
         Self {
+            credentials,
+            _credential_writer: credential_writer,
             pulse,
             contract: PulseReadContract::prepare().unwrap(),
             _controller: radio.controller,
@@ -81,6 +88,9 @@ impl NativeRoot {
         };
         self.pulse
             .append_to_advertisement(&mut advertisement, &self.contract)
+            .map_err(|_| ())?;
+        self.credentials
+            .append_to_advertisement(&mut advertisement)
             .map_err(|_| ())?;
         serde_json_core::to_slice(&advertisement, output).map_err(|_| ())
     }
