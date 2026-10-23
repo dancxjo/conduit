@@ -183,6 +183,15 @@ pub mod protected_region;
 pub mod protected_relay_support;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub(crate) mod protected_runtime;
+#[cfg(test)]
+#[path = "ordinary_domain_proof/service_memory/trap_envelope/conformance_tests.rs"]
+mod service_trap_conformance_tests;
+#[cfg(test)]
+#[path = "../make/xtask/ordinary_domain_proof/trap_envelope.rs"]
+mod service_trap_reader_tests;
+#[cfg(test)]
+#[path = "ordinary_domain_proof/service_memory/trap_envelope/wire.rs"]
+mod service_trap_wire_tests;
 // Exercise the Root loan boundary on hosted CPUs without installing a service.
 #[cfg(test)]
 #[path = "protected_runtime/ledger.rs"]
