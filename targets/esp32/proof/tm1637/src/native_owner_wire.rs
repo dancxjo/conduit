@@ -5,7 +5,7 @@ mod reply;
 use embassy_time::{with_timeout, Duration};
 use esp_hal::{uart::Uart, Async};
 const READY: &[u8] =
-    b"\n{\"event\":\"native-owner-control-ready\",\"maximum_request_bytes\":2048}\n";
+    b"\n{\"event\":\"native-owner-control-ready\",\"maximum_request_bytes\":2048,\"protocol\":2,\"ingress_credit_bytes\":64}\n";
 async fn read_exact(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<(), ()> {
     while !bytes.is_empty() {
         let count = uart.read_async(bytes).await.map_err(|_| ())?;
@@ -16,6 +16,21 @@ async fn read_exact(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<
     }
     Ok(())
 }
+/// One credit covers at most 64 bytes, below the UART FIFO extent. The owner
+/// cannot overrun ingress while another cooperative task performs finite work.
+/// Credits confer no authority; the complete command is authenticated afterward.
+async fn read_credited(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<(), ()> {
+    const CREDIT: &[u8] = b"\n{\"event\":\"native-owner-ingress-credit\",\"maximum_bytes\":64}\n";
+    while !bytes.is_empty() {
+        crate::native_control::write_all(uart, CREDIT).await?;
+        let length = bytes.len().min(64);
+        let (chunk, remaining) = bytes.split_at_mut(length);
+        read_exact(uart, chunk).await?;
+        bytes = remaining;
+    }
+    Ok(())
+}
+
 pub async fn receive(
     root: &mut NativeRoot,
     uart: &mut Uart<'_, Async>,
@@ -34,9 +49,9 @@ pub async fn receive(
         if length == 0 || length > owner::MAXIMUM_REQUEST_BYTES {
             return Err(());
         }
-        read_exact(uart, buffer.get_mut(..length).ok_or(())?).await?;
+        read_credited(uart, buffer.get_mut(..length).ok_or(())?).await?;
         let mut signature = [0; 64];
-        read_exact(uart, &mut signature).await?;
+        read_credited(uart, &mut signature).await?;
         Ok((length, signature))
     })
     .await;
@@ -157,7 +172,7 @@ async fn receive_assignment(
         if length == 0 || length > MAXIMUM_WIRE_BYTES {
             return Err(());
         }
-        read_exact(uart, buffer.get_mut(..length).ok_or(())?).await?;
+        read_credited(uart, buffer.get_mut(..length).ok_or(())?).await?;
         Ok(length)
     })
     .await

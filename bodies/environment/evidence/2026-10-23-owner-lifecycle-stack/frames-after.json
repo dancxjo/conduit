@@ -4,6 +4,7 @@
   "frames": {
     "conduit_esp32_tm1637_probe::native_kernel::prepare": 2256,
     "conduit_esp32_tm1637_probe::native_control::serve::{{closure}}": 4224,
-    "conduit_esp32_tm1637_probe::native_owner_wire::authenticate": 512
+    "conduit_esp32_tm1637_probe::native_owner_wire::authenticate": 512,
+    "conduit_esp32_tm1637_probe::native_owner_wire::reply::encode": 912
   }
 }

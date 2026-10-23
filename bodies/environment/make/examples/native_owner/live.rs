@@ -25,6 +25,18 @@ pub(super) fn run(
         .map_err(|e| format!("held owner: {e:?}"))?;
     let mut last_inspection = 5;
     let observations = (|| -> Result<u32, Box<dyn Error>> {
+        // This is physical time, not the accelerated CPU fixture. Admit the
+        // acceptance window from the checked cadence without changing Source.
+        let inspections = scope
+            .cadence_ms
+            .checked_mul(3)
+            .and_then(|ms| ms.checked_add(10_000))
+            .ok_or("physical acceptance duration exhausted")?
+            / 5_000
+            + 2;
+        if inspections > 40 {
+            return Err("physical acceptance work bound".into());
+        }
         let release = exchange(key, scope.request(control::Operation::Release, 5, active))?;
         admitted.transition(
             &scope.request(control::Operation::Release, 5, active),
@@ -36,7 +48,7 @@ pub(super) fn run(
         )?;
         let mut samples = 0;
         let mut last = 0;
-        for index in 0..30 {
+        for index in 0..inspections {
             last_inspection = 6 + index;
             let reply = exchange(
                 key,
@@ -78,7 +90,7 @@ pub(super) fn run(
             if samples == 3 {
                 break;
             }
-            thread::sleep(Duration::from_millis(500));
+            thread::sleep(Duration::from_millis(5_000));
         }
         Ok(samples)
     })();

@@ -1290,3 +1290,31 @@ Peak Root use was 109,704 of 114,688 bytes. See
 `evidence/2026-10-23-native-task-ready/` for the source-bound physical receipt.
 The finite owner process still exits after preparation. Attributed start,
 persistent ownership, release and actual climate sampling remain unfinished.
+
+The owner-control acceptance now has explicit held-start and finite-run modes:
+
+```sh
+cargo xtask prove environment owner-start-held-esp32
+cargo xtask prove environment owner-run-esp32
+```
+
+The admitted Boot key signs the exact owner command and outcome. The host verifies
+that acknowledgement before `BodyLifecycleSession::started` and confirmation of
+its `NativeBodyBinding`. Release is a distinct signed command. Cancellation is
+acknowledged only after actual provider-future retirement, native revocation and
+kernel cancellation; unknown cleanup does not manufacture Lull. Signed inspection
+also binds a bounded committed publication's sequence, channel, size and digest.
+The host projects its first-class Temperature/Ratio values through the ordinary
+environment contribution and Body Face APIs. These UART captures are diagnostic
+transport and proof artifacts, not an admitted application Line or recording store.
+
+Physical start-held, release, cancellation of a pending native timer and ordinary
+Lull passed on the corrected image; see `evidence/2026-10-23-owner-start-cleanup/`.
+The first reading window was shorter than the checked one-minute cadence. The
+revised window follows that cadence without changing Source. Its longer run hit
+malformed UART ingress near the first expected sample; no readings are claimed.
+Protocol 2 adds bounded 64-byte ingress credits so cooperative work cannot leave
+an unpaced sender filling the FIFO. See `evidence/2026-10-23-owner-ingress/`.
+Physical observation/Face acceptance, autonomous owner-loss fencing, the resident
+service, application Lines, network transitions and durable overnight recording
+remain unfinished. The finite proof keeps the owner alive only through its run.

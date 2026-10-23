@@ -73,6 +73,7 @@ struct Scope<'a> {
     host: &'a conduit_core::HostAdvertisement,
     body_play: &'a BodyPlayIdentity,
     seal: [u8; 32],
+    cadence_ms: u64,
 }
 impl Scope<'_> {
     fn request<'a>(
@@ -160,6 +161,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         host: &host,
         body_play: &body_play,
         seal,
+        cadence_ms: recipe.cadence().period_ms,
     };
     let inspect = exchange(
         &key,

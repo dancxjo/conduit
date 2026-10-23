@@ -3,9 +3,9 @@
 use ed25519_dalek::{Signature, VerifyingKey};
 use sha2::{Digest, Sha256};
 
-pub const PROTOCOL: u16 = 1;
+pub const PROTOCOL: u16 = 2;
 pub const MAXIMUM_REQUEST_BYTES: usize = 2048;
-const DOMAIN: &[u8] = b"conduit.environment/root-owner-control@1";
+const DOMAIN: &[u8] = b"conduit.environment/root-owner-control@2";
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[repr(u8)]
 pub enum Operation {

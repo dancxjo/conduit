@@ -37,7 +37,7 @@ def read_ingress(count):
 def event(name):
     deadline = time.monotonic() + 12
     while time.monotonic() < deadline:
-        pending.extend(read_ingress(8192))
+        pending.extend(read_ingress(min(8192, max(1, port.in_waiting))))
         if len(pending) > 65536:
             raise RuntimeError('UART ingress bound')
         while b'\n' in pending:
@@ -64,17 +64,30 @@ def host_line():
     return json.loads(line)
 
 
+def credited_write(data):
+    for offset in range(0, len(data), 64):
+        credit = event('native-owner-ingress-credit')
+        if credit.get('maximum_bytes') != 64:
+            raise RuntimeError('unexpected ingress credit')
+        port.write(data[offset:offset + 64])
+
+
 def carry(frame, wire):
     encoded = json.dumps(frame['request'], separators=(',', ':')).encode()
     signature = bytes(frame['signature'])
     if len(encoded) > 2048 or len(signature) != 64:
         raise RuntimeError('owner command bound')
     port.write(b'owner-control\n')
-    event('native-owner-control-ready')
-    port.write(len(encoded).to_bytes(2, 'little') + encoded + signature)
+    ready = event('native-owner-control-ready')
+    if ready.get('protocol') != 2 or ready.get('ingress_credit_bytes') != 64:
+        raise RuntimeError('owner-control protocol mismatch')
+    port.write(len(encoded).to_bytes(2, 'little'))
+    credited_write(encoded)
+    credited_write(signature)
     if frame['request']['operation'] == 'Prepare':
         event('native-owner-assignment-ready')
-        port.write(len(wire).to_bytes(2, 'little') + wire)
+        port.write(len(wire).to_bytes(2, 'little'))
+        credited_write(wire)
     reply = event('native-owner-control')
     length = reply.get('publication_bytes', 0)
     if not isinstance(length, int) or not 0 <= length <= 4096:
@@ -92,7 +105,7 @@ def carry(frame, wire):
 
 
 receipt = {'completed': False, 'proof_class': 'physical-owner-' + args.mode,
-           'body_started': False, 'climate_sampling_claimed': False}
+           'body_start_attributed': False, 'climate_sampling_claimed': False}
 try:
     wire = (args.capture / 'uninstalled-assignment-transfer.bin').read_bytes()
     if not 0 < len(wire) <= 8192:
@@ -114,7 +127,7 @@ try:
             assert len(encoded) <= 2048 and len(signature) == 64
             carry(frame, wire)
         if args.mode == 'run':
-            for _ in range(34):
+            for _ in range(44):
                 frame = host_line()
                 if frame.get('event') == 'owner-run-complete':
                     receipt = frame
@@ -152,6 +165,11 @@ finally:
         except (RuntimeError, OSError, KeyError):
             receipt['final_root_observation_unavailable'] = True
     port.close()
+    # These are outputs of the real Rust verifier/owner, not claims inferred
+    # from an unsigned control reply or a merely requested operation.
+    receipt['body_start_attributed'] = (args.capture / 'body-started-evidence.json').is_file()
+    receipt['body_lulled_after_quiescence'] = (args.capture / 'body-lulled-evidence.json').is_file()
+    receipt['worker_release_acknowledged'] = (args.capture / 'owner-release.json').is_file()
     (args.capture / 'native-owner-uart.bin').write_bytes(raw_ingress)
     receipt['carrier_sha256'] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     receipt['owner_executable_sha256'] = hashlib.sha256(args.owner.read_bytes()).hexdigest()
