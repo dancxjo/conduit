@@ -1,0 +1,25 @@
+✔ independent preparations both start before either completes (1.018226ms)
+✔ browser refusal waits for and retires the Host without losing the cause (0.341101ms)
+✔ Host refusal cannot return browser readiness as successful admission (0.577337ms)
+✔ cleanup refusal retains both the browser and cleanup failures (0.201057ms)
+✔ independent preparation refusals retain both causes (0.146188ms)
+✔ cold readiness after ten seconds spends the existing absolute encounter budget (1.545089ms)
+✔ phase start cannot reset absolute deadline and late output cannot succeed (0.476255ms)
+✔ readiness at the deadline refuses even before the timer callback runs (0.226972ms)
+✔ already exhausted budget refuses without listeners remaining (0.128822ms)
+✔ raw diagnostics stay bounded while readiness after noisy output is recognized (0.180563ms)
+✔ process exit and spawn errors retain diagnostics (0.228236ms)
+✔ deadline failure and teardown share one cleanup and preserve the original refusal (0.214212ms)
+✔ cleanup failures remain idempotent and observable (0.126214ms)
+✔ retirement joins late preparation ownership and refuses late success without spawning (0.652648ms)
+✔ retirement cancels and settles browser preparation alongside Host cleanup (0.430424ms)
+✔ preparation returning after absolute expiry cannot report ready (0.30256ms)
+✔ never-settling preparation has a bounded teardown join and late rejection stays handled (1.123541ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 43.374723
