@@ -9,6 +9,10 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "targets/std/display/Cargo.toml",
+        lock: "targets/std/display/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "targets/esp32/proof/tm1637/Cargo.toml",
         lock: "targets/esp32/proof/tm1637/Cargo.lock",
     },
