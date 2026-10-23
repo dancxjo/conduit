@@ -4,6 +4,18 @@ use std::{error::Error, process::Command};
 
 pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let root = crate::workspace::workspace_root()?;
+    if arguments == ["network-fallback"] {
+        let stamp = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_secs();
+        return execute(
+            Command::new("python3")
+                .current_dir(&root)
+                .arg("bodies/environment/tools/native-network-fallback.py")
+                .arg("--output")
+                .arg(root.join(format!("target/environment-network-fallback/{stamp}"))),
+        );
+    }
     if arguments == ["recording-browser"] {
         return execute(
             Command::new("cargo")
@@ -443,7 +455,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, http, publication, publication-32, recording, recording-storage, recording-browser, network-fallback, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

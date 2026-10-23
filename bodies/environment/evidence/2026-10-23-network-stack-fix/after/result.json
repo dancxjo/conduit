@@ -1,0 +1,12 @@
+{
+  "proof_class": "physical-installed-root-negative-network-fixture",
+  "completed": true,
+  "body_installation_claimed": false,
+  "station_success_claimed": false,
+  "fixture_sha256": "3821084e29ee380969a6bd74d2a94fcbc6e6d898b5be147db1c14d985e5d704a",
+  "post_acknowledged": true,
+  "observed_boot_id": "boot/24475dc4dcd94ff9736a868bf1ea2f91",
+  "post_status": 202,
+  "uart_quiet_after_post_seconds": 30,
+  "elapsed_seconds": 34.29100789595395
+}

@@ -1,0 +1,38 @@
+{
+  "proof_class": "physical-installed-root-negative-network-fixture",
+  "completed": true,
+  "firmware_source_commit": "a36e90323efec8eb387d5fbe360e9a8a7f895e9e",
+  "firmware_sha256": "a2e0f2c42a54b7e4456c39b52cdd647a4c70f2dbed02e91b5bd27771985b73df",
+  "previous_firmware_sha256": "a41f7200679c322fa94d790664ab72be6a9e80f3cf4b319ea9787261793100a2",
+  "observed_boot_id": "boot/24475dc4dcd94ff9736a868bf1ea2f91",
+  "before_failure": "ProCpu stack guard violation during NativePlay::install after acknowledged HTTP submission",
+  "before_installer_stack_frame_bytes": 43360,
+  "after_installer_stack_frame_bytes": 13136,
+  "before_stack_section_bytes": 21612,
+  "after_stack_section_bytes": 32756,
+  "network_control_dispatches": [
+    1,
+    1,
+    0
+  ],
+  "failure_phase": "associate",
+  "failure_reason": "rejected",
+  "access_point_restored_in_same_boot": true,
+  "setup_http_after_fallback": 200,
+  "root_heap_peak_bytes": 38400,
+  "sdk_heap_peak_bytes": 38340,
+  "construction_tests_passed": 18,
+  "owner_tests_passed": 11,
+  "execution_allocations_in_construction_tests": 0,
+  "strict_owner_and_make_and_xtask_clippy": true,
+  "body_installed": false,
+  "climate_appliance_memory_admitted": false,
+  "successful_station_join_proven": false,
+  "notes": [
+    "Actual Root issuance, retained native owners and production kernel; no simulated radio provider.",
+    "Only fixture credentials were submitted. No UART requests for 30 seconds after the HTTP 202 acknowledgement.",
+    "The two stable final offers report exactly one credentials call and one join call, with no attachment-success receipt.",
+    "The kernel retains all 128 local Sign entries in preallocated storage; unused remote Sign backing is absent.",
+    "Heap high-water values cover this negative association/fallback case, not all station or appliance workloads."
+  ]
+}
