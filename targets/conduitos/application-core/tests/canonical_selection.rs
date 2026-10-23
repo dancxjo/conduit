@@ -30,7 +30,7 @@ fn setup() -> (Models, [PatchbayGraph; 2], BodyId, FaceContributionBasis) {
     for (slot, graph) in [1, 3].into_iter().zip(graphs.iter()) {
         targets[slot] = Some(Target {
             graph: graph.clone(),
-            plan: format!("plan/target-{slot}").into(),
+            plan: Some(format!("plan/target-{slot}").into()),
             body: "plan/body".into(),
         });
     }
@@ -359,7 +359,7 @@ fn invalid_later_inventory_entry_never_commits_a_partially_prepared_actor() {
         .unwrap();
         let first = Target {
             graph: graph("alpha"),
-            plan: "plan/alpha".into(),
+            plan: Some("plan/alpha".into()),
             body: "plan/body".into(),
         };
         staged(
@@ -375,7 +375,7 @@ fn invalid_later_inventory_entry_never_commits_a_partially_prepared_actor() {
         let later = if wrong_body {
             Target {
                 graph: graph("beta"),
-                plan: "plan/beta".into(),
+                plan: Some("plan/beta".into()),
                 body: "plan/other-body".into(),
             }
         } else {

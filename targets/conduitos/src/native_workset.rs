@@ -4,6 +4,7 @@ mod catalog;
 mod document_state;
 mod editor_delivery;
 mod eligibility;
+mod inspection_sources;
 mod keyboard_delivery;
 mod patchbay_ingress;
 mod planning;

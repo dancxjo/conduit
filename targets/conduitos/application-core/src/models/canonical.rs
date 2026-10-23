@@ -175,10 +175,12 @@ impl Models {
                     },
                 ))
             }
-            PatchbayResidentCommand::SelectPlot { .. } => None,
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => None,
         };
         let selected_target = match prepared.command() {
-            PatchbayResidentCommand::SelectPlot { .. } => {
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => {
                 let index = interaction
                     .action_id
                     .strip_prefix(patchbay_application::SELECT_PLOT_ACTION_PREFIX)

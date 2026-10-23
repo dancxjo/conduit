@@ -197,6 +197,7 @@ impl Owner {
                         self.topology.as_deref(),
                         proposal.as_ref(),
                         selection.is_some(),
+                        self.selected_editable(slot),
                     )
                 }
             }
@@ -245,12 +246,14 @@ impl Owner {
         let plot = alloc::format!("plot/{}", graph.checked_plot_id.as_str());
         for action in &fragment.actions {
             let valid = if action.identity == patchbay_application::EDIT_CURRENT_ACTION_ID {
-                action.target == plot
+                self.selected_editable(slot)
+                    && action.target == plot
                     && action.intent == "patchbay/edit-subject@1"
                     && action.arguments.len() == 1
                     && action.arguments[0].name == "subject"
             } else if action.identity == patchbay_application::CHANGE_MASKS_ACTION_ID {
-                action.target == root
+                self.selected_editable(slot)
+                    && action.target == root
                     && action.intent == "patchbay/change-masks@1"
                     && action.arguments.is_empty()
                     && self.topology.is_some()
@@ -296,7 +299,15 @@ fn admit_proposal(
     topology: Option<&PatchbayMaskTopology>,
     proposal: Option<&Proposal>,
     selection: bool,
+    editable: bool,
 ) -> Result<(), Refusal> {
+    if matches!(
+        input.action_id.as_str(),
+        patchbay_application::EDIT_CURRENT_ACTION_ID | patchbay_application::CHANGE_MASKS_ACTION_ID
+    ) && !editable
+    {
+        return Err(Refusal::Malformed);
+    }
     if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID {
         let subject = input
             .arguments

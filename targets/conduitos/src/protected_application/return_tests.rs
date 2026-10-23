@@ -45,7 +45,7 @@ fn encounter() -> Encounter {
     for (slot, graph) in [1, 3].into_iter().zip(&graphs) {
         targets[slot] = Some(Target {
             graph: graph.clone(),
-            plan: alloc::format!("plan/target-{slot}").into(),
+            plan: Some(alloc::format!("plan/target-{slot}").into()),
             body: "plan/body".into(),
         });
     }
@@ -382,4 +382,39 @@ fn substituted_edit_proposal_cannot_change_predecessor_graph_or_subject() {
         });
         assert_quarantined(&mut e, &input);
     }
+}
+
+#[test]
+fn root_read_only_custody_rejects_an_otherwise_genuine_edit_return() {
+    let mut e = encounter();
+    let (_, input) = edit_input(&e);
+    // Deliberately give the actor a planned/editable fixture while Root retains
+    // read-only custody. A valid Show and genuine actor proposal cannot grant it.
+    e.owner.editable_targets[0][1] = false;
+    assert!(matches!(
+        e.owner.patchbay_consume(0, &input.encode()),
+        Err(Refusal::Malformed)
+    ));
+    assert!(!e.owner.is_live());
+    assert!(e.owner.graph(0).is_none());
+    assert_eq!(counts(), (1, 1));
+}
+
+#[test]
+fn root_read_only_custody_rejects_guest_advertised_edit_actions() {
+    let mut e = encounter();
+    let body = e.face.basis.body_id.clone().unwrap();
+    let basis = FaceContributionBasis {
+        checked_plot_id: "checked/owner".into(),
+        plan_id: "plan/body".into(),
+        active_play_id: ActivePlayId::from("play/owner"),
+        required_interaction_context: None,
+    };
+    e.owner.editable_targets[0][1] = false;
+    assert!(matches!(
+        e.owner.patchbay_fragment(0, body, basis, true),
+        Err(Refusal::Malformed)
+    ));
+    assert!(!e.owner.is_live());
+    assert_eq!(counts(), (1, 1));
 }

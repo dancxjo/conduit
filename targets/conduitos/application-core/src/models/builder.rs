@@ -72,14 +72,21 @@ impl Builder {
             return Err(Refusal::Order);
         };
         let index = if let Some(port) = patchbay.port.as_mut() {
-            port.append_prepared_graph(value.graph, value.plan, &value.body)
-                .map_err(|_| Refusal::Application)?
+            match value.plan {
+                Some(plan) => port.append_prepared_graph(value.graph, plan, &value.body),
+                None => port.append_prepared_source_graph(value.graph, &value.body),
+            }
+            .map_err(|_| Refusal::Application)?
         } else {
-            let port = PatchbayApplicationPort::open_graph(value.graph, value.plan, value.body)
-                .and_then(|port| port.with_prepared_graph_capacity(SLOTS))
-                .map_err(|_| Refusal::Application)?
-                .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection)
-                .without_prepared_body_focus();
+            let port = PatchbayApplicationPort::open_graph(
+                value.graph,
+                value.plan.ok_or(Refusal::Order)?,
+                value.body,
+            )
+            .and_then(|port| port.with_prepared_graph_capacity(SLOTS))
+            .map_err(|_| Refusal::Application)?
+            .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection)
+            .without_prepared_body_focus();
             patchbay.port = Some(Box::new(port));
             0
         };
