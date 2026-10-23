@@ -114,8 +114,9 @@ ownership transfer, transactional progress, recovery and Face publication.
 It does not establish IndexedDB persistence, a live Line, host membership,
 physical overnight recording or complete MCU memory admission.
 
-The [32-bit prepared-sharing storage receipt](../evidence/2026-10-23-prepared-sharing-storage/measurement.json)
+The [32-bit canonical-storage receipt](../evidence/2026-10-23-canonical-storage/measurement.json)
 records reduced appliance preparation storage with all seven finite overnight
-scenarios preserved. Software alone still exceeds the current Root arena.
+scenarios preserved. Retained software requests 61,926 bytes; preparation peaks
+at 66,162 bytes, still above the current 65,536-byte Root arena.
 Complete MCU admission must also cover allocator overhead, native owners,
 value/sign backing, kernel and stack. The physical firmware has not changed.
