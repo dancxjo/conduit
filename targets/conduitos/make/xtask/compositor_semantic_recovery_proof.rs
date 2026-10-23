@@ -7,6 +7,7 @@ use std::{
     thread,
     time::{Duration, Instant},
 };
+mod pressure_receipt;
 mod profile_receipt;
 #[path = "ordinary_domain_proof/compositor_semantic_recovery.rs"]
 mod receipt;
@@ -88,8 +89,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         manifest.bounds.heap_arena_bytes,
     )?;
     let observed = receipt::validate(&transcript)?;
+    let pressure = pressure_receipt::validate(&transcript)?;
     let record = serde_json::json!({
-        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@2",
+        "schema":"conduit.conduitos/compositor-semantic-copy-recovery-evidence@3",
         "proof_class":"freestanding-emulator","fixture":true,
         "proof_feature":"compositor-semantic-recovery-proof",
         "same_uninstrumented_product_binary":false,
@@ -97,7 +99,8 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "memory_mib":512,"vcpus":1},
         "budget_basis":"existing conduitos-native.host.conduit; actual admitted product profile, not minimum memory",
         "build":built,"native_make_manifest":manifest,"admitted_profile":budget,
-        "observations":observed,"transcript_sha256":super::report::sha256_file(&log)?,
+        "observations":observed,"pressure_observations":pressure,
+        "transcript_sha256":super::report::sha256_file(&log)?,
     });
     fs::write(
         paths

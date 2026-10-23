@@ -1,5 +1,8 @@
 //! Actual Mask/Show boundary after Root copy failure, using the product renderer.
 //! Counting writes are fixture scanout acknowledgements, not physical display.
+#[path = "compositor_semantic_recovery/pressure.rs"]
+mod pressure;
+
 use super::refuse;
 use crate::{
     arch,
@@ -139,6 +142,13 @@ pub(super) fn run() {
         writes: 0,
         refused: 0,
     };
+    if old.show().is_some() {
+        refuse("pressure-diagnostic-show");
+    }
+    let scene_pressure = pressure::scene(&old_owner);
+    if old.show().is_some() {
+        refuse("pressure-diagnostic-show");
+    }
     old.present(face.clone(), 1, 1, &mut target)
         .unwrap_or_else(|_| refuse("semantic-recovery-initial-present"));
     let held_show = old
@@ -151,6 +161,8 @@ pub(super) fn run() {
     {
         refuse("semantic-recovery-initial-ack");
     }
+    let surface_pressure =
+        pressure::surfaces(&old_owner, &mut old, &face, &held_show, &draft, &mut target);
     // All held values, including the consumed rejected copy, exist before the
     // staging arena is released. Recovery clones only the pre-admitted Rc grant.
     let held_input = interaction(&old, &face, &held_show, 1);
@@ -231,5 +243,6 @@ pub(super) fn run() {
     if old_owner.borrow().sessions.active_session().is_some() {
         refuse("semantic-recovery-old-session");
     }
+    pressure::emit(scene_pressure, surface_pressure);
     arch::early_write(b"CONDUIT_COMPOSITOR_SEMANTIC_RECOVERY_PROOF {\"schema\":\"conduit.conduitos/compositor-semantic-copy-recovery-fixture@1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"fixture\":true,\"production_mask_proxy\":true,\"initial_show_acknowledged\":true,\"root_copy_failure\":true,\"old_submit_refused\":true,\"stale_input_preserves_semantic_revision\":true,\"fresh_service_instance\":true,\"no_show_or_keyboard_before_present\":true,\"atomic_present_acknowledgement\":true,\"fresh_show_and_play\":true,\"held_input_refused_by_fresh_show\":true,\"fresh_interaction_correlated\":true,\"fresh_interaction_advances_semantics\":true,\"physical_scanout\":false,\"human_observation\":false,\"guest_cpu_fault_recovery\":false,\"malformed_guest_reply_recovery\":false}\n");
 }
