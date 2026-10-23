@@ -6,6 +6,8 @@ global_asm!(r#"
 domain_entry:
     cmp dword ptr [rdi + {probe}], 22
     je boundary_clock_entry
+    cmp dword ptr [rdi + {probe}], 23
+    je irq_canary_entry
     jmp domain_rust_entry
 boundary_clock_entry:
     lfence

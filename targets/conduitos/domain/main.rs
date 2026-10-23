@@ -8,6 +8,8 @@ mod boundary_clock;
 mod document;
 mod frame;
 mod gate;
+#[cfg(all(target_arch = "x86_64", feature = "proof"))]
+mod irq_canary;
 mod keymap;
 mod layout;
 mod memory;
