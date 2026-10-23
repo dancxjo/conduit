@@ -62,7 +62,8 @@ fn run(scenario: usize) {
         u16::try_from((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<KernelEvent>()))
             .unwrap(),
     );
-    let (mut owner, pulse_node, tables) = {
+    let (mut owner, pulse_node) = pulse::bind(ready, &plan, &lowered).unwrap();
+    let tables = {
         let image = conduit_embedded_build::generate_embedded_plan_with_computations(
             &plan.fragments[0],
             &lowered,
@@ -88,8 +89,6 @@ fn run(scenario: usize) {
             },
         )
         .unwrap();
-        let projection = assignment::NativeProjection::prepare(&image);
-        let (owner, node) = pulse::bind_assigned(ready, &plan, &lowered, &projection).unwrap();
         let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
         assert_eq!(
             tables.nodes,
@@ -100,7 +99,7 @@ fn run(scenario: usize) {
             core::array::from_fn(|i| lowered.cords[i].spec)
         );
         // The assignment payloads and borrowed descriptors are gone before Play.
-        (owner, node, tables)
+        tables
     };
     let observed: [Observed; 4] = core::array::from_fn(|_| Observed::new());
     let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
