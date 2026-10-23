@@ -1,7 +1,7 @@
 # Recorder construction
 
 This describes the prepared software contracts. The real browser recorder,
-its persistent reference catalog, Line and Body installation remain incomplete.
+its durable catalog seed custody, Line and Body installation remain incomplete.
 The public conformance entrance is `cargo xtask prove environment recording`.
 The browser publication boundary is checked separately with
 `cargo xtask prove environment recording-storage`.
@@ -61,15 +61,22 @@ chunk-sized field. A separate test feeds the actual encoder's full 64-sample
 chunk, retaining first-class temperature and humidity Forms, through the text
 validator without allocations. This establishes the publication boundary.
 
-The [focused browser proof receipt](../evidence/2026-10-23-browser-recording-storage/measurement.json)
-records a real full 64-sample chunk and the production
-snapshot envelope, then passes the opaque record through the existing resource
-storage adapter into real IndexedDB. After a page reload, Rust validates the
-returned record under a new fixture Boot binding and recovers every exact
-canonical observation. It checks duplicate publication, stale effect scope,
-old authority and corruption refusals. Identities and authority are explicitly
-fixture bindings; this proves durable bytes across reopen, not a live recorder
-Body, Line, persistent reference catalog or overnight operation.
+The [overnight browser proof receipt](../evidence/2026-10-23-overnight-browser-storage/measurement.json)
+records 15 full chunks plus their selected-generation catalog through the
+production snapshot envelope and existing storage adapter into real IndexedDB.
+After a page reload, Rust validates the catalog and uses its decoded exact
+references to restore ordered history: all 960 samples over 16 logical hours,
+including 904 exact canonical observations and 56 explicit sensor failures.
+Each record rejects duplicate publication, stale effect scope, old authority
+and corruption; an absent generation remains `ResourceMissing`. The maximum
+16-entry catalog boundary also fits the ordinary 4 KiB snapshot contract.
+
+Identities, authority, preselected browser read bindings and the catalog's
+starting reference are fixtures. This proves durable batch and catalog bytes
+across reopen. Live kernel read routing, durable Root custody of that starting
+reference, Body installation, a Line and physical overnight operation remain
+incomplete. The [earlier single-chunk receipt](../evidence/2026-10-23-browser-recording-storage/measurement.json)
+retains its narrower historical scope.
 
 `PreparedRecordingKernel` prepares this finite four-gear production kernel from
 the verified fragment and identical ordinary lowering. It rejects unsupported
