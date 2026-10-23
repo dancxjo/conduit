@@ -8,8 +8,11 @@ use crate::{
 use conduit_core as c;
 use conduit_kernel::{self as k, ValueStorage};
 
+#[path = "resident_offers.rs"]
+mod resident_offers;
 #[path = "resident_software.rs"]
 mod resident_software;
+pub use resident_offers::{ReadyResidentOffers, ResidentSoftwareOffer};
 pub use resident_software::PreparedResidentSoftware;
 
 pub const NODES: usize = 15;

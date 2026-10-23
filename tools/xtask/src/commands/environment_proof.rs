@@ -2,6 +2,8 @@
 use super::execute;
 #[path = "environment_proof/browser.rs"]
 mod browser;
+#[path = "environment_proof/native_construction.rs"]
+mod native_construction;
 #[path = "environment_proof/wait.rs"]
 mod wait;
 use std::{error::Error, process::Command};
@@ -105,30 +107,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         return Ok(());
     }
     if arguments == ["native-construction"] {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/make/Cargo.toml",
-                    "--test",
-                    "native",
-                    "--test",
-                    "network_assignment",
-                    "--test",
-                    "selected_port_shapes",
-                    "--test",
-                    "credential_owner",
-                    "--test",
-                    "network_play",
-                    "--test",
-                    "root_control",
-                ])
-                .args(["--", "--nocapture"])
-                .env("CARGO_TARGET_DIR", root.join("target")),
-        );
+        return native_construction::prove(&root);
     }
     if arguments == ["http"] || arguments == ["network-owner"] {
         let manifest = if arguments == ["http"] {

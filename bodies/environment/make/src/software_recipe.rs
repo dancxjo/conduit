@@ -12,6 +12,7 @@ pub enum SoftwareRecipeRefusal {
     Roles,
     Records(c::AssignedPlanRefusal),
     Capacity,
+    Offers,
 }
 #[derive(Debug, PartialEq, Eq)]
 pub struct NativeSoftwareRecipe {
@@ -22,6 +23,7 @@ pub struct NativeSoftwareRecipe {
     roles: ResidentRoles,
     largest: u16,
     total: u32,
+    offers: Vec<(u16, Vec<u8>)>,
 }
 impl PreparedNativeAppliance {
     /// Extract from this checked, ordinarily planned Make result. Authenticate
@@ -55,6 +57,22 @@ impl PreparedNativeAppliance {
             .iter()
             .try_fold(0_u32, |sum, r| sum.checked_add(u32::from(r.text_bytes)))
             .ok_or(E::Capacity)?;
+        let offers = self
+            .selected_offers
+            .iter()
+            .filter(|(node, _)| *node != roles.pulse.0 && *node != roles.tick.0)
+            .map(|(node, offer)| {
+                use conduit_environment_runtime::appliance::software::{ARTIFACT, PROFILE};
+                if offer.implementation.execution_profile_id.as_str() != PROFILE
+                    || offer.implementation.artifact_id.as_str() != ARTIFACT
+                    || !offer.resource_requirements.is_empty()
+                    || !offer.authority_requirements.is_empty()
+                {
+                    return Err(E::Offers);
+                }
+                Ok((*node, serde_json::to_vec(offer).map_err(|_| E::Offers)?))
+            })
+            .collect::<Result<Vec<_>, E>>()?;
         Ok(NativeSoftwareRecipe {
             records: self.resident_records().to_vec(),
             texts: self
@@ -94,6 +112,7 @@ impl PreparedNativeAppliance {
             roles,
             largest,
             total,
+            offers,
         })
     }
 }
@@ -126,5 +145,20 @@ impl NativeSoftwareRecipe {
             },
             roles: self.roles,
         }
+    }
+}
+
+impl NativeSoftwareRecipe {
+    /// Host-free descriptors, not readiness. Only the corresponding initialized
+    /// owner can lend an offer view; native pulse/timer descriptors are excluded.
+    pub fn resident_offers(
+        &self,
+    ) -> Vec<conduit_environment_runtime::appliance::assigned::ResidentSoftwareOffer<'_>> {
+        self.offers.iter().map(|(node, json)| {
+            // SAFETY: these exact serialized CapabilityOffers were selected from
+            // supplied current offers for the same checked Source and retained
+            // with this independently owned Make construction recipe.
+            unsafe { conduit_environment_runtime::appliance::assigned::ResidentSoftwareOffer::from_make(*node, json) }
+        }).collect()
     }
 }

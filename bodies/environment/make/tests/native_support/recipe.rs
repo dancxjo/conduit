@@ -120,3 +120,68 @@ fn recipe_cadence_is_pinned_and_compiler_role_mapping_refuses_ambiguous_nodes() 
     );
     assert_eq!(effects.get(), 0);
 }
+
+#[test]
+fn only_initialized_resident_software_lends_exact_host_free_offer_bytes() {
+    use conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware;
+    let source = construction::compile(1, 0).unwrap();
+    let (ready, effects) = pulse::ready(0);
+    let (_software, host) = retained_advertisement(&source, &ready);
+    let prepared = PreparedNativeAppliance::prepare(
+        &source,
+        &host,
+        &["conduit.base/local@1".into()],
+        &[pulse::grant()],
+        limits(),
+    )
+    .unwrap();
+    let recipe = prepared.software_recipe().unwrap();
+    let resident = recipe.resident();
+    let texts: Vec<_> = recipe.resident_computations().collect();
+    let owner = PreparedResidentSoftware::prepare(
+        &resident,
+        &texts,
+        &conduit_time::TickConfiguration {
+            count: 1,
+            period_ms: 0,
+        },
+        conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+    )
+    .unwrap();
+    let offers = recipe.resident_offers();
+    let (view, memory) = allocation_probe::observe(|| owner.offers(&resident, &offers).unwrap());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(view.iter().len(), 13);
+    let mut decoded: Vec<c::CapabilityOffer> = view
+        .iter()
+        .map(|json| serde_json::from_slice(json).unwrap())
+        .collect();
+    let mut expected: Vec<_> = host
+        .capabilities
+        .iter()
+        .filter(|offer| {
+            offer.implementation.artifact_id.as_str()
+                == conduit_environment_runtime::appliance::software::ARTIFACT
+        })
+        .cloned()
+        .collect();
+    decoded.sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    expected.sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    assert_eq!(decoded, expected);
+    assert_eq!(
+        view.array_bytes(),
+        serde_json::to_vec(&decoded).unwrap().len()
+    );
+    eprintln!("resident_software_offer_array_bytes={}", view.array_bytes());
+    let mut duplicate = offers.clone();
+    duplicate[1] = duplicate[0];
+    let (_, memory) = allocation_probe::observe(|| {
+        assert!(owner
+            .offers(&resident, &offers[..offers.len() - 1])
+            .is_err());
+        assert!(owner.offers(&resident, &duplicate).is_err());
+        assert_eq!(view.iter().count(), 13);
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    assert_eq!(effects.get(), 0);
+}

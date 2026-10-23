@@ -11,8 +11,8 @@ use crate::{
 use alloc::{format, vec, vec::Vec};
 use conduit_core as c;
 
-const PROFILE: &str = "conduit.environment/prepared-software@1";
-const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
+pub const PROFILE: &str = "conduit.environment/prepared-software@1";
+pub const ARTIFACT: &str = "conduit-environment-runtime/appliance-software@1";
 const BYTES: u32 = 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SoftwareRefusal {

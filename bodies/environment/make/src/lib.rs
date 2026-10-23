@@ -39,6 +39,7 @@ pub enum NativePreparationRefusal {
     Projection(e::GenerationError),
     LocalFragment,
     Records(c::AssignedPlanRefusal),
+    SoftwareOffer,
 }
 
 /// Prepared on the planning host. Keep the rich Plan here for the real Body's
@@ -51,6 +52,7 @@ pub struct PreparedNativeAppliance {
     assignment: Vec<u8>,
     resident_records: Vec<c::AssignedRecordRequirement>,
     computations: Vec<c::AssignedComputationRequirement>,
+    selected_offers: Vec<(u16, c::CapabilityOffer)>,
 }
 impl PreparedNativeAppliance {
     /// The caller supplies authenticated, current offers, chosen Bases and Root
@@ -95,6 +97,19 @@ impl PreparedNativeAppliance {
             }
         }
         let computations = e::assigned_computation_requirements(&image).map_err(E::Projection)?;
+        let mut selected_offers = Vec::new();
+        for gear in &fragment.placements {
+            let offer = host
+                .capabilities
+                .iter()
+                .find(|offer| offer.capability_id == gear.capability_id)
+                .ok_or(E::SoftwareOffer)?;
+            let node = lowered
+                .identity
+                .node_for_placement(&gear.placement_id)
+                .ok_or(E::SoftwareOffer)?;
+            selected_offers.push((node.0, offer.clone()));
+        }
         Ok(Self {
             plan,
             lowered,
@@ -102,6 +117,7 @@ impl PreparedNativeAppliance {
             assignment,
             resident_records,
             computations,
+            selected_offers,
         })
     }
     /// Supply this exact checked Source/Plan partition to the ordinary Body

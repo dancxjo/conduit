@@ -107,7 +107,7 @@ impl Construction {
 /// planning. It grants no hardware authority, installs no kernel and starts no
 /// Body. Root must separately admit the complete memory/work closure.
 pub struct PreparedResidentSoftware<V> {
-    construction: Construction,
+    pub(super) construction: Construction,
     drivers: [ApplianceBack; NODES],
     selectors: [Option<PreparedCaptureSelector>; NODES],
     values: V,

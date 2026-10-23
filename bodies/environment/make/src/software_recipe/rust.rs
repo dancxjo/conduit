@@ -14,7 +14,7 @@ impl NativeSoftwareRecipe {
             "// Generated Make recipe; acceptance constraints, never authority."
         )?;
         writeln!(out, "use conduit_core as c;")?;
-        writeln!(out, "use conduit_environment_runtime::{{appliance::assigned::{{ResidentAppliance, ResidentComputation, ResidentRoles}}, assigned::ResidentLayout}};")?;
+        writeln!(out, "use conduit_environment_runtime::{{appliance::assigned::{{ResidentAppliance, ResidentComputation, ResidentRoles, ResidentSoftwareOffer}}, assigned::ResidentLayout}};")?;
         writeln!(
             out,
             "static RECORDS: [c::AssignedRecordRequirement; {}] = [",
@@ -46,6 +46,21 @@ impl NativeSoftwareRecipe {
         writeln!(
             out,
             "];\npub fn computations() -> &'static [ResidentComputation<'static>] {{ &TEXTS }}"
+        )?;
+        writeln!(
+            out,
+            "static OFFERS: [ResidentSoftwareOffer<'static>; {}] = [",
+            self.offers.len()
+        )?;
+        for (node, json) in &self.offers {
+            writeln!(
+                out,
+                "unsafe {{ ResidentSoftwareOffer::from_make({node}, &{json:?}) }},"
+            )?;
+        }
+        writeln!(
+            out,
+            "];\npub fn offers() -> &'static [ResidentSoftwareOffer<'static>] {{ &OFFERS }}"
         )?;
         writeln!(out, "pub fn resident() -> ResidentAppliance<'static> {{")?;
         writeln!(
