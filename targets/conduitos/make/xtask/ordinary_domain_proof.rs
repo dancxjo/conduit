@@ -13,6 +13,7 @@ mod compositor;
 mod compositor_hostile;
 mod compositor_recovery;
 mod service_memory;
+mod trap_envelope;
 
 const PREFIX: &str = "CONDUIT_ORDINARY_DOMAIN_SIGN ";
 
@@ -91,6 +92,9 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
         ));
     }
     let timer = super::protected_timer_proof::validate(&transcript, "x86_64")?;
+    let trap_envelope = trap_envelope::validate(&transcript).map_err(|reason| {
+        ConduitosError::refusal("service-trap-envelope-refused", format!("{reason:?}"))
+    })?;
     let signs = transcript
         .lines()
         .filter_map(|line| line.strip_prefix(PREFIX))
@@ -246,6 +250,27 @@ pub(super) fn execute(opts: &GlobalOpts) -> Result<(), ConduitosError> {
             "requires the actual fixture appliance ELF",
         ));
     }
+    let trap_receipt = serde_json::json!({
+        "schema": "conduit.conduitos/service-trap-envelope-evidence@1",
+        "proof_class": "freestanding-emulator", "fixture": true,
+        "build": build,
+        "elf_sha256": elf_sha256,
+        "iso_sha256": super::report::sha256_file(&paths.iso)?,
+        "transcript_sha256": super::report::sha256_file(&serial_path)?,
+        "observations": trap_envelope,
+    });
+    fs::write(
+        paths.target.join("service-trap-envelope-proof.json"),
+        serde_json::to_vec_pretty(&trap_receipt).map_err(|error| {
+            ConduitosError::refusal("service-trap-envelope-receipt-invalid", error.to_string())
+        })?,
+    )
+    .map_err(|error| {
+        ConduitosError::refusal(
+            "service-trap-envelope-receipt-write-failed",
+            error.to_string(),
+        )
+    })?;
     let receipt = serde_json::json!({
         "schema": "conduit.conduitos/service-memory-evidence@1",
         "proof_class": "freestanding-emulator", "fixture": true,
