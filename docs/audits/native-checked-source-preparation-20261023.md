@@ -88,3 +88,25 @@ The repaired product's fresh QEMU proof remains pending.
 The clean measured source is `d146baa44916258814e9276ea8c6d959fdae4756`.
 Previous successful 84b native product directories were verified and preserved
 before the build. #6257, #5519, #5608 and the original goal remain open.
+
+## Explicit storage runtime result
+
+Clean repaired source `b6cd29a70cdbd61c4e04571150a3c78749e68f08` builds through
+the supported x86 entrance. ISO SHA256 is
+`27c440f394d5ce93efceb51a0d0211235881d2a97e0ec936093140c065961de0`.
+The ordinary journey reaches and acknowledges the checked Source Face at
+revision 77. Its actual producer receipt reports 103,832 encoded bytes with two
+Collection value slots; the completed renderer receipt reports the same
+Face/revision, 256 KiB maximum, ten value slots, and 1,024,000 scanned pixels.
+Both actual storage allocation ledgers and the full acknowledged Source record
+are retained in `evidence/native-checked-source-20261023/b6cd-failed-publication`.
+These establish selected storage and acknowledgement, not the complete journey.
+
+The next protected Application Commit refuses Capacity while retaining that
+Source publication (`operation=patchbay-publish`, slot 2). The collector reports
+`patchbay-action-timeout`. Source Details/continuation, the return interaction
+and a captured Source PNG were not reached. The earlier private-heap witness
+projected Source but did not retain this full ordinary owner Face/Show; that
+proof gap is being repaired within the unchanged Application grant. No retry or
+budget increase is represented as success. This run's image products and raw
+failure packet are preserved separately from the prior d146 capacity failure.
