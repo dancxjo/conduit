@@ -1,0 +1,37 @@
+{
+  "proof_class": "32-bit-linux-cpu-preparation-and-kernel-execution",
+  "baseline_receipt": "../2026-10-23-child-output-storage/measurement.json",
+  "before": {
+    "software_peak": 82030,
+    "software_retained": 81671,
+    "preparation_allocations": 2766
+  },
+  "after": {
+    "software_peak": 75536,
+    "software_retained": 75177,
+    "preparation_allocations": 2633
+  },
+  "requested_bytes_saved": 6494,
+  "preparation_allocations_removed": 133,
+  "decoder_retained_before": 30402,
+  "decoder_retained_after": 24241,
+  "pulse_frame_projection_retained_before": 3683,
+  "pulse_frame_projection_retained_after": 3523,
+  "expression_conformance_tests_passed": 44,
+  "appliance_tests_passed": 14,
+  "overnight_scenarios_passed": 7,
+  "samples_per_scenario": 960,
+  "logical_elapsed_ms": 57600000,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "strict_plot_clippy_all_targets": true,
+  "esp32_native_root_release_cross_check": true,
+  "new_firmware_flashed": false,
+  "complete_mcu_memory_admission": false,
+  "notes": [
+    "Independent canonical Type validation precedes prefix reuse. Runtime prefix comparison is retained.",
+    "Standard primitive names are borrowed only when exactly equal; differing or dynamic identities remain owned.",
+    "Requested bytes exclude allocator overhead, Root ownership, kernel storage and native effects.",
+    "Software alone still exceeds the current 65536-byte Root arena; the physical allocation split is unchanged."
+  ]
+}
