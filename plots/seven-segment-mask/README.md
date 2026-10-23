@@ -28,8 +28,11 @@ Computing a payload does not acknowledge physical output.
 
 ## Interpretation
 
-Preparation validates one immutable, existing Face revision with at most four
-subjects and sixteen properties. The selected environmental subject supplies
+Preparation validates one immutable, existing Face revision with at most sixteen
+subjects and sixty-four properties. This bounds parent Face preparation, not
+the four-character Show: ordinary Body lifecycle and ownership subjects may
+coexist with the selected environmental subject. Selection preserves the parent
+identity and revision rather than constructing a sensor-only replacement Face. The selected environmental subject supplies
 typed `temperature` and `relative-humidity` properties, a `fresh` flag and
 `sensor-status` (`available`, `warming` or `unavailable`). Optional
 `minute-of-day` and `clock-fresh` properties describe observed clock time; the
