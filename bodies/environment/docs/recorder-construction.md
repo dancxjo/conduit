@@ -235,3 +235,25 @@ checks missing, foreign and unoffered read choices plus late publication failure
 `cargo xtask prove environment recording-browser` checks the real storage I/O
 connection after this production preparation. Actual browser Body admission,
 production transport and durable catalog-seed custody still remain.
+
+## Recorder lifecycle binding
+
+`PreparedRecordingRecovery::propose_to_body` submits the exact recorder Plan and
+explicit Mask topologies to the ordinary Body owner. Current membership and the
+complete workset must match; a proposal retains Wake evidence without starting
+Play. Failure preserves the owner's evidence and realization.
+
+`NativeBodyBinding::prepare_recording` reuses the native appliance's existing
+custody gate for the distinct Body and fragment Play identities. Root supplies
+both prospective identities from its own issuers. Confirmation requires the
+exact start retained by the current `BodyLifecycleSession`; proposals, foreign
+Host/Boot/Plan/Play substitutions and a revoked binding refuse. Identity access
+checks allocate nothing and stop succeeding after Lull. This is lifecycle
+correlation, not resource admission, an execution claim or provider revocation.
+Root must check its current owner before stepping or dispatching effects and
+retire the actual providers and kernel when lifecycle ownership ends.
+
+The public recording proof includes these refusal cases. The actual IndexedDB
+proof now uses the same binding before dispatch and completion, then checks
+Lull invalidation. Membership and attributable start are still explicitly CPU
+fixtures; actual browser admission and production transport remain unfinished.

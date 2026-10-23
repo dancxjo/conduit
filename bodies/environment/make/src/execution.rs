@@ -1,8 +1,8 @@
-//! Host-side custody of the distinct Body and native fragment Play identities.
-//! This grants no MCU resources and is not a serialized start acknowledgement.
-use super::PreparedNativeAppliance;
+//! Host-side custody of distinct Body and appliance fragment Play identities.
+//! This grants no device/storage resources and is not a start acknowledgement.
+use super::{PreparedNativeAppliance, PreparedRecordingRecovery};
 use conduit_body::{BodyLifecycleSession, BodyPlayIdentity, MembershipState, WakeLifecycle};
-use conduit_core::{bind_active_play, ActivePlayIdentity, FragmentId};
+use conduit_core::{bind_active_play, ActivePlayIdentity, FragmentId, Plan};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NativeBodyBindingRefusal {
@@ -36,7 +36,41 @@ impl NativeBodyBinding {
         prospective_body_play: &BodyPlayIdentity,
         prospective_fragment_play: &ActivePlayIdentity,
     ) -> Result<Self, NativeBodyBindingRefusal> {
+        Self::prepare_plan(
+            native.plan(),
+            owner,
+            prospective_body_play,
+            prospective_fragment_play,
+        )
+    }
+    /// The recorder uses the same Body/fragment custody gate. Root still owns
+    /// storage admission and actual execution; a selected Plan is not a start.
+    pub fn prepare_recording(
+        recording: &PreparedRecordingRecovery,
+        owner: &BodyLifecycleSession,
+        prospective_body_play: &BodyPlayIdentity,
+        prospective_fragment_play: &ActivePlayIdentity,
+    ) -> Result<Self, NativeBodyBindingRefusal> {
+        Self::prepare_plan(
+            recording.plan(),
+            owner,
+            prospective_body_play,
+            prospective_fragment_play,
+        )
+    }
+    fn prepare_plan(
+        plan: &Plan,
+        owner: &BodyLifecycleSession,
+        prospective_body_play: &BodyPlayIdentity,
+        prospective_fragment_play: &ActivePlayIdentity,
+    ) -> Result<Self, NativeBodyBindingRefusal> {
         use NativeBodyBindingRefusal as E;
+        let [fragment] = plan.fragments.as_slice() else {
+            return Err(E::WrongFragment);
+        };
+        if !conduit_core::verify_plan(plan) {
+            return Err(E::WrongFragment);
+        }
         let current = owner.realization().ok_or(E::StaleProposal)?;
         if current.play.is_some()
             || current.wake.lifecycle != WakeLifecycle::AwaitingPlan
@@ -44,21 +78,20 @@ impl NativeBodyBinding {
         {
             return Err(E::StaleProposal);
         }
-        let fragment = &native.plan().fragments[0];
-        if prospective_fragment_play.plan_id != native.plan().plan_id
+        if prospective_fragment_play.plan_id != plan.plan_id
             || prospective_fragment_play.host_id != fragment.host_id
             || prospective_fragment_play.boot_id != fragment.boot_id
             || *prospective_fragment_play
                 != bind_active_play(
-                    &native.plan().plan_id,
+                    &plan.plan_id,
                     &fragment.host_id,
                     &fragment.boot_id,
                     prospective_fragment_play.play_sequence,
                 )
             || !current.plan.plots.iter().any(|partition| {
-                partition.plan == *native.plan()
-                    && partition.plot.source_document_id == native.plan().source_document_id
-                    && partition.plot.checked_plot_id == native.plan().checked_plot_id
+                partition.plan == *plan
+                    && partition.plot.source_document_id == plan.source_document_id
+                    && partition.plot.checked_plot_id == plan.checked_plot_id
             })
         {
             return Err(E::WrongFragment);

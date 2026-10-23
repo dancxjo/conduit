@@ -1,9 +1,11 @@
 //! Real browser storage services original production-kernel requests. Authority,
 //! Body start and the process/file transport are explicit proof fixtures.
 use super::batch_browser::binding;
+use super::body_lifecycle::support;
 use super::*;
 use conduit_browser_runtime::resource_snapshot::PreparedSnapshotRecord;
 use conduit_environment_browser::*;
+use conduit_environment_make::{NativeBodyBinding, NativeBodyBindingRefusal};
 use conduit_kernel::{self as k, scheduler::*};
 use std::{path::Path, process::Command};
 
@@ -84,6 +86,22 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
     .unwrap();
     let fragment = &plan.plan().fragments[0];
     let active = c::bind_active_play(&fragment.plan_id, &fragment.host_id, &fragment.boot_id, 1);
+    let mut body = support::body_owner(
+        plan.body_plot_plan().plot,
+        &fragment.host_id,
+        &fragment.boot_id,
+        false,
+    );
+    let body_play = conduit_body::BodyPlayIdentity::bind(
+        &plan.propose_to_body(&mut body, vec![]).unwrap().plan,
+        1,
+    );
+    let mut lifecycle =
+        NativeBodyBinding::prepare_recording(&plan, &body, &body_play, &active).unwrap();
+    assert_eq!(
+        lifecycle.fragment_play(&body),
+        Err(NativeBodyBindingRefusal::NotStarted)
+    );
     let mut reads = PreparedRecordingBrowserReads::prepare(
         fragment,
         plan.lowered(),
@@ -93,10 +111,15 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
     .unwrap();
     let recovery = prepared.recovery_node;
     let mut kernel = prepared.kernel;
+    // Actual admission remains a fixture. Use the ordinary retained lifecycle
+    // result before any kernel steps/effects, keeping Body and fragment distinct.
+    support::start_body(&mut body, &body_play, &fragment.host_id, &fragment.boot_id);
+    lifecycle.confirm_started(&body).unwrap();
     let mut requests = Vec::with_capacity(15);
     let mut effects = Vec::with_capacity(15);
     for _ in 0..2000 {
         if let Some(request) = kernel.next_host_request() {
+            assert_eq!(lifecycle.fragment_play(&body).unwrap(), &active);
             let effect = reads.begin(&kernel, request).unwrap();
             effects.push(serde_json::to_value(effect).unwrap());
             requests.push(request);
@@ -165,6 +188,7 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
         );
         // Reverse asynchronous completion cannot change Source ordering.
         for result in returned.iter().rev() {
+            assert_eq!(lifecycle.fragment_play(&body).unwrap(), &active);
             let index = requests
                 .iter()
                 .enumerate()
@@ -216,6 +240,12 @@ fn original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb() {
     });
     assert!(seen.iter().all(|value| *value));
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    body.lull(&fragment.host_id, &fragment.boot_id, Some(&body_play))
+        .unwrap();
+    assert_eq!(
+        lifecycle.fragment_play(&body),
+        Err(NativeBodyBindingRefusal::StaleProposal)
+    );
     println!("actual_indexeddb_kernel_requests=15 samples=960 reverse_completion=true execution_allocations=0 body_start=fixture authority=fixture");
 }
 // Deserialize proof transport only; production compares the same borrowed scope.

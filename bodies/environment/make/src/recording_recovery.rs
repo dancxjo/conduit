@@ -210,6 +210,23 @@ impl PreparedRecordingRecovery {
     pub fn lowered(&self) -> &LoweredPlanFragment {
         &self.lowered
     }
+    /// Propose this exact recorder workset and explicitly supplied Mask chains.
+    /// The ordinary owner checks membership and retains the Wake. Root must
+    /// persist the result and admit actual resources before attributing a start.
+    pub fn propose_to_body<'a>(
+        &self,
+        owner: &'a mut conduit_body::BodyLifecycleSession,
+        masks: Vec<conduit_body::BodyMaskTopology>,
+    ) -> Result<&'a conduit_body::BodyLifecycleRealization, conduit_body::BodyLifecycleSessionError>
+    {
+        let fragment = &self.plan.fragments[0]; // preparation admits one fragment
+        owner.propose_with_masks(
+            vec![self.body_plot_plan()],
+            masks,
+            &fragment.host_id,
+            &fragment.boot_id,
+        )
+    }
     /// Preparation material for the ordinary Body owner, never a start receipt.
     pub fn body_plot_plan(&self) -> conduit_body::BodyPlotPlan {
         conduit_body::BodyPlotPlan {

@@ -273,3 +273,6 @@ mod browser_storage;
 
 #[path = "recording_recovery/software_preparation.rs"]
 mod software_preparation;
+
+#[path = "recording_recovery/body_lifecycle.rs"]
+mod body_lifecycle;
