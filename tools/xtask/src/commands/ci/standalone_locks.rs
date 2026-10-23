@@ -9,6 +9,46 @@ struct StandaloneLock {
 
 const LOCKS: &[StandaloneLock] = &[
     StandaloneLock {
+        manifest: "bodies/environment/face/Cargo.toml",
+        lock: "bodies/environment/face/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/http/Cargo.toml",
+        lock: "bodies/environment/http/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/make/Cargo.toml",
+        lock: "bodies/environment/make/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "bodies/environment/runtime/Cargo.toml",
+        lock: "bodies/environment/runtime/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/pulse-capture/Cargo.toml",
+        lock: "mechanisms/io/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "mechanisms/io/tm1637/Cargo.toml",
+        lock: "mechanisms/io/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "plots/seven-segment-mask/Cargo.toml",
+        lock: "plots/seven-segment-mask/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/proof/dht11/Cargo.toml",
+        lock: "targets/rp2040/proof/dht11/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/pulse-capture/Cargo.toml",
+        lock: "targets/rp2040/pulse-capture/Cargo.lock",
+    },
+    StandaloneLock {
+        manifest: "targets/rp2040/tm1637/Cargo.toml",
+        lock: "targets/rp2040/tm1637/Cargo.lock",
+    },
+    StandaloneLock {
         manifest: "proof/fixtures/native-speech-footprint/Cargo.toml",
         lock: "proof/fixtures/native-speech-footprint/Cargo.lock",
     },

@@ -1,0 +1,11 @@
+# Same Body and persistent MCU part, with an optional self-joining recorder.
+# This invitation name is a binding request, not a minted invitation or grant.
+with plots/seven-segment-mask/main as seven-segment
+
+body environment-browser {
+  schema = 2
+  id = "body:environment"
+  host = {name: "sensor", part: "part:environment-sensor", configuration: "../../../targets/rp2040/profiles/pico-w-environment.host.conduit", spore: {join_mode: "prejoined", output: "uf2"}}
+  host = {name: "recorder", configuration: "../../../targets/browser/profiles/environment-recorder.host.conduit", spore: {join_mode: "self-joining", invitation: "invitation:environment-recorder:single-use", output: "browser-bundle"}}
+  wear seven-segment
+}

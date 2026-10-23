@@ -1,0 +1,18 @@
+# Electrical geometry, independent of a sensor or a selected physical pin.
+# Integer timing coordinates use the selected Base's microsecond clock.
+type PulseReadRequest = {
+    hold_low_us: U32
+    skip_high_pulses: U8
+    sample_after_rise_us: U16
+    octets: U8
+    capture_timeout_us: U32
+}
+type PulseReadCapture = {
+    length: U8
+    wire: collection U8 = 8
+}
+type PulseReadResult =
+    completed PulseReadCapture
+    | timed-out PulseReadCapture
+    | provider-failed
+    | geometry-refused

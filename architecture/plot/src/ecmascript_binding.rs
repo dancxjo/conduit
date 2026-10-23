@@ -196,6 +196,11 @@ pub fn generate_ecmascript_forms(type_forms: &[CheckedTypeForm]) -> String {
          export const forms = Object.freeze({\n",
     );
     for form in type_forms {
+        let storage = match &form.storage {
+            crate::CheckedTypeFormStorage::U8 => "u8",
+            crate::CheckedTypeFormStorage::BooleanBits(_) => "boolean-bits",
+            crate::CheckedTypeFormStorage::DecimalQuantity(_) => "decimal-quantity",
+        };
         writeln!(
             out,
             "  {:?}: Object.freeze({{ compatibility: {:?}, exactBytes: {}, maximumBytes: {}, maximumDecodeSteps: {}, invalid: {:?}, mappings: Object.freeze({{",
@@ -211,7 +216,12 @@ pub fn generate_ecmascript_forms(type_forms: &[CheckedTypeForm]) -> String {
             writeln!(out, "    {:?}: {},", mapping.variant, mapping.discriminant)
                 .expect("String writing is infallible");
         }
-        writeln!(out, "  }}) }}),").expect("String writing is infallible");
+        let mask = match form.storage {
+            crate::CheckedTypeFormStorage::BooleanBits(mask) => mask,
+            _ => 0,
+        };
+        writeln!(out, "  }}), storage: {storage:?}, mask: {mask} }}),")
+            .expect("String writing is infallible");
     }
     out.push_str(
         "});\n\
@@ -222,12 +232,29 @@ pub fn generate_ecmascript_forms(type_forms: &[CheckedTypeForm]) -> String {
          }\n\
          export function encode(identity, variant) {\n\
            const form = declared(identity);\n\
+           if (form.storage === 'boolean-bits') {\n\
+             if (!variant || typeof variant !== 'object' || Object.keys(variant).length !== Object.keys(form.mappings).length) throw new FormRefusal(identity, 'invalid_fields', variant);\n\
+             let byte = 0;\n\
+             for (const [field, bit] of Object.entries(form.mappings)) {\n\
+               if (!Object.prototype.hasOwnProperty.call(variant, field) || typeof variant[field] !== 'boolean') throw new FormRefusal(identity, 'invalid_field', field);\n\
+               if (variant[field]) byte |= bit;\n\
+             }\n\
+             return Uint8Array.of(byte);\n\
+           }\n\
+           if (form.storage !== 'u8') throw new FormRefusal(identity, 'unsupported_storage', form.storage);\n\
            const tag = form.mappings[variant];\n\
            if (tag === undefined) throw new FormRefusal(identity, 'unknown_variant', variant);\n\
            return Uint8Array.of(tag);\n\
          }\n\
          export function decode(identity, encoded) {\n\
            const form = declared(identity);\n\
+           if (form.storage === 'boolean-bits') {\n\
+             if (encoded.length !== 1) throw new FormRefusal(identity, 'wrong_length', encoded.length);\n\
+             const byte = encoded[0];\n\
+             if (!Number.isInteger(byte) || byte < 0 || byte > 255 || (byte & ~form.mask)) throw new FormRefusal(identity, 'reserved_bits', byte);\n\
+             return Object.fromEntries(Object.entries(form.mappings).map(([field, bit]) => [field, Boolean(byte & bit)]));\n\
+           }\n\
+           if (form.storage !== 'u8') throw new FormRefusal(identity, 'unsupported_storage', form.storage);\n\
            if (encoded.length !== form.exactBytes)\n\
              throw new FormRefusal(identity, 'wrong_length', encoded.length);\n\
            for (const [variant, tag] of Object.entries(form.mappings))\n\

@@ -13,3 +13,9 @@ pub mod execution_regions;
 pub mod fragment_set;
 pub mod lowering;
 pub mod shared_pool_runtime;
+
+/// Exact single-call native selection validation before Play.
+pub mod selected_operation;
+
+/// Exact selected native operation from the constrained assigned projection.
+pub mod selected_assigned_operation;

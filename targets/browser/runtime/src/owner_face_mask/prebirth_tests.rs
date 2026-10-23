@@ -1,5 +1,6 @@
 //! Zero-Body checked Fore exchange; simulated effects only, no Birth is applied.
 use super::*;
+use conduit_kernel::scheduler::RemoteIngressOutcome;
 
 #[test]
 fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
@@ -316,30 +317,25 @@ fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() 
             .unwrap(),
         RemoteIngressOutcome::Accepted { sequence: 0 }
     );
-    // Repeated Faces are distinct stored values. The real one-Face/Show/
-    // interaction lifecycle admits three values, so storage pressure can precede
-    // Cord pressure. Keep that refusal distinct and prove the retry has no effect.
-    let mut pressured_sequence = None;
-    for sequence in 1..=u64::from(input.item_capacity) {
-        match scheduler.admit_remote_input(input.endpoint, input.cord, sequence, &original) {
-            Ok(RemoteIngressOutcome::Accepted { sequence: actual }) => assert_eq!(actual, sequence),
-            Err(conduit_kernel::scheduler::SchedulerError::Storage(
-                conduit_kernel::StorageError::ItemCapacityExceeded,
-            )) => {
-                pressured_sequence = Some(sequence);
-                break;
-            }
-            result => panic!("expected admitted Face or explicit value pressure: {result:?}"),
-        }
+    // Storage admits every planned input item plus active Face/Show/interaction
+    // values. The unstepped input reaches its exact Cord limit first.
+    for sequence in 1..u64::from(input.item_capacity) {
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+                .unwrap(),
+            RemoteIngressOutcome::Accepted { sequence }
+        );
     }
-    let sequence = pressured_sequence.expect("finite Mask values must apply storage pressure");
-    assert!(sequence < u64::from(input.item_capacity));
-    assert!(matches!(
-        scheduler.admit_remote_input(input.endpoint, input.cord, sequence, &original),
-        Err(conduit_kernel::scheduler::SchedulerError::Storage(
-            conduit_kernel::StorageError::ItemCapacityExceeded
-        ))
-    ));
+    let sequence = u64::from(input.item_capacity);
+    for _ in 0..2 {
+        assert_eq!(
+            scheduler
+                .admit_remote_input(input.endpoint, input.cord, sequence, &original)
+                .unwrap(),
+            RemoteIngressOutcome::Full { sequence }
+        );
+    }
     assert!(scheduler.next_host_request().is_none());
     for boundary in [output, interaction] {
         assert!(scheduler

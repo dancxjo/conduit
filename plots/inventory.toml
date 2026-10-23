@@ -636,3 +636,10 @@ workspace_catalog = false
 reusable_entries = [{ entry = "quantity-projection/value", title = "Near Quantity Value", composition = { parent = "quantity-projection/main", occurrences = ["project"] } }]
 deterministic = { package = "conduit", test = "numerical_owner_cost", case = "authored_numerical_fore_retains_all_admitted_values_and_exact_child_evidence", plan_play_evidence = true }
 browser_safe_not_applicable = "this finite numerical Fore has an installed local Std realization; no browser realization is claimed"
+
+[[plots]]
+slug = "seven-segment-mask"
+title = "Seven-segment Mask"
+entry = "seven-segment"
+deterministic = { package = "conduit-face", features = ["plot-catalog"], test = "mask_plot", case = "seven_segment_source_is_an_ordinary_mask_with_one_role_boundary" }
+browser_safe_not_applicable = "the finite seven-segment Show needs a selected device display realization; Source checking does not establish physical manifestation"

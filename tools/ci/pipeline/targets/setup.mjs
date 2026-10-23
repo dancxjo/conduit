@@ -100,7 +100,10 @@ export function setup(target) {
       let warm = false;
       try { warm = JSON.stringify(JSON.parse(readFileSync(receipt, 'utf8'))) === JSON.stringify(identity); if (warm) activateXtensa(); } catch { warm = false; }
       if (!warm) {
-        acquireXtensa(espup, ['install', '--name', XTENSA_NAME, '--toolchain-version', identity.rust,
+        // The release is exact, not a version range. Avoid espup's release-list
+        // lookup (which can omit an existing tag); activation still verifies the
+        // installed Rust, GCC and Clang identities before any firmware proof.
+        acquireXtensa(espup, ['install', '--name', XTENSA_NAME, '--skip-version-parse', '--toolchain-version', identity.rust,
           '--crosstool-toolchain-version', identity.gcc, '--targets', selected,
           '--export-file', path.resolve('target/pipeline-esp-export.sh')]);
         mkdirSync(path.dirname(receipt), { recursive: true });
