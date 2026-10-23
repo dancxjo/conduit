@@ -3,17 +3,17 @@
 //! No USB discovery, descriptor policy, separate stack, or ambient authority.
 #![cfg_attr(not(test), allow(dead_code))] // Ordinary Root installation is a separate integration step.
 pub mod contract;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod device;
 pub mod factory;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod installation;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod network_session;
 pub mod offer;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub mod owned_installation;
 pub(crate) mod owner;
 pub mod queues;
-#[cfg(feature = "native-owner-network")]
+#[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) mod retention;

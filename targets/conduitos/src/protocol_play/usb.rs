@@ -167,13 +167,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
     /// USB class transfers and separately authorized frame Calls share one kernel.
-    #[cfg(all(
-        feature = "native-owner-network",
-        any(
-            target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
-        )
-    ))]
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     pub(crate) fn prepare_usb_ethernet(
         definition: KernelCompositeDefinition,
         usb: UsbDuplexAdmission,
@@ -195,13 +189,7 @@ impl<P: I2cProvider> PreparedProtocolPlay<P> {
         )
     }
 
-    #[cfg(all(
-        feature = "native-owner-network",
-        any(
-            target_arch = "x86_64",
-            all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
-        )
-    ))]
+    #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
     pub(crate) fn poll_ethernet_network(
         &mut self,
         timestamp: smoltcp::time::Instant,
