@@ -6,7 +6,21 @@ use serde::{Deserialize, Deserializer};
 pub struct Nullable<T>(pub Option<T>);
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Nullable<T> {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        Option::<T>::deserialize(deserializer).map(Self)
+        // Decoding Option directly also accepts Serde's missing-field sentinel.
+        // Buffering this closed JSON value requires a real field first, while
+        // retaining explicit null as a distinct permitted wire value.
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum Present<T> {
+            Null(()),
+            Value(T),
+        }
+        Present::<T>::deserialize(deserializer).map(|value| {
+            Self(match value {
+                Present::Null(()) => None,
+                Present::Value(value) => Some(value),
+            })
+        })
     }
 }
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
