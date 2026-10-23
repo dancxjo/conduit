@@ -112,6 +112,8 @@ fn decode_terminal(serial: &str) -> Result<(Vec<Snapshot>, Vec<frame::Frame>), R
 }
 
 /// Join a separate appliance observation to the existing real successful ACK line.
+// The standalone path-module test consumer does not include the appliance caller.
+#[cfg_attr(test, allow(dead_code))]
 pub(super) fn verify_ack(serial: &str, ack: &AckRef, cost: &Cost) -> Result<(), Refusal> {
     let mut matched = 0;
     let mut count = 0;
