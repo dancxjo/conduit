@@ -15,6 +15,7 @@ isolated-base-proof = ["isolated-file-base"]
 isolated-http-base = ["isolated-file-base"]
 confined-gear = ["dep:wasmi"]
 physical-effect-proof = []
+native-model-backing = ["dep:ort-sys"]
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc", "dep:turn", "dep:webrtc-util"]
 
 [dependencies]
@@ -131,3 +132,11 @@ conduit-workspace-make = { path = "../../make/workspace" }
 ed25519-dalek = "2.2"
 rcgen = "0.14"
 wat = "1"
+
+[target.'cfg(all(target_os = "linux", target_arch = "x86_64", target_env = "gnu"))'.dependencies]
+ort-sys = { version = "=2.0.0-rc.12", default-features = false, features = ["std", "api-23", "disable-linking"], optional = true }
+
+[[bin]]
+name = "conduit-native-model-worker"
+path = "src/bin/conduit-native-model-worker.rs"
+required-features = ["native-model-backing"]
