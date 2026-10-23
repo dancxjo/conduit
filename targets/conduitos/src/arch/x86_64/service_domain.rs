@@ -10,10 +10,12 @@ use core::sync::atomic::{AtomicU64, Ordering};
 static NEXT_INSTANCE: AtomicU64 = AtomicU64::new(1);
 
 pub struct ServiceDomain {
-    space: AddressSpace,
+    pub(super) space: AddressSpace,
     instance: u64,
     cost: DomainCost,
-    quarantined: bool,
+    pub(super) quarantined: bool,
+    #[cfg(feature = "ordinary-domain-proof")]
+    pub(super) clock_binding: Option<super::clock_boundary::Binding>,
 }
 impl ServiceDomain {
     pub const RESERVED_BYTES: u32 = AddressSpace::RESERVED_BYTES;
@@ -31,6 +33,8 @@ impl ServiceDomain {
             space,
             instance,
             quarantined: false,
+            #[cfg(feature = "ordinary-domain-proof")]
+            clock_binding: None,
             cost: DomainCost {
                 reserved_bytes,
                 root_metadata_bytes: core::mem::size_of::<Self>() as u32,
@@ -78,7 +82,20 @@ impl DomainBackend for ServiceDomain {
             | ServiceProfile::Mask
             | ServiceProfile::Tls => super::domain_budget::EntryBudget::Draft,
         };
-        let result = domain_transition::enter_context_with_budget(self.space.context()?, budget)?;
+        #[cfg(feature = "ordinary-domain-proof")]
+        super::irq_envelope::validate_entry(self.instance)?;
+        let context = self.space.context()?;
+        #[cfg(feature = "ordinary-domain-proof")]
+        let permit = self
+            .clock_binding
+            .as_mut()
+            .and_then(|binding| binding.take(self.instance, &context));
+        let result = domain_transition::enter_context_with_budget(
+            context,
+            budget,
+            #[cfg(feature = "ordinary-domain-proof")]
+            permit,
+        )?;
         self.cost.entries += 1;
         self.cost.address_space_switches += 2;
         self.cost.tlb_flushes += 2;
