@@ -83,6 +83,21 @@ fn checked_preparation(
     use conduit_environment_make::PreparedNetworkSetup as P;
     let prepared = P::from_checked(source, host, bases, grants).unwrap();
     assert_eq!(prepared.plan(), expected);
+    use conduit_network_join_call::{ControlKernelRefusal, PreparedNetworkKernel};
+    let fragment = &prepared.plan().fragments[0];
+    let mut changed = prepared.lowered().clone();
+    changed.node_specs[0].maximum_step_fuel += 1;
+    assert!(matches!(
+        PreparedNetworkKernel::prepare(fragment, &changed),
+        Err(ControlKernelRefusal::Lowering)
+    ));
+    let mut foreign = fragment.clone();
+    foreign.plan_id = "plan/not-canonical".into();
+    assert!(matches!(
+        PreparedNetworkKernel::prepare(&foreign, prepared.lowered()),
+        Err(ControlKernelRefusal::Identity)
+    ));
+
     assert_eq!(
         P::from_checked(source, host, bases, &[])
             .err()

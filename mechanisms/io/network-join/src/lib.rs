@@ -8,6 +8,11 @@ pub use credentials::{
     CredentialCallRefusal, CredentialSource, CredentialSourceRefusal, NetworkCredentialsHostCall,
     PreparedCredentialContract, CREDENTIAL_RESOURCE_CLASS,
 };
+mod control_kernel;
+pub use control_kernel::{
+    ControlKernelRefusal, NetworkControlKernel, NetworkControlRoles, PreparedNetworkKernel,
+    CONTROL_KERNEL_BYTES, CONTROL_PORTS,
+};
 mod control_back;
 pub use control_back::NetworkControlBack;
 pub mod installation;

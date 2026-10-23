@@ -338,7 +338,7 @@ fn execute(acknowledged: bool, assigned: bool) {
             bindings,
         )
     };
-    let mut kernel =
+    let mut kernel = if assigned {
         FixedScheduler::<_, _, _, 3, 2, P, 2, { 3 * P }, 2, 3, 3>::new_with_host_calls(
             nodes,
             cords,
@@ -349,7 +349,19 @@ fn execute(acknowledged: bool, assigned: bool) {
             k::FixedSignLog::<128>::new((128 * core::mem::size_of::<k::KernelEvent>()) as u32)
                 .unwrap(),
         )
-        .unwrap();
+        .unwrap()
+    } else {
+        let prepared = PreparedNetworkKernel::prepare(fragment, lowered).unwrap();
+        assert_eq!(
+            prepared.roles,
+            NetworkControlRoles {
+                credentials: credential,
+                join,
+                attachment_sign: sign
+            }
+        );
+        prepared.kernel
+    };
     let mut signs = 0;
     let mut finished = false;
     let mut buffer = [0; 167];
