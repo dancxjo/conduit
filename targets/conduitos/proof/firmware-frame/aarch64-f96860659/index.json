@@ -171,10 +171,10 @@
     {
       "path": "no-framebuffer/serial.log.gz",
       "original": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-no-framebuffer-current/serial.log",
-      "bytes": 1560,
-      "sha256": "1eec07f45f9dafcc41eafe2596cbe76e140fc818bef91ea61bfd38053ed6e875",
-      "uncompressed_bytes": 5876,
-      "uncompressed_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0"
+      "bytes": 1559,
+      "sha256": "2d3f6cf29c45e458110506ce6b1ed7ab206b5ca5da13e33e04d8e5d7ad60bf58",
+      "uncompressed_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0",
+      "uncompressed_bytes": 5876
     },
     {
       "path": "no-framebuffer/stderr.log",

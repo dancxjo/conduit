@@ -48,10 +48,10 @@
     },
     {
       "file": "serial.log.gz",
-      "sha256": "144fd28229a06ae34efe44fe090a521527d8ec0d203c4f53f3189a7c014ec490",
-      "bytes": 1577,
-      "uncompressed_bytes": 5899,
-      "uncompressed_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6"
+      "sha256": "8b3e08ad75f8b6cb3d88aa5578742ae7dac47f7a4c44253a2f822bce03598f49",
+      "bytes": 1576,
+      "uncompressed_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+      "uncompressed_bytes": 5899
     },
     {
       "file": "stderr.log",

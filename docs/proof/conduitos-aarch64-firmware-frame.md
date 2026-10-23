@@ -93,8 +93,9 @@ local extracted emulator/firmware paths; those paths are observations, not a new
 public setup interface. Boot verification performs no firmware download.
 
 Retained local validation includes strict native-feature and xtask all-target Clippy, 67
-Host construction tests, 19 target-lowering tests and the standalone scene's
-input-refusal test. The changed graphics, scene/Mask, compositor, display, boot, Make and provider
+Host construction tests and 19 target-lowering tests. The direct scene
+input-refusal test passed in the exact-source scene suite. The changed
+graphics, scene/Mask, compositor, display, boot, Make and provider
 suites have separate exact-source receipts and logs. Deliberately manual
 performance and opt-in Node CPU cross-Mask cases remain ignored, not passed.
 A broader native-feature library run was terminated by SIGTERM (exit 143)
