@@ -54,3 +54,29 @@ browser Integration. Earlier 10-second CI failures and the subsequent bounded
 20-second fixture correction remain their own source-bound evidence. No new
 performance optimization, universal startup bound, readiness authority or issue
 closure follows from this local diagnostic.
+
+## Fresh product diagnostic
+
+A subsequent run on clean source
+`1b530d14f4ee49f8d4891053f97e86c07a27adea` rebuilt the normal CLI and browser
+release through their supported build commands, sealed a release catalog and
+staged the actual Workspace product. [Retained fresh evidence](evidence/native-startup-phases-20261023/1b530d14f/manifest.json)
+keeps this run distinct from the earlier retained-browser-assets case.
+
+The ordinary CLI SHA256 is
+`484c044055469d39aadd875430ba763f2790892d6c5901f5883851ce338daf0b`.
+The fresh optimized runtime is 15,911,631 bytes with SHA256
+`40e85cb6c20b450b9a6404db4c4cab276b2dd1071fae4a7df0865f68ffe43728`.
+All 12 sealed release files and 110 staged file identities verified, including
+the unchanged staged product after the real Chromium case. Independent local
+copies preserve the exact CLI and runtime bytes outside regenerable caches.
+
+One actual Chromium rendezvous test passed with one worker, zero retries and
+the unchanged 20-second fixture budget. All eight traced source hashes matched
+and 32 native records completed. Native preparation measured 5022.835 ms:
+catalogs 3033.355 ms, Birth encounter 1886.135 ms and Host construction 83.830 ms.
+The whole encounter measured 9032.219 ms. This fresh-source local wall-time
+observation confirms the live diagnostic path and its current dominant phases.
+It is neither calibrated CPU attribution nor proof of the earlier CI delay's
+cause. The supported fresh product build and focused browser case do not
+substitute for accepted full browser Integration; #6283 remains open.
