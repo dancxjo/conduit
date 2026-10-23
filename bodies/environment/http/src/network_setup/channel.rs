@@ -41,6 +41,21 @@ pub enum NetworkSetupReadRefusal {
     Input(NetworkSetupRefusal),
 }
 impl NetworkSetupReader<'_> {
+    /// Root preparation borrows the same input that the selected source will
+    /// later consume. Socket custody and flush must already have completed.
+    /// This never waits or transfers the request out of the mailbox.
+    pub fn prepare_acknowledged<T>(
+        &self,
+        prepare: impl FnOnce(conduit_net::NetworkJoinRequest<'_>) -> T,
+    ) -> Result<T, NetworkSetupReadRefusal> {
+        let mailbox = self
+            .0
+            .try_lock()
+            .map_err(|_| NetworkSetupReadRefusal::Busy)?;
+        mailbox
+            .prepare_acknowledged(prepare)
+            .map_err(NetworkSetupReadRefusal::Input)
+    }
     /// Readiness is observable only after the socket releases the response guard
     /// and mailbox lock. Busy is distinct from no acknowledged input.
     pub fn has_acknowledged(&self) -> Result<bool, NetworkSetupReadRefusal> {

@@ -776,6 +776,16 @@ without execution allocation. Input collection may precede SDK/Plan preparation;
 collecting it grants no radio authority. The MCU route remains disabled until
 its Root service is installed.
 
+Root may synchronously borrow the acknowledged input with
+`prepare_acknowledged` to prepare SDK-owned configuration before planning and
+Play. The borrowed bytes cannot escape the callback; the original submission
+remains for the selected credentials Host Call, including after preparation
+refusal. This path neither allocates nor authorizes a radio operation itself;
+Root must admit the callback's preparation memory separately. The HTTP proof
+checks flush/custody ordering, refusal without consumption, exact later input,
+zero mailbox allocation and compile-time refusal of escaping secret references.
+Actual SDK configuration and control Play installation remain unfinished.
+
 The ESP32 Root preparation image now initializes and retains that actual private
 source alongside the GPIO Base, under the observed Host and Boot. Its writer is
 retained for later service installation. This is initialized-source availability,

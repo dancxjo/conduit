@@ -82,6 +82,32 @@ impl NetworkSetupMailbox {
             .as_ref()
             .is_some_and(|pending| pending.acknowledged)
     }
+    /// Root preparation may borrow the acknowledged request to construct the
+    /// selected implementation's SDK configuration before Play. This is not a
+    /// credentials Host Call: it neither consumes input nor authorizes effects.
+    /// The callback is synchronous, and its result cannot borrow secret storage.
+    /// Preparation failure preserves the request for explicit cancellation or
+    /// a later selected read. Root must separately bound preparation allocation.
+    ///
+    /// Secret references cannot escape the preparation callback:
+    /// ```compile_fail
+    /// use conduit_environment_http::network_setup::NetworkSetupMailbox;
+    /// let mailbox = NetworkSetupMailbox::new(1);
+    /// let leaked = mailbox.prepare_acknowledged(|request| request.credential);
+    /// ```
+    pub fn prepare_acknowledged<T>(
+        &self,
+        prepare: impl FnOnce(conduit_net::NetworkJoinRequest<'_>) -> T,
+    ) -> Result<T, NetworkSetupRefusal> {
+        let pending = self
+            .pending
+            .as_ref()
+            .ok_or(NetworkSetupRefusal::NoSubmission)?;
+        if !pending.acknowledged {
+            return Err(NetworkSetupRefusal::NotAcknowledged);
+        }
+        Ok(prepare(pending.input.request()))
+    }
     /// Only the selected credentials Host Call should invoke this. The caller
     /// owns the admitted output buffer and its subsequent secret-byte lifetime.
     /// Output pressure preserves the pending request; successful transfer consumes it.

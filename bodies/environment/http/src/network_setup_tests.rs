@@ -27,6 +27,15 @@ fn page_submission_crosses_the_existing_private_wire_only_after_response_acknowl
         ));
         mailbox.acknowledge(ticket).unwrap();
         assert!(mailbox.has_acknowledged());
+        let prepared = mailbox
+            .prepare_acknowledged(|request| {
+                assert_eq!(request.ssid, b"Test LAN");
+                assert_eq!(request.credential, b"sample&value+");
+                (request.ssid.len(), request.credential.len())
+            })
+            .unwrap();
+        assert_eq!(prepared, (8, 13));
+        assert!(mailbox.has_acknowledged());
         assert_eq!(
             mailbox.acknowledge(ticket),
             Err(NetworkSetupRefusal::AlreadyAcknowledged)
