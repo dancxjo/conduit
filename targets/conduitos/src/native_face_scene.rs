@@ -17,6 +17,9 @@ use crate::display::{
 
 #[path = "native_face_scene/boolean_choice.rs"]
 mod boolean_choice;
+#[path = "native_face_scene/continuation.rs"]
+mod continuation;
+pub use continuation::LayoutContinuation;
 #[cfg(test)]
 #[path = "native_face_scene/boolean_choice_tests.rs"]
 mod boolean_choice_tests;
@@ -87,6 +90,8 @@ pub struct FaceHit<'a> {
 }
 
 pub struct FaceFrame<'a> {
+    /// Why this admitted page continues the preceding one; diagram/editor paths are separate.
+    pub continuation: Option<LayoutContinuation>,
     pub scene: GraphicsScene,
     pub face_id: &'a FaceContentId,
     pub revision: u64,

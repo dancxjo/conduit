@@ -372,5 +372,13 @@ fn panel_preflight_respects_global_row_and_command_caps_not_only_lane_height() {
         check_field(&rows, count);
         assert_eq!(rows[count - 1].page, 0);
         assert_eq!(rows[count].page, 1);
+        let cause = rows[count].continuation.unwrap();
+        assert!(cause.kept_group());
+        assert_eq!(cause.command_limit(), command_pressure);
+        assert_eq!(cause.row_limit(), !command_pressure);
+        // At 1024px, eighteen prefixes also exhaust block space. Report both
+        // constraints rather than silently choosing row pressure as the cause.
+        assert_eq!(cause.block_limit(), !command_pressure);
+        assert!(!cause.measurement_refused());
     }
 }

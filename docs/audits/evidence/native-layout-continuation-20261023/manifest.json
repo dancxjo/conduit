@@ -1,0 +1,58 @@
+{
+  "proof_class": "hosted-deterministic-development",
+  "scene_sweep": {
+    "passed": 118,
+    "failed_new_expectation": 1,
+    "existing_ignored": 1
+  },
+  "corrected_field_test": "passed",
+  "final_pressure_frame_cases": 5,
+  "storage_guard": "passed",
+  "strict_package_clippy": "passed",
+  "native_qemu": false,
+  "browser": false,
+  "files": [
+    {
+      "path": "clippy.log.gz",
+      "bytes": 1209,
+      "sha256": "6224fa0bde7f9d8ca0a29f49811636e38fec3c709f3c7a97f42a0f9ded4991af",
+      "uncompressed_sha256": "612b0235051751e492a7de1541afd89b86c52d60a32785349f23cfb6891b2e68"
+    },
+    {
+      "path": "compile-before.log.gz",
+      "bytes": 1961,
+      "sha256": "4dbb7db98aa734c79761e1539282423475fd4fc875ace4aa9b938413a2b87364",
+      "uncompressed_sha256": "3fcd9f365ad9c85064e536bf263535fd32644c12c50148dd409d2d36813560b4"
+    },
+    {
+      "path": "field-corrected.log.gz",
+      "bytes": 378,
+      "sha256": "462ad47ad1580bc288fd14bc0d3d4affaf0f0f50b9244d632f9916ad9e34bf4f",
+      "uncompressed_sha256": "e016715a8d200fff1a8cbc0171178c01b7509c59aaf76cc6195642c8c20758a9"
+    },
+    {
+      "path": "field-diagnostic.log.gz",
+      "bytes": 382,
+      "sha256": "e5f9d2d08d516cd6513763905425f2caffc9e1a0b2ff75835baaee6d9d98dadf",
+      "uncompressed_sha256": "ec3b54238049d858d269c836c661771722f5d3ac1046346fe25023f79e606a59"
+    },
+    {
+      "path": "frame-and-pressure.log.gz",
+      "bytes": 495,
+      "sha256": "4f14a0b6941162b000a106e02f60960c29c5bad92b6c6d88627b3ec89ff3f8ca",
+      "uncompressed_sha256": "6d32fad44d91bc13dff7e9aebf766a16812b470d6dd348357b524c087eb1302b"
+    },
+    {
+      "path": "scene-sweep-before-assertion-correction.log.gz",
+      "bytes": 4242,
+      "sha256": "57e2710840075515f5f1307af3b8ea634b237538c51d2bacd43d59683151e5fb",
+      "uncompressed_sha256": "c0b0452e3eb73e2ec4590e82c8fc7a80045726a8fc7e922edc7eaae38a1a1d2d"
+    },
+    {
+      "path": "storage.log.gz",
+      "bytes": 276,
+      "sha256": "ff5a66f3a2e5b6f43a11f9ce219b0cb412f4f76128b64332bf95ad7e99d12c40",
+      "uncompressed_sha256": "e7f0e1d6408003292e4dad32e52d677f6a75f01674b45f4e98db4d9654a04800"
+    }
+  ]
+}

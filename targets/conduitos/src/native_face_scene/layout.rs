@@ -21,6 +21,7 @@ const MAX_DOCUMENT_BYTES: usize = 2 * 1024 * 1024;
 const INDENT_STEP: u16 = 14;
 
 pub(super) struct Row {
+    pub continuation: Option<LayoutContinuation>,
     pub text: String,
     pub role: GraphicsTextRole,
     pub paint: GraphicsPaintRole,
@@ -268,6 +269,7 @@ pub(super) fn admit_with_expression_selected(
     let mut rows = Vec::new();
     let (mut page, mut count, mut y, mut bytes) = (0, 0, chrome.top, 0usize);
     let mut previous_region = None;
+    let mut continuation = None;
     // Reserve one non-color focus marker per page, including continuation pages.
     let mut commands = chrome::COMMANDS + 1;
     let mut items = items.into_iter();
@@ -299,6 +301,9 @@ pub(super) fn admit_with_expression_selected(
         {
             column += 1;
             if column == columns || !demand.fits(chrome.top, bottom, count, commands) {
+                continuation = demand
+                    .pressure(y, bottom, count, commands)
+                    .map(LayoutContinuation::keeping_group);
                 page += 1;
                 count = 0;
                 column = 0;
@@ -328,6 +333,11 @@ pub(super) fn admit_with_expression_selected(
             if y + box_height > bottom || count == MAX_PAGE_ROWS || command_pressure {
                 column += 1;
                 if column == columns || count == MAX_PAGE_ROWS || command_pressure {
+                    continuation = LayoutContinuation::pressure(
+                        y + box_height > bottom,
+                        count == MAX_PAGE_ROWS,
+                        command_pressure,
+                    );
                     page += 1;
                     count = 0;
                     column = 0;
@@ -339,6 +349,7 @@ pub(super) fn admit_with_expression_selected(
                 return Err(FaceSceneError::DocumentBound);
             }
             rows.push(Row {
+                continuation: continuation.take(),
                 text: remaining[..end].into(),
                 role: item.role,
                 paint: item.paint,
