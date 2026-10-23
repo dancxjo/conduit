@@ -114,6 +114,8 @@ pub mod native_face_mask;
 #[cfg(feature = "native-compositor")]
 pub mod native_face_scene;
 pub mod native_face_snapshot;
+#[cfg(feature = "native-compositor")]
+pub mod native_first_frame;
 pub mod native_guest_face;
 pub mod native_network_bounds;
 pub mod native_observation;

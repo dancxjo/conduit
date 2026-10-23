@@ -13,7 +13,7 @@ use conduitos::{
     front_door::FrontDoor,
     identity, keyboard_text_plan,
     linear_presenter::LinearPresenter,
-    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER},
+    make::{EMBEDDED_MAKE, IMPL_LINEAR_PRESENTER, IMPL_NATIVE_PRESENTER},
     observatory,
     offer::CpuFeatures,
     offer_make::ImageBoundHostOffer,
@@ -48,7 +48,11 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     EMBEDDED_MAKE
         .validate(record.runtime_arena.length)
         .unwrap_or_else(|error| refuse(error.as_str()));
-    if !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
+    let graphical = EMBEDDED_MAKE.includes(IMPL_NATIVE_PRESENTER);
+    if graphical && !cfg!(feature = "native-compositor") {
+        refuse("graphical-presenter-not-built");
+    }
+    if !graphical && !EMBEDDED_MAKE.includes(IMPL_LINEAR_PRESENTER) {
         refuse("linear-presenter-absent-from-image");
     }
 
@@ -106,22 +110,107 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     let face = front_door
         .face()
         .unwrap_or_else(|error| refuse(error.as_str()));
-    let mut presenter = LinearPresenter::prepare(
-        host_id,
-        boot_id,
-        generation,
-        EMBEDDED_MAKE.profile_id,
-        EMBEDDED_MAKE.image_binding,
-    )
-    .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
-    let receipt = presenter
-        .present(&face)
-        .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    for line in &receipt.face.lines {
-        arch::present(b"CONDUIT_LINEAR_FACE ");
-        arch::present(line.as_bytes());
-        arch::present(b"\n");
-    }
+    #[cfg(feature = "native-compositor")]
+    let mut display = if graphical {
+        Some(boot::framebuffer_display().unwrap_or_else(|error| refuse(error.as_str())))
+    } else {
+        None
+    };
+    #[cfg(feature = "native-compositor")]
+    let native_frame = if let Some(display) = display.as_mut() {
+        let entropy = arch::RndrEntropy::detect(offer.generation)
+            .unwrap_or_else(|_| refuse("surface-authority-entropy-unavailable"));
+        let mut entropy =
+            conduitos::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(entropy)
+                .unwrap_or_else(|_| refuse("surface-authority-entropy-invalid"));
+        let mut key = [0; 32];
+        entropy
+            .fill(&mut key)
+            .unwrap_or_else(|_| refuse("surface-authority-key-unavailable"));
+        let frame = conduitos::native_first_frame::NativeFirstFrame::prepare(
+            &identities,
+            &offer,
+            &EMBEDDED_MAKE,
+            &front_door,
+            display,
+            key,
+        );
+        key.fill(0);
+        Some(frame.unwrap_or_else(|reason| refuse(reason)))
+    } else {
+        None
+    };
+    let linear_receipt = if !graphical {
+        let mut presenter = LinearPresenter::prepare(
+            host_id,
+            boot_id,
+            generation,
+            EMBEDDED_MAKE.profile_id,
+            EMBEDDED_MAKE.image_binding,
+        )
+        .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
+        let receipt = presenter
+            .present(&face)
+            .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
+        for line in &receipt.face.lines {
+            arch::present(b"CONDUIT_LINEAR_FACE ");
+            arch::present(line.as_bytes());
+            arch::present(b"\n");
+        }
+        Some(receipt)
+    } else {
+        None
+    };
+    let (face_id, manifestation_id, presenter_id, presenter_plan_id) =
+        if let Some(receipt) = &linear_receipt {
+            (
+                receipt.face.face_id.as_str(),
+                receipt.manifestation_id.as_str(),
+                receipt.presenter_implementation_id.as_str(),
+                receipt.plan_id.as_str(),
+            )
+        } else {
+            #[cfg(feature = "native-compositor")]
+            {
+                let frame = native_frame
+                    .as_ref()
+                    .unwrap_or_else(|| refuse("graphical-frame-missing"));
+                let show = frame
+                    .show()
+                    .unwrap_or_else(|| refuse("graphical-show-missing"));
+                let publication = frame
+                    .publication()
+                    .unwrap_or_else(|| refuse("graphical-publication-missing"));
+                let evidence = serde_json::json!({
+                    "schema": "conduit.conduitos/native-first-frame@1",
+                    "scope": "noninteractive-product-first-frame",
+                    "profile_id": EMBEDDED_MAKE.profile_id,
+                    "build_id": EMBEDDED_MAKE.build_id,
+                    "logical_image_id": EMBEDDED_MAKE.image_binding,
+                    "host_id": frame.composition.host_id,
+                    "boot_id": frame.composition.boot_id,
+                    "framebuffer": frame.framebuffer,
+                    "publication": publication,
+                    "show": show,
+                    "pixels_written": frame.composition.display.pixels_written,
+                    "interactive_local_control": false,
+                });
+                let evidence = serde_json::to_vec(&evidence)
+                    .unwrap_or_else(|_| refuse("graphical-evidence-encoding-refused"));
+                arch::present(b"CONDUIT_NATIVE_FIRST_FRAME ");
+                arch::present(&evidence);
+                arch::present(b"\n");
+                let receipt = &frame.composition;
+                (
+                    receipt.face_id.as_str(),
+                    receipt.manifestation_id.as_str(),
+                    receipt.presenter_implementation_id.as_str(),
+                    receipt.plan_id.as_str(),
+                )
+            }
+            #[cfg(not(feature = "native-compositor"))]
+            refuse("graphical-presenter-not-built")
+        };
 
     let mut prepared = dual_region_plan::prepare(&identities, &offer, EMBEDDED_MAKE.build_id)
         .unwrap_or_else(|error| refuse(error.as_str()));
@@ -146,7 +235,16 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
         &prepared,
         EMBEDDED_MAKE.build_id,
         EMBEDDED_MAKE.image_binding,
-        None,
+        {
+            #[cfg(feature = "native-compositor")]
+            {
+                native_frame.as_ref().map(|frame| &frame.framebuffer)
+            }
+            #[cfg(not(feature = "native-compositor"))]
+            {
+                None
+            }
+        },
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     // Diagnostic Plays prepare independently after the ordinary Play.
@@ -187,13 +285,13 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     arch::present(b"\",\"boot_id\":\"");
     arch::present(boot_identity.as_bytes());
     arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"face_id\":\"");
-    arch::present(receipt.face.face_id.as_str().as_bytes());
+    arch::present(face_id.as_bytes());
     arch::present(b"\",\"manifestation_id\":\"");
-    arch::present(receipt.manifestation_id.as_str().as_bytes());
+    arch::present(manifestation_id.as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");
-    arch::present(receipt.presenter_implementation_id.as_str().as_bytes());
+    arch::present(presenter_id.as_bytes());
     arch::present(b"\",\"presenter_plan_id\":\"");
-    arch::present(receipt.plan_id.as_str().as_bytes());
+    arch::present(presenter_plan_id.as_bytes());
     arch::present(b"\",\"ordinary_source_document_id\":\"");
     arch::present(prepared.source_document_id.as_str().as_bytes());
     arch::present(b"\",\"ordinary_checked_plot_id\":\"");
