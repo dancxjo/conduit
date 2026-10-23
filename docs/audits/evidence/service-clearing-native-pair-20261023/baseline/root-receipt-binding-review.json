@@ -1,0 +1,29 @@
+{
+  "source": "d2fc6bb5fbc3682cec3d3fc31e2a6b5357c99564",
+  "elf_sha256": "298466fe5b58f6182eb1fdf5cbbbd6c3fc96f976d3138872beb1006a2debe4db",
+  "iso_sha256": "052ed19cc228303274081ffeedf05d0dda4695c559fb9be2fb04132d58917a47",
+  "raw_sha256": "e6c3c4837f1cbe1d24ca7f18717b3e67bc905551ffb9d6a3053d2828125847fa",
+  "verified_receipts": [
+    {
+      "receipt": "service-memory-fixture-proof.json",
+      "sha256": "679b40bcedff3242447fdf8d0105f3444f5ab67124e65df14ad63afab72cde47",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-guest-fixture-proof.json",
+      "sha256": "b99e7d2384ec3d42f583872ca9fb75f0df9f1644fc5c6dd74c43c3754690d4e3",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-hostile-broker-fixture-proof.json",
+      "sha256": "ca93f6ec472fb9aa54ea0db1bc76ac8cbc1921fc4bf566595afbad02dc38a85b",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-copy-recovery-fixture-proof.json",
+      "sha256": "9791ee7c67555191945bd9efa0269466c7f05042abfa5172916ee48c00d6a043",
+      "proof_class": "freestanding-emulator"
+    }
+  ],
+  "scope": "Root independently verified actual4receipt source/ELF/raw bindings; architecturefixture not productioncompositor/physical/DMA/timing claim"
+}

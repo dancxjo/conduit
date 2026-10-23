@@ -1,0 +1,15 @@
+{
+  "source": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "base": "d2fc6bb5fbc3682cec3d3fc31e2a6b5357c99564",
+  "review": "read-only production delta and Lease lifecycle audit",
+  "findings": [
+    "static perprofile stores initialized empty; claim uses AcqRel compare_exchange",
+    "mutable view resets cleared=false before giving references",
+    "clear uses fullView.clear then marksclean; latermutableview invalidatesclean",
+    "Drop clears dirty storage before Release ownership store; failed duplicateclaim never constructslease",
+    "output accessor immutable; trap_top formsaddress only; installation obtainsmutableview before writes",
+    "production delta removes redundant installclear and initializes claimedleaseclean; no grants/page/IObounds expanded"
+  ],
+  "proof_boundary": "source review supports lifecycle mechanism, not privilegedruntime or timing proof; host1test earlier and pairednative currentbuild retain separate scope",
+  "blocking_findings": []
+}

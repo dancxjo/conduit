@@ -1,0 +1,126 @@
+{
+  "README.md": {
+    "bytes": 3941,
+    "sha256": "2f364433b4d8d7a0c61d09eaa88305e416883ae5e6c14f159bfbf980188d747e"
+  },
+  "baseline/build.json": {
+    "bytes": 335,
+    "sha256": "c49389e72176d7bf39dfea8ce6ce18998d8c5081abb361402c76d45b5b17351a"
+  },
+  "baseline/compositor-copy-recovery-fixture-proof.json": {
+    "bytes": 1630,
+    "sha256": "9791ee7c67555191945bd9efa0269466c7f05042abfa5172916ee48c00d6a043"
+  },
+  "baseline/compositor-guest-fixture-proof.json": {
+    "bytes": 1546,
+    "sha256": "b99e7d2384ec3d42f583872ca9fb75f0df9f1644fc5c6dd74c43c3754690d4e3"
+  },
+  "baseline/compositor-hostile-broker-fixture-proof.json": {
+    "bytes": 2423,
+    "sha256": "ca93f6ec472fb9aa54ea0db1bc76ac8cbc1921fc4bf566595afbad02dc38a85b"
+  },
+  "baseline/first.log.gz": {
+    "bytes": 20638,
+    "sha256": "193451b7b1a6751d94fccedd5ee332a977db78b336bd30dc706354cac35b931e"
+  },
+  "baseline/image.json": {
+    "bytes": 351,
+    "sha256": "81b3be4f63f918c891c637b3794f2334e7c8e9a70c1e1dd60dc23f8c9c8769d6"
+  },
+  "baseline/ordinary-domain-proof.log.gz": {
+    "bytes": 4778,
+    "sha256": "520ae5cfcbc40d92eb85ea36695185f20048945ddf6d033adda2e9605b6e0276"
+  },
+  "baseline/privilege-inventory-298466fe5b58f6182eb1fdf5cbbbd6c3fc96f976d3138872beb1006a2debe4db-architecture-proof-appliance.json": {
+    "bytes": 67264,
+    "sha256": "5074fa2244f77ab0587db98f7bee671bcc6f7f400694637a904e2acf1bd6fbde"
+  },
+  "baseline/root-receipt-binding-review.json": {
+    "bytes": 1300,
+    "sha256": "22b632f6963277c9abbc18334e106c8929013f072306cf85904aa80f1d8b9105"
+  },
+  "baseline/run.json": {
+    "bytes": 7275,
+    "sha256": "d85c17adf40a177d986b13ebc5efb82b319914144b44e9b70e758cf6cb677b50"
+  },
+  "baseline/service-memory-fixture-proof.json": {
+    "bytes": 1169,
+    "sha256": "679b40bcedff3242447fdf8d0105f3444f5ab67124e65df14ad63afab72cde47"
+  },
+  "baseline/verified.json": {
+    "bytes": 8840,
+    "sha256": "9db80fac0eeed08846c5e89cb4ae3902804ae5bb255255023812d8f959b8f567"
+  },
+  "compressed-logs.json": {
+    "bytes": 1239,
+    "sha256": "b6cc06e8d3bc4299a3902c422c2addbf99ad997205196a11a067ec8251666825"
+  },
+  "optimized/build.json": {
+    "bytes": 335,
+    "sha256": "c5e57d7749b15ec089cfcfd295ec0f4fb8c2330dbe867816d596b7a218ab1e10"
+  },
+  "optimized/compositor-copy-recovery-fixture-proof.json": {
+    "bytes": 1630,
+    "sha256": "b228ffbd5a255605ea6ebade3eb84e39087d00320d41692cbd5a8894c28e172f"
+  },
+  "optimized/compositor-guest-fixture-proof.json": {
+    "bytes": 1546,
+    "sha256": "3d9ee485267487fb22bde21bb0d0b9ac4f7bd86ba5603c19046c4b7aa0fa9b18"
+  },
+  "optimized/compositor-hostile-broker-fixture-proof.json": {
+    "bytes": 2423,
+    "sha256": "90664795f5ba4df7e5cad454b1da4e43792037c4cdd4f3dca79fbedfdcc385af"
+  },
+  "optimized/first.log.gz": {
+    "bytes": 20010,
+    "sha256": "640e96d8dcea50ceadbe191a3d9157a3b3f7addb119be44f6921c282b1605ba7"
+  },
+  "optimized/image.json": {
+    "bytes": 351,
+    "sha256": "658d97dde972a9da5b5ac77f6c9fa094e6c5a1c4e1c1bfc3c1742f4f2ec2cf2c"
+  },
+  "optimized/ordinary-domain-proof.log.gz": {
+    "bytes": 4779,
+    "sha256": "d11df0a7b58937e9e56748def93c9354877fe3fde9f3b2ce6d0e075b2666310e"
+  },
+  "optimized/privilege-inventory-c9fdbf9e58c71208d261828836b7e5a84a6d02a27968a283918203e6dc0ae58e-architecture-proof-appliance.json": {
+    "bytes": 67482,
+    "sha256": "3aebd3a8e3a056e5019160664d855c766ba31774352eace3df04e8e9125f4935"
+  },
+  "optimized/root-receipt-binding-review.json": {
+    "bytes": 1341,
+    "sha256": "8c27473bc1fbea09b94ce4d3e707157d3056a6c0bcd826f59518b73c9bfdf391"
+  },
+  "optimized/run.json": {
+    "bytes": 3525,
+    "sha256": "4a8ed194d2a37f62f15e0905455c73001c572d03743b968cdfa9402dd9b40065"
+  },
+  "optimized/service-memory-fixture-proof.json": {
+    "bytes": 1169,
+    "sha256": "493a1bd626644083b8cde02f79f6276419c7c0d312c4805bc4d0f25cee7c33e8"
+  },
+  "optimized/verified.json": {
+    "bytes": 8840,
+    "sha256": "8122c648d43fce6545802ff3dddcfc714279a30dd5a2423cea0df60758180b73"
+  },
+  "pair-preflight.json": {
+    "bytes": 719,
+    "sha256": "47e79bb61820f6c0b01109dcd5954268ba47ab169836ee52658d9546fa0fe5fe"
+  },
+  "paired-seal.json": {
+    "bytes": 10848,
+    "sha256": "edff993ab117dbee76c3c3c4e6a764b817c64570d9d60a1e9ea35c43894d75cd"
+  },
+  "root-clearing-review.json": {
+    "bytes": 980,
+    "sha256": "c4487d648eb9d654b846678da8b420c46bba2a0174f7fa54936b3ee8b6e10b15"
+  },
+  "run-arm.py": {
+    "bytes": 3586,
+    "sha256": "0fad9fe1ff8d6be564f807f4e627d09c1ea0e489563695172c599837e0b33d13"
+  },
+  "verify-arm.py": {
+    "bytes": 1796,
+    "sha256": "29dbb0acaae221395ecac5d43c9f50e1fa7d33c7899eba8280a23719b728b2b5"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "source": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "elf_sha256": "c9fdbf9e58c71208d261828836b7e5a84a6d02a27968a283918203e6dc0ae58e",
+  "iso_sha256": "24805687dbcaa3723658536e518b759e9bf67d05f753f7dffd77b2d47924ba93",
+  "raw_sha256": "ded8196637fe6b1c879015ed6bbd3a4282f5210ac7c0a1146cafc118176ff684",
+  "verified_receipts": [
+    {
+      "receipt": "service-memory-fixture-proof.json",
+      "sha256": "493a1bd626644083b8cde02f79f6276419c7c0d312c4805bc4d0f25cee7c33e8",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-guest-fixture-proof.json",
+      "sha256": "3d9ee485267487fb22bde21bb0d0b9ac4f7bd86ba5603c19046c4b7aa0fa9b18",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-hostile-broker-fixture-proof.json",
+      "sha256": "90664795f5ba4df7e5cad454b1da4e43792037c4cdd4f3dca79fbedfdcc385af",
+      "proof_class": "freestanding-emulator"
+    },
+    {
+      "receipt": "compositor-copy-recovery-fixture-proof.json",
+      "sha256": "b228ffbd5a255605ea6ebade3eb84e39087d00320d41692cbd5a8894c28e172f",
+      "proof_class": "freestanding-emulator"
+    }
+  ],
+  "scope": "Root independently verified all4 optimized source/ELF/raw receipt bindings. Paired native protection only; no timing, normal journey, production compositor, physical or DMA claim."
+}

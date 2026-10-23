@@ -1,0 +1,46 @@
+{
+  "build": {
+    "architecture": "x86_64",
+    "artifact_role": "architecture-proof-appliance",
+    "base_commit": "d2fc6bb5fbc3682cec3d3fc31e2a6b5357c99564",
+    "elf_sha256": "298466fe5b58f6182eb1fdf5cbbbd6c3fc96f976d3138872beb1006a2debe4db",
+    "limine_crate": "0.5.0",
+    "rust_target": "x86_64-unknown-none",
+    "schema": "conduit.conduitos.build/v2"
+  },
+  "fixture": true,
+  "machine": {
+    "cpu": "max",
+    "emulator": "qemu-system-x86_64",
+    "memory_mib": 256,
+    "model": "q35",
+    "vcpus": 1
+  },
+  "observations": {
+    "already_terminal_staging_released": true,
+    "callback_terminal_staging_released": true,
+    "explicit_fresh_owner": true,
+    "fixture": true,
+    "fresh_black_pixels": 768,
+    "guest_cpu_fault": false,
+    "last_remove_empty_scene_pixels": 192,
+    "malformed_guest_reply": false,
+    "old_clients_alive_at_replacement": true,
+    "old_staging_released": true,
+    "physical_scanout": false,
+    "proof_class": "freestanding-emulator",
+    "retired_remove_preserves_current_owner": true,
+    "root_copy_failure": true,
+    "schema": "conduit.conduitos/compositor-copy-recovery-fixture@4",
+    "semantic_show_acknowledged": false,
+    "shared_current_display_grant": true,
+    "stale_clients_refused": true,
+    "stale_drop_preserves_replacement": true,
+    "status": "completed",
+    "terminal_activation_storage_released": true,
+    "terminal_remove_storage_released": true
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/compositor-copy-recovery-evidence@4",
+  "transcript_sha256": "e6c3c4837f1cbe1d24ca7f18717b3e67bc905551ffb9d6a3053d2828125847fa"
+}

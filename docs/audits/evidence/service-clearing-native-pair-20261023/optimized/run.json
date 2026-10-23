@@ -1,0 +1,65 @@
+{
+  "arm": "optimized",
+  "source": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "command": [
+    "cargo",
+    "+stable",
+    "xtask",
+    "make",
+    "conduitos",
+    "ordinary-domain-proof",
+    "--locked"
+  ],
+  "cwd": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-protection-optimized",
+  "artifact_root": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-current-native-protection/optimized/native",
+  "cache": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/domain-6183-build-target",
+  "jobs": 2,
+  "incremental": false,
+  "started_utc": "2026-10-23T07:12:19.222509+00:00",
+  "producer_fingerprints_archived": [
+    "release/.fingerprint/conduitos-e2af29b08e78c9ad",
+    "debug/.fingerprint/conduitos-54d3c0261fefebc4",
+    "debug/.fingerprint/xtask-1de7279825dc18bd",
+    "debug/.fingerprint/conduitos-aefd66b9f30223fb",
+    "debug/.fingerprint/conduit-xtask-dispatch-316d0957ae2cfc9e",
+    "debug/.fingerprint/conduitos-8feb0a850d16ca5f",
+    "debug/.fingerprint/conduitos-c91f8e6ee8c45efb",
+    "x86_64-unknown-none/release/.fingerprint/conduitos-df0f85a4e03d82d0",
+    "x86_64-unknown-none/release/.fingerprint/conduitos-5cf7af46ea984ebf",
+    "x86_64-unknown-none/release/.fingerprint/conduitos-5c79706e1c04849f",
+    "x86_64-unknown-none/debug/.fingerprint/conduitos-6d760ba43e55e541",
+    "x86_64-unknown-none/debug/.fingerprint/conduitos-68a53840658eb825",
+    "loongarch64-unknown-none/debug/.fingerprint/conduitos-db9dbae04df826cb",
+    "loongarch64-unknown-none/debug/.fingerprint/conduitos-5154b700b2182015",
+    "armv6-none-eabi/debug/.fingerprint/conduitos-81e754671f0f5906",
+    "armv6-none-eabi/debug/.fingerprint/conduitos-c5f88540bcedc22c",
+    "i686-unknown-uefi/debug/.fingerprint/conduitos-6edef549c54bf01a",
+    "i686-unknown-uefi/debug/.fingerprint/conduitos-977f988419dabda9",
+    "riscv64gc-unknown-none-elf/debug/.fingerprint/conduitos-02d594d98d9b3bd7",
+    "riscv64gc-unknown-none-elf/debug/.fingerprint/conduitos-357bb81fa3f3ea54",
+    "aarch64-unknown-none/debug/.fingerprint/conduitos-1d8b523b75f59b6a",
+    "aarch64-unknown-none/debug/.fingerprint/conduitos-aadbea4d08ed1fc5"
+  ],
+  "prior_producers_retained": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-current-native-protection/optimized/prior-cache-producers/debug/xtask",
+      "sha256": "30c20e88cbfdf8408fe6ba670a152f02a8dec3d541b75faed3db46f6d3084f39"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-current-native-protection/optimized/prior-cache-producers/debug/conduit-xtask-dispatch",
+      "sha256": "661c377f5b48d225910d35360f883bc2d6c6a6f181815e791def9ffe73242ed0"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6183-current-native-protection/optimized/prior-cache-producers/x86_64-unknown-none/release/conduitos",
+      "sha256": "298466fe5b58f6182eb1fdf5cbbbd6c3fc96f976d3138872beb1006a2debe4db"
+    }
+  ],
+  "filesystem_free_bytes": 20082114560,
+  "status": "success",
+  "scope": "native protection only; no timings, normal product or full6183 claim",
+  "exit_code": 0,
+  "finished_utc": "2026-10-23T07:47:40.300136+00:00",
+  "source_after": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "status_after": "",
+  "raw_stdout_sha256": "49e8fc0626490e3117a426d72ad412c35d8e05a234491e687d2160747f25c51b"
+}

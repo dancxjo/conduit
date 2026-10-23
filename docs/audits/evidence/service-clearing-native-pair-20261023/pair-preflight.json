@@ -1,0 +1,14 @@
+{
+  "baseline": "d2fc6bb5fbc3682cec3d3fc31e2a6b5357c99564",
+  "candidate": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "candidate_direct_child": true,
+  "source_files_identical_to": "46e3f0bd9130680ab9fdbf8467602f3f15c2e2bb",
+  "files": {
+    "targets/conduitos/src/arch/x86_64/service_memory.rs": "3e677597d398d31872d0f6e7aa8c3af976aa7558",
+    "targets/conduitos/src/arch/x86_64/service_memory/storage.rs": "1db71b469f85e00f535848ee45a541af4ec16683",
+    "targets/conduitos/tests/service_slot_lifecycle.rs": "22df490e524e79fa85db2d6db296af11900d927b"
+  },
+  "ConduitOS_base_a4eb_to_d2fc_unchanged": true,
+  "source_clean": true,
+  "scope": "paired native protection only; no timing/normal-product/full6183 claim"
+}
