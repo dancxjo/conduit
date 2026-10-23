@@ -242,7 +242,110 @@ fn resident_initialization_refuses_missing_duplicate_or_changed_text_before_allo
         assert!(matches!(result, Err(E::Configuration)));
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert_eq!(effects.get(), 0);
+        let values = k::FixedValueStore::<1, 8>::new(8).unwrap();
+        let (result, memory) = allocation_probe::observe(|| {
+            conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::prepare(
+                &recipe.resident(&projection),
+                &texts,
+                &conduit_time::TickConfiguration {
+                    count: 1,
+                    period_ms: 0,
+                },
+                values,
+            )
+        });
+        assert!(matches!(result, Err(E::Configuration)));
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     }
+}
+
+#[test]
+fn retained_resident_software_refuses_other_source_then_transfers_without_allocation() {
+    use conduit_environment_runtime::appliance::assigned::{
+        PreparedResidentSoftware, ValidatedAssignedAppliance,
+    };
+    let fixture = |count| {
+        let source = compile(count, 0).unwrap();
+        let (ready, _) = pulse::ready(0);
+        let mut software = software(&source);
+        let host = appliance_support::advertisement(&source, &mut software, &ready);
+        let plan = source
+            .plan_local(&host, &["conduit.base/local@1".into()], &[pulse::grant()])
+            .unwrap();
+        let lowered =
+            conduit_plan_lowering::lowering::lower_plan_fragment(&plan.fragments[0]).unwrap();
+        let image = appliance_support::native_image(&plan, &lowered);
+        let projection = assignment::NativeProjection::prepare(&image);
+        let recipe = Recipe::prepare(&plan, &lowered, &image, &projection);
+        (projection, recipe)
+    };
+    let (projection, recipe) = fixture(1);
+    let texts = recipe.programs();
+    for mode in 0..3 {
+        let mut resident = recipe.resident(&projection);
+        match mode {
+            0 => resident.computations.maximum_text_bytes = 0,
+            1 => resident.computations.maximum_total_text_bytes = 0,
+            _ => resident.roles.pulse = resident.roles.tick,
+        }
+        let values = k::FixedValueStore::<1, 8>::new(8).unwrap();
+        let (result, memory) = allocation_probe::observe(|| {
+            PreparedResidentSoftware::prepare(
+                &resident,
+                &texts,
+                &conduit_time::TickConfiguration {
+                    count: 1,
+                    period_ms: 0,
+                },
+                values,
+            )
+        });
+        assert!(matches!(result, Err(conduit_environment_runtime::appliance::assigned::NativePreparationRefusal::Configuration | conduit_environment_runtime::appliance::assigned::NativePreparationRefusal::Roles)));
+        assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    }
+    let mut retained = Some(
+        PreparedResidentSoftware::prepare(
+            &recipe.resident(&projection),
+            &texts,
+            &conduit_time::TickConfiguration {
+                count: 1,
+                period_ms: 0,
+            },
+            conduit_environment_runtime::appliance::prepare_value_storage().unwrap(),
+        )
+        .unwrap(),
+    );
+    let (other, other_recipe) = fixture(2);
+    let wrong = ValidatedAssignedAppliance::admit(
+        &other.bytes,
+        assignment::NativeProjection::maxima(),
+        other.required(),
+        &other_recipe.resident(&other),
+    )
+    .unwrap();
+    let (result, memory) =
+        allocation_probe::observe(|| PreparedResidentSoftware::bind_retained(&mut retained, wrong));
+    assert!(result.is_err());
+    assert!(retained.is_some());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    // Equivalent record order is representation, not different construction.
+    let mut reversed = recipe.records.clone();
+    reversed.reverse();
+    let mut resident = recipe.resident(&projection);
+    resident.layout.records = &reversed;
+    let selected = ValidatedAssignedAppliance::admit(
+        &projection.bytes,
+        assignment::NativeProjection::maxima(),
+        projection.required(),
+        &resident,
+    )
+    .unwrap();
+    let (result, memory) = allocation_probe::observe(|| {
+        PreparedResidentSoftware::bind_retained(&mut retained, selected)
+    });
+    assert!(retained.is_none());
+    assert!(result.is_ok());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
 }
 
 /// Preparation diagnostic over the same independently pinned computation text.

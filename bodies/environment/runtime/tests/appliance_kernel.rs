@@ -181,6 +181,16 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         // Plan, lowering, software offer catalog or Make image.
         drop((source, host, plan, lowered, software, image, tables));
         let assignment_bytes = projection.bytes.len();
+        let programs = recipe.programs();
+        let (mut retained, memory) = allocation_probe::observe(|| {
+            Some(
+            conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::prepare(
+                &recipe.resident(&projection), &programs,
+                &conduit_time::TickConfiguration { count, period_ms }, values,
+            ).unwrap()
+        )
+        });
+
         let (admitted, admission_memory) = allocation_probe::observe(|| {
             conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit(
                 &projection.bytes,
@@ -195,9 +205,14 @@ fn run(scenario: usize, native: bool, overnight: bool) {
             (0, 0)
         );
         drop(projection);
-        let programs = recipe.programs();
-        let (prepared, memory) =
-            allocation_probe::observe(|| admitted.initialize(&programs, values).unwrap());
+        let (prepared, binding_memory) = allocation_probe::observe(|| {
+            conduit_environment_runtime::appliance::assigned::PreparedResidentSoftware::bind_retained(&mut retained, admitted).unwrap()
+        });
+        assert!(retained.is_none());
+        assert_eq!(
+            (binding_memory.allocations, binding_memory.reallocations),
+            (0, 0)
+        );
         assert_eq!((prepared.count, prepared.period_ms), (count, period_ms));
         assert_eq!(prepared.roles.pulse, pulse_node);
         assert_eq!(prepared.roles.tick, tick_node);

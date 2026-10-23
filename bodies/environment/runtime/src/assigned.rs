@@ -7,6 +7,8 @@ use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
 
+pub(crate) const MAXIMUM_RESIDENT_RECORDS: usize = 256;
+
 /// Exact Make-owned graph and configuration records. Programs are also checked
 /// against the admitted computation inventory; incoming digests confer no authority.
 pub struct ResidentLayout<'a> {
@@ -282,10 +284,10 @@ impl<
 }
 fn validate_layout(bytes: &[u8], layout: &ResidentLayout<'_>) -> Result<(), AssignedKernelRefusal> {
     use AssignedKernelRefusal as E;
-    if layout.records.len() > 256 {
+    if layout.records.len() > MAXIMUM_RESIDENT_RECORDS {
         return Err(E::Capacity);
     }
-    let mut seen = [false; 256];
+    let mut seen = [false; MAXIMUM_RESIDENT_RECORDS];
     for record in c::AssignedPlanRecords::new(bytes)? {
         let record = record?;
         if matches!(record.tag, c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL) {
