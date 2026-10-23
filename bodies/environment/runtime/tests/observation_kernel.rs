@@ -58,7 +58,50 @@ fn run(scenario: usize) {
     let (plan, lowered) = plan::prepare_with_observation(&ready, contract.kind().clone());
     assert_eq!(lowered.nodes.len(), N);
     assert_eq!(lowered.cords.len(), C);
-    let (mut owner, pulse_node) = pulse::bind(ready, &plan, &lowered).unwrap();
+    let sign_slots = lowered.sign_items.max(
+        u16::try_from((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<KernelEvent>()))
+            .unwrap(),
+    );
+    let (mut owner, pulse_node, tables) = {
+        let image = conduit_embedded_build::generate_embedded_plan_with_computations(
+            &plan.fragments[0],
+            &lowered,
+            conduit_embedded_build::EmbeddedImageBounds {
+                maximum_nodes: N,
+                maximum_cords: C,
+                maximum_routes: N,
+                maximum_route_targets: C,
+                maximum_host_calls: N,
+                maximum_resources: 1,
+                maximum_sign_expectations: 128,
+                maximum_configuration_entries: 16,
+                maximum_ports_per_node: P,
+                maximum_remote_endpoints: 0,
+                maximum_cord_value_slots: 32,
+                maximum_cord_value_bytes: 38912,
+                maximum_sign_items: sign_slots,
+                maximum_sign_bytes: lowered.sign_bytes,
+            },
+            conduit_embedded_build::EmbeddedComputationBounds {
+                maximum_program_bytes: 32768,
+                maximum_total_program_bytes: 45000,
+            },
+        )
+        .unwrap();
+        let projection = assignment::NativeProjection::prepare(&image);
+        let (owner, node) = pulse::bind_assigned(ready, &plan, &lowered, &projection).unwrap();
+        let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
+        assert_eq!(
+            tables.nodes,
+            core::array::from_fn(|i| lowered.node_specs[i])
+        );
+        assert_eq!(
+            tables.cords,
+            core::array::from_fn(|i| lowered.cords[i].spec)
+        );
+        // The assignment payloads and borrowed descriptors are gone before Play.
+        (owner, node, tables)
+    };
     let observed: [Observed; 4] = core::array::from_fn(|_| Observed::new());
     let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
     let mut prepared: [Option<Back<'_>>; N] = core::array::from_fn(|_| None);
@@ -130,35 +173,14 @@ fn run(scenario: usize) {
             },
         );
     }
-    let mut routes = FixedRoutes::<R, C>::new(P as u16);
-    for route in &lowered.routes {
-        routes
-            .install(
-                route.source_node,
-                route.source_port,
-                route.range,
-                &route.targets,
-            )
-            .unwrap();
-    }
-    routes.seal().unwrap();
-    let mut calls = FixedHostCallBindings::<N>::new(1);
-    for call in &lowered.host_calls {
-        calls.install(call.node, call.binding).unwrap();
-    }
-    calls.seal().unwrap();
-    let sign_slots = lowered.sign_items.max(
-        u16::try_from((lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<KernelEvent>()))
-            .unwrap(),
-    );
     let mut capacities = [1024; 32];
     capacities[..2].fill(4096);
     let values = HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap();
     let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_with_host_calls(
-        core::array::from_fn(|i| lowered.node_specs[i]),
-        core::array::from_fn(|i| lowered.cords[i].spec),
-        routes,
-        calls,
+        tables.nodes,
+        tables.cords,
+        tables.routes,
+        tables.calls,
         prepared.map(Option::unwrap),
         values,
         HostedSignLog::new(sign_slots, lowered.sign_bytes).unwrap(),
