@@ -1,0 +1,57 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 0.98s
+     Running `target/debug/conduit-xtask-dispatch prove environment wait`
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling postcard v1.1.3
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/kernel)
+    Finished `test` profile [unoptimized] target(s) in 5.99s
+     Running tests/base_capability.rs (target/debug/deps/base_capability-94f60f47d9252e00)
+
+running 9 tests
+test empty_results_do_not_remove_positive_work_or_lifecycle_bounds ... ok
+test copied_ids_and_another_issuers_bearer_cannot_manufacture_privilege ... ok
+test empty_result_authority_admits_only_empty_completions_without_broadening ... ok
+test finite_pressure_completion_and_one_shot_replay_are_distinct ... ok
+test completion_rotates_only_the_exact_move_only_possession ... ok
+test issue_narrows_authority_and_exposes_only_non_secret_inspection ... ok
+test provider_checks_every_exact_scope_field_at_operation_time ... ok
+test revocation_cancellation_and_replacement_make_possession_stale ... ok
+test allocation::admitted_lease_work_and_rotation_allocate_nothing_under_pressure ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/kernel)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+    Finished `test` profile [unoptimized] target(s) in 6.32s
+     Running tests/selected_subject.rs (target/debug/deps/selected_subject-4bd26e61c0e3176c)
+
+running 2 tests
+test ordinary_subject_keeps_the_existing_binding_contract ... ok
+test separate_subject_requires_independent_expected_target_and_exact_current_binding ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running unittests src/lib.rs (target/environment-runtime/debug/deps/conduit_monotonic_wait-d326b3eb9fc6f678)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/wait_owner.rs (target/environment-runtime/debug/deps/wait_owner-5090d26f421a82d8)
+
+running 4 tests
+test foreign_plan_and_play_cannot_bind_the_retained_native_slot ... ok
+test dropping_pending_wait_quiesces_provider_then_revokes_unfinished_possession ... ok
+test bounded_waits_are_exact_sequenced_and_allocation_free ... ok
+test a_resealed_plan_cannot_replace_independently_retained_tick_configuration ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests conduit_monotonic_wait
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

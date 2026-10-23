@@ -1,0 +1,23 @@
+{
+  "implementation_commit": "6226cdfe6",
+  "proof_class": "CPU native-provider conformance and thumbv6m cross-check",
+  "entrance": "cargo xtask prove environment wait",
+  "focused_tests_passed": 15,
+  "pulse_regression_tests_passed": 12,
+  "native_invocation_allocations": 0,
+  "native_invocation_reallocations": 0,
+  "pending_cancellation_allocations": 0,
+  "pending_cancellation_reallocations": 0,
+  "strict_core_binding_owner_tooling_clippy": true,
+  "rp2040_no_std_cross_check": true,
+  "timer_provider": "explicit CPU fixture",
+  "authority_and_host_identity": "explicit CPU fixtures",
+  "not_proven": [
+    "ready native timer advertisement",
+    "ESP32 timer implementation",
+    "assigned native installation",
+    "complete climate memory admission",
+    "actual climate Body start",
+    "physical overnight recording"
+  ]
+}

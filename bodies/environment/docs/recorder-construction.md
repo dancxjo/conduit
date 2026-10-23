@@ -292,3 +292,20 @@ and the selector refusal test allocate nothing during execution. The ESP32
 native Root cross-build passed. These requested-byte measurements still exclude
 the full allocator/Root/kernel/stack closure; no physical climate admission or
 new firmware deployment is claimed by this optimization.
+
+## Native monotonic wait boundary
+
+The CPU climate proof's direct timer completions are distinct from native timer
+ownership. `mechanisms/io/monotonic-wait` now supplies the selected native
+Host Call boundary for the existing Tick/wait contract. It retains actual
+provider possession, checks exact Root-pinned Tick configuration, duration and
+request sequence, and revokes an unfinished capability when a pending future
+is dropped. Waiting emits no value. Core now admits a zero-result capability
+without permitting nonempty completion or removing positive work/lifecycle
+bounds. Existing unconfigured operation binding remains unchanged.
+
+`cargo xtask prove environment wait` checks those contracts with explicit CPU
+issuance and timer fixtures. The [native wait receipt](../evidence/2026-10-23-native-wait/measurement.json)
+records allocation-free invocation/cancellation, shared pulse regressions and
+the RP2040 no-std cross-check. Native ready advertisement, the actual ESP32
+provider, assigned installation and full climate admission remain to connect.
