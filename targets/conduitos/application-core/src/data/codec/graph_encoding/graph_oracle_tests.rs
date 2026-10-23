@@ -87,3 +87,126 @@ fn oversized_output_slice_cannot_enlarge_the_decoded_ceiling() {
         Err(Refusal::Order)
     );
 }
+
+#[test]
+fn outer_wire_schema_covers_fronts_compositions_origins_and_optional_descriptors() {
+    use conduit_core::{PortDirection, PortTemporal};
+    use conduit_plot::{ExpandedConnectionOrigin, Span};
+    use patchbay_graph::{
+        PatchbayComposition, PatchbayCompositionBinding, PatchbayCordSource, PatchbayFrontPort,
+    };
+    #[derive(Deserialize)]
+    enum Fixture {
+        Init {
+            applications: [Option<Initial>; crate::SLOTS],
+        },
+    }
+    let Fixture::Init { applications } =
+        decode(include_bytes!("../../../../tests/fixtures/startup.catz")).unwrap();
+    let Some(Initial::Patchbay { targets, .. }) = &applications[0] else {
+        panic!("fixture")
+    };
+    let mut graph = targets.iter().flatten().next().unwrap().graph.clone();
+    let port = graph
+        .gears
+        .iter()
+        .flat_map(|gear| gear.inputs.iter().chain(&gear.outputs))
+        .next()
+        .unwrap()
+        .clone();
+    let contract = conduit_core::CheckedValueContract {
+        value_kind: port.descriptor.value_kind.clone(),
+        maximum_bytes: 4096,
+        constraints: vec![conduit_core::ValueConstraint::ByteLength {
+            minimum: 0,
+            maximum: 4096,
+        }],
+    };
+    graph
+        .gears
+        .iter_mut()
+        .flat_map(|gear| gear.inputs.iter_mut().chain(&mut gear.outputs))
+        .next()
+        .unwrap()
+        .value_contract = Some(contract.clone());
+    graph.gears[0].controls = vec![patchbay_graph::FaceControl {
+        key: "enabled".into(),
+        value: conduit_core::ConfigurationValue::Bool(false),
+        kind: patchbay_graph::FaceControlKind::BooleanChoice {
+            choices: ["false", "true"],
+        },
+        interaction: None,
+    }];
+    // These are wire fixtures, not a claim that arbitrary edits grant a checked
+    // Plot. Real model admission is covered by the immutable production fixture.
+    let mut input = PatchbayFrontPort {
+        identity: "input/é\\\"".into(),
+        descriptor: port.descriptor.clone(),
+        value_contract: Some(contract),
+    };
+    input.descriptor.direction = PortDirection::Input;
+    input.descriptor.abnormal_kind = Some(conduit_core::KindId::from("info/abnormal"));
+    let mut output = input.clone();
+    output.identity = "output/λ".into();
+    output.descriptor.direction = PortDirection::Output;
+    graph.front_inputs = vec![input.clone()];
+    graph.front_outputs = vec![output.clone()];
+    graph.compositions = vec![PatchbayComposition {
+        identity: "composition/one".into(),
+        gear_name: "gear/one".into(),
+        back_name: "back/one".into(),
+        checked_plot_id: graph.checked_plot_id.clone(),
+        inputs: vec![input],
+        outputs: vec![output],
+        input_bindings: vec![PatchbayCompositionBinding {
+            front_port: "in".into(),
+            internal_port: "inner/in".into(),
+        }],
+        output_bindings: vec![PatchbayCompositionBinding {
+            front_port: "out".into(),
+            internal_port: "inner/out".into(),
+        }],
+    }];
+    for temporal in [
+        PortTemporal::Value,
+        PortTemporal::Current,
+        PortTemporal::Flow { closes: false },
+        PortTemporal::Flow { closes: true },
+    ] {
+        graph.front_inputs[0].descriptor.temporal = temporal;
+        for origin in [
+            ExpandedConnectionOrigin::CordStages,
+            ExpandedConnectionOrigin::RelationalOperand,
+            ExpandedConnectionOrigin::SemanticExpression,
+        ] {
+            graph.cords[0].source_origin = Some(PatchbayCordSource {
+                source_document_id: graph.source_document_id.clone(),
+                checked_plot_id: graph.checked_plot_id.clone(),
+                source_plot: "nested/é\\\"".into(),
+                plot_path: vec!["outer".into(), "inner/λ".into()],
+                source_span: Span {
+                    start: 3,
+                    end: 17,
+                    line: 2,
+                    column: 3,
+                    end_line: 4,
+                    end_column: 8,
+                },
+                origin,
+            });
+            prove(Some(&graph));
+        }
+    }
+    graph.compositions[0].inputs.clear();
+    graph.compositions[0].outputs.clear();
+    graph.compositions[0].input_bindings.clear();
+    graph.compositions[0].output_bindings.clear();
+    graph.gears[0].plot_path = vec!["outer".into(), "inner/λ".into()];
+    prove(Some(&graph));
+    graph.front_inputs.clear();
+    graph.front_outputs.clear();
+    graph.compositions.clear();
+    graph.gears.clear();
+    graph.cords.clear();
+    prove(Some(&graph));
+}

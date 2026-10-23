@@ -1,4 +1,5 @@
 mod canonical;
+mod graph_abort;
 mod initialize;
 use conduitos_application_core::{
     data::{self, Command, Initial, Reply},
@@ -271,8 +272,9 @@ pub fn run() {
     // Root's caller-side command was prepared outside this grant. Inside the
     // service this measures incoming, typed decode, controllers and outgoing.
     ACTIVE.store(true, Ordering::SeqCst);
-    let mut state = State::default();
     let mut transfer = [0u8; memory::TRANSFER_BYTES];
+    graph_abort::run(&applications, &mut transfer);
+    let mut state = State::default();
     STAGE.store(1, Ordering::Relaxed);
     initialize::initialize(&mut state, &applications, &mut transfer);
     report("after Init peak=", PEAK.load(Ordering::Relaxed));
