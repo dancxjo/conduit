@@ -155,3 +155,183 @@ fn full_inventory_fixture_keeps_long_and_empty_names_and_filtered_review_readabl
         }
     }
 }
+
+#[test]
+fn protected_creche_exact_inventory_boolean_and_snapshot_round_trip() {
+    use conduit_birth_plot::BirthWidgetFace;
+    use conduitos_creche_core::{data, state::State, wire::*};
+    fn input(state: &mut State, kind: InputKind, bytes: &[u8], transfer: &mut [u8]) -> Response {
+        state
+            .execute(
+                Request::Begin {
+                    kind,
+                    total: bytes.len() as u32,
+                },
+                transfer,
+            )
+            .unwrap();
+        for (index, chunk) in bytes.chunks(TRANSFER_BYTES as usize).enumerate() {
+            transfer.fill(0);
+            transfer[..chunk.len()].copy_from_slice(chunk);
+            state
+                .execute(
+                    Request::Write {
+                        offset: (index * TRANSFER_BYTES as usize) as u32,
+                        window_offset: 0,
+                        bytes: chunk.len() as u32,
+                    },
+                    transfer,
+                )
+                .unwrap();
+        }
+        state.execute(Request::Commit, transfer).unwrap()
+    }
+    fn snapshot(state: &mut State, revision: u32, transfer: &mut [u8]) -> data::DraftSnapshot {
+        let Response::Blob {
+            kind: OutputKind::Snapshot,
+            bytes,
+            ..
+        } = state
+            .execute(Request::Snapshot { revision }, transfer)
+            .unwrap()
+        else {
+            panic!("snapshot response")
+        };
+        let mut encoded = alloc::vec::Vec::new();
+        while encoded.len() < bytes as usize {
+            let Response::Chunk { bytes: count, .. } = state
+                .execute(
+                    Request::Read {
+                        offset: encoded.len() as u32,
+                        maximum: TRANSFER_BYTES,
+                    },
+                    transfer,
+                )
+                .unwrap()
+            else {
+                panic!("snapshot chunk")
+            };
+            encoded.extend_from_slice(&transfer[..count as usize]);
+        }
+        data::decode(&encoded).unwrap()
+    }
+    let choices = crate::native_workset::candidate_inventory()
+        .into_iter()
+        .map(|plot| {
+            let installed = crate::native_workset::profile().installed().contains(&plot);
+            conduit_birth_plot::BirthPlotChoice {
+                title: plot.title().into(),
+                search_text: plot.source().into(),
+                plot: crate::native_workset::resident(plot).unwrap(),
+                refusal: (!installed).then(|| {
+                    crate::native_workset::WorksetRefusal::UnknownPlot
+                        .as_str()
+                        .into()
+                }),
+                selected: installed,
+            }
+        })
+        .collect::<alloc::vec::Vec<_>>();
+    assert_eq!(choices.len(), 5, "exact current native candidate inventory");
+    assert_eq!(choices.iter().filter(|choice| choice.selected).count(), 4);
+    let mut draft = conduit_birth_plot::BirthDraft::new(
+        "550e8400-e29b-41d4-a716-446655440000".into(),
+        choices.clone(),
+    )
+    .unwrap();
+    let mut state = State::default();
+    let mut transfer = alloc::vec![0; TRANSFER_BYTES as usize];
+    let initialize = data::Initialize {
+        uuid: "550e8400-e29b-41d4-a716-446655440000".into(),
+        choices,
+        allow_idle_body: false,
+    };
+    assert_eq!(
+        input(
+            &mut state,
+            InputKind::Initialize,
+            &data::encode(&initialize).unwrap(),
+            &mut transfer
+        ),
+        Response::Ready {
+            revision: draft.revision()
+        }
+    );
+    let provider = crate::product_bases::fixture_surface_provider();
+    let mut mask = NativeFaceMask::prepare_creche(
+        "host/protected-choice".into(),
+        "boot/protected-choice".into(),
+        OfferGeneration(1),
+        "protected-choice",
+        provider.entry.base_id.clone(),
+        "surface/protected-choice",
+        &provider,
+        CrecheComponentRecipe::ResponsiveColumns,
+    )
+    .unwrap();
+    let basis = mask.birth_basis("arrival/protected-choice");
+    let mut pixels = Pixels::new(1280, 800);
+    for (sequence, expected) in [(1, false), (2, true)] {
+        let face = draft.face(&basis).unwrap();
+        mask.present(face, sequence, sequence, &mut pixels).unwrap();
+        mask.focus_named(
+            &crate::native_face_scene::FaceFocusRequest {
+                action_id: "creche.plot.0".into(),
+                argument_name: None,
+            },
+            &mut pixels,
+        )
+        .unwrap();
+        let show = mask.show().unwrap().clone();
+        let NativeFaceMaskInput::Submitted { correlation, .. } = mask
+            .key(
+                KeyEvent::new(44, KeyTransition::Pressed, KeyModifiers::NONE).unwrap(),
+                sequence,
+                &mut pixels,
+            )
+            .unwrap()
+        else {
+            panic!("Boolean must submit through the actual Mask")
+        };
+        assert_eq!(
+            correlation.interaction.arguments[0].value,
+            alloc::vec![u8::from(expected)]
+        );
+        let request = data::InteractionRequest {
+            revision: draft.revision(),
+            basis: basis.clone(),
+            show: show.clone(),
+            input: correlation.interaction.clone(),
+        };
+        let encoded =
+            data::encode(&request).expect("full checked Show fits unchanged protected input bound");
+        let decoded: data::InteractionRequest =
+            data::decode(&encoded).expect("typed request codec round trip");
+        assert_eq!(decoded.input, request.input);
+        assert_eq!(
+            input(
+                &mut state,
+                InputKind::FaceInteraction,
+                &encoded,
+                &mut transfer
+            ),
+            Response::Ready {
+                revision: draft.revision() + 1
+            }
+        );
+        draft
+            .apply_face_interaction(&basis, &show, &correlation.interaction)
+            .unwrap();
+        let observed = snapshot(&mut state, draft.revision(), &mut transfer);
+        assert_eq!(observed.choices, draft.choices());
+        assert_eq!(
+            observed
+                .choices
+                .iter()
+                .filter(|choice| choice.selected)
+                .count(),
+            if expected { 4 } else { 3 }
+        );
+        assert_eq!(observed.widget, draft.widget_face().unwrap());
+    }
+}

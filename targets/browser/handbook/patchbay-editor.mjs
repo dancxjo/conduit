@@ -17,7 +17,10 @@ export function resolvePatchbayEditorTarget(observation, plots) {
   if (candidates.length !== 1) return fail('The requested checked Plot is absent or ambiguous.');
   const plot = candidates[0];
   const documents = face.properties.filter(property => property.subject === root && property.name === 'source-document-id');
-  if (documents.length !== 1 || identity(documents[0]) !== plot.sourceDocumentId) return fail('The requested Source document differs from the editor inventory.');
+  if (typeof plot.sourceDocumentId !== 'string' || !plot.sourceDocumentId
+    || documents.length === 0 || !documents.every(property => property.value
+      && Object.keys(property.value).length === 1 && Object.hasOwn(property.value, 'Identity')
+      && identity(property) === plot.sourceDocumentId)) return fail('The requested Source document differs from the editor inventory.');
   const subjects = face.properties.filter(property => property.name === 'semantic-id' && identity(property) === request.subject_identity);
   if (subjects.length !== 1) return fail('The requested semantic subject is absent or ambiguous.');
   const subject = face.subjects.find(candidate => candidate.identity === subjects[0].subject);

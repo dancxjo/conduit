@@ -1,0 +1,73 @@
+[package]
+name = "conduit-pico-dht11-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# A diagnostic appliance, separate from the production firmware and workspace.
+[workspace]
+
+[features]
+http-ap = ["kernel-evaluation", "dep:conduit-environment-http", "dep:cyw43", "dep:cyw43-pio", "dep:aligned", "dep:embassy-net", "dep:conduit-rp2040-network-realization"]
+display-wire = ["dep:conduit-tm1637-wire", "dep:conduit-rp2040-tm1637"]
+source-evaluation = ["dep:conduit-plot", "dep:linked_list_allocator", "dep:critical-section"]
+kernel-evaluation = ["pio-capture", "dep:conduit-environment-runtime", "dep:conduit-kernel", "dep:conduit-plan-lowering", "dep:serde_json", "dep:conduit-environment-face", "dep:conduit-face", "dep:conduit-seven-segment-mask", "dep:conduit-time", "conduit-pulse-capture/host-call", "conduit-rp2040-pulse-capture/host-call"]
+pio-capture = ["source-evaluation", "dep:conduit-pulse-capture", "dep:conduit-rp2040-pulse-capture"]
+
+[dependencies]
+conduit-environment-http = { path = "../../../../bodies/environment/http", optional = true }
+cyw43 = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+cyw43-pio = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", optional = true }
+embassy-net = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["medium-ethernet", "proto-ipv4", "tcp", "udp"], optional = true }
+aligned = { version = "0.4.3", optional = true }
+conduit-rp2040-network-realization = { path = "../../network-realization", optional = true }
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637", optional = true }
+conduit-rp2040-tm1637 = { path = "../../tm1637", optional = true }
+conduit-time = { path = "../../../../semantics/time", default-features = false, features = ["kernel-step"], optional = true }
+conduit-environment-face = { path = "../../../../bodies/environment/face", optional = true }
+conduit-face = { path = "../../../../semantics/face", default-features = false, optional = true }
+conduit-seven-segment-mask = { path = "../../../../plots/seven-segment-mask", optional = true }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime", optional = true }
+conduit-kernel = { path = "../../../../architecture/kernel", features = ["alloc"], optional = true }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", optional = true }
+serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
+conduit-core = { path = "../../../../architecture/core" }
+conduit-wire = { path = "../../../../architecture/wire", default-features = false }
+conduit-plot = { path = "../../../../architecture/plot", optional = true }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", optional = true }
+conduit-rp2040-pulse-capture = { path = "../../pulse-capture", optional = true }
+linked_list_allocator = { version = "0.10.6", default-features = false, optional = true }
+critical-section = { version = "1.2", optional = true }
+cortex-m = "0.7.7"
+cortex-m-rt = "0.7.6"
+panic-halt = "1.0.0"
+embassy-executor = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["platform-cortex-m", "executor-thread"] }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["critical-section-impl", "rp2040", "time-driver"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-usb = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+embassy-futures = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+heapless = "0.8"
+static_cell = "2"
+portable-atomic = { version = "1", features = ["critical-section"] }
+
+[build-dependencies]
+conduit-time = { path = "../../../../semantics/time" }
+conduit-environment-runtime = { path = "../../../../bodies/environment/runtime" }
+conduit-pulse-capture = { path = "../../../../mechanisms/io/pulse-capture", features = ["plot-catalog", "host-call"] }
+conduit-plan-lowering = { path = "../../../../architecture/plan-lowering" }
+conduit-planner = { path = "../../../../architecture/planner" }
+conduit-embedded-build = { path = "../../../../make/embedded-build" }
+serde_json = { version = "1", features = ["alloc"] }
+conduit-core = { path = "../../../../architecture/core" }
+conduit-plot = { path = "../../../../architecture/plot" }
+sha2 = "0.10"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+
+[profile.dev.build-override]
+opt-level = 1
+[profile.release.build-override]
+opt-level = 1

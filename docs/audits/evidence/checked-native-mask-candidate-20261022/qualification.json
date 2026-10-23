@@ -1,0 +1,13 @@
+{
+  "source_path": "plots/native-graphical-mask/main.conduit",
+  "source_sha256": "a80e3dd34baf2901986fae46563ae90cf62fe759c4bbfd74e505ef38c3367f1c",
+  "checker_binary_sha256": "14c84cd574d1cc590b28be04ba54ef3552fb6875c994827410586ce703948d73",
+  "checker_product_source_commit": "3217e783b15a7908747d951e0039f46cab170323",
+  "command": "conduit diagram --format mermaid plots/native-graphical-mask/main.conduit",
+  "exit_code": 0,
+  "internal_cords": 4,
+  "boundary_bindings": 3,
+  "satisfies_greater_than_twelve_gate": false,
+  "native_inspection_admission": false,
+  "scope": "checked expanded authoring data, not actual Patchbay selection or execution"
+}

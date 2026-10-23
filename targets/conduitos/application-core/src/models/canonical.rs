@@ -2,7 +2,7 @@
 use super::*;
 use conduit_body::BodyId;
 use conduit_face::{
-    Face, FaceContributionBasis, FaceFragment, FaceInteraction, ManifestationLifecycle, MaskShow,
+    Face, FaceContributionBasis, FaceInteraction, ManifestationLifecycle, MaskShow,
 };
 use patchbay_application::{
     PatchbayApplicationRefusal, PatchbayCommandRefusal, PatchbayResidentCommand,
@@ -39,7 +39,7 @@ impl Models {
         else {
             return Err(Refusal::Order);
         };
-        let port = p.ports[p.selected].as_ref().ok_or(Refusal::Order)?;
+        let port = p.port.as_ref().ok_or(Refusal::Order)?;
         let revision = port.revision();
         match port.face_fragment(basis, &body, actions_admitted) {
             Ok(fragment) => Ok(Reply::PatchbayFragment {
@@ -65,7 +65,7 @@ impl Models {
         show: MaskShow,
     ) -> Result<Reply, Refusal> {
         let p = self.patchbay(slot)?;
-        let port = p.ports[p.selected].as_ref().ok_or(Refusal::Order)?;
+        let port = p.port.as_ref().ok_or(Refusal::Order)?;
         let revision = port.revision();
         // A rejected replacement revokes prior evidence; it cannot reopen or
         // replenish a consumed Show or silently retain old presentation authority.
@@ -89,10 +89,9 @@ impl Models {
         {
             return fail(CanonicalRefusal::WrongOwner);
         }
-        let matches = [true, false].into_iter().any(|actions| {
-            port.face_fragment(basis.clone(), &body, actions)
-                .is_ok_and(|fragment| contains_fragment(&face, &fragment))
-        });
+        let matches = [true, false]
+            .into_iter()
+            .any(|actions| port.matches_face_contribution(&face, basis.clone(), &body, actions));
         if !matches {
             return fail(CanonicalRefusal::InvalidContribution);
         }
@@ -120,7 +119,7 @@ impl Models {
         mut preflight: impl FnMut(&Reply) -> Result<(), Refusal>,
     ) -> Result<Reply, Refusal> {
         let p = self.patchbay(slot)?;
-        let port = p.ports[p.selected].as_mut().ok_or(Refusal::Order)?;
+        let port = p.port.as_mut().ok_or(Refusal::Order)?;
         let revision = port.revision();
         let target = p.selected as u8;
         // Remove before decoding or semantic admission: even a malformed or
@@ -175,11 +174,28 @@ impl Models {
                     },
                 ))
             }
-            PatchbayResidentCommand::SelectPlot { .. } => None,
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => None,
+        };
+        let selected_target = match prepared.command() {
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => {
+                let index = interaction
+                    .action_id
+                    .strip_prefix(patchbay_application::SELECT_PLOT_ACTION_PREFIX)
+                    .and_then(|index| index.parse::<usize>().ok())
+                    .ok_or(Refusal::Order)?;
+                p.targets
+                    .get(index)
+                    .copied()
+                    .flatten()
+                    .ok_or(Refusal::Order)?
+            }
+            _ => target,
         };
         let witness = Reply::PatchbayConsumed {
             slot,
-            target,
+            target: selected_target,
             revision: u32::MAX,
             proposal,
             refusal: None,
@@ -194,13 +210,25 @@ impl Models {
             &publication.face,
             &publication.show,
         ) {
-            Ok(proposal) => Ok(Reply::PatchbayConsumed {
-                slot,
-                target,
-                revision: port.revision(),
-                proposal: proposal.map(Proposal::EditCurrent),
-                refusal: None,
-            }),
+            Ok(proposal) => {
+                let actual = port
+                    .selected_plot_index()
+                    .and_then(|index| p.targets.get(index))
+                    .copied()
+                    .flatten()
+                    .ok_or(Refusal::Order)?;
+                if actual != selected_target {
+                    return Err(Refusal::Order);
+                }
+                p.selected = usize::from(actual);
+                Ok(Reply::PatchbayConsumed {
+                    slot,
+                    target: actual,
+                    revision: port.revision(),
+                    proposal: proposal.map(Proposal::EditCurrent),
+                    refusal: None,
+                })
+            }
             Err(error) => Ok(failed(map_refusal(error))),
         }
     }
@@ -212,35 +240,6 @@ fn refused(slot: u8, target: usize, revision: u32, refusal: CanonicalRefusal) ->
         revision,
         refusal,
     }
-}
-fn contains_fragment(face: &Face, fragment: &FaceFragment) -> bool {
-    macro_rules! included {
-        ($field:ident) => {
-            fragment
-                .$field
-                .iter()
-                .all(|item| face.$field.contains(item))
-        };
-    }
-    included!(subjects)
-        && included!(relationships)
-        && included!(composition)
-        && included!(properties)
-        && included!(text)
-        && included!(actions)
-        && included!(disclosures)
-        && included!(temporal_references)
-        && included!(temporal_facts)
-        && face
-            .actions
-            .iter()
-            .filter(|action| {
-                fragment
-                    .subjects
-                    .iter()
-                    .any(|subject| subject.identity == action.target)
-            })
-            .all(|action| fragment.actions.contains(action))
 }
 fn map_refusal(error: PatchbayCommandRefusal) -> CanonicalRefusal {
     use PatchbayCommandRefusal::*;

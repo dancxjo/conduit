@@ -96,11 +96,12 @@ pub fn check_package_bundle(
             }
         })?;
     let catalog = &package_catalog;
-    let type_forms = crate::type_form::check_type_forms(&all_forms, &all_types, &native_types)
-        .map_err(|diagnostic| PackageCheckError::Syntax {
-            module: "<package>".into(),
-            diagnostic,
-        })?;
+    let type_forms =
+        crate::type_form::check_type_forms(&all_forms, &all_types, &native_types, catalog)
+            .map_err(|diagnostic| PackageCheckError::Syntax {
+                module: "<package>".into(),
+                diagnostic,
+            })?;
 
     let signatures = crate::syntax_check::plot_signatures(&all_plots).map_err(|diagnostic| {
         PackageCheckError::Syntax {

@@ -210,7 +210,7 @@ impl Face {
                         .map(|argument| {
                             argument.name.len()
                                 + argument.value_name.len()
-                                + argument.contract.identity_bytes().len()
+                                + argument.contract.identity_byte_len()
                         })
                         .sum::<usize>()
                     + 1
@@ -234,9 +234,7 @@ impl Face {
             for argument in &action.arguments {
                 hash_string(digest, &argument.name);
                 hash_string(digest, &argument.value_name);
-                let contract = argument.contract.identity_bytes();
-                digest.update((contract.len() as u32).to_le_bytes());
-                digest.update(contract);
+                crate::identity::hash_contract(digest, &argument.contract);
             }
             digest.update([action.disclosure as u8]);
             match &action.availability {

@@ -1,0 +1,19 @@
+[package]
+name = "conduit-seven-segment-mask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-core = { path = "../../architecture/core" }
+conduit-plot = { path = "../../architecture/plot" }
+conduit-face = { path = "../../semantics/face", default-features = false }
+
+[build-dependencies]
+conduit-plot = { path = "../../architecture/plot" }
+
+[dev-dependencies]
+serde_json = "1"
+conduit-face = { path = "../../semantics/face", features = ["plot-catalog"] }

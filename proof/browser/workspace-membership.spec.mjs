@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
+import { prepareInstalledHostEncounter } from "./installed-host-encounter.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 import { writeBrowserBodyJourneyTrack } from "./body-journey-track.mjs";
 
@@ -571,19 +572,23 @@ test("an already-running host joins without displacing the browser Host or its b
 });
 
 test("loss of a joined Host Line removes only its current offers and keeps the body", async ({ page }) => {
-  const installed = await startInstalledHost();
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
-    cwd: installed.root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const { installed, browser: bodyId } = await prepareInstalledHostEncounter(
+    startInstalledHost, async () => {
+      await page.goto(entrance.url);
+      await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
+      await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
+      await page.getByRole("button", { name: "Birth Body", exact: true }).click();
+      await waitForBornBodyEvidence(page);
+      return await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
+    },
+  );
+  let running;
   try {
+    running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+      cwd: installed.root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const code = await rendezvousCode(running);
-    await page.goto(entrance.url);
-    await page.getByRole("checkbox", { name: "Memory Lantern", exact: true }).uncheck();
-    await page.getByRole("checkbox", { name: "Startup Chime", exact: true }).uncheck();
-    await page.getByRole("button", { name: "Birth Body", exact: true }).click();
-    await waitForBornBodyEvidence(page);
-    const bodyId = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.body_id);
 
     await page.getByRole("button", { name: "parts / hosts", exact: true }).click();
     await page.getByRole("button", { name: "Connect a running host", exact: true }).click();
@@ -594,13 +599,21 @@ test("loss of a joined Host Line removes only its current offers and keeps the b
 
     running.kill();
     await expect(page.locator("[data-workspace-notice]")).toContainText("Voice stopped; Body Chat remains available");
-    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
-    expect(after.evidence.body_id).toBe(bodyId);
-    expect(after.evidence.membership.parts.filter(part => part.current)).toHaveLength(1);
-    expect(after.evidence.membership.parts.filter(part => !part.current && part.state === "Admitted")).toHaveLength(1);
-    expect(after.current_host_offers).toHaveLength(1);
+    const after = await page.evaluate(() => {
+      const snapshot = globalThis.__conduitWorkspace.evidence();
+      return {
+        body_id: snapshot.evidence.body_id,
+        current_parts: snapshot.evidence.membership.parts.filter(part => part.current).length,
+        admitted_absent_parts: snapshot.evidence.membership.parts.filter(part => !part.current && part.state === "Admitted").length,
+        current_host_offers: snapshot.current_host_offers.length,
+      };
+    });
+    expect(after.body_id).toBe(bodyId);
+    expect(after.current_parts).toBe(1);
+    expect(after.admitted_absent_parts).toBe(1);
+    expect(after.current_host_offers).toBe(1);
   } finally {
-    if (running.exitCode === null) running.kill();
+    if (running?.exitCode === null) running.kill();
     await installed.close();
   }
 });
@@ -624,12 +637,22 @@ async function startInstalledHost() {
     cwd: root,
     stdio: ["ignore", "pipe", "pipe"],
   });
-  await processOutput(service, / is running/, "durable host service");
-  return { root, stateDir, close: async () => {
-    if (service.exitCode === null) service.kill();
-    await new Promise(resolveClose => service.exitCode === null ? service.once("exit", resolveClose) : resolveClose());
+  const close = async () => {
+    if (service.exitCode === null && service.signalCode === null) {
+      const exited = new Promise(resolveClose => service.once("exit", resolveClose));
+      service.kill();
+      await exited;
+    }
     await rm(stateDir, { recursive: true, force: true });
-  } };
+  };
+  try {
+    await processOutput(service, / is running/, "durable host service");
+    return { root, stateDir, close };
+  } catch (error) {
+    try { await close(); }
+    catch (cleanup) { throw new AggregateError([error, cleanup], "Host preparation and cleanup failed"); }
+    throw error;
+  }
 }
 
 function rendezvousCode(child) {

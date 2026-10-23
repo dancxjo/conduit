@@ -6,8 +6,10 @@ pub(super) struct PreparedPatchbay {
     pending: Option<PendingRequest>,
     last_disposition: Option<LastDisposition>,
     last_input_refusal: Option<u32>,
+    #[cfg(test)]
     input_mode: InputMode,
 }
+#[cfg(test)]
 enum InputMode {
     Legacy,
     CanonicalMask,
@@ -28,7 +30,8 @@ impl PreparedPatchbay {
             pending: None,
             last_disposition: None,
             last_input_refusal: None,
-            input_mode: InputMode::Legacy,
+            #[cfg(test)]
+            input_mode: InputMode::CanonicalFore,
         }
     }
 
@@ -50,24 +53,33 @@ impl PreparedPatchbay {
         Ok(fragment)
     }
 
-    /// Selected during preparation from the exact captured resident Mask selector.
+    /// Only named CPU fixtures can construct the retired event/view adapter.
+    #[cfg(test)]
+    pub(super) fn legacy_fixture(port: PatchbayApplicationPort) -> Self {
+        let mut prepared = Self::new(port);
+        prepared.input_mode = InputMode::Legacy;
+        prepared
+    }
+
+    #[cfg(test)]
     pub(super) fn require_canonical_input(&mut self) {
         self.input_mode = InputMode::CanonicalMask;
     }
 
-    /// The installed FaceInteraction Fore has no ApplicationView output, even
-    /// for an empty poll. Legacy Source fixtures may still initialize their
-    /// declared view output when paired with a canonical Mask.
-    pub(super) fn select_canonical_fore(&mut self) {
-        self.input_mode = InputMode::CanonicalFore;
+    /// The product's FaceInteraction Fore has no ApplicationView output.
+    pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
+        #[cfg(test)]
+        if !matches!(self.input_mode, InputMode::CanonicalFore)
+            && !(matches!(self.input_mode, InputMode::CanonicalMask) && !input.is_empty())
+        {
+            return self.execute_legacy_fixture(input);
+        }
+        let _ = input;
+        Err("patchbay-canonical-interaction-required".into())
     }
 
-    pub(super) fn execute(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
-        if matches!(self.input_mode, InputMode::CanonicalFore)
-            || (matches!(self.input_mode, InputMode::CanonicalMask) && !input.is_empty())
-        {
-            return Err("patchbay-canonical-interaction-required".into());
-        }
+    #[cfg(test)]
+    fn execute_legacy_fixture(&mut self, input: &[u8]) -> Result<Vec<u8>, String> {
         if let Some(pending) = &self.pending {
             if !input.is_empty() {
                 self.last_input_refusal = Some(pending.revision);
@@ -93,6 +105,7 @@ impl PreparedPatchbay {
         Ok(output.view)
     }
 
+    #[cfg(test)]
     fn busy_view(&mut self) -> Result<Vec<u8>, String> {
         use conduit_face::{
             ApplicationComponent as Component, ApplicationNodeState, ApplicationView,
@@ -192,7 +205,7 @@ fn request_observation(request: &PatchbayApplicationRequest) -> serde_json::Valu
     }
 }
 
-// Canonical and legacy delivery share this actor and this one pending slot.
+// Canonical product delivery owns this actor and this one pending slot.
 impl crate::patchbay_ingress::PatchbayIngressOwner for PreparedPatchbay {
     fn port(&mut self) -> Result<&mut PatchbayApplicationPort, String> {
         if let Some(pending) = &self.pending {

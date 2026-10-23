@@ -210,6 +210,9 @@ fn run_controller(
             make.build_id,
             framebuffer_basis.base_id.clone(),
             &surface_provider,
+            // Explicitly admit the installed checked-Source inventory before Play.
+            // The Standard Mask and scene/surface limits remain unchanged.
+            conduit_conduitos_mask_offer::NativeMaskStorageProfile::Collection,
         )
     })?;
     let mut presenter = FrontDoorPresenter::prepare(
@@ -412,6 +415,7 @@ fn run_controller(
                                     owner_action_evidence::emit(&show, &interaction, &outcome);
                                     let refreshed = outcome.face.is_some();
                                     if let Some(face) = outcome.face {
+                                        current_owner_face = Some(face.clone());
                                         face_arrival.present_owner_face(
                                             face.into_face(),
                                             admitted,

@@ -1,6 +1,7 @@
 //! A user-driven Crèche → Body → Patchbay → Face journey in the real x86 guest.
 //! Every image is captured after an observed guest transition, never fabricated
 //! from a fixture or a retired Tour surface.
+use super::live_serial;
 
 mod creche_choices;
 mod creche_controls;
@@ -11,6 +12,7 @@ mod failure_stack;
 mod graph_reading;
 mod keyboard_domain;
 mod look_selection;
+mod patchbay_actions;
 mod timing_interactions;
 
 use std::{
@@ -183,7 +185,7 @@ fn execute_with_viewport(
         json!({"source_commit":source,"image_sha256":image_sha256,
             "qemu_argv":command.get_args().map(|arg|arg.to_string_lossy().into_owned()).collect::<Vec<_>>()}),
     )?
-    .with_capture_limit(if observe { 32 } else { 27 })?
+    .with_capture_limit(if observe { 32 } else { 30 })?
     .with_viewport(viewport)?;
     let mut child = command
         .spawn()
@@ -280,13 +282,7 @@ fn execute_with_viewport(
 
         keyboard_domain::verify_sibling(&serial_path, &mut child, &mut qmp, &mut reader)?;
 
-        journey_input::key_pair(&mut qmp, &mut reader, "esc", "journey-home")?;
-        hid_qmp::wait_for_stage(
-            &serial_path,
-            &mut child,
-            "CONDUIT_HOME_CHECKPOINT returned",
-            "journey-home-timeout",
-        )?;
+        face_input::open_home(&serial_path, &mut child, &mut qmp, &mut reader)?;
         artifacts.capture(&mut qmp, &mut reader, "home", true)?;
         journey_input::open_hub_plot(
             &mut qmp,
@@ -299,7 +295,7 @@ fn execute_with_viewport(
 
         // Canonical Patchbay enters its checked Face as part of selection.
         face_correspondence::current_patchbay_show(
-            &fs::read_to_string(&serial_path).map_err(io_error)?,
+            &live_serial::read_complete(&serial_path).map_err(io_error)?,
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-face", false)?;
         if observe {
@@ -319,6 +315,18 @@ fn execute_with_viewport(
             &mut artifacts,
         )?;
 
+        let patchbay_actions = if observe {
+            json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
+        } else {
+            patchbay_actions::exercise(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?
+        };
+
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
@@ -329,7 +337,18 @@ fn execute_with_viewport(
             &mut reader,
             &mut artifacts,
         )?;
-        let serial = fs::read_to_string(&serial_path).map_err(io_error)?;
+        let fresh_source_editor = if observe {
+            json!({"status":"not-exercised", "reason":"keep the latency workload fixed"})
+        } else {
+            patchbay_actions::fresh_source_editor(
+                &serial_path,
+                &mut child,
+                &mut qmp,
+                &mut reader,
+                &mut artifacts,
+            )?
+        };
+        let serial = live_serial::read_complete(&serial_path).map_err(io_error)?;
         face_correspondence::retain(
             &serial,
             &paths.target.join("native-shell-paired-linear.json"),
@@ -367,6 +386,8 @@ fn execute_with_viewport(
             "steps":["arrive","creche-three-selected","creche-four-restored","creche-fourth-checked","creche-pointer-three-selected","creche-pointer-four-restored","birth","wake","plan","play","commons-hub","commons-workshop","unavailable-wake-refused","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop","home-returned","patchbay-reentered"],
             "paired_reconstruction":"native-shell-paired-linear.json",
             "look_selection":look_selection,
+            "patchbay_actions":patchbay_actions,
+            "fresh_source_editor":fresh_source_editor,
             "pointer_actions":creche_pointer::receipt(&serial)?, "browser_comparison":"unsupported",
             "parent_5356_acceptance":"open",
             "physical_evidence":false, "human_enactment":false,
@@ -446,7 +467,7 @@ fn execute_with_viewport(
 }
 
 fn stage_count(path: &Path, marker: &str) -> Result<usize, ConduitosError> {
-    Ok(fs::read_to_string(path)
+    Ok(live_serial::read_complete(path)
         .map_err(io_error)?
         .matches(marker)
         .count())

@@ -42,3 +42,7 @@ pub(super) fn visual_paint(
     };
     format.pixel(color.0, color.1, color.2)
 }
+
+#[cfg(all(test, feature = "native-compositor"))]
+#[path = "paint_contrast_tests.rs"]
+mod contrast_tests;

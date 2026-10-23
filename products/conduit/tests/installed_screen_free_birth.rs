@@ -93,9 +93,10 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     );
     assert!(
         session.status.success(),
-        "Birth client failed: {}\n{}",
+        "Birth client failed: {}\n{}\nOwner service: {}",
         String::from_utf8_lossy(&session.stderr),
-        String::from_utf8_lossy(&session.stdout)
+        String::from_utf8_lossy(&session.stdout),
+        fs::read_to_string(state.join("service.stderr.log")).unwrap()
     );
     let spoken = String::from_utf8(session.stdout).unwrap();
     assert!(spoken.contains("Review Birth choices"));
@@ -889,11 +890,13 @@ fn start_service(state: &Path) -> Service {
         Command::new(env!("CARGO_BIN_EXE_conduit"))
             .args(["host", "service", "run", "--state-dir", path(state)])
             .stdout(Stdio::null())
-            .stderr(Stdio::piped())
+            .stderr(fs::File::create(state.join("service.stderr.log")).unwrap())
             .spawn()
             .unwrap(),
     );
-    let deadline = Instant::now() + Duration::from_secs(5);
+    // Readiness includes cold compiled contracts and inert Crèche inventory.
+    // This observation bound does not extend the product control deadline.
+    let deadline = Instant::now() + Duration::from_secs(15);
     while !state.join("control.sock").exists() {
         assert!(
             Instant::now() < deadline,

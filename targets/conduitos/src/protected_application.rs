@@ -1,9 +1,23 @@
 //! Root owns effect admission and immutable snapshots, never retained app ports.
+#[path = "protected_application/authority.rs"]
 mod authority;
+#[path = "protected_application/canonical_patchbay.rs"]
 mod canonical_patchbay;
+#[path = "protected_application/graph_facts.rs"]
 mod graph_facts;
+#[path = "protected_application/source_authority.rs"]
+mod source_authority;
 pub(crate) use graph_facts::project_graph;
+#[path = "protected_application/projection.rs"]
 mod projection;
+#[cfg(test)]
+#[path = "protected_application/return_tests.rs"]
+mod return_tests;
+#[cfg(not(test))]
+#[path = "protected_application/transport.rs"]
+mod transport;
+#[cfg(test)]
+#[path = "protected_application/fixture_transport.rs"]
 mod transport;
 use alloc::boxed::Box;
 use conduit_face::ApplicationView;
@@ -21,6 +35,7 @@ pub(crate) struct Owner {
     kinds: [Option<Kind>; SLOTS],
     snapshots: [Option<Snapshot>; SLOTS],
     graphs: [[Option<Box<PatchbayGraph>>; SLOTS]; SLOTS],
+    editable_targets: [[bool; SLOTS]; SLOTS],
     selected: [u8; SLOTS],
     topology: Option<Box<PatchbayMaskTopology>>,
     publications: [Option<Box<canonical_patchbay::Publication>>; SLOTS],
@@ -36,6 +51,7 @@ impl Owner {
             kinds: core::array::from_fn(|i| initial[i].as_ref().map(Initial::kind)),
             snapshots: core::array::from_fn(|_| None),
             graphs: core::array::from_fn(|_| core::array::from_fn(|_| None)),
+            editable_targets: [[false; SLOTS]; SLOTS],
             selected: [0; SLOTS],
             topology: None,
             publications: core::array::from_fn(|_| None),
@@ -49,6 +65,8 @@ impl Owner {
                 }
                 owner.selected[slot] = *selected;
                 for (index, target) in targets.iter().enumerate() {
+                    owner.editable_targets[slot][index] =
+                        target.as_ref().is_some_and(|target| target.plan.is_some());
                     owner.graphs[slot][index] =
                         target.as_ref().map(|target| Box::new(target.graph.clone()));
                 }
@@ -144,6 +162,7 @@ impl Owner {
         self.graphs
             .iter_mut()
             .for_each(|targets| targets.fill_with(|| None));
+        self.editable_targets.fill([false; SLOTS]);
         self.topology = None;
         self.publications.fill_with(|| None);
         self.publication_sequences.fill(None);
@@ -179,10 +198,10 @@ impl Owner {
     fn read_result<T>(&self, result: Result<T, Refusal>) -> Result<T, Refusal> {
         if result.is_err() {
             self.failed.set(true);
-            if let Ok(mut slot) = self.service.try_borrow_mut() {
-                if let Some(mut service) = slot.take() {
-                    service.quarantine();
-                }
+            if let Ok(mut slot) = self.service.try_borrow_mut()
+                && let Some(mut service) = slot.take()
+            {
+                service.quarantine();
             }
         }
         result
@@ -252,6 +271,15 @@ impl Owner {
             return Err(Refusal::Malformed);
         };
         self.snapshot(slot, &snapshot)?;
+        if matches!(
+            proposal,
+            Some(Proposal::EditCurrent(
+                patchbay_application::PatchbayApplicationRequest::EditCurrent { .. }
+            ))
+        ) && !self.selected_editable(slot)
+        {
+            return Err(Refusal::Malformed);
+        }
         if input.is_empty() {
             if proposal.is_some() {
                 return Err(Refusal::Malformed);
@@ -272,6 +300,13 @@ impl Owner {
         }
         self.snapshots[slot] = Some(snapshot.clone());
         Ok((snapshot, proposal))
+    }
+    fn selected_editable(&self, slot: usize) -> bool {
+        self.selected
+            .get(slot)
+            .and_then(|target| self.editable_targets.get(slot)?.get(usize::from(*target)))
+            .copied()
+            .unwrap_or(false)
     }
     pub fn graph(&self, slot: usize) -> Option<&PatchbayGraph> {
         if !self.is_live() {

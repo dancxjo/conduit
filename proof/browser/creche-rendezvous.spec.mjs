@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { prepareInstalledHostEncounter } from "./installed-host-encounter.mjs";
 import { openWorkspaceMachineRunner } from "./workspace-machine-test-actions.mjs";
 import { startStaticProduct } from "./static-product-server.mjs";
 
@@ -17,14 +18,16 @@ test.beforeEach(async () => {
 test.afterEach(() => entrance?.child.kill());
 
 test("a rendezvous code admits one already-running raw Host through the web Crèche", async ({ page }) => {
-  const installed = await startInstalledHost();
-  const running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
-    cwd: installed.root,
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  const { installed, browser: runner } = await prepareInstalledHostEncounter(
+    startInstalledHost, () => openWorkspaceMachineRunner(page, entrance),
+  );
+  let running;
   try {
+    running = spawn("target/debug/conduit", ["host", "rendezvous", "--state-dir", installed.stateDir, "--timeout-seconds", "30"], {
+      cwd: installed.root,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     const code = await rendezvousCode(running);
-    const runner = await openWorkspaceMachineRunner(page, entrance);
     await runner.locator('[data-application-key="physical-target"]').selectOption("std/x86_64/computer");
     await runner.locator('[data-application-key="physical-mode"]').selectOption("attach-running");
     const input = runner.getByLabel("Running host rendezvous code");
@@ -46,23 +49,37 @@ test("a rendezvous code admits one already-running raw Host through the web Crè
       realization: { terminal: "InvitationDelivered", membership_claimed: false },
     });
     // Successful admission returns the current Workspace to its membership panel.
-    const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership);
+    const before = await page.evaluate(() => globalThis.__conduitWorkspace.evidence().evidence.membership.revision);
     await runner.getByRole("button", { name: "Admit Part and offers" }).click();
     await expect(page.locator(".member-card")).toHaveCount(2);
-    const after = await page.evaluate(() => globalThis.__conduitWorkspace.evidence());
-    expect(after.evidence.membership.revision).toBeGreaterThan(before.revision);
-    const added = after.evidence.membership.parts.find(part => part.current?.host_id === evidence.observation.host_id);
+    // Keep the full host inventory in the browser; only transfer assertion inputs.
+    const after = await page.evaluate(hostId => {
+      const snapshot = globalThis.__conduitWorkspace.evidence();
+      const membership = snapshot.evidence.membership;
+      const offer = snapshot.current_host_offers.find(item => item.host_id === hostId);
+      return {
+        revision: membership.revision,
+        added: membership.parts.find(part => part.current?.host_id === hostId),
+        offer: offer && {
+          host_id: offer.host_id,
+          boot_id: offer.boot_id,
+          capability_count: offer.capabilities.length,
+        },
+      };
+    }, evidence.observation.host_id);
+    expect(after.revision).toBeGreaterThan(before);
+    const added = after.added;
     expect(added).toMatchObject({
       state: "Admitted",
       current: { host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id },
     });
-    const offer = after.current_host_offers.find(item => item.host_id === evidence.observation.host_id);
+    const offer = after.offer;
     expect(offer).toMatchObject({ host_id: evidence.observation.host_id, boot_id: evidence.observation.boot_id });
-    expect(offer.capabilities.length).toBeGreaterThan(0);
+    expect(offer.capability_count).toBeGreaterThan(0);
     expect(evidence.observation.advertisement_summary).toMatchObject({
       host_id: evidence.observation.host_id,
       boot_id: evidence.observation.boot_id,
-      capability_count: offer.capabilities.length,
+      capability_count: offer.capability_count,
     });
     expect(evidence.observation.advertisement_summary.json_bytes).toBeGreaterThan(200 * 1024);
     expect(evidence.observation.advertisement_summary.json_sha256).toMatch(/^sha256:[0-9a-f]{64}$/);

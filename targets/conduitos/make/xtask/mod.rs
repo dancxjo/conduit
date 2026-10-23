@@ -52,6 +52,7 @@ mod keyboard_proof;
 mod keyboard_run;
 mod keyboard_text_run;
 mod live_media;
+mod live_serial;
 mod loongarch64_a0;
 #[allow(dead_code)]
 mod loongarch64_a1;
@@ -501,7 +502,7 @@ pub fn run(args: ConduitosArgs, opts: &GlobalOpts) -> Result<(), ConduitosError>
             journey_proof::execute_viewport(opts, args.viewport)
         }
         ConduitosCommand::CrecheControlsProof(args) => {
-            graphical_profile_proof::execute_controls(opts, args.viewport)
+            graphical_profile_proof::execute_controls(opts, &args)
         }
         ConduitosCommand::NativeLatencyProof(args) => native_latency::execute(&args, opts),
         ConduitosCommand::GraphicalProfileProof(args) => {

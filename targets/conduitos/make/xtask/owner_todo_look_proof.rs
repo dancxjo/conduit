@@ -1,8 +1,11 @@
-//! Four actual preference requests through one finite installed-owner return route.
+//! Three actual selections after activation use the four-refresh owner route.
 use super::super::hid_qmp;
 use super::*;
 use conduit_face::{Face, ManifestationLifecycle, MaskShow};
 use std::{os::unix::net::UnixStream, path::Path, time::Instant};
+
+#[path = "owner_todo_look_focus.rs"]
+mod focus;
 
 const COMPONENT: &str = "CONDUIT_NATIVE_COMPONENT_REALIZATION ";
 
@@ -50,32 +53,88 @@ pub(super) fn exercise(
     original
         .validate()
         .map_err(|_| refusal("native-todo-look-owner-face-invalid"))?;
+    let anchor = focus::initial(serial, child, stream, reader, &original, &before["show_id"])?;
+    let baseline_order = focus::traverse(
+        serial,
+        child,
+        stream,
+        reader,
+        &original,
+        &before["show_id"],
+        &anchor,
+    )?;
     let mut previous = before["show_id"].clone();
     let mut seen = vec![previous.clone()];
     let mut origin: Option<Value> = None;
     let mut prior_show: Option<MaskShow> = None;
     let mut transitions = Vec::new();
-    for (key, density, palette, scale, checkpoint) in [
-        ("f7", "compact", "editorial", 100, "todo-editorial-compact"),
-        (
-            "f6",
-            "spacious",
-            "editorial",
-            125,
-            "todo-editorial-spacious",
-        ),
-        (
-            "f7",
-            "spacious",
-            "phosphor",
-            125,
-            "todo-engineering-spacious",
-        ),
-        ("f6", "compact", "phosphor", 100, "todo-engineering-compact"),
-    ] {
+    let selections = if args.user_overrides {
+        [
+            (
+                "f7",
+                true,
+                "compact",
+                "editorial",
+                100,
+                false,
+                "todo-override-editorial",
+            ),
+            (
+                "f9",
+                false,
+                "compact",
+                "editorial",
+                200,
+                false,
+                "todo-override-large-text",
+            ),
+            (
+                "f9",
+                true,
+                "compact",
+                "editorial",
+                200,
+                true,
+                "todo-override-forced-colors",
+            ),
+        ]
+    } else {
+        [
+            (
+                "f7",
+                true,
+                "compact",
+                "editorial",
+                100,
+                false,
+                "todo-editorial-compact",
+            ),
+            (
+                "f6",
+                true,
+                "spacious",
+                "editorial",
+                125,
+                false,
+                "todo-editorial-spacious",
+            ),
+            (
+                "f7",
+                true,
+                "spacious",
+                "phosphor",
+                125,
+                false,
+                "todo-engineering-spacious",
+            ),
+        ]
+    };
+    for (key, shift, density, palette, scale, forced, checkpoint) in selections {
         let count = bounded_records(&bounded_serial(serial)?, COMPONENT, 65_536)?.len();
-        hid_qmp::send_named_keys(stream, reader, &["shift", key], true, "todo-look-select")?;
-        hid_qmp::send_named_keys(stream, reader, &[key, "shift"], false, "todo-look-select")?;
+        let pressed = if shift { vec!["shift", key] } else { vec![key] };
+        let released = if shift { vec![key, "shift"] } else { vec![key] };
+        hid_qmp::send_named_keys(stream, reader, &pressed, true, "todo-look-select")?;
+        hid_qmp::send_named_keys(stream, reader, &released, false, "todo-look-select")?;
         let deadline = Instant::now() + Duration::from_secs(120);
         let record = loop {
             let text = bounded_serial(serial)?;
@@ -113,6 +172,8 @@ pub(super) fn exercise(
             || expression["density"] != density
             || expression["palette"] != palette
             || expression["text_scale_percent"] != scale
+            || record["expression"]["platform_forced_colors"] != forced
+            || (args.user_overrides && expression["motion"] != "none")
             || config["component"].is_null()
             || config["recipe"].is_null()
             || config["host_id"] != json!(show.show.host_id)
@@ -123,14 +184,26 @@ pub(super) fn exercise(
                     || record["owner_host"] != first["owner_host"]
             })
             || prior_show.as_ref().is_some_and(|prior| {
-                show.show.plan_id == prior.show.plan_id
-                    || show.show.host_id != prior.show.host_id
+                // User preferences are admitted beneath the same sealed Mask
+                // configuration; a new Show does not imply a different Plan.
+                (if args.user_overrides {
+                    show.planned_mask != prior.planned_mask
+                        || origin
+                            .as_ref()
+                            .is_none_or(|first| config != &first["configuration"])
+                } else {
+                    show.show.plan_id == prior.show.plan_id
+                }) || show.show.host_id != prior.show.host_id
                     || show.show.boot_id != prior.show.boot_id
                     || show.show.offer_generation != prior.show.offer_generation
             })
         {
             return Err(refusal("native-todo-look-correspondence-invalid"));
         }
+        let retained_focus = focus::retained(serial, child, &face, &id, &anchor)?;
+        let focus_order =
+            focus::traverse(serial, child, stream, reader, &face, &id, &retained_focus)?;
+        focus::same_order(&baseline_order, &focus_order)?;
         let text = bounded_serial(serial)?;
         if !bounded_records(&text, OWNER_ACTION, 1_024)?.is_empty() {
             return Err(refusal("native-todo-look-dispatched-body-action"));
@@ -152,15 +225,17 @@ pub(super) fn exercise(
             origin = Some(record.clone());
         }
         transitions.push(json!({"previous_show_id":previous,"realization":record,
-            "owner_face":owner_now,"screenshot":screenshot}));
+            "owner_face":owner_now,"screenshot":screenshot,
+            "retained_focus":retained_focus,"focus_order":focus_order}));
         previous = id.clone();
         seen.push(id);
         prior_show = Some(show);
     }
     Ok(
-        json!({"schema":"conduit.conduitos/native-owner-todo-look-proof@1",
-        "status":"passed","input":"real-qmp-shift-function-keys","owner_before":owner_before,
-        "transitions":transitions,"body_actions":0,"mutations":0,
+        json!({"schema":"conduit.conduitos/native-owner-todo-look-proof@1", "user_overrides":args.user_overrides,
+        "status":"passed","input":"real-qmp-keyboard-look-and-focus","owner_before":owner_before,
+        "transitions":transitions,"baseline_focus_order":baseline_order,
+        "body_actions":0,"mutations":0,
         "human_enactment":false,"physical_evidence":false}),
     )
 }

@@ -1,0 +1,76 @@
+{
+  "source_commit": "46177082887540af56beb330f4e6d69da1e2a478",
+  "scope": "current prepared Mask frame used for focus; not compositor/scanout history",
+  "summary": {
+    "command_high_water": 32,
+    "command_limit": 48,
+    "command_payload_byte_limit": 192,
+    "focus_observations": 247,
+    "maximum_command_payload_bytes": 192,
+    "maximum_frame_payload_bytes": 680,
+    "retained_compositor_surface_count": "not observed by this receipt",
+    "schema": "conduit.native-prepared-frame-budget-proof/v1",
+    "scope": "current prepared Mask frame used for focus; not compositor/scanout history"
+  },
+  "peak_observations": {
+    "command_peak": {
+      "observation_index": 0,
+      "face_id": "8b783eb23290fcb3e34c9545af1a5ead0b91d2e879e592838ec54a0fdcd292d7",
+      "face_revision": 1,
+      "show_id": "show/ea9d03639e6c95316cb903c7e8ae91d3002f640eabfe2d0413d5382d19d17c50",
+      "page": 2,
+      "pages": 3,
+      "action_id": "creche.name",
+      "argument_name": "value",
+      "prepared_frame_budget": {
+        "basis": "current prepared Mask frame used for focus; not compositor/scanout history",
+        "command_limit": 48,
+        "commands": 32,
+        "maximum_payload_bytes": 54,
+        "payload_byte_limit": 192,
+        "payload_bytes": 229
+      }
+    },
+    "payload_peak": {
+      "observation_index": 74,
+      "face_id": "8b783eb23290fcb3e34c9545af1a5ead0b91d2e879e592838ec54a0fdcd292d7",
+      "face_revision": 1,
+      "show_id": "show/2e7bd70df9728cf056cda485d0f512f10cbc9b72209d6f39dba33f9ef025cc9c",
+      "page": 21,
+      "pages": 21,
+      "action_id": null,
+      "argument_name": null,
+      "prepared_frame_budget": {
+        "basis": "current prepared Mask frame used for focus; not compositor/scanout history",
+        "command_limit": 48,
+        "commands": 16,
+        "maximum_payload_bytes": 192,
+        "payload_byte_limit": 192,
+        "payload_bytes": 680
+      }
+    },
+    "single_command_payload_peak": {
+      "observation_index": 74,
+      "face_id": "8b783eb23290fcb3e34c9545af1a5ead0b91d2e879e592838ec54a0fdcd292d7",
+      "face_revision": 1,
+      "show_id": "show/2e7bd70df9728cf056cda485d0f512f10cbc9b72209d6f39dba33f9ef025cc9c",
+      "page": 21,
+      "pages": 21,
+      "action_id": null,
+      "argument_name": null,
+      "prepared_frame_budget": {
+        "basis": "current prepared Mask frame used for focus; not compositor/scanout history",
+        "command_limit": 48,
+        "commands": 16,
+        "maximum_payload_bytes": 192,
+        "payload_byte_limit": 192,
+        "payload_bytes": 680
+      }
+    }
+  },
+  "peaks_need_not_coincide": true,
+  "compositor_surface_limit_contract": 8,
+  "surface_limit_provenance": "targets/conduitos/src/native_compositor/contracts.rs::MAX_COMPOSITOR_SURFACES",
+  "retained_surface_count_observed": null,
+  "physical_evidence": false
+}

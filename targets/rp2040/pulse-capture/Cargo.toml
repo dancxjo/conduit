@@ -1,0 +1,18 @@
+[package]
+name = "conduit-rp2040-pulse-capture"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-pulse-capture = { path = "../../../mechanisms/io/pulse-capture" }
+embassy-rp = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12", features = ["rp2040", "critical-section-impl", "time-driver", "unstable-pac"] }
+embassy-time = { git = "https://github.com/embassy-rs/embassy.git", rev = "1d3c3dec8edbf37450d0174b312f8d3d6cc0bf12" }
+fixed = "1"
+pio = "0.3"
+
+
+[features]
+host-call = ["conduit-pulse-capture/host-call"]

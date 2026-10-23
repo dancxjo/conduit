@@ -129,6 +129,13 @@ pub mod hosted_wav_artifact;
 mod image_binding_tests;
 mod installed_std;
 pub mod llm_spoken_mask;
+#[cfg(all(
+    feature = "native-model-backing",
+    target_os = "linux",
+    target_arch = "x86_64",
+    target_env = "gnu"
+))]
+pub mod native_model_backing;
 mod parsec_scan;
 pub mod spoken_face_mask;
 pub mod spoken_face_stream_execution;

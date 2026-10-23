@@ -1,0 +1,19 @@
+# Native graphical Mask role. The Plan selects native renderer and interaction backs.
+plot native-graphical (
+    >> face: Face
+    interaction: FaceInteraction...| >>
+    show: Show >>
+) {
+    spread: face/tee("Shared Face")
+    surface: face/show-resource-source("Output resource")
+    render: face/resource-renderer("Resource view")
+    human: face/interaction("User actions")
+
+    face >> spread.source
+    spread.face >> render.face
+    surface.show-resource >> render.show-resource
+    spread.face >> human.face
+    render.show >> human.show
+    render.show >> show
+    human.interaction >> interaction
+}

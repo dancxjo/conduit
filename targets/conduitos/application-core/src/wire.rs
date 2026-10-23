@@ -19,8 +19,12 @@ pub enum Request {
     /// Validate a fully written large command before its typed Commit entry.
     Preflight,
     /// Ordered phases of an immutable retained Graph reply.
-    GraphSerialize,
-    GraphValidate,
+    GraphSerialize {
+        cursor: u32,
+    },
+    GraphValidate {
+        cursor: u32,
+    },
     GraphPack {
         offset: u32,
     },
@@ -29,9 +33,16 @@ pub enum Request {
         maximum: u32,
     },
 }
+/// Only immutable Graph preparation can report cooperative progress.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum GraphPhase {
+    Serialize,
+    Validate,
+}
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Response {
     Ready,
+    Progress { phase: GraphPhase, cursor: u32 },
     Blob { bytes: u32 },
     Chunk { offset: u32, bytes: u32, total: u32 },
     Refused(Refusal),
@@ -88,8 +99,8 @@ pub fn encode_request(e: Envelope, r: Request, out: &mut [u8]) -> Result<(), Ref
         Request::Write { offset, bytes } => (2, [offset, bytes, 0, 0]),
         Request::Commit => (3, [0; 4]),
         Request::Preflight => (5, [0; 4]),
-        Request::GraphSerialize => (6, [0; 4]),
-        Request::GraphValidate => (7, [0; 4]),
+        Request::GraphSerialize { cursor } => (6, [cursor, 0, 0, 0]),
+        Request::GraphValidate { cursor } => (7, [cursor, 0, 0, 0]),
         Request::GraphPack { offset } => (8, [offset, 0, 0, 0]),
         Request::Read { offset, maximum } => (4, [offset, maximum, 0, 0]),
     };
@@ -106,8 +117,8 @@ pub fn decode_request(input: &[u8]) -> Result<(Envelope, Request), Refusal> {
         }
         (3, [0, 0, 0, 0]) => Request::Commit,
         (5, [0, 0, 0, 0]) => Request::Preflight,
-        (6, [0, 0, 0, 0]) => Request::GraphSerialize,
-        (7, [0, 0, 0, 0]) => Request::GraphValidate,
+        (6, [cursor, 0, 0, 0]) => Request::GraphSerialize { cursor },
+        (7, [cursor, 0, 0, 0]) => Request::GraphValidate { cursor },
         (8, [offset, 0, 0, 0]) => Request::GraphPack { offset },
         (4, [offset, maximum, 0, 0]) if maximum > 0 && maximum as usize <= TRANSFER_BYTES => {
             Request::Read { offset, maximum }
@@ -119,6 +130,18 @@ pub fn decode_request(input: &[u8]) -> Result<(Envelope, Request), Refusal> {
 pub fn encode_response(e: Envelope, r: Response, out: &mut [u8]) -> Result<(), Refusal> {
     let (tag, args) = match r {
         Response::Ready => (0x8001, [0; 4]),
+        Response::Progress { phase, cursor } => (
+            0x8004,
+            [
+                match phase {
+                    GraphPhase::Serialize => 1,
+                    GraphPhase::Validate => 2,
+                },
+                cursor,
+                0,
+                0,
+            ],
+        ),
         Response::Blob { bytes } => (0x8002, [bytes, 0, 0, 0]),
         Response::Chunk {
             offset,
@@ -147,6 +170,14 @@ pub fn decode_response(input: &[u8]) -> Result<(Envelope, Response), Refusal> {
     let (e, tag, a) = decode(input)?;
     let r = match (tag, a) {
         (0x8001, [0, 0, 0, 0]) => Response::Ready,
+        (0x8004, [phase @ (1 | 2), cursor, 0, 0]) if cursor > 0 => Response::Progress {
+            phase: if phase == 1 {
+                GraphPhase::Serialize
+            } else {
+                GraphPhase::Validate
+            },
+            cursor,
+        },
         (0x8002, [bytes, 0, 0, 0]) if bytes > 0 && bytes as usize <= MAX_BLOB => {
             Response::Blob { bytes }
         }
@@ -174,3 +205,6 @@ pub fn decode_response(input: &[u8]) -> Result<(Envelope, Response), Refusal> {
     };
     Ok((e, r))
 }
+
+mod graph_progress;
+pub use graph_progress::GraphProgress;

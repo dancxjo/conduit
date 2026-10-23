@@ -21,3 +21,25 @@ The fixture was decoded and re-encoded through the production codec; no other
 JSON value changed and no provenance was fabricated. The original wire remains
 in Git history (`b6f1296934144d99e23c7d1ee2a3cb29b96f3a070dd19c4e7adf6706475b4649`).
 Exact current wire equality and graph custody digest assertions remain enabled.
+
+## Full Collection Source publication
+
+`source-publication.catz` retains a complete Face and Collection MaskShow captured
+from the initialized native software Source workspace, its current three resident
+graphs, the reviewed Vision graph, and the topology facts carried by that Face.
+This is a CPU allocator fixture; it is not a QEMU acknowledgement. The selected
+Source has no fabricated inspected Plan or Play. The inspecting Patchbay's actual
+Face basis supplies the owner Body/Plan/Play context.
+
+The private-heap scenario keeps the current native retained actors (Tour and
+Patchbay), all four prepared graphs, the full decoded publication and its actual
+Collection planned Mask. It publishes the Source and consumes its exact offered
+return selection through the normal typed protocol in the unchanged grant. The
+historical Tutorial biography aggregate above remains a separate scenario.
+
+- Canonical fixture JSON: 575747 bytes.
+- CAPZ wire: 32350 bytes, SHA-256
+  `05f99b82674829e75d7ba87dbcd73c4c16912ccd7639604df9d0d063a11dd7fd`.
+- Before bounded comparison, whole-graph duplicate validation exhausted the same
+  grant; reservation alone also failed. These negative diagnostic logs are
+  retained with the owning implementation work, not represented as success.

@@ -36,7 +36,8 @@ impl Builder {
             applications: core::array::from_fn(|slot| match manifest.slots[slot] {
                 Some(InitSlot::Patchbay { selected, .. }) => {
                     Some(Application::Patchbay(Patchbay {
-                        ports: core::array::from_fn(|_| None),
+                        port: None,
+                        targets: [None; SLOTS],
                         selected: selected as usize,
                         publication: None,
                         publication_sequence: 0,
@@ -70,10 +71,34 @@ impl Builder {
         let Some(Application::Patchbay(patchbay)) = &mut self.applications[slot] else {
             return Err(Refusal::Order);
         };
-        let controller = PatchbayApplicationPort::open_graph(value.graph, value.plan, value.body)
+        let index = if let Some(port) = patchbay.port.as_mut() {
+            match value.plan {
+                Some(plan) => port.append_prepared_graph(value.graph, plan, &value.body),
+                None => port.append_prepared_source_graph(value.graph, &value.body),
+            }
             .map_err(|_| Refusal::Application)?
-            .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection);
-        patchbay.ports[usize::from(target)] = Some(Box::new(controller));
+        } else {
+            let port = PatchbayApplicationPort::open_graph(
+                value.graph,
+                value.plan.ok_or(Refusal::Order)?,
+                value.body,
+            )
+            .and_then(|port| port.with_prepared_graph_capacity(SLOTS))
+            .map_err(|_| Refusal::Application)?
+            .with_canvas_delivery(PatchbayCanvasDelivery::TextInspection)
+            .without_prepared_body_focus();
+            patchbay.port = Some(Box::new(port));
+            0
+        };
+        patchbay.targets[index] = Some(target);
+        if usize::from(target) == patchbay.selected {
+            patchbay
+                .port
+                .as_mut()
+                .ok_or(Refusal::Order)?
+                .select_prepared_plot(index)
+                .map_err(|_| Refusal::Application)?;
+        }
         self.remaining[slot] &= !(1 << target);
         Ok(())
     }

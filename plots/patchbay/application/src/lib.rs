@@ -52,6 +52,7 @@ mod resident_canvas;
 mod resident_command;
 mod resident_execution;
 mod resident_face;
+mod resident_matching;
 pub use resident_command::contribution_matches as patchbay_face_contribution_matches;
 pub use resident_command::{
     PatchbayCommandRefusal, PatchbayResidentCommand, PreparedPatchbayCommand,
@@ -165,13 +166,15 @@ pub enum PatchbayApplicationRefusal {
 pub enum PatchbayActivePlotState {
     Playing,
     Lulled,
+    /// Checked Source only: no inspected Plan, Play, membership or effects.
+    CheckedSource,
 }
 
 pub struct PatchbayActivePlot {
     graph: PatchbayGraph,
     title: String,
     checked_plot_id: String,
-    plan_id: PlanId,
+    plan_id: Option<PlanId>,
     state: PatchbayActivePlotState,
     focused: bool,
 }
@@ -185,11 +188,14 @@ impl PatchbayActivePlot {
         state: PatchbayActivePlotState,
         focused: bool,
     ) -> Result<Self, PatchbayApplicationRefusal> {
+        if state == PatchbayActivePlotState::CheckedSource {
+            return Err(PatchbayApplicationRefusal::UnknownAction);
+        }
         Ok(Self {
             graph: PatchbayGraph::from_expanded(plot).map_err(PatchbayApplicationRefusal::Graph)?,
             title: title.into(),
             checked_plot_id: checked_plot_id.into(),
-            plan_id,
+            plan_id: Some(plan_id),
             state,
             focused,
         })
@@ -207,6 +213,7 @@ pub enum PatchbayCanvasDelivery {
 
 pub struct PatchbayApplicationPort {
     plots: Vec<PatchbayActivePlot>,
+    prepared_graph_limit: usize,
     canvas_delivery: PatchbayCanvasDelivery,
     body_plan_id: PlanId,
     active_play_id: Option<ActivePlayId>,
@@ -240,6 +247,7 @@ impl PatchbayApplicationPort {
             return Err(PatchbayApplicationRefusal::TooManyActivePlots);
         }
         Ok(Self {
+            prepared_graph_limit: plots.len(),
             plots,
             canvas_delivery: PatchbayCanvasDelivery::InlineGraph,
             body_plan_id,
@@ -270,8 +278,13 @@ impl PatchbayApplicationPort {
     pub fn graph(&self) -> &PatchbayGraph {
         &self.plots[0].graph
     }
+    /// Plan of the initial planned entry, independently of inspection selection.
+    /// Source-only entries can only be appended; use `selected_plan_id` for them.
     pub fn plan_id(&self) -> &PlanId {
-        &self.plots[0].plan_id
+        self.plots[0]
+            .plan_id
+            .as_ref()
+            .expect("the initial entry is planned")
     }
 
     pub fn inspection(&self) -> Result<PatchbayInspection, PatchbayApplicationRefusal> {
@@ -316,3 +329,6 @@ impl PatchbayApplicationPort {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod source_inspection_tests;

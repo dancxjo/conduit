@@ -30,7 +30,8 @@ pub enum Proposal {
 #[serde(deny_unknown_fields)]
 pub struct Target {
     pub graph: PatchbayGraph,
-    pub plan: PlanId,
+    /// None names checked Source only, with no inspected execution authority.
+    pub plan: Option<PlanId>,
     pub body: PlanId,
 }
 #[derive(Clone, Serialize, Deserialize)]
@@ -289,9 +290,13 @@ pub enum Refusal {
     Application,
 }
 mod codec;
-pub(crate) use codec::{Packing as GraphPacking, preflight_canonical_fixture};
+pub(crate) use codec::{
+    GraphEncoding, GraphValidation, Packing as GraphPacking, preflight_canonical_fixture,
+};
 mod transport_codec;
 pub use codec::{
     GRAPH_PACK_BYTES, MAX_DECODED_JSON_BYTES, Workspace, decode, decode_reply, encode,
     encode_command,
 };
+
+pub use codec::{GRAPH_SERIALIZE_TURNS, GRAPH_VALIDATE_TURNS};

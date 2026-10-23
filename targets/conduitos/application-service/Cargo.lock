@@ -304,6 +304,8 @@ dependencies = [
  "conduit-body",
  "conduit-core",
  "conduit-face",
+ "conduit-human",
+ "conduit-plot",
  "conduit-tour-model",
  "conduit-tutorial-plot",
  "miniz_oxide",

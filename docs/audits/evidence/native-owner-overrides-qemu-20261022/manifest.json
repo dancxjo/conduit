@@ -1,0 +1,76 @@
+{
+  "schema": "conduit.audit/native-owner-overrides-captures@1",
+  "source_identity": "2c3d0411b248376f7124f89fadfa3512bf3ef4ee",
+  "checkpoints": [
+    {
+      "frame": {
+        "checkpoint": "owner-standby",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "9754d7d3d8613cd88e64b3b15f5971ebc7631cb1ab95f003aa6480dca6add9c6",
+        "png": "owner-standby.png",
+        "png_bytes": 157792,
+        "png_sha256": "21ffa92a0bc4dcc140d61b651f42e96c491c2c85aeac2430daa66a28c0cf263e",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "owner-before",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "b61c3a10668a57c8af2443b306f090e7a02741c4e904e63e7a13b114f18a7ea9",
+        "png": "owner-before.png",
+        "png_bytes": 124834,
+        "png_sha256": "edf67a2351ec5547560aa38b37a93af3b291c4b9cccb691600a21bf6925eccfe",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-override-editorial",
+        "height": 800,
+        "non_background_pixels": 1014744,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "2f4f78ad3b09c51e6027ab232b8850d154716ac000f4a50ac0766cedaec047d1",
+        "png": "todo-override-editorial.png",
+        "png_bytes": 125583,
+        "png_sha256": "8ae1768baeeff4a12a8074a9de5fbf47d93ec68c26f47f3edfda04dd4b672cb3",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-override-large-text",
+        "height": 800,
+        "non_background_pixels": 1014664,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "6f2b8c4246b06de57b0c13e8c4900a4af1303cc514b6c3ecda923e3ccfd1e669",
+        "png": "todo-override-large-text.png",
+        "png_bytes": 280111,
+        "png_sha256": "3992d6f96b08252e9853348765059faa798f2abd7304fe91c303f49d853fd2ed",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "todo-override-forced-colors",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a37e3a179a997c3e31864600e65e9c46823fd8e263a59ec0c9937d776146e455",
+        "png": "todo-override-forced-colors.png",
+        "png_bytes": 295180,
+        "png_sha256": "e3abcb08b95d90eb2a63befc90e4bff87d9b5e2b4697ba87890d46c95de348a4",
+        "width": 1280
+      }
+    }
+  ],
+  "png_chunk_crc": "all verified",
+  "serial_sha256": "5f07f4f623d314061f070c111a2cd8a86dd9002a73b18f3a649674c34f0ec823",
+  "coordinator_exit": 0,
+  "proof_exit": 0,
+  "secrets_excluded": true
+}

@@ -1,7 +1,10 @@
 //! Root custody of actual acknowledged evidence, never another Patchbay actor.
 use super::*;
+#[path = "canonical_selection.rs"]
+mod selection;
 use conduit_body::BodyId;
 use conduit_face::{Face, FaceContributionBasis, FaceFragment, FaceInteraction, MaskShow};
+use selection::selection_target;
 
 pub(super) struct Publication {
     body: BodyId,
@@ -150,8 +153,11 @@ impl Owner {
                 proposal,
                 refusal,
             } => {
-                self.canonical_identity(slot, *returned, *target)?;
+                if usize::from(*returned) != slot {
+                    return Err(Refusal::Malformed);
+                }
                 if refusal.is_some() {
+                    self.canonical_identity(slot, *returned, *target)?;
                     if proposal.is_some() || *revision != publication.revision {
                         Err(Refusal::Malformed)
                     } else {
@@ -159,6 +165,29 @@ impl Owner {
                     }
                 } else {
                     let interaction = interaction.as_ref().map_err(|_| Refusal::Malformed)?;
+                    let selection = selection_target(&self.graphs[slot], &interaction.action_id);
+                    if let Some(target) = selection {
+                        let graph = self.graphs[slot][target]
+                            .as_deref()
+                            .ok_or(Refusal::Malformed)?;
+                        let action = publication
+                            .face
+                            .actions
+                            .iter()
+                            .find(|action| action.identity == interaction.action_id)
+                            .ok_or(Refusal::Malformed)?;
+                        if action.target
+                            != alloc::format!("plot/{}", graph.checked_plot_id.as_str())
+                            || action.intent != "patchbay/select-plot@1"
+                            || !action.arguments.is_empty()
+                        {
+                            return Err(Refusal::Malformed);
+                        }
+                    }
+                    let expected = selection.unwrap_or(usize::from(publication.target));
+                    if usize::from(*target) != expected {
+                        return Err(Refusal::Malformed);
+                    }
                     if Some(*revision) != publication.revision.checked_add(1) {
                         return Err(Refusal::Malformed);
                     }
@@ -167,6 +196,8 @@ impl Owner {
                         self.graph(slot).ok_or(Refusal::Order)?,
                         self.topology.as_deref(),
                         proposal.as_ref(),
+                        selection.is_some(),
+                        self.selected_editable(slot),
                     )
                 }
             }
@@ -174,6 +205,14 @@ impl Owner {
             _ => Err(Refusal::Malformed),
         })();
         self.guard(result)?;
+        if let Reply::PatchbayConsumed {
+            target,
+            refusal: None,
+            ..
+        } = &reply
+        {
+            self.selected[slot] = *target;
+        }
         Ok(reply)
     }
 
@@ -202,12 +241,20 @@ impl Owner {
         {
             return Err(Refusal::Malformed);
         }
+        for (target, graph) in self.graphs[slot].iter().enumerate() {
+            if let Some(graph) = graph.as_deref()
+                && !self.editable_targets[slot][target]
+            {
+                source_authority::check_fragment(fragment, graph)?;
+            }
+        }
         let graph = self.graph(slot).ok_or(Refusal::Order)?;
         let root = alloc::format!("patchbay/document/{}", basis.checked_plot_id.as_str());
         let plot = alloc::format!("plot/{}", graph.checked_plot_id.as_str());
         for action in &fragment.actions {
             let valid = if action.identity == patchbay_application::EDIT_CURRENT_ACTION_ID {
-                action.target == plot
+                self.selected_editable(slot)
+                    && action.target == plot
                     && action.intent == "patchbay/edit-subject@1"
                     && action.arguments.len() == 1
                     && action.arguments[0].name == "subject"
@@ -216,10 +263,11 @@ impl Owner {
                     && action.intent == "patchbay/change-masks@1"
                     && action.arguments.is_empty()
                     && self.topology.is_some()
-            } else if action.identity
-                == alloc::format!("{}0", patchbay_application::SELECT_PLOT_ACTION_PREFIX)
-            {
-                action.target == plot
+            } else if let Some(target) = selection_target(&self.graphs[slot], &action.identity) {
+                let selected = self.graphs[slot][target]
+                    .as_deref()
+                    .ok_or(Refusal::Malformed)?;
+                action.target == alloc::format!("plot/{}", selected.checked_plot_id.as_str())
                     && action.intent == "patchbay/select-plot@1"
                     && action.arguments.is_empty()
             } else {
@@ -256,7 +304,14 @@ fn admit_proposal(
     graph: &PatchbayGraph,
     topology: Option<&PatchbayMaskTopology>,
     proposal: Option<&Proposal>,
+    selection: bool,
+    editable: bool,
 ) -> Result<(), Refusal> {
+    // Body Mask changes retain their separately checked actual owner topology;
+    // Source visibility itself grants no Edit route for the inspected target.
+    if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID && !editable {
+        return Err(Refusal::Malformed);
+    }
     if input.action_id == patchbay_application::EDIT_CURRENT_ACTION_ID {
         let subject = input
             .arguments
@@ -287,10 +342,7 @@ fn admit_proposal(
             )) if body_plan_id == &topology.body_plan_id && *mode == topology.next_mode() => Ok(()),
             _ => Err(Refusal::Malformed),
         }
-    } else if input.action_id
-        == alloc::format!("{}0", patchbay_application::SELECT_PLOT_ACTION_PREFIX)
-        && proposal.is_none()
-    {
+    } else if selection && proposal.is_none() {
         Ok(())
     } else {
         Err(Refusal::Malformed)

@@ -2,7 +2,13 @@
 
 #![no_std]
 
+mod computation;
 mod execution;
+mod native;
+mod records;
+pub use computation::{AssignedComputationProfile, AssignedComputationRequirement};
+pub use native::*;
+pub use records::{AssignedPlanRecords, AssignedRecord, AssignedRecordRequirement};
 mod sha256;
 mod single_source;
 
@@ -10,6 +16,8 @@ pub use execution::*;
 pub use single_source::*;
 
 pub const ASSIGNED_PLAN_SCHEMA: u16 = 4;
+/// Complete local Cord execution limits; admitted only by an explicit profile.
+pub const ASSIGNED_KERNEL_PLAN_SCHEMA: u16 = 5;
 pub const ASSIGNED_PLAN_HEADER_BYTES: usize = 125;
 pub const TINY_HOST_TOTAL_BYTES: u16 = 2_560;
 const MAGIC: &[u8; 8] = b"CNDAP001";
@@ -149,6 +157,9 @@ pub enum AssignedPlanRefusal {
     StaleRemoteEndpoint,
     MissingRemoteEndpoint,
     ExtraRecords,
+    ComputationCapacityExceeded,
+    UnknownComputation,
+    MissingComputation,
 }
 
 pub fn decode_assigned_plan(
@@ -156,13 +167,42 @@ pub fn decode_assigned_plan(
     maxima: AssignedPlanMaxima,
     requirements: AssignedPlanRequirements<'_>,
 ) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    decode(bytes, maxima, requirements, None)
+}
+
+/// Opt-in exact resident computation inventory; ordinary tiny profiles retain
+/// their existing configuration ceiling. This does not authorize native effects
+/// or validate evaluator storage/work, routing, or the complete kernel image.
+pub fn decode_assigned_plan_with_computations(
+    bytes: &[u8],
+    maxima: AssignedPlanMaxima,
+    requirements: AssignedPlanRequirements<'_>,
+    profile: AssignedComputationProfile<'_>,
+) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    decode(bytes, maxima, requirements, Some(profile))
+}
+
+fn decode(
+    bytes: &[u8],
+    maxima: AssignedPlanMaxima,
+    requirements: AssignedPlanRequirements<'_>,
+    profile: Option<AssignedComputationProfile<'_>>,
+) -> Result<AssignedPlanView, AssignedPlanRefusal> {
+    let mut computations = computation::Validation::new(profile)?;
     if bytes.len() < ASSIGNED_PLAN_HEADER_BYTES {
         return Err(AssignedPlanRefusal::WrongLength);
     }
     if &bytes[..8] != MAGIC {
         return Err(AssignedPlanRefusal::WrongMagic);
     }
-    if read_u16(bytes, 8)? != ASSIGNED_PLAN_SCHEMA {
+    let schema = read_u16(bytes, 8)?;
+    if schema != ASSIGNED_PLAN_SCHEMA
+        && !(profile.is_some()
+            && matches!(
+                schema,
+                ASSIGNED_KERNEL_PLAN_SCHEMA | ASSIGNED_NATIVE_PLAN_SCHEMA
+            ))
+    {
         return Err(AssignedPlanRefusal::WrongSchema);
     }
     let encoded_bytes = read_u16(bytes, 10)?;
@@ -213,30 +253,32 @@ pub fn decode_assigned_plan(
     }
     let mut cursor = ASSIGNED_PLAN_HEADER_BYTES;
     while cursor < bytes.len() {
-        let tag = *bytes
-            .get(cursor)
-            .ok_or(AssignedPlanRefusal::MalformedRecord)?;
-        let length = usize::from(read_u16(bytes, cursor + 1)?);
-        let start = cursor
-            .checked_add(3)
-            .ok_or(AssignedPlanRefusal::MalformedRecord)?;
-        let end = start
-            .checked_add(length)
-            .ok_or(AssignedPlanRefusal::MalformedRecord)?;
-        let payload = bytes
-            .get(start..end)
-            .ok_or(AssignedPlanRefusal::MalformedRecord)?;
-        if tag == 0 || usize::from(tag) > ASSIGNED_PLAN_COUNT_KINDS {
-            return Err(AssignedPlanRefusal::UnknownRecord(tag));
-        }
+        let (record, end) = records::read_record(bytes, cursor)?;
+        let AssignedRecord { tag, payload } = record;
+        let length = payload.len();
         let valid_length = match tag {
             ASSIGNED_NODE => length == 52,
             ASSIGNED_PORT => length == 37,
-            ASSIGNED_CONFIGURATION => length == 27 || (20..=147).contains(&length),
-            ASSIGNED_CORD => length == 37,
+            ASSIGNED_CONFIGURATION => {
+                length == 27 || (20..=147).contains(&length) || (profile.is_some() && length >= 20)
+            }
+            ASSIGNED_CORD => {
+                length
+                    == if schema == ASSIGNED_PLAN_SCHEMA {
+                        37
+                    } else {
+                        42
+                    }
+            }
             ASSIGNED_ROUTE => length == 8,
             ASSIGNED_ROUTE_TARGET => length == 6 || length == 7,
-            ASSIGNED_HOST_CALL => length == 46,
+            ASSIGNED_HOST_CALL => {
+                if schema == ASSIGNED_NATIVE_PLAN_SCHEMA {
+                    length == 47 || length == ASSIGNED_NATIVE_CALL_BYTES
+                } else {
+                    length == 46
+                }
+            }
             ASSIGNED_RESOURCE => length == 8,
             ASSIGNED_SIGN => length == 37,
             ASSIGNED_REMOTE_ENDPOINT => length == 250,
@@ -252,14 +294,18 @@ pub fn decode_assigned_plan(
             ASSIGNED_PORT => payload[4] <= 1,
             ASSIGNED_CONFIGURATION => match payload[18] {
                 0..=2 => length == 27,
-                3 => core::str::from_utf8(&payload[19..]).is_ok_and(|text| {
-                    text.len() <= 128
-                        && !text.trim().is_empty()
-                        && !text.chars().any(char::is_control)
-                }),
+                3 => computations.text(payload)?,
                 _ => false,
             },
-            ASSIGNED_CORD => payload[18] <= 1 && payload[23] <= 1 && payload[36] <= 2,
+            ASSIGNED_CORD => {
+                payload[18] <= 1
+                    && payload[23] <= 1
+                    && if schema == ASSIGNED_PLAN_SCHEMA {
+                        payload[36] <= 2
+                    } else {
+                        payload[36] <= 3 && payload[41] <= 1
+                    }
+            }
             ASSIGNED_ROUTE_TARGET => length == 6 || payload[2] == 1,
             ASSIGNED_SIGN => payload[34] <= 3,
             ASSIGNED_RESOURCE_CORD => payload[10] <= 1 && payload[11] <= 2,
@@ -272,6 +318,9 @@ pub fn decode_assigned_plan(
                     && payload[233] <= 1
                     && payload[234] <= 1
                     && payload[235] <= 3
+            }
+            ASSIGNED_HOST_CALL if schema == ASSIGNED_NATIVE_PLAN_SCHEMA => {
+                assigned_native_binding(payload).is_ok()
             }
             ASSIGNED_STARTUP => {
                 (payload[0] == 0 && length == 5) || (payload[0] == 1 && length == 3)
@@ -335,6 +384,7 @@ pub fn decode_assigned_plan(
         }
         cursor = end;
     }
+    computations.finish()?;
     if seen != counts {
         return Err(AssignedPlanRefusal::ExtraRecords);
     }
@@ -379,7 +429,12 @@ fn read_identity(bytes: &[u8], offset: usize) -> Result<AssignedIdentity, Assign
     let mut result = [0; 16];
     result.copy_from_slice(
         bytes
-            .get(offset..offset + 16)
+            .get(
+                offset
+                    ..offset
+                        .checked_add(16)
+                        .ok_or(AssignedPlanRefusal::MalformedRecord)?,
+            )
             .ok_or(AssignedPlanRefusal::MalformedRecord)?,
     );
     Ok(AssignedIdentity(result))
@@ -388,7 +443,12 @@ fn read_identity(bytes: &[u8], offset: usize) -> Result<AssignedIdentity, Assign
 fn read_u16(bytes: &[u8], offset: usize) -> Result<u16, AssignedPlanRefusal> {
     Ok(u16::from_le_bytes(
         bytes
-            .get(offset..offset + 2)
+            .get(
+                offset
+                    ..offset
+                        .checked_add(2)
+                        .ok_or(AssignedPlanRefusal::MalformedRecord)?,
+            )
             .ok_or(AssignedPlanRefusal::MalformedRecord)?
             .try_into()
             .map_err(|_| AssignedPlanRefusal::MalformedRecord)?,

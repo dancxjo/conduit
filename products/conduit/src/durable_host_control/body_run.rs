@@ -27,7 +27,10 @@ impl OwnedRunWorker {
         match self {
             Self::General(worker) => worker.progress(owner, root),
             Self::Thermostat(worker) => worker.progress(owner, root),
-            Self::Todo(worker) => Ok(worker.progress(owner, root)?.is_some()),
+            Self::Todo(worker) => {
+                let committed = worker.progress(owner, root)?;
+                Ok(committed.is_some() || worker.is_finished())
+            }
         }
     }
 

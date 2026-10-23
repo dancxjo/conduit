@@ -1,0 +1,15 @@
+{
+  "candidate_parent": "e16f35912d742f4ecc5b623af80fb216dc4c4439",
+  "dev_parent": "113ab8ee0f81f5a3c3b038c038010a6730797f92",
+  "baseline_candidate_run": 39856535676,
+  "baseline_candidate_outcome": "success",
+  "baseline_pr": 6252,
+  "baseline_pr_state": "merged",
+  "unresolved_paths": 0,
+  "validation_scope": "resolved integration working tree; not fresh browser/native product enactment",
+  "private_heap_grant_bytes": 2072576,
+  "private_heap_graph_peak_bytes": 2042048,
+  "private_heap_headroom_bytes": 30528,
+  "scene_sweep": "115 passed, one fixture assertion failed, one existing ignored; exact fixture expectation corrected, focused case passes; production code unchanged by correction",
+  "new_ci_campaign_queued": false
+}

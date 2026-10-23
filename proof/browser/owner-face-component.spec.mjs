@@ -341,14 +341,18 @@ test('argument names come from the current Face caption rather than choice conte
   const element = page.locator('conduit-owner-face');
   const select = element.getByRole('combobox');
   await expect(select).toHaveAccessibleName('Priority');
+  await expect(element.getByLabel('Priority', { exact: true })).toHaveCount(1);
   await expect(select).toHaveAttribute('required', '');
   await select.selectOption('Urgent');
   await expect(select).toHaveAccessibleName('Priority');
+  await expect(element.getByLabel('Priority', { exact: true })).toHaveCount(1);
   const revised = { ...withArgument('Delivery priority'), face_revision: 2, show_id: 'fixture/revised-priority' };
   await element.evaluate((node, view) => node.show(view, {
     invoke: async call => { globalThis.calls.push(call); },
   }), revised);
   await expect(select).toHaveAccessibleName('Delivery priority');
+  await expect(element.getByLabel('Delivery priority', { exact: true })).toHaveCount(1);
+  await expect(element.getByLabel('Priority', { exact: true })).toHaveCount(0);
   await select.selectOption('Normal');
   const button = element.getByRole('button', { name: 'Complete task', exact: true });
   await button.focus();

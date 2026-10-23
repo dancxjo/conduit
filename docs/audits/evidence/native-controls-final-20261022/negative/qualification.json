@@ -1,0 +1,6 @@
+{
+  "source_commit": "5ae6c8eb1f63e4f67422141e8efae50a5f397a51",
+  "observed": "front-door-action-refused before Birth; creche-choice-timeout",
+  "underlying_cause": "unresolved; subsequent diagnostic source did not reproduce",
+  "excluded": "old journey-proof.json and stale frame files are not evidence of this attempt"
+}

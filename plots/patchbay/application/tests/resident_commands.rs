@@ -289,3 +289,122 @@ fn canonical_wire_callback_refuses_malformed_unacknowledged_and_foreign_owner_at
     );
     assert_eq!(port.observe_fragment(basis, &body).unwrap(), before);
 }
+
+#[test]
+fn checked_source_selection_uses_exact_provenance_and_current_show_without_edit_authority() {
+    let (port, body, basis) = setup();
+    let mut port = port.with_prepared_graph_capacity(2).unwrap();
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profile = conduit_plot::ProfileCatalog::new();
+    install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile).unwrap();
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(include_str!("../../../../plots/vision/main.conduit")),
+        &startup,
+    )
+    .unwrap();
+    let authored =
+        conduit_plot::expand_canonical_plot_for_authoring(&checked, "vision", &profile).unwrap();
+    let graph = patchbay_graph::PatchbayGraph::from_authoring(&authored).unwrap();
+    let expected = PatchbayResidentCommand::SelectSource {
+        source_document_id: graph.source_document_id.clone(),
+        checked_plot_id: graph.checked_plot_id.clone(),
+        expanded_plot_id: graph.expanded_plot_id.clone(),
+    };
+    port.append_prepared_source_graph(graph, &"body-plan/canonical-fixture".into())
+        .unwrap();
+    let initial = face(&port, &body, &basis);
+    let show = mask_fixture::available_mask_show(&initial);
+    let request = interaction(&initial, &show, "patchbay.plot.1", None);
+    let prepared = port
+        .admit_face_command(&body, basis.clone(), &initial, &show, &request)
+        .unwrap();
+    assert_eq!(prepared.command(), &expected);
+    let replay = prepared.clone();
+    assert_eq!(
+        port.execute_face_command(prepared, &body, &basis, &initial, &show)
+            .unwrap(),
+        None
+    );
+    assert_eq!(
+        port.execute_face_command(replay, &body, &basis, &initial, &show),
+        Err(PatchbayCommandRefusal::StaleState)
+    );
+    assert_eq!(port.selected_plan_id(), None);
+    check_chunked_projection(&port, &body, &basis);
+    let current = face(&port, &body, &basis);
+    assert!(!current
+        .actions
+        .iter()
+        .any(|action| action.identity == EDIT_CURRENT_ACTION_ID));
+    // A former valid Edit must not acquire authority over the new selection.
+    let old_edit = interaction(
+        &initial,
+        &show,
+        EDIT_CURRENT_ACTION_ID,
+        Some(port.graph().subject_identities().next().unwrap()),
+    );
+    let current_show = mask_fixture::available_mask_show(&current);
+    assert!(port
+        .admit_face_command(&body, basis, &current, &current_show, &old_edit)
+        .is_err());
+}
+
+#[test]
+fn chunked_contribution_matches_full_projection_and_rejects_changed_facts() {
+    let (port, body, basis) = setup();
+    check_chunked_projection(&port, &body, &basis);
+}
+fn check_chunked_projection(
+    port: &PatchbayApplicationPort,
+    body: &BodyId,
+    basis: &FaceContributionBasis,
+) {
+    let full = face(port, body, basis);
+    assert!(port.matches_face_contribution(&full, basis.clone(), body, true));
+    let fragment = port.face_fragment(basis.clone(), body, true).unwrap();
+    let mut unavailable = full.clone();
+    unavailable.actions = port
+        .face_fragment(basis.clone(), body, false)
+        .unwrap()
+        .actions;
+    assert!(port.matches_face_contribution(&unavailable, basis.clone(), body, false));
+    assert!(!port.matches_face_contribution(&unavailable, basis.clone(), body, true));
+    macro_rules! missing {
+        ($field:ident) => {
+            for expected in fragment
+                .$field
+                .iter()
+                .take(1)
+                .chain(fragment.$field.iter().rev().take(1))
+            {
+                assert!(
+                    full.$field.contains(expected),
+                    "absent before removal {}: {:?}",
+                    stringify!($field),
+                    expected
+                );
+                let mut changed = full.clone();
+                changed.$field.retain(|item| item != expected);
+                assert!(
+                    !port.matches_face_contribution(&changed, basis.clone(), body, true),
+                    "{}: {:?}",
+                    stringify!($field),
+                    expected
+                );
+            }
+        };
+    }
+    missing!(subjects);
+    missing!(relationships);
+    missing!(properties);
+    missing!(text);
+    missing!(actions);
+    missing!(disclosures);
+    let mut forged = full.clone();
+    let mut action = forged.actions[0].clone();
+    action.identity = "forged-owned-action".into();
+    action.target = fragment.subjects.last().unwrap().identity.clone();
+    forged.actions.push(action);
+    assert!(!port.matches_face_contribution(&forged, basis.clone(), body, true));
+}

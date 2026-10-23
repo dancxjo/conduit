@@ -51,3 +51,15 @@ test("every shared Face stylesheet consumer admits the current bytes through the
     await rm(scratch, { recursive: true, force: true });
   }
 });
+
+// Component Looks belong to the component shadow tree. A style resource is
+// activated in document.head by the loader and would leak its generic rules.
+test("owner Face Looks remain admitted assets without document-wide activation", async () => {
+  for (const templatePath of templates.slice(1, 3)) {
+    const manifest = JSON.parse(await readFile(templatePath, "utf8"));
+    const look = manifest.resources.find(resource => resource.role === "owner-face-look");
+    assert.ok(look, `${templatePath}: component Look is retained`);
+    assert.equal(look.kind, "content", `${templatePath}: shadow Look must not activate globally`);
+    assert.equal(look.path, "owner-face-look.css");
+  }
+});

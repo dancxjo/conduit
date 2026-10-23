@@ -133,3 +133,26 @@ test('Cord Source byte extents preserve Unicode and reject split code points', (
   property('source-byte-start').value.Count = 4;
   assert.throws(() => resolvePatchbayEditorTarget(observation, [unicode]), /Unicode/);
 });
+
+
+test('composed Source evidence must all agree with the exact editor inventory', () => {
+  const agreeing = fixture();
+  agreeing.observation.face.properties.push(structuredClone(agreeing.observation.face.properties[1]));
+  assert.equal(resolvePatchbayEditorTarget(agreeing.observation, [agreeing.plot]).plot, agreeing.plot);
+  for (const sourceDocumentId of [undefined, '', 42]) {
+    assert.throws(() => resolvePatchbayEditorTarget(agreeing.observation, [{ ...agreeing.plot, sourceDocumentId }]),
+      error => error.code === 'PatchbayEditRefused');
+  }
+  for (const alter of [
+    value => { value.face.properties.push({ ...structuredClone(value.face.properties[1]), value: { Identity: 'source/stale' } }); },
+    value => { value.face.properties.push({ ...structuredClone(value.face.properties[1]), value: { Text: 'source/lesson' } }); },
+    value => { value.face.properties.push({ ...structuredClone(value.face.properties[1]), value: { Identity: 'source/lesson', Text: 'source/lesson' } }); },
+    value => { value.face.properties = value.face.properties.filter(property => property.name !== 'source-document-id'); },
+    value => { value.face.properties[1].value.Identity = 'source/stale'; },
+  ]) {
+    const { plot, observation } = fixture();
+    alter(observation);
+    assert.throws(() => resolvePatchbayEditorTarget(observation, [plot]),
+      error => error.code === 'PatchbayEditRefused' && /Source document differs/.test(error.message));
+  }
+});

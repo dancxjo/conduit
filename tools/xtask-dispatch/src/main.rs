@@ -142,6 +142,8 @@ mod standalone_locks;
 mod workspace;
 
 mod ci_dispatch;
+#[path = "../../xtask/src/commands/dht11_probe.rs"]
+mod dht11_probe;
 mod local_storage;
 #[path = "../../xtask/src/commands/model_authoring.rs"]
 mod model_authoring;
@@ -151,6 +153,13 @@ mod tool_setup;
 
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(result) = dht11_probe::dispatch(&arguments) {
+        if let Err(error) = result {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     if arguments.first().map(String::as_str) == Some("prove")
         && arguments.get(1).map(String::as_str) == Some("model-authoring")
     {

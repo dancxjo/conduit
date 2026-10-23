@@ -1,0 +1,16 @@
+[package]
+name = "conduit-environment-specification-proof"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-body-make = { path = "../../../make/body" }
+conduit-host-make = { path = "../../../make/host" }
+conduit-host-rp2040 = { path = "../../../targets/rp2040/make" }
+conduit-host-browser-make = { path = "../../../targets/browser/make" }
+conduit-face = { path = "../../../semantics/face", features = ["plot-catalog"] }
+conduit-plot = { path = "../../../architecture/plot" }
+serde_json = "1"

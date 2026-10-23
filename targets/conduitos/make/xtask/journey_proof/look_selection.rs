@@ -1,9 +1,10 @@
 //! Actual product preference transitions, joined to complete Face/Show receipts.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{face_correspondence, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::{Face, Show};
 use serde_json::{json, Value};
-use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+use std::{os::unix::net::UnixStream, path::Path, process::Child};
 const PREFIX: &str = "CONDUIT_NATIVE_COMPONENT_REALIZATION ";
 
 pub(super) fn exercise(
@@ -13,7 +14,7 @@ pub(super) fn exercise(
     reader: &mut qmp::Reader,
     artifacts: &mut Artifacts,
 ) -> Result<Value, ConduitosError> {
-    let initial = fs::read_to_string(serial).map_err(io_error)?;
+    let initial = live_serial::read_complete(serial).map_err(io_error)?;
     let faces = face_correspondence::records(&initial, "CONDUIT_NATIVE_FACE ")?;
     let origin = faces
         .last()
@@ -55,9 +56,11 @@ pub(super) fn exercise(
             "creche-engineering-compact",
         ),
     ] {
-        let before =
-            face_correspondence::records(&fs::read_to_string(serial).map_err(io_error)?, PREFIX)?
-                .len();
+        let before = face_correspondence::records(
+            &live_serial::read_complete(serial).map_err(io_error)?,
+            PREFIX,
+        )?
+        .len();
         journey_input::key_pair(stream, reader, key, "creche-look-selection")?;
         journey_input::wait_for_record_retaining_guest(
             serial,
@@ -66,7 +69,7 @@ pub(super) fn exercise(
             frame,
             |text| Ok(face_correspondence::records(text, PREFIX)?.len() > before),
         )?;
-        let text = fs::read_to_string(serial).map_err(io_error)?;
+        let text = live_serial::read_complete(serial).map_err(io_error)?;
         let records = face_correspondence::records(&text, PREFIX)?;
         if records.len() != before + 1 {
             return Err(refusal("Look key produced duplicate selection records"));
