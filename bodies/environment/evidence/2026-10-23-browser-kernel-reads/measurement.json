@@ -1,0 +1,36 @@
+{
+  "schema": "conduit.environment/browser-kernel-read-proof@1",
+  "implementation_commit": "5bca36eb3",
+  "proof_class": "cpu-conformance",
+  "entrance": "cargo xtask prove environment recording-storage",
+  "tests_passed": 16,
+  "focused_bridge_cases": [
+    "valid immutable record",
+    "corrupt record",
+    "stale Boot scope preserves pending request",
+    "forged input bound preserves pending request",
+    "overlapping begin refuses",
+    "completion replay refuses",
+    "begin replay refuses",
+    "history changes only after kernel steps"
+  ],
+  "allocations_during_begin": 0,
+  "reallocations_during_begin": 0,
+  "allocations_during_completion_and_steps": 0,
+  "reallocations_during_completion_and_steps": 0,
+  "strict_clippy": [
+    "environment-browser library",
+    "environment-make recording_recovery integration test with browser-storage-proof"
+  ],
+  "fixture_boundaries": [
+    "Host/Boot/Play and storage authority supplied by CPU fixture",
+    "saved record bytes supplied by CPU fixture"
+  ],
+  "not_proven": [
+    "live IndexedDB effects correlated to this kernel",
+    "actual recorder Body and Line lifecycle",
+    "durable Root catalog seed custody",
+    "complete MCU climate memory admission",
+    "physical overnight recording"
+  ]
+}

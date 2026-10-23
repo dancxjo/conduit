@@ -1076,3 +1076,6 @@ and zero-allocation execution measurement. The existing `recording-browser`
 proof separately exercises actual IndexedDB persistence. These proofs are not yet
 a live browser Body executing kernel-issued reads; Root still must bind the
 actual store, current Body lifecycle and admitted memory/work closure.
+
+The [browser/kernel read receipt](evidence/2026-10-23-browser-kernel-reads/measurement.json)
+records this CPU boundary and the remaining live-recorder obligations.
