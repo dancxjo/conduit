@@ -201,6 +201,7 @@ fn graphics_command_pressure_moves_whole_field_before_global_limit() {
         .map(|_| {
             let mut row = item("Prefix", None, None);
             row.checkbox = Some(false);
+            row.icon = Some(conduit_face::FaceIconKey::Status);
             row
         })
         .collect::<Vec<_>>();
@@ -346,6 +347,7 @@ fn panel_preflight_respects_global_row_and_command_caps_not_only_lane_height() {
             .map(|_| {
                 let mut row = item("Prefix", None, None);
                 row.checkbox = command_pressure.then_some(false);
+                row.icon = command_pressure.then_some(conduit_face::FaceIconKey::Status);
                 row
             })
             .collect::<Vec<_>>();

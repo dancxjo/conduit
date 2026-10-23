@@ -88,9 +88,42 @@ fn assert_frame(scene: &NativeFaceScene) -> usize {
         assert_eq!(action, hit.action);
         assert_eq!(argument, hit.argument);
         assert!(action.availability.is_available());
-        assert!(frame.scene.commands().iter().any(|command| command.kind
-            == GraphicsCommandKind::Rect
-            && command.bounds == hit.bounds));
+        let row = scene
+            .rows()
+            .iter()
+            .find(|row| row.page == scene.page && row.control == Some(hit.control))
+            .unwrap();
+        if let Some(checked) = row.checkbox {
+            assert_eq!(
+                boolean_choice::selected(scene.face(), hit.control.action),
+                Some(checked)
+            );
+            assert!(frame.scene.commands().iter().any(|command| {
+                command.bounds
+                    == LayoutRect {
+                        x: hit.bounds.x + row.padding as i16,
+                        y: hit.bounds.y + row.padding as i16,
+                        width: 18,
+                        height: 18,
+                    }
+                    && if checked {
+                        command.kind == GraphicsCommandKind::Icon
+                            && command.payload() == conduit_face::FaceIconKey::Confirm.as_str()
+                    } else {
+                        command.kind == GraphicsCommandKind::Rect
+                            && command.style == GraphicsShapeStyle::Stroke
+                    }
+            }));
+        } else {
+            assert!(
+                frame
+                    .scene
+                    .commands()
+                    .iter()
+                    .any(|command| command.kind == GraphicsCommandKind::Rect
+                        && command.bounds == hit.bounds)
+            );
+        }
         assert_eq!(
             frame
                 .hit_test(hit.bounds.x + 1, hit.bounds.y + 1)

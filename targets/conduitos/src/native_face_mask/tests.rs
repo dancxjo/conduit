@@ -437,3 +437,6 @@ mod pointer_motion;
 
 #[path = "canonical_publication_tests.rs"]
 mod canonical_publication;
+
+#[path = "structured_configuration_tests.rs"]
+mod structured_configuration;

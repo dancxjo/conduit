@@ -6,7 +6,8 @@ mod rng;
 pub mod state;
 pub mod wire;
 pub const HANDSHAKE_BYTES: usize = 1024;
-pub const FRAME_BYTES: usize = 32 * 1024;
+// #6288: exact typed native layout join envelopes; fixed guest heap unchanged.
+pub const FRAME_BYTES: usize = 48 * 1024;
 pub const MAXIMUM_BINARY_MESSAGE_BYTES: usize = FRAME_BYTES - 14;
 /// Raw binary transport, never JSON/decimal byte expansion.
 pub const MAX_BLOB: usize = FRAME_BYTES;

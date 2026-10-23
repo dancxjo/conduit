@@ -80,6 +80,10 @@ impl FaceArrival {
             .component_configuration()
             .ok_or("creche-look-configuration-absent")?;
         let fresh_show = self.mask.show().ok_or("creche-look-show-absent")?;
+        let layout = configuration
+            .layout
+            .as_ref()
+            .ok_or("creche-look-layout-configuration-absent")?;
         let evidence = serde_json::json!({
             "schema":"conduit.conduitos/component-realization@1",
             "selection_entrance":"local-creche",
@@ -91,6 +95,8 @@ impl FaceArrival {
                 "root":selection.creche_root(CrecheComponentRecipe::ResponsiveColumns),
                 "recipe_canonical_sha256":alloc::format!("{:x}", Sha256::digest(configuration.recipe.canonical_value())),
                 "recipe_canonical_bytes":configuration.recipe.canonical_value().len(),
+                "layout_canonical_sha256":alloc::format!("{:x}", Sha256::digest(layout.canonical_value())),
+                "layout_canonical_bytes":layout.canonical_value().len(),
                 "implementation_id":configuration.implementation_id,
                 "execution_profile_id":configuration.execution_profile_id,
                 "placement_id":configuration.placement_id,

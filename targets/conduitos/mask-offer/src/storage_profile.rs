@@ -155,9 +155,12 @@ pub fn prepare_collection_component_stage_from_offer(
     selection: ComponentVisualSelection,
     recipe: TodoComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    configured::prepare_component_document(
+    layout_configured::prepare_offered_component_document(
         host,
-        conduit_face::TODO_COMPONENT_MASK_SOURCE,
+        (
+            conduit_face::TODO_COMPONENT_MASK_SOURCE,
+            conduit_face::TODO_LAYOUT_MASK_SOURCE,
+        ),
         selection.todo_root(recipe),
         NativeMaskStorageProfile::Collection,
     )
@@ -168,9 +171,12 @@ pub fn prepare_collection_creche_stage_from_offer(
     selection: ComponentVisualSelection,
     recipe: CrecheComponentRecipe,
 ) -> Result<(MaskStage, ConfiguredMaskConfiguration), MaskOfferError> {
-    configured::prepare_component_document(
+    layout_configured::prepare_offered_component_document(
         host,
-        conduit_face::CRECHE_COMPONENT_MASK_SOURCE,
+        (
+            conduit_face::CRECHE_COMPONENT_MASK_SOURCE,
+            conduit_face::CRECHE_LAYOUT_MASK_SOURCE,
+        ),
         selection.creche_root(recipe),
         NativeMaskStorageProfile::Collection,
     )

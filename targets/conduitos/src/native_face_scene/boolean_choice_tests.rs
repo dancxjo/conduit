@@ -197,36 +197,29 @@ fn pointer_checkbox_has_named_hit_and_independent_non_color_state_geometry() {
                 .find(|hit| hit.control == control)
                 .unwrap();
             assert_eq!(hit.action.identity, "creche.plot.3");
-            let square = frame
+            let mark = frame
                 .scene
                 .commands()
                 .iter()
                 .find(|command| {
-                    command.kind == GraphicsCommandKind::Rect
+                    command.kind == GraphicsCommandKind::Icon
+                        && command.payload() == conduit_face::FaceIconKey::Confirm.as_str()
                         && command.bounds.width == 18
                         && command.bounds.height == 18
                 })
                 .unwrap();
-            assert_ne!(square.bounds, hit.bounds, "checkbox is not the row outline");
-            assert!(
-                frame
-                    .scene
-                    .commands()
-                    .iter()
-                    .any(|command| command.kind == GraphicsCommandKind::Rect
-                        && command.bounds.width == 10
-                        && command.bounds.height == 10)
+            assert_ne!(
+                mark.bounds, hit.bounds,
+                "state mark is independent of focus"
             );
-            assert!(
-                frame
-                    .scene
-                    .commands()
-                    .iter()
-                    .filter(|command| command.kind == GraphicsCommandKind::Rect
-                        && command.paint == GraphicsPaintRole::Focus)
-                    .count()
-                    >= 2
-            );
+            assert!(frame.scene.commands().iter().any(|command| {
+                command.kind == GraphicsCommandKind::Rect
+                    && command.paint == GraphicsPaintRole::Focus
+                    && command.bounds.x == hit.bounds.x + 3
+                    && command.bounds.y == hit.bounds.y + 3
+                    && command.bounds.width == hit.bounds.width - 6
+                    && command.bounds.height == hit.bounds.height - 6
+            }));
             hit.bounds
         };
         let interaction = submitted(scene.pointer(bounds.x + 1, bounds.y + 1, &show, 1).unwrap());

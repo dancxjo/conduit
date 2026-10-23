@@ -3,6 +3,10 @@ use super::*;
 use crate::display::typography::Typography;
 use alloc::string::String;
 
+#[path = "layout/mechanical.rs"]
+mod mechanical;
+pub(super) use mechanical::admit as admit_mechanical;
+
 #[path = "layout/configured.rs"]
 mod configured;
 #[cfg(test)]
@@ -112,7 +116,7 @@ pub(super) fn append_row_chrome(
             ),
         )?;
     }
-    if row.control.is_some() {
+    if row.control.is_some() && row.checkbox.is_none() {
         push(
             scene,
             GraphicsCommand::rect(
@@ -133,8 +137,8 @@ pub(super) fn append_row_chrome(
             ),
         )?;
     }
-    // A second inset outline distinguishes focus even with identical paints
-    // (forced colors or monochrome scanout). It adds no semantic state.
+    // An inset outline distinguishes focus even with identical paints. Choice
+    // indicators remain independent; other controls also have their outer box.
     if focused {
         push(
             scene,
@@ -387,8 +391,8 @@ fn fit_padding<'a>(
 
 fn row_commands(item: &document::Item, region_start: bool) -> usize {
     1 + usize::from(item.icon.is_some())
-        + 2 * usize::from(item.checkbox.is_some())
-        + usize::from(item.control.is_some())
+        + usize::from(item.checkbox.is_some())
+        + usize::from(item.control.is_some() && item.checkbox.is_none())
         + usize::from(region_start)
         + usize::from(matches!(
             item.role,

@@ -12,6 +12,8 @@ pub use raster::{render_glyph, render_text, render_text_scaled, render_text_sele
 mod preview;
 pub use preview::single_line_preview;
 mod ink;
+mod intrinsic;
+pub use intrinsic::{IntrinsicTextMetrics, intrinsic_text_metrics, resolve_em_sixteenths};
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;
@@ -60,6 +62,8 @@ pub(super) struct Glyph {
 
 /// Vertical metrics in physical pixels for one fixed Presenter profile.
 pub struct ProfileMetrics {
+    /// Actual rasterization size, distinct from ascent and line spacing.
+    pub em_size: u16,
     pub ascent: i16,
     pub line_height: u16,
 }

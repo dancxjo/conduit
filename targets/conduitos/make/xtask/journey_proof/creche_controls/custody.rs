@@ -1,7 +1,8 @@
 //! Join actual canonical build metadata to Boot/world and current component Show.
 //! Logical resolved-image binding and final bootable ISO identity stay distinct.
 use super::*;
-pub(super) const PRESENTER: &str = "face/renderer-conduitos-component@1";
+pub(super) const PRESENTER: &str = "face/renderer-conduitos-layout-component@1";
+pub(super) const CAPABILITY: &str = "renderer-conduitos-layout-component";
 fn nonempty(value: &Value) -> bool {
     value.as_str().is_some_and(|s| !s.is_empty())
 }
@@ -59,7 +60,7 @@ pub(super) fn component(record: &Value) -> Result<(), ConduitosError> {
     let show = &record["show"];
     let manifestation = &show["manifestation"];
     if manifestation["presenter_implementation_id"] != PRESENTER
-        || manifestation["presenter_capability_id"] != "renderer-conduitos-component"
+        || manifestation["presenter_capability_id"] != CAPABILITY
         || manifestation["target_subject"] != "conduitos/creche/face"
         || ["source_document_id", "checked_plot_id", "expanded_plot_id"]
             .iter()
@@ -118,7 +119,7 @@ mod tests {
         let metadata = json!({"target_build_manifest":{"schema":"conduit.host/target-build-manifest@3","artifact_role":"product-host","source_identity":"source","target":"conduitos/x86_64/pc","image":{"sha256":"iso"},"image_id":"image:sha256:iso","resolved_description_binding":"image:logical","profile_id":"profile","build_id":"build","resolved_build":resolved},"resolved_image":{"manifest":resolved,"payload":{"profile_id":"profile","build_id":"build"}}});
         let boot = json!({"schema":"conduit.conduitos.boot-sign/v1","status":"accepted","arch":"x86_64","qemu_profile":"q35-single-cpu-512m-normal-product","profile_id":"profile","build_id":"build","image_binding":"image:logical","host_id":"host","boot_id":"boot","offer_generation":1});
         let world = json!({"status":"world","body_id":null,"profile_id":"profile","build_id":"build","image_id":"image:logical","host_id":"host","boot_id":"boot","offer_generation":1,"face_id":"face","manifestation_id":"manifestation","presenter_implementation_id":PRESENTER});
-        let manifestation = json!({"host_id":"host","boot_id":"boot","offer_generation":1,"face_id":"face","face_revision":1,"manifestation_id":"manifestation","lifecycle":"Available","presenter_implementation_id":PRESENTER,"presenter_capability_id":"renderer-conduitos-component","target_subject":"conduitos/creche/face","plan_id":"plan","active_play_id":"play"});
+        let manifestation = json!({"host_id":"host","boot_id":"boot","offer_generation":1,"face_id":"face","face_revision":1,"manifestation_id":"manifestation","lifecycle":"Available","presenter_implementation_id":PRESENTER,"presenter_capability_id":CAPABILITY,"target_subject":"conduitos/creche/face","plan_id":"plan","active_play_id":"play"});
         let record = json!({"face":{"identity":"face"},"show":{"host_id":"host","boot_id":"boot","offer_generation":1,"face_id":"face","face_revision":1,"manifestation_id":"manifestation","lifecycle":"Available","mask_plan_id":"plan","mask_active_play_id":"play","mask_plot":{"source_document_id":"source/doc","checked_plot_id":"checked","expanded_plot_id":"expanded"},"manifestation":manifestation}});
         (metadata, boot, world, record)
     }
@@ -156,5 +157,24 @@ mod tests {
         let mut wrong = record;
         wrong["show"]["mask_plot"]["checked_plot_id"] = Value::Null;
         assert!(validate(&metadata, &boot, &world, &wrong, "source", "iso").is_err());
+    }
+    #[test]
+    fn presenter_and_capability_tuple_substitution_refuses() {
+        let (metadata, boot, world, record) = fixture();
+        for (implementation, capability) in [
+            ("face/renderer-conduitos-component@1", CAPABILITY),
+            (PRESENTER, "renderer-conduitos-component"),
+            (
+                "face/renderer-conduitos-component@1",
+                "renderer-conduitos-component",
+            ),
+        ] {
+            let mut wrong = record.clone();
+            wrong["show"]["manifestation"]["presenter_implementation_id"] = json!(implementation);
+            wrong["show"]["manifestation"]["presenter_capability_id"] = json!(capability);
+            let mut wrong_world = world.clone();
+            wrong_world["presenter_implementation_id"] = json!(implementation);
+            assert!(validate(&metadata, &boot, &wrong_world, &wrong, "source", "iso").is_err());
+        }
     }
 }

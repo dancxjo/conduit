@@ -46,7 +46,8 @@ pub(super) fn applies(face: &Face, control: FaceControl) -> bool {
 
 pub(super) const INSET: u16 = 26;
 
-/// The square and mark are distinct from the action-row/focus outlines.
+/// One existing finite glyph or square indicates the source value; the row
+/// focus outline is independent. No additional button outline is needed.
 pub(super) fn append(
     scene: &mut GraphicsScene,
     row: &layout::Row,
@@ -61,25 +62,15 @@ pub(super) fn append(
         width: 18,
         height: 18,
     };
-    push(
-        scene,
-        GraphicsCommand::rect(bounds, screen, row.paint, GraphicsShapeStyle::Stroke),
-    )?;
-    if checked {
-        push(
-            scene,
-            GraphicsCommand::rect(
-                LayoutRect {
-                    x: bounds.x + 4,
-                    y: bounds.y + 4,
-                    width: 10,
-                    height: 10,
-                },
-                screen,
-                row.paint,
-                GraphicsShapeStyle::Fill,
-            ),
-        )?;
-    }
-    Ok(())
+    let command = if checked {
+        GraphicsCommand::icon(
+            bounds,
+            screen,
+            row.paint,
+            conduit_face::FaceIconKey::Confirm,
+        )
+    } else {
+        GraphicsCommand::rect(bounds, screen, row.paint, GraphicsShapeStyle::Stroke)
+    };
+    push(scene, command)
 }

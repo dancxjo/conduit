@@ -1,0 +1,797 @@
+{
+  "source_commit": "80260a13fbc7f611f8f7dda7804d195adfa6b2ec",
+  "verification": "encoded length/hash, every PNG chunk CRC, dimensions, independently decoded RGBA SHA256",
+  "packets": {
+    "minimum-narrow": [
+      {
+        "path": "802-narrow/journey-frames/front-door-ready.png",
+        "png_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+        "pixel_sha256": "7410a42af83ea0a1321e57216b8739f6c6011e97e6130ebbd152b4ee11a54ce3",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-ready.png",
+        "png_sha256": "8bb852820bce0bf1ad7f99026e37c3599872f3d2ee1a45c040831e691720ba12",
+        "pixel_sha256": "42e1d89990151a3e7f4725e45d398ea61c6d97adb9d8bc2cb2979169ec81a2be",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-primary-1.png",
+        "png_sha256": "d2bf612fdd32dcb66ec085d2d7970e557e211ad79341115e2cc18f4abc0bdcdb",
+        "pixel_sha256": "fad80c904704d1fbfd13d5189b8035ff513d13170002a8301fb22c8cc5d5279b",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-primary-2.png",
+        "png_sha256": "bc4e06d024c576aab9f996e8ee2623ce612709dbeac2405706e33d75be74cebe",
+        "pixel_sha256": "e8e7cc83e23d5117344dba5231d4037cf9dd375a40dca97fc8913e34fd6dee08",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-primary-4.png",
+        "png_sha256": "4f9580e3a1bfebe1f846ee8ea0d7c3c7b4fcc2d1e7bec95ca17ac55c8ebda4e4",
+        "pixel_sha256": "ac71482c82eb44ad638dfbbc86a6479a4d45bb3b955058d3d78a0218946f7cfd",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-details-1.png",
+        "png_sha256": "399086d578c4677dac0748570c587b914f3ebc14461a1d23ccb5165ac107886b",
+        "pixel_sha256": "357ef741db657202140cf15914bb3d5e437cb4dee221e6bc584b13f8b40af63e",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-details-11.png",
+        "png_sha256": "6fe85848072922ea329f76299d289473f7cc751bdeb5f5ccd7704a71504d0cdd",
+        "pixel_sha256": "6dfb651e710d20d851f7adcd5853844f896f28e0f4b0a1cbc8058be24dfe8d2c",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-details-22.png",
+        "png_sha256": "ca291bf87478bb9bbf654f99a61ed18729245880333a7c767de6d13c4db670f6",
+        "pixel_sha256": "512e677196706167363a28aed577821519e3e8fb32a7824c4790f9bb50857dca",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-input-incomplete.png",
+        "png_sha256": "fdea3bcb814591205eabcc270191912655227e8d773c601f31e1156e91cd4088",
+        "pixel_sha256": "bb90e37dfed652a8d36ff55e59b3ceec093805e75f043f47ccc6eb8795c62892",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-probe-name.png",
+        "png_sha256": "b4c066210a03a8c2bdebd3e183f8534167561ead5167c4365274fdff8f901983",
+        "pixel_sha256": "6ed5b2b925a9105b320b30436a2b6a4801f8d643bee94a0c742afc577d3d421f",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-long-name-1.png",
+        "png_sha256": "d2bf612fdd32dcb66ec085d2d7970e557e211ad79341115e2cc18f4abc0bdcdb",
+        "pixel_sha256": "fad80c904704d1fbfd13d5189b8035ff513d13170002a8301fb22c8cc5d5279b",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-long-name-2.png",
+        "png_sha256": "c1519711bc0d19f85dd677d6b2860195a576472f95bcd68981944c32dc8c94e5",
+        "pixel_sha256": "e29afe0e71da9a9230121d343f355f93130c31fc4965b499fa57e7b7480c8558",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-controls-long-name-4.png",
+        "png_sha256": "f013c433cd012b66a3da05d62b3f6ced0a4d74dfeea777853b416bfc71ba2c64",
+        "pixel_sha256": "2055a065fcddf6644f01a942aa84e58fd3d876dd28998cb49c1d38387f514e95",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-naming-welsh.png",
+        "png_sha256": "ecb51b7fa6f63507f97c26094053f3c2db065fc2273613591828c8b5aa02a25c",
+        "pixel_sha256": "8fc7e96c3f3ce70c51d61ecf7bd9fc47626769d5566e8bff25bee4340147dea8",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-naming-pointer-focused.png",
+        "png_sha256": "db3914bec1bc4d522288f15e408e5df188b0a16aab7103f3ddc132db14e34982",
+        "pixel_sha256": "af675532bfd3de38cf5de89acb701714c9be4d3ad941590fd3f626d0db7e8a5b",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-naming-tradition-restored.png",
+        "png_sha256": "c63564701de230646ca9803c340d2e77069be6bfd13bb8efce6bf90e23689bbd",
+        "pixel_sha256": "00142f7591482ce8a93d2c0bfc0ee110be2730229a8f7acff85d7b8722d2a6c2",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-narrow/journey-frames/creche-naming-exact-name-restored.png",
+        "png_sha256": "bf828a62306588b0b44fc9894193fe75c69e0ca4f58b92cf6f019eaccb54e3dd",
+        "pixel_sha256": "35647ed5476e7e0b224f8e3a22fdd775269ccd0bc1cc780785f2d7c3ca2f3bc8",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      }
+    ],
+    "minimum-wide": [
+      {
+        "path": "802-wide/journey-frames/front-door-ready.png",
+        "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+        "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-ready.png",
+        "png_sha256": "01abc663a6f7227d8b1fa19ea8bce7958ab058f9ca94cf1dd382ab32675f17b9",
+        "pixel_sha256": "52799d86d248672802270eecadb8b11cf946cc94dddd36839953ffbf534f43cc",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-primary-1.png",
+        "png_sha256": "b184097e031a6ad5094eee4c54055ae50cc937947ea03663256cf09053522c77",
+        "pixel_sha256": "65e2eada9b45cfe1410f0107b6ac999dc397d16f96e18ebf829e929ac9bc036f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-primary-2.png",
+        "png_sha256": "da6438fdd0e3a5785fbcadb3443b0cb0c83d00a35060047d037ac45bedbd86a6",
+        "pixel_sha256": "6d6a48798e4116cfc909e337390ed9c3dcd7df33e35bb4d6987cdc9e492d7c1b",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-details-1.png",
+        "png_sha256": "73957ed28ee21b677aca8af3dcb5358b7031168328b3df7de4786100da7f67ac",
+        "pixel_sha256": "a2e1954f75508f6f37d692c721f71761952a83871d23f9280f94c151d0fd8be4",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-details-6.png",
+        "png_sha256": "bd9c93850caaf71db2d6145c796e5631a48502e6f5a01ec8fbcffb07d2af4939",
+        "pixel_sha256": "933b8ae19f324fdf171cbb39410c9b4af588d6df2aa5cf4b0889614c663591b6",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-details-11.png",
+        "png_sha256": "6ea5bb1a35a001e5846a8a8b6b877425b2640df6d7debb843761de6807cf2bc3",
+        "pixel_sha256": "ac144a4a6ff1b838a1e748a7c47b0c927394f8fed3b2e910093f70f4675cbc0b",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-input-incomplete.png",
+        "png_sha256": "05286f6e75e776c311728140d8dfde0dbf8e56647022fdca9d53c179acb70327",
+        "pixel_sha256": "c42621a5d0a1eff00c6bebdb149e16e77637bb7797d079681896ec3fa4ced2d4",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-probe-name.png",
+        "png_sha256": "10a7cb55c5daa4d017a82e139be361e4e03174bac36452922a2c418db56592b8",
+        "pixel_sha256": "c94a6d8fd242fc0860edcb28dad03dde069b53b6992cf838dd7fe23bfd262b2b",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-long-name-1.png",
+        "png_sha256": "48a891ec072d21cef0ba5a65a998ffc559167a6495b84143ad6f30d65aa11eaa",
+        "pixel_sha256": "bc2c6efeb29c18fc049ce2686a3fa988762a81ecf13b7a5f24f5aecfd880a796",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-controls-long-name-2.png",
+        "png_sha256": "4d59bf7bfb4fed47a015d5927d25037ecc3e28c67236a0f165e6a7b5d0b4df5d",
+        "pixel_sha256": "93ff530edd59a6cfc5a25aea01ed0be263eedbf18959f6e171802791a15ad10c",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-naming-welsh.png",
+        "png_sha256": "5c745a906f64204091a689e20853153ec429402b0fbd24449b0e17102a66e91b",
+        "pixel_sha256": "98079362759665c5ce2992f02e95564ab63ec7f2142aa1af5d746f084dd22f07",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-naming-pointer-focused.png",
+        "png_sha256": "78e6004722d15e00c90fc2a8d103a6d704f5c518ead4fbab82953a1fdda4e23f",
+        "pixel_sha256": "add4b77c93c0fe44032ad06d1017f3ffc51b0f56a9b89753842fd01642c4871f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-naming-tradition-restored.png",
+        "png_sha256": "d76ff0a66d488231e070f5ad36d9dd8dc0c0b080d191c010e7608b987bfe8d38",
+        "pixel_sha256": "0adc945bbdccbd7f496435119992aea234dbd657ccd27d92f50d8b06aa4b4196",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-wide/journey-frames/creche-naming-exact-name-restored.png",
+        "png_sha256": "193b9543592c5da191784a8e1cfb32a91fa318004cf3aef573ae99ecc9ccd70e",
+        "pixel_sha256": "f5b0b5e7d214691d47fd85b475351eabdc23bd8e2dc7ba777834542ea7b23641",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      }
+    ],
+    "normal-journey": [
+      {
+        "path": "802-journey/journey-frames/front-door-ready.png",
+        "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+        "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-ready.png",
+        "png_sha256": "1b4c966c453988fe3fce88c267e12395caae0c84924d187c261da208a90a4c8a",
+        "pixel_sha256": "2a14088748d1a76650d422ec2be7bfab2396a52fe6264592663199f62ccad5a9",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-editorial-compact.png",
+        "png_sha256": "72a363c756bf29dc6f91e4347b43d1ba348adae38bb5f9c1c1d6b286751275e7",
+        "pixel_sha256": "9edcbfe8de5b2ad66a6f66360977f0a59dd1efe5105f527fd9fd04143e26b010",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-editorial-spacious.png",
+        "png_sha256": "fe49a930479dc2bbeab89f9112b94a87eecf93927ec2dd173ed22ce75c430036",
+        "pixel_sha256": "13f9b495861055951d211022b06e6afdbf3e09a66f1d0d1e7ba48b94eb744e3f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-engineering-spacious.png",
+        "png_sha256": "438c6d82d322d3d5e9a0bd37d41711ffcb3552286878f0d492cb9f935d724632",
+        "pixel_sha256": "02f2c0a589d0a842d11904a98474a0f55ecf46d3d9758b5eff53b8c4c579cfaa",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-engineering-compact.png",
+        "png_sha256": "f1b274457f517f96f08b6d779de40e7c4a7b1b813e61469065dfe185dd5b7518",
+        "pixel_sha256": "377e330e773c7d26879663ef4fe789861da9ee16f66074813294ce72efa54cd4",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-three-selected.png",
+        "png_sha256": "97c239e92289a6fd2ca48ae01f6fff3a11d5a52938ced566dec1b341787170bd",
+        "pixel_sha256": "9b54553cf58c109b07e378fff326529a4175266d87ed978be601cbfaae4a0634",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-four-restored.png",
+        "png_sha256": "b365445b22a940ac2f8e762e83061226ff6b44feb5735b9411de2988f967055d",
+        "pixel_sha256": "464ff34175392206acbc58a61be8cff40cb93ff8fbe1f08818e997cce4c278de",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-fourth-checked.png",
+        "png_sha256": "c88e52fde1dff076065b4effb78900a03a23c3e0865ba2aa9dee91507d749e80",
+        "pixel_sha256": "035437580eafc833504f058e0e3bf96649143c4af19cb22d012c44b30f70b247",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-pointer-three-selected.png",
+        "png_sha256": "e0326f53bf1e2e37e907446c0610d15f497baeb5ccc0bb4d2910045294bdfe06",
+        "pixel_sha256": "726dad20c70e13849c400a930e3fe93735213bac64b67750ad00be4b0bf1683f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/creche-pointer-four-restored.png",
+        "png_sha256": "ad325b8a2b36f2e73b5a3faee23e6b449e21af97805af1dee594e352ac1d07fb",
+        "pixel_sha256": "756ff0fd598abe311337ee53cd535c5e55cd7427e9cca3bc7ca56ac8ad48ea15",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/body-playing.png",
+        "png_sha256": "b94fd1b75c8ea9d72a95fd509de8e49513526cd644b5061f9c348764f04d0e22",
+        "pixel_sha256": "43adcf3ef39683836aaf4b1f98598543c69f9f8cfbec4e52f8d523e89a87bce2",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/wake-refused.png",
+        "png_sha256": "79fa8bf0bfbfebc05b1cf48880a108f9377a9e17ff9e3a5eae3272763e4c5ecd",
+        "pixel_sha256": "45909e5fcb3c10cea7aecc106a9b48c976c1221f4d14f3a69ebef72eb7e665ab",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/protected-keyboard-canvas.png",
+        "png_sha256": "48b75b951696e8e21c9a30ef8681cd33b4d76ca4786d37b1a9eb025e006de22f",
+        "pixel_sha256": "f96b2a0183480866f0ef454e201479c117b390b30ce5772fe6d298b785252397",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/protected-memory-lantern.png",
+        "png_sha256": "9c6af39f7e979983504a8cd425f65c869ce379403939f2921714af0eaca52c52",
+        "pixel_sha256": "a2b4eabbbfd9109585ee0079e676a2932e5f8097cb588b352b0f4444c6b74de5",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/home.png",
+        "png_sha256": "b94fd1b75c8ea9d72a95fd509de8e49513526cd644b5061f9c348764f04d0e22",
+        "pixel_sha256": "43adcf3ef39683836aaf4b1f98598543c69f9f8cfbec4e52f8d523e89a87bce2",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-workspace.png",
+        "png_sha256": "794c7834ec097b663e957dd580354fdb72ff93e99eac178b3d506837f4316107",
+        "pixel_sha256": "b14ee5d8c4320b4c7cc849d4fb57436b57de32f10b2e6aa25987c233551b4cd5",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-face.png",
+        "png_sha256": "794c7834ec097b663e957dd580354fdb72ff93e99eac178b3d506837f4316107",
+        "pixel_sha256": "b14ee5d8c4320b4c7cc849d4fb57436b57de32f10b2e6aa25987c233551b4cd5",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-diagram.png",
+        "png_sha256": "2f2ead8ab2ccbb4e94a07953e707f61258bc8659f4c4e524201ba40d719393fd",
+        "pixel_sha256": "df7c3554b0d23795682f3b993284a29394190ce4f5e701b173d9078e2f0038f8",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-gear-details.png",
+        "png_sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f",
+        "pixel_sha256": "ba911487c566953ae5b3f8e8102daec56f7b1e2b15cbc9df094d75ef53e29acc",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-diagram-returned.png",
+        "png_sha256": "4972483239c8bcda5ac59fdcf8e02de2de6781fade72569b36279cd6a776c6df",
+        "pixel_sha256": "ff5f5b94ef8110b69b140be0e8013b0442ab9de54ec7509558708f59de7df40a",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-inspected-other-and-returned.png",
+        "png_sha256": "794c7834ec097b663e957dd580354fdb72ff93e99eac178b3d506837f4316107",
+        "pixel_sha256": "b14ee5d8c4320b4c7cc849d4fb57436b57de32f10b2e6aa25987c233551b4cd5",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-mask-replanned.png",
+        "png_sha256": "19e6ca0511765692a551b529b0f5be3429074481f7e031377844e0d88cfb8411",
+        "pixel_sha256": "025e24412e86747229a0f245f917a4f47f03cd1dd4fe966f25583220c3dcd146",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/body-stopped.png",
+        "png_sha256": "4dbfb5063bf9a26a4bf87c48f3e0e6aac2396b7c0bf0642055c798f0a474de97",
+        "pixel_sha256": "c626384d85078e8cf8fea3aaf17737b5ee48ccd2d5a73e8e0db06100832f640f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/home-returned.png",
+        "png_sha256": "b1df3c68015a63029a29b8d3c264de2015d610c4f55ba6fed14d819e0fe77435",
+        "pixel_sha256": "458748749276757a2d74197b31a609c78f383a0d946780628286afd2a4e5b9be",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-reentered.png",
+        "png_sha256": "792f75c8583b6710becdaa55f59910e55d2173570966e4ed46ce3e98682cd6ca",
+        "pixel_sha256": "57bd6f5ab1506052c53387523dd300f8d6807554decaa1ea2989edd7c01f4e85",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/journey-frames/patchbay-source-editor-loaded.png",
+        "png_sha256": "53ac36a8b948fc42734f7674400fc1931eaa47ec3e737b8270278c2ef0f46489",
+        "pixel_sha256": "a8fbdfd5c24f06172210d98eb6289972dca33bb471380c2f9f2ea4741aa009ae",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/source-selected.png",
+        "png_sha256": "cacb9f5c173f02578f2637293df96b50d59fefff85f161c741d0d9c89f4c45ec",
+        "pixel_sha256": "b644966effe371fbab06428ff05b969867b6011aba5d72adaa31b9b53f881dc0",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/diagram-forward-000.png",
+        "png_sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894",
+        "pixel_sha256": "a9b9e90655e99cbf469284685279a26f9ac4ccdc0c9abc0335684dfa829ecc5e",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/diagram-forward-001.png",
+        "png_sha256": "528990410d976b382a346a720f959b8e50e6b803a119c3b0915106882654a7ac",
+        "pixel_sha256": "6490f8b397e4524e5ed77720db28bb626681da4fe1b591bc673197a1e4353ca9",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/diagram-backward-000.png",
+        "png_sha256": "71fc3ffac216765f1d06aaf662d2b5d6df3c1f26bb6ee0696ba0d38c19ef0894",
+        "pixel_sha256": "a9b9e90655e99cbf469284685279a26f9ac4ccdc0c9abc0335684dfa829ecc5e",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/details-gear.png",
+        "png_sha256": "b5c4cc5858f7f531810bd4beec1af418c6e90ba4b223c21ef38c6c2b69703554",
+        "pixel_sha256": "31a5d7b0b80bea2e187588debb5d4cc5640ca5b90533bf49c02b2253a6a5383a",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/details-port.png",
+        "png_sha256": "6f8f14219879d99af7ed5d70e0b1d103ffc5e997289cd62a74846b7e1ce165fa",
+        "pixel_sha256": "8f5384ab02b89ce9966b0f02e6deebafb95e44c4020b6ee28553b5f6498d221a",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-checked-source/details-cord.png",
+        "png_sha256": "8030ccbc1c2cecd8fbdff9e03521b757204be92a69b2e19cfee09655df33ec20",
+        "pixel_sha256": "693ac0dce634c503c1af40c3921ff6d0dc4bdcb3e731e5ca180086f812ed9e08",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-001.png",
+        "png_sha256": "09cc27a842d6cb0e99381b4ca4b9239f5d6bc097c26b3e995b0698c71f9dd91d",
+        "pixel_sha256": "73a3298ce8ffb4ab9dd252f7e7cd09db6b24798e6f94c6e7ce1c4e6e7f7989ac",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-002.png",
+        "png_sha256": "3cab9f0c130b10d7805bc3c55981ca43fa37b7083d352d9794b002c42d7f9a9b",
+        "pixel_sha256": "5d9d5b75e1f6a7ddc1ea52ab2c42f931c0630ac6e0726d9f8a3c59bbf3790fdd",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-003.png",
+        "png_sha256": "d961a99255608140b08207b54066548a6079725a2384fa66e74c06dc49e6910c",
+        "pixel_sha256": "d0778699a967dd00622a204ba3a62c52d19839aef4851f0ec61839a06af8f72a",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-004.png",
+        "png_sha256": "1d0f6f37ae6c9dce4e0751ed066642583c1672e02b36b4568cd2a033b57e43f8",
+        "pixel_sha256": "a4b330b9a718c7f8558b14d69ceb772eeaef212491887d1823a6320ae176719d",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-005.png",
+        "png_sha256": "539b338ccdcf634d7cb8cb5fdf136d8f18d575421e4f4bbc2560c830d16f905b",
+        "pixel_sha256": "c5d87a13cc2d4a42f59f9e2ed61cb641ad85a0187e3941a233ccd1b4768ea99f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-006.png",
+        "png_sha256": "129ab9902853a5d4651b0356c6a2f1f1954f96193e5868a1841e2a56c7d1840d",
+        "pixel_sha256": "f69e5dd0ec5db38ae51f6fce790b5b9fc6ace3385cc12b60b455748d6d46105d",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-007.png",
+        "png_sha256": "7e94385ef5a1ed5e68bbe26e6e9dbcfd304f6bf050a8100a8a089b481ad5a5e1",
+        "pixel_sha256": "62000f16194dd8067deedf97a492ea737598600b910c5320c28d04ad4a1df9bd",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-008.png",
+        "png_sha256": "b18c72723956db9018bb477aa284a3a14127e9aadd991d6fa45dcaecd58bfd30",
+        "pixel_sha256": "d659fd4d52f483d384ad0abca7e7782d8a28df7634833a016f208e8498e43dca",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-009.png",
+        "png_sha256": "ee76931917d02c537da08d5ed593080bfa51a3c66f18e762f0977231f6205373",
+        "pixel_sha256": "d9564709a172847e4a21409d7287ddf237f94e501b7d3168d313f28f1812456c",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-010.png",
+        "png_sha256": "9812c262d21be31568715aa00984783f2936999bcfc319bf0f9aa6f8822607a5",
+        "pixel_sha256": "1a8ef83c6641891618ea4ef31a3b182270f0d15eb8715271f3b38a2efb6d111e",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-011.png",
+        "png_sha256": "5786235efdf4fee10b5b898e7d5a7eac43a3d3f9381572e0fa8ea80bb5dc3474",
+        "pixel_sha256": "380236cf7057c6a2d6da453de40b3a7570552875a2c9b7362b24227c78de04fe",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-012.png",
+        "png_sha256": "924451dffffb0c5ba0aeb32cf8d7c4f4ffcd1bf2d25250382a23cef5f997be20",
+        "pixel_sha256": "7d5eafe816b6bea456dda54fbde98dd42f0e5130970390014279cb5a82f1a533",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-013.png",
+        "png_sha256": "5768cb342a3c14b2f7cdcd55da71986969f694df0184243ed2167f5b34173d7c",
+        "pixel_sha256": "cc1503702e54f3dfa44612c6b1d7283167e5b08071b8da4f113e0f5a6061ff8a",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-014.png",
+        "png_sha256": "5208b02529d3e9a3cff401a4155eb719814614e01da55f1e71907205995ed5f6",
+        "pixel_sha256": "166bb2a9fb5482b5796cca72b00ce222713a7012e4384da88a478e3e5cf528c4",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-015.png",
+        "png_sha256": "84c26d1b41f7854008610308c359fe72a87451843d0b6f96220e5ed6aa12ea31",
+        "pixel_sha256": "c6bd50b8d772d1fb26e64a53f560b3f6c350384c716121a37aa0ac67df5052dc",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-016.png",
+        "png_sha256": "1d6586c51f7d0be9afb2391ea014b5faee0d2057ac3537d592f627cb23b5a6d5",
+        "pixel_sha256": "c574ee4ad7bd7606cb4cb91d79f864d676bf17508f1a339f17357634a1b5fad2",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-017.png",
+        "png_sha256": "39f15773feeaebb025823f518c65da064ee3ede386d29328177e2bed97629f6c",
+        "pixel_sha256": "1c562bd26b5662391c8c70c6b6d0db07bac95432ccf7a32dd15585eed9773e15",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-018.png",
+        "png_sha256": "b4f77c9a9c08f6f40c9279e1d66b1d042f7d5e4087c66aaa2671e2f647a14fb5",
+        "pixel_sha256": "80f506e9efd136bfb05a53cd00efd69e55157802274a410d232f6004e5024024",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-019.png",
+        "png_sha256": "0066715c0764864ef573c08d5ff015a3aea7c88934401f72a51b50057130f537",
+        "pixel_sha256": "e2bb0d1e74e032a5dd921198f7dbfe900cbebc3caee2506bbb2cdd78fabe3223",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-journey/patchbay-refusal-details/details-020.png",
+        "png_sha256": "015db39f19146ad85297b627fb14f45112aef1da09220e194eb1458141b83851",
+        "pixel_sha256": "b5c99ba6cdc77d51c4bccbbc2aa56ce036e82876af242c4ef509150e89c0e08f",
+        "width": 1280,
+        "height": 800,
+        "crc_chunks": 3
+      }
+    ],
+    "search": [
+      {
+        "path": "802-search/journey-frames/front-door-ready.png",
+        "png_sha256": "5509a665ad558ae1cf947a730dea492db3a5d69034c9b33bba7fb3baca2daf92",
+        "pixel_sha256": "7410a42af83ea0a1321e57216b8739f6c6011e97e6130ebbd152b4ee11a54ce3",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-ready.png",
+        "png_sha256": "1cb3260712e5379608a949ad08172fb171c98e61c97c41fe92657e011561c57a",
+        "pixel_sha256": "b3438e3b6272859a97c816ecc87a36e9c221e4ee5ed430724f3e7a5c5f45027b",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-search-matched.png",
+        "png_sha256": "0c1b9cfad27b7078d51866f30405e1370d6fb9147ed785530879fbfa7332b6e4",
+        "pixel_sha256": "b41b3e0ba94632fae6f26ed79321432a775bf809ee78b4811cab6144ce18a64d",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-matched-1.png",
+        "png_sha256": "ebbaad2c1c4576f18d9e529026c628e095148931d67ecd223e2053bba0e52b15",
+        "pixel_sha256": "dabc14b369ef5fa6b10395648335048bad33f570dafff79cfab9e0a43059759f",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-matched-3.png",
+        "png_sha256": "fcc380dcef477f74657e22f1ac03495e437621939d05158f790552e1ccda81fd",
+        "pixel_sha256": "6284ffcd1b6351f2c5bb24ecc96d60e48536ea85d84aab28946938bf2f0519d1",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-matched-5.png",
+        "png_sha256": "62ea4e97f20332455ad5f1ca415ec9e52a9df2ca629873c6b76b6917bbbb92f6",
+        "pixel_sha256": "34e086a1ebae5b9d4edb85a424330e5ae97c4478ecc5761b4961d122727ffb89",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-search-no-matches.png",
+        "png_sha256": "70e2566a4e6914bedfc93c0f297f838bcf2b388b76bf2068c2acbd78aed98fab",
+        "pixel_sha256": "48bcc5d773e61b4c6ed6d5c6495ff1383749474ce93893c6cfcf24ed5fae3e2d",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-empty-1.png",
+        "png_sha256": "ebbaad2c1c4576f18d9e529026c628e095148931d67ecd223e2053bba0e52b15",
+        "pixel_sha256": "dabc14b369ef5fa6b10395648335048bad33f570dafff79cfab9e0a43059759f",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-empty-3.png",
+        "png_sha256": "58e283163b5cc4d8704c8c280e553de692580fe65e19d74753fc64fdd9b14777",
+        "pixel_sha256": "abbaae59d2891f17ca4edbcccfab3ec0fe3cb0b40cc43cbf9ce52b92b9350847",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-controls-search-empty-5.png",
+        "png_sha256": "62ea4e97f20332455ad5f1ca415ec9e52a9df2ca629873c6b76b6917bbbb92f6",
+        "pixel_sha256": "34e086a1ebae5b9d4edb85a424330e5ae97c4478ecc5761b4961d122727ffb89",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      },
+      {
+        "path": "802-search/journey-frames/creche-search-restored.png",
+        "png_sha256": "9583c0cd498ddd1e37c99d33f8426686a35483fe10ac2e3928546fb073d01f3c",
+        "pixel_sha256": "053b0fd1356ce1c29b78bdd2545c850315f9028bcd690057bf9083a6ef8d0249",
+        "width": 640,
+        "height": 480,
+        "crc_chunks": 3
+      }
+    ]
+  },
+  "selection": "Only actual-run manifest-backed control frames; inactive Source-directory leftovers excluded from controls. Normal journey includes its current ordinary, refusal/Details and checked-Source manifests.",
+  "counts": {
+    "minimum-narrow": 17,
+    "minimum-wide": 15,
+    "normal-journey": 54,
+    "search": 11
+  }
+}

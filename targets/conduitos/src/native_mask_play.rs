@@ -221,7 +221,8 @@ fn scheduler_for_profile(
             conduit_face::FACE_TEE_KIND => Ok(MaskBack::Tee),
             conduit_face::RENDERER_KIND
             | conduit_face::RESOURCE_RENDERER_KIND
-            | conduit_conduitos_mask_offer::NATIVE_COMPONENT_RENDERER_KIND => {
+            | conduit_conduitos_mask_offer::NATIVE_COMPONENT_RENDERER_KIND
+            | conduit_conduitos_mask_offer::NATIVE_LAYOUT_COMPONENT_RENDERER_KIND => {
                 Ok(MaskBack::Renderer {
                     pending: false,
                     emitted: false,

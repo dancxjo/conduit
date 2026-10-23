@@ -59,6 +59,7 @@ pub enum FaceSceneError {
     InvalidFace,
     DocumentBound,
     InvalidExtent,
+    UnsupportedStructure,
     SceneBound,
     StaleFace,
     UnknownControl,
@@ -439,3 +440,7 @@ mod naming_acceptance_tests;
 #[cfg(test)]
 #[path = "native_face_scene/cross_mask_graph_tests.rs"]
 mod cross_mask_graph_tests;
+
+#[cfg(test)]
+#[path = "native_face_scene/structured_source_tests.rs"]
+mod structured_source_tests;

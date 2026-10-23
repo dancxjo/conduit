@@ -5,7 +5,7 @@ use alloc::{format, vec::Vec};
 use conduit_birth_plot::{BirthDraft, BirthFaceBasis, BirthPlotChoice};
 use conduit_face::*;
 
-fn actual_face() -> Face {
+pub(super) fn actual_face() -> Face {
     let choices = crate::native_workset::candidate_inventory()
         .into_iter()
         .map(|plot| {
