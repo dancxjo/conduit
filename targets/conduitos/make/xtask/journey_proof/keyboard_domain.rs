@@ -2,6 +2,7 @@
 use super::super::{
     journey_input, journey_records, qemu_artifacts::Artifacts, qmp, ConduitosError,
 };
+use super::live_serial;
 use serde_json::Value;
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
 
@@ -172,7 +173,8 @@ fn exercise_plot(
             },
         )?;
         journey_input::open_hub_plot(stream, reader, serial, child, plot)?;
-        let text = fs::read_to_string(serial).map_err(|error| refusal(error.to_string()))?;
+        let text =
+            live_serial::read_complete(serial).map_err(|error| refusal(error.to_string()))?;
         if !selection_observed(
             &text,
             initial["revision"]

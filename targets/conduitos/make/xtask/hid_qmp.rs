@@ -1,7 +1,7 @@
 //! Bounded QMP key injection synchronized to admitted guest HID progress.
+use super::live_serial;
 
 use std::{
-    fs,
     os::unix::net::UnixStream,
     path::Path,
     process::Child,
@@ -428,7 +428,7 @@ pub(super) fn wait_for_stage_with_budget(
 ) -> Result<(), ConduitosError> {
     let deadline = Instant::now() + budget;
     loop {
-        if fs::read_to_string(serial_path).is_ok_and(|serial| serial.contains(stage)) {
+        if live_serial::read_complete(serial_path).is_ok_and(|serial| serial.contains(stage)) {
             return Ok(());
         }
         if let Some(status) = child
@@ -461,7 +461,7 @@ pub(super) fn wait_for_stage_count(
 ) -> Result<(), ConduitosError> {
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
-        if fs::read_to_string(serial_path)
+        if live_serial::read_complete(serial_path)
             .is_ok_and(|serial| serial.matches(stage).count() >= count)
         {
             return Ok(());

@@ -1,4 +1,5 @@
 //! Bounded QMP input actions synchronized to complete ordinary-product records.
+use super::live_serial;
 
 use std::{fs, os::unix::net::UnixStream, path::Path, process::Child, thread, time::Duration};
 
@@ -211,11 +212,7 @@ fn wait_for_record_inner(
 // file read ends. Only completed records can satisfy an observation. Keep
 // strict UTF-8 validation for that prefix; never replace malformed bytes.
 pub(super) fn complete_records(bytes: &[u8]) -> Result<&str, ConduitosError> {
-    let end = bytes
-        .iter()
-        .rposition(|byte| *byte == b'\n')
-        .map_or(0, |index| index + 1);
-    std::str::from_utf8(&bytes[..end]).map_err(|error| {
+    live_serial::complete_records(bytes).map_err(|error| {
         ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
     })
 }
@@ -228,7 +225,7 @@ pub(super) fn open_hub_plot(
     child: &mut Child,
     plot: conduitos::native_workset::NativePlot,
 ) -> Result<(), ConduitosError> {
-    let bytes = fs::read_to_string(serial)
+    let bytes = live_serial::read_complete(serial)
         .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?;
     let encoded = bytes
         .lines()
@@ -262,7 +259,7 @@ pub(super) fn open_hub_plot(
     // Opening Commons starts the existing bounded picker at index zero.
     for selected in 1..=index {
         let marker = format!("CONDUIT_HOME_STATE plots {selected}");
-        let before = fs::read_to_string(serial)
+        let before = live_serial::read_complete(serial)
             .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
             .lines()
             .filter(|line| *line == marker)
@@ -281,7 +278,7 @@ pub(super) fn open_hub_plot(
         )?;
     }
     let marker = format!("CONDUIT_HOME_CHECKPOINT plot-opened {}", plot.name());
-    let before = fs::read_to_string(serial)
+    let before = live_serial::read_complete(serial)
         .map_err(|error| ConduitosError::refusal("commons-observation-io", error.to_string()))?
         .lines()
         .filter(|line| *line == marker)

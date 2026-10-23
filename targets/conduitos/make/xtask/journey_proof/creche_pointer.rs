@@ -1,10 +1,11 @@
 //! Real physical mouse gestures over observed current Crèche hit regions.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{
     creche_choices, face_correspondence, io_error, journey_input, refusal, ConduitosError,
 };
 use serde_json::Value;
-use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+use std::{os::unix::net::UnixStream, path::Path, process::Child};
 
 mod evidence;
 mod field;
@@ -54,7 +55,7 @@ pub(super) fn exercise(
 }
 
 fn text(serial: &Path) -> Result<String, ConduitosError> {
-    fs::read_to_string(serial).map_err(io_error)
+    live_serial::read_complete(serial).map_err(io_error)
 }
 fn records(serial: &Path, prefix: &str) -> Result<Vec<Value>, ConduitosError> {
     face_correspondence::records(&text(serial)?, prefix)
