@@ -123,7 +123,7 @@ the parent's optional-input, external-data or rendered-Patchbay acceptance gaps.
 
 ## Optional-input preparation (#6312)
 
-This held development branch inspects genuine dynamic optional tensor inputs
+The importer inspects genuine dynamic optional tensor inputs
 only with ONNX IR 8 or newer. Graph-derived presence must match the canonical
 model signature exactly. An absent optional input is omitted from the existing
 named bundle; present values retain the same tensor checks. Owned and borrowed
@@ -144,8 +144,10 @@ Source/Plan/Play, absent/present/absent and empty/present/empty invocations,
 pre-effect refusals, current symbols and allocator effects. They are registered
 in `cargo +stable xtask check model-inference --locked`.
 
-These tests are prepared but have not been compiled or executed. Numeric-policy
-fixture migration and present-optional IEEE/finite-only controls are prepared on
-the #6309 merged source; they remain unexecuted. No current-source test pass,
-ONNX checker, ORT execution,
-rendered Patchbay proof, merged delivery or parent #5219 completion is claimed.
+The supported suite passed 93 tests across 30 targets, with zero ignored, on
+prepared source `330e05561829aed05511e8bebcaa47c200c648bd`; focused strict Clippy
+also passed on that source. The [retained proof packet](https://github.com/dancxjo/conduit/tree/7fe3e427aebcd10d67f89dfb51fe521d45e36bb3/docs/audits/evidence/model-optional-inputs-20261023/330e05561)
+includes the actual test executables, logs, receipts and earlier failures.
+The refreshed delivery preserves the feature code; Candidate and relevant
+post-merge Integration remain required on the delivered source. No ONNX checker,
+ORT execution, rendered Patchbay proof or parent #5219 completion is claimed.
