@@ -1327,3 +1327,13 @@ then verified quiescence and recorded Lull. Final native counts were submitted
 [3, 4], completed [3, 3], with 103 Steps, both capabilities revoked and zero
 operations in flight. See `evidence/2026-10-23-native-observations/`. The board is
 quiesced after this finite proof; this is not a resident or overnight recorder.
+
+The next physical owner run also completed authenticated post-Lull retirement.
+After three checked-cadence observations and verified quiescence, Root recovered
+the actual revoked, idle GPIO/timer providers and dropped terminal kernel storage.
+The Boot-signed Retired acknowledgement binds the separate exact-scope command.
+Final Root heap use was 10,172 bytes (105,164-byte run peak), and the worker reports
+zero execution-context bytes with no prepared kernel or live possession. Evidence
+is retained in `evidence/2026-10-23-owner-retirement/`. The executor task remains
+one-use; this does not yet rearm a new Play, advance resource generations or
+establish a resident recorder. The board is retired and inactive after the proof.
