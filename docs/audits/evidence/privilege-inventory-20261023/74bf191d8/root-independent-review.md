@@ -1,0 +1,7 @@
+# Independent #6176 proof audit
+
+PASS for clean `74bf191d84c1c15bad1e6f36479ac30294f0bd47`. Verified all 37 sealed file sizes/hashes, 39 source objects/tree, 21 responsibility source hashes and all 10 actual linked ELF byte ranges, entries and LOAD segments. Product ELF `06699f53b70b8f2d39de976bd6ecb2fc778e8d3de9649aaeba71b5054df7d7b3` and ISO `cc81b59f7cf258246e78f528044bf86489e5a63dc7932724f7202329291c484e` match the seal. Nine focused tests passed, zero failed/ignored; retained strict all-target Clippy/workspace formatting and first-attempt normal product build records pass.
+
+Independently parsed actual Root ELF sections and positive LLD map: every section name/address/size/alignment matches. The foreign map bytes match the real historical appliance map; its hash and all responsibility counts are correctly resealed, while its sections differ from the actual product ELF. Refusal occurs at that structural association, exit1, no output; positive evidence remains byte-identical. Closure hash/source/manifest binding verifies; Cargo closure recomputation is the recorded verifier result, not rerun here.
+
+Proof class remains exact-source-and-linked-image inventory. This does not establish execution, installed mappings, service confinement, physical/DMA isolation, authenticated linker invocation, Candidate, merge or accepted Integration. Historical inventory remains separate. run.json's intermediate stage label is superseded by the later sealed dedicated negative result; old seal and evidence were not modified. No builds/cache/GitHub operations performed.
