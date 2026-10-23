@@ -5,6 +5,10 @@ its persistent reference catalog, Line and Body installation remain incomplete.
 The public conformance entrance is `cargo xtask prove environment recording`.
 The browser publication boundary is checked separately with
 `cargo xtask prove environment recording-storage`.
+The actual IndexedDB boundary has a separate focused entrance:
+`cargo xtask prove environment recording-browser` (pinned Chromium required).
+It produces artifacts under `target/environment-recording-browser` and retains
+browser failure traces under `proof/browser/test-results/environment-recording`.
 
 ## Meaning and readiness
 
@@ -55,8 +59,17 @@ bounds when constructing `JsonValue`; snapshot storage preserves the raw text.
 The browser kernel regression reaches its ordinary storage request with a full
 chunk-sized field. A separate test feeds the actual encoder's full 64-sample
 chunk, retaining first-class temperature and humidity Forms, through the text
-validator without allocations. This establishes the publication boundary, not
-IndexedDB persistence or a live recorder Body.
+validator without allocations. This establishes the publication boundary.
+
+The [focused browser proof receipt](../evidence/2026-10-23-browser-recording-storage/measurement.json)
+records a real full 64-sample chunk and the production
+snapshot envelope, then passes the opaque record through the existing resource
+storage adapter into real IndexedDB. After a page reload, Rust validates the
+returned record under a new fixture Boot binding and recovers every exact
+canonical observation. It checks duplicate publication, stale effect scope,
+old authority and corruption refusals. Identities and authority are explicitly
+fixture bindings; this proves durable bytes across reopen, not a live recorder
+Body, Line, persistent reference catalog or overnight operation.
 
 `PreparedRecordingKernel` prepares this finite four-gear production kernel from
 the verified fragment and identical ordinary lowering. It rejects unsupported

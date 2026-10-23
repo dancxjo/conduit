@@ -1,0 +1,31 @@
+{
+  "proof_class": "real-chromium-indexeddb-production-codec-round-trip",
+  "command": "cargo xtask prove environment recording-browser",
+  "playwright_version": "1.62.0",
+  "project": "chromium",
+  "workers": 1,
+  "retries": 0,
+  "samples": 64,
+  "snapshot_record_bytes": 3627,
+  "snapshot_record_sha256": "bd080f21ace69d103d7096a8ffcee4f4e7747914aa8e2202f80b9691a327b19e",
+  "page_reload_and_storage_reopen": true,
+  "production_chunk_encoder": true,
+  "production_snapshot_envelope": true,
+  "existing_resource_storage_adapter": true,
+  "exact_canonical_observations_recovered": 64,
+  "duplicate_publication_refused": true,
+  "stale_effect_scope_refused": true,
+  "old_authority_refused": true,
+  "corruption_refused": true,
+  "focused_make_and_xtask_strict_clippy": true,
+  "new_firmware_flashed": false,
+  "live_recorder_body": false,
+  "live_line": false,
+  "persistent_reference_catalog": false,
+  "physical_overnight_recording": false,
+  "notes": [
+    "Host/Boot/Plan/Play and authority are explicit proof fixture bindings, not actual appliance admission.",
+    "The proof uses actual IndexedDB and production Rust codecs; it does not substitute an in-memory store.",
+    "The default-features-disabled browser dependency emits an existing unused local_view warning; the selected Make proof and xtask pass strict Clippy."
+  ]
+}
