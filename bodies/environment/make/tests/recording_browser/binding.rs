@@ -111,3 +111,16 @@ pub(crate) fn placement(
         reference,
     )
 }
+
+/// Fixture custody for an independently selected exact generation.
+pub(crate) fn for_reference(
+    boot: &str,
+    write: bool,
+    reference: &BoundedResourceRef,
+) -> PlannedGear {
+    let (mut placement, _) = placement(boot, write, reference.extent.bytes as usize);
+    let contract = &mut placement.resources[0].content.as_mut().unwrap().contract;
+    contract.identity = reference.identity;
+    contract.version = reference.lifetime.version;
+    placement
+}

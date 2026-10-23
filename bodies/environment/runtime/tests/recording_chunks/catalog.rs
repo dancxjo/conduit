@@ -40,6 +40,16 @@ fn overnight_catalog_reserves_its_own_record_and_restores_exact_order_without_al
         );
     }
     assert!(reader.encoded_reference(15).is_none());
+    let mut sixteen = references.clone();
+    let mut last = sixteen[0].clone();
+    last.lifetime.version = c::ResourceVersionIdentity::from_digest([16; 32]);
+    sixteen.push(last);
+    let full = PreparedRecordingCatalog::prepare(&sixteen, 17, 1_048_576).unwrap();
+    assert!(full.content().len() <= 4096);
+    let mut full_reader = PreparedRecordingCatalogReader::default();
+    full_reader.read(full.content()).unwrap();
+    assert_eq!(full_reader.len(), 16);
+
     assert_eq!(
         PreparedRecordingCatalog::prepare(&references, 15, 1_048_576).err(),
         Some(RecordingCatalogRefusal::Capacity)
