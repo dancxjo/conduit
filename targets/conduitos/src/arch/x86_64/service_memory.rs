@@ -260,3 +260,15 @@ fn physical<T: ?Sized>(value: &T) -> Result<u64, DomainRefusal> {
 #[cfg(test)]
 #[path = "service_memory/tests.rs"]
 mod tests;
+
+#[cfg(all(
+    target_os = "none",
+    any(
+        feature = "ordinary-domain-proof",
+        feature = "compositor-semantic-recovery-proof"
+    )
+))]
+pub(crate) use storage::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};
