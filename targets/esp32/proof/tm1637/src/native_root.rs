@@ -21,7 +21,7 @@ pub struct NativeRoot {
     issuer: crate::native_authority::RootIssuer,
     play: crate::native_play::NativePlay,
     offer_generation: u64,
-    software: Option<crate::native_software::Software>,
+    software: Option<alloc::boxed::Box<crate::native_software::Software>>,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
@@ -103,7 +103,7 @@ impl NativeRoot {
         )
     }
     pub fn software(&self) -> Option<&crate::native_software::Software> {
-        self.software.as_ref()
+        self.software.as_deref()
     }
     pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
         &self.network_source

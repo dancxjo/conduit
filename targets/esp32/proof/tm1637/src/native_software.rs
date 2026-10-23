@@ -1,5 +1,6 @@
 //! Own actual Source-compiled portable software before any climate assignment.
 //! This starts no Body, kernel, sensor or timer operation.
+use alloc::boxed::Box;
 use conduit_environment_runtime::appliance::assigned::{
     PreparedResidentSoftware, ReadyResidentOffers,
 };
@@ -9,9 +10,11 @@ mod material {
 pub type Software = PreparedResidentSoftware<conduit_kernel::HostedValueStore>;
 #[cold]
 #[inline(never)]
-pub fn prepare() -> Result<Software, ()> {
+pub fn prepare() -> Result<Box<Software>, ()> {
     let values = conduit_environment_runtime::appliance::prepare_value_storage().map_err(|_| ())?;
-    Software::prepare_source(&material::spec(), material::computations(), values).map_err(|_| ())
+    Software::prepare_source(&material::spec(), material::computations(), values)
+        .map(Box::new)
+        .map_err(|_| ())
 }
 pub fn offers(
     software: &Software,
