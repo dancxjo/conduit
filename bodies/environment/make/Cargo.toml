@@ -11,13 +11,14 @@ path = "src/main.rs"
 [workspace]
 
 [features]
-browser-storage-proof = ["dep:conduit-browser-runtime"]
+browser-storage-proof = ["dep:conduit-browser-runtime", "dep:conduit-environment-browser"]
 
 [[test]]
 name = "recording_browser"
 required-features = ["browser-storage-proof"]
 
 [dependencies]
+conduit-environment-browser = { path = "../browser", optional = true }
 conduit-browser-runtime = { path = "../../../targets/browser/runtime", default-features = false, optional = true }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", default-features = false, features = ["plot-catalog"] }
 conduit-body = { path = "../../../architecture/body" }

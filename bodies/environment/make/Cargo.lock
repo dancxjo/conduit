@@ -296,6 +296,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-environment-browser"
+version = "0.1.0"
+dependencies = [
+ "conduit-browser-runtime",
+ "conduit-core",
+ "conduit-environment-runtime",
+ "conduit-kernel",
+ "conduit-plan-lowering",
+ "serde",
+]
+
+[[package]]
 name = "conduit-environment-face"
 version = "0.1.0"
 dependencies = [
@@ -328,6 +340,7 @@ dependencies = [
  "conduit-browser-runtime",
  "conduit-core",
  "conduit-embedded-build",
+ "conduit-environment-browser",
  "conduit-environment-http",
  "conduit-environment-runtime",
  "conduit-face",

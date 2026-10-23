@@ -1,0 +1,15 @@
+[package]
+name = "conduit-environment-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
+conduit-plan-lowering = { path = "../../../architecture/plan-lowering" }
+conduit-environment-runtime = { path = "../runtime", features = ["recording-kernel"] }
+conduit-browser-runtime = { path = "../../../targets/browser/runtime", default-features = false }
+serde = { version = "1", features = ["derive"] }

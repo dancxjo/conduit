@@ -37,6 +37,22 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         );
     }
     if arguments == ["recording-storage"] {
+        execute(
+            Command::new("cargo")
+                .current_dir(&root)
+                .args([
+                    "test",
+                    "--locked",
+                    "--manifest-path",
+                    "bodies/environment/make/Cargo.toml",
+                    "--features",
+                    "browser-storage-proof",
+                    "--test",
+                    "recording_recovery",
+                    "batch_browser",
+                ])
+                .env("CARGO_TARGET_DIR", root.join("target")),
+        )?;
         execute(Command::new("cargo").current_dir(&root).args([
             "test",
             "--locked",

@@ -1057,3 +1057,22 @@ strict Clippy and the ESP32 cross-check pass. See the retained
 [measurement](evidence/2026-10-23-expression-selector-storage/measurement.json).
 No authored decoder or semantic contract changes, no firmware reflash and no
 complete MCU admission are claimed from this private storage improvement.
+
+### Browser read correlation
+
+`browser::PreparedRecordingBrowserReads` prepares the existing browser snapshot
+operation for every selected batch read. Its borrowed effect uses the existing
+`conduit.browser/resource-effect@1` adapter schema and the original kernel
+request sequence. Completion checks the full pending request and Host/Boot/Play/
+placement scope before validating the immutable record and returning its content
+to that request. Corrupt records become failed Host Calls. Replayed or foreign
+completions cannot replace a pending read. History changes only after kernel
+steps commit the recovery sink. Preparation allocates; begin and completion do
+not grow storage.
+
+`cargo xtask prove environment recording-storage` includes the production bridge
+with explicit CPU storage fixtures, forged scope/request and corruption cases,
+and zero-allocation execution measurement. The existing `recording-browser`
+proof separately exercises actual IndexedDB persistence. These proofs are not yet
+a live browser Body executing kernel-issued reads; Root still must bind the
+actual store, current Body lifecycle and admitted memory/work closure.
