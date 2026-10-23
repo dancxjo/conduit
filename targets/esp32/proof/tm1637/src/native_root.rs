@@ -21,6 +21,7 @@ pub struct NativeRoot {
     issuer: crate::native_authority::RootIssuer,
     play: crate::native_play::NativePlay,
     offer_generation: u64,
+    software: Option<crate::native_software::Software>,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
     pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
@@ -82,6 +83,9 @@ impl NativeRoot {
             issuer,
             play: crate::native_play::NativePlay::new(),
             offer_generation: 1,
+            software: Some(
+                crate::native_software::prepare().expect("initialized resident software"),
+            ),
             credential_writer,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
             pulse,
@@ -90,6 +94,16 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    pub fn offer_scope(&self) -> (&c::HostId, &c::BootId, c::OfferGeneration) {
+        (
+            &self.host,
+            &self.boot,
+            c::OfferGeneration(self.offer_generation),
+        )
+    }
+    pub fn software(&self) -> Option<&crate::native_software::Software> {
+        self.software.as_ref()
     }
     pub fn network_source(&self) -> &conduit_plot::ExpandedCanonicalPlot {
         &self.network_source

@@ -36,6 +36,9 @@ pub async fn serve(root: &mut NativeRoot, mut uart: Uart<'static, Async>) -> Res
         .await;
         match command {
             Ok(Ok(Command::Offer)) => offer(root, &mut uart, &mut output).await?,
+            Ok(Ok(Command::SoftwareOffer)) => {
+                crate::native_software_offer::write(root, &mut uart).await?
+            }
             Ok(Err(())) => return Err(()),
             _ => with_timeout(Duration::from_secs(2), write_all(&mut uart, REFUSED))
                 .await
@@ -76,7 +79,7 @@ async fn offer(
     .await
     .map_err(|_| ())?
 }
-async fn write_all(uart: &mut Uart<'_, Async>, mut bytes: &[u8]) -> Result<(), ()> {
+pub(super) async fn write_all(uart: &mut Uart<'_, Async>, mut bytes: &[u8]) -> Result<(), ()> {
     while !bytes.is_empty() {
         let count = uart.write_async(bytes).await.map_err(|_| ())?;
         if count == 0 {

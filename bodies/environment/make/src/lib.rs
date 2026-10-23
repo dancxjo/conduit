@@ -23,7 +23,9 @@ pub use network::{
 
 use conduit_core as c;
 use conduit_embedded_build as e;
-use conduit_environment_runtime::construction::ApplianceSource;
+pub use conduit_environment_runtime::construction::{
+    compile_default as compile_appliance_source, ApplianceSource,
+};
 use conduit_plan_lowering::lowering as l;
 
 /// Caller-selected artifact ceilings, distinct from the runtime's memory budget.

@@ -3,6 +3,7 @@ pub const MAXIMUM_REQUEST_BYTES: usize = 64;
 #[derive(Debug, PartialEq, Eq)]
 pub enum Command {
     Offer,
+    SoftwareOffer,
     Unsupported,
     TooLarge,
 }
@@ -29,6 +30,8 @@ impl CommandBuffer {
                     .unwrap_or(&self.bytes[..self.used]);
                 if bytes == b"offer" {
                     Command::Offer
+                } else if bytes == b"software-offer" {
+                    Command::SoftwareOffer
                 } else {
                     Command::Unsupported
                 }
@@ -61,6 +64,13 @@ mod tests {
             assert_eq!(buffer.push(*byte), None);
         }
         assert_eq!(buffer.push(b'\n'), Some(Command::Unsupported));
+        for byte in b"software-offer\n" {
+            if *byte == b'\n' {
+                assert_eq!(buffer.push(*byte), Some(Command::SoftwareOffer));
+            } else {
+                assert_eq!(buffer.push(*byte), None);
+            }
+        }
         for _ in 0..MAXIMUM_REQUEST_BYTES + 1 {
             assert_eq!(buffer.push(b'x'), None);
         }

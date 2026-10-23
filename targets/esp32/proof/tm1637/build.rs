@@ -10,5 +10,17 @@ fn main() {
         let out = std::path::PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
         std::fs::write(out.join("network-source.json"), &image).unwrap();
         std::fs::write(out.join("network-source.sha256"), Sha256::digest(&image)).unwrap();
+        #[cfg(feature = "native-root")]
+        {
+            let source = conduit_environment_make::compile_appliance_source()
+                .expect("checked environmental appliance Source");
+            let recipe = conduit_environment_make::NativeSoftwareSourceRecipe::prepare(&source)
+                .expect("checked appliance software construction");
+            let mut rust = String::new();
+            recipe
+                .write_source_rust(&mut rust)
+                .expect("resident Source module");
+            std::fs::write(out.join("appliance-software.rs"), rust).unwrap();
+        }
     }
 }
