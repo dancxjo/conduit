@@ -100,6 +100,7 @@ pub struct NativeFaceMask {
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
     interaction_admitted: bool,
+    local_input_available: bool,
     component_configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
     visual_expression: Option<conduit_face::AdmittedVisualExpression>,
     visual_constraints: conduit_face::VisualUserConstraints,
@@ -202,6 +203,9 @@ impl NativeFaceMask {
     }
 
     pub fn route_keyboard(&self) -> Result<bool, NativeFaceMaskError> {
+        if !self.local_input_available {
+            return Ok(false);
+        }
         let show = self.show().ok_or(NativeFaceMaskError::Face)?;
         Ok(matches!(
             self.compositor
@@ -244,6 +248,7 @@ impl NativeFaceMask {
         display: &mut impl PixelTarget,
         interaction_admitted: bool,
     ) -> Result<CompositionReceipt, NativeFaceMaskError> {
+        let interaction_admitted = interaction_admitted && self.local_input_available;
         self.input_refusal = None;
         let format = display.format().validate().map_err(|error| {
             NativeFaceMaskError::Compositor(
@@ -268,6 +273,9 @@ impl NativeFaceMask {
             NativeFaceScene::prepare_with_input(face.clone(), width, height, interaction_admitted)
                 .map_err(NativeFaceMaskError::Scene)?
         };
+        if !self.local_input_available {
+            scene.disable_local_input();
+        }
         self.restore_pending_encounter(&mut scene)?;
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let front_subject = face
@@ -404,3 +412,7 @@ pub(crate) mod tests;
 #[cfg(test)]
 #[path = "native_face_mask/submission_tests.rs"]
 mod submission_tests;
+
+#[cfg(test)]
+#[path = "native_face_mask/inputless_tests.rs"]
+mod inputless_tests;
