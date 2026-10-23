@@ -1,0 +1,46 @@
+{
+  "source": "46e3f0bd9130680ab9fdbf8467602f3f15c2e2bb",
+  "base": "a4ebfe52a6ba2b02578e7536928884091d047e20",
+  "clean_before_and_after": true,
+  "source_sha256": {
+    "targets/conduitos/src/arch/x86_64/service_memory.rs": "068347f4a5a49a0520fef170481c5ab6a1283f99b12ba0db2a25b095e537b517",
+    "targets/conduitos/src/arch/x86_64/service_memory/storage.rs": "71959ef46e341020d314977f3738b6c7f42dd24087fddf2042bd4c79bc86c64f",
+    "targets/conduitos/tests/service_slot_lifecycle.rs": "ab0b0a088b34f9e3568e1c3d69c385e03e907f923a444d541388618b7a3cc0d8"
+  },
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "--locked",
+    "-p",
+    "conduitos",
+    "--test",
+    "service_slot_lifecycle"
+  ],
+  "environment": {
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "exit_code": 0,
+  "tests": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0,
+    "seconds": 0.14
+  },
+  "build_seconds": 214,
+  "log_sha256": "a755794e81d5f55b831bc3366cd771b5e77f689b0057399e3bb5fcbda77b4254",
+  "gzip_sha256": "c778f655a25d4e0568dda4225bbd69bf7130a28abfc78b5c50daf6ec349038bc",
+  "executable_sha256": "bc924e441804338b2acc6205cf4e317678fc6490f7f6dd4a10dbafa6b631f8ec",
+  "proof_class": "host execution of actual service storage; no privileged entry",
+  "remaining": [
+    "common accepted Home-collector base",
+    "paired ordinary-domain protection proof",
+    "matched ordinary product responsiveness comparison",
+    "full parent transition attribution scope"
+  ],
+  "tested_profile": "Compositor"
+}
