@@ -132,7 +132,7 @@ export async function browser(directory) {
     'targets/browser/tools/static-application-csp.test.mjs',
     'proof/browser/application-graph-canvas.test.mjs', ...[
     'browser-body-input', 'browser-body-host', 'browser-text-editor', 'workspace-handoff', 'browser-plot-effects',
-    'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'installed-host-encounter', 'physical-host-workflow',
+    'browser-pitch-tone', 'browser-host-calls', 'creche-rendezvous', 'installed-host-encounter', 'process-output', 'physical-host-workflow',
     'creche-release-catalog',
   ].map(name => `proof/browser/${name}.test.mjs`)]);
   const chromiumProof = await proveChromium(product, releases);
