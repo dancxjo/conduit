@@ -216,7 +216,7 @@ fn execute(acknowledged: bool, assigned: bool) {
     let prepared = projection.native.checked();
     let lowered = prepared.lowered();
     let fragment = &prepared.plan().fragments[0];
-    const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+    const P: usize = conduit_network_join_call::CONTROL_PORTS;
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (3, 2));
     let find = |kind: &str| {
         lowered
@@ -323,7 +323,10 @@ fn execute(acknowledged: bool, assigned: bool) {
         assert_eq!((memory.allocations, memory.reallocations), (0, 0));
         assert_eq!(
             tables.nodes,
-            core::array::from_fn(|i| lowered.node_specs[i])
+            core::array::from_fn(|i| k::scheduler::NodeSpec {
+                input_cords: [lowered.node_specs[i].input_cords[0]],
+                maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel
+            })
         );
         assert_eq!(
             tables.cords,
@@ -332,7 +335,10 @@ fn execute(acknowledged: bool, assigned: bool) {
         (tables.nodes, tables.cords, tables.routes, tables.calls)
     } else {
         (
-            core::array::from_fn(|i| lowered.node_specs[i]),
+            core::array::from_fn(|i| k::scheduler::NodeSpec {
+                input_cords: [lowered.node_specs[i].input_cords[0]],
+                maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
+            }),
             core::array::from_fn(|i| lowered.cords[i].spec),
             routes,
             bindings,
@@ -346,7 +352,7 @@ fn execute(acknowledged: bool, assigned: bool) {
             bindings,
             drivers,
             values,
-            k::FixedSignLog::<128>::new((128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+            k::HostedSignLog::new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
                 .unwrap(),
         )
         .unwrap()

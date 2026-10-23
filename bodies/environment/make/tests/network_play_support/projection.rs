@@ -4,7 +4,7 @@ use conduit_environment_make::{PreparedNativeNetworkSetup, PreparedNetworkSetup}
 use conduit_environment_runtime::assigned::{AssignedKernelTables, ResidentLayout};
 use conduit_kernel::NodeId;
 use conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan;
-const P: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+const P: usize = conduit_network_join_call::CONTROL_PORTS;
 pub struct Projection {
     pub native: PreparedNativeNetworkSetup,
     maxima: c::AssignedPlanMaxima,

@@ -3,15 +3,15 @@
 use crate::NetworkControlBack;
 use conduit_core::PlanFragment;
 use conduit_kernel::{self as k, scheduler::FixedScheduler, ValueStorage};
-use conduit_plan_lowering::lowering::{
-    lower_plan_fragment, LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
 
-pub const CONTROL_PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
+// This exact three-gear control uses only ordinal zero. Renew this finite
+// profile if its Fore grows; do not reserve the general 16-port envelope.
+pub const CONTROL_PORTS: usize = 1;
 pub type NetworkControlKernel = FixedScheduler<
     NetworkControlBack,
     k::FixedValueStore<8, 167>,
-    k::FixedSignLog<128>,
+    k::HostedSignLog,
     3,
     2,
     CONTROL_PORTS,
@@ -21,7 +21,11 @@ pub type NetworkControlKernel = FixedScheduler<
     3,
     3,
 >;
-pub const CONTROL_KERNEL_BYTES: usize = core::mem::size_of::<NetworkControlKernel>();
+// The retained footprint includes the exact preallocated local sign backing.
+// There are no remote endpoints and therefore no remote-sign allocation.
+pub const CONTROL_SIGN_BACKING_BYTES: usize = 128 * core::mem::size_of::<Option<k::KernelEvent>>();
+pub const CONTROL_KERNEL_BYTES: usize =
+    core::mem::size_of::<NetworkControlKernel>() + CONTROL_SIGN_BACKING_BYTES;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct NetworkControlRoles {
@@ -78,6 +82,15 @@ impl PreparedNetworkKernel {
                 .iter()
                 .any(|n| !n.terminal_transductions.is_empty())
             || lowered.resources.len() != 2
+            || lowered.node_specs.iter().any(|node| {
+                node.input_cords[CONTROL_PORTS..]
+                    .iter()
+                    .any(Option::is_some)
+            })
+            || fragment
+                .placements
+                .iter()
+                .any(|gear| gear.inputs.len() > CONTROL_PORTS || gear.outputs.len() > CONTROL_PORTS)
         {
             return Err(E::Shape);
         }
@@ -146,10 +159,13 @@ impl PreparedNetworkKernel {
             }
         });
         let signs =
-            k::FixedSignLog::<128>::new((128 * core::mem::size_of::<k::KernelEvent>()) as u32)
+            k::HostedSignLog::new(128, (128 * core::mem::size_of::<k::KernelEvent>()) as u32)
                 .map_err(|_| E::Storage)?;
         let kernel = NetworkControlKernel::new_with_host_calls(
-            core::array::from_fn(|i| lowered.node_specs[i]),
+            core::array::from_fn(|i| k::scheduler::NodeSpec {
+                input_cords: [lowered.node_specs[i].input_cords[0]],
+                maximum_step_fuel: lowered.node_specs[i].maximum_step_fuel,
+            }),
             core::array::from_fn(|i| lowered.cords[i].spec),
             routes,
             bindings,
