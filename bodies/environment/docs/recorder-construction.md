@@ -275,3 +275,20 @@ empty Face while all reads remain pending, then one revision for the committed
 proof also checks foreign Face provenance, a non-recovery node and corrupt input.
 Root still owns the exact kernel/Face pairing and current lifecycle checks; this
 projection creates no Body admission, transport, authority or live web page.
+
+## Native selector storage reduction
+
+The capture selector now uses Core's existing bounded borrowed canonical
+validator and requires the independently prepared exact Type prefix. It retains
+no second owned input schema or validator prefix. Its output workspace follows
+the complete checked Type bound within the original admitted byte ceiling.
+Wrong Type identity, malformed primitive data, truncation, trailing bytes and
+capacity refusal remain explicit, and refusal preserves subsequent valid use.
+
+The [32-bit selector receipt](../evidence/2026-10-23-borrowed-selector-storage/measurement.json)
+measures retained software falling from 61,926 to 53,396 bytes, with preparation
+peak falling from 62,285 to 60,116 bytes. All seven finite overnight scenarios
+and the selector refusal test allocate nothing during execution. The ESP32
+native Root cross-build passed. These requested-byte measurements still exclude
+the full allocator/Root/kernel/stack closure; no physical climate admission or
+new firmware deployment is claimed by this optimization.

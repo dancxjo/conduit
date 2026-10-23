@@ -1,0 +1,28 @@
+{
+  "implementation_commit": "322620418",
+  "proof_class": "32-bit-linux preparation and production kernel execution; ESP32 cross-build",
+  "baseline": "../2026-10-23-resident-canonical-bytes/measurement.json",
+  "before": {
+    "software_peak": 62285,
+    "software_retained": 61926,
+    "preparation_allocations": 2636
+  },
+  "after": {
+    "software_peak": 60116,
+    "software_retained": 53396,
+    "preparation_allocations": 2548
+  },
+  "retained_bytes_saved": 8530,
+  "peak_bytes_saved": 2169,
+  "public_entrance": "cargo xtask prove environment publication-32",
+  "tests_passed": 17,
+  "overnight_scenarios": 7,
+  "samples_per_overnight_scenario": 960,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "strict_runtime_and_xtask_clippy": true,
+  "esp32_native_root_release_cross_build": true,
+  "new_firmware_flashed": false,
+  "complete_mcu_memory_admission": false,
+  "remaining": "admit allocator overhead, Root state, value/sign backing, kernel and stack together before native climate installation"
+}
