@@ -42,3 +42,10 @@ Fresh Candidate and accepted dev browser Integration remain required. Internal
 native startup phase attribution and #6283's broader diagnosis obligation remain
 open; this fixture repair does not explain the earlier empty-output delays.
 No environmental appliance feature changes are included in this repair.
+
+Candidate 39987087700 stopped in quick preflight because the copied raw failure
+excerpt retained log trailing whitespace. The excerpt now strips trailing
+whitespace; the full raw job-log hash and retained raw file are unchanged.
+This was a repository evidence-format failure before browser execution, not a
+failed browser attempt. Full-delta whitespace validation is required before
+the successor Candidate; the focused fixture/product sources are unchanged.

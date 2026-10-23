@@ -1,8 +1,8 @@
-2026-10-23T16:07:26.2185272Z   1) [chromium] › proof/browser/workspace-membership.spec.mjs:574:1 › loss of a joined Host Line removes only its current offers and keeps the body 
-2026-10-23T16:07:26.2186626Z 
+2026-10-23T16:07:26.2185272Z   1) [chromium] › proof/browser/workspace-membership.spec.mjs:574:1 › loss of a joined Host Line removes only its current offers and keeps the body
+2026-10-23T16:07:26.2186626Z
 2026-10-23T16:07:26.2187024Z     Error: durable host service was not ready
-2026-10-23T16:07:26.2187529Z 
-2026-10-23T16:07:26.2187542Z 
+2026-10-23T16:07:26.2187529Z
+2026-10-23T16:07:26.2187542Z
 2026-10-23T16:07:26.2187849Z       663 |   let output = "";
 2026-10-23T16:07:26.2188702Z       664 |   return new Promise((resolveOutput, reject) => {
 2026-10-23T16:07:26.2190112Z     > 665 |     const timeout = setTimeout(() => reject(new Error(`${label} was not ready\n${output}`)), 10_000);
@@ -11,27 +11,27 @@
 2026-10-23T16:07:26.2192998Z       667 |       output += chunk.toString();
 2026-10-23T16:07:26.2193743Z       668 |       const match = output.match(pattern);
 2026-10-23T16:07:26.2195035Z         at Timeout.<anonymous> (/home/runner/work/conduit/conduit/proof/browser/workspace-membership.spec.mjs:665:45)
-2026-10-23T16:07:26.2195987Z 
+2026-10-23T16:07:26.2195987Z
 2026-10-23T16:07:26.2196850Z     attachment #1: video (video/webm) ──────────────────────────────────────────────────────────────
 2026-10-23T16:07:26.2198387Z     proof/browser/test-results/default/workspace-membership-loss--88830-t-offers-and-keeps-the-body-chromium/video.webm
 2026-10-23T16:07:26.2200184Z     ────────────────────────────────────────────────────────────────────────────────────────────────
-2026-10-23T16:07:26.2200790Z 
+2026-10-23T16:07:26.2200790Z
 2026-10-23T16:07:26.2202203Z     Error Context: proof/browser/test-results/default/workspace-membership-loss--88830-t-offers-and-keeps-the-body-chromium/error-context.md
-2026-10-23T16:07:26.2203272Z 
+2026-10-23T16:07:26.2203272Z
 2026-10-23T16:07:26.2204068Z     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
 2026-10-23T16:07:26.2205663Z     proof/browser/test-results/default/workspace-membership-loss--88830-t-offers-and-keeps-the-body-chromium/trace.zip
 2026-10-23T16:07:26.2206828Z     Usage:
-2026-10-23T16:07:26.2207051Z 
+2026-10-23T16:07:26.2207051Z
 2026-10-23T16:07:26.2207836Z         npx playwright show-trace proof/browser/test-results/default/workspace-membership-loss--88830-t-offers-and-keeps-the-body-chromium/trace.zip
-2026-10-23T16:07:26.2208620Z 
+2026-10-23T16:07:26.2208620Z
 2026-10-23T16:07:26.2209179Z     ────────────────────────────────────────────────────────────────────────────────────────────────
-2026-10-23T16:07:26.2209636Z 
-2026-10-23T16:07:26.2209642Z 
+2026-10-23T16:07:26.2209636Z
+2026-10-23T16:07:26.2209642Z
 2026-10-23T16:07:26.3098375Z   Slow test file: [chromium] › proof/browser/static-body-application.spec.mjs (7.9m)
 2026-10-23T16:07:26.3099721Z   Slow test file: [chromium] › proof/browser/workspace-library.spec.mjs (7.4m)
 2026-10-23T16:07:26.3101443Z   Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
 2026-10-23T16:07:26.3102597Z   1 failed
-2026-10-23T16:07:26.3103897Z     [chromium] › proof/browser/workspace-membership.spec.mjs:574:1 › loss of a joined Host Line removes only its current offers and keeps the body 
+2026-10-23T16:07:26.3103897Z     [chromium] › proof/browser/workspace-membership.spec.mjs:574:1 › loss of a joined Host Line removes only its current offers and keeps the body
 2026-10-23T16:07:26.3105110Z   268 passed (31.9m)
 2026-10-23T16:07:26.3270140Z Chromium batch 1/1: 1912s, exit 1
 2026-10-23T16:07:26.3283302Z FAILED: pipeline/target: Chromium proof failed: Chromium batch 1/1 failed (1)
