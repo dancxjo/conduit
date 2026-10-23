@@ -112,6 +112,13 @@ pub mod hosted_model;
 pub mod hosted_model_compute;
 pub mod hosted_model_infer;
 pub mod hosted_model_work;
+#[cfg(all(
+    feature = "native-model-backing",
+    target_os = "linux",
+    target_arch = "x86_64",
+    target_env = "gnu"
+))]
+pub mod hosted_native_model;
 pub mod hosted_network;
 pub mod hosted_reminder;
 pub mod hosted_resource;
