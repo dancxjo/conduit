@@ -307,6 +307,8 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
             "--test",
             "publication",
             "--test",
+            "capture_selector",
+            "--test",
             "construction",
             "--test",
             "appliance_kernel",
