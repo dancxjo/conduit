@@ -18,16 +18,18 @@ fn select<B>(
         )
         .is_none());
 }
-#[test]
-fn complete_batch_plan_selects_separate_retained_owners_and_exact_generations() {
-    let references: Vec<_> = (1..=15)
-        .map(|version| {
-            let mut r = reference();
-            r.lifetime.version = c::ResourceVersionIdentity::from_digest([version; 32]);
-            r
-        })
-        .collect();
-    let source = RecordingBatchRecoverySource::compile(&references).unwrap();
+pub struct Fixture {
+    pub source: RecordingBatchRecoverySource,
+    pub host: c::HostAdvertisement,
+    pub grants: Vec<c::AuthorityGrant>,
+    pub choices: conduit_planner::PlacementChoices,
+    pub generations: Vec<ReadyRecordingGenerations>,
+    pub singleton: Vec<ReadyRecordingSingleton>,
+    pub concat: Vec<ReadyRecordingConcat>,
+    pub recovery: ReadyRecordingRecovery,
+}
+pub fn fixture(references: &[c::BoundedResourceRef]) -> Fixture {
+    let source = RecordingBatchRecoverySource::compile(references).unwrap();
     let (mut host, _) = fixture_store(&references[0]);
     host.capabilities.clear();
     host.resources.clear();
@@ -121,13 +123,15 @@ fn complete_batch_plan_selects_separate_retained_owners_and_exact_generations() 
         ),
         Err(RecoveryInstallationRefusal::Source)
     ));
-    assert!(ReadyRecordingGenerations::prepare_generation(
-        source.expanded(),
-        host.host_id.clone(),
-        host.boot_id.clone(),
-        &references[0]
-    )
-    .is_err());
+    if references.len() > 1 {
+        assert!(ReadyRecordingGenerations::prepare_generation(
+            source.expanded(),
+            host.host_id.clone(),
+            host.boot_id.clone(),
+            &references[0]
+        )
+        .is_err());
+    }
     for gear in &source.expanded().gears {
         match gear.kind_id.as_str() {
             "flow/singleton" => {
@@ -163,7 +167,7 @@ fn complete_batch_plan_selects_separate_retained_owners_and_exact_generations() 
         host.boot_id.clone(),
         context(),
         &ObservationContract::prepare().unwrap(),
-        15,
+        references.len() as u16,
     )
     .unwrap();
     recovery.append_to_advertisement(&mut host).unwrap();
@@ -173,6 +177,36 @@ fn complete_batch_plan_selects_separate_retained_owners_and_exact_generations() 
     host.resources
         .sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     let choices = conduit_planner::PlacementChoices { by_gear: choices };
+    Fixture {
+        source,
+        host,
+        grants,
+        choices,
+        generations,
+        singleton,
+        concat,
+        recovery,
+    }
+}
+#[test]
+fn complete_batch_plan_selects_separate_retained_owners_and_exact_generations() {
+    let references: Vec<_> = (1..=15)
+        .map(|version| {
+            let mut r = reference();
+            r.lifetime.version = c::ResourceVersionIdentity::from_digest([version; 32]);
+            r
+        })
+        .collect();
+    let Fixture {
+        source,
+        host,
+        grants,
+        choices,
+        mut generations,
+        singleton,
+        concat,
+        recovery,
+    } = fixture(&references);
     assert_eq!(choices.by_gear.len(), 60);
     let prepared =
         PreparedRecordingRecovery::prepare_batch(&source, &host, &choices, &bases(), &grants)

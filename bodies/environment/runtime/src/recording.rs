@@ -16,7 +16,11 @@ mod installation;
 #[cfg(feature = "recording-kernel")]
 pub use installation::ReadyRecordingConcat;
 #[cfg(feature = "recording-kernel")]
+mod batch_kernel;
+#[cfg(feature = "recording-kernel")]
 mod kernel;
+#[cfg(feature = "recording-kernel")]
+pub use batch_kernel::{PreparedRecordingBatchKernel, RecordingBatchKernel};
 #[cfg(feature = "recording-kernel")]
 pub use kernel::{
     PreparedRecordingKernel, RecordingKernel, RecordingKernelRefusal, RecordingRoles,

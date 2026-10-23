@@ -259,3 +259,6 @@ mod batch_source;
 
 #[path = "recording_recovery/batch_plan.rs"]
 mod batch_plan;
+
+#[path = "recording_recovery/batch_execution.rs"]
+mod batch_execution;
