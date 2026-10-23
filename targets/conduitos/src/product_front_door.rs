@@ -139,6 +139,11 @@ fn run_controller(
         .map_err(|error| error.as_str())?;
         let owner = crate::protected_compositor::display_owner::DisplayOwner::prepare(grant)
             .map_err(|_| "compositor-display-preparation-refused")?;
+        {
+            let mut observed = owner.borrow_mut();
+            observed.bind_lifecycle_make(*make);
+            observed.emit_prepared_lifecycle();
+        }
         let report = owner.borrow().preparation_report();
         arch::early_write(format!(
             "CONDUIT_COMPOSITOR_SERVICE_PREPARED {{\"schema\":\"conduit.conduitos/compositor-service-preparation@1\",\"service_reserved_bytes\":{},\"staging_logical_bytes\":{},\"staging_reserved_bytes\":{},\"initialization_entries\":{},\"initialization_privilege_transitions\":{}}}\n",

@@ -1,6 +1,7 @@
 //! Root semantic custody and transient raster source for a protected renderer.
 //! No retained pixels, damage ordering, composition or route selection live here.
 mod lifecycle;
+mod lifecycle_evidence;
 mod raster;
 mod routing;
 mod scanout;
@@ -60,6 +61,7 @@ pub struct NativeCompositor {
     surfaces: Vec<Surface>,
     scanout: Option<Scanout>,
     copy_ack: Cell<Option<CopyAckRef>>,
+    lifecycle_checkpoint: Cell<Option<crate::protected_compositor::lifecycle::sign::Checkpoint>>,
     frame_sequence: u64,
     admitted_pixels: usize,
     failed: bool,
@@ -76,6 +78,7 @@ impl NativeCompositor {
             surfaces: Vec::with_capacity(8),
             scanout: None,
             copy_ack: Cell::new(None),
+            lifecycle_checkpoint: Cell::new(None),
             frame_sequence: 0,
             admitted_pixels: 0,
             failed: false,

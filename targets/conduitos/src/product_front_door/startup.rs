@@ -113,9 +113,15 @@ fn remaining_stages(
         door.action_refused("Commons could not open; the current Plot is still available.")
             .map_err(|error| error.as_str())?;
     }
-    let receipt = presenter
-        .present(door, display)
-        .map_err(|error| error.as_str())?;
+    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+    let presented = presenter.present_lifecycle_checkpoint(
+        door,
+        display,
+        crate::protected_compositor::lifecycle::sign::Checkpoint::PlayingHub,
+    );
+    #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
+    let presented = presenter.present(door, display);
+    let receipt = presented.map_err(|error| error.as_str())?;
     emit_journey_sign(&journey.projection(), make, &receipt);
     journey_sign::write_observation(b"CONDUIT_CRECHE_CHECKPOINT body-playing\n");
     Ok(())

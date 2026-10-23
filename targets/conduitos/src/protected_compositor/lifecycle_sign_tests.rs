@@ -281,3 +281,31 @@ fn named_checkpoint_and_actual_ack_projection_are_explicit_and_lossless() {
         }
     }
 }
+
+#[test]
+fn selected_route_without_ack_is_explicit_incomplete_evidence() {
+    let position = Position {
+        preparation: 7,
+        checkpoint: Checkpoint::FirstCreche.ordinal(),
+        part: 0,
+        parts: 6,
+        instance: 7,
+        namespace: None,
+    };
+    let mut buffer = [0; CAPACITY];
+    let mut encoded = Encoded {
+        length: 0,
+        complete: false,
+    };
+    let allocations = crate::test_allocations::allocations(|| {
+        encoded = encode_missing_ack(position, &mut buffer);
+    });
+    assert_eq!(allocations, 0);
+    assert!(!encoded.complete);
+    let json = parse(&buffer, encoded);
+    assert_eq!(json["record_kind"], "incomplete");
+    assert_eq!(json["reason"], "missing-ack-or-route-refused");
+    assert_eq!(json["position"]["checkpoint"], 2);
+    assert!(json["position"]["namespace"].is_null());
+    assert!(json.get("snapshot").is_none());
+}
