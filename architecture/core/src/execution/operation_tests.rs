@@ -151,3 +151,48 @@ fn completion_requires_latest_finished_gate_not_unentered_preempted_or_stale_gat
         Err(OperationRefusal::ResponseNotReady)
     );
 }
+
+#[test]
+fn foreign_grant_cannot_consume_or_enable_the_recipient_operation() {
+    for (other_envelope, other_bytes) in [(2_u64, &b"x"[..]), (1, &b"y"[..])] {
+        let mut a = ProtectedOperation::new(policy()).unwrap();
+        let mut b = ProtectedOperation::new(policy()).unwrap();
+        a.begin(other_envelope, other_bytes).unwrap();
+        b.begin(1, b"x").unwrap();
+        let foreign = a.grant(&other_envelope, other_bytes).unwrap();
+        let real = b.grant(&1, b"x").unwrap();
+        assert_eq!(foreign.epoch, real.epoch);
+        assert_eq!(foreign.interrupts(), real.interrupts());
+        assert_eq!(
+            b.finish_slice(&1, b"x", foreign, 1, SliceReturn::Gate),
+            Err(OperationRefusal::WrongRequest)
+        );
+        assert_eq!(b.remaining(), policy().total_interrupts);
+        assert_eq!(
+            b.complete(&1, b"x", |_, _| panic!(
+                "foreign grant cannot authorize completion"
+            )),
+            Err(OperationRefusal::SliceOutstanding)
+        );
+        b.finish_slice(&1, b"x", real, 1, SliceReturn::Preempted)
+            .unwrap();
+        assert_eq!(
+            b.finish_slice(&1, b"x", foreign, 1, SliceReturn::Gate),
+            Err(OperationRefusal::WrongRequest)
+        );
+        assert_eq!(
+            b.complete(&1, b"x", |_, _| panic!(
+                "foreign Gate cannot change eligibility"
+            )),
+            Err(OperationRefusal::ResponseNotReady)
+        );
+        let real_gate = b.grant(&1, b"x").unwrap();
+        b.finish_slice(&1, b"x", real_gate, 1, SliceReturn::Gate)
+            .unwrap();
+        assert_eq!(
+            b.finish_slice(&1, b"x", foreign, 1, SliceReturn::Preempted),
+            Err(OperationRefusal::WrongRequest)
+        );
+        b.complete(&1, b"x", |_, _| true).unwrap();
+    }
+}

@@ -26,11 +26,14 @@ pub enum SliceReturn {
 }
 /// Private epoch fields prevent callers from manufacturing a fresh grant.
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct OperationSlice {
+pub struct OperationSlice<E: Copy + Eq> {
+    envelope: E,
+    command_digest: [u8; 32],
+    command_len: usize,
     epoch: u32,
     interrupts: u32,
 }
-impl OperationSlice {
+impl<E: Copy + Eq> OperationSlice<E> {
     pub const fn interrupts(self) -> u32 {
         self.interrupts
     }
@@ -45,18 +48,18 @@ enum State {
 /// Exactly one helper belongs to the existing owner's admitted operation.
 /// Constructing a replacement while that request is live is forbidden by the
 /// owner contract, just as replacing its existing request envelope would be.
-pub struct ProtectedOperation<E: Eq> {
+pub struct ProtectedOperation<E: Copy + Eq> {
     policy: ProtectedEntryBudget,
     envelope: Option<E>,
     command_digest: [u8; 32],
     command_len: usize,
     remaining: u32,
     epoch: u32,
-    outstanding: Option<OperationSlice>,
+    outstanding: Option<OperationSlice<E>>,
     state: State,
     response_ready: bool,
 }
-impl<E: Eq> ProtectedOperation<E> {
+impl<E: Copy + Eq> ProtectedOperation<E> {
     pub fn new(policy: ProtectedEntryBudget) -> Result<Self, OperationRefusal> {
         if !policy.is_valid() {
             return Err(OperationRefusal::InvalidPolicy);
@@ -104,7 +107,7 @@ impl<E: Eq> ProtectedOperation<E> {
         &mut self,
         envelope: &E,
         command: &[u8],
-    ) -> Result<OperationSlice, OperationRefusal> {
+    ) -> Result<OperationSlice<E>, OperationRefusal> {
         self.check(envelope, command)?;
         if self.outstanding.is_some() {
             return Err(OperationRefusal::SliceOutstanding);
@@ -114,6 +117,9 @@ impl<E: Eq> ProtectedOperation<E> {
             return Err(OperationRefusal::TotalExhausted);
         };
         let grant = OperationSlice {
+            envelope: *envelope,
+            command_digest: self.command_digest,
+            command_len: self.command_len,
             epoch,
             interrupts: self.policy.quantum_interrupts.min(self.remaining),
         };
@@ -128,11 +134,17 @@ impl<E: Eq> ProtectedOperation<E> {
         &mut self,
         envelope: &E,
         command: &[u8],
-        grant: OperationSlice,
+        grant: OperationSlice<E>,
         consumed: u32,
         returned: SliceReturn,
     ) -> Result<(), OperationRefusal> {
         self.check(envelope, command)?;
+        if grant.envelope != *envelope
+            || grant.command_digest != self.command_digest
+            || grant.command_len != self.command_len
+        {
+            return Err(OperationRefusal::WrongRequest);
+        }
         if self.outstanding != Some(grant) {
             return Err(OperationRefusal::StaleSlice);
         }
