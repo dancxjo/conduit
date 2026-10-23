@@ -62,7 +62,9 @@ try:
     encoded = json.dumps(caps, ensure_ascii=False, separators=(',', ':')).encode()
     assert len(encoded) == software['capabilities_bytes']
     assert before['native_root_heap_used_bytes'] == after['native_root_heap_used_bytes']
-    assert before['network_control_dispatches'] == after['network_control_dispatches'] == [0, 0, 0]
+    # Readiness inspection must not dispatch IO; earlier completed network
+    # control is allowed so this also checks retained software after fallback.
+    assert before['network_control_dispatches'] == after['network_control_dispatches']
     assert before['native_root_heap_bytes'] == after['native_root_heap_bytes'] == 112 * 1024
     assert before['native_sdk_heap_bytes'] == after['native_sdk_heap_bytes'] == 72 * 1024
     result.update(completed=True, boot_id=software['boot_id'], capabilities_bytes=len(encoded),

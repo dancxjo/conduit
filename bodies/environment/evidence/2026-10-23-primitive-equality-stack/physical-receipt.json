@@ -1,0 +1,14 @@
+{
+  "proof_class": "physical-initialized-software-readiness",
+  "runtime_revision": "43e7d486e",
+  "elf_sha256": "6154acfab9f58a0da3db05f95363e5ae374a6e373c0d239e3aabcdff3e300b57",
+  "primitive_node_frame_bytes": 592,
+  "structured_equality_frame_bytes": 1248,
+  "source_constructor_frame_bytes": 3104,
+  "capabilities_bytes": 55655,
+  "root_heap_used_bytes": 81084,
+  "root_heap_peak_bytes": 90564,
+  "sdk_heap_peak_bytes": 34024,
+  "body_start_claimed": false,
+  "climate_sampling_claimed": false
+}
