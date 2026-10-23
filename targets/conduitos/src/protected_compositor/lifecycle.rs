@@ -84,6 +84,7 @@ pub(crate) fn elapsed(started: Option<u64>, ended: Option<u64>) -> Option<u64> {
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct DisplayObservation {
+    pub guest_image_sha256: [u8; 32],
     pub service: ServiceObservation,
     pub activations: ActivationObservation,
     pub current_cost: DomainCost,

@@ -54,6 +54,8 @@ pub(crate) struct Identity<'a> {
     pub make_build: &'a str,
     /// Embedded description binding, NEVER the final ELF or ISO digest.
     pub make_image_binding: &'a str,
+    /// Digest of the actual immutable embedded compositor ELF, computed once.
+    pub guest_image_sha256: &'a [u8; 32],
 }
 
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
@@ -61,6 +63,7 @@ impl<'a> Identity<'a> {
     pub fn borrowed(
         display: crate::protected_compositor::display_grant::DisplayIdentity<'a>,
         make: &'a crate::make::MakeRecord,
+        guest_image_sha256: &'a [u8; 32],
     ) -> Self {
         Self {
             host: display.host.as_str(),
@@ -77,6 +80,7 @@ impl<'a> Identity<'a> {
             make_profile: make.profile_id,
             make_build: make.build_id,
             make_image_binding: make.image_binding,
+            guest_image_sha256,
         }
     }
 }

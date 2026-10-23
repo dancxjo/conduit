@@ -1,4 +1,5 @@
 use super::*;
+const DIGEST: [u8; 32] = [u8::MAX; 32];
 
 fn identity(value: &str) -> Identity<'_> {
     Identity {
@@ -16,6 +17,7 @@ fn identity(value: &str) -> Identity<'_> {
         make_profile: value,
         make_build: value,
         make_image_binding: value,
+        guest_image_sha256: &DIGEST,
     }
 }
 fn snapshot<'a>(value: &'a str, cost: &'a DomainCost) -> Snapshot<'a> {
@@ -177,4 +179,24 @@ fn growing_escaped_identity_never_exposes_a_truncated_record() {
         }
     }
     assert!(reached_capacity);
+}
+
+#[test]
+fn guest_image_digest_retains_every_borrowed_byte_without_hex_allocation() {
+    let cost = DomainCost::default();
+    let digest: [u8; 32] = core::array::from_fn(|i| (i as u8).wrapping_mul(17));
+    let mut record = snapshot("scope", &cost);
+    record.identity.guest_image_sha256 = &digest;
+    assert!(core::ptr::eq(record.identity.guest_image_sha256, &digest));
+    let mut buffer = [0; CAPACITY];
+    let encoded = encode(&record, &mut buffer);
+    assert!(encoded.complete);
+    let json = parse(&buffer, encoded);
+    let actual = json["snapshot"]["identity"]["guest_image_sha256"]
+        .as_array()
+        .unwrap();
+    assert_eq!(actual.len(), 32);
+    for (byte, expected) in actual.iter().zip(digest) {
+        assert_eq!(byte.as_u64(), Some(u64::from(expected)));
+    }
 }

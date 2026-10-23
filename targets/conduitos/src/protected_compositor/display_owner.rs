@@ -10,6 +10,7 @@ use super::{
 use crate::{display::DisplayError, protected_region::DomainCost};
 use alloc::{rc::Rc, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
+use sha2::{Digest, Sha256};
 
 pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
 pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
@@ -42,6 +43,7 @@ pub(crate) struct DisplayOwner {
     staging: Vec<u32>,
     report: PreparationReport,
     grant: SharedDisplayGrant,
+    guest_image_sha256: [u8; 32],
     staging_preparation_raw_ticks: Option<u64>,
     preparation_raw_ticks: Option<u64>,
     disposal_raw_ticks: Option<u64>,
@@ -87,6 +89,10 @@ impl DisplayOwner {
             .map_err(PreparationError::Transport)?;
         let service_cost_at_preparation = service.cost();
         let sessions = SessionOwner::new(service).map_err(PreparationError::Owner)?;
+        // Hash exactly the immutable bytes used by install_embedded, once per
+        // preparation. Its work remains inside the preparation tick envelope.
+        let guest_image_sha256: [u8; 32] =
+            Sha256::digest(CompositorService::embedded_image_bytes()).into();
         let report = PreparationReport {
             staging_logical_bytes: STAGING_BYTES,
             staging_reserved_bytes: staging.capacity() * size_of::<u32>(),
@@ -98,6 +104,7 @@ impl DisplayOwner {
             staging,
             report,
             grant,
+            guest_image_sha256,
             staging_preparation_raw_ticks: super::lifecycle::elapsed(
                 staging_started,
                 staging_finished,
@@ -109,6 +116,11 @@ impl DisplayOwner {
         owner.borrow_mut().preparation_raw_ticks =
             super::lifecycle::elapsed(preparation_started, finished);
         Ok(owner)
+    }
+
+    /// Immutable digest custody; observing it never reads or rehashes guest memory.
+    pub(crate) fn guest_image_sha256(&self) -> &[u8; 32] {
+        &self.guest_image_sha256
     }
 
     /// Immutable embedded image for preparation-time source binding only.
@@ -153,6 +165,7 @@ impl DisplayOwner {
     pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
         super::lifecycle::DisplayObservation {
             service: self.sessions.service_observation(),
+            guest_image_sha256: self.guest_image_sha256,
             activations: self.sessions.activation_observation(),
             current_cost: self.service_cost(),
             staging_prepared_bytes: self.report.staging_logical_bytes,
