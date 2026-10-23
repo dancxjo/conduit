@@ -5,6 +5,8 @@ mod authority;
 mod canonical_patchbay;
 #[path = "protected_application/graph_facts.rs"]
 mod graph_facts;
+#[path = "protected_application/source_authority.rs"]
+mod source_authority;
 pub(crate) use graph_facts::project_graph;
 #[path = "protected_application/projection.rs"]
 mod projection;
@@ -269,7 +271,13 @@ impl Owner {
             return Err(Refusal::Malformed);
         };
         self.snapshot(slot, &snapshot)?;
-        if matches!(proposal, Some(Proposal::EditCurrent(_))) && !self.selected_editable(slot) {
+        if matches!(
+            proposal,
+            Some(Proposal::EditCurrent(
+                patchbay_application::PatchbayApplicationRequest::EditCurrent { .. }
+            ))
+        ) && !self.selected_editable(slot)
+        {
             return Err(Refusal::Malformed);
         }
         if input.is_empty() {
