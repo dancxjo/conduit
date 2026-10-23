@@ -1,0 +1,90 @@
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-publication-dev/bodies/environment/runtime)
+    Finished `test` profile [unoptimized] target(s) in 1.30s
+     Running unittests src/lib.rs (target/publication-host/debug/deps/conduit_environment_runtime-fe53de5f53241df4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cadence.rs (target/publication-host/debug/deps/cadence-83a51a8283633335)
+
+running 1 test
+test overnight_workload_preserves_typed_failures_and_finite_cadence ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.58s
+
+     Running tests/canonical_input.rs (target/publication-host/debug/deps/canonical_input-8339f46337be6e40)
+
+running 1 test
+test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/capture_kernel.rs (target/publication-host/debug/deps/capture_kernel-9be627b8d0b58b09)
+
+running 4 tests
+test a_replacement_native_provider_cannot_consume_the_existing_plan ... ok
+test assigned_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok
+test a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity ... ok
+test checked_source_traverses_the_production_kernel_and_closes_after_each_outcome ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+
+     Running tests/observation_forms.rs (target/publication-host/debug/deps/observation_forms-64b62aa6603cbc94)
+
+running 2 tests
+test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok
+test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/observation_kernel.rs (target/publication-host/debug/deps/observation_kernel-64b061917cfe7715)
+
+running 2 tests
+test coordinate_overflow_and_wrong_schemas_refuse_without_allocating ... ok
+test source_and_forms_emit_quantities_and_preserve_all_sensor_outcomes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests/publication.rs (target/publication-host/debug/deps/publication-b80c842fd86d1c76)
+
+running 6 tests
+test empty_publication_channels_prepare_within_one_kib ... ok
+test zero_event_admission_refuses_values_but_still_closes_normally ... ok
+test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok
+test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok
+test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok
+test publication_storage_preserves_the_full_quantity_coordinate_width ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/recording_chunks.rs (target/publication-host/debug/deps/recording_chunks-61fe11e1ab6484f9)
+
+running 5 tests
+test context_is_finite_and_is_not_invented_by_the_encoder ... ok
+test replay_conflict_order_gaps_clock_and_failure_absence_are_explicit ... ok
+test selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial_flush ... ok
+test every_authored_absence_and_sequence_exhaustion_remains_explicit ... ok
+test sixty_four_samples_seal_as_bounded_json_without_allocating_or_claiming_commit ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/recording_recovery.rs (target/publication-host/debug/deps/recording_recovery-e2ed7dcba2a7bab4)
+
+running 8 tests
+test history::boundary_replay_clock_foreign_context_and_corruption_refuse_atomically ... ok
+test history::empty_admission_refuses_and_standalone_reader_does_not_inherit_history ... ok
+test corrupted_records_refuse_atomically_without_replacing_prior_recovery ... ok
+test wrong_identity_form_clock_and_noncanonical_json_cannot_be_reinterpreted ... ok
+test recovered_quantities_failures_and_gaps_require_no_play_allocations ... ok
+test history::ordered_chunks_preserve_quantities_failures_and_boundary_gaps_without_allocations ... ok
+test history::admitted_sixty_four_chunk_history_has_no_hidden_eviction_or_growth ... ok
+test full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+   Doc-tests conduit_environment_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

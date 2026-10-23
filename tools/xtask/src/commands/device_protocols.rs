@@ -10,6 +10,12 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
     run_suite(
         &[
             Step::new(
+                "device-protocols.environment-publication",
+                "Check finite committed environmental publication and canonical input validation",
+                "cargo",
+                &["test", "--locked", "--manifest-path", "bodies/environment/runtime/Cargo.toml", "--test", "publication", "--test", "canonical_input"],
+            ),
+            Step::new(
                 "device-protocols.source-package",
                 "Check bounded source packaging, exact schema decoding and refusal classes",
                 "cargo",
