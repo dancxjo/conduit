@@ -1261,3 +1261,17 @@ and native ownership transfer to one boxed context without cloning; Root guards
 that context separately while retaining 8 KiB control headroom. See
 `evidence/2026-10-23-native-worker/` for exact scope and measurements. Actual task
 admission and signed start/release are not wired, and the worker is not flashed.
+
+Root now registers a concrete Embassy worker during signed preparation. The task
+owns the boxed kernel, both native providers and the finite request/reply queues,
+then acknowledges `ready-held` from the executor itself. It waits for a separate
+command before polling execution. The finite owner proof requires zero Steps,
+zero publications and zero native operations in flight, with both actual native
+lifecycles still issued. Registration or readiness failure refuses preparation;
+a readiness timeout requests cancellation rather than releasing execution.
+
+The task admits a fixed 4096-byte projection of committed canonical publication
+bytes; it grants neither logging authority nor Body start. Its status reports
+actual capability inspections and preserves terminal resources. ESP32 compilation,
+host lint and the portable native-construction proof pass. Physical task custody,
+attributed Body start/release and Face/Mask service wiring remain to be proved.

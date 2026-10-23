@@ -189,6 +189,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     {
         return Err(format!("native preparation refused: {}", prepared["refusal"]).into());
     }
+    let task = &prepared["worker"];
+    if prepared["execution_context_prepared"] != true
+        || task["phase"] != "ready-held"
+        || task["native_live"] != true
+        || task["steps"] != 0
+        || task["source_sequence"] != 0
+        || task["publication_sequence"] != 0
+        || task["publication_bytes"] != 0
+        || task["native_lifecycles"] != serde_json::json!(["issued", "issued"])
+        || task["native_in_flight"] != serde_json::json!([0, 0])
+        || task["context_bytes"].as_u64().unwrap_or(0) == 0
+        || task["held_future_bytes"].as_u64().unwrap_or(0) == 0
+    {
+        return Err("actual worker ownership/readiness refused".into());
+    }
     if binding.fragment_play(&owner).is_ok() || owner.realization().unwrap().play.is_some() {
         return Err("preparation incorrectly started Body".into());
     }
@@ -196,7 +211,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "{}",
         serde_json::json!({"event":"owner-preparation-complete", "completed":true,
         "body_id":body_play.body_id,"plot_plan":native.plan().plan_id,"fragment_play":active,
-        "owner_retained_through_preparation":true,"body_started":false,"climate_sampling_claimed":false})
+        "owner_retained_through_preparation":true,"worker_task_held":true,"worker_context_bytes":task["context_bytes"],"worker_held_future_bytes":task["held_future_bytes"],"body_started":false,"climate_sampling_claimed":false})
     );
     Ok(())
 }

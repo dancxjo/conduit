@@ -14,6 +14,7 @@ impl NativeRoot {
         if self.native_bindings.is_some()
             || self.appliance_kernel.is_some()
             || self.execution.is_some()
+            || self.worker.is_some()
         {
             return Err("already-native-prepared");
         }
@@ -23,17 +24,24 @@ impl NativeRoot {
             .authorize_preparation(token)
     }
     pub fn native_possession_prepared(&self) -> bool {
-        self.native_bindings.is_some() || self.execution.is_some()
+        self.native_bindings.is_some()
+            || self.execution.is_some()
+            || self
+                .worker
+                .as_ref()
+                .is_some_and(|worker| worker.status().native_live)
     }
     pub fn execution_context_prepared(&self) -> bool {
-        self.execution.is_some()
+        self.execution.is_some() || self.worker.is_some()
     }
     pub fn execution_context_bytes(&self) -> Option<usize> {
-        self.execution
-            .as_ref()
-            .map(|execution| core::mem::size_of_val(&**execution))
+        self.execution_context_prepared()
+            .then_some(core::mem::size_of::<super::DeviceExecution>())
     }
-    pub fn prepare_native_assignment(
+    pub fn worker_status(&self) -> Option<crate::native_task::Status> {
+        self.worker.as_ref().map(|worker| worker.status())
+    }
+    pub async fn prepare_native_assignment(
         &mut self,
         permit: PreparationPermit,
         wire: &[u8],
@@ -41,6 +49,7 @@ impl NativeRoot {
         if self.native_bindings.is_some()
             || self.appliance_kernel.is_some()
             || self.execution.is_some()
+            || self.worker.is_some()
         {
             return Err("already-native-prepared");
         }
@@ -121,6 +130,20 @@ impl NativeRoot {
             &mut self.appliance_kernel,
             &mut self.native_bindings,
         )?);
+        let spawner = self.worker_spawner.ok_or("worker-executor-unavailable")?;
+        self.worker = Some(crate::native_task::prepare(&mut self.execution, spawner)?);
+        let worker = self.worker.as_ref().expect("registered worker handle");
+        if embassy_time::with_timeout(embassy_time::Duration::from_secs(2), worker.wait_ready())
+            .await
+            .is_err()
+        {
+            worker.abort_preparation();
+            return Err("worker-ready-timeout");
+        }
+        if worker.status().phase != "ready-held" {
+            worker.abort_preparation();
+            return Err("worker-ownership-unavailable");
+        }
         Ok(())
     }
 }

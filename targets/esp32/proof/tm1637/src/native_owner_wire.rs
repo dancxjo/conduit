@@ -66,6 +66,7 @@ pub async fn receive(
         appliance_kernel_prepared: bool,
         execution_context_prepared: bool,
         execution_context_bytes: Option<usize>,
+        worker: Option<crate::native_task::Status>,
         kernel_additional_preparation_bound: Option<usize>,
         capability_possession_issued: bool,
     }
@@ -121,6 +122,7 @@ pub async fn receive(
         appliance_kernel_prepared: root.appliance_kernel_prepared(),
         execution_context_prepared: root.execution_context_prepared(),
         execution_context_bytes: root.execution_context_bytes(),
+        worker: root.worker_status(),
         kernel_additional_preparation_bound: crate::native_kernel::requirements()
             .ok()
             .map(|(bytes, _)| bytes),
@@ -167,4 +169,5 @@ async fn receive_assignment(
     .map_err(|_| "transfer-timeout")?
     .map_err(|_| "transfer-frame")?;
     root.prepare_native_assignment(permit, &buffer[..length])
+        .await
 }
