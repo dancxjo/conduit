@@ -1,0 +1,36 @@
+{
+  "source": "61b3410c412eed09c62a0499514ac9e85c07e793",
+  "issue": 6318,
+  "run": 40011260819,
+  "job": 120626433533,
+  "artifact": 12530852342,
+  "proof_class": "failed freestanding-emulator journey",
+  "actual_retained_elf_sha256": "2442fac693a5ca519e67886a82b27399475f1e51fde7626496b9d9f74aaac299",
+  "iso_sha256_from_manifest": "c6d6e98dd3b8ce4aee1f9b93f562becdf86109d20173e9ea2c12b27848651246",
+  "iso_bytes_in_packet": false,
+  "serial_sha256": "ae305b7d3d72d7cb54acad88b09d19273098669779032daaad6bbecf5c22eaf8",
+  "failure": {
+    "detail": "no complete guest record for patchbay-action",
+    "reason": "patchbay-action-timeout"
+  },
+  "guest_terminal": "patchbay-publish Commit Fault(WorkExhausted), then PlayFailed revocation",
+  "scope": "Source-bound negative evidence. Actual ELF verified from archive; ISO digest declared by original manifests, ISO bytes absent. No accepted runtime, causal phase timing or physical claim.",
+  "files": {
+    "diagnostics.zip": {
+      "bytes": 10323720,
+      "sha256": "91e1ef686b882498ae379b816811939fc7112545ba6e498b01e5c851d980c2e7"
+    },
+    "integration-job.log.gz": {
+      "bytes": 29767,
+      "sha256": "bbe040b604b0a57df2e2c43dfaba2341e515eb75bd30e6883b5dcdf0936a38f3"
+    },
+    "journey-manifest.json": {
+      "bytes": 333222,
+      "sha256": "a3da5bbfaeccbce0c761b72a4769467ec55af3bc7e0f69c763caf42b7d45b99a"
+    },
+    "patchbay-gear-details.png": {
+      "bytes": 244407,
+      "sha256": "a64042233ac0fddfb0325a7c7f889a28573f4aa3c05298ec4e9f4554ce7d4e7f"
+    }
+  }
+}
