@@ -24,6 +24,9 @@ mod aarch64_pci_conformance;
 
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
+/// Uncalibrated raw counter shared with backend cost observations.
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) use x86_64::domain_ticks;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub use x86_64::{ServiceDomain, TextDomain};
 

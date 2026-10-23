@@ -21,7 +21,7 @@ mod gdt;
 mod ordinary_domain;
 
 #[cfg(target_os = "none")]
-fn domain_ticks() -> u64 {
+pub(crate) fn domain_ticks() -> u64 {
     cpu::read_tsc()
 }
 #[cfg(target_os = "none")]

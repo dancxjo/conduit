@@ -491,3 +491,6 @@ fn selected_but_fully_obscured_foreign_surface_cannot_escape_handle_fence() {
 
 #[path = "handoff_tests.rs"]
 mod handoff;
+
+#[path = "lifecycle_tests.rs"]
+mod lifecycle;
