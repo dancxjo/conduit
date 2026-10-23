@@ -1232,3 +1232,12 @@ stages plus coexisting sign backing, retaining the same 8 KiB control headroom.
 The subsequent hardware run must establish the complete native/kernel closure.
 Root startup also has a bounded 25-second read-only readiness poll before the
 one-shot ambient admission challenge; signed mutations are not retried.
+
+The subsequent full `owner-prepare-esp32` command passed physically; evidence is
+in `evidence/2026-10-23-physical-native-preparation/`. The revised 23,692-byte
+additional bound retained the same 8 KiB control headroom. Actual Root use was
+100,524 of 114,688 bytes, peaking at 105,064, with both native Host Calls and the
+ordinary dormant scheduler retained. The real Body owner stayed alive through
+the exchange, then the finite proof process exited. Attributed start/release,
+execution/service memory closure, Face publication and physical overnight
+recording remain unfinished. The flashed device is prepared and unstarted.

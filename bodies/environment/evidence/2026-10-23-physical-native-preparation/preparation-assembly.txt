@@ -1,0 +1,1050 @@
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792787494/root.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+400ec5e8 <conduit_esp32_tm1637_probe::native_entry::__main::____embassy_main_task::____embassy_main_task_inner_function::{{closure}}>:
+400ec5e8:	1ca136               	entry	a1, 0xe50
+400ec5eb:	912081               	l32r	a8, 400d0a6c <idle_hook_fn+0xa18> (2614 <XT_STK_FRMSZ+0x2514>)
+400ec5ee:	628a                	add.n	a6, a2, a8
+400ec5f0:	000682               	l8ui	a8, a6, 0
+400ec5f3:	935e91               	l32r	a9, 400d136c <idle_hook_fn+0x1318> (3f400550 <_rodata_start+0x430>)
+400ec5f6:	90                      	.byte	0x90
+400ec5f7:	88                      	.byte	0x88
+
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792787494/root.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+400eff18 <conduit_esp32_tm1637_probe::native_kernel::prepare>:
+400eff18:	11a136               	entry	a1, 0x8d0
+400eff1b:	0358                	l32i.n	a5, a3, 0
+400eff1d:	02c516               	beqz	a5, 400eff4d <conduit_esp32_tm1637_probe::native_kernel::prepare+0x35>
+400eff20:	0478                	l32i.n	a7, a4, 0
+400eff22:	027716               	beqz	a7, 400eff4d <conduit_esp32_tm1637_probe::native_kernel::prepare+0x35>
+400eff25:	58c1a2               	addi	a10, a1, 88
+
+
+/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792787494/root.elf:     file format elf32-xtensa-le
+
+
+Disassembly of section .text:
+
+400f0284 <conduit_esp32_tm1637_probe::native_kernel::assemble>:
+400f0284:	874136               	entry	a1, 0x43a0
+400f0287:	126142               	s32i	a4, a1, 72
+400f028a:	136122               	s32i	a2, a1, 76
+400f028d:	a4a682               	movi	a8, 0x6a4
+400f0290:	b38a                	add.n	a11, a3, a8
+400f0292:	a2a082               	movi	a8, 162
+400f0295:	0bd882               	addmi	a8, a8, 0xb00
+400f0298:	818a                	add.n	a8, a1, a8
+400f029a:	00c8a2               	addi	a10, a8, 0
+400f029d:	a25c                	movi.n	a2, 90
+400f029f:	7f8151               	l32r	a5, 400d00a4 <idle_hook_fn+0x50> (4000c2c8 <memcpy>)
+400f02a2:	02cd                	mov.n	a12, a2
+400f02a4:	0005e0               	callx8	a5
+400f02a7:	1ca582               	movi	a8, 0x51c
+400f02aa:	b38a                	add.n	a11, a3, a8
+400f02ac:	fca082               	movi	a8, 252
+400f02af:	0bd882               	addmi	a8, a8, 0xb00
+400f02b2:	818a                	add.n	a8, a1, a8
+400f02b4:	00c8a2               	addi	a10, a8, 0
+400f02b7:	88a1c2               	movi	a12, 0x188
+400f02ba:	1161c2               	s32i	a12, a1, 68
+400f02bd:	0005e0               	callx8	a5
+400f02c0:	fea682               	movi	a8, 0x6fe
+400f02c3:	b38a                	add.n	a11, a3, a8
+400f02c5:	86a082               	movi	a8, 134
+400f02c8:	0dd882               	addmi	a8, a8, 0xd00
+400f02cb:	818a                	add.n	a8, a1, a8
+400f02cd:	00c8a2               	addi	a10, a8, 0
+400f02d0:	cea0c2               	movi	a12, 206
+400f02d3:	0005e0               	callx8	a5
+400f02d6:	28a482               	movi	a8, 0x428
+400f02d9:	b38a                	add.n	a11, a3, a8
+400f02db:	485c                	movi.n	a8, 84
+400f02dd:	0ed882               	addmi	a8, a8, 0xe00
+400f02e0:	818a                	add.n	a8, a1, a8
+400f02e2:	00c8a2               	addi	a10, a8, 0
+400f02e5:	f4a0c2               	movi	a12, 244
+400f02e8:	0005e0               	callx8	a5
+400f02eb:	50c1a2               	addi	a10, a1, 80
+400f02ee:	c0a362               	movi	a6, 0x3c0
+400f02f1:	03bd                	mov.n	a11, a3
+400f02f3:	06cd                	mov.n	a12, a6
+400f02f5:	0005e0               	callx8	a5
+400f02f8:	828f81               	l32r	a8, 400d0d34 <idle_hook_fn+0xce0> (83c <XT_STK_FRMSZ+0x73c>)
+400f02fb:	b38a                	add.n	a11, a3, a8
+400f02fd:	14a482               	movi	a8, 0x414
+400f0300:	818a                	add.n	a8, a1, a8
+400f0302:	00c8a2               	addi	a10, a8, 0
+400f0305:	44a772               	movi	a7, 0x744
+400f0308:	07cd                	mov.n	a12, a7
+400f030a:	0005e0               	callx8	a5
+400f030d:	b36a                	add.n	a11, a3, a6
+400f030f:	885c                	movi.n	a8, 88
+400f0311:	0bd882               	addmi	a8, a8, 0xb00
+400f0314:	818a                	add.n	a8, a1, a8
+400f0316:	00c8a2               	addi	a10, a8, 0
+400f0319:	8c4c                	movi.n	a12, 72
+400f031b:	0005e0               	callx8	a5
+400f031e:	803741               	l32r	a4, 400d03fc <idle_hook_fn+0x3a8> (3ffb1e78 <esp_alloc::HEAP>)
+400f0321:	8c0c                	movi.n	a12, 8
+400f0323:	85ced1               	l32r	a13, 400d1a5c <idle_hook_fn+0x1a08> (f80 <XT_STK_FRMSZ+0xe80>)
+400f0326:	807381               	l32r	a8, 400d04f4 <idle_hook_fn+0x4a0> (40209708 <esp_sync::NonReentrantMutex<T>::with>)
+400f0329:	04ad                	mov.n	a10, a4
+400f032b:	03bd                	mov.n	a11, a3
+400f032d:	0008e0               	callx8	a8
+400f0330:	030c                	movi.n	a3, 0
+400f0332:	4c0c                	movi.n	a12, 4
+400f0334:	803381               	l32r	a8, 400d0400 <idle_hook_fn+0x3ac> (402094a8 <esp_sync::NonReentrantMutex<T>::with>)
+400f0337:	04ad                	mov.n	a10, a4
+400f0339:	03bd                	mov.n	a11, a3
+400f033b:	07dd                	mov.n	a13, a7
+400f033d:	0008e0               	callx8	a8
+400f0340:	0a7d                	mov.n	a7, a10
+400f0342:	5b0716               	beqz	a7, 400f08f6 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x672>
+400f0345:	14a482               	movi	a8, 0x414
+400f0348:	818a                	add.n	a8, a1, a8
+400f034a:	00c8b2               	addi	a11, a8, 0
+400f034d:	44a7c2               	movi	a12, 0x744
+400f0350:	07ad                	mov.n	a10, a7
+400f0352:	0005e0               	callx8	a5
+400f0355:	285c                	movi.n	a8, 82
+400f0357:	0ed882               	addmi	a8, a8, 0xe00
+400f035a:	818a                	add.n	a8, a1, a8
+400f035c:	000882               	l8ui	a8, a8, 0
+400f035f:	021826               	beqi	a8, 1, 400f0365 <conduit_esp32_tm1637_probe::native_kernel::assemble+0xe1>
+400f0362:	024746               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0365:	684c                	movi.n	a8, 70
+400f0367:	0fd882               	addmi	a8, a8, 0xf00
+400f036a:	818a                	add.n	a8, a1, a8
+400f036c:	000882               	l8ui	a8, a8, 0
+400f036f:	021826               	beqi	a8, 1, 400f0375 <conduit_esp32_tm1637_probe::native_kernel::assemble+0xf1>
+400f0372:	024346               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0375:	085c                	movi.n	a8, 80
+400f0377:	0ed882               	addmi	a8, a8, 0xe00
+400f037a:	818a                	add.n	a8, a1, a8
+400f037c:	001882               	l16ui	a8, a8, 0
+400f037f:	002856               	bnez	a8, 400f0385 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x101>
+400f0382:	023f46               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0385:	86a092               	movi	a9, 134
+400f0388:	0dd992               	addmi	a9, a9, 0xd00
+400f038b:	919a                	add.n	a9, a1, a9
+400f038d:	00c992               	addi	a9, a9, 0
+400f0390:	5ac992               	addi	a9, a9, 90
+400f0393:	0a0c                	movi.n	a10, 0
+400f0395:	e40c                	movi.n	a4, 14
+400f0397:	0abd                	mov.n	a11, a10
+400f0399:	df0c                	movi.n	a15, 13
+400f039b:	86a0c2               	movi	a12, 134
+400f039e:	0ddcc2               	addmi	a12, a12, 0xd00
+400f03a1:	c1ca                	add.n	a12, a1, a12
+400f03a3:	00ccc2               	addi	a12, a12, 0
+400f03a6:	ccba                	add.n	a12, a12, a11
+400f03a8:	001cd2               	l16ui	a13, a12, 0
+400f03ab:	045d16               	beqz	a13, 400f03f4 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x170>
+400f03ae:	c2da80               	quou	a13, a10, a8
+400f03b1:	02b4d7               	bgeu	a4, a13, 400f03b7 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x133>
+400f03b4:	0232c6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f03b7:	011cd2               	l16ui	a13, a12, 2
+400f03ba:	021ce2               	l16ui	a14, a12, 4
+400f03bd:	ceda                	add.n	a12, a14, a13
+400f03bf:	02b4c7               	bgeu	a4, a12, 400f03c5 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x141>
+400f03c2:	022f46               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f03c5:	b0cd90               	addx8	a12, a13, a9
+400f03c8:	11ded0               	slli	a13, a14, 3
+400f03cb:	025d16               	beqz	a13, 400f03f4 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x170>
+400f03ce:	001ce2               	l16ui	a14, a12, 0
+400f03d1:	172e26               	beqi	a14, 2, 400f03ec <conduit_esp32_tm1637_probe::native_kernel::assemble+0x168>
+400f03d4:	031ce2               	l16ui	a14, a12, 6
+400f03d7:	02bfe7               	bgeu	a15, a14, 400f03dd <conduit_esp32_tm1637_probe::native_kernel::assemble+0x159>
+400f03da:	022946               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f03dd:	001ce2               	l16ui	a14, a12, 0
+400f03e0:	008e56               	bnez	a14, 400f03ec <conduit_esp32_tm1637_probe::native_kernel::assemble+0x168>
+400f03e3:	011ce2               	l16ui	a14, a12, 2
+400f03e6:	02b4e7               	bgeu	a4, a14, 400f03ec <conduit_esp32_tm1637_probe::native_kernel::assemble+0x168>
+400f03e9:	022586               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f03ec:	cc8b                	addi.n	a12, a12, 8
+400f03ee:	f8cdd2               	addi	a13, a13, -8
+400f03f1:	fd9d56               	bnez	a13, 400f03ce <conduit_esp32_tm1637_probe::native_kernel::assemble+0x14a>
+400f03f4:	aa1b                	addi.n	a10, a10, 1
+400f03f6:	bb6b                	addi.n	a11, a11, 6
+400f03f8:	9f9b27               	bne	a11, a2, 400f039b <conduit_esp32_tm1637_probe::native_kernel::assemble+0x117>
+400f03fb:	484c                	movi.n	a8, 68
+400f03fd:	0fd882               	addmi	a8, a8, 0xf00
+400f0400:	818a                	add.n	a8, a1, a8
+400f0402:	001882               	l16ui	a8, a8, 0
+400f0405:	002856               	bnez	a8, 400f040b <conduit_esp32_tm1637_probe::native_kernel::assemble+0x187>
+400f0408:	021dc6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f040b:	090c                	movi.n	a9, 0
+400f040d:	f0a0a2               	movi	a10, 240
+400f0410:	09bd                	mov.n	a11, a9
+400f0412:	4c5c                	movi.n	a12, 84
+400f0414:	0edcc2               	addmi	a12, a12, 0xe00
+400f0417:	c1ca                	add.n	a12, a1, a12
+400f0419:	00ccc2               	addi	a12, a12, 0
+400f041c:	ccba                	add.n	a12, a12, a11
+400f041e:	0cc8                	l32i.n	a12, a12, 0
+400f0420:	008c16               	beqz	a12, 400f042c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x1a8>
+400f0423:	c2c980               	quou	a12, a9, a8
+400f0426:	02b4c7               	bgeu	a4, a12, 400f042c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x1a8>
+400f0429:	021586               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f042c:	10cbb2               	addi	a11, a11, 16
+400f042f:	991b                	addi.n	a9, a9, 1
+400f0431:	dd9ba7               	bne	a11, a10, 400f0412 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x18e>
+400f0434:	8149                	s32i.n	a4, a1, 32
+400f0436:	280c                	movi.n	a8, 2
+400f0438:	1189                	s32i.n	a8, a1, 4
+400f043a:	093c                	movi.n	a9, 48
+400f043c:	2bd992               	addmi	a9, a9, 0x2b00
+400f043f:	919a                	add.n	a9, a1, a9
+400f0441:	004982               	s8i	a8, a9, 0
+400f0444:	080c                	movi.n	a8, 0
+400f0446:	089d                	mov.n	a9, a8
+400f0448:	a189                	s32i.n	a8, a1, 40
+400f044a:	08ad                	mov.n	a10, a8
+400f044c:	1061a2               	s32i	a10, a1, 64
+400f044f:	098d                	mov.n	a8, a9
+400f0451:	a2a092               	movi	a9, 162
+400f0454:	0bd992               	addmi	a9, a9, 0xb00
+400f0457:	919a                	add.n	a9, a1, a9
+400f0459:	00c992               	addi	a9, a9, 0
+400f045c:	998a                	add.n	a9, a9, a8
+400f045e:	0219a2               	l16ui	a10, a9, 4
+400f0461:	002a56               	bnez	a10, 400f0467 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x1e3>
+400f0464:	0206c6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0467:	1021a2               	l32i	a10, a1, 64
+400f046a:	aa1b                	addi.n	a10, a10, 1
+400f046c:	d1a9                	s32i.n	a10, a1, 52
+400f046e:	a86b                	addi.n	a10, a8, 6
+400f0470:	e1a9                	s32i.n	a10, a1, 56
+400f0472:	a2a0a2               	movi	a10, 162
+400f0475:	0bdaa2               	addmi	a10, a10, 0xb00
+400f0478:	a1aa                	add.n	a10, a1, a10
+400f047a:	00caa2               	addi	a10, a10, 0
+400f047d:	8a8a                	add.n	a8, a10, a8
+400f047f:	492b                	addi.n	a4, a9, 2
+400f0481:	a1b8                	l32i.n	a11, a1, 40
+400f0483:	0bad                	mov.n	a10, a11
+400f0485:	0bdd                	mov.n	a13, a11
+400f0487:	0acd                	mov.n	a12, a10
+400f0489:	784d26               	beqi	a13, 4, 400f0505 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x281>
+400f048c:	a8da                	add.n	a10, a8, a13
+400f048e:	001ae2               	l16ui	a14, a10, 0
+400f0491:	ac1b                	addi.n	a10, a12, 1
+400f0493:	bd4b                	addi.n	a11, a13, 4
+400f0495:	fece16               	beqz	a14, 400f0485 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x201>
+400f0498:	d4da                	add.n	a13, a4, a13
+400f049a:	001de2               	l16ui	a14, a13, 0
+400f049d:	dd0c                	movi.n	a13, 13
+400f049f:	02bde7               	bgeu	a13, a14, 400f04a5 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x221>
+400f04a2:	01f746               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f04a5:	7ef0d1               	l32r	a13, 400d0068 <idle_hook_fn+0x14> (ffff <XT_STK_FRMSZ+0xfeff>)
+400f04a8:	02bdc7               	bgeu	a13, a12, 400f04ae <conduit_esp32_tm1637_probe::native_kernel::assemble+0x22a>
+400f04ab:	01f506               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f04ae:	c149                	s32i.n	a4, a1, 48
+400f04b0:	cf1c                	movi.n	a15, 28
+400f04b2:	82eef0               	mull	a14, a14, a15
+400f04b5:	fca092               	movi	a9, 252
+400f04b8:	0bd992               	addmi	a9, a9, 0xb00
+400f04bb:	919a                	add.n	a9, a1, a9
+400f04bd:	00c9f2               	addi	a15, a9, 0
+400f04c0:	ffea                	add.n	a15, a15, a14
+400f04c2:	0a1fe2               	l16ui	a14, a15, 20
+400f04c5:	140c                	movi.n	a4, 1
+400f04c7:	10ee40               	and	a14, a14, a4
+400f04ca:	040c                	movi.n	a4, 0
+400f04cc:	049e47               	bne	a14, a4, 400f04d4 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x250>
+400f04cf:	0b1f92               	l16ui	a9, a15, 22
+400f04d2:	f199                	s32i.n	a9, a1, 60
+400f04d4:	049e47               	bne	a14, a4, 400f04dc <conduit_esp32_tm1637_probe::native_kernel::assemble+0x258>
+400f04d7:	0c1ff2               	l16ui	a15, a15, 24
+400f04da:	b1f9                	s32i.n	a15, a1, 44
+400f04dc:	c148                	l32i.n	a4, a1, 48
+400f04de:	7a1e56               	bnez	a14, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f04e1:	102192               	l32i	a9, a1, 64
+400f04e4:	10e9d0               	and	a14, a9, a13
+400f04e7:	f198                	l32i.n	a9, a1, 60
+400f04e9:	10f9d0               	and	a15, a9, a13
+400f04ec:	021fe7               	beq	a15, a14, 400f04f2 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x26e>
+400f04ef:	01e406               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f04f2:	10ccd0               	and	a12, a12, a13
+400f04f5:	b1e8                	l32i.n	a14, a1, 44
+400f04f7:	10ded0               	and	a13, a14, a13
+400f04fa:	102192               	l32i	a9, a1, 64
+400f04fd:	f199                	s32i.n	a9, a1, 60
+400f04ff:	821dc7               	beq	a13, a12, 400f0485 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x201>
+400f0502:	01df46               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0505:	884c                	movi.n	a8, 72
+400f0507:	0fd882               	addmi	a8, a8, 0xf00
+400f050a:	818a                	add.n	a8, a1, a8
+400f050c:	00c8a2               	addi	a10, a8, 0
+400f050f:	86a082               	movi	a8, 134
+400f0512:	0dd882               	addmi	a8, a8, 0xd00
+400f0515:	818a                	add.n	a8, a1, a8
+400f0517:	00c8b2               	addi	a11, a8, 0
+400f051a:	0d0c                	movi.n	a13, 0
+400f051c:	855841               	l32r	a4, 400d1a7c <idle_hook_fn+0x1a28> (400d67f0 <conduit_kernel::scheduler::route_membership::targets>)
+400f051f:	1021c2               	l32i	a12, a1, 64
+400f0522:	c1d9                	s32i.n	a13, a1, 48
+400f0524:	0004e0               	callx8	a4
+400f0527:	884c                	movi.n	a8, 72
+400f0529:	0fd882               	addmi	a8, a8, 0xf00
+400f052c:	818a                	add.n	a8, a1, a8
+400f052e:	001882               	l16ui	a8, a8, 0
+400f0531:	024866               	bnei	a8, 4, 400f0537 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x2b3>
+400f0534:	005606               	j	400f0690 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x40c>
+400f0537:	885c                	movi.n	a8, 88
+400f0539:	0fd882               	addmi	a8, a8, 0xf00
+400f053c:	818a                	add.n	a8, a1, a8
+400f053e:	0898                	l32i.n	a9, a8, 0
+400f0540:	14c916               	beqz	a9, 400f0690 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x40c>
+400f0543:	c85c                	movi.n	a8, 92
+400f0545:	0fd882               	addmi	a8, a8, 0xf00
+400f0548:	818a                	add.n	a8, a1, a8
+400f054a:	0888                	l32i.n	a8, a8, 0
+400f054c:	09bd                	mov.n	a11, a9
+400f054e:	029b87               	bne	a11, a8, 400f0554 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x2d0>
+400f0551:	004ec6               	j	400f0690 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x40c>
+400f0554:	001b92               	l16ui	a9, a11, 0
+400f0557:	011ba2               	l16ui	a10, a11, 2
+400f055a:	11aa00               	slli	a10, a10, 16
+400f055d:	20ca90               	or	a12, a10, a9
+400f0560:	7ec2a1               	l32r	a10, 400d0068 <idle_hook_fn+0x14> (ffff <XT_STK_FRMSZ+0xfeff>)
+400f0563:	10eca0               	and	a14, a12, a10
+400f0566:	023e66               	bnei	a14, 3, 400f056c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x2e8>
+400f0569:	0048c6               	j	400f0690 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x40c>
+400f056c:	9b8b                	addi.n	a9, a11, 8
+400f056e:	da2e26               	beqi	a14, 2, 400f054c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x2c8>
+400f0571:	5149                	s32i.n	a4, a1, 20
+400f0573:	021bd2               	l16ui	a13, a11, 4
+400f0576:	031bb2               	l16ui	a11, a11, 6
+400f0579:	11bb00               	slli	a11, a11, 16
+400f057c:	20dbd0               	or	a13, a11, a13
+400f057f:	0b1c                	movi.n	a11, 16
+400f0581:	401b00               	ssl	a11
+400f0584:	81bdc0               	src	a11, a13, a12
+400f0587:	41b9                	s32i.n	a11, a1, 16
+400f0589:	21d9                	s32i.n	a13, a1, 8
+400f058b:	f5f0d0               	extui	a15, a13, 16, 16
+400f058e:	fca0b2               	movi	a11, 252
+400f0591:	0bdbb2               	addmi	a11, a11, 0xb00
+400f0594:	b1ba                	add.n	a11, a1, a11
+400f0596:	00cbd2               	addi	a13, a11, 0
+400f0599:	db0c                	movi.n	a11, 13
+400f059b:	91f9                	s32i.n	a15, a1, 36
+400f059d:	02bbf7               	bgeu	a11, a15, 400f05a3 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x31f>
+400f05a0:	01b7c6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f05a3:	0b3c                	movi.n	a11, 48
+400f05a5:	2bdbb2               	addmi	a11, a11, 0x2b00
+400f05a8:	b1ba                	add.n	a11, a1, a11
+400f05aa:	000bb2               	l8ui	a11, a11, 0
+400f05ad:	262b66               	bnei	a11, 2, 400f05d7 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x353>
+400f05b0:	0b0c                	movi.n	a11, 0
+400f05b2:	cf3c                	movi.n	a15, 60
+400f05b4:	2bdff2               	addmi	a15, a15, 0x2b00
+400f05b7:	f1fa                	add.n	a15, a1, a15
+400f05b9:	005fb2               	s16i	a11, a15, 0
+400f05bc:	8f3c                	movi.n	a15, 56
+400f05be:	2bdff2               	addmi	a15, a15, 0x2b00
+400f05c1:	f1fa                	add.n	a15, a1, a15
+400f05c3:	0fb9                	s32i.n	a11, a15, 0
+400f05c5:	4f3c                	movi.n	a15, 52
+400f05c7:	2bdff2               	addmi	a15, a15, 0x2b00
+400f05ca:	f1fa                	add.n	a15, a1, a15
+400f05cc:	0fb9                	s32i.n	a11, a15, 0
+400f05ce:	0f3c                	movi.n	a15, 48
+400f05d0:	2bdff2               	addmi	a15, a15, 0x2b00
+400f05d3:	f1fa                	add.n	a15, a1, a15
+400f05d5:	0fb9                	s32i.n	a11, a15, 0
+400f05d7:	0b3c                	movi.n	a11, 48
+400f05d9:	2bdbb2               	addmi	a11, a11, 0x2b00
+400f05dc:	b1ba                	add.n	a11, a1, a11
+400f05de:	00cbb2               	addi	a11, a11, 0
+400f05e1:	91f8                	l32i.n	a15, a1, 36
+400f05e3:	bbfa                	add.n	a11, a11, a15
+400f05e5:	000bb2               	l8ui	a11, a11, 0
+400f05e8:	697b56               	bnez	a11, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f05eb:	cb1c                	movi.n	a11, 28
+400f05ed:	91f8                	l32i.n	a15, a1, 36
+400f05ef:	82bfb0               	mull	a11, a15, a11
+400f05f2:	fdba                	add.n	a15, a13, a11
+400f05f4:	071fb2               	l16ui	a11, a15, 14
+400f05f7:	1d0c                	movi.n	a13, 1
+400f05f9:	31b9                	s32i.n	a11, a1, 12
+400f05fb:	71d9                	s32i.n	a13, a1, 28
+400f05fd:	10bbd0               	and	a11, a11, a13
+400f0600:	c148                	l32i.n	a4, a1, 48
+400f0602:	049b47               	bne	a11, a4, 400f060a <conduit_esp32_tm1637_probe::native_kernel::assemble+0x386>
+400f0605:	081f42               	l16ui	a4, a15, 16
+400f0608:	6149                	s32i.n	a4, a1, 24
+400f060a:	091f42               	l16ui	a4, a15, 18
+400f060d:	1044a0               	and	a4, a4, a10
+400f0610:	c1d8                	l32i.n	a13, a1, 48
+400f0612:	0314d7               	beq	a4, a13, 400f0619 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x395>
+400f0615:	c1d8                	l32i.n	a13, a1, 48
+400f0617:	71d9                	s32i.n	a13, a1, 28
+400f0619:	666b56               	bnez	a11, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f061c:	1021b2               	l32i	a11, a1, 64
+400f061f:	10bba0               	and	a11, a11, a10
+400f0622:	6148                	l32i.n	a4, a1, 24
+400f0624:	1044a0               	and	a4, a4, a10
+400f0627:	0214b7               	beq	a4, a11, 400f062d <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3a9>
+400f062a:	019546               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f062d:	31b8                	l32i.n	a11, a1, 12
+400f062f:	71d8                	l32i.n	a13, a1, 28
+400f0631:	20bbd0               	or	a11, a11, a13
+400f0634:	1d0c                	movi.n	a13, 1
+400f0636:	10bbd0               	and	a11, a11, a13
+400f0639:	646b16               	beqz	a11, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f063c:	0a1fb2               	l16ui	a11, a15, 20
+400f063f:	021be7               	beq	a11, a14, 400f0645 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3c1>
+400f0642:	018f46               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0645:	10bcd0               	and	a11, a12, a13
+400f0648:	00db16               	beqz	a11, 400f0659 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3d5>
+400f064b:	41b8                	l32i.n	a11, a1, 16
+400f064d:	10aba0               	and	a10, a11, a10
+400f0650:	0b1fb2               	l16ui	a11, a15, 22
+400f0653:	1e1ba7               	beq	a11, a10, 400f0675 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3f1>
+400f0656:	018a46               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0659:	41b8                	l32i.n	a11, a1, 16
+400f065b:	10bba0               	and	a11, a11, a10
+400f065e:	0b1fc2               	l16ui	a12, a15, 22
+400f0661:	021cb7               	beq	a12, a11, 400f0667 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3e3>
+400f0664:	0186c6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0667:	21b8                	l32i.n	a11, a1, 8
+400f0669:	10aba0               	and	a10, a11, a10
+400f066c:	0c1fb2               	l16ui	a11, a15, 24
+400f066f:	021ba7               	beq	a11, a10, 400f0675 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x3f1>
+400f0672:	018346               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0675:	0a3c                	movi.n	a10, 48
+400f0677:	2bdaa2               	addmi	a10, a10, 0x2b00
+400f067a:	a1aa                	add.n	a10, a1, a10
+400f067c:	00caa2               	addi	a10, a10, 0
+400f067f:	91b8                	l32i.n	a11, a1, 36
+400f0681:	aaba                	add.n	a10, a10, a11
+400f0683:	004ad2               	s8i	a13, a10, 0
+400f0686:	1021a2               	l32i	a10, a1, 64
+400f0689:	61a9                	s32i.n	a10, a1, 24
+400f068b:	5148                	l32i.n	a4, a1, 20
+400f068d:	ffaec6               	j	400f054c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x2c8>
+400f0690:	e198                	l32i.n	a9, a1, 56
+400f0692:	d1a8                	l32i.n	a10, a1, 52
+400f0694:	021927               	beq	a9, a2, 400f069a <conduit_esp32_tm1637_probe::native_kernel::assemble+0x416>
+400f0697:	ff6c46               	j	400f044c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x1c8>
+400f069a:	5149                	s32i.n	a4, a1, 20
+400f069c:	020c                	movi.n	a2, 0
+400f069e:	081c                	movi.n	a8, 16
+400f06a0:	42d882               	addmi	a8, a8, 0x4200
+400f06a3:	818a                	add.n	a8, a1, a8
+400f06a5:	005822               	s16i	a2, a8, 0
+400f06a8:	481c                	movi.n	a8, 20
+400f06aa:	42d882               	addmi	a8, a8, 0x4200
+400f06ad:	818a                	add.n	a8, a1, a8
+400f06af:	0829                	s32i.n	a2, a8, 0
+400f06b1:	fca082               	movi	a8, 252
+400f06b4:	0bd882               	addmi	a8, a8, 0xb00
+400f06b7:	818a                	add.n	a8, a1, a8
+400f06b9:	00c882               	addi	a8, a8, 0
+400f06bc:	112192               	l32i	a9, a1, 68
+400f06bf:	889a                	add.n	a8, a8, a9
+400f06c1:	a189                	s32i.n	a8, a1, 40
+400f06c3:	c0a082               	movi	a8, 192
+400f06c6:	31d882               	addmi	a8, a8, 0x3100
+400f06c9:	818a                	add.n	a8, a1, a8
+400f06cb:	00c882               	addi	a8, a8, 0
+400f06ce:	16c882               	addi	a8, a8, 22
+400f06d1:	e189                	s32i.n	a8, a1, 56
+400f06d3:	083c                	movi.n	a8, 48
+400f06d5:	2bd882               	addmi	a8, a8, 0x2b00
+400f06d8:	818a                	add.n	a8, a1, a8
+400f06da:	000882               	l8ui	a8, a8, 0
+400f06dd:	b189                	s32i.n	a8, a1, 44
+400f06df:	481c                	movi.n	a8, 20
+400f06e1:	d189                	s32i.n	a8, a1, 52
+400f06e3:	180c                	movi.n	a8, 1
+400f06e5:	c189                	s32i.n	a8, a1, 48
+400f06e7:	106122               	s32i	a2, a1, 64
+400f06ea:	fca082               	movi	a8, 252
+400f06ed:	0bd882               	addmi	a8, a8, 0xb00
+400f06f0:	818a                	add.n	a8, a1, a8
+400f06f2:	00c882               	addi	a8, a8, 0
+400f06f5:	112192               	l32i	a9, a1, 68
+400f06f8:	029297               	bne	a2, a9, 400f06fe <conduit_esp32_tm1637_probe::native_kernel::assemble+0x47a>
+400f06fb:	008006               	j	400f08ff <conduit_esp32_tm1637_probe::native_kernel::assemble+0x67b>
+400f06fe:	fca092               	movi	a9, 252
+400f0701:	0bd992               	addmi	a9, a9, 0xb00
+400f0704:	919a                	add.n	a9, a1, a9
+400f0706:	00c992               	addi	a9, a9, 0
+400f0709:	992a                	add.n	a9, a9, a2
+400f070b:	0a1942               	l16ui	a4, a9, 20
+400f070e:	022466               	bnei	a4, 2, 400f0714 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x490>
+400f0711:	007a86               	j	400f08ff <conduit_esp32_tm1637_probe::native_kernel::assemble+0x67b>
+400f0714:	b82a                	add.n	a11, a8, a2
+400f0716:	c0a082               	movi	a8, 192
+400f0719:	31d882               	addmi	a8, a8, 0x3100
+400f071c:	818a                	add.n	a8, a1, a8
+400f071e:	00c8a2               	addi	a10, a8, 0
+400f0721:	d1c8                	l32i.n	a12, a1, 52
+400f0723:	0005e0               	callx8	a5
+400f0726:	fca082               	movi	a8, 252
+400f0729:	0bd882               	addmi	a8, a8, 0xb00
+400f072c:	818a                	add.n	a8, a1, a8
+400f072e:	00c882               	addi	a8, a8, 0
+400f0731:	882a                	add.n	a8, a8, a2
+400f0733:	0b1892               	l16ui	a9, a8, 22
+400f0736:	e1a8                	l32i.n	a10, a1, 56
+400f0738:	005a92               	s16i	a9, a10, 0
+400f073b:	0c1892               	l16ui	a9, a8, 24
+400f073e:	015a92               	s16i	a9, a10, 2
+400f0741:	0d1882               	l16ui	a8, a8, 26
+400f0744:	025a82               	s16i	a8, a10, 4
+400f0747:	d4a082               	movi	a8, 212
+400f074a:	31d882               	addmi	a8, a8, 0x3100
+400f074d:	818a                	add.n	a8, a1, a8
+400f074f:	005842               	s16i	a4, a8, 0
+400f0752:	c8a082               	movi	a8, 200
+400f0755:	31d882               	addmi	a8, a8, 0x3100
+400f0758:	818a                	add.n	a8, a1, a8
+400f075a:	001882               	l16ui	a8, a8, 0
+400f075d:	102192               	l32i	a9, a1, 64
+400f0760:	021987               	beq	a9, a8, 400f0766 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x4e2>
+400f0763:	014706               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0766:	cca092               	movi	a9, 204
+400f0769:	31d992               	addmi	a9, a9, 0x3100
+400f076c:	919a                	add.n	a9, a1, a9
+400f076e:	001992               	l16ui	a9, a9, 0
+400f0771:	50e916               	beqz	a9, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0774:	c0a0a2               	movi	a10, 192
+400f0777:	31daa2               	addmi	a10, a10, 0x3100
+400f077a:	a1aa                	add.n	a10, a1, a10
+400f077c:	0aa8                	l32i.n	a10, a10, 0
+400f077e:	501a16               	beqz	a10, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0781:	c4a0b2               	movi	a11, 196
+400f0784:	31dbb2               	addmi	a11, a11, 0x3100
+400f0787:	b1ba                	add.n	a11, a1, a11
+400f0789:	0bb8                	l32i.n	a11, a11, 0
+400f078b:	bb0b                	addi.n	a11, a11, -1
+400f078d:	023ba7               	bltu	a11, a10, 400f0793 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x50f>
+400f0790:	013bc6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0793:	cea0a2               	movi	a10, 206
+400f0796:	31daa2               	addmi	a10, a10, 0x3100
+400f0799:	a1aa                	add.n	a10, a1, a10
+400f079b:	001aa2               	l16ui	a10, a10, 0
+400f079e:	c1e8                	l32i.n	a14, a1, 48
+400f07a0:	10aae0               	and	a10, a10, a14
+400f07a3:	d8a0b2               	movi	a11, 216
+400f07a6:	31dbb2               	addmi	a11, a11, 0x3100
+400f07a9:	b1ba                	add.n	a11, a1, a11
+400f07ab:	001bd2               	l16ui	a13, a11, 0
+400f07ae:	d6a0b2               	movi	a11, 214
+400f07b1:	31dbb2               	addmi	a11, a11, 0x3100
+400f07b4:	b1ba                	add.n	a11, a1, a11
+400f07b6:	001bb2               	l16ui	a11, a11, 0
+400f07b9:	d2a0c2               	movi	a12, 210
+400f07bc:	31dcc2               	addmi	a12, a12, 0x3100
+400f07bf:	c1ca                	add.n	a12, a1, a12
+400f07c1:	001cc2               	l16ui	a12, a12, 0
+400f07c4:	f1c9                	s32i.n	a12, a1, 60
+400f07c6:	d0a0c2               	movi	a12, 208
+400f07c9:	31dcc2               	addmi	a12, a12, 0x3100
+400f07cc:	c1ca                	add.n	a12, a1, a12
+400f07ce:	001cc2               	l16ui	a12, a12, 0
+400f07d1:	10f4e0               	and	a15, a4, a14
+400f07d4:	010a16               	beqz	a10, 400f07e8 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x564>
+400f07d7:	4a8f56               	bnez	a15, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f07da:	81e8                	l32i.n	a14, a1, 32
+400f07dc:	02beb7               	bgeu	a14, a11, 400f07e2 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x55e>
+400f07df:	012806               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f07e2:	7e21f1               	l32r	a15, 400d0068 <idle_hook_fn+0x14> (ffff <XT_STK_FRMSZ+0xfeff>)
+400f07e5:	0012c6               	j	400f0834 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5b0>
+400f07e8:	02af16               	beqz	a15, 400f0816 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x592>
+400f07eb:	7e1f81               	l32r	a8, 400d0068 <idle_hook_fn+0x14> (ffff <XT_STK_FRMSZ+0xfeff>)
+400f07ee:	10ac80               	and	a10, a12, a8
+400f07f1:	81b8                	l32i.n	a11, a1, 32
+400f07f3:	02bba7               	bgeu	a11, a10, 400f07f9 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x575>
+400f07f6:	012246               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f07f9:	f1a8                	l32i.n	a10, a1, 60
+400f07fb:	108a80               	and	a8, a10, a8
+400f07fe:	481856               	bnez	a8, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0801:	caa082               	movi	a8, 202
+400f0804:	31d882               	addmi	a8, a8, 0x3100
+400f0807:	818a                	add.n	a8, a1, a8
+400f0809:	001882               	l16ui	a8, a8, 0
+400f080c:	f89a                	add.n	a15, a8, a9
+400f080e:	f80c                	movi.n	a8, 15
+400f0810:	623f87               	bltu	a15, a8, 400f0876 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5f2>
+400f0813:	011b06               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0816:	7e14f1               	l32r	a15, 400d0068 <idle_hook_fn+0x14> (ffff <XT_STK_FRMSZ+0xfeff>)
+400f0819:	104cf0               	and	a4, a12, a15
+400f081c:	81e8                	l32i.n	a14, a1, 32
+400f081e:	02be47               	bgeu	a14, a4, 400f0824 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5a0>
+400f0821:	011786               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0824:	81e8                	l32i.n	a14, a1, 32
+400f0826:	02beb7               	bgeu	a14, a11, 400f082c <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5a8>
+400f0829:	011586               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f082c:	f1e8                	l32i.n	a14, a1, 60
+400f082e:	104ef0               	and	a4, a14, a15
+400f0831:	44e456               	bnez	a4, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0834:	10edf0               	and	a14, a13, a15
+400f0837:	448e56               	bnez	a14, 400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f083a:	caa0d2               	movi	a13, 202
+400f083d:	31ddd2               	addmi	a13, a13, 0x3100
+400f0840:	d1da                	add.n	a13, a1, a13
+400f0842:	001de2               	l16ui	a14, a13, 0
+400f0845:	fe9a                	add.n	a15, a14, a9
+400f0847:	8198                	l32i.n	a9, a1, 32
+400f0849:	02b9f7               	bgeu	a9, a15, 400f084f <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5cb>
+400f084c:	010cc6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f084f:	690c                	movi.n	a9, 6
+400f0851:	829b90               	mull	a9, a11, a9
+400f0854:	a2a0b2               	movi	a11, 162
+400f0857:	0bdbb2               	addmi	a11, a11, 0xb00
+400f085a:	b1ba                	add.n	a11, a1, a11
+400f085c:	00cbb2               	addi	a11, a11, 0
+400f085f:	9b9a                	add.n	a9, a11, a9
+400f0861:	0019b2               	l16ui	a11, a9, 0
+400f0864:	021b26               	beqi	a11, 1, 400f086a <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5e6>
+400f0867:	010606               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f086a:	011992               	l16ui	a9, a9, 2
+400f086d:	021987               	beq	a9, a8, 400f0873 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x5ef>
+400f0870:	0103c6               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f0873:	02da56               	bnez	a10, 400f08a4 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x620>
+400f0876:	ffa082               	movi	a8, 255
+400f0879:	b198                	l32i.n	a9, a1, 44
+400f087b:	108980               	and	a8, a9, a8
+400f087e:	022866               	bnei	a8, 2, 400f0884 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x600>
+400f0881:	00f886               	j	400f0c67 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9e3>
+400f0884:	8188                	l32i.n	a8, a1, 32
+400f0886:	1021a2               	l32i	a10, a1, 64
+400f0889:	023a87               	bltu	a10, a8, 400f088f <conduit_esp32_tm1637_probe::native_kernel::assemble+0x60b>
+400f088c:	010dc6               	j	400f0cc7 <conduit_esp32_tm1637_probe::native_kernel::assemble+0xa43>
+400f088f:	083c                	movi.n	a8, 48
+400f0891:	2bd882               	addmi	a8, a8, 0x2b00
+400f0894:	818a                	add.n	a8, a1, a8
+400f0896:	00c882               	addi	a8, a8, 0
+400f0899:	88aa                	add.n	a8, a8, a10
+400f089b:	000882               	l8ui	a8, a8, 0
+400f089e:	021826               	beqi	a8, 1, 400f08a4 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x620>
+400f08a1:	00f086               	j	400f0c67 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9e3>
+400f08a4:	884c                	movi.n	a8, 72
+400f08a6:	0fd882               	addmi	a8, a8, 0xf00
+400f08a9:	818a                	add.n	a8, a1, a8
+400f08ab:	00c8a2               	addi	a10, a8, 0
+400f08ae:	081c                	movi.n	a8, 16
+400f08b0:	42d882               	addmi	a8, a8, 0x4200
+400f08b3:	818a                	add.n	a8, a1, a8
+400f08b5:	00c8b2               	addi	a11, a8, 0
+400f08b8:	c0a082               	movi	a8, 192
+400f08bb:	31d882               	addmi	a8, a8, 0x3100
+400f08be:	818a                	add.n	a8, a1, a8
+400f08c0:	00c8c2               	addi	a12, a8, 0
+400f08c3:	fca082               	movi	a8, 252
+400f08c6:	0bd882               	addmi	a8, a8, 0xb00
+400f08c9:	818a                	add.n	a8, a1, a8
+400f08cb:	00c8d2               	addi	a13, a8, 0
+400f08ce:	846d81               	l32r	a8, 400d1a84 <idle_hook_fn+0x1a30> (40165b20 <conduit_kernel::scheduler::cord_prefix::CordPrefix::admit>)
+400f08d1:	102142               	l32i	a4, a1, 64
+400f08d4:	04ed                	mov.n	a14, a4
+400f08d6:	0008e0               	callx8	a8
+400f08d9:	884c                	movi.n	a8, 72
+400f08db:	0fd882               	addmi	a8, a8, 0xf00
+400f08de:	818a                	add.n	a8, a1, a8
+400f08e0:	000882               	l8ui	a8, a8, 0
+400f08e3:	441b                	addi.n	a4, a4, 1
+400f08e5:	106142               	s32i	a4, a1, 64
+400f08e8:	1cc222               	addi	a2, a2, 28
+400f08eb:	d91c                	movi.n	a9, 29
+400f08ed:	029897               	bne	a8, a9, 400f08f3 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x66f>
+400f08f0:	ff7d86               	j	400f06ea <conduit_esp32_tm1637_probe::native_kernel::assemble+0x466>
+400f08f3:	00e306               	j	400f0c83 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x9ff>
+400f08f6:	44a7a2               	movi	a10, 0x744
+400f08f9:	81c481               	l32r	a8, 400d100c <idle_hook_fn+0xfb8> (4010b400 <alloc::alloc::handle_alloc_error>)
+400f08fc:	0008e0               	callx8	a8
+400f08ff:	090c                	movi.n	a9, 0
+400f0901:	330c                	movi.n	a3, 3
+400f0903:	90a682               	movi	a8, 0x690
+400f0906:	11b8                	l32i.n	a11, a1, 4
+400f0908:	0a3c                	movi.n	a10, 48
+400f090a:	2bdaa2               	addmi	a10, a10, 0x2b00
+400f090d:	a1aa                	add.n	a10, a1, a10
+400f090f:	00caa2               	addi	a10, a10, 0
+400f0912:	aa9a                	add.n	a10, a10, a9
+400f0914:	004a32               	s8i	a3, a10, 0
+400f0917:	70c992               	addi	a9, a9, 112
+400f091a:	ea9987               	bne	a9, a8, 400f0908 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x684>
+400f091d:	090c                	movi.n	a9, 0
+400f091f:	c0a0a2               	movi	a10, 192
+400f0922:	31daa2               	addmi	a10, a10, 0x3100
+400f0925:	a1aa                	add.n	a10, a1, a10
+400f0927:	00caa2               	addi	a10, a10, 0
+400f092a:	aa9a                	add.n	a10, a10, a9
+400f092c:	004ab2               	s8i	a11, a10, 0
+400f092f:	70c992               	addi	a9, a9, 112
+400f0932:	e99987               	bne	a9, a8, 400f091f <conduit_esp32_tm1637_probe::native_kernel::assemble+0x69b>
+400f0935:	080c                	movi.n	a8, 0
+400f0937:	36a692               	movi	a9, 0x636
+400f093a:	08ad                	mov.n	a10, a8
+400f093c:	a1c8                	l32i.n	a12, a1, 40
+400f093e:	2b5c                	movi.n	a11, 82
+400f0940:	38dbb2               	addmi	a11, a11, 0x3800
+400f0943:	b1ba                	add.n	a11, a1, a11
+400f0945:	00cbb2               	addi	a11, a11, 0
+400f0948:	bbaa                	add.n	a11, a11, a10
+400f094a:	005b82               	s16i	a8, a11, 0
+400f094d:	6acaa2               	addi	a10, a10, 106
+400f0950:	ea9a97               	bne	a10, a9, 400f093e <conduit_esp32_tm1637_probe::native_kernel::assemble+0x6ba>
+400f0953:	080c                	movi.n	a8, 0
+400f0955:	c23c                	movi.n	a2, 60
+400f0957:	089d                	mov.n	a9, a8
+400f0959:	88a0a2               	movi	a10, 136
+400f095c:	3edaa2               	addmi	a10, a10, 0x3e00
+400f095f:	a1aa                	add.n	a10, a1, a10
+400f0961:	00caa2               	addi	a10, a10, 0
+400f0964:	aa9a                	add.n	a10, a10, a9
+400f0966:	005a82               	s16i	a8, a10, 0
+400f0969:	994b                	addi.n	a9, a9, 4
+400f096b:	ea9927               	bne	a9, a2, 400f0959 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x6d5>
+400f096e:	080c                	movi.n	a8, 0
+400f0970:	893c                	movi.n	a9, 56
+400f0972:	08ad                	mov.n	a10, a8
+400f0974:	c8a0b2               	movi	a11, 200
+400f0977:	3edbb2               	addmi	a11, a11, 0x3e00
+400f097a:	b1ba                	add.n	a11, a1, a11
+400f097c:	00cbb2               	addi	a11, a11, 0
+400f097f:	bbaa                	add.n	a11, a11, a10
+400f0981:	005b82               	s16i	a8, a11, 0
+400f0984:	aa4b                	addi.n	a10, a10, 4
+400f0986:	ea9a97               	bne	a10, a9, 400f0974 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x6f0>
+400f0989:	78ae92               	movi	a9, 0xfffffe78
+400f098c:	f60c                	movi.n	a6, 15
+400f098e:	080c                	movi.n	a8, 0
+400f0990:	015916               	beqz	a9, 400f09a9 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x725>
+400f0993:	660b                	addi.n	a6, a6, -1
+400f0995:	1cc992               	addi	a9, a9, 28
+400f0998:	e4cca2               	addi	a10, a12, -28
+400f099b:	feccb2               	addi	a11, a12, -2
+400f099e:	000bb2               	l8ui	a11, a11, 0
+400f09a1:	0acd                	mov.n	a12, a10
+400f09a3:	e93b66               	bnei	a11, 3, 400f0990 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x70c>
+400f09a6:	000046               	j	400f09ab <conduit_esp32_tm1637_probe::native_kernel::assemble+0x727>
+400f09a9:	086d                	mov.n	a6, a8
+400f09ab:	0ca392               	movi	a9, 0x30c
+400f09ae:	0a0c                	movi.n	a10, 0
+400f09b0:	3fdaa2               	addmi	a10, a10, 0x3f00
+400f09b3:	a1aa                	add.n	a10, a1, a10
+400f09b5:	00caa2               	addi	a10, a10, 0
+400f09b8:	aa8a                	add.n	a10, a10, a8
+400f09ba:	0a39                	s32i.n	a3, a10, 0
+400f09bc:	34c882               	addi	a8, a8, 52
+400f09bf:	eb9897               	bne	a8, a9, 400f09ae <conduit_esp32_tm1637_probe::native_kernel::assemble+0x72a>
+400f09c2:	080c                	movi.n	a8, 0
+400f09c4:	a8a092               	movi	a9, 168
+400f09c7:	08ad                	mov.n	a10, a8
+400f09c9:	0b1c                	movi.n	a11, 16
+400f09cb:	42dbb2               	addmi	a11, a11, 0x4200
+400f09ce:	b1ba                	add.n	a11, a1, a11
+400f09d0:	00cbb2               	addi	a11, a11, 0
+400f09d3:	bbaa                	add.n	a11, a11, a10
+400f09d5:	0b89                	s32i.n	a8, a11, 0
+400f09d7:	aacb                	addi.n	a10, a10, 12
+400f09d9:	ec9a97               	bne	a10, a9, 400f09c9 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x745>
+400f09dc:	70a082               	movi	a8, 112
+400f09df:	43d882               	addmi	a8, a8, 0x4300
+400f09e2:	818a                	add.n	a8, a1, a8
+400f09e4:	00c8a2               	addi	a10, a8, 0
+400f09e7:	040c                	movi.n	a4, 0
+400f09e9:	fc0c                	movi.n	a12, 15
+400f09eb:	1161c2               	s32i	a12, a1, 68
+400f09ee:	7f6381               	l32r	a8, 400d077c <idle_hook_fn+0x728> (4000c44c <memset>)
+400f09f1:	04bd                	mov.n	a11, a4
+400f09f3:	106182               	s32i	a8, a1, 64
+400f09f6:	0008e0               	callx8	a8
+400f09f9:	1121d2               	l32i	a13, a1, 68
+400f09fc:	780c                	movi.n	a8, 7
+400f09fe:	c1c8                	l32i.n	a12, a1, 48
+400f0a00:	109480               	and	a9, a4, a8
+400f0a03:	401900               	ssl	a9
+400f0a06:	a19c00               	sll	a9, a12
+400f0a09:	41a340               	srli	a10, a4, 3
+400f0a0c:	70a0b2               	movi	a11, 112
+400f0a0f:	43dbb2               	addmi	a11, a11, 0x4300
+400f0a12:	b1ba                	add.n	a11, a1, a11
+400f0a14:	00cbb2               	addi	a11, a11, 0
+400f0a17:	abaa                	add.n	a10, a11, a10
+400f0a19:	000ab2               	l8ui	a11, a10, 0
+400f0a1c:	2099b0               	or	a9, a9, a11
+400f0a1f:	004a92               	s8i	a9, a10, 0
+400f0a22:	441b                	addi.n	a4, a4, 1
+400f0a24:	d894d7               	bne	a4, a13, 400f0a00 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x77c>
+400f0a27:	080c                	movi.n	a8, 0
+400f0a29:	089d                	mov.n	a9, a8
+400f0a2b:	b8a0a2               	movi	a10, 184
+400f0a2e:	42daa2               	addmi	a10, a10, 0x4200
+400f0a31:	a1aa                	add.n	a10, a1, a10
+400f0a33:	00caa2               	addi	a10, a10, 0
+400f0a36:	aa9a                	add.n	a10, a10, a9
+400f0a38:	005a82               	s16i	a8, a10, 0
+400f0a3b:	994b                	addi.n	a9, a9, 4
+400f0a3d:	ea9927               	bne	a9, a2, 400f0a2b <conduit_esp32_tm1637_probe::native_kernel::assemble+0x7a7>
+400f0a40:	080c                	movi.n	a8, 0
+400f0a42:	78a092               	movi	a9, 120
+400f0a45:	08ad                	mov.n	a10, a8
+400f0a47:	f8a0b2               	movi	a11, 248
+400f0a4a:	42dbb2               	addmi	a11, a11, 0x4200
+400f0a4d:	b1ba                	add.n	a11, a1, a11
+400f0a4f:	00cbb2               	addi	a11, a11, 0
+400f0a52:	bbaa                	add.n	a11, a11, a10
+400f0a54:	0b89                	s32i.n	a8, a11, 0
+400f0a56:	aa8b                	addi.n	a10, a10, 8
+400f0a58:	eb9a97               	bne	a10, a9, 400f0a47 <conduit_esp32_tm1637_probe::native_kernel::assemble+0x7c3>
+400f0a5b:	840b81               	l32r	a8, 400d1a88 <idle_hook_fn+0x1a34> (1558 <XT_STK_FRMSZ+0x1458>)
+400f0a5e:	894c                	movi.n	a9, 72
+400f0a60:	0fd992               	addmi	a9, a9, 0xf00
+400f0a63:	919a                	add.n	a9, a1, a9
+400f0a65:	00c992               	addi	a9, a9, 0
+400f0a68:	a98a                	add.n	a10, a9, a8
+400f0a6a:	092d                	mov.n	a2, a9
+400f0a6c:	083c                	movi.n	a8, 48
+400f0a6e:	2bd882               	addmi	a8, a8, 0x2b00
+400f0a71:	818a                	add.n	a8, a1, a8
+400f0a73:	00c8b2               	addi	a11, a8, 0
+400f0a76:	90a642               	movi	a4, 0x690
+400f0a79:	04cd                	mov.n	a12, a4
+400f0a7b:	0005e0               	callx8	a5
+400f0a7e:	840381               	l32r	a8, 400d1a8c <idle_hook_fn+0x1a38> (ec8 <XT_STK_FRMSZ+0xdc8>)
+400f0a81:	a28a                	add.n	a10, a2, a8
+400f0a83:	c0a082               	movi	a8, 192
+400f0a86:	31d882               	addmi	a8, a8, 0x3100
+400f0a89:	818a                	add.n	a8, a1, a8
+400f0a8b:	00c8b2               	addi	a11, a8, 0
+400f0a8e:	04cd                	mov.n	a12, a4
+400f0a90:	0005e0               	callx8	a5
+400f0a93:	83ff81               	l32r	a8, 400d1a90 <idle_hook_fn+0x1a3c> (d08 <XT_STK_FRMSZ+0xc08>)
+400f0a96:	a28a                	add.n	a10, a2, a8
+400f0a98:	c8a082               	movi	a8, 200
+400f0a9b:	3ed882               	addmi	a8, a8, 0x3e00
+400f0a9e:	818a                	add.n	a8, a1, a8
+400f0aa0:	00c8b2               	addi	a11, a8, 0
+400f0aa3:	8c3c                	movi.n	a12, 56
+400f0aa5:	0005e0               	callx8	a5
+400f0aa8:	83fb81               	l32r	a8, 400d1a94 <idle_hook_fn+0x1a40> (d40 <XT_STK_FRMSZ+0xc40>)
+400f0aab:	a28a                	add.n	a10, a2, a8
+400f0aad:	fca082               	movi	a8, 252
+400f0ab0:	0bd882               	addmi	a8, a8, 0xb00
+400f0ab3:	818a                	add.n	a8, a1, a8
+400f0ab5:	00c8b2               	addi	a11, a8, 0
+400f0ab8:	88a1c2               	movi	a12, 0x188
+400f0abb:	0005e0               	callx8	a5
+400f0abe:	e0a782               	movi	a8, 0x7e0
+400f0ac1:	f189                	s32i.n	a8, a1, 60
+400f0ac3:	a28a                	add.n	a10, a2, a8
+400f0ac5:	50c1b2               	addi	a11, a1, 80
+400f0ac8:	c0a3c2               	movi	a12, 0x3c0
+400f0acb:	0005e0               	callx8	a5
+400f0ace:	83f281               	l32r	a8, 400d1a98 <idle_hook_fn+0x1a44> (cc0 <XT_STK_FRMSZ+0xbc0>)
+400f0ad1:	a28a                	add.n	a10, a2, a8
+400f0ad3:	024d                	mov.n	a4, a2
+400f0ad5:	e149                	s32i.n	a4, a1, 56
+400f0ad7:	885c                	movi.n	a8, 88
+400f0ad9:	0bd882               	addmi	a8, a8, 0xb00
+400f0adc:	818a                	add.n	a8, a1, a8
+400f0ade:	00c8b2               	addi	a11, a8, 0
+400f0ae1:	8c4c                	movi.n	a12, 72
+400f0ae3:	0005e0               	callx8	a5
+400f0ae6:	020c                	movi.n	a2, 0
+400f0ae8:	04ad                	mov.n	a10, a4
+400f0aea:	02bd                	mov.n	a11, a2
+400f0aec:	f1c8                	l32i.n	a12, a1, 60
+400f0aee:	102182               	l32i	a8, a1, 64
+400f0af1:	0008e0               	callx8	a8
+400f0af4:	83ea81               	l32r	a8, 400d1a9c <idle_hook_fn+0x1a48> (ba0 <XT_STK_FRMSZ+0xaa0>)
+400f0af7:	a48a                	add.n	a10, a4, a8
+400f0af9:	081c                	movi.n	a8, 16
+400f0afb:	42d882               	addmi	a8, a8, 0x4200
+400f0afe:	818a                	add.n	a8, a1, a8
+400f0b00:	00c8b2               	addi	a11, a8, 0
+400f0b03:	a8a0c2               	movi	a12, 168
+400f0b06:	0005e0               	callx8	a5
+400f0b09:	83e581               	l32r	a8, 400d1aa0 <idle_hook_fn+0x1a4c> (c48 <XT_STK_FRMSZ+0xb48>)
+400f0b0c:	a48a                	add.n	a10, a4, a8
+400f0b0e:	f8a082               	movi	a8, 248
+400f0b11:	42d882               	addmi	a8, a8, 0x4200
+400f0b14:	818a                	add.n	a8, a1, a8
+400f0b16:	00c8b2               	addi	a11, a8, 0
+400f0b19:	78a0c2               	movi	a12, 120
+400f0b1c:	0005e0               	callx8	a5
+400f0b1f:	83e1a1               	l32r	a10, 400d1aa4 <idle_hook_fn+0x1a50> (2a08 <XT_STK_FRMSZ+0x2908>)
+400f0b22:	8b0c                	movi.n	a11, 8
+400f0b24:	813481               	l32r	a8, 400d0ff4 <idle_hook_fn+0xfa0> (401043f0 <alloc::alloc::exchange_malloc>)
+400f0b27:	0008e0               	callx8	a8
+400f0b2a:	0a4d                	mov.n	a4, a10
+400f0b2c:	83dfc1               	l32r	a12, 400d1aa8 <idle_hook_fn+0x1a54> (1be8 <XT_STK_FRMSZ+0x1ae8>)
+400f0b2f:	f1c9                	s32i.n	a12, a1, 60
+400f0b31:	e1b8                	l32i.n	a11, a1, 56
+400f0b33:	0005e0               	callx8	a5
+400f0b36:	83dd81               	l32r	a8, 400d1aac <idle_hook_fn+0x1a58> (1bec <XT_STK_FRMSZ+0x1aec>)
+400f0b39:	848a                	add.n	a8, a4, a8
+400f0b3b:	0829                	s32i.n	a2, a8, 0
+400f0b3d:	f188                	l32i.n	a8, a1, 60
+400f0b3f:	848a                	add.n	a8, a4, a8
+400f0b41:	0829                	s32i.n	a2, a8, 0
+400f0b43:	83db81               	l32r	a8, 400d1ab0 <idle_hook_fn+0x1a5c> (1bf0 <XT_STK_FRMSZ+0x1af0>)
+400f0b46:	a48a                	add.n	a10, a4, a8
+400f0b48:	4c4c                	movi.n	a12, 68
+400f0b4a:	1221b2               	l32i	a11, a1, 72
+400f0b4d:	0005e0               	callx8	a5
+400f0b50:	83d981               	l32r	a8, 400d1ab4 <idle_hook_fn+0x1a60> (1c34 <XT_STK_FRMSZ+0x1b34>)
+400f0b53:	a48a                	add.n	a10, a4, a8
+400f0b55:	485c                	movi.n	a8, 84
+400f0b57:	0ed882               	addmi	a8, a8, 0xe00
+400f0b5a:	818a                	add.n	a8, a1, a8
+400f0b5c:	00c8b2               	addi	a11, a8, 0
+400f0b5f:	f4a0c2               	movi	a12, 244
+400f0b62:	0005e0               	callx8	a5
+400f0b65:	83d481               	l32r	a8, 400d1ab8 <idle_hook_fn+0x1a64> (1d28 <XT_STK_FRMSZ+0x1c28>)
+400f0b68:	a48a                	add.n	a10, a4, a8
+400f0b6a:	080c                	movi.n	a8, 0
+400f0b6c:	3fd882               	addmi	a8, a8, 0x3f00
+400f0b6f:	818a                	add.n	a8, a1, a8
+400f0b71:	00c8b2               	addi	a11, a8, 0
+400f0b74:	0ca3c2               	movi	a12, 0x30c
+400f0b77:	0005e0               	callx8	a5
+400f0b7a:	81ef81               	l32r	a8, 400d1338 <idle_hook_fn+0x12e4> (2034 <XT_STK_FRMSZ+0x1f34>)
+400f0b7d:	a48a                	add.n	a10, a4, a8
+400f0b7f:	88a082               	movi	a8, 136
+400f0b82:	3ed882               	addmi	a8, a8, 0x3e00
+400f0b85:	818a                	add.n	a8, a1, a8
+400f0b87:	00c8b2               	addi	a11, a8, 0
+400f0b8a:	f1b9                	s32i.n	a11, a1, 60
+400f0b8c:	cc3c                	movi.n	a12, 60
+400f0b8e:	1261c2               	s32i	a12, a1, 72
+400f0b91:	0005e0               	callx8	a5
+400f0b94:	818481               	l32r	a8, 400d11a4 <idle_hook_fn+0x1150> (2070 <XT_STK_FRMSZ+0x1f70>)
+400f0b97:	a48a                	add.n	a10, a4, a8
+400f0b99:	f1b8                	l32i.n	a11, a1, 60
+400f0b9b:	1221c2               	l32i	a12, a1, 72
+400f0b9e:	0005e0               	callx8	a5
+400f0ba1:	83c681               	l32r	a8, 400d1abc <idle_hook_fn+0x1a68> (20ac <XT_STK_FRMSZ+0x1fac>)
+400f0ba4:	a48a                	add.n	a10, a4, a8
+400f0ba6:	b8a082               	movi	a8, 184
+400f0ba9:	42d882               	addmi	a8, a8, 0x4200
+400f0bac:	818a                	add.n	a8, a1, a8
+400f0bae:	00c8b2               	addi	a11, a8, 0
+400f0bb1:	f1b9                	s32i.n	a11, a1, 60
+400f0bb3:	1221c2               	l32i	a12, a1, 72
+400f0bb6:	0005e0               	callx8	a5
+400f0bb9:	82e281               	l32r	a8, 400d1744 <idle_hook_fn+0x16f0> (20e8 <XT_STK_FRMSZ+0x1fe8>)
+400f0bbc:	a48a                	add.n	a10, a4, a8
+400f0bbe:	f1b8                	l32i.n	a11, a1, 60
+400f0bc0:	1221c2               	l32i	a12, a1, 72
+400f0bc3:	0005e0               	callx8	a5
+400f0bc6:	80f281               	l32r	a8, 400d0f90 <idle_hook_fn+0xf3c> (212c <XT_STK_FRMSZ+0x202c>)
+400f0bc9:	848a                	add.n	a8, a4, a8
+400f0bcb:	0869                	s32i.n	a6, a8, 0
+400f0bcd:	80ed81               	l32r	a8, 400d0f84 <idle_hook_fn+0xf30> (2128 <XT_STK_FRMSZ+0x2028>)
+400f0bd0:	848a                	add.n	a8, a4, a8
+400f0bd2:	8198                	l32i.n	a9, a1, 32
+400f0bd4:	0899                	s32i.n	a9, a8, 0
+400f0bd6:	810481               	l32r	a8, 400d0fe8 <idle_hook_fn+0xf94> (2124 <XT_STK_FRMSZ+0x2024>)
+400f0bd9:	848a                	add.n	a8, a4, a8
+400f0bdb:	112192               	l32i	a9, a1, 68
+400f0bde:	0899                	s32i.n	a9, a8, 0
+400f0be0:	80eb81               	l32r	a8, 400d0f8c <idle_hook_fn+0xf38> (2130 <XT_STK_FRMSZ+0x2030>)
+400f0be3:	a48a                	add.n	a10, a4, a8
+400f0be5:	64a0c2               	movi	a12, 100
+400f0be8:	02bd                	mov.n	a11, a2
+400f0bea:	102162               	l32i	a6, a1, 64
+400f0bed:	0006e0               	callx8	a6
+400f0bf0:	83b481               	l32r	a8, 400d1ac0 <idle_hook_fn+0x1a6c> (2194 <XT_STK_FRMSZ+0x2094>)
+400f0bf3:	a48a                	add.n	a10, a4, a8
+400f0bf5:	a2a082               	movi	a8, 162
+400f0bf8:	0bd882               	addmi	a8, a8, 0xb00
+400f0bfb:	818a                	add.n	a8, a1, a8
+400f0bfd:	00c8b2               	addi	a11, a8, 0
+400f0c00:	ac5c                	movi.n	a12, 90
+400f0c02:	0005e0               	callx8	a5
+400f0c05:	83af81               	l32r	a8, 400d1ac4 <idle_hook_fn+0x1a70> (21ee <XT_STK_FRMSZ+0x20ee>)
+400f0c08:	a48a                	add.n	a10, a4, a8
+400f0c0a:	285c                	movi.n	a8, 82
+400f0c0c:	38d882               	addmi	a8, a8, 0x3800
+400f0c0f:	818a                	add.n	a8, a1, a8
+400f0c11:	00c8b2               	addi	a11, a8, 0
+400f0c14:	36a6c2               	movi	a12, 0x636
+400f0c17:	0005e0               	callx8	a5
+400f0c1a:	83ab81               	l32r	a8, 400d1ac8 <idle_hook_fn+0x1a74> (2824 <XT_STK_FRMSZ+0x2724>)
+400f0c1d:	a48a                	add.n	a10, a4, a8
+400f0c1f:	86a082               	movi	a8, 134
+400f0c22:	0dd882               	addmi	a8, a8, 0xd00
+400f0c25:	818a                	add.n	a8, a1, a8
+400f0c27:	00c8b2               	addi	a11, a8, 0
+400f0c2a:	cea0c2               	movi	a12, 206
+400f0c2d:	0005e0               	callx8	a5
+400f0c30:	83a781               	l32r	a8, 400d1acc <idle_hook_fn+0x1a78> (295c <XT_STK_FRMSZ+0x285c>)
+400f0c33:	848a                	add.n	a8, a4, a8
+400f0c35:	005832               	s16i	a3, a8, 0
+400f0c38:	83a681               	l32r	a8, 400d1ad0 <idle_hook_fn+0x1a7c> (28f2 <XT_STK_FRMSZ+0x27f2>)
+400f0c3b:	848a                	add.n	a8, a4, a8
+400f0c3d:	005832               	s16i	a3, a8, 0
+400f0c40:	83a581               	l32r	a8, 400d1ad4 <idle_hook_fn+0x1a80> (29c4 <XT_STK_FRMSZ+0x28c4>)
+400f0c43:	a48a                	add.n	a10, a4, a8
+400f0c45:	ec2c                	movi.n	a12, 46
+400f0c47:	02bd                	mov.n	a11, a2
+400f0c49:	0006e0               	callx8	a6
+400f0c4c:	83a381               	l32r	a8, 400d1ad8 <idle_hook_fn+0x1a84> (29f2 <XT_STK_FRMSZ+0x28f2>)
+400f0c4f:	a48a                	add.n	a10, a4, a8
+400f0c51:	70a082               	movi	a8, 112
+400f0c54:	43d882               	addmi	a8, a8, 0x4300
+400f0c57:	818a                	add.n	a8, a1, a8
+400f0c59:	00c8b2               	addi	a11, a8, 0
+400f0c5c:	1121c2               	l32i	a12, a1, 68
+400f0c5f:	0005e0               	callx8	a5
+400f0c62:	075d                	mov.n	a5, a7
+400f0c64:	001506               	j	400f0cbc <conduit_esp32_tm1637_probe::native_kernel::assemble+0xa38>
+400f0c67:	884c                	movi.n	a8, 72
+400f0c69:	0fd882               	addmi	a8, a8, 0xf00
+400f0c6c:	818a                	add.n	a8, a1, a8
+400f0c6e:	00c8a2               	addi	a10, a8, 0
+400f0c71:	86a082               	movi	a8, 134
+400f0c74:	0dd882               	addmi	a8, a8, 0xd00
+400f0c77:	818a                	add.n	a8, a1, a8
+400f0c79:	00c8b2               	addi	a11, a8, 0
+400f0c7c:	f1d8                	l32i.n	a13, a1, 60
+400f0c7e:	5188                	l32i.n	a8, a1, 20
+400f0c80:	0008e0               	callx8	a8
+400f0c83:	d50c                	movi.n	a5, 13
+400f0c85:	120c                	movi.n	a2, 1
+400f0c87:	839581               	l32r	a8, 400d1adc <idle_hook_fn+0x1a88> (40100470 <core::ptr::drop_in_place<conduit_kernel::HostedSignLog>>)
+400f0c8a:	1221a2               	l32i	a10, a1, 72
+400f0c8d:	0008e0               	callx8	a8
+400f0c90:	885c                	movi.n	a8, 88
+400f0c92:	0bd882               	addmi	a8, a8, 0xb00
+400f0c95:	818a                	add.n	a8, a1, a8
+400f0c97:	00c8a2               	addi	a10, a8, 0
+400f0c9a:	839181               	l32r	a8, 400d1ae0 <idle_hook_fn+0x1a8c> (401006b4 <core::ptr::drop_in_place<conduit_kernel::hosted::HostedValueStore>>)
+400f0c9d:	0008e0               	callx8	a8
+400f0ca0:	839141               	l32r	a4, 400d1ae4 <idle_hook_fn+0x1a90> (40100b68 <core::ptr::drop_in_place<conduit_environment_runtime::appliance::ApplianceBack>>)
+400f0ca3:	50c182               	addi	a8, a1, 80
+400f0ca6:	a83a                	add.n	a10, a8, a3
+400f0ca8:	0004e0               	callx8	a4
+400f0cab:	40c332               	addi	a3, a3, 64
+400f0cae:	f19367               	bne	a3, a6, 400f0ca3 <conduit_esp32_tm1637_probe::native_kernel::assemble+0xa1f>
+400f0cb1:	838d81               	l32r	a8, 400d1ae8 <idle_hook_fn+0x1a94> (400ffd70 <core::ptr::drop_in_place<alloc::boxed::Box<[core::option::Option<conduit_environment_runtime::capture_selector::PreparedCaptureSelector>; 15]>>>)
+400f0cb4:	07ad                	mov.n	a10, a7
+400f0cb6:	0008e0               	callx8	a8
+400f0cb9:	838c41               	l32r	a4, 400d1aec <idle_hook_fn+0x1a98> (3f40d20a <_rodata_start+0xd0ea>)
+400f0cbc:	132182               	l32i	a8, a1, 76
+400f0cbf:	2859                	s32i.n	a5, a8, 8
+400f0cc1:	1849                	s32i.n	a4, a8, 4
+400f0cc3:	0829                	s32i.n	a2, a8, 0
+400f0cc5:	f01d                	retw.n
+400f0cc7:	eb0c                	movi.n	a11, 14
+400f0cc9:	836dc1               	l32r	a12, 400d1a80 <idle_hook_fn+0x1a2c> (3f40bebc <_rodata_start+0xbd9c>)
+400f0ccc:	7ceb81               	l32r	a8, 400d0078 <idle_hook_fn+0x24> (401ffa98 <core::panicking::panic_bounds_check>)
+400f0ccf:	0008e0               	callx8	a8
+	...

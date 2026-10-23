@@ -1,0 +1,20 @@
+{
+  "body_id": "a70454f648af8e3d49c4c56605224c1a29630206c380f62e42e4009d1d3d183e",
+  "body_started": false,
+  "climate_sampling_claimed": false,
+  "completed": true,
+  "event": "owner-preparation-complete",
+  "fragment_play": {
+    "active_play_id": "9f1f230a617503d93a7e2bfd3a74e8075cdcc5c03939e34c0bd354f464afb6eb",
+    "boot_id": "boot/f50b8521a63bbe9dec4a9e84503b4e17",
+    "host_id": "esp32/b0a732286178",
+    "plan_id": "73a14cfb5972a96686c209ff4ff1867166b1383adb53329abbd80e0a20ccbfa9",
+    "play_sequence": 1
+  },
+  "owner_retained_through_preparation": true,
+  "plot_plan": "73a14cfb5972a96686c209ff4ff1867166b1383adb53329abbd80e0a20ccbfa9",
+  "proof_class": "physical-signed-native-preparation",
+  "root_heap_used_bytes": 100524,
+  "root_heap_peak_bytes": 105064,
+  "native_root_heap_bytes": 114688
+}

@@ -1,0 +1,9 @@
+{
+  "artifact": "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-owner-images/1792787494/root.elf",
+  "body_started": false,
+  "elf_sha256": "e95f11e88b5323c83d53641359812c652e3ed282a7bad4735a606f335904cc1e",
+  "owner_public_key_sha256": "e803269abafd033641cf34da85a65cbd70a8f667957903908d7b29a9d45d3a33",
+  "schema": "conduit.environment/owner-root-image@1",
+  "source_dirty": false,
+  "source_head": "8967d7b2d8773fa160348e9f7e8001642d4e7d7d"
+}
