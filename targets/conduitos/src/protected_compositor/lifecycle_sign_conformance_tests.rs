@@ -3,6 +3,8 @@ extern crate std;
 use self::std::{format, string::String};
 use super as wire;
 use crate::protected_region::DomainCost;
+// This test exercises a subset of the shared native proof collector.
+#[allow(dead_code)]
 #[path = "../../make/xtask/compositor_lifecycle_proof.rs"]
 mod collector;
 
