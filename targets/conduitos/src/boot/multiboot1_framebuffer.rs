@@ -6,6 +6,7 @@ use crate::display::DisplayFormat;
 
 const MAGIC: u32 = 0x2bad_b002;
 const FRAMEBUFFER_PRESENT: u32 = 1 << 12;
+const COMMON_INFORMATION_BYTES: usize = 110;
 const RGB_INFORMATION_BYTES: usize = 118;
 const MAX_FRAMEBUFFER_BYTES: u64 = 8 * 1024 * 1024;
 
@@ -52,11 +53,14 @@ pub fn decode(magic: u32, bytes: &[u8]) -> Result<Option<FramebufferFacts>, Fram
     if flags & FRAMEBUFFER_PRESENT == 0 {
         return Ok(None);
     }
-    if bytes.len() < RGB_INFORMATION_BYTES {
+    if bytes.len() < COMMON_INFORMATION_BYTES {
         return Err(FramebufferRefusal::TruncatedInformation);
     }
     if bytes[109] == 2 {
         return Ok(None);
+    }
+    if bytes.len() < RGB_INFORMATION_BYTES {
+        return Err(FramebufferRefusal::TruncatedInformation);
     }
     // Limine's ABI includes a reserved u16 at 110: RGB starts at 112.
     // Reading the packed prose offset 110 silently loses the red mask.
@@ -154,6 +158,12 @@ mod tests {
         let mut bytes = observed_rgb();
         bytes[109] = 2;
         assert_eq!(decode(MAGIC, &bytes), Ok(None));
+        // EGA text has no RGB union to decode or require in a bounded snapshot.
+        assert_eq!(decode(MAGIC, &bytes[..COMMON_INFORMATION_BYTES]), Ok(None));
+        assert_eq!(
+            decode(MAGIC, &bytes[..COMMON_INFORMATION_BYTES - 1]),
+            Err(FramebufferRefusal::TruncatedInformation)
+        );
     }
 
     #[test]
