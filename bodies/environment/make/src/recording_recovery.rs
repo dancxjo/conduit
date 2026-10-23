@@ -4,6 +4,8 @@ use conduit_core as c;
 use conduit_environment_runtime::recording as r;
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 use std::collections::BTreeMap;
+mod batch;
+pub use batch::RecordingBatchRecoverySource;
 
 pub struct RecordingRecoverySource {
     expanded: conduit_plot::ExpandedCanonicalPlot,
@@ -27,34 +29,12 @@ impl RecordingRecoverySource {
             .encode()
             .map_err(|e| format!("reference: {e:?}"))?;
         let hex: String = encoded.iter().map(|b| format!("{b:02x}")).collect();
-        let mut startup = conduit_plot::StartupCatalog::new();
-        let mut profiles = conduit_plot::ProfileCatalog::new();
-        r::install_generation_value_kind(&mut startup, &mut profiles)?;
-        r::install_recovery_kind(&mut startup, &mut profiles)?;
-        let singleton = r::recording_singleton_kind();
-        startup.insert(conduit_plot::KindSignature {
-            kind: singleton.kind_id.as_str().into(),
-            startup_parameters: vec![],
-        })?;
-        startup.insert_fore(singleton.kind_id.as_str(), singleton.checked_front())?;
-        profiles
-            .insert_kind(singleton)
-            .map_err(|e| format!("{e:?}"))?;
-        conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profiles)?;
-        let read = conduit_semantic_catalog::resource_snapshot_semantic_contract(false);
-        startup.insert_fore(read.kind_id.as_str(), read.checked_front())?;
+        let (startup, profiles) = catalogs()?;
         let source = format!(
             "{}\nplot recorder {{\n recovery: environment-recording-recovery(\"{hex}\")\n}}\n",
             include_str!("../../profiles/recovery.conduit")
         );
-        let syntax = conduit_plot::parse_syntax_document(&source);
-        if !syntax.diagnostics.is_empty() {
-            return Err(format!("recording Source: {:?}", syntax.diagnostics));
-        }
-        let checked =
-            conduit_plot::check_syntax_document(&syntax, &startup).map_err(|e| format!("{e:?}"))?;
-        let expanded = conduit_plot::expand_canonical_plot(&checked, "recorder", &profiles)
-            .map_err(|e| format!("{e:?}"))?;
+        let expanded = checked_source(&source, &startup, &profiles)?;
         Ok(Self {
             expanded,
             reference: reference.clone(),
@@ -179,4 +159,40 @@ impl PreparedRecordingRecovery {
             plan: self.plan.clone(),
         }
     }
+}
+
+fn catalogs() -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
+    let mut startup = conduit_plot::StartupCatalog::new();
+    let mut profiles = conduit_plot::ProfileCatalog::new();
+    r::install_generation_value_kind(&mut startup, &mut profiles)?;
+    r::install_recovery_kind(&mut startup, &mut profiles)?;
+    let singleton = r::recording_singleton_kind();
+    startup.insert(conduit_plot::KindSignature {
+        kind: singleton.kind_id.as_str().into(),
+        startup_parameters: vec![],
+    })?;
+    startup.insert_fore(singleton.kind_id.as_str(), singleton.checked_front())?;
+    profiles
+        .insert_kind(singleton)
+        .map_err(|e| format!("{e:?}"))?;
+    conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profiles)?;
+    let read = conduit_semantic_catalog::resource_snapshot_semantic_contract(false);
+    startup.insert_fore(read.kind_id.as_str(), read.checked_front())?;
+    Ok((startup, profiles))
+}
+
+fn checked_source(
+    source: &str,
+    startup: &conduit_plot::StartupCatalog,
+    profiles: &conduit_plot::ProfileCatalog,
+) -> Result<conduit_plot::ExpandedCanonicalPlot, String> {
+    let syntax = conduit_plot::parse_syntax_document(source);
+    if !syntax.diagnostics.is_empty() {
+        return Err(format!("recording Source: {:?}", syntax.diagnostics));
+    }
+    let checked =
+        conduit_plot::check_syntax_document(&syntax, startup).map_err(|e| format!("{e:?}"))?;
+    let expanded = conduit_plot::expand_canonical_plot(&checked, "recorder", profiles)
+        .map_err(|e| format!("{e:?}"))?;
+    Ok(expanded)
 }

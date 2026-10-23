@@ -5,7 +5,8 @@
 extern crate alloc;
 mod recording_recovery;
 pub use recording_recovery::{
-    PreparedRecordingRecovery, RecordingPlanningRefusal, RecordingRecoverySource,
+    PreparedRecordingRecovery, RecordingBatchRecoverySource, RecordingPlanningRefusal,
+    RecordingRecoverySource,
 };
 mod software_recipe;
 pub use software_recipe::{NativeSoftwareRecipe, SoftwareRecipeRefusal};

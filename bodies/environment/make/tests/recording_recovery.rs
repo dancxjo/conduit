@@ -253,3 +253,6 @@ fn wrong_generation_or_absent_resource_cannot_become_a_recovery_plan() {
         Err(E::ReferenceBinding)
     ));
 }
+
+#[path = "recording_recovery/batch_source.rs"]
+mod batch_source;
