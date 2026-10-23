@@ -1,0 +1,20 @@
+{
+  "proof_class": "32-bit-linux-cpu-kernel-execution",
+  "command": "cargo xtask prove environment publication-32",
+  "pointer_bits": 32,
+  "tests_passed": 13,
+  "executable_sha256": "4838cd77a4bffda30699cc3282818b544c9a70dc9f3c8cedbab91c019a1f705b",
+  "assigned_software_heap_peak": 92679,
+  "assigned_software_heap_retained": 92320,
+  "assignment_bytes": 46121,
+  "canonical_value_backing": 15504,
+  "prepared_object_bytes": 6760,
+  "current_esp32_root_arena": 65536,
+  "physical_mcu_memory_closure_proved": false,
+  "notes": [
+    "Heap accounting excludes preexisting assignment, value backing and resident metadata.",
+    "Object size is not a stack high-water measurement.",
+    "i686 layouts are not ESP32 ABI or allocator-overhead evidence.",
+    "All seven sensor scenarios completed 960 deterministic one-minute samples without execution allocations."
+  ]
+}

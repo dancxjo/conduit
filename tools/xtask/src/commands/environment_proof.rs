@@ -214,32 +214,29 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments
-        .iter()
-        .map(String::as_str)
-        .collect::<Vec<_>>()
-        .as_slice()
-        == ["publication"]
-    {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/runtime/Cargo.toml",
-                    "--features",
-                    "construction",
-                    "--test",
-                    "publication",
-                    "--test",
-                    "construction",
-                    "--test",
-                    "appliance_kernel",
-                ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
-        );
+    if arguments == ["publication"] || arguments == ["publication-32"] {
+        let mut command = Command::new("cargo");
+        command.current_dir(&root).args([
+            "test",
+            "--locked",
+            "--manifest-path",
+            "bodies/environment/runtime/Cargo.toml",
+            "--features",
+            "construction",
+            "--test",
+            "publication",
+            "--test",
+            "construction",
+            "--test",
+            "appliance_kernel",
+        ]);
+        if arguments == ["publication-32"] {
+            command.args(["--target", "i686-unknown-linux-gnu", "--", "--nocapture"]);
+            command.env("CARGO_TARGET_DIR", root.join("target/environment-i686"));
+        } else {
+            command.env("CARGO_TARGET_DIR", root.join("target"));
+        }
+        return execute(&mut command);
     }
     if arguments
         .iter()
@@ -378,7 +375,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, http, publication, recording, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, http, publication, publication-32, recording, native-construction, network, network-owner, mask, display-esp32, pulse-esp32, capture-esp32, live-esp32, ap-esp32, root-esp32, network-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

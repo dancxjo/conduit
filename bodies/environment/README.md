@@ -946,3 +946,17 @@ nor installs resource authority, routes values or performs storage effects.
 Root still admits the full heap/work/envelope closure and selected storage.
 CPU proof encodes and recovers all 960 samples without execution allocations;
 all observers remain uncommitted because that proof invokes no durable store.
+
+`cargo xtask prove environment publication-32` repeats publication/construction
+and kernel proofs as 32-bit Linux executables, including all seven 960-sample
+scenarios. It requires the i686 Rust target and 32-bit C linker/development
+files. The retained [measurement](evidence/2026-10-23-software-i686/measurement.json)
+reports 92,679 peak new heap bytes (92,320 retained) for assigned software,
+plus separately existing 46,121 assignment bytes, 15,504 canonical value backing
+bytes and a 6,760-byte prepared object. The software alone exceeds the current
+64 KiB ESP32 Root arena. These CPU measurements establish that the present
+preparation is not admissible there; they do not establish ESP32 ABI sizes,
+allocator overhead or stack high-water. Releasing the assignment buffer before
+software initialization requires a distinct validated-admission phase and
+independently pinned resident computation data, rather than treating received
+program bytes as resident authority.

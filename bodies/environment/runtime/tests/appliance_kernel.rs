@@ -180,6 +180,13 @@ fn run(scenario: usize, native: bool, overnight: bool) {
         assert_eq!(prepared.roles.tick, tick_node);
         if scenario == 0 {
             eprintln!("environment_assigned_software_preparation={memory:?}");
+            eprintln!(
+                "environment_assigned_storage pointer_bits={} assignment_bytes={} value_backing_bytes={} prepared_object_bytes={}",
+                usize::BITS,
+                projection.bytes.len(),
+                prepared.values.reserved_storage_bytes(),
+                core::mem::size_of_val(&prepared),
+            );
         }
         (
             prepared.tables,
