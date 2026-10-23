@@ -1,0 +1,28 @@
+{
+  "schema": "conduit.environment/software-preparation-evidence@1",
+  "source_commit": "0a90de9518846e43c1c2dc5fbac06f8faaaa5897",
+  "proof_class": "cpu-conformance",
+  "host_pointer_width": 64,
+  "software_owners": "initialized production interpreter, selector, observation and publication objects retained through selection",
+  "pulse_and_timer_providers": "explicit CPU fixtures",
+  "public_proof": "cargo xtask prove environment publication",
+  "public_proof_tests": 11,
+  "strict_clippy": "passed for construction feature and appliance_kernel test",
+  "peak_host_heap_bytes": {
+    "software_preparation": 232595,
+    "graph_copy": 121391,
+    "advertisement_copy": 66348,
+    "plan_copy": 142584,
+    "ordinary_planning": 281438,
+    "lowering": 35247
+  },
+  "native_assignment_bytes": 46121,
+  "declared_projection_bytes": 20722,
+  "execution_allocations": 0,
+  "execution_reallocations": 0,
+  "physical_proof": false,
+  "body_installation": false,
+  "browser_installation": false,
+  "mcu_memory_admission": false,
+  "next_required_proof": "bounded native assignment installation and complete live memory closure against actual Root-owned native providers"
+}
