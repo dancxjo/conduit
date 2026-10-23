@@ -173,6 +173,33 @@ fn full_recording_field_reaches_snapshot_storage_without_json_tree_limits() {
 }
 
 #[test]
+fn wrong_input_identity_cannot_retire_the_current_snapshot_request() {
+    let (mut writer, fragment) = prepare(true, b"[]", true).unwrap();
+    let DriveStatus::Effect(pending) = drive(&mut writer, &fragment).unwrap() else {
+        panic!("missing publish")
+    };
+    let mut forged = pending.request;
+    forged.input.value.generation += 1;
+    let forged = PendingHostEffect {
+        request: forged,
+        effect: BrowserHostEffect::Snapshot { publish: true },
+    };
+    assert!(resource_effect::complete(&mut writer, &forged, Ok(None)).is_err());
+    assert_eq!(writer.pending_host_call_count(), 1);
+    assert!(resource_effect::describe(&writer, &pending).is_ok());
+    resource_effect::complete(&mut writer, &pending, Ok(None)).unwrap();
+    let DriveStatus::Effect(output) = drive(&mut writer, &fragment).unwrap() else {
+        panic!("original request did not publish its reference")
+    };
+    assert!(matches!(output.effect, BrowserHostEffect::Manifestation(_)));
+    complete_host_effect(&mut writer, &output).unwrap();
+    assert!(matches!(
+        drive(&mut writer, &fragment).unwrap(),
+        DriveStatus::Quiescent
+    ));
+}
+
+#[test]
 fn browser_resource_missing_authority_and_failed_storage_never_become_success() {
     assert!(prepare(true, b"[]", false).is_err());
     let (mut scheduler, fragment) = prepare(true, b"[]", true).unwrap();
