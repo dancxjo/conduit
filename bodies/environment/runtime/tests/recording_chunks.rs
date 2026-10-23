@@ -236,3 +236,95 @@ fn every_authored_absence_and_sequence_exhaustion_remains_explicit() {
         Err(RecordingRefusal::InvalidSequence)
     );
 }
+
+fn snapshot_context() -> RecordingContext<'static> {
+    // Test provenance is supplied, never inferred from content or a reference.
+    use std::sync::LazyLock;
+    static HOST: LazyLock<HostId> = LazyLock::new(|| "host/sensor".into());
+    static BOOT: LazyLock<BootId> = LazyLock::new(|| "boot/one".into());
+    static PLAN: LazyLock<PlanId> = LazyLock::new(|| "plan/exact".into());
+    static PLAY: LazyLock<ActivePlayId> = LazyLock::new(|| "play/exact".into());
+    RecordingContext {
+        host: &HOST,
+        boot: &BOOT,
+        plan: &PLAN,
+        play: &PLAY,
+    }
+}
+#[test]
+fn selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial_flush() {
+    use conduit_core::*;
+    let contract = ObservationContract::prepare().unwrap();
+    let bytes = PreparedRecordingSnapshot::content_bytes(snapshot_context(), &contract, 2).unwrap();
+    let mut reference = BoundedResourceRef {
+        identity: ResourceSemanticIdentity::from_digest([1; 32]),
+        content_profile: kind_id("text/json-utf8@1"),
+        access_class: "resource/snapshot@1".into(),
+        extent: ResourceExtent {
+            bytes: bytes as u64,
+            items: Some(1),
+        },
+        lifetime: ResourceLifetime {
+            version: ResourceVersionIdentity::from_digest([2; 32]),
+            expires_at: None,
+        },
+    };
+    for count in [0, 65, usize::MAX] {
+        assert_eq!(
+            PreparedRecordingSnapshot::content_bytes(snapshot_context(), &contract, count),
+            Err(RecordingSnapshotRefusal::Samples)
+        );
+    }
+    for profile in ["text/plain@1", ""] {
+        reference.content_profile = kind_id(profile);
+        assert!(
+            PreparedRecordingSnapshot::prepare(snapshot_context(), &contract, 2, &reference)
+                .is_err()
+        );
+    }
+    reference.content_profile = kind_id("text/json-utf8@1");
+    reference.extent.items = Some(2);
+    assert!(matches!(
+        PreparedRecordingSnapshot::prepare(snapshot_context(), &contract, 2, &reference),
+        Err(RecordingSnapshotRefusal::Extent)
+    ));
+    reference.extent.items = Some(1);
+    reference.extent.bytes -= 1;
+    assert!(matches!(
+        PreparedRecordingSnapshot::prepare(snapshot_context(), &contract, 2, &reference),
+        Err(RecordingSnapshotRefusal::Extent)
+    ));
+    reference.extent.bytes += 1;
+    let mut snapshot =
+        PreparedRecordingSnapshot::prepare(snapshot_context(), &contract, 2, &reference).unwrap();
+    assert_eq!(snapshot.expected_reference(), reference.encode().unwrap());
+    let (_, measured) = allocation_probe::observe(|| {
+        snapshot
+            .append(4, 100, RecordingDisposition::CaptureTimeout, None)
+            .unwrap();
+        assert_eq!(snapshot.seal(), Err(RecordingSnapshotRefusal::Incomplete));
+        assert_eq!(snapshot.len(), 1);
+        snapshot
+            .append(6, 200, RecordingDisposition::Checksum, None)
+            .unwrap();
+        assert_eq!(
+            snapshot.append(6, 200, RecordingDisposition::Checksum, None),
+            Ok(ChunkAppend::Duplicate)
+        );
+        assert_eq!(
+            snapshot.append(6, 201, RecordingDisposition::Checksum, None),
+            Err(RecordingSnapshotRefusal::Recording(
+                RecordingRefusal::Conflict
+            ))
+        );
+        assert_eq!(
+            snapshot.append(7, 300, RecordingDisposition::CaptureTimeout, None),
+            Err(RecordingSnapshotRefusal::Recording(RecordingRefusal::Full))
+        );
+        assert_eq!(snapshot.seal().unwrap().len(), bytes);
+        assert_eq!(snapshot.seal().unwrap().len(), bytes);
+    });
+    assert_eq!((measured.allocations, measured.reallocations), (0, 0));
+    let mut reader = PreparedRecordingReader::prepare(snapshot_context(), &contract).unwrap();
+    reader.read(snapshot.seal().unwrap()).unwrap();
+}

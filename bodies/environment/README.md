@@ -445,8 +445,9 @@ The following are implementation obligations, not installed capabilities:
   reboot and reversed boot-relative time. Never fill missing history with the
   most recent valid temperature.
 
-The current 4096-slot Host request is still a construction request and must be
-reconciled with the concrete chunk realization before live recorder admission.
+The recorder Host requests 64 physical records and 1 MiB per application. This
+is a construction request; exact snapshot generations, authority and the complete
+flush pattern still require admission before live recording.
 The compact quantity codec alone supplies neither chunk commit nor recovery.
 
 `runtime::recording::PreparedRecordingChunk` now prepares one bounded immutable
@@ -718,3 +719,16 @@ oversized commands are refused; assignment installation is not implemented.
 CPU framing tests and ESP32 build/lint checks cover this exchange; physical
 verification is outstanding. Host-spec-driven construction, assignment admission
 and full physical installation remain incomplete.
+
+
+`PreparedRecordingSnapshot` prepares a fixed sample count against one exact
+bounded snapshot reference. Its JSON extent is known before samples arrive;
+the chosen content profile, item count and byte extent must match. Partial
+sealing refuses while retaining buffered samples, since a shorter flush cannot
+reuse a reference admitted for a full chunk. Failures occupy the same finite
+record width as available quantities. Committed publications can enter through
+the existing typed recording projection, retaining the producer sequence and
+producer Boot time. Encoding and sealing allocate nothing during execution.
+The returned reference bytes are an expected Host Call output, not a durable
+receipt. Actual selected snapshot invocation/completion, committed-cursor
+advancement and recorder membership/Line integration remain outstanding.

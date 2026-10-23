@@ -6,10 +6,12 @@ use crate::observation::{
 };
 mod publication;
 mod reader;
+mod snapshot;
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, PlanId, StructuredInfoRefusal};
 pub use publication::PreparedRecordingInput;
 pub use reader::{PreparedRecordingReader, RecordedSample, RecordingReadRefusal};
+pub use snapshot::{PreparedRecordingSnapshot, RecordingSnapshotRefusal};
 #[allow(dead_code)]
 mod forms {
     include!(concat!(env!("OUT_DIR"), "/recording-forms.rs"));

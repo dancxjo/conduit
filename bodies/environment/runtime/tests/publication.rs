@@ -314,6 +314,23 @@ fn committed_publications_record_and_recover_every_sensor_disposition() {
         play: &play,
     };
     let mut chunk = PreparedRecordingChunk::prepare(context(), &contract).unwrap();
+    let reference = c::BoundedResourceRef {
+        identity: c::ResourceSemanticIdentity::from_digest([1; 32]),
+        content_profile: c::kind_id("text/json-utf8@1"),
+        access_class: "resource/snapshot@1".into(),
+        extent: c::ResourceExtent {
+            bytes: PreparedRecordingSnapshot::content_bytes(context(), &contract, 8).unwrap()
+                as u64,
+            items: Some(1),
+        },
+        lifetime: c::ResourceLifetime {
+            version: c::ResourceVersionIdentity::from_digest([2; 32]),
+            expires_at: None,
+        },
+    };
+    let mut snapshot =
+        PreparedRecordingSnapshot::prepare(context(), &contract, 8, &reference).unwrap();
+
     let mut reader = PreparedRecordingReader::prepare(context(), &contract).unwrap();
     let mut input = PreparedRecordingInput::prepare(&contract).unwrap();
     let order = PublicationSequence::prepare(8);
@@ -355,6 +372,9 @@ fn committed_publications_record_and_recover_every_sensor_disposition() {
                 StepOutcome::Progress
             );
             commit(back);
+            snapshot
+                .append_publication(&mut input, back.snapshot().unwrap(), i as u64 * 60_000)
+                .unwrap();
             assert_eq!(
                 input
                     .append(&mut chunk, back.snapshot().unwrap(), i as u64 * 60_000)
@@ -362,6 +382,7 @@ fn committed_publications_record_and_recover_every_sensor_disposition() {
                 ChunkAppend::Buffered { gap_before: None }
             );
         }
+        assert_eq!(snapshot.seal().unwrap(), chunk.seal().unwrap());
         reader.read(chunk.seal().unwrap()).unwrap();
         for (i, disposition) in expected.into_iter().enumerate() {
             let sample = reader.sample(i).unwrap();
