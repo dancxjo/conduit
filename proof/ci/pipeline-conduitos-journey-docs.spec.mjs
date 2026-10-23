@@ -168,6 +168,8 @@ for (const [label, mutate] of [
   ['unchanged Mask Play', proof => { proof.patchbay_actions.mask_request.after = proof.patchbay_actions.mask_request.before; }],
   ['refused fresh lifecycle', proof => { proof.fresh_source_editor.lifecycle[0].disposition = { Refused: {} }; }],
   ['foreign fresh Source handoff', proof => { proof.fresh_source_editor.source_edit_receipt.active_play_id = 'foreign'; }],
+  ['foreign expanded Source', proof => { proof.fresh_source_editor.source_edit_receipt.expanded_plot_id = 'foreign'; }],
+  ['foreign editor Plot', proof => { proof.fresh_source_editor.loaded.checked_plot_id = 'foreign'; }],
   ['truncated Source text', proof => { proof.fresh_source_editor.loaded.result_omitted_bytes = 1; }],
   ['unrestored document', proof => { proof.fresh_source_editor.restored.result += 'x'; }],
   ['unproved Save', proof => { proof.fresh_source_editor.save_reopen_enacted = true; }],

@@ -25,7 +25,7 @@ identities, owner Body/Plan/Play correspondence, replacement Play, complete
 loaded/restored text and the document Face. Exact checkpoint order, change
 expectations, source/image/Boot identity and screenshot bytes remain required.
 
-The focused documentary suite passes 46 controls, including missing and
+The focused documentary suite passes 48 controls, including missing and
 substituted new captures, ordering/change expectations, false selection/Mask/
 Source claims and the existing screenshot, transcript and identity refusals.
 These are structural publication fixtures, not emulator enactment.

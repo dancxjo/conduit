@@ -60,6 +60,7 @@ export function validateNativePatchbayReceipt(proof) {
   const source = editor.source_correspondence;
   require(handoff?.body_plan_id === fresh.plan_id && handoff?.active_play_id === fresh.active_play_id
     && text(source?.source) && text(source?.source_document_id) && text(source?.checked_plot_id)
+    && text(source?.expanded_plot_id) && handoff.expanded_plot_id === source.expanded_plot_id
     && handoff?.source?.source_document_id === source.source_document_id
     && handoff?.source?.checked_plot_id === source.checked_plot_id
     && editor.selection_enacted === false && handoff.selection_enacted === false
@@ -67,7 +68,8 @@ export function validateNativePatchbayReceipt(proof) {
   for (const name of ['loaded', 'suffix', 'restored']) {
     const state = editor[name];
     require(state?.body_id === proof.body_id && state?.plan_id === fresh.plan_id
-      && state?.active_play_id === fresh.active_play_id && state?.result_omitted_bytes === 0);
+      && state?.active_play_id === fresh.active_play_id && state?.result_omitted_bytes === 0
+      && state?.checked_plot_id === source.checked_plot_id && state?.text_editor_active === true);
   }
   require(editor.loaded.result === source.source && editor.suffix.result === `${source.source}x`
     && editor.restored.result === source.source);
