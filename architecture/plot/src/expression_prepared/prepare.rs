@@ -201,7 +201,7 @@ pub(super) fn prepare_node(
     Ok(PreparedNode {
         quantity_profile: prepared_input.quantity_profile(),
         kind,
-        info_kind: leaf_info_kind(&node.value_type)?.into(),
+        info_kind: prepare_info_kind(&node.value_type)?,
         operation,
     })
 }

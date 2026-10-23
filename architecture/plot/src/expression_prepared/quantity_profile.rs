@@ -1,6 +1,7 @@
 //! Explicit evaluator coordinate policy; no runtime representation fallback.
 use super::{storage_bound, Refusal};
 use crate::PortableExpressionNode;
+use alloc::borrow::Cow;
 use conduit_core::{QuantityValueProfile, StructuredInfoType};
 
 pub(super) fn output_capacity(
@@ -141,8 +142,11 @@ impl super::PreparedPortableExpressionEvaluator {
         ) -> Option<usize> {
             *nodes = nodes.checked_add(1)?;
             *maximum_depth = (*maximum_depth).max(depth);
-            let mut bytes = core::mem::size_of::<super::PreparedNode>()
-                .checked_add(node.info_kind.capacity())?;
+            let name_bytes = match &node.info_kind {
+                Cow::Borrowed(_) => 0,
+                Cow::Owned(name) => name.capacity(),
+            };
+            let mut bytes = core::mem::size_of::<super::PreparedNode>().checked_add(name_bytes)?;
             let mut child =
                 |node: &super::PreparedNode| visit(node, depth + 1, nodes, maximum_depth);
             let extra = match &node.operation {
@@ -190,8 +194,12 @@ impl super::PreparedPortableExpressionEvaluator {
         else {
             return None;
         };
+        let name_bytes = match info_kind {
+            Cow::Borrowed(_) => 0,
+            Cow::Owned(name) => name.capacity(),
+        };
         payload = payload
-            .checked_add(info_kind.capacity())?
+            .checked_add(name_bytes)?
             .checked_add(self.output.capacity())?
             .checked_add(core::mem::size_of::<Self>())?;
         // Every Quantity operation/comparison has its own 3x validation-work
