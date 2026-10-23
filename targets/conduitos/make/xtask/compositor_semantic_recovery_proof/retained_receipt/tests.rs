@@ -53,8 +53,9 @@ fn fixture() -> String {
                 let entries = after["entries"].as_u64().unwrap();
                 text.push_str(&format!("CONDUIT_COMPOSITOR_SERVICE_FRAME service_instance={instance} namespace={kind} frame_sequence=1 guest_sequence=1 pixels_written=200 damage_count=1 entries={entries} privilege_transitions=0 address_space_switches=0 scheduler_returns=0\n"));
             }
+            let arm = ["prepared", "cold", "retained"][kind];
             let record = json!({"schema":"conduit.conduitos/compositor-retained-pair@1","trial":trial,
-                "arm":["prepared","cold","retained"][kind],"identity":identity,"instance":instance,"ack":ack,
+                "arm":arm,"identity":identity,"instance":instance,"ack":ack,
                 "before":before,"after":after,"elapsed_raw_ticks":10,
                 "installation_raw_ticks":if prepared {json!(1)} else {Value::Null},
                 "initialization_raw_ticks":if prepared {json!(1)} else {Value::Null},
