@@ -1,0 +1,75 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `target/debug/conduit-xtask-dispatch prove environment network`
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+    Finished `test` profile [unoptimized] target(s) in 52.38s
+     Running tests/station_attempt.rs (target/debug/deps/station_attempt-3782dda67c7a6f3d)
+
+running 9 tests
+test deadline_guard_preserves_timely_results ... ok
+test deadline_guard_refuses_expired_work_before_first_effectful_poll ... ok
+test deadline_guard_rejects_late_completion_and_drops_pending_work_without_retry ... ok
+test each_failed_or_expired_stage_restores_ap_once_after_cancelling_inflight_work ... ok
+test failed_restoration_is_unavailable_and_never_a_claim_of_ap_readiness ... ok
+test root_can_restore_after_link_loss_under_a_fresh_finite_cleanup_budget ... ok
+test storage_pressure_retains_the_failed_phase_and_independent_cleanup_outcome ... ok
+test station_success_requires_one_budget_for_association_and_address_configuration ... ok
+test successful_switch_does_not_restore_or_retry ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-seven-segment-mask v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/plots/seven-segment-mask)
+   Compiling conduit-environment-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/face)
+   Compiling conduit-environment-http v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/http)
+    Finished `test` profile [unoptimized] target(s) in 2m 13s
+     Running unittests src/lib.rs (target/debug/deps/conduit_environment_http-29a488401a79336b)
+
+running 7 tests
+test network_setup_tests::fully_percent_encoded_maximum_fields_use_byte_bounds_without_truncation ... ok
+test network_setup_tests::malformed_duplicate_unknown_and_oversized_fields_are_refused_before_submission ... ok
+test network_setup_tests::network_page_uses_selected_credential_bounds_and_posts_without_a_query ... ok
+test network_setup_tests::network_response_cancellation_discards_input_and_flush_releases_exactly_one_request ... ok
+test network_setup_tests::page_submission_crosses_the_existing_private_wire_only_after_response_acknowledgement ... ok
+test network_setup_tests::network_http_refuses_ambiguous_framing_and_secret_query_routes ... ok
+test network_setup_tests::network_http_framing_waits_for_the_entire_body_and_consumes_once_without_allocating ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+     Running tests/network_channel.rs (target/debug/deps/network_channel-d5656c1a39546c5b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/service_control.rs (target/debug/deps/service_control-a66500855f17caae)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+    Blocking waiting for file lock on build directory
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 44.73s
+     Running tests/network_setup.rs (target/debug/deps/network_setup-db58e293d3414803)
+
+running 1 test
+test authored_network_configuration_contains_only_the_existing_finite_typed_flow ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

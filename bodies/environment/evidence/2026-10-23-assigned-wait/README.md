@@ -1,0 +1,5 @@
+Constrained native assignments now bind configuration against independently retained checked Source facts before transferring an actual ready timer owner. The existing unconfigured assigned entry points require no configuration. Keys, types, values and order must agree; unsupported assigned value forms refuse. No incoming bytes issue authority or choose expected Source facts.
+
+CPU proof: 19 native-construction tests, 17 network tests, and seven timer-owner tests pass. The timer assignment fixture refuses stale Boot and missing configuration without consuming the retained slot, then transfers exactly once and invokes a 250 ms wait with zero allocations. The timer package passes strict all-target Clippy and the thumbv6m no-std library cross-check. Native physical timing, assigned installation on the ESP32, complete climate memory admission and actual climate Body start remain unproven.
+
+Supported entrances are `cargo xtask prove environment native-construction`, `cargo xtask prove environment network`, and `cargo xtask prove environment wait`.

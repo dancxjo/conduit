@@ -1,0 +1,67 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.12s
+     Running `target/debug/conduit-xtask-dispatch prove environment native-construction`
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.21s
+     Running tests/credential_owner.rs (target/debug/deps/credential_owner-aa1780eb36ee4f37)
+
+running 2 tests
+test native_command::tests::fragmented_requests_refuse_overflow_and_never_infer_execution_permission ... ok
+test actual_private_mailbox_requires_current_selected_possession_and_response_ack ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native.rs (target/debug/deps/native-c62138a2db4bf856)
+
+running 8 tests
+test stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation ... ok
+test native_construction_enters_the_real_body_proposal_without_inventing_a_play ... ok
+test a_different_retained_body_play_cannot_confirm_the_prepared_binding ... ok
+test body_binding_refuses_identity_substitution_membership_loss_and_revocation ... ok
+test body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start ... ok
+test real_authored_source_is_prepared_against_supplied_offers_without_effects ... ok
+test recipe::resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current ... ok
+test recipe::recipe_cadence_is_pinned_and_compiler_role_mapping_refuses_ambiguous_nodes ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests/network_assignment.rs (target/debug/deps/network_assignment-dec2b7656265c2b2)
+
+running 1 test
+test network_assignment_preserves_its_independent_subject_and_native_possession ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/network_play.rs (target/debug/deps/network_play-5faff8a6774abb68)
+
+running 1 test
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+test checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.42s
+
+     Running tests/root_control.rs (target/debug/deps/root_control-3993aa2c72fbff93)
+
+running 5 tests
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.80s
+
+     Running tests/selected_port_shapes.rs (target/debug/deps/selected_port_shapes-abf72d11e082ff59)
+
+running 2 tests
+test assigned_configuration_matches_independent_source_exactly ... ok
+test source_sink_and_single_pair_shapes_bind_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
