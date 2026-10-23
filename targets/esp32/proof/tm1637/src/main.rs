@@ -11,6 +11,10 @@ use esp_hal::{delay::Delay, main};
 #[cfg(feature = "ap")]
 mod boot;
 #[cfg(feature = "native-root")]
+mod native_command;
+#[cfg(feature = "native-root")]
+mod native_control;
+#[cfg(feature = "native-root")]
 mod native_entry;
 #[cfg(feature = "native-root")]
 mod native_root;

@@ -708,7 +708,13 @@ installation flags and a null image-attestation field; the implementation
 artifact label is symbolic, not an image hash. A brief physical capture observed
 two complete offers on the attached ESP32: one Ready pulse Base, one resource and
 one capability under a fresh Boot. No sensor read or Body start occurred. The
-retained bench restoration flash completed, but USB disappeared during its serial
-check, so resumed sampling is unverified pending reconnection. Host-spec-driven
-construction, UART management/admission and full physical installation remain
-incomplete.
+retained bench restoration flash completed. The user confirmed temperature on
+the physical display, but the USB connector broke before serial/HTTP rechecking.
+
+The Root preparation image accepts an exact `offer` line on UART0 (GPIO1 TX,
+GPIO3 RX). It returns the current retained offer with a 64-byte command buffer,
+a five-second request deadline and a two-second response deadline. Unknown or
+oversized commands are refused; assignment installation is not implemented.
+CPU framing tests and ESP32 build/lint checks cover this exchange; physical
+verification is outstanding. Host-spec-driven construction, assignment admission
+and full physical installation remain incomplete.

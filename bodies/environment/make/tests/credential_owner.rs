@@ -249,3 +249,6 @@ fn check(acknowledged: bool, revoked: bool, assigned: bool, substituted: bool) {
     });
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
 }
+
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_command.rs"]
+mod native_command;

@@ -1,8 +1,10 @@
 //! Native Root preparation. No Body birth, assignment installation or GPIO read.
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
 use esp_hal::{
-    clock::CpuClock, interrupt::software::SoftwareInterruptControl, timer::timg::TimerGroup,
+    clock::CpuClock,
+    interrupt::software::SoftwareInterruptControl,
+    timer::timg::TimerGroup,
+    uart::{Config as UartConfig, Uart},
 };
 #[esp_rtos::main]
 async fn main(spawner: Spawner) {
@@ -18,16 +20,12 @@ async fn main(spawner: Spawner) {
     let boot = crate::boot::ObservedBoot::observe().expect("initialized radio entropy required");
     boot.print();
     let root = crate::native_root::NativeRoot::prepare(sensor, radio, &boot);
-    let mut output = [0; 8192];
-    let length = root.write_offer(&mut output).expect("bounded native offer");
-    esp_println::println!("{{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"advertisement\":{}}}", core::str::from_utf8(&output[..length]).unwrap());
-    loop {
-        // Retain initialized ownership and the independently running interfaces.
-        // UART management/Body admission is not fabricated by this preparation.
-        Timer::after(Duration::from_secs(30)).await;
-        let length = root
-            .write_offer(&mut output)
-            .expect("retained native offer");
-        esp_println::println!("{{\"event\":\"native-root-offer\",\"body_installed\":false,\"native_plan_installed\":false,\"image_sha256\":null,\"advertisement\":{}}}", core::str::from_utf8(&output[..length]).unwrap());
-    }
+    let uart = Uart::new(p.UART0, UartConfig::default())
+        .expect("Root UART0 must initialize")
+        .with_rx(p.GPIO3)
+        .with_tx(p.GPIO1)
+        .into_async();
+    crate::native_control::serve(&root, uart)
+        .await
+        .expect("Root UART management failed");
 }
