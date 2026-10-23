@@ -6,6 +6,12 @@ use conduit_environment_make::{
 };
 use conduit_environment_runtime::{observation::ObservationContract, recording::*};
 use std::sync::LazyLock;
+#[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+#[path = "recording_recovery/execution.rs"]
+mod execution;
 fn context() -> RecordingContext<'static> {
     static HOST: LazyLock<c::HostId> = LazyLock::new(|| "fixture/producer".into());
     static BOOT: LazyLock<c::BootId> = LazyLock::new(|| "fixture/producer/old-boot".into());

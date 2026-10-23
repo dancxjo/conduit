@@ -38,8 +38,12 @@ It owns no storage or recovery state.
 
 The planning tests use explicitly identified CPU store and authority fixtures.
 They check the actual retained software selections, absent authority/resource
-refusals and a mismatched generation. They do not yet execute this complete
-lowered recovery plan through a live storage provider.
+refusals and a mismatched generation. The ordinary lowered plan also executes
+through the production kernel with those transferred software objects: one
+exact reference request, no recovery progress while the read is pending,
+and committed recovery only after valid completion. Failed, cancelled and
+invalid-content reads preserve empty history. Execution allocates no storage.
+The external read completion remains a CPU fixture, not a live storage provider.
 
 The generation source emits `resource/ref` values, matching the existing
 snapshot-read Fore. Its cursor advances only after the kernel commits an
