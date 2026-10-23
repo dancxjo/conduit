@@ -1,0 +1,133 @@
+{
+  "delivery_runtime_source": "ba58bbb622ddc202c1133a6858e40b779e1dd4b2",
+  "native_clock_irq_source": "72d6c3b8e5c68d0c92d0622dde9b8caf123dc13f",
+  "feature_objects_identical": [
+    {
+      "path": "targets/conduitos/domain/boundary_clock.rs",
+      "blob": "89c28fa5d7614837d81df8b7f6c4f80343ca40be"
+    },
+    {
+      "path": "targets/conduitos/domain/irq_canary.rs",
+      "blob": "8fcefc56beaa2ed8e0425e6da472e419cb7e1ffc"
+    },
+    {
+      "path": "targets/conduitos/domain/main.rs",
+      "blob": "b083c6270278ff8df7c2de91bfb4c5fd3884cdda"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof.rs",
+      "blob": "bd5004009570a2ad36781d5301fc8e5495adb1ed"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/clock_boundary.rs",
+      "blob": "64f26e368bfade47c8801210f2a887cf9ae0fea6"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/irq_envelope.rs",
+      "blob": "cb12f0bf8ec213f9d6d2b1681de0e170755b0a2f"
+    },
+    {
+      "path": "targets/conduitos/make/xtask/ordinary_domain_proof/trap_envelope.rs",
+      "blob": "7075302171de910aad36f2037b50a58379248158"
+    },
+    {
+      "path": "targets/conduitos/src/arch/mod.rs",
+      "blob": "107d200a28fc578d6fc4f5bbecb0948bdef07e97"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/clock_boundary.rs",
+      "blob": "fc11151669bdd73283b83cc1a041c584737850f2"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/clock_boundary/policy.rs",
+      "blob": "c97329860cc33ef17084387359020b8853553d3e"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/domain_transition.rs",
+      "blob": "86db39d2914310f52e2fe19eeaeee77c03e23281"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/domain_transition/entry_return.S",
+      "blob": "c788228ac234f04597dc400cc979e5c1a83b1845"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/domain_transition/trap_observation.rs",
+      "blob": "85fd94e8e53b4dddbd451384fc71310fc38e645a"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/irq_envelope.rs",
+      "blob": "b27a934fec3cff6f26989973e59f3280df5e03b0"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/irq_envelope/policy.rs",
+      "blob": "f94cd9e78c34a84460e0242fc4f1c2060faaba2e"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/mod.rs",
+      "blob": "26c0afa03742d08119e65041c957644e21472646"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/service_domain.rs",
+      "blob": "acb3dbda49e5f055ca663e4d54886674de5e629f"
+    },
+    {
+      "path": "targets/conduitos/src/lib.rs",
+      "blob": "1840abe1be81c26171f3ac7dabf4b3292633b90d"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof.rs",
+      "blob": "792b3b70e941dbdb41051b23c78cbb1d3840434c"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory.rs",
+      "blob": "0fd0a41a37632f1b9c01036ca4c6a3fb662303b6"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory/clock_boundary.rs",
+      "blob": "c69cb423e73fc43083c00e1cf07c71858f02b3de"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory/irq_envelope.rs",
+      "blob": "9672b50e5170e5b76e9e7d3a3f917682601d05bf"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope.rs",
+      "blob": "88b2250c901f2cf2deeafdcc727c76e8ee65f93a"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope/conformance_tests.rs",
+      "blob": "34eabba82a7bc41d33788f13d4cbf7f13623c0fd"
+    },
+    {
+      "path": "targets/conduitos/src/ordinary_domain_proof/service_memory/trap_envelope/wire.rs",
+      "blob": "17e544fc5a756e8b623ae790662f008fcc318bd8"
+    },
+    {
+      "path": "tools/xtask/tests/privilege_clock_policy.rs",
+      "blob": "4df306670a830e5990b03b9f3d76bf5fc130f7b4"
+    },
+    {
+      "path": "tools/xtask/tests/privilege_irq_policy.rs",
+      "blob": "6e5a0d12e9b4782364494ff22a16adeda4b6a074"
+    }
+  ],
+  "only_other_feature_difference": "test-onlyserde_json::json! qualification/import",
+  "normal_optimized_source": "2ffef51ca29975f2fe858d32f10d1385934db419",
+  "protection_optimized_source": "7fbb4d733525745c3884db999f94d85898441cd6",
+  "production_optimization_objects_identical": [
+    {
+      "path": "targets/conduitos/src/arch/x86_64/service_memory.rs",
+      "blob": "3e677597d398d31872d0f6e7aa8c3af976aa7558"
+    },
+    {
+      "path": "targets/conduitos/src/arch/x86_64/service_memory/storage.rs",
+      "blob": "1db71b469f85e00f535848ee45a541af4ec16683"
+    }
+  ],
+  "historical_lifecycle_test_difference": {
+    "path": "targets/conduitos/tests/service_slot_lifecycle.rs",
+    "review": "Eight .as_ref() borrows become explicit &* reborrows; identical checked arrays and assertions. Testblob is NOT identical.",
+    "diff": "diff --git a/targets/conduitos/tests/service_slot_lifecycle.rs b/targets/conduitos/tests/service_slot_lifecycle.rs\nindex 22df490e5..5f7228b9b 100644\n--- a/targets/conduitos/tests/service_slot_lifecycle.rs\n+++ b/targets/conduitos/tests/service_slot_lifecycle.rs\n@@ -15,14 +15,14 @@ fn assert_zero(view: &View<'_>) {\n             .all(|table| table.0.iter().all(|word| *word == 0))\n     );\n     for bytes in [\n-        view.image.as_ref(),\n-        view.exchange.as_ref(),\n-        view.output.as_ref(),\n-        view.stack.as_ref(),\n-        view.metadata.as_ref(),\n-        view.pixels.as_ref(),\n-        view.scratch.as_ref(),\n-        view.trap.as_ref(),\n+        &*view.image,\n+        &*view.exchange,\n+        &*view.output,\n+        &*view.stack,\n+        &*view.metadata,\n+        &*view.pixels,\n+        &*view.scratch,\n+        &*view.trap,\n     ] {\n         assert!(bytes.iter().all(|byte| *byte == 0));\n     }"
+  },
+  "limits": "Path-specificsourcecorrespondence, notwholebinary/dependency identity. Historicalmeasurements retainoriginalsources. Documentationcommits do notchange these runtimeobjects."
+}
