@@ -15,14 +15,14 @@ fn assert_zero(view: &View<'_>) {
             .all(|table| table.0.iter().all(|word| *word == 0))
     );
     for bytes in [
-        view.image.as_ref(),
-        view.exchange.as_ref(),
-        view.output.as_ref(),
-        view.stack.as_ref(),
-        view.metadata.as_ref(),
-        view.pixels.as_ref(),
-        view.scratch.as_ref(),
-        view.trap.as_ref(),
+        view.image,
+        view.exchange,
+        view.output,
+        view.stack,
+        view.metadata,
+        view.pixels,
+        view.scratch,
+        view.trap,
     ] {
         assert!(bytes.iter().all(|byte| *byte == 0));
     }
