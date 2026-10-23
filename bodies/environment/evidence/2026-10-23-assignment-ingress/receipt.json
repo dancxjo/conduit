@@ -1,0 +1,19 @@
+{
+  "code_commit": "e1a8b0fba",
+  "flashed_elf_sha256": "e6e4988f13f700e6b119a182c933fbbb3be2cbdde8275ba4ab6a80b8a8029f93",
+  "provisioning_capture": "1792777335",
+  "final_physical_capture": "1792778227",
+  "physical_staging_completed": true,
+  "boot_id": "boot/008e7cd6850de760a5fc27951c75ff00",
+  "retained_table_heap_bytes": 1480,
+  "root_heap_used_bytes": 82564,
+  "root_heap_peak_bytes": 90564,
+  "root_heap_capacity_bytes": 114688,
+  "sdk_heap_peak_bytes": 33716,
+  "canonical_bytes": 46411,
+  "wire_bytes": 7111,
+  "native_owner_binding_completed": false,
+  "body_installed": false,
+  "climate_sampling_claimed": false,
+  "captures_sha256": "729c35c7421fe18ddeebf658955035488d56dede1b037a0899b78168af5fb2e4"
+}

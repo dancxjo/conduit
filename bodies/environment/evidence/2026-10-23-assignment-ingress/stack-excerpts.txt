@@ -1,0 +1,10 @@
+400f3594 <conduit_esp32_tm1637_probe::native_assignment::admit>:
+400f3594:	00a136        	entry	a1, 80
+400f3624 <conduit_esp32_tm1637_probe::native_assignment::stage>:
+400f3624:	050136        	entry	a1, 0x280
+40157f18 <conduit_environment_runtime::assigned::AssignedKernelTables<_,_,_,_,_,_>::prepare_input_into>:
+40157f18:	124136        	entry	a1, 0x920
+4015b56c <conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit_input_into>:
+4015b56c:	004136        	entry	a1, 32
+4015b5c0 <conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::finish_input>:
+4015b5c0:	0c4136        	entry	a1, 0x620
