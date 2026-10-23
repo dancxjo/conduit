@@ -1,0 +1,76 @@
+{
+  "started_utc": "2026-10-23T19:30:49.453985+00:00",
+  "issue": 6057,
+  "classification": "internal G0 diagnostic, historical normal PROFILE image, not current-source graphical acceptance",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6057-tools/extracted/usr/bin/qemu-system-aarch64",
+    "-M",
+    "virt",
+    "-cpu",
+    "neoverse-n2",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-monitor",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/outputs/6057-aarch64-g0/serial.log",
+    "-net",
+    "none",
+    "-no-reboot",
+    "-bios",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6057-tools/extracted/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+    "-cdrom",
+    "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6179-fb7-normal-preserved/live-images/aarch64-virt/conduitos-aarch64.iso",
+    "-boot",
+    "d",
+    "-device",
+    "ramfb",
+    "-qmp",
+    "unix:/tmp/c6057-2whw7mna/qmp.sock,server=on,wait=off"
+  ],
+  "source": "fb7ee51338ccd3052851c1213ca1dc518369ed03",
+  "image_sha256": "dca3bbc18649cbfae2dab0d828df02799ec4c7be0d92735eec197388f799f36a",
+  "kernel_sha256": "5fceea5cabe050c3b09c982fe72bb28196ddd2870e990c78b947174852b76a71",
+  "firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+  "emulator_sha256": "ed02064f80fc8d4e5207effc416881fc05935dd2614ee9f413bb618adcc9f2cb",
+  "version": "QEMU emulator version 10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.3)",
+  "product_show_proved": false,
+  "module_path": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6057-tools/extracted/usr/lib/x86_64-linux-gnu/qemu",
+  "process_live_at_capture": true,
+  "serial_complete_product_record": false,
+  "qmp_greeting": {
+    "QMP": {
+      "version": {
+        "qemu": {
+          "micro": 1,
+          "minor": 2,
+          "major": 10
+        },
+        "package": "Debian 1:10.2.1+ds-1ubuntu3.3"
+      },
+      "capabilities": [
+        "oob"
+      ]
+    }
+  },
+  "qmp_capabilities": {
+    "return": {}
+  },
+  "screendump": {
+    "return": {}
+  },
+  "serial_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+  "exit_after_owned_cleanup": 0,
+  "stderr": "qemu-system-aarch64: terminating on signal 15 from pid 3166890 (python)\n",
+  "screenshot": {
+    "file": "outputs/6057-aarch64-g0/display.png",
+    "width": 800,
+    "height": 600,
+    "sha256": "0e78e1e00e1b64efefcadff280b26c47573f6b85aa1a36b6d7773abfbc2088f9",
+    "distinct_colors": 1
+  }
+}
