@@ -1,9 +1,10 @@
 //! Actual canonical Mask reading, correlated to its acknowledged owner Face.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{
     face_correspondence, hid_qmp, io_error, journey_input, refusal, stage_count, ConduitosError,
 };
-use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+use std::{os::unix::net::UnixStream, path::Path, process::Child};
 
 pub(super) fn exercise(
     serial: &Path,
@@ -12,8 +13,9 @@ pub(super) fn exercise(
     reader: &mut qmp::Reader,
     artifacts: &mut Artifacts,
 ) -> Result<(), ConduitosError> {
-    let original =
-        face_correspondence::current_patchbay_show(&fs::read_to_string(serial).map_err(io_error)?)?;
+    let original = face_correspondence::current_patchbay_show(
+        &live_serial::read_complete(serial).map_err(io_error)?,
+    )?;
     for (key, usage, frame, diagram, details) in [
         ("f3", 60, "patchbay-diagram", true, false),
         ("1", 30, "patchbay-gear-details", false, true),
@@ -32,7 +34,7 @@ pub(super) fn exercise(
                 )
             },
         )?;
-        let text = fs::read_to_string(serial).map_err(io_error)?;
+        let text = live_serial::read_complete(serial).map_err(io_error)?;
         let records = face_correspondence::records(&text, "CONDUIT_NATIVE_READING ")?;
         let current = records
             .last()

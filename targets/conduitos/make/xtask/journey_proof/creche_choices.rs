@@ -1,9 +1,10 @@
 //! Real keyboard replacement of a source-owned Boolean, then its restoration.
 use super::super::{qemu_artifacts::Artifacts, qmp};
+use super::live_serial;
 use super::{face_correspondence, hid_qmp, io_error, journey_input, refusal, ConduitosError};
 use conduit_face::{Face, FaceInteraction, FacePropertyValue};
 use serde_json::{json, Value};
-use std::{fs, os::unix::net::UnixStream, path::Path, process::Child};
+use std::{os::unix::net::UnixStream, path::Path, process::Child};
 
 pub(super) fn exercise(
     serial: &Path,
@@ -18,7 +19,7 @@ pub(super) fn exercise(
         ("ret", true, "creche-four-restored"),
     ] {
         let before = face_correspondence::records(
-            &fs::read_to_string(serial).map_err(io_error)?,
+            &live_serial::read_complete(serial).map_err(io_error)?,
             "CONDUIT_CRECHE_CHANGE ",
         )?
         .len();
@@ -31,7 +32,7 @@ pub(super) fn exercise(
             |text| Ok(face_correspondence::records(text, "CONDUIT_CRECHE_CHANGE ")?.len() > before),
         )?;
         validate(
-            &fs::read_to_string(serial).map_err(io_error)?,
+            &live_serial::read_complete(serial).map_err(io_error)?,
             "creche.plot.0",
             expected,
         )?;
@@ -59,7 +60,7 @@ pub(super) fn navigate_to(
     argument: Option<&str>,
     reverse: bool,
 ) -> Result<(), ConduitosError> {
-    let text = fs::read_to_string(serial).map_err(io_error)?;
+    let text = live_serial::read_complete(serial).map_err(io_error)?;
     let faces = face_correspondence::records(&text, "CONDUIT_NATIVE_FACE ")?;
     let current = faces
         .last()
@@ -82,7 +83,7 @@ pub(super) fn navigate_to(
         .map(|action| action.arguments.len() + 1)
         .sum::<usize>();
     for step in 0..=bound {
-        let text = fs::read_to_string(serial).map_err(io_error)?;
+        let text = live_serial::read_complete(serial).map_err(io_error)?;
         let focus = face_correspondence::records(&text, "CONDUIT_CRECHE_FOCUS ")?;
         let selected = focus
             .last()
