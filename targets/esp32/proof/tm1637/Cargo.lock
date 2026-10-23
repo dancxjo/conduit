@@ -255,6 +255,7 @@ dependencies = [
  "conduit-plot",
  "conduit-semantic-catalog",
  "conduit-time",
+ "serde",
  "serde_json",
 ]
 

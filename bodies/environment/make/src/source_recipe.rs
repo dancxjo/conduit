@@ -139,6 +139,9 @@ impl NativeSoftwareSourceRecipe {
             })
             .collect()
     }
+    pub(crate) fn offer_json(&self) -> impl ExactSizeIterator<Item = &[u8]> {
+        self.offers.iter().map(|(_, json)| json.as_slice())
+    }
     /// Emit host-free static construction data; this initializes no software.
     pub fn write_source_rust(&self, out: &mut impl Write) -> fmt::Result {
         writeln!(

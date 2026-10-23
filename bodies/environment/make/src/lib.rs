@@ -10,6 +10,8 @@ pub use recording_recovery::{
 };
 mod source_recipe;
 pub use source_recipe::NativeSoftwareSourceRecipe;
+mod observed_offers;
+pub use observed_offers::NativeOfferRefusal;
 mod software_recipe;
 pub use software_recipe::{NativeSoftwareRecipe, SoftwareRecipeRefusal};
 mod execution;

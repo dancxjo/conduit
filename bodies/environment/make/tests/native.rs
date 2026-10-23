@@ -401,3 +401,5 @@ fn retained_advertisement(
 
 #[path = "native_support/recipe.rs"]
 mod recipe;
+#[path = "native_support/observed_offers.rs"]
+mod observed_offers;

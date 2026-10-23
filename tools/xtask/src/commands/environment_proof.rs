@@ -4,6 +4,8 @@ use super::execute;
 mod browser;
 #[path = "environment_proof/native_construction.rs"]
 mod native_construction;
+#[path = "environment_proof/software_ready.rs"]
+mod software_ready;
 #[path = "environment_proof/wait.rs"]
 mod wait;
 use std::{error::Error, process::Command};
@@ -14,16 +16,7 @@ pub(super) fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>>
         return wait::prove(&root);
     }
     if arguments == ["software-ready-esp32"] {
-        let stamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-        return execute(
-            Command::new("python3")
-                .current_dir(&root)
-                .arg("bodies/environment/tools/native-software-ready.py")
-                .arg("--output")
-                .arg(root.join(format!("target/environment-software-ready/{stamp}"))),
-        );
+        return software_ready::prove(&root);
     }
     if arguments == ["network-fallback"] {
         let stamp = std::time::SystemTime::now()
