@@ -1,9 +1,9 @@
    Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
    Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
    Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/composite)
-   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
-   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
    Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+   Compiling conduit-monotonic-wait v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/monotonic-wait)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
    Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
    Compiling conduit-network-join-call v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/network-join)
    Compiling conduit-esp32-network-switch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/network-switch)
@@ -41,4 +41,4 @@ warning: method `issue_wait` is never used
    |            ^^^^^^^^^^
 
 warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 3 warnings
-    Finished `release` profile [optimized] target(s) in 29.16s
+    Finished `release` profile [optimized] target(s) in 25.84s

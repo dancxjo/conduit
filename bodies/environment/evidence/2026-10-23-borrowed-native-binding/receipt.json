@@ -10,5 +10,6 @@
   "body_installed_on_device": false,
   "new_image_flashed": false,
   "rebuilt_elf_sha256": "e6e4988f13f700e6b119a182c933fbbb3be2cbdde8275ba4ab6a80b8a8029f93",
-  "native_binding_input_source_sha256": "ee3a941885ab946d9d035c92edb49ddde9df92c4fcbf6def68ba486f0706840d"
+  "native_binding_input_source_sha256": "ee3a941885ab946d9d035c92edb49ddde9df92c4fcbf6def68ba486f0706840d",
+  "target_build_completed_after_commit": "d78047e11"
 }

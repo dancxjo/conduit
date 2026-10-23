@@ -32,11 +32,10 @@ The initial public proof dispatch reused the other worktree's cached launcher
 from a shared target directory and refused the new proof name. It did not run
 those controls. Proof stages now preserve the caller's chosen host target;
 receipts here use a fresh worktree-specific environment-main-host target.
-Native and Runtime preparation caches remain distinct. No healthy job was
-restarted merely because a poll expired.
+Native and Runtime preparation caches remain distinct.
 
 The running device remains on the earlier independently provisioned, physically
 verified assignment-staging image. Real native owner binding and Body/Play
 installation, complete runtime memory/work admission, live sensor/Face/Mask
-execution, positive station/mDNS, recorder custody/transport and physical overnight execution remain incomplete. These are development proofs, not dev
-or stable acceptance.
+execution, positive station/mDNS, recorder custody/transport and physical overnight execution remain incomplete.
+These are development proofs, not dev or stable acceptance.
