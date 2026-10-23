@@ -180,7 +180,7 @@ mod tests {
         ] {
             put(&mut b, at, n, len);
         }
-        b[160..177].copy_from_slice(b"\0compositor_entry\0");
+        b[160..178].copy_from_slice(b"\0compositor_entry\0");
         put(&mut b, 192, 1, 4);
         b[196] = 0x12;
         put(&mut b, 198, 1, 2);
@@ -188,7 +188,7 @@ mod tests {
         for (at, n, len) in [
             (388, 3, 4),
             (408, 160, 8),
-            (416, 17, 8),
+            (416, 18, 8),
             (452, 2, 4),
             (472, 192, 8),
             (480, 24, 8),
