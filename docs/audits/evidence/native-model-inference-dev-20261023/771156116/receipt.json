@@ -1,0 +1,73 @@
+{
+  "source": "771156116d612cac4d86d2bc8700341ca5c869cb",
+  "status": "completed",
+  "started": 1792753468.7007678,
+  "commands": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "native-model-backing",
+        "--lib",
+        "hosted_native_model::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "started": 1792753529.0126119,
+      "status": "completed",
+      "exit_code": 0,
+      "finished": 1792753780.409325,
+      "log_sha256": "d6ab5feff0df43ad36c58293d31c14b4a1515fb86b4106c1cce74a112e8e376d"
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "native-model-backing",
+        "--test",
+        "model_infer_native",
+        "--",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "started": 1792753780.432727,
+      "status": "completed",
+      "exit_code": 0,
+      "finished": 1792753935.9118953,
+      "log_sha256": "7ecc44c90af51c57b59f23c880ac3a835c5a67688bb31af55f3a8c010171a1f4"
+    }
+  ],
+  "attempts": 1,
+  "classification": "Internal focused Cargo checks equivalent to the two supported suite steps; not a new full backing campaign",
+  "runtime_library": "/usr/lib/x86_64-linux-gnu/libonnxruntime.so.1.23.2",
+  "runtime_sha256": "9c8f6112e9dcf09ed4e621a1d0a7b6ba49575c7d09f27a652d24a22c8564b13c",
+  "exit_code": 0,
+  "finished": 1792753935.9120996,
+  "clean_after": true,
+  "retained_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-dev-0d83-proof/conduit_std_host-6b6dd60d9313d586",
+      "sha256": "6c7d924287912ceba139ebe1894b64da81736a85cad70d2c4610a977b65076ff"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-dev-0d83-proof/model_infer_native-cfaa92232cd197fa",
+      "sha256": "fe9b9a545bf71930465b24aa96fe9e58979f95fb4e10f69ecd233c6a4c7c0f39"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-dev-0d83-proof/conduit-native-model-worker",
+      "sha256": "9999aa23de052c30234fb1c1a8fd5054ff04284952b61d9c190a1a4a2e262d9d"
+    }
+  ]
+}

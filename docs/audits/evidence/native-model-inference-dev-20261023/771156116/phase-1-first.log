@@ -1,0 +1,100 @@
+   Compiling crypto-common v0.1.7
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/plot)
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/core)
+   Compiling curve25519-dalek v4.1.3
+   Compiling serde_json v1.0.151
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling ed25519-dalek v2.2.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/body)
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/thermostat/model)
+   Compiling ring v0.17.14
+   Compiling leb128fmt v0.1.0
+   Compiling rustix v1.1.5
+   Compiling wasm-encoder v0.259.0
+   Compiling time v0.3.55
+   Compiling rustls v0.23.45
+   Compiling rustls-webpki v0.103.15
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/browser/runtime)
+   Compiling linux-raw-sys v0.12.1
+   Compiling ort-sys v2.0.0-rc.12
+   Compiling bitflags v2.13.2
+   Compiling bumpalo v3.20.3
+   Compiling wast v259.0.0
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/protected-line)
+   Compiling yasna v0.6.0
+   Compiling pem v4.0.0
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/composite)
+   Compiling fastrand v2.5.0
+   Compiling ureq v3.4.2
+   Compiling tempfile v3.27.0
+   Compiling rcgen v0.14.10
+   Compiling wat v1.259.0
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/audio)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/planner)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/face)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/process)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/net)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/ai)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/tongues)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/wire)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/education)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/catalog)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/mechanisms/protocols/bluetooth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/speech)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/make/host)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/std/offers)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/browser/make)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/body-invitation)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/tutorial)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/proof/conformance/signal)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/std/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/raspberry-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/rp2040/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/avr/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/conduitos/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/esp32/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/orange-pi/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/patchbay/graph)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/semantics/finance)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/patchbay/application)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/browser/mask-offer)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/make/body)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/tour)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/architecture/observatory)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/mechanisms/implementations/synth)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/birth)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/little-seismograph/fixture)
+   Compiling conduit-workspace-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/make/workspace)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/proof/conformance/network-r1)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/plots/todo/face)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/proof/conformance/alife-distributed)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/5694-native-current/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 11s
+     Running unittests src/lib.rs (/tmp/conduit-6185-lifecycle-target-42dc6b/debug/deps/conduit_std_host-6b6dd60d9313d586)
+
+running 1 test
+test hosted_native_model::profile::tests::native_offer_cannot_select_other_tensor_geometry_precision_or_unreserved_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 885 filtered out; finished in 0.00s
+

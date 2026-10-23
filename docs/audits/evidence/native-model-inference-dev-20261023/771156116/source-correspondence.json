@@ -1,0 +1,25 @@
+{
+  "issue": 5694,
+  "new_source": "771156116d612cac4d86d2bc8700341ca5c869cb",
+  "base": "0d83b6af0554294a1f24694045c4c8c23c894352",
+  "owning14_objects_identical": {
+    "docs/audits/native-model-inference-profile.md": "303bf479ad1797f4de28eea68701bab89cd700ae",
+    "targets/std/src/hosted_model_infer.rs": "8da15872a07f404eaedce34a48f625242c1b2427",
+    "targets/std/src/hosted_model_infer/imported.rs": "f5d9770a90a1f1c5a7a80a8d9de5b5641beae7fd",
+    "targets/std/src/hosted_model_infer/resource_custody.rs": "bb2d07259caa0939759ef3cd45c79b2bf5470288",
+    "targets/std/src/hosted_native_model.rs": "aed2e9f86042a0dabf7a4c3b8786a2a7cdc17ea1",
+    "targets/std/src/hosted_native_model/profile.rs": "7edd8b8654e9f754fedb33fdadf752536b736f9c",
+    "targets/std/src/lib.rs": "b6ee8837e3e81c7cf7108486ac0eee50c18687ea",
+    "targets/std/tests/model_infer_native.rs": "ed141b937693c93b6b62f0f2a2fe04b8f1cb726b",
+    "targets/std/tests/native_model_infer/allocation.rs": "b8cbc8a4ab3ae56a503fc3b912fa6fb5838403e2",
+    "targets/std/tests/native_model_infer/fixture.rs": "151f98bd4510c0e9947a87c7696f492e595e7d60",
+    "targets/std/tests/native_model_infer/planning_offer.rs": "b2ae2474e7c35efbafdf29fd5c4c618cba345ea9",
+    "tools/xtask/src/commands/check.rs": "696a2b84b4a366b479a064b11a6716eae59ad97e",
+    "tools/xtask/src/commands/check/cli.rs": "a6fd5974b8078f90d223c68a00d97d4f35e203e0",
+    "tools/xtask/src/suites/model_native_inference.rs": "202801b018684c2f7aed6666ebdc7098f7bd010e"
+  },
+  "shared_dependency_change": "6280 prepared expression storage on current base; current-base focused actual Source/Plan/Play suite required before ready",
+  "historical_actual_proof": "5887a39eb / evidence e1a00684ed96cf474a74f0fb046bdf0e1db2f93f",
+  "admission": "Hold: two current PRs6278+6281, no overlap with native adapter but flow WIP full",
+  "time": 1792753274.9753664
+}
