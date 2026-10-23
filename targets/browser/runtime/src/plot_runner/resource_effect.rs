@@ -42,7 +42,7 @@ pub(super) fn begin(
         .as_mut()
         .ok_or("snapshot was not prepared")?;
     let failure = if publish {
-        match conduit_web::JsonValue::decode_text(input) {
+        match conduit_web::validate_json_text(input) {
             Ok(_) => state
                 .record
                 .publication(&state.authority, input)
