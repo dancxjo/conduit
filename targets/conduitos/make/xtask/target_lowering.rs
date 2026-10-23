@@ -378,13 +378,6 @@ fn ia32_closure_refusal(class: &str, expected: &str, selected: &[String]) -> Con
     )
 }
 
-fn aarch64_closure_refusal(class: &str, expected: &str, selected: &[String]) -> ConduitosError {
-    refusal(
-        "aarch64-product-closure-mismatch",
-        format!("expected exactly {class}:{expected}, found {selected:?}"),
-    )
-}
-
 fn refusal(code: &'static str, detail: String) -> ConduitosError {
     ConduitosError::refusal(code, detail)
 }
