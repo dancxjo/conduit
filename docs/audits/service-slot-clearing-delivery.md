@@ -32,8 +32,10 @@ Kernel records use `x86-tsc-lfence` with unknown frequency. Build durations are 
 
 ## Delivery correspondence and checks
 
-The two production blobs and lifecycle test in delivery source `dc429ecabe6b887013e06d321c94fa5f640389d0` exactly match the optimized measured pair. The delivery starts from dev `e57706b15e65f075d6cfa9783de3c5fe44836b2c`; 130 selected owning files remain identical to the measured normal baseline. This is selected backend/grant/lifecycle correspondence, not whole-tree identity. Broader UI and hosted adapter code changed.
+The two production blobs and lifecycle test in delivery source `dc429ecabe6b887013e06d321c94fa5f640389d0` exactly match the optimized measured pair. The delivery starts from dev `e57706b15e65f075d6cfa9783de3c5fe44836b2c`. Of the 130 files in the historical baseline correspondence, 128 remain identical to the measured normal baseline; the two optimized production files are separately matched to the measured optimized pair. This is selected backend/grant/lifecycle correspondence, not whole-tree identity. Broader UI and hosted adapter code changed.
 
 The focused lifecycle test passed once on that delivery source: one passed, zero failed or ignored. It exercises actual storage zeroing across all regions, duplicate-claim refusal, dirty mutation after explicit clearing, retirement/reclaim and partial-failure reclamation. Its executable and raw log are retained in the timing packet. This was an internal focused Cargo check, not another native wrapper invocation.
 
 PCID was unavailable in the measured QEMU profile; no unsupported ASID scheme or privilege relaxation was introduced. Existing staged IPC retains its bounded grant checks. Relevant Candidate and accepted native Integration checks remain required before implementation closure. New custom runtime experiments are warranted by relevant semantic drift or an actual failure, rather than unrelated route changes alone.
+
+The admission follow-up removes redundant slice conversions in the owning test's zero checks. Both production files still exactly match the measured optimized pair; every region and lifecycle assertion remains. The earlier retained focused executable keeps its historical source identity. This minimal delivery does not close #6183's remaining trap/IRET and complete preservation/interrupt attribution work.
