@@ -1,14 +1,14 @@
 //! One ordinary scheduler request owns the already prepared model adapter.
 //! This holds no second queue, scheduler, provider, or borrowed input value.
 use super::{
-    InstalledScheduler,
     model_work_host::{self, Completion},
+    InstalledScheduler,
 };
 use crate::hosted_model_work::HostedModelWorkAdapter;
 use conduit_core::PlannedGear;
 use conduit_kernel::{
-    BoundedValueRef,
     scheduler::{HostCallCancellation, HostCallRequest},
+    BoundedValueRef,
 };
 
 #[derive(Clone, Copy)]
