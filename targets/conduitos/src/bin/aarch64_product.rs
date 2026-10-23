@@ -118,7 +118,7 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
     };
     #[cfg(feature = "native-compositor")]
     let native_frame = if let Some(display) = display.as_mut() {
-        let entropy = arch::RndrEntropy::detect(offer.generation)
+        let entropy = arch::DomainEntropy::detect(offer.generation)
             .unwrap_or_else(|_| refuse("surface-authority-entropy-unavailable"));
         let mut entropy =
             conduitos::cryptographic_entropy::CryptographicEntropyBase::<_, 1>::admit(entropy)
