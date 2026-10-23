@@ -2,8 +2,7 @@
 
 use crate::{
     onnx_metadata::{inspect_onnx, OnnxDimension, OnnxMetadata, OnnxMetadataRefusal, OnnxPort},
-    AdmittedModelResource, ModelDimensionConstraint, ModelPortConstraint, ModelPortPresence,
-    ModelValueConstraint,
+    AdmittedModelResource, ModelDimensionConstraint, ModelPortConstraint, ModelValueConstraint,
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::semantic_digest;
@@ -141,7 +140,7 @@ fn validate_ports(
             .iter()
             .find(|p| p.name == binding.graph_name)
             .ok_or(R::PortName)?;
-        if port.presence != ModelPortPresence::Required {
+        if port.presence != imported.presence {
             return Err(R::Presence);
         }
         let ModelValueConstraint::Tensor(value) = &port.value else {

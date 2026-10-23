@@ -3,7 +3,10 @@
 //! The first profile excludes attributes, sparse tensors, local functions and
 //! training graphs. This prevents uninspected nested external tensor references.
 
-use crate::onnx_wire::{Fields, Value};
+use crate::{
+    onnx_wire::{Fields, Value},
+    ModelPortPresence,
+};
 use alloc::{string::String, vec::Vec};
 use conduit_data::TensorElement;
 use sha2::{Digest, Sha256};
@@ -37,6 +40,7 @@ pub struct OnnxPort {
     pub name: String,
     pub element: TensorElement,
     pub dimensions: Vec<OnnxDimension>,
+    pub presence: ModelPortPresence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -127,7 +131,7 @@ pub fn inspect_onnx(bytes: &[u8], expected_sha256: [u8; 32]) -> Result<OnnxMetad
                 if result.inputs.len() + result.outputs.len() == 32 {
                     return Err(Refusal::PortBound);
                 }
-                let port = port(raw(value)?)?;
+                let port = port(raw(value)?, field == 11, ir_version)?;
                 let ports = if field == 11 {
                     &mut result.inputs
                 } else {
@@ -150,28 +154,21 @@ pub fn inspect_onnx(bytes: &[u8], expected_sha256: [u8; 32]) -> Result<OnnxMetad
     Ok(result)
 }
 
-fn port(bytes: &[u8]) -> Result<OnnxPort, Refusal> {
+fn port(bytes: &[u8], input: bool, ir: u64) -> Result<OnnxPort, Refusal> {
     let mut name = None;
-    let mut tensor = None;
+    let mut value_type = None;
     visit(bytes, |f, v| {
         match f {
             1 => set(&mut name, text(v, false)?)?,
-            2 => visit(raw(v)?, |f, v| {
-                if f == 1 {
-                    set(&mut tensor, raw(v)?)
-                } else if matches!(f, 4 | 5 | 7 | 8 | 9) {
-                    Err(Refusal::Unsupported)
-                } else {
-                    Ok(())
-                }
-            })?,
+            2 => set(&mut value_type, raw(v)?)?,
             _ => {}
         }
         Ok(())
     })?;
+    let (tensor, presence) = port_type(value_type.ok_or(Refusal::MissingField)?, input, ir)?;
     let mut element = None;
     let mut shape = None;
-    visit(tensor.ok_or(Refusal::MissingField)?, |f, v| {
+    visit(tensor, |f, v| {
         match f {
             1 => set(&mut element, dtype(integer(v)?)?)?,
             2 => set(&mut shape, raw(v)?)?,
@@ -210,7 +207,53 @@ fn port(bytes: &[u8]) -> Result<OnnxPort, Refusal> {
         name: name.ok_or(Refusal::MissingField)?,
         element: element.ok_or(Refusal::MissingField)?,
         dimensions,
+        presence,
     })
+}
+
+// Exactly one tensor alternative, or one dynamic Optional<Tensor> input.
+// No recursion/general Core Option decoder, initializer default or I/O is added.
+fn port_type(bytes: &[u8], input: bool, ir: u64) -> Result<(&[u8], ModelPortPresence), Refusal> {
+    let mut choice = None;
+    visit(bytes, |field, value| {
+        match field {
+            1 => set(&mut choice, (raw(value)?, ModelPortPresence::Required))?,
+            9 => {
+                if !input {
+                    return Err(Refusal::Unsupported);
+                }
+                // ONNX dynamic optional types were introduced in IR8.
+                if ir < 8 {
+                    return Err(Refusal::InvalidVersion);
+                }
+                let mut element = None;
+                visit(raw(value)?, |field, value| {
+                    if field == 1 {
+                        set(&mut element, raw(value)?)?;
+                    }
+                    Ok(())
+                })?;
+                let tensor = required_tensor_type(element.ok_or(Refusal::MissingField)?)?;
+                set(&mut choice, (tensor, ModelPortPresence::Optional))?;
+            }
+            4 | 5 | 7 | 8 => return Err(Refusal::Unsupported),
+            _ => {}
+        }
+        Ok(())
+    })?;
+    choice.ok_or(Refusal::MissingField)
+}
+fn required_tensor_type(bytes: &[u8]) -> Result<&[u8], Refusal> {
+    let mut tensor = None;
+    visit(bytes, |field, value| {
+        match field {
+            1 => set(&mut tensor, raw(value)?)?,
+            4 | 5 | 7 | 8 | 9 => return Err(Refusal::Unsupported),
+            _ => {}
+        }
+        Ok(())
+    })?;
+    tensor.ok_or(Refusal::MissingField)
 }
 
 fn dtype(value: u64) -> Result<TensorElement, Refusal> {

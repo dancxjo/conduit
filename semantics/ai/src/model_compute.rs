@@ -227,7 +227,7 @@ impl ModelComputeRequirement {
         }
         if self.model_bytes == 0
             || self.working_memory_bytes == 0
-            || self.input_bytes == 0
+            || (self.input_bytes == 0 && self.operation != ModelComputeOperation::Inference)
             || self.output_bytes == 0
             || self.batch_items == 0
             || self.minimum_lanes == 0
