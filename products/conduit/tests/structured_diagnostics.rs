@@ -199,4 +199,5 @@ fn authored_ipa_context_passes_public_check_for_both_branches() {
     }
 }
 
+#[path = "structured_diagnostics/startup.rs"]
 mod startup;

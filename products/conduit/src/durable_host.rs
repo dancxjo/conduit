@@ -413,7 +413,9 @@ fn release_file_name(file: &ReleaseFile) -> Result<&std::ffi::OsStr, String> {
 
 #[path = "durable_host/runtime_preparation.rs"]
 mod runtime_preparation;
-use runtime_preparation::{prepare_runtime, prepare_runtime_with_scans, prepare_runtime_with_todo};
+#[cfg(test)]
+use runtime_preparation::prepare_runtime;
+use runtime_preparation::{prepare_runtime_with_scans, prepare_runtime_with_todo};
 #[path = "durable_host/startup_trace.rs"]
 mod startup_trace;
 

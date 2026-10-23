@@ -9,6 +9,7 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 use std::{fs, path::Path};
 
+#[cfg(test)]
 pub(super) fn prepare_runtime(
     state_dir: &Path,
 ) -> Result<
