@@ -924,3 +924,13 @@ zero execution allocations. These accelerated clock completions establish
 kernel/storage behavior; they do not establish physical overnight operation,
 browser persistence, or the complete ESP32 memory closure. The profile also
 passes the ESP32 native-root release cross-check.
+
+`NativeSoftwareRecipe::write_resident_rust` emits a standalone firmware module
+whose `resident()` borrows static layout and computation requirement arrays.
+Provision that module through the trusted firmware build independently of
+received assignments; compiling received metadata into expectations would not
+establish trust. The emitted recipe is identical across fresh Boots, while
+the actual assignments and Plans differ. Its generated Rust was compiled
+against the production core, kernel and appliance runtime. This enables resident
+acceptance data without heap-owned recipe vectors; it does not yet provision
+the physical Root, initialize a provider or complete appliance installation.

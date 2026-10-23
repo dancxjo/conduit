@@ -1,5 +1,6 @@
 //! Trusted Make construction material kept separate from an incoming assignment.
 //! No Host/Boot/Plan identity, native readiness or capability is created here.
+mod rust;
 use crate::PreparedNativeAppliance;
 use conduit_core as c;
 use conduit_environment_runtime::{

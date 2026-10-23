@@ -54,7 +54,23 @@ fn resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current(
     .unwrap();
     assert_ne!(first.plan().plan_id, second.plan().plan_id);
     assert_ne!(first.assignment(), second.assignment());
-    assert_eq!(first_recipe, second.software_recipe().unwrap());
+    let second_recipe = second.software_recipe().unwrap();
+    assert_eq!(first_recipe, second_recipe);
+    let mut first_rust = String::new();
+    first_recipe.write_resident_rust(&mut first_rust).unwrap();
+    let mut second_rust = String::new();
+    second_recipe.write_resident_rust(&mut second_rust).unwrap();
+    assert_eq!(first_rust, second_rust);
+    for identity in [
+        host.host_id.as_str(),
+        host.boot_id.as_str(),
+        first.plan().plan_id.as_str(),
+    ] {
+        assert!(!first_rust.contains(identity));
+    }
+    if let Some(path) = std::env::var_os("CONDUIT_RECIPE_PROOF_OUTPUT") {
+        std::fs::write(path, &first_rust).unwrap();
+    }
     assert_eq!((first_effects.get(), next_effects.get()), (0, 0));
 }
 #[test]
