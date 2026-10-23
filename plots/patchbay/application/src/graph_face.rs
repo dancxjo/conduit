@@ -22,6 +22,15 @@ pub struct Content<'a> {
 }
 
 pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
+    let _ = append_checkpointed(graph, body, content, |_| true);
+}
+
+pub(super) fn append_checkpointed(
+    graph: &PatchbayGraph,
+    body: &str,
+    content: &mut Content<'_>,
+    mut checkpoint: impl FnMut(&mut Content<'_>) -> bool,
+) -> bool {
     let plot = format!("plot/{}", graph.checked_plot_id.as_str());
     let new_plot = !content
         .subjects
@@ -53,6 +62,9 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
         subject: plot.clone(),
         text: "Exact selected Plot graph; connections are typed Ports and Cords".into(),
     });
+    if !checkpoint(content) {
+        return false;
+    }
     for gear in &graph.gears {
         let id = append_named_gear(
             &mut GraphFacts {
@@ -74,6 +86,9 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
                 port.value_contract.as_ref(),
             );
         }
+        if !checkpoint(content) {
+            return false;
+        }
     }
     for composition in &graph.compositions {
         let id = append_named_composition(
@@ -90,9 +105,15 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
         for port in composition.inputs.iter().chain(&composition.outputs) {
             append_front_port(content, &id, port);
         }
+        if !checkpoint(content) {
+            return false;
+        }
     }
     for port in graph.front_inputs.iter().chain(&graph.front_outputs) {
         append_front_port(content, &plot, port);
+        if !checkpoint(content) {
+            return false;
+        }
     }
     for cord in &graph.cords {
         append_named_cord(
@@ -105,7 +126,11 @@ pub fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
             cord,
             "Typed connection",
         );
+        if !checkpoint(content) {
+            return false;
+        }
     }
+    true
 }
 
 fn append_front_port(content: &mut Content<'_>, parent: &str, port: &PatchbayFrontPort) {

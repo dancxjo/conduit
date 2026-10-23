@@ -17,6 +17,11 @@ pub enum PatchbayResidentCommand {
         checked_plot_id: CheckedPlotId,
         plan_id: PlanId,
     },
+    SelectSource {
+        source_document_id: conduit_core::SourceDocumentId,
+        checked_plot_id: CheckedPlotId,
+        expanded_plot_id: ExpandedPlotId,
+    },
     EditSubject {
         expanded_plot_id: ExpandedPlotId,
         subject_identity: String,
@@ -117,8 +122,11 @@ impl PatchbayApplicationPort {
         interaction
             .validate_against(face, show)
             .map_err(PatchbayCommandRefusal::InvalidInteraction)?;
+        // Preserve aggregate projection refusal before the smaller action lookup.
+        self.validate_projection_bounds(basis.clone(), body)
+            .map_err(PatchbayCommandRefusal::Projection)?;
         let expected = self
-            .face_fragment(basis.clone(), body, true)
+            .face_fragment_with_graph(basis.clone(), body, true, false)
             .map_err(PatchbayCommandRefusal::Projection)?;
         let canonical = expected
             .actions
@@ -142,10 +150,7 @@ impl PatchbayApplicationPort {
                 .ok()
                 .and_then(|index| self.plots.get(index))
                 .ok_or(PatchbayCommandRefusal::UnknownAction)?;
-            PatchbayResidentCommand::SelectPlot {
-                checked_plot_id: plot.graph.checked_plot_id.clone(),
-                plan_id: plot.plan_id.clone(),
-            }
+            selection_command(plot)
         } else if interaction.action_id == EDIT_CURRENT_ACTION_ID {
             let argument = interaction
                 .arguments
@@ -232,4 +237,19 @@ pub fn contribution_matches(face: &Face, basis: &FaceContributionBasis) -> bool 
                     &FacePropertyValue::Identity(basis.active_play_id.as_str().into()),
                 )
         })
+}
+
+pub(super) fn selection_command(plot: &super::PatchbayActivePlot) -> PatchbayResidentCommand {
+    if let Some(plan_id) = &plot.plan_id {
+        PatchbayResidentCommand::SelectPlot {
+            checked_plot_id: plot.graph.checked_plot_id.clone(),
+            plan_id: plan_id.clone(),
+        }
+    } else {
+        PatchbayResidentCommand::SelectSource {
+            source_document_id: plot.graph.source_document_id.clone(),
+            checked_plot_id: plot.graph.checked_plot_id.clone(),
+            expanded_plot_id: plot.graph.expanded_plot_id.clone(),
+        }
+    }
 }

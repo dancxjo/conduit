@@ -16,7 +16,6 @@ impl NativeMaskInteractionSession {
         &self.play.renderer.prepared_show
     }
 
-    #[cfg(test)]
     pub fn render_receipt(&self) -> &NativeMaskPlayReceipt {
         self.play
             .receipt

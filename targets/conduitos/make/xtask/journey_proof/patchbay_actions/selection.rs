@@ -3,7 +3,7 @@ use super::*;
 use conduit_face::{FacePropertyValue, FaceRole};
 use conduitos::native_workset;
 
-fn property<'a>(
+pub(super) fn property<'a>(
     face: &'a Face,
     subject: &str,
     name: &str,
@@ -21,7 +21,7 @@ fn property<'a>(
     }
     Ok(value)
 }
-fn revision(face: &Face) -> Result<u64, ConduitosError> {
+pub(super) fn revision(face: &Face) -> Result<u64, ConduitosError> {
     let mut values = face
         .properties
         .iter()
@@ -91,51 +91,7 @@ pub(super) fn source(record: &Value, target: &str) -> Result<Value, ConduitosErr
     let expected = port
         .observe_fragment(basis, body)
         .map_err(|error| refusal(format!("{error:?}")))?;
-    let graph_role =
-        |role: &FaceRole| matches!(role, FaceRole::Gear | FaceRole::Port | FaceRole::Cord);
-    let subjects = expected
-        .subjects
-        .iter()
-        .filter(|subject| graph_role(&subject.role))
-        .collect::<Vec<_>>();
-    if face
-        .subjects
-        .iter()
-        .filter(|subject| graph_role(&subject.role))
-        .count()
-        != subjects.len()
-        || subjects
-            .iter()
-            .any(|subject| !face.subjects.contains(subject))
-    {
-        return Err(refusal(
-            "actual graph subjects differ from the exact installed Source",
-        ));
-    }
-    let ids = subjects
-        .iter()
-        .map(|subject| subject.identity.as_str())
-        .collect::<Vec<_>>();
-    for value in expected
-        .properties
-        .iter()
-        .filter(|value| ids.contains(&value.subject.as_str()))
-    {
-        if !face.properties.contains(value) {
-            return Err(refusal(
-                "actual graph lost exact Source contracts or provenance",
-            ));
-        }
-    }
-    for value in expected.relationships.iter().filter(|value| {
-        ids.contains(&value.source.as_str()) || ids.contains(&value.target.as_str())
-    }) {
-        if !face.relationships.contains(value) {
-            return Err(refusal(
-                "actual graph lost exact Source endpoints or containment",
-            ));
-        }
-    }
+    let subjects = compare_graph(&face, &expected)?;
     Ok(
         json!({"plot":plot.name(),"source":plot.source(),"checked_plot_id":checked.checked_plot_id,
         "source_document_id":checked.source_document_id,"expanded_plot_id":checked.expanded_plot_id,
@@ -206,4 +162,103 @@ pub(super) fn round_trip(
         json!({"initial":initial_source,"outward":outward,"other":next_source,
         "inward":inward,"returned":returned_source,"same_play":true}),
     )
+}
+
+pub(super) fn compare_graph(
+    face: &Face,
+    expected: &conduit_face::FaceFragment,
+) -> Result<Vec<conduit_face::FaceSubject>, ConduitosError> {
+    let graph_role =
+        |role: &FaceRole| matches!(role, FaceRole::Gear | FaceRole::Port | FaceRole::Cord);
+    let subjects = expected
+        .subjects
+        .iter()
+        .filter(|subject| graph_role(&subject.role))
+        .collect::<Vec<_>>();
+    if face
+        .subjects
+        .iter()
+        .filter(|subject| graph_role(&subject.role))
+        .count()
+        != subjects.len()
+        || subjects
+            .iter()
+            .any(|subject| !face.subjects.contains(subject))
+    {
+        return Err(refusal(
+            "actual graph subjects differ from the exact installed Source",
+        ));
+    }
+    let ids = subjects
+        .iter()
+        .map(|subject| subject.identity.as_str())
+        .collect::<Vec<_>>();
+    let expected_properties = expected
+        .properties
+        .iter()
+        .filter(|value| ids.contains(&value.subject.as_str()))
+        .collect::<Vec<_>>();
+    if face
+        .properties
+        .iter()
+        .filter(|value| ids.contains(&value.subject.as_str()))
+        .count()
+        != expected_properties.len()
+    {
+        return Err(refusal(
+            "actual graph has unexpected or duplicate Source properties",
+        ));
+    }
+    for value in expected_properties {
+        if !face.properties.contains(value) {
+            return Err(refusal(
+                "actual graph lost exact Source contracts or provenance",
+            ));
+        }
+    }
+    let expected_relationships = expected
+        .relationships
+        .iter()
+        .filter(|value| {
+            ids.contains(&value.source.as_str()) || ids.contains(&value.target.as_str())
+        })
+        .collect::<Vec<_>>();
+    if face
+        .relationships
+        .iter()
+        .filter(|value| {
+            ids.contains(&value.source.as_str()) || ids.contains(&value.target.as_str())
+        })
+        .count()
+        != expected_relationships.len()
+    {
+        return Err(refusal(
+            "actual graph has unexpected or duplicate Source relationships",
+        ));
+    }
+    for value in expected_relationships {
+        if !face.relationships.contains(value) {
+            return Err(refusal(
+                "actual graph lost exact Source endpoints or containment",
+            ));
+        }
+    }
+    let expected_text = expected
+        .text
+        .iter()
+        .filter(|value| ids.contains(&value.subject.as_str()))
+        .collect::<Vec<_>>();
+    if face
+        .text
+        .iter()
+        .filter(|value| ids.contains(&value.subject.as_str()))
+        .count()
+        != expected_text.len()
+        || expected_text.iter().any(|value| !face.text.contains(value))
+    {
+        return Err(refusal(
+            "actual graph lost exact Source labels or Details text",
+        ));
+    }
+    Ok(subjects.into_iter().cloned().collect())
 }

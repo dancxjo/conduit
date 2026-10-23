@@ -148,6 +148,7 @@ fn play_from_specialized_presenter_enters_the_actual_editor_mask_surface() {
         "build",
         provider.entry.base_id.clone(),
         &provider,
+        conduit_conduitos_mask_offer::NativeMaskStorageProfile::Standard,
     )
     .unwrap();
     let mut presenter = FrontDoorPresenter::prepare(

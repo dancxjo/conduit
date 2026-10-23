@@ -103,6 +103,35 @@ pub fn prove_from_environment() -> Result<(), NativeBackingRefusal> {
             return Err(NativeBackingRefusal::InvalidOutput);
         }
     }
+    // F32 tensor payloads carry the full IEEE-754 bit domain. Identity must not
+    // silently narrow that semantic domain through provider eligibility.
+    let input_bits = [
+        0x0000_0000_u32,
+        0x8000_0000, // signed zeros
+        0x7f80_0000,
+        0xff80_0000, // infinities
+        0x7fc0_0000,
+        0x7fc1_2345,
+        0xffc5_4321, // quiet NaN signs/payloads
+        0x7f80_0001,
+        0xff80_0001, // signaling NaN signs/payloads
+        0x0000_0001,
+        0x8000_0001,
+        0x007f_ffff,
+        0x807f_ffff, // subnormals
+        0x0080_0000,
+        0x8080_0000, // minimum normal magnitudes
+        0x7f7f_ffff,
+        0xff7f_ffff, // maximum finite magnitudes
+    ];
+    let mut bit_controls = Vec::with_capacity(input_bits.len());
+    for bits in input_bits {
+        let output = prepared.infer_f32(f32::from_bits(bits))?.to_bits();
+        if output != bits {
+            return Err(NativeBackingRefusal::InvalidOutput);
+        }
+        bit_controls.push(serde_json::json!({"input_bits": bits, "output_bits": output}));
+    }
     prepared.verify_backing()?;
     let descriptor = prepared.resource().resource().descriptor_identity();
     drop(prepared);
@@ -140,7 +169,7 @@ pub fn prove_from_environment() -> Result<(), NativeBackingRefusal> {
     }
     println!(
         "{}",
-        serde_json::json!({"proof":"native-model-backing","profile":super::profile::PROFILE,"exact_cpu_outputs":1000,"insufficient_grant_before_ready":true,"insufficient_fixed_mapping_grant_before_ready":true,"maps_unchanged_after_1000":true,"canonical_model_descriptor":descriptor,"canonical_model_bytes":77,"pressure_without_output":true,"ledger":ledger,"worker_sha256":super::worker::file_digest(&executable)?,"runtime_sha256":profile.runtime_sha256,"model_sha256":super::profile::MODEL_SHA256,"not_established":["ordinary Source/Plan/Play adapter","full session retirement/cancellation","physical residency"]})
+        serde_json::json!({"proof":"native-model-backing","profile":super::profile::PROFILE,"exact_cpu_outputs":1000 + bit_controls.len(),"repeated_cpu_outputs":1000,"ieee754_bit_controls":bit_controls,"insufficient_grant_before_ready":true,"insufficient_fixed_mapping_grant_before_ready":true,"maps_unchanged_after_1000":true,"canonical_model_descriptor":descriptor,"canonical_model_bytes":77,"pressure_without_output":true,"ledger":ledger,"worker_sha256":super::worker::file_digest(&executable)?,"runtime_sha256":profile.runtime_sha256,"model_sha256":super::profile::MODEL_SHA256,"not_established":["ordinary Source/Plan/Play adapter","full session retirement/cancellation","physical residency"]})
     );
     Ok(())
 }

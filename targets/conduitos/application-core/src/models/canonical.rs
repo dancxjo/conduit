@@ -2,7 +2,7 @@
 use super::*;
 use conduit_body::BodyId;
 use conduit_face::{
-    Face, FaceContributionBasis, FaceFragment, FaceInteraction, ManifestationLifecycle, MaskShow,
+    Face, FaceContributionBasis, FaceInteraction, ManifestationLifecycle, MaskShow,
 };
 use patchbay_application::{
     PatchbayApplicationRefusal, PatchbayCommandRefusal, PatchbayResidentCommand,
@@ -89,10 +89,9 @@ impl Models {
         {
             return fail(CanonicalRefusal::WrongOwner);
         }
-        let matches = [true, false].into_iter().any(|actions| {
-            port.face_fragment(basis.clone(), &body, actions)
-                .is_ok_and(|fragment| contains_fragment(&face, &fragment))
-        });
+        let matches = [true, false]
+            .into_iter()
+            .any(|actions| port.matches_face_contribution(&face, basis.clone(), &body, actions));
         if !matches {
             return fail(CanonicalRefusal::InvalidContribution);
         }
@@ -175,10 +174,12 @@ impl Models {
                     },
                 ))
             }
-            PatchbayResidentCommand::SelectPlot { .. } => None,
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => None,
         };
         let selected_target = match prepared.command() {
-            PatchbayResidentCommand::SelectPlot { .. } => {
+            PatchbayResidentCommand::SelectPlot { .. }
+            | PatchbayResidentCommand::SelectSource { .. } => {
                 let index = interaction
                     .action_id
                     .strip_prefix(patchbay_application::SELECT_PLOT_ACTION_PREFIX)
@@ -239,35 +240,6 @@ fn refused(slot: u8, target: usize, revision: u32, refusal: CanonicalRefusal) ->
         revision,
         refusal,
     }
-}
-fn contains_fragment(face: &Face, fragment: &FaceFragment) -> bool {
-    macro_rules! included {
-        ($field:ident) => {
-            fragment
-                .$field
-                .iter()
-                .all(|item| face.$field.contains(item))
-        };
-    }
-    included!(subjects)
-        && included!(relationships)
-        && included!(composition)
-        && included!(properties)
-        && included!(text)
-        && included!(actions)
-        && included!(disclosures)
-        && included!(temporal_references)
-        && included!(temporal_facts)
-        && face
-            .actions
-            .iter()
-            .filter(|action| {
-                fragment
-                    .subjects
-                    .iter()
-                    .any(|subject| subject.identity == action.target)
-            })
-            .all(|action| fragment.actions.contains(action))
 }
 fn map_refusal(error: PatchbayCommandRefusal) -> CanonicalRefusal {
     use PatchbayCommandRefusal::*;

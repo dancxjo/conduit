@@ -52,12 +52,47 @@ impl PatchbayApplicationPort {
             return Err(PatchbayApplicationRefusal::UnknownAction);
         }
         if self.plots.iter().any(|plot| {
-            plot.graph.checked_plot_id == graph.checked_plot_id && plot.plan_id == plan_id
+            plot.graph.checked_plot_id == graph.checked_plot_id
+                && (plot.plan_id.is_none() || plot.plan_id.as_ref() == Some(&plan_id))
         }) {
             return Err(PatchbayApplicationRefusal::UnknownAction);
         }
         let index = self.plots.len();
         self.plots.push(projected_entry(graph, plan_id));
+        Ok(index)
+    }
+
+    /// Prepare an owner-authorized checked Source for read-only inspection.
+    /// The caller owns Source access admission; this grants no execution or edit.
+    pub fn append_prepared_source_graph(
+        &mut self,
+        graph: PatchbayGraph,
+        body_plan_id: &PlanId,
+    ) -> Result<usize, PatchbayApplicationRefusal> {
+        if self.plots.len() >= self.prepared_graph_limit
+            || self.plots.len() == self.plots.capacity()
+            || self.plots.len() + 5 > conduit_face::MAX_APPLICATION_ACTIONS
+        {
+            return Err(PatchbayApplicationRefusal::TooManyActivePlots);
+        }
+        validate_projected_graph(&graph)?;
+        if &self.body_plan_id != body_plan_id
+            || self
+                .plots
+                .iter()
+                .any(|plot| plot.graph.checked_plot_id == graph.checked_plot_id)
+        {
+            return Err(PatchbayApplicationRefusal::UnknownAction);
+        }
+        let index = self.plots.len();
+        self.plots.push(PatchbayActivePlot {
+            title: graph.plot_name.clone(),
+            checked_plot_id: String::from(graph.checked_plot_id.as_str()),
+            graph,
+            plan_id: None,
+            state: PatchbayActivePlotState::CheckedSource,
+            focused: false,
+        });
         Ok(index)
     }
 
@@ -82,7 +117,7 @@ impl PatchbayApplicationPort {
     pub fn selected_plan_id(&self) -> Option<&PlanId> {
         self.selected_plot
             .and_then(|index| self.plots.get(index))
-            .map(|plot| &plot.plan_id)
+            .and_then(|plot| plot.plan_id.as_ref())
     }
 
     // Both entrances share this exact controller initialization. The original
@@ -106,7 +141,7 @@ fn projected_entry(graph: PatchbayGraph, plan_id: PlanId) -> PatchbayActivePlot 
         title: graph.plot_name.clone(),
         checked_plot_id: String::from(graph.checked_plot_id.as_str()),
         graph,
-        plan_id,
+        plan_id: Some(plan_id),
         state: PatchbayActivePlotState::Playing,
         focused: false,
     }
