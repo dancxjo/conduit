@@ -60,12 +60,25 @@ fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
 #[test]
 fn authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel() {
     for scenario in 0..=6 {
-        run(scenario, false);
-        run(scenario, true);
+        run(scenario, false, false);
+        run(scenario, true, false);
     }
 }
-fn run(scenario: usize, native: bool) {
-    let source = compile(1, 0).unwrap();
+#[test]
+fn full_authored_overnight_workload_drains_with_a_small_value_store() {
+    // Deterministic CPU clock completions; no physical sixteen-hour claim.
+    for scenario in 0..=6 {
+        run(scenario, true, true);
+    }
+}
+fn run(scenario: usize, native: bool, overnight: bool) {
+    let source = if overnight {
+        conduit_environment_runtime::construction::compile_default().unwrap()
+    } else {
+        compile(1, 0).unwrap()
+    };
+    let count = source.count;
+    let period_ms = source.period_ms;
     let (ready, effects) = pulse::ready(scenario);
     let (mut software, software_memory) = allocation_probe::observe(|| software(&source));
     if scenario == 0 {
@@ -100,8 +113,14 @@ fn run(scenario: usize, native: bool) {
     assert_eq!((lowered.nodes.len(), lowered.cords.len()), (N, C));
     let image = appliance_support::native_image(&plan, &lowered);
     let projection = assignment::NativeProjection::prepare(&image);
-    let (mut owner, pulse_node) =
-        pulse::bind_assigned(ready, &plan, &lowered, &projection).unwrap();
+    let (mut owner, pulse_node) = pulse::bind_assigned_budget(
+        ready,
+        &plan,
+        &lowered,
+        &projection,
+        count.try_into().unwrap(),
+    )
+    .unwrap();
     let tables = assignment::prepare::<N, C, P, R, C, N>(&image, scenario == 0);
     assert_eq!(
         tables.nodes,
@@ -120,7 +139,11 @@ fn run(scenario: usize, native: bool) {
     );
     let mut capacities = [1024; 32];
     capacities[..2].fill(4096);
-    let mut values = k::HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap();
+    let mut values = if overnight {
+        k::HostedValueStore::new_with_slot_capacities(&capacities[..9], 15360).unwrap()
+    } else {
+        k::HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap()
+    };
     let sign_bytes = lowered.sign_bytes;
     let sign_slots = lowered.sign_items.max(
         u16::try_from(
@@ -154,7 +177,7 @@ fn run(scenario: usize, native: bool) {
             )
             .unwrap()
         });
-        assert_eq!((prepared.count, prepared.period_ms), (1, 0));
+        assert_eq!((prepared.count, prepared.period_ms), (count, period_ms));
         assert_eq!(prepared.roles.pulse, pulse_node);
         assert_eq!(prepared.roles.tick, tick_node);
         if scenario == 0 {
@@ -202,8 +225,11 @@ fn run(scenario: usize, native: bool) {
     )
     .unwrap();
     let mut drained = false;
+    let mut waits = 0_u64;
+    let mut peak_items = 0;
+    let mut peak_bytes = 0;
     let ((), allocation) = allocation_probe::observe(|| {
-        for _ in 0..2000 {
+        for _ in 0..count * 2000 {
             if let Some(request) = kernel.next_host_request() {
                 let input = kernel.host_value(request.input.value).unwrap();
                 let bytes = if request.node == pulse_node {
@@ -212,6 +238,8 @@ fn run(scenario: usize, native: bool) {
                             .unwrap(),
                     )
                 } else if request.node == tick_node {
+                    assert_eq!(input, c::encode_monotonic_duration(period_ms));
+                    waits += 1;
                     None
                 } else {
                     selectors[usize::from(request.node.0)]
@@ -235,7 +263,10 @@ fn run(scenario: usize, native: bool) {
                     )
                     .unwrap();
             }
-            if kernel.step().unwrap() == SchedulerStatus::Drained {
+            let status = kernel.step().unwrap();
+            peak_items = peak_items.max(kernel.values().used_items());
+            peak_bytes = peak_bytes.max(kernel.values().used_bytes());
+            if status == SchedulerStatus::Drained {
                 drained = true;
                 break;
             }
@@ -243,7 +274,12 @@ fn run(scenario: usize, native: bool) {
     });
     assert!(drained);
     assert_eq!((allocation.allocations, allocation.reallocations), (0, 0));
-    assert_eq!(effects.get(), usize::from(scenario != 4));
+    assert_eq!(effects.get(), count as usize * usize::from(scenario != 4));
+    assert_eq!(waits, count);
+    if overnight {
+        eprintln!("overnight_post_step_peak_live_items={peak_items} overnight_post_step_peak_live_bytes={peak_bytes}");
+        eprintln!("overnight_samples={count} period_ms={period_ms} logical_elapsed_ms={} value_slots=9 value_bytes=15360",waits*period_ms);
+    }
     let expected = match scenario {
         0 | 1 | 5 | 6 => Channel::Reading,
         2 => Channel::CaptureTimeout,
@@ -254,7 +290,7 @@ fn run(scenario: usize, native: bool) {
         if let Driver::Publication(back) = driver {
             if let Some(snapshot) = back.snapshot() {
                 assert_eq!(snapshot.channel, expected);
-                assert_eq!(snapshot.sequence, 1);
+                assert_eq!(snapshot.sequence, count);
                 c::validate_canonical_structured_value(snapshot.canonical).unwrap();
             }
         }
