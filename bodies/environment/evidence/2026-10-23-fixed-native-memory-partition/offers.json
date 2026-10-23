@@ -1,0 +1,876 @@
+[
+  {
+    "event": "native-root-offer",
+    "body_installed": false,
+    "native_plan_installed": false,
+    "image_sha256": null,
+    "network_configuration": "uninstalled",
+    "native_sdk_heap_bytes": 73728,
+    "native_sdk_heap_used_bytes": 34504,
+    "native_sdk_heap_peak_bytes": 36672,
+    "native_root_heap_bytes": 114688,
+    "native_root_heap_used_bytes": 10104,
+    "native_root_heap_peak_bytes": 19456,
+    "prechecked_network_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+    "network_plan_preparation": "capability-unavailable",
+    "native_network_ready": false,
+    "network_control_installed": false,
+    "network_control_failure_phase": "none",
+    "network_control_failure_reason": "none",
+    "network_control_steps": 0,
+    "network_control_dispatches": [
+      0,
+      0,
+      0
+    ],
+    "network_control_receipt": false,
+    "network_control_kernel_bytes": 6112,
+    "network_control_binding": null,
+    "advertisement": {
+      "protocol_version": 1,
+      "host_id": "esp32/b0a732286178",
+      "boot_id": "boot/a82eeb4f2dc390db17550e78044cc2ec",
+      "offer_generation": 1,
+      "profile": "environment/esp32-native-root@1",
+      "bases": [
+        {
+          "base_id": "base/esp32/gpio27",
+          "provider_instance_id": "instance/esp32/gpio27",
+          "provider_generation": 1,
+          "implementation_id": "esp32/gpio27-pulse-base@1",
+          "mechanism_family": "machine/pulse-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/pulse-read@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/gpio27"
+          ]
+        },
+        {
+          "base_id": "base/esp32/monotonic-wait",
+          "provider_instance_id": "instance/esp32/monotonic-wait",
+          "provider_generation": 1,
+          "implementation_id": "esp32/monotonic-wait-base@1",
+          "mechanism_family": "machine/monotonic-wait-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/monotonic-wait@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/monotonic-wait"
+          ]
+        },
+        {
+          "base_id": "base/esp32/private-network-input",
+          "provider_instance_id": "instance/esp32/private-network-input",
+          "provider_generation": 1,
+          "implementation_id": "esp32/private-network-input-base@1",
+          "mechanism_family": "machine/private-credentials",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/network-credentials@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/private-network-input"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "pool_id": "pool/esp32/gpio27",
+          "class_id": "machine/pulse-attachment",
+          "capacity_units": 1,
+          "compute": null
+        },
+        {
+          "pool_id": "pool/esp32/monotonic-wait",
+          "class_id": "machine/monotonic-wait-attachment",
+          "capacity_units": 1,
+          "compute": null
+        },
+        {
+          "pool_id": "pool/esp32/private-network-input",
+          "class_id": "conduit.network/private-credentials@1",
+          "capacity_units": 1,
+          "compute": null
+        }
+      ],
+      "capabilities": [
+        {
+          "startup_parameters": [],
+          "shorthand": [
+            "request",
+            "result"
+          ],
+          "capability_id": "conduit/pulse-read@1",
+          "kind_id": "machine/pulse/read",
+          "kind_contract_revision": "machine/pulse/read@1",
+          "inputs": [
+            {
+              "port_id": "request",
+              "value_kind": "structured-info/profile-4dbe5e4d07e45d95c6101b96f9ba5d9597ff648c8dd4bf6a11a412b4bd34fd70@1",
+              "direction": "Input",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "outputs": [
+            {
+              "port_id": "result",
+              "value_kind": "structured-info/profile-c0ce5e315ced8f7c56d70a5399a56e627d552f5fc0b81472cafc208bcddfc18e@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": []
+          },
+          "execution_profile_id": "conduit/pulse-cooperative-bounded@1",
+          "implementation_id": "esp32/gpio27-pulse@1",
+          "artifact_id": "native/esp32-gpio-pulse-root@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/pulse-read@1",
+              "target_kind": "machine/pulse/read",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 1024,
+              "maximum_output_bytes": 1024
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/pulse-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/pulse-read@1",
+              "host_call_contract_id": "conduit.host/pulse-read@1",
+              "subject_kind": "machine/pulse/read"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 1024
+          }
+        },
+        {
+          "startup_parameters": [],
+          "shorthand": null,
+          "capability_id": "conduit/network-credentials@1",
+          "kind_id": "network/credentials",
+          "kind_contract_revision": "conduit.network/credentials@1",
+          "inputs": [],
+          "outputs": [
+            {
+              "port_id": "request",
+              "value_kind": "network/join-request",
+              "direction": "Output",
+              "temporal": "Value"
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": []
+          },
+          "execution_profile_id": "conduit.network/credentials-hosted@1",
+          "implementation_id": "esp32/private-network-input@1",
+          "artifact_id": "native/esp32-private-network-input-root@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/network-credentials@1",
+              "target_kind": "authority/network-credential-reader",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 1,
+              "maximum_output_bytes": 167
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "conduit.network/private-credentials@1",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/network-credentials@1",
+              "host_call_contract_id": "conduit.host/network-credentials@1",
+              "subject_kind": "authority/network-credential-reader"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 167
+          }
+        },
+        {
+          "startup_parameters": [
+            {
+              "name": "count",
+              "value_type": "value/count",
+              "has_default": true
+            },
+            {
+              "name": "period-ms",
+              "value_type": "value/count",
+              "has_default": true
+            }
+          ],
+          "shorthand": null,
+          "capability_id": "conduit/monotonic-wait@1",
+          "kind_id": "time/tick",
+          "kind_contract_revision": "conduit.std/time-tick@2",
+          "inputs": [],
+          "outputs": [
+            {
+              "port_id": "tick",
+              "value_kind": "value/tick@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "count",
+                "default_value": {
+                  "U64": 4
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": 4096
+                  }
+                }
+              },
+              {
+                "key": "period-ms",
+                "default_value": {
+                  "U64": 1000
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": "18446744073709551615"
+                  }
+                }
+              }
+            ],
+            "laws": [
+              {
+                "Terminal": "CompletesAfterConfiguredCount"
+              }
+            ]
+          },
+          "execution_profile_id": "conduit/monotonic-wait-cooperative-bounded@1",
+          "implementation_id": "esp32/monotonic-wait@1",
+          "artifact_id": "native/esp32-monotonic-wait@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/wait@1",
+              "target_kind": "time/tick",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 8,
+              "maximum_output_bytes": 0
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/monotonic-wait-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/monotonic-wait@1",
+              "host_call_contract_id": "conduit.host/wait@1",
+              "subject_kind": "time/tick"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 4,
+            "max_queue_bytes": 64
+          }
+        },
+        {
+          "startup_parameters": [],
+          "shorthand": null,
+          "capability_id": "conduit/esp32/network-attachment-receipt@1",
+          "kind_id": "network/attachment-sign",
+          "kind_contract_revision": "conduit.network/attachment-sign@1",
+          "inputs": [
+            {
+              "port_id": "attachment",
+              "value_kind": "network/attachment",
+              "direction": "Input",
+              "temporal": "Value"
+            }
+          ],
+          "outputs": [],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": []
+          },
+          "execution_profile_id": "conduit.network/attachment-sign-local@1",
+          "implementation_id": "esp32/network-attachment-receipt@1",
+          "artifact_id": "native/esp32-network-attachment-receipt@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/network-attachment-sign@1",
+              "target_kind": null,
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 167,
+              "maximum_output_bytes": 1
+            }
+          ],
+          "resource_requirements": [],
+          "authority_requirements": [],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 167
+          }
+        }
+      ],
+      "planner_capabilities": []
+    }
+  },
+  {
+    "event": "native-root-offer",
+    "body_installed": false,
+    "native_plan_installed": false,
+    "image_sha256": null,
+    "network_configuration": "access-point-restored",
+    "native_sdk_heap_bytes": 73728,
+    "native_sdk_heap_used_bytes": 34504,
+    "native_sdk_heap_peak_bytes": 37904,
+    "native_root_heap_bytes": 114688,
+    "native_root_heap_used_bytes": 15428,
+    "native_root_heap_peak_bytes": 39812,
+    "prechecked_network_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+    "network_plan_preparation": "access-point-restored",
+    "native_network_ready": false,
+    "network_control_installed": true,
+    "network_control_failure_phase": "associate",
+    "network_control_failure_reason": "rejected",
+    "network_control_steps": 7,
+    "network_control_dispatches": [
+      1,
+      1,
+      0
+    ],
+    "network_control_receipt": false,
+    "network_control_kernel_bytes": 6112,
+    "network_control_binding": {
+      "active_play_id": "b131f4c45b0ffaeb79e18baa9833d820403d228ddac269e3d96f53f349f882de",
+      "plan_id": "c402c41245b5f3867a90614606f0521b72d1845617031a92619a0923a08cd57e",
+      "host_id": "esp32/b0a732286178",
+      "boot_id": "boot/a82eeb4f2dc390db17550e78044cc2ec",
+      "play_sequence": 1
+    },
+    "advertisement": {
+      "protocol_version": 1,
+      "host_id": "esp32/b0a732286178",
+      "boot_id": "boot/a82eeb4f2dc390db17550e78044cc2ec",
+      "offer_generation": 3,
+      "profile": "environment/esp32-native-root@1",
+      "bases": [
+        {
+          "base_id": "base/esp32/gpio27",
+          "provider_instance_id": "instance/esp32/gpio27",
+          "provider_generation": 1,
+          "implementation_id": "esp32/gpio27-pulse-base@1",
+          "mechanism_family": "machine/pulse-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/pulse-read@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/gpio27"
+          ]
+        },
+        {
+          "base_id": "base/esp32/monotonic-wait",
+          "provider_instance_id": "instance/esp32/monotonic-wait",
+          "provider_generation": 1,
+          "implementation_id": "esp32/monotonic-wait-base@1",
+          "mechanism_family": "machine/monotonic-wait-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/monotonic-wait@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/monotonic-wait"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "pool_id": "pool/esp32/gpio27",
+          "class_id": "machine/pulse-attachment",
+          "capacity_units": 1,
+          "compute": null
+        },
+        {
+          "pool_id": "pool/esp32/monotonic-wait",
+          "class_id": "machine/monotonic-wait-attachment",
+          "capacity_units": 1,
+          "compute": null
+        }
+      ],
+      "capabilities": [
+        {
+          "startup_parameters": [],
+          "shorthand": [
+            "request",
+            "result"
+          ],
+          "capability_id": "conduit/pulse-read@1",
+          "kind_id": "machine/pulse/read",
+          "kind_contract_revision": "machine/pulse/read@1",
+          "inputs": [
+            {
+              "port_id": "request",
+              "value_kind": "structured-info/profile-4dbe5e4d07e45d95c6101b96f9ba5d9597ff648c8dd4bf6a11a412b4bd34fd70@1",
+              "direction": "Input",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "outputs": [
+            {
+              "port_id": "result",
+              "value_kind": "structured-info/profile-c0ce5e315ced8f7c56d70a5399a56e627d552f5fc0b81472cafc208bcddfc18e@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": []
+          },
+          "execution_profile_id": "conduit/pulse-cooperative-bounded@1",
+          "implementation_id": "esp32/gpio27-pulse@1",
+          "artifact_id": "native/esp32-gpio-pulse-root@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/pulse-read@1",
+              "target_kind": "machine/pulse/read",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 1024,
+              "maximum_output_bytes": 1024
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/pulse-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/pulse-read@1",
+              "host_call_contract_id": "conduit.host/pulse-read@1",
+              "subject_kind": "machine/pulse/read"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 1024
+          }
+        },
+        {
+          "startup_parameters": [
+            {
+              "name": "count",
+              "value_type": "value/count",
+              "has_default": true
+            },
+            {
+              "name": "period-ms",
+              "value_type": "value/count",
+              "has_default": true
+            }
+          ],
+          "shorthand": null,
+          "capability_id": "conduit/monotonic-wait@1",
+          "kind_id": "time/tick",
+          "kind_contract_revision": "conduit.std/time-tick@2",
+          "inputs": [],
+          "outputs": [
+            {
+              "port_id": "tick",
+              "value_kind": "value/tick@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "count",
+                "default_value": {
+                  "U64": 4
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": 4096
+                  }
+                }
+              },
+              {
+                "key": "period-ms",
+                "default_value": {
+                  "U64": 1000
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": "18446744073709551615"
+                  }
+                }
+              }
+            ],
+            "laws": [
+              {
+                "Terminal": "CompletesAfterConfiguredCount"
+              }
+            ]
+          },
+          "execution_profile_id": "conduit/monotonic-wait-cooperative-bounded@1",
+          "implementation_id": "esp32/monotonic-wait@1",
+          "artifact_id": "native/esp32-monotonic-wait@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/wait@1",
+              "target_kind": "time/tick",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 8,
+              "maximum_output_bytes": 0
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/monotonic-wait-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/monotonic-wait@1",
+              "host_call_contract_id": "conduit.host/wait@1",
+              "subject_kind": "time/tick"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 4,
+            "max_queue_bytes": 64
+          }
+        }
+      ],
+      "planner_capabilities": []
+    }
+  },
+  {
+    "event": "native-root-offer",
+    "body_installed": false,
+    "native_plan_installed": false,
+    "image_sha256": null,
+    "network_configuration": "access-point-restored",
+    "native_sdk_heap_bytes": 73728,
+    "native_sdk_heap_used_bytes": 34504,
+    "native_sdk_heap_peak_bytes": 37904,
+    "native_root_heap_bytes": 114688,
+    "native_root_heap_used_bytes": 15428,
+    "native_root_heap_peak_bytes": 39812,
+    "prechecked_network_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+    "network_plan_preparation": "access-point-restored",
+    "native_network_ready": false,
+    "network_control_installed": true,
+    "network_control_failure_phase": "associate",
+    "network_control_failure_reason": "rejected",
+    "network_control_steps": 7,
+    "network_control_dispatches": [
+      1,
+      1,
+      0
+    ],
+    "network_control_receipt": false,
+    "network_control_kernel_bytes": 6112,
+    "network_control_binding": {
+      "active_play_id": "b131f4c45b0ffaeb79e18baa9833d820403d228ddac269e3d96f53f349f882de",
+      "plan_id": "c402c41245b5f3867a90614606f0521b72d1845617031a92619a0923a08cd57e",
+      "host_id": "esp32/b0a732286178",
+      "boot_id": "boot/a82eeb4f2dc390db17550e78044cc2ec",
+      "play_sequence": 1
+    },
+    "advertisement": {
+      "protocol_version": 1,
+      "host_id": "esp32/b0a732286178",
+      "boot_id": "boot/a82eeb4f2dc390db17550e78044cc2ec",
+      "offer_generation": 3,
+      "profile": "environment/esp32-native-root@1",
+      "bases": [
+        {
+          "base_id": "base/esp32/gpio27",
+          "provider_instance_id": "instance/esp32/gpio27",
+          "provider_generation": 1,
+          "implementation_id": "esp32/gpio27-pulse-base@1",
+          "mechanism_family": "machine/pulse-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/pulse-read@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/gpio27"
+          ]
+        },
+        {
+          "base_id": "base/esp32/monotonic-wait",
+          "provider_instance_id": "instance/esp32/monotonic-wait",
+          "provider_generation": 1,
+          "implementation_id": "esp32/monotonic-wait-base@1",
+          "mechanism_family": "machine/monotonic-wait-attachment",
+          "enforcement_class": "Cooperative",
+          "lifecycle": "Ready",
+          "capability_ids": [
+            "conduit/monotonic-wait@1"
+          ],
+          "resource_pool_ids": [
+            "pool/esp32/monotonic-wait"
+          ]
+        }
+      ],
+      "resources": [
+        {
+          "pool_id": "pool/esp32/gpio27",
+          "class_id": "machine/pulse-attachment",
+          "capacity_units": 1,
+          "compute": null
+        },
+        {
+          "pool_id": "pool/esp32/monotonic-wait",
+          "class_id": "machine/monotonic-wait-attachment",
+          "capacity_units": 1,
+          "compute": null
+        }
+      ],
+      "capabilities": [
+        {
+          "startup_parameters": [],
+          "shorthand": [
+            "request",
+            "result"
+          ],
+          "capability_id": "conduit/pulse-read@1",
+          "kind_id": "machine/pulse/read",
+          "kind_contract_revision": "machine/pulse/read@1",
+          "inputs": [
+            {
+              "port_id": "request",
+              "value_kind": "structured-info/profile-4dbe5e4d07e45d95c6101b96f9ba5d9597ff648c8dd4bf6a11a412b4bd34fd70@1",
+              "direction": "Input",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "outputs": [
+            {
+              "port_id": "result",
+              "value_kind": "structured-info/profile-c0ce5e315ced8f7c56d70a5399a56e627d552f5fc0b81472cafc208bcddfc18e@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": []
+          },
+          "execution_profile_id": "conduit/pulse-cooperative-bounded@1",
+          "implementation_id": "esp32/gpio27-pulse@1",
+          "artifact_id": "native/esp32-gpio-pulse-root@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/pulse-read@1",
+              "target_kind": "machine/pulse/read",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 1024,
+              "maximum_output_bytes": 1024
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/pulse-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/pulse-read@1",
+              "host_call_contract_id": "conduit.host/pulse-read@1",
+              "subject_kind": "machine/pulse/read"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 1024
+          }
+        },
+        {
+          "startup_parameters": [
+            {
+              "name": "count",
+              "value_type": "value/count",
+              "has_default": true
+            },
+            {
+              "name": "period-ms",
+              "value_type": "value/count",
+              "has_default": true
+            }
+          ],
+          "shorthand": null,
+          "capability_id": "conduit/monotonic-wait@1",
+          "kind_id": "time/tick",
+          "kind_contract_revision": "conduit.std/time-tick@2",
+          "inputs": [],
+          "outputs": [
+            {
+              "port_id": "tick",
+              "value_kind": "value/tick@1",
+              "direction": "Output",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              }
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "count",
+                "default_value": {
+                  "U64": 4
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": 4096
+                  }
+                }
+              },
+              {
+                "key": "period-ms",
+                "default_value": {
+                  "U64": 1000
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 0,
+                    "maximum": "18446744073709551615"
+                  }
+                }
+              }
+            ],
+            "laws": [
+              {
+                "Terminal": "CompletesAfterConfiguredCount"
+              }
+            ]
+          },
+          "execution_profile_id": "conduit/monotonic-wait-cooperative-bounded@1",
+          "implementation_id": "esp32/monotonic-wait@1",
+          "artifact_id": "native/esp32-monotonic-wait@1",
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/wait@1",
+              "target_kind": "time/tick",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 8,
+              "maximum_output_bytes": 0
+            }
+          ],
+          "resource_requirements": [
+            {
+              "class_id": "machine/monotonic-wait-attachment",
+              "units": 1,
+              "protected_role": null,
+              "compute": null
+            }
+          ],
+          "authority_requirements": [
+            {
+              "contract_id": "conduit.authority/monotonic-wait@1",
+              "host_call_contract_id": "conduit.host/wait@1",
+              "subject_kind": "time/tick"
+            }
+          ],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 4,
+            "max_queue_bytes": 64
+          }
+        }
+      ],
+      "planner_capabilities": []
+    }
+  }
+]

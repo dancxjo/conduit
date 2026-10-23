@@ -53,3 +53,14 @@ SDK arena remains 120 KiB. Root preparation peak is still 38,400 bytes. The
 setup page returns HTTP 200 in the same Boot after one join attempt. This frees
 16,620 retained bytes without claiming complete climate admission, station
 success, Body installation or a recorder Line.
+
+## Current fixed memory partition
+
+The [partition receipt](../evidence/2026-10-23-fixed-native-memory-partition/measurement.json)
+supersedes the earlier 64/120 KiB capacities with Root 112 KiB and SDK 72 KiB.
+The total backing remains 184 KiB, divided into disjoint static regions before
+radio startup. The physical negative fixture still restores the AP in one Boot,
+with Root/SDK peaks of 39,812/37,904 bytes. Successful joining and complete climate
+memory/work admission remain unproven. Rich software construction and ordinary
+planning exceed even this Root arena; native installation must use resident
+construction material with planning on the host.

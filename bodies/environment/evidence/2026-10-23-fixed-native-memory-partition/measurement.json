@@ -1,0 +1,24 @@
+{
+  "implementation_commit": "1861932bb",
+  "elf_sha256": "92d3b0edbf28303e52410778078c907c822406318287c1d1ad58802e4d1a6342",
+  "root_bytes": 114688,
+  "sdk_bytes": 73728,
+  "total_heap_backing_bytes": 188416,
+  "root_normal_bytes": 65536,
+  "root_reclaimed_bytes": 49152,
+  "sdk_normal_bytes": 32768,
+  "sdk_reclaimed_bytes": 40960,
+  "root_peak_bytes": 39812,
+  "sdk_peak_bytes": 37904,
+  "same_boot_ap_fallback_verified": true,
+  "dispatches": [
+    1,
+    1,
+    0
+  ],
+  "body_installed": false,
+  "station_success_proven": false,
+  "complete_climate_memory_admission": false,
+  "rich_software_preparation_peak_32bit": 151722,
+  "rich_planning_peak_32bit": 239814
+}
