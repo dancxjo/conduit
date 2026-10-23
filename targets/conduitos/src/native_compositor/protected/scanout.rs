@@ -124,10 +124,30 @@ impl NativeCompositor {
                         )
                         .map_err(owner_error)?,
                 )? {
-                    Response::Unit => {}
+                    Response::Unit => {
+                        // Observation only; absent namespace withholds evidence,
+                        // never invents an ID or changes a completed operation.
+                        if let Some(namespace) = owner.sessions.active_namespace() {
+                            self.copy_ack.set(Some(CopyAckRef {
+                                instance: owner.sessions.service_instance(),
+                                namespace,
+                                frame_sequence: ordinal,
+                                guest_sequence: plan.sequence,
+                            }));
+                        }
+                    }
                     _ => return Err(NativeCompositorError::ServiceProtocol),
                 }
-                record_frame(&owner, ordinal, plan.sequence, written, plan.count);
+                if let Some(observed) = self.copy_ack.get() {
+                    record_frame(
+                        &owner,
+                        observed.namespace,
+                        ordinal,
+                        plan.sequence,
+                        written,
+                        plan.count,
+                    );
+                }
                 let mut damage_rects = [DamageRect::default(); MAX_DAMAGE_RECTS];
                 for (target, source) in damage_rects.iter_mut().zip(plan.rects) {
                     *target = DamageRect {
@@ -279,6 +299,7 @@ fn copy_span(
 /// It is not a physical display, vblank, or human observation receipt.
 fn record_frame(
     owner: &crate::protected_compositor::display_owner::DisplayOwner,
+    namespace: u64,
     frame_sequence: u64,
     guest_sequence: u64,
     pixels_written: u32,
@@ -289,8 +310,8 @@ fn record_frame(
     let mut line = crate::sign_format::FixedText::new();
     if writeln!(
         line,
-        "CONDUIT_COMPOSITOR_SERVICE_FRAME service_instance={} frame_sequence={} guest_sequence={} pixels_written={} damage_count={} entries={} privilege_transitions={} address_space_switches={} scheduler_returns={}",
-        owner.sessions.service_instance(), frame_sequence, guest_sequence,
+        "CONDUIT_COMPOSITOR_SERVICE_FRAME service_instance={} namespace={} frame_sequence={} guest_sequence={} pixels_written={} damage_count={} entries={} privilege_transitions={} address_space_switches={} scheduler_returns={}",
+        owner.sessions.service_instance(), namespace, frame_sequence, guest_sequence,
         pixels_written, damage_count, cost.entries, cost.privilege_transitions,
         cost.address_space_switches, cost.scheduler_returns,
     ).is_ok() {
