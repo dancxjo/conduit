@@ -1,0 +1,20 @@
+{
+  "proof_class": "physical-startup-failure",
+  "source_revision": "060f65194",
+  "software_readiness_proved": false,
+  "body_started": false,
+  "boxed_image_stack_bytes": 31556,
+  "boxed_root_entry_frame_bytes": 4528,
+  "boxed_constructor_frame_bytes": 11200,
+  "observed_failure": "Detected a write to the stack guard value on ProCpu",
+  "decoded_backtrace": [
+    "conduit_core::structured_info::canonical::decode_type_node",
+    "conduit_core::structured_info::canonical::decode_type",
+    "conduit_core::structured_info::StructuredInfoType::from_canonical_bytes",
+    "conduit_plot::expression_program_decode::Cursor::value_type"
+  ],
+  "images_sha256": {
+    "native-source-bootstrap-boxed": "d621473d67c6d107107d21f446dd0c07cfd04a44e924e6602a30c7b27f82addf",
+    "native-fixed-memory-partition": "92d3b0edbf28303e52410778078c907c822406318287c1d1ad58802e4d1a6342"
+  }
+}
