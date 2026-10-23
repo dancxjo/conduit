@@ -171,6 +171,13 @@ impl ValidatedAssignedAppliance {
     pub fn identity(&self) -> c::AssignedPlanView {
         self.tables.identity
     }
+    /// Source cadence retained by admission, not an authority or start receipt.
+    pub fn cadence(&self) -> conduit_time::TickConfiguration {
+        conduit_time::TickConfiguration {
+            count: self.construction.count,
+            period_ms: self.construction.period_ms,
+        }
+    }
     pub fn admit(
         bytes: &[u8],
         maxima: c::AssignedPlanMaxima,

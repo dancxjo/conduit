@@ -136,35 +136,29 @@ impl<P: PulseReadProvider> PulseHostCall<P> {
         provider: P,
         selection: AssignedPulseSelection<'_>,
     ) -> Result<Self, PulseCallRefusal> {
-        check_possession(&table, &claim, attachment)?;
-        let node = bind_selected_assigned_operation(
-            &table,
-            &claim,
-            SelectedOperationContract {
-                kind: selection.contract.kind(),
-                call: PULSE_READ_CALL,
-                input_bytes: PULSE_READ_MAXIMUM_BYTES,
-                output_bytes: PULSE_READ_MAXIMUM_BYTES,
-                resource_bytes: attachment.resource_bytes,
-            },
-            selection.native,
-            selection.plan,
-        )
-        .map_err(|e| match e {
-            SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
-            SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
-        })?;
-        Ok(Self {
+        let prepared = prepare_assigned(&table, &claim, attachment, selection)?;
+        Ok(Self::from_assigned(
+            table, handle, claim, attachment, provider, prepared,
+        ))
+    }
+    pub(crate) fn from_assigned(
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        attachment: PulseAttachment,
+        provider: P,
+        prepared: PreparedAssignedPulse,
+    ) -> Self {
+        Self {
             table,
             handle,
             claim,
             attachment,
             provider,
-            node,
+            node: prepared.node,
             next_request: 0,
-            codec: PreparedPulseCodec::prepare(selection.contract)
-                .map_err(PulseCallRefusal::Canonical)?,
-        })
+            codec: prepared.codec,
+        }
     }
 
     pub async fn invoke(
@@ -277,4 +271,39 @@ fn check_possession(
     }
     drop(entries);
     Ok(())
+}
+
+/// Prepared before a retained GPIO owner is taken; no fallible codec work
+/// remains after the ownership transfer.
+pub(crate) struct PreparedAssignedPulse {
+    pub(crate) node: NodeId,
+    codec: PreparedPulseCodec,
+}
+pub(crate) fn prepare_assigned(
+    table: &BaseCapabilityTable,
+    claim: &BaseOperationClaim,
+    attachment: PulseAttachment,
+    selection: AssignedPulseSelection<'_>,
+) -> Result<PreparedAssignedPulse, PulseCallRefusal> {
+    check_possession(table, claim, attachment)?;
+    let node = bind_selected_assigned_operation(
+        table,
+        claim,
+        SelectedOperationContract {
+            kind: selection.contract.kind(),
+            call: PULSE_READ_CALL,
+            input_bytes: PULSE_READ_MAXIMUM_BYTES,
+            output_bytes: PULSE_READ_MAXIMUM_BYTES,
+            resource_bytes: attachment.resource_bytes,
+        },
+        selection.native,
+        selection.plan,
+    )
+    .map_err(|e| match e {
+        SelectedCallRefusal::WrongBinding => PulseCallRefusal::WrongBinding,
+        SelectedCallRefusal::Possession => PulseCallRefusal::Possession,
+    })?;
+    let codec =
+        PreparedPulseCodec::prepare(selection.contract).map_err(PulseCallRefusal::Canonical)?;
+    Ok(PreparedAssignedPulse { node, codec })
 }

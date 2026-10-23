@@ -1,6 +1,8 @@
 //! Compiler round trip with inert retained native providers. Make-owned layout
 //! material here is not independent provisioning into a physical Root.
 use super::*;
+#[path = "assigned_pulse.rs"]
+mod assigned_pulse;
 #[path = "assigned_wait.rs"]
 mod assigned_wait;
 #[path = "assignment_reservation.rs"]
@@ -15,6 +17,9 @@ pub(super) fn round_trip(
     plan: &c::Plan,
     timer: &conduit_monotonic_wait::ReadyMonotonicWaitBase<
         impl conduit_monotonic_wait::MonotonicWaitProvider,
+    >,
+    pulse: &conduit_pulse_capture::installation::ReadyPulseBase<
+        impl conduit_pulse_capture::owner::PulseReadProvider,
     >,
 ) {
     let limits = NativeApplianceLimits::resident_local();
@@ -153,6 +158,7 @@ pub(super) fn round_trip(
     let admitted = result.unwrap();
     reservation_scope(&admitted, &plan.fragments[0]);
     assigned_wait::check(&admitted, &projected, &resident, required, timer);
+    assigned_pulse::check(&admitted, &projected, &resident, required, pulse);
     let (identity, memory) = allocation_probe::observe(|| {
         let boxed = ValidatedAssignedAppliance::admit_records_boxed(
             decoded.header,

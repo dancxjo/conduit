@@ -77,7 +77,7 @@ fn pulse_and_wait_have_independent_finite_root_authority_for_the_same_source() {
         .plan_local(&host, &["conduit.base/local@1".into()], &grants)
         .unwrap();
     let fragment = &selected.fragments[0];
-    super::native_assignment::round_trip(&source, &host, &grants, &selected, &timer);
+    super::native_assignment::round_trip(&source, &host, &grants, &selected, &timer, &pulse);
     let tick = fragment
         .placements
         .iter()
@@ -172,4 +172,13 @@ fn pulse_and_wait_have_independent_finite_root_authority_for_the_same_source() {
         .issue_pulse(&native, fragment, &active, &cadence)
         .is_err());
     assert_eq!(effects.get(), 0);
+}
+
+pub(super) fn fresh(
+    native: installation::PulseNativeIdentity,
+) -> (
+    installation::ReadyPulseBase<impl owner::PulseReadProvider>,
+    Rc<Cell<usize>>,
+) {
+    pulse_fixture::ready_with_identity(0, native)
 }

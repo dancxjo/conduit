@@ -31,7 +31,7 @@ pub struct NativeRoot {
     >,
     credential_writer: conduit_environment_http::network_setup::NetworkSetupWriter<'static>,
     network: crate::native_network::NativeNetwork,
-    pulse: ReadyPulseBase<Esp32PulseCapture<'static>>,
+    pulse: Option<ReadyPulseBase<Esp32PulseCapture<'static>>>,
     contract: PulseReadContract,
     wait: Option<conduit_monotonic_wait::ReadyMonotonicWaitBase<crate::native_wait::EspWait>>,
     host: c::HostId,
@@ -105,7 +105,7 @@ impl NativeRoot {
             credential_writer,
             assignment: None,
             network: crate::native_network::NativeNetwork::new(radio, sdk_reservation),
-            pulse,
+            pulse: Some(pulse),
             contract: PulseReadContract::prepare().unwrap(),
             wait: Some(wait),
             host,
@@ -166,7 +166,8 @@ impl NativeRoot {
             return Err(());
         }
         Ok([
-            self.issuer.grant_pulse(self.pulse.native_identity())?,
+            self.issuer
+                .grant_pulse(self.pulse.as_ref().ok_or(())?.native_identity())?,
             self.issuer.grant_wait(wait.native_identity())?,
         ])
     }
@@ -344,9 +345,11 @@ impl NativeRoot {
             capabilities: alloc::vec![],
             planner_capabilities: alloc::vec![],
         };
-        self.pulse
-            .append_to_advertisement(&mut advertisement, &self.contract)
-            .map_err(|_| ())?;
+        if let Some(pulse) = &self.pulse {
+            pulse
+                .append_to_advertisement(&mut advertisement, &self.contract)
+                .map_err(|_| ())?;
+        }
         if let Some(source) = &self.credentials {
             source
                 .append_to_advertisement(&mut advertisement)

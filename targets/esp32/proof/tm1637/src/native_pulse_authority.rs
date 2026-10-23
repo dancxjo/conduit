@@ -41,7 +41,6 @@ impl RootIssuer {
         if cadence.count == 0 || cadence.count > conduit_time::MAX_TICK_COUNT {
             return Err(());
         }
-        let operations = u32::try_from(cadence.count).map_err(|_| ())?;
         let mut ticks = fragment
             .placements
             .iter()
@@ -77,6 +76,76 @@ impl RootIssuer {
         {
             return Err(());
         }
+        if fragment.host_id != self.host
+            || fragment.boot_id != self.boot
+            || !c::verify_plan_fragment(fragment)
+        {
+            return Err(());
+        }
+        let possession =
+            self.prepare_pulse_possession(native, &fragment.plan_id, active, cadence)?;
+        self.pulse_issued = true;
+        Ok(possession)
+    }
+    /// Verify the actual retained GPIO before returning bounded possession.
+    /// Failure spends no issuance budget and transfers no provider.
+    pub fn issue_assigned_pulse<P: conduit_pulse_capture::owner::PulseReadProvider>(
+        &mut self,
+        owner: &conduit_pulse_capture::installation::ReadyPulseBase<P>,
+        assignment: &conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
+        selected: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<
+            '_,
+        >,
+        cadence: &conduit_time::TickConfiguration,
+        contract: &conduit_pulse_capture::PulseReadContract,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
+        let identity = assignment.identity();
+        let id = c::AssignedIdentity::from_text;
+        if assignment.cadence() != *cadence
+            || identity.host != id(self.host.as_str())
+            || identity.boot != id(self.boot.as_str())
+            || identity.plan != id(selected.active.plan_id.as_str())
+            || identity.fragment != id(selected.fragment_id.as_str())
+        {
+            return Err(());
+        }
+        let possession = self.prepare_pulse_possession(
+            owner.native_identity(),
+            &selected.active.plan_id,
+            selected.active,
+            cadence,
+        )?;
+        owner
+            .check_assigned(&possession.0, &possession.2, contract, selected)
+            .map_err(|_| ())?;
+        self.pulse_issued = true;
+        Ok(possession)
+    }
+    fn prepare_pulse_possession(
+        &self,
+        native: &PulseNativeIdentity,
+        plan: &c::PlanId,
+        active: &c::ActivePlayIdentity,
+        cadence: &conduit_time::TickConfiguration,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
+        if cadence.count == 0 || cadence.count > conduit_time::MAX_TICK_COUNT {
+            return Err(());
+        }
+        let operations = u32::try_from(cadence.count).map_err(|_| ())?;
         let grant = self.grant_pulse(native)?;
         let call = PULSE_READ_CALL;
         let subject = PULSE_READ_KIND;
@@ -84,17 +153,8 @@ impl RootIssuer {
         let input = PULSE_READ_MAXIMUM_BYTES;
         let output = PULSE_READ_MAXIMUM_BYTES;
         if self.pulse_issued
-            || fragment.host_id != self.host
-            || fragment.boot_id != self.boot
-            || !c::verify_plan_fragment(fragment)
             || self.reserved_play.as_ref() != Some(active)
-            || *active
-                != c::bind_active_play(
-                    &fragment.plan_id,
-                    &self.host,
-                    &self.boot,
-                    active.play_sequence,
-                )
+            || *active != c::bind_active_play(plan, &self.host, &self.boot, active.play_sequence)
         {
             return Err(());
         }
@@ -116,7 +176,7 @@ impl RootIssuer {
             boot_id: self.boot.clone(),
             base_instance_id: native.provider_instance_id.clone(),
             base_provider_generation: native.provider_generation,
-            plan_id: fragment.plan_id.clone(),
+            plan_id: plan.clone(),
             active_play_id: active.active_play_id.clone(),
             authority_grant_id: grant.grant_id.clone(),
             authority_contract_id: grant.contract_id.clone(),
@@ -166,7 +226,6 @@ impl RootIssuer {
         let handle = table
             .issue(c::CapabilityIssueRequest { scope, authority })
             .map_err(|_| ())?;
-        self.pulse_issued = true;
         Ok((table, handle, claim))
     }
 }

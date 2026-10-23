@@ -89,7 +89,8 @@ impl RootIssuer {
     > {
         let identity = assignment.identity();
         let id = c::AssignedIdentity::from_text;
-        if identity.host != id(self.host.as_str())
+        if assignment.cadence() != *cadence
+            || identity.host != id(self.host.as_str())
             || identity.boot != id(self.boot.as_str())
             || identity.plan != id(selected.active.plan_id.as_str())
             || identity.fragment != id(selected.fragment_id.as_str())

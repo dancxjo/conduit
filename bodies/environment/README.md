@@ -1136,3 +1136,11 @@ share capability preparation; the existing native binder checks attachment,
 configuration and opaque authority. A refused selection preserves the issuance
 budget and timer. CPU controls cover both record forms; this path is not yet
 wired into physical Body installation or Play.
+
+The pulse owner now supports a retained assigned transfer. It prepares native
+binding and the canonical codec before taking GPIO ownership, so refusal leaves
+the pin with Root. Root's bounded pulse issuer uses that same preflight and its
+own reserved Play. Pulse and timer issuance both compare expected Source cadence
+with admission's retained cadence; neither starts a Body or dispatches hardware.
+The complete native kernel and authenticated installation handshake still need
+to be admitted before physical appliance Play.

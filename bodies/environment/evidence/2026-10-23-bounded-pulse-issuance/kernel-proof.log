@@ -1,0 +1,243 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `target/environment-main-host/debug/conduit-xtask-dispatch prove environment kernel`
+    Finished `test` profile [unoptimized] target(s) in 0.12s
+     Running unittests src/lib.rs (target/environment-main-host/debug/deps/conduit_assigned_plan-326c3cdefb42efcd)
+
+running 7 tests
+test execution::tests::activation_and_one_terminal_receipt_round_trip_and_bind_every_identity ... ok
+test records::tests::field_extents_cannot_wrap_the_host_pointer_width ... ok
+test sha256::tests::matches_fips_vectors_across_padding_boundaries ... ok
+test record_view_tests::record_view_refuses_unrepresentable_lengths_and_inventory_before_growth ... ok
+test single_source::tests::exact_single_source_profile_accepts_one_generic_plan_and_refuses_inventory_drift ... ok
+test record_view_tests::borrowed_records_preserve_all_schemas_and_single_mutation_refusals ... ok
+test record_view_tests::incremental_hash_matches_legacy_at_every_split_and_padding_boundary ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Doc-tests conduit_assigned_plan
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+    Finished `test` profile [unoptimized] target(s) in 0.97s
+     Running unittests src/lib.rs (target/environment-main-host/debug/deps/conduit_embedded_build-f3b7927891283a2f)
+
+running 16 tests
+test renderer_tests::renderer_emits_fixed_current_kernel_tables ... ok
+test tests::range_validation_rejects_out_of_bounds_ranges ... ok
+test tests::current_fragment_generation_rejects_a_reviewed_bound_overflow ... ok
+test tests::generation_rejects_an_unsupported_remote_cord ... ok
+test tests::generation_rejects_lowering_with_a_different_fragment_identity ... ok
+test tests::generation_rejects_inconsistent_lowered_node_identity ... ok
+test tests::current_fragment_lowers_into_one_deterministic_fixed_image ... ok
+test tests::hosted_text_configuration_is_not_promoted_to_embedded_execution ... ok
+test tests::signed_scalar_configuration_remains_exact_in_a_fixed_image ... ok
+test tests::signal_demo_remote_usb_cdc_ingress_generates_embedded_plan ... ok
+test tests::unchanged_signal_plot_plans_lowers_and_generates_one_fixed_image ... ok
+test expression_configuration_tests::the_expression_profile_does_not_admit_unrelated_text ... ok
+test expression_configuration_tests::program_and_total_artifact_extents_are_separately_enforced ... ok
+test expression_configuration_tests::exact_source_expression_is_opt_in_and_preserves_fixed_image_identity ... ok
+test expression_configuration_tests::a_resealed_plan_does_not_make_mismatched_expression_metadata_valid ... ok
+test expression_configuration_tests::an_exact_source_selector_is_admitted_and_its_contract_is_checked ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running tests/assigned_plan.rs (target/environment-main-host/debug/deps/assigned_plan-4c7cab2964b742a9)
+
+running 5 tests
+test local_assigned_plan_has_a_deterministic_golden_round_trip ... ok
+test one_remote_assigned_plan_has_a_deterministic_golden_round_trip ... ok
+test bounded_face_label_survives_the_assigned_image_exactly ... ok
+test resource_cord_is_carried_without_serializing_bearer_authority ... ok
+test assigned_plan_refuses_identity_inventory_capacity_and_global_mutations ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/r1_generation.rs (target/environment-main-host/debug/deps/r1_generation-85a8bc0273af8646)
+
+running 2 tests
+test current_r1_plans_generate_exact_single_and_dual_line_ingress ... ok
+test three_peer_control_plans_generate_the_same_exact_pico_ingress_family ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/std_pico_usb.rs (target/environment-main-host/debug/deps/std_pico_usb-34acebce033d908e)
+
+running 2 tests
+test exact_planned_usb_sink_is_the_generated_remote_ingress ... ok
+test local_image_cannot_masquerade_as_the_remote_usb_sink ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+   Doc-tests conduit_embedded_build
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plan-lowering)
+   Compiling conduit-embedded-build v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/make/embedded-build)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+warning: function `bind_assigned_budget` is never used
+   --> tests/support/pulse.rs:114:8
+    |
+114 | pub fn bind_assigned_budget(
+    |        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-environment-runtime` (test "capture_kernel") generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 3.29s
+     Running unittests src/lib.rs (target/environment-main-host/debug/deps/conduit_environment_runtime-cfe01cabdf9e9430)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/appliance_kernel.rs (target/environment-main-host/debug/deps/appliance_kernel-538239dcfa55c7a4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cadence.rs (target/environment-main-host/debug/deps/cadence-6a038ecbc4217dcb)
+
+running 1 test
+test overnight_workload_preserves_typed_failures_and_finite_cadence ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.56s
+
+     Running tests/canonical_input.rs (target/environment-main-host/debug/deps/canonical_input-4b64c1cefa5a47d9)
+
+running 1 test
+test borrowed_validation_matches_prepared_shape_checks_without_allocation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/capture_kernel.rs (target/environment-main-host/debug/deps/capture_kernel-710308a923383096)
+
+running 5 tests
+test a_replacement_native_provider_cannot_consume_the_existing_plan ... ok
+test assigned_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok
+test borrowed_native_facts_cannot_substitute_the_local_grant_or_attachment ... ok
+test a_fresh_boot_reuses_the_resident_layout_with_a_fresh_plan_identity ... ok
+test checked_source_traverses_the_production_kernel_and_closes_after_each_outcome ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.05s
+
+     Running tests/capture_selector.rs (target/environment-main-host/debug/deps/capture_selector-563a7647db4509e8)
+
+running 1 test
+test exact_type_full_value_and_capacity_refusals_do_not_allocate_or_poison_next_selection ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/construction.rs (target/environment-main-host/debug/deps/construction-9c36ee4e8bf0a34d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/display_packets.rs (target/environment-main-host/debug/deps/display_packets-e9dd58dbbe6fd3f0)
+
+running 1 test
+test source_packets_preserve_registers_and_refuse_invalid_brightness_without_allocating ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/observation_forms.rs (target/environment-main-host/debug/deps/observation_forms-b28bc5a820b495e3)
+
+running 2 tests
+test compact_storage_refuses_inexact_overflowing_truncated_and_wrong_type_values ... ok
+test authored_quantity_forms_round_trip_exact_observations_without_play_allocations ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/observation_kernel.rs (target/environment-main-host/debug/deps/observation_kernel-f256dd2aeee34d63)
+
+running 2 tests
+test coordinate_overflow_and_wrong_schemas_refuse_without_allocating ... ok
+test source_and_forms_emit_quantities_and_preserve_all_sensor_outcomes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests/publication.rs (target/environment-main-host/debug/deps/publication-c611a4ee0d0871ff)
+
+running 7 tests
+test zero_event_admission_refuses_values_but_still_closes_normally ... ok
+test empty_publication_channels_prepare_within_one_kib ... ok
+test malformed_wrong_typed_and_cancelled_publications_never_replace_current_state ... ok
+test publication_is_invisible_until_commit_and_uses_no_play_allocation ... ok
+test publication_storage_preserves_the_full_quantity_coordinate_width ... ok
+test all_outcomes_share_commit_order_and_cancelled_reservations_return_capacity ... ok
+test committed_publications_record_and_recover_every_sensor_disposition ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/recording_chunks.rs (target/environment-main-host/debug/deps/recording_chunks-da5d1c3ad32b561e)
+
+running 9 tests
+test context_is_finite_and_is_not_invented_by_the_encoder ... ok
+test every_authored_absence_and_sequence_exhaustion_remains_explicit ... ok
+test replay_conflict_order_gaps_clock_and_failure_absence_are_explicit ... ok
+test catalog::malformed_duplicate_and_incompatible_catalogs_preserve_loaded_references ... ok
+test selected_snapshot_extent_is_known_before_samples_and_never_changes_on_partial_flush ... ok
+test catalog::overnight_catalog_reserves_its_own_record_and_restores_exact_order_without_allocations ... ok
+test batch::batch_requires_all_exact_unique_generations_within_resource_ceiling ... ok
+test batch::complete_overnight_batch_is_prepared_before_allocation_free_encoding ... ok
+test sixty_four_samples_seal_as_bounded_json_without_allocating_or_claiming_commit ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+
+     Running tests/recording_publication.rs (target/environment-main-host/debug/deps/recording_publication-826cf460c5657b16)
+
+running 2 tests
+test completion_pressure_and_uncommitted_or_cancelled_steps_cannot_advance_the_cursor ... ok
+test actual_kernel_completion_is_required_before_the_recorded_range_becomes_visible ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/recording_recovery.rs (target/environment-main-host/debug/deps/recording_recovery-837f77380df02afa)
+
+running 20 tests
+test reference_source::source_refuses_over_budget_duplicate_or_non_snapshot_references ... ok
+test reference_source::reference_order_is_commit_owned_and_pressure_cancellation_and_empty_are_explicit ... ok
+test temporal::cancelled_or_missing_single_value_is_not_an_empty_successful_flow ... ok
+test back::committed_chunks_expose_boundary_gaps_and_refusal_cannot_replace_them ... ok
+test temporal::singleton_commit_preserves_value_identity_without_allocating_or_repeating ... ok
+test back::only_committed_consumption_advances_recovery_and_cancellation_discards_staging ... ok
+test back::committed_recovery_projects_into_the_ordinary_recording_face ... ok
+test history::empty_admission_refuses_and_standalone_reader_does_not_inherit_history ... ok
+test history::boundary_replay_clock_foreign_context_and_corruption_refuse_atomically ... ok
+test corrupted_records_refuse_atomically_without_replacing_prior_recovery ... ok
+test back::kernel_recovery_requires_successful_read_completion_and_valid_content ... ok
+test wrong_identity_form_clock_and_noncanonical_json_cannot_be_reinterpreted ... ok
+test recovered_quantities_failures_and_gaps_require_no_play_allocations ... ok
+test history::ordered_chunks_preserve_quantities_failures_and_boundary_gaps_without_allocations ... ok
+test history::admitted_sixty_four_chunk_history_has_no_hidden_eviction_or_growth ... ok
+test full_chunk_recovers_but_truncation_or_sixty_fifth_record_refuses ... ok
+test reference_source::actual_reference_source_is_planned_and_transferred_without_storage_authority ... ok
+test installation::initialized_recovery_is_selected_once_and_historical_context_is_independent ... ok
+test installation::wrong_advertisement_or_resealed_selection_cannot_consume_the_retained_back ... ok
+test installation::recovery_owner_refuses_ambiguous_or_changed_checked_meaning ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests/source_frames.rs (target/environment-main-host/debug/deps/source_frames-c4fe545fefaa32ff)
+
+running 3 tests
+test validated_capture_reaches_the_same_quantity_face_and_fahrenheit_mask ... ok
+test source_keeps_length_range_negative_and_recovery_semantics ... ok
+test captured_frames_become_quantities_only_after_source_validation_without_allocating ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests conduit_environment_runtime
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
