@@ -705,6 +705,10 @@ retained pulse offer under the observed eFuse Host and radio-TRNG Boot. It does
 not read the sensor, execute an assignment, issue authority, install a Body or
 start HTTP setup services. Serial output explicitly retains false Body/Plan
 installation flags and a null image-attestation field; the implementation
-artifact label is symbolic, not an image hash. This image is build/Clippy proof
-only and has not replaced the running bench. Host-spec-driven construction,
-UART management/admission and physical installation remain incomplete.
+artifact label is symbolic, not an image hash. A brief physical capture observed
+two complete offers on the attached ESP32: one Ready pulse Base, one resource and
+one capability under a fresh Boot. No sensor read or Body start occurred. The
+retained bench restoration flash completed, but USB disappeared during its serial
+check, so resumed sampling is unverified pending reconnection. Host-spec-driven
+construction, UART management/admission and full physical installation remain
+incomplete.
