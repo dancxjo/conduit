@@ -21,6 +21,8 @@ mod limine;
 mod modules;
 #[cfg(any(test, target_arch = "x86"))]
 mod multiboot1;
+#[cfg(any(test, target_arch = "x86"))]
+mod multiboot1_framebuffer;
 mod observation;
 pub use modules::BootModuleRefusal;
 
