@@ -60,6 +60,8 @@ pub enum CheckSuite {
     CategoricalRuntime,
     /// Bind exact canonical checked Source exports to sealed generic kernel Fores.
     CanonicalExport,
+    /// Validate exact graphical privilege inventory associations and proof boundaries.
+    PrivilegeInventory,
     /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
     ModelInference,
     /// Prove an explicit installed CPU profile has finite native backing and fail-closed pressure.
@@ -90,6 +92,8 @@ pub enum CheckSuite {
     ProsodyCommitment,
     /// Check committed noun/verb pronunciation and installed compact PCM.
     RecordPronunciation,
+    /// Check supplied committed vocative custody and installed compact PCM.
+    CommittedVocative,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

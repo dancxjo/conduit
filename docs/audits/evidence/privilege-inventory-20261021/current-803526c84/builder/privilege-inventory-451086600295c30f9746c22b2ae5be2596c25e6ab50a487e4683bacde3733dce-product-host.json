@@ -1,0 +1,570 @@
+{
+  "schema": "conduit.conduitos.privilege-inventory/v2",
+  "proof_class": "build-dependency-and-link-observation",
+  "build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "803526c84e853f4a1bd122c969b1704aa45d0ad0",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce"
+  },
+  "requested_features": [
+    "native-compositor"
+  ],
+  "resolved_dependencies": "conduitos v0.1.0 (<source>/targets/conduitos) features=[default,native-compositor,native-owner-network]\n├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[]\n│   │   ├── conduit-assigned-plan v0.1.0 (<source>/architecture/assigned-plan) features=[default,serde]\n│   │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive]\n│   │   │       ├── serde_core v1.0.229 features=[alloc,result]\n│   │   │       └── serde_derive v1.0.229 (proc-macro) features=[default]\n│   │   │           ├── proc-macro2 v1.0.107 features=[default,proc-macro]\n│   │   │           │   └── unicode-ident v1.0.26 features=[]\n│   │   │           ├── quote v1.0.47 features=[default,proc-macro]\n│   │   │           │   └── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │   │           └── syn v3.0.6 features=[clone-impls,default,derive,parsing,printing,proc-macro]\n│   │   │               ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │   │               ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │   │               └── unicode-ident v1.0.26 features=[]\n│   │   ├── libm v0.2.16 features=[arch,default]\n│   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   └── sha2 v0.10.9 features=[]\n│   │       ├── cfg-if v1.0.5 features=[]\n│   │       ├── cpufeatures v0.2.17 features=[]\n│   │       └── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle]\n│   │           ├── block-buffer v0.10.4 features=[]\n│   │           │   └── generic-array v0.14.7 features=[more_lengths,zeroize]\n│   │           │       ├── typenum v1.20.1 features=[]\n│   │           │       └── zeroize v1.9.0 features=[alloc,zeroize_derive]\n│   │           │           └── zeroize_derive v1.5.0 (proc-macro) features=[]\n│   │           │               ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │           │               ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │           │               └── syn v2.0.119 features=[clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit]\n│   │           │                   ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │           │                   ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │           │                   └── unicode-ident v1.0.26 features=[]\n│   │           │       [build-dependencies]\n│   │           │       └── version_check v0.9.5 features=[]\n│   │           ├── const-oid v0.9.6 features=[]\n│   │           ├── crypto-common v0.1.7 features=[]\n│   │           │   ├── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │           │   └── typenum v1.20.1 features=[]\n│   │           └── subtle v2.6.1 features=[i128]\n│   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   └── sha2 v0.10.9 features=[] (*)\n│   │   └── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog]\n│   │       ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │       ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │       └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │       [build-dependencies]\n│   │       └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[]\n│   │           ├── conduit-core v0.1.0 (<source>/architecture/core) features=[]\n│   │           │   ├── conduit-assigned-plan v0.1.0 (<source>/architecture/assigned-plan) features=[default,serde]\n│   │           │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive]\n│   │           │   │       ├── serde_core v1.0.229 features=[alloc,result]\n│   │           │   │       └── serde_derive v1.0.229 (proc-macro) features=[default] (*)\n│   │           │   ├── libm v0.2.16 features=[arch,default]\n│   │           │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │           │   └── sha2 v0.10.9 features=[default,std]\n│   │           │       ├── cfg-if v1.0.5 features=[]\n│   │           │       ├── cpufeatures v0.2.17 features=[]\n│   │           │       └── digest v0.10.7 features=[alloc,block-buffer,core-api,default,std]\n│   │           │           ├── block-buffer v0.10.4 features=[]\n│   │           │           │   └── generic-array v0.14.7 features=[more_lengths]\n│   │           │           │       └── typenum v1.20.1 features=[]\n│   │           │           │       [build-dependencies]\n│   │           │           │       └── version_check v0.9.5 features=[]\n│   │           │           └── crypto-common v0.1.7 features=[std]\n│   │           │               ├── generic-array v0.14.7 features=[more_lengths] (*)\n│   │           │               └── typenum v1.20.1 features=[]\n│   │           ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │           └── sha2 v0.10.9 features=[default,std] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── conduit-time v0.1.0 (<source>/semantics/time) features=[]\n│   │       ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │       ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │       └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │       [build-dependencies]\n│   │       └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── libm v0.2.16 features=[arch,default]\n│   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   [build-dependencies]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── conduit-time v0.1.0 (<source>/semantics/time) features=[] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── conduit-time v0.1.0 (<source>/semantics/time) features=[] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-birth-plot v0.1.0 (<source>/plots/birth) features=[]\n│   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── ed25519-dalek v2.2.0 features=[alloc,zeroize]\n│   │   │   ├── curve25519-dalek v4.1.3 features=[alloc,digest,zeroize]\n│   │   │   │   ├── cfg-if v1.0.5 features=[]\n│   │   │   │   ├── cpufeatures v0.2.17 features=[]\n│   │   │   │   ├── curve25519-dalek-derive v0.1.1 (proc-macro) features=[]\n│   │   │   │   │   ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │   │   │   │   ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │   │   │   │   └── syn v2.0.119 features=[clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit] (*)\n│   │   │   │   ├── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   │   │   ├── subtle v2.6.1 features=[i128]\n│   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   │   [build-dependencies]\n│   │   │   │   └── rustc_version v0.4.1 features=[]\n│   │   │   │       └── semver v1.0.28 features=[default,std]\n│   │   │   ├── ed25519 v2.2.3 features=[alloc]\n│   │   │   │   └── signature v2.2.0 features=[digest,rand_core]\n│   │   │   │       ├── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   │   │       └── rand_core v0.6.4 features=[]\n│   │   │   ├── sha2 v0.10.9 features=[] (*)\n│   │   │   ├── subtle v2.6.1 features=[i128]\n│   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   ├── minicbor v2.3.0 features=[]\n│   │   ├── postcard v1.1.3 features=[alloc]\n│   │   │   ├── cobs v0.3.0 features=[]\n│   │   │   │   └── thiserror v2.0.20 features=[]\n│   │   │   │       └── thiserror-impl v2.0.20 (proc-macro) features=[]\n│   │   │   │           ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │   │   │           ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │   │   │           └── syn v3.0.6 features=[clone-impls,default,derive,parsing,printing,proc-macro] (*)\n│   │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   └── sha2 v0.10.9 features=[] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog]\n│   │   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   ├── sha2 v0.10.9 features=[] (*)\n│   │   │   └── unicode-normalization v0.1.25 features=[]\n│   │   │       └── tinyvec v1.13.3 features=[alloc,default]\n│   │   │   [build-dependencies]\n│   │   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── conduit-planner v0.1.0 (<source>/architecture/planner) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-language v0.1.0 (<source>/semantics/language) features=[]\n│   │   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   │   [build-dependencies]\n│   │   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   └── sha2 v0.10.9 features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog] (*)\n│   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   ├── serde_json v1.0.151 features=[alloc,float_roundtrip]\n│   │   │   ├── itoa v1.0.18 features=[]\n│   │   │   ├── memchr v2.8.3 features=[]\n│   │   │   ├── serde_core v1.0.229 features=[alloc,result]\n│   │   │   └── zmij v1.0.23 features=[]\n│   │   └── sha2 v0.10.9 features=[] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   ├── sha2 v0.10.9 features=[default,std] (*)\n│   │   │   └── unicode-normalization v0.1.25 features=[]\n│   │   │       └── tinyvec v1.13.3 features=[alloc,default]\n│   │   │   [build-dependencies]\n│   │   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── conduit-time v0.1.0 (<source>/semantics/time) features=[] (*)\n│   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   ├── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n│   └── sha2 v0.10.9 features=[] (*)\n├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n├── conduit-commons-plot v0.1.0 (<source>/plots/commons) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-composite v0.1.0 (<source>/architecture/composite) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support]\n│   │   └── conduit-assigned-plan v0.1.0 (<source>/architecture/assigned-plan) features=[default,serde] (*)\n│   ├── conduit-plan-lowering v0.1.0 (<source>/architecture/plan-lowering) features=[default]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   └── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-conduitos-mask-offer v0.1.0 (<source>/targets/conduitos/mask-offer) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-planner v0.1.0 (<source>/architecture/planner) features=[] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n├── conduit-home-model v0.1.0 (<source>/semantics/home) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   [build-dependencies]\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-human v0.1.0 (<source>/semantics/human) features=[] (*)\n├── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n├── conduit-observatory v0.1.0 (<source>/architecture/observatory) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n│   ├── conduit-plan-lowering v0.1.0 (<source>/architecture/plan-lowering) features=[default] (*)\n│   ├── conduit-planner v0.1.0 (<source>/architecture/planner) features=[] (*)\n│   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-process v0.1.0 (<source>/semantics/process) features=[]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   [build-dependencies]\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n├── conduit-plan-lowering v0.1.0 (<source>/architecture/plan-lowering) features=[default] (*)\n├── conduit-planner v0.1.0 (<source>/architecture/planner) features=[] (*)\n├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-protected-line v0.1.0 (<source>/architecture/protected-line) features=[noise-session]\n│   ├── noise-protocol v0.2.1 features=[use_alloc]\n│   │   └── arrayvec v0.7.8 features=[]\n│   ├── noise-rust-crypto v0.6.2 features=[chacha20poly1305,sha2,use-chacha20poly1305,use-sha2]\n│   │   ├── chacha20poly1305 v0.10.1 features=[]\n│   │   │   ├── aead v0.5.2 features=[]\n│   │   │   │   ├── crypto-common v0.1.7 features=[] (*)\n│   │   │   │   └── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   │   ├── chacha20 v0.9.1 features=[zeroize]\n│   │   │   │   ├── cfg-if v1.0.5 features=[]\n│   │   │   │   ├── cipher v0.4.4 features=[zeroize]\n│   │   │   │   │   ├── crypto-common v0.1.7 features=[] (*)\n│   │   │   │   │   ├── inout v0.1.4 features=[]\n│   │   │   │   │   │   └── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   │   └── cpufeatures v0.2.17 features=[]\n│   │   │   ├── cipher v0.4.4 features=[zeroize] (*)\n│   │   │   ├── poly1305 v0.8.0 features=[]\n│   │   │   │   ├── cpufeatures v0.2.17 features=[]\n│   │   │   │   ├── opaque-debug v0.3.1 features=[]\n│   │   │   │   └── universal-hash v0.5.1 features=[]\n│   │   │   │       ├── crypto-common v0.1.7 features=[] (*)\n│   │   │   │       └── subtle v2.6.1 features=[i128]\n│   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   ├── noise-protocol v0.2.1 features=[use_alloc] (*)\n│   │   ├── sha2 v0.10.9 features=[] (*)\n│   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   └── x25519-dalek v2.0.1 features=[static_secrets,zeroize]\n│       ├── curve25519-dalek v4.1.3 features=[alloc,digest,zeroize] (*)\n│       ├── rand_core v0.6.4 features=[]\n│       └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n├── conduit-robotics v0.1.0 (<source>/semantics/robotics) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   [build-dependencies]\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-semantic-catalog v0.1.0 (<source>/semantics/catalog) features=[kernel-step,plot-catalog]\n│   ├── conduit-alife v0.1.0 (<source>/semantics/alife) features=[]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog] (*)\n│   │   └── sha2 v0.10.9 features=[] (*)\n│   │   [build-dependencies]\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n│   ├── conduit-education v0.1.0 (<source>/semantics/education) features=[]\n│   │   ├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[] (*)\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n│   │   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── libm v0.2.16 features=[arch,default]\n│   │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   [build-dependencies]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n│   │   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[] (*)\n│   ├── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n│   ├── conduit-midi v0.1.0 (<source>/mechanisms/protocols/midi) features=[]\n│   │   ├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[] (*)\n│   │   └── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-net v0.1.0 (<source>/semantics/net) features=[plot-catalog]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   [build-dependencies]\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-process v0.1.0 (<source>/semantics/process) features=[] (*)\n│   ├── conduit-purpose v0.1.0 (<source>/semantics/purpose) features=[]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   [build-dependencies]\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-robotics v0.1.0 (<source>/semantics/robotics) features=[] (*)\n│   ├── conduit-text v0.1.0 (<source>/semantics/text) features=[plot-catalog]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   └── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n│   │   [build-dependencies]\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog] (*)\n│   ├── conduit-web v0.1.0 (<source>/semantics/web) features=[plot-catalog]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n├── conduit-synth v0.1.0 (<source>/mechanisms/implementations/synth) features=[]\n│   ├── conduit-audio v0.1.0 (<source>/semantics/audio) features=[] (*)\n│   └── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n├── conduit-text v0.1.0 (<source>/semantics/text) features=[plot-catalog] (*)\n├── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog] (*)\n├── conduit-tour-model v0.1.0 (<source>/plots/tour) features=[]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-semantic-catalog v0.1.0 (<source>/semantics/catalog) features=[kernel-step,plot-catalog] (*)\n│   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n├── conduit-tutorial-plot v0.1.0 (<source>/semantics/tutorial) features=[]\n│   ├── conduit-ai v0.1.0 (<source>/semantics/ai) features=[]\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── conduit-time v0.1.0 (<source>/semantics/time) features=[default,plot-catalog] (*)\n│   │   ├── libm v0.2.16 features=[arch,default]\n│   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   ├── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n│   │   └── sha2 v0.10.9 features=[] (*)\n│   │   [build-dependencies]\n│   │   ├── conduit-data v0.1.0 (<source>/semantics/data) features=[default] (*)\n│   │   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   [build-dependencies]\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduit-web v0.1.0 (<source>/semantics/web) features=[plot-catalog] (*)\n├── conduit-wire v0.1.0 (<source>/architecture/wire) features=[default]\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   [build-dependencies]\n│   └── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n├── conduitos-application-core v0.1.0 (<source>/targets/conduitos/application-core) features=[]\n│   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-tour-model v0.1.0 (<source>/plots/tour) features=[] (*)\n│   ├── conduit-tutorial-plot v0.1.0 (<source>/semantics/tutorial) features=[] (*)\n│   ├── miniz_oxide v0.8.9 features=[with-alloc]\n│   │   └── adler2 v2.0.1 features=[]\n│   ├── patchbay-application v0.1.0 (<source>/plots/patchbay/application) features=[]\n│   │   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   │   ├── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n│   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   ├── patchbay-control v0.1.0 (<source>/plots/patchbay) features=[]\n│   │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   ├── patchbay-graph v0.1.0 (<source>/plots/patchbay/graph) features=[]\n│   │   │   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   │   │   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[] (*)\n│   │   │   ├── conduit-plot v0.1.0 (<source>/architecture/plot) features=[] (*)\n│   │   │   ├── conduit-semantic-catalog v0.1.0 (<source>/semantics/catalog) features=[kernel-step,plot-catalog] (*)\n│   │   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   ├── patchbay-graph v0.1.0 (<source>/plots/patchbay/graph) features=[] (*)\n│   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   ├── serde-json-core v0.6.0 features=[default,heapless]\n│   │   ├── heapless v0.8.0 features=[serde]\n│   │   │   ├── hash32 v0.3.1 features=[]\n│   │   │   │   └── byteorder v1.5.0 features=[]\n│   │   │   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   │   │   └── stable_deref_trait v1.2.1 features=[]\n│   │   ├── ryu v1.0.23 features=[]\n│   │   └── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   └── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n├── conduitos-compositor-core v0.1.0 (<source>/targets/conduitos/compositor-core) features=[]\n├── conduitos-creche-core v0.1.0 (<source>/targets/conduitos/creche-core) features=[]\n│   ├── conduit-birth-plot v0.1.0 (<source>/plots/birth) features=[] (*)\n│   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-home-model v0.1.0 (<source>/semantics/home) features=[] (*)\n│   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[] (*)\n│   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   ├── serde-json-core v0.6.0 features=[default,heapless] (*)\n│   └── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n├── conduitos-mask-core v0.1.0 (<source>/targets/conduitos/mask-core) features=[]\n│   ├── conduit-body v0.1.0 (<source>/architecture/body) features=[authenticated-admission,default] (*)\n│   ├── conduit-core v0.1.0 (<source>/architecture/core) features=[] (*)\n│   ├── conduit-face v0.1.0 (<source>/semantics/face) features=[default,plot-catalog] (*)\n│   ├── conduit-human v0.1.0 (<source>/semantics/human) features=[] (*)\n│   ├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n│   ├── serde-json-core v0.6.0 features=[default,heapless] (*)\n│   └── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n├── conduitos-network-core v0.1.0 (<source>/targets/conduitos/network-core) features=[]\n│   ├── embedded-websocket v0.9.5 features=[]\n│   │   ├── base64 v0.13.1 features=[]\n│   │   ├── byteorder v1.5.0 features=[]\n│   │   ├── futures v0.3.34 features=[]\n│   │   │   ├── futures-channel v0.3.34 features=[futures-sink,sink]\n│   │   │   │   ├── futures-core v0.3.34 features=[]\n│   │   │   │   └── futures-sink v0.3.34 features=[]\n│   │   │   ├── futures-core v0.3.34 features=[]\n│   │   │   ├── futures-io v0.3.34 features=[]\n│   │   │   ├── futures-sink v0.3.34 features=[]\n│   │   │   ├── futures-task v0.3.34 features=[]\n│   │   │   └── futures-util v0.3.34 features=[futures-sink,sink]\n│   │   │       ├── futures-core v0.3.34 features=[]\n│   │   │       ├── futures-sink v0.3.34 features=[]\n│   │   │       ├── futures-task v0.3.34 features=[]\n│   │   │       └── pin-project-lite v0.2.17 features=[]\n│   │   ├── heapless v0.7.17 features=[]\n│   │   │   ├── hash32 v0.2.1 features=[]\n│   │   │   │   └── byteorder v1.5.0 features=[]\n│   │   │   ├── spin v0.9.9 features=[barrier,default,lazy,lock_api,lock_api_crate,mutex,once,rwlock,spin_mutex]\n│   │   │   │   └── lock_api v0.4.14 features=[atomic_usize,default]\n│   │   │   │       └── scopeguard v1.2.0 features=[]\n│   │   │   └── stable_deref_trait v1.2.1 features=[]\n│   │   │   [build-dependencies]\n│   │   │   └── rustc_version v0.4.1 features=[] (*)\n│   │   ├── httparse v1.10.1 features=[]\n│   │   ├── rand_core v0.6.4 features=[]\n│   │   └── sha1 v0.10.7 features=[]\n│   │       ├── cfg-if v1.0.5 features=[]\n│   │       ├── cpufeatures v0.2.17 features=[]\n│   │       └── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   ├── rand_chacha v0.3.1 features=[]\n│   │   ├── ppv-lite86 v0.2.21 features=[simd]\n│   │   │   └── zerocopy v0.8.57 features=[simd]\n│   │   └── rand_core v0.6.4 features=[]\n│   └── rand_core v0.6.4 features=[]\n├── conduitos-runtime-core v0.1.0 (<source>/targets/conduitos/runtime-core) features=[]\n│   └── conduit-kernel v0.1.0 (<source>/architecture/kernel) features=[alloc,default,step-test-support] (*)\n├── conduitos-tls-core v0.1.0 (<source>/targets/conduitos/tls-core) features=[]\n│   ├── embedded-io v0.7.1 features=[]\n│   ├── embedded-io-async v0.7.0 features=[]\n│   │   └── embedded-io v0.7.1 features=[]\n│   ├── embedded-tls v0.19.0 features=[ed25519,rustpki]\n│   │   ├── aes-gcm v0.10.3 features=[aes]\n│   │   │   ├── aead v0.5.2 features=[] (*)\n│   │   │   ├── aes v0.8.4 features=[]\n│   │   │   │   ├── cfg-if v1.0.5 features=[]\n│   │   │   │   ├── cipher v0.4.4 features=[zeroize] (*)\n│   │   │   │   └── cpufeatures v0.2.17 features=[]\n│   │   │   ├── cipher v0.4.4 features=[zeroize] (*)\n│   │   │   ├── ctr v0.9.2 features=[]\n│   │   │   │   └── cipher v0.4.4 features=[zeroize] (*)\n│   │   │   ├── ghash v0.5.1 features=[]\n│   │   │   │   ├── opaque-debug v0.3.1 features=[]\n│   │   │   │   └── polyval v0.6.2 features=[]\n│   │   │   │       ├── cfg-if v1.0.5 features=[]\n│   │   │   │       ├── cpufeatures v0.2.17 features=[]\n│   │   │   │       ├── opaque-debug v0.3.1 features=[]\n│   │   │   │       └── universal-hash v0.5.1 features=[] (*)\n│   │   │   └── subtle v2.6.1 features=[i128]\n│   │   ├── const-oid v0.10.2 features=[]\n│   │   ├── der v0.8.2 features=[derive,heapless,oid,time]\n│   │   │   ├── const-oid v0.10.2 features=[]\n│   │   │   ├── der_derive v0.8.0 (proc-macro) features=[]\n│   │   │   │   ├── proc-macro2 v1.0.107 features=[default,proc-macro] (*)\n│   │   │   │   ├── quote v1.0.47 features=[default,proc-macro] (*)\n│   │   │   │   └── syn v2.0.119 features=[clone-impls,default,derive,extra-traits,full,parsing,printing,proc-macro,visit] (*)\n│   │   │   ├── heapless v0.9.3 features=[]\n│   │   │   │   ├── hash32 v0.3.1 features=[] (*)\n│   │   │   │   └── stable_deref_trait v1.2.1 features=[]\n│   │   │   └── time v0.3.55 features=[]\n│   │   │       ├── deranged v0.5.8 features=[default]\n│   │   │       ├── num-conv v0.2.2 features=[]\n│   │   │       ├── powerfmt v0.2.0 features=[]\n│   │   │       └── time-core v0.1.9 features=[]\n│   │   ├── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   ├── ecdsa v0.16.9 features=[arithmetic,der,digest,hazmat,rfc6979,signing,verifying]\n│   │   │   ├── der v0.7.10 features=[oid,zeroize]\n│   │   │   │   ├── const-oid v0.9.6 features=[]\n│   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   ├── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   │   ├── elliptic-curve v0.13.8 features=[arithmetic,digest,ecdh,ff,group,hazmat,sec1]\n│   │   │   │   ├── base16ct v0.2.0 features=[]\n│   │   │   │   ├── crypto-bigint v0.5.5 features=[generic-array,rand_core,zeroize]\n│   │   │   │   │   ├── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   │   │   │   ├── rand_core v0.6.4 features=[]\n│   │   │   │   │   ├── subtle v2.6.1 features=[i128]\n│   │   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   │   ├── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   │   │   ├── ff v0.13.1 features=[]\n│   │   │   │   │   ├── rand_core v0.6.4 features=[]\n│   │   │   │   │   └── subtle v2.6.1 features=[i128]\n│   │   │   │   ├── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   │   │   ├── group v0.13.0 features=[]\n│   │   │   │   │   ├── ff v0.13.1 features=[] (*)\n│   │   │   │   │   ├── rand_core v0.6.4 features=[]\n│   │   │   │   │   └── subtle v2.6.1 features=[i128]\n│   │   │   │   ├── hkdf v0.12.4 features=[]\n│   │   │   │   │   └── hmac v0.12.1 features=[reset]\n│   │   │   │   │       └── digest v0.10.7 features=[block-buffer,const-oid,core-api,default,mac,oid,subtle] (*)\n│   │   │   │   ├── rand_core v0.6.4 features=[]\n│   │   │   │   ├── sec1 v0.7.3 features=[default,der,point,subtle,zeroize]\n│   │   │   │   │   ├── base16ct v0.2.0 features=[]\n│   │   │   │   │   ├── der v0.7.10 features=[oid,zeroize] (*)\n│   │   │   │   │   ├── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   │   │   │   ├── subtle v2.6.1 features=[i128]\n│   │   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   │   ├── subtle v2.6.1 features=[i128]\n│   │   │   │   └── zeroize v1.9.0 features=[alloc,zeroize_derive] (*)\n│   │   │   ├── rfc6979 v0.4.0 features=[]\n│   │   │   │   ├── hmac v0.12.1 features=[reset] (*)\n│   │   │   │   └── subtle v2.6.1 features=[i128]\n│   │   │   └── signature v2.2.0 features=[digest,rand_core] (*)\n│   │   ├── ed25519-dalek v2.2.0 features=[alloc,zeroize] (*)\n│   │   ├── embedded-io v0.7.1 features=[]\n│   │   ├── embedded-io-async v0.7.0 features=[] (*)\n│   │   ├── generic-array v0.14.7 features=[more_lengths,zeroize] (*)\n│   │   ├── heapless v0.9.3 features=[] (*)\n│   │   ├── hkdf v0.12.4 features=[] (*)\n│   │   ├── hmac v0.12.1 features=[reset] (*)\n│   │   ├── p256 v0.13.2 features=[arithmetic,digest,ecdh,ecdsa,ecdsa-core,sha2,sha256]\n│   │   │   ├── ecdsa v0.16.9 features=[arithmetic,der,digest,hazmat,rfc6979,signing,verifying] (*)\n│   │   │   ├── elliptic-curve v0.13.8 features=[arithmetic,digest,ecdh,ff,group,hazmat,sec1] (*)\n│   │   │   ├── primeorder v0.13.6 features=[]\n│   │   │   │   └── elliptic-curve v0.13.8 features=[arithmetic,digest,ecdh,ff,group,hazmat,sec1] (*)\n│   │   │   └── sha2 v0.10.9 features=[] (*)\n│   │   ├── portable-atomic v1.15.0 features=[]\n│   │   ├── rand_core v0.6.4 features=[]\n│   │   ├── sha2 v0.10.9 features=[] (*)\n│   │   ├── signature v2.2.0 features=[digest,rand_core] (*)\n│   │   └── typenum v1.20.1 features=[]\n│   ├── rand_chacha v0.3.1 features=[] (*)\n│   └── rand_core v0.6.4 features=[]\n├── ed25519-dalek v2.2.0 features=[alloc,zeroize] (*)\n├── embedded-io v0.7.1 features=[]\n├── embedded-tls v0.19.0 features=[ed25519,rustpki] (*)\n├── embedded-websocket v0.9.5 features=[] (*)\n├── limine v0.5.0 features=[]\n│   └── bitflags v2.13.2 features=[]\n├── patchbay-application v0.1.0 (<source>/plots/patchbay/application) features=[] (*)\n├── patchbay-control v0.1.0 (<source>/plots/patchbay) features=[] (*)\n├── patchbay-graph v0.1.0 (<source>/plots/patchbay/graph) features=[] (*)\n├── rand_chacha v0.3.1 features=[] (*)\n├── rand_core v0.6.4 features=[]\n├── serde v1.0.229 features=[alloc,derive,serde_derive] (*)\n├── serde-json-core v0.6.0 features=[default,heapless] (*)\n├── serde_json v1.0.151 features=[alloc,float_roundtrip] (*)\n├── sha2 v0.10.9 features=[] (*)\n└── smoltcp v0.13.1 features=[iface-max-addr-count-1,iface-max-route-count-1,iface-neighbor-cache-count-4,medium-ethernet,proto-ipv4,socket,socket-tcp]\n    ├── bitflags v1.3.2 features=[]\n    ├── byteorder v1.5.0 features=[]\n    ├── cfg-if v1.0.5 features=[]\n    ├── heapless v0.9.3 features=[] (*)\n    └── managed v0.8.0 features=[map]\n[build-dependencies]\n├── fontdue v0.9.3 features=[std]\n│   └── ttf-parser v0.21.1 features=[opentype-layout]\n└── sha2 v0.10.9 features=[default,std] (*)\n",
+  "root_link_map": "privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.map",
+  "root_link_map_sha256": "83b05b0d48e1c60c3091cf4f5e0c8155594d74d96b01d799012da52c0786fa56",
+  "working_tree_status": "",
+  "service_isolation_established": false,
+  "responsibilities": [
+    {
+      "name": "entry",
+      "path": "targets/conduitos/src/main.rs",
+      "sha256": "e093c04083b54ee81f77812bdbd1edaf4b69b41009e518c79f72265e5f413329",
+      "anchors": [
+        "graphical_startup::run(record)"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "boot normalization and machine entry"
+    },
+    {
+      "name": "startup",
+      "path": "targets/conduitos/src/graphical_startup.rs",
+      "sha256": "759615eb07fc2aa4e6d52e5971552dabab29681ffc756b521753b5a14a7398fb",
+      "anchors": [
+        "arch::initialize_xhci",
+        "boot::framebuffer_display",
+        "product_front_door::"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "PCI/MMIO DMA-capable xHCI, firmware framebuffer, entropy and offers"
+    },
+    {
+      "name": "controller",
+      "path": "targets/conduitos/src/product_front_door.rs",
+      "sha256": "b3859b5324765f1b2f966dd44bd9ef84a3cdcfe5eace6914a26c5bdf0ccd7e58",
+      "anchors": [
+        "fn run_controller",
+        "runtime::RootRuntime"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "product/lifecycle policy and checked effect dispatch remain privileged"
+    },
+    {
+      "name": "physical-platform",
+      "path": "targets/conduitos/src/product_front_door/platform.rs",
+      "sha256": "4070b6883ebcd7630e694618875314601ba1834ac82794ed537b8881915110cc",
+      "anchors": [
+        "controller: &mut XhciReady",
+        "hid_session: Option<&mut HidKeyboardSession>"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "USB/input/rescue/network device handles and write-only display sink"
+    },
+    {
+      "name": "runtime",
+      "path": "targets/conduitos/src/product_front_door/runtime.rs",
+      "sha256": "4bd527d7363e724a9405d82a73f7fad6acca20c2af477e0cc8b44716f015f898",
+      "anchors": [
+        "struct RootRuntime",
+        "run_tour"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "ordinary/Tour execution paths remain Root; not all runtime moved"
+    },
+    {
+      "name": "mask-facade",
+      "path": "targets/conduitos/src/native_face_mask.rs",
+      "sha256": "e3f6a1cc71c36f8da6fd476fe9e249a0ae821c15f77d84c3cb397b3a4ad02045",
+      "anchors": [
+        "pub struct NativeFaceMask",
+        "suspend"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "Face/Show custody, checked input and scanout acknowledgement"
+    },
+    {
+      "name": "compositor-facade",
+      "path": "targets/conduitos/src/native_compositor/protected.rs",
+      "sha256": "b7513c859581798d8f5702e97d8710d029a96612e314c5e6f65e1695d0525b25",
+      "anchors": [
+        "SharedDisplayOwner",
+        "validate_active_session"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "grant/session validation and transient raster transport; no retained guest pixel ownership"
+    },
+    {
+      "name": "scanout",
+      "path": "targets/conduitos/src/native_compositor/protected/scanout.rs",
+      "sha256": "c05376946a9880bb98615c736bc4d69a636aeaa8c49ec0978363fa7a504ee66c",
+      "anchors": [
+        "impl NativeCompositor"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "validated returned spans copied to privileged display before acknowledgement"
+    },
+    {
+      "name": "mapping",
+      "path": "targets/conduitos/src/arch/x86_64/service_memory.rs",
+      "sha256": "60edeac3ae2d08b00a67e1488ee46684094cddff1225dba3c5e4b1af0ce4147c",
+      "anchors": [
+        "ServiceImage"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "page-table construction and service memory admission; mappings need execution proof"
+    },
+    {
+      "name": "physical-stores",
+      "path": "targets/conduitos/src/arch/x86_64/service_memory/storage.rs",
+      "sha256": "c0fbe0bc0521e907f181adbdee291942f0bd7a34062fdb3b1d2e72218fb9c7bc",
+      "anchors": [
+        "ServiceProfile",
+        "AtomicBool"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "nine independently claimed physical stores and page-table backing"
+    },
+    {
+      "name": "privilege-transition",
+      "path": "targets/conduitos/src/arch/x86_64/domain_transition.rs",
+      "sha256": "bae9f779ca466be534378be303ab449a14659ac3d61ef3d280a2326b8bbf23a5",
+      "anchors": [
+        "conduitos_ordinary_enter",
+        "domain_budget"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "CPL3 entry, trap return and timer preemption; actual enforcement requires execution evidence"
+    },
+    {
+      "name": "effect-bases",
+      "path": "targets/conduitos/src/product_bases.rs",
+      "sha256": "a986ab933750fa938602ac8372b4cb9d4d8872de5cad1ff622dd6807fd394723",
+      "anchors": [
+        "NativeProductBases"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "admitted Root hardware/effect providers remain privilege-bearing"
+    },
+    {
+      "name": "profiles",
+      "path": "targets/conduitos/src/service_memory.rs",
+      "sha256": "0563fca95349d0f20702e7fa1bfc2d53e4e43458dc06f83b59510a8ae53e6f38",
+      "anchors": [
+        "pub enum ServiceProfile",
+        "RX/RO",
+        "RW+NX"
+      ],
+      "execution": "root-source-reachable; linked presence checked separately; execution not inferred",
+      "authority": "closed ranges declare image/exchange/transfer/stack/private arenas; not installed mappings"
+    },
+    {
+      "name": "compositor",
+      "path": "targets/conduitos/compositor-service/main.rs",
+      "sha256": "ab87b691a7d13c10c0ffc5efc72c3554239d6b0a903f41a42787219a76252118",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "retained composition/focus/damage; no framebuffer/device pointer grant"
+    },
+    {
+      "name": "draft-home",
+      "path": "targets/conduitos/creche-service/main.rs",
+      "sha256": "9262e6a54c46ae8a1ecc8fc5c403634f3f9a13714a60633da2b54513c3407595",
+      "anchors": [
+        "creche_entry",
+        "memory::EXCHANGE"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "Draft and Home share immutable image but independent instances/arenas"
+    },
+    {
+      "name": "runtime-guest",
+      "path": "targets/conduitos/runtime-service/main.rs",
+      "sha256": "93309e9cb9cd1af9d079fe0677f01fe101d6ec676f5dc1eb5ff1524b6074702a",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "bounded canonical native-workset scheduler; no second semantic scheduler"
+    },
+    {
+      "name": "application",
+      "path": "targets/conduitos/application-service/main.rs",
+      "sha256": "e9e9eb18598d17ae4e001ae150dc7b6bfd7e05211dca848c39cc8a7d51553b0d",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "native retained application state; remaining Root product paths separate"
+    },
+    {
+      "name": "network",
+      "path": "targets/conduitos/network-service/main.rs",
+      "sha256": "1f1edaa14802dcb563ca94584c4454599c583b061f4f6f126ad0c8ee35233bcc",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "bounded protocol state; Root retains NIC/USB device authority"
+    },
+    {
+      "name": "tls",
+      "path": "targets/conduitos/tls-service/main.rs",
+      "sha256": "e88c97d48ce16c96801ea342fdbb8d8578598bacc46b72089a04cb7ef8af3671",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "bounded TLS protocol state; Root retains transport authority"
+    },
+    {
+      "name": "mask-guest",
+      "path": "targets/conduitos/mask-service/main.rs",
+      "sha256": "25274a3698e9aa2c3917782f66d692e1f6079fe761de22ca7e571fc833c3b9b7",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "checked Mask guest presentation state; Root retains input/scanout validation"
+    },
+    {
+      "name": "ordinary",
+      "path": "targets/conduitos/domain/main.rs",
+      "sha256": "2185a6f8d57daf7d3b8e77f9a6fe582fbe296be6d105ec10c77e28b0eddb22e1",
+      "anchors": [
+        "no_std"
+      ],
+      "execution": "separately linked guest selected by x86_64 source; confinement/execution not inferred",
+      "authority": "ordinary protected text/runtime commands; not all Root runtime paths"
+    }
+  ],
+  "linked_images": [
+    {
+      "offset_in_root": 0,
+      "bytes": 77465256,
+      "sha256": "451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce",
+      "entry": 18446744071562560688,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 18446744071562067968,
+          "physical_address": 18446744071562067968,
+          "file_bytes": 13778944,
+          "memory_bytes": 13778944,
+          "flags": 5
+        },
+        {
+          "offset": 13783040,
+          "virtual_address": 18446744071575846912,
+          "physical_address": 18446744071575846912,
+          "file_bytes": 8431352,
+          "memory_bytes": 8431352,
+          "flags": 4
+        },
+        {
+          "offset": 22216704,
+          "virtual_address": 18446744071584280576,
+          "physical_address": 18446744071584280576,
+          "file_bytes": 55247696,
+          "memory_bytes": 55247696,
+          "flags": 6
+        }
+      ]
+    },
+    {
+      "offset_in_root": 13911713,
+      "bytes": 29256,
+      "sha256": "cf17551b531c375e0b1cd038cbda429d2b309c93d0fbb6a5c9474430cc03d76f",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 18777,
+          "memory_bytes": 18777,
+          "flags": 5
+        },
+        {
+          "offset": 24576,
+          "virtual_address": 4214784,
+          "physical_address": 4214784,
+          "file_bytes": 584,
+          "memory_bytes": 584,
+          "flags": 4
+        }
+      ]
+    },
+    {
+      "offset_in_root": 13941072,
+      "bytes": 197600,
+      "sha256": "d7634142a9ca09308ad191c10e3dee6a2352b6e95b240bb2cc07af016d970ddf",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 159631,
+          "memory_bytes": 159631,
+          "flags": 5
+        },
+        {
+          "offset": 163840,
+          "virtual_address": 4354048,
+          "physical_address": 4354048,
+          "file_bytes": 4904,
+          "memory_bytes": 4904,
+          "flags": 4
+        }
+      ]
+    },
+    {
+      "offset_in_root": 14243713,
+      "bytes": 182720,
+      "sha256": "2c6814b8f10a5e4d5bbc3a1161156d4f1615c626d9d905d41ec367d39915fde0",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 126415,
+          "memory_bytes": 126415,
+          "flags": 5
+        },
+        {
+          "offset": 131072,
+          "virtual_address": 4321280,
+          "physical_address": 4321280,
+          "file_bytes": 2128,
+          "memory_bytes": 2128,
+          "flags": 4
+        }
+      ]
+    },
+    {
+      "offset_in_root": 14434238,
+      "bytes": 142032,
+      "sha256": "a4bb3886b72045c5f455b91eedc40fc26ac9ab8d7812f72c1cb6bd979da354b4",
+      "entry": 4243678,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 54703,
+          "memory_bytes": 54703,
+          "flags": 5
+        },
+        {
+          "offset": 61440,
+          "virtual_address": 4251648,
+          "physical_address": 4251648,
+          "file_bytes": 61472,
+          "memory_bytes": 61472,
+          "flags": 4
+        }
+      ]
+    },
+    {
+      "offset_in_root": 14595849,
+      "bytes": 1975304,
+      "sha256": "1c052efb9888b50a999896b1f21d0837f32ca50043b9b1b374c48c90383e9bde",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 1412274,
+          "memory_bytes": 1412274,
+          "flags": 5
+        },
+        {
+          "offset": 1417216,
+          "virtual_address": 5607424,
+          "physical_address": 5607424,
+          "file_bytes": 116824,
+          "memory_bytes": 116824,
+          "flags": 4
+        },
+        {
+          "offset": 1536000,
+          "virtual_address": 7376896,
+          "physical_address": 7376896,
+          "file_bytes": 16,
+          "memory_bytes": 16,
+          "flags": 6
+        }
+      ]
+    },
+    {
+      "offset_in_root": 16571163,
+      "bytes": 176944,
+      "sha256": "5e9ec4bbe1d501ce811883d5710fbfb782b683161b676fa97db5a095af2d4dd1",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 112555,
+          "memory_bytes": 112555,
+          "flags": 5
+        },
+        {
+          "offset": 118784,
+          "virtual_address": 4308992,
+          "physical_address": 4308992,
+          "file_bytes": 15528,
+          "memory_bytes": 15528,
+          "flags": 4
+        },
+        {
+          "offset": 135168,
+          "virtual_address": 7376896,
+          "physical_address": 7376896,
+          "file_bytes": 16,
+          "memory_bytes": 16,
+          "flags": 6
+        }
+      ]
+    },
+    {
+      "offset_in_root": 16815128,
+      "bytes": 1640088,
+      "sha256": "97c03260bae988c769c400608849b2d81d085acd5a91d788309adf539f3e42fd",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 1083995,
+          "memory_bytes": 1083995,
+          "flags": 5
+        },
+        {
+          "offset": 1089536,
+          "virtual_address": 5279744,
+          "physical_address": 5279744,
+          "file_bytes": 237584,
+          "memory_bytes": 237584,
+          "flags": 4
+        },
+        {
+          "offset": 1331200,
+          "virtual_address": 6393856,
+          "physical_address": 6393856,
+          "file_bytes": 16,
+          "memory_bytes": 16,
+          "flags": 6
+        }
+      ]
+    },
+    {
+      "offset_in_root": 18477976,
+      "bytes": 1640088,
+      "sha256": "97c03260bae988c769c400608849b2d81d085acd5a91d788309adf539f3e42fd",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 1083995,
+          "memory_bytes": 1083995,
+          "flags": 5
+        },
+        {
+          "offset": 1089536,
+          "virtual_address": 5279744,
+          "physical_address": 5279744,
+          "file_bytes": 237584,
+          "memory_bytes": 237584,
+          "flags": 4
+        },
+        {
+          "offset": 1331200,
+          "virtual_address": 6393856,
+          "physical_address": 6393856,
+          "file_bytes": 16,
+          "memory_bytes": 16,
+          "flags": 6
+        }
+      ]
+    },
+    {
+      "offset_in_root": 20161656,
+      "bytes": 39632,
+      "sha256": "98ba4cae87c36feb81b6d515402f17cf600f2f173cb07aa154f5103fc388a4c9",
+      "entry": 4194304,
+      "load_segments": [
+        {
+          "offset": 4096,
+          "virtual_address": 4194304,
+          "physical_address": 4194304,
+          "file_bytes": 26975,
+          "memory_bytes": 26975,
+          "flags": 5
+        },
+        {
+          "offset": 32768,
+          "virtual_address": 4222976,
+          "physical_address": 4222976,
+          "file_bytes": 1512,
+          "memory_bytes": 1512,
+          "flags": 4
+        }
+      ]
+    }
+  ],
+  "linked_responsibilities": [
+    [
+      "graphical_startup",
+      10
+    ],
+    [
+      "product_front_door",
+      382
+    ],
+    [
+      "native_face_mask",
+      52
+    ],
+    [
+      "native_compositor",
+      115
+    ],
+    [
+      "protected_creche",
+      68
+    ],
+    [
+      "protected_runtime",
+      61
+    ],
+    [
+      "protected_application",
+      80
+    ],
+    [
+      "protected_network",
+      41
+    ],
+    [
+      "protected_tls",
+      35
+    ],
+    [
+      "domain_transition",
+      4
+    ]
+  ],
+  "interpretation": "Normal dependencies are potentially included code; build dependencies execute on the build host. The same linker invocation retains a Root symbol map. Dependency membership and linker symbols do not establish runtime call reachability. The embedded domain image is linked separately. No service-isolation claim follows from this inventory. Dirty files are not identified by base_commit."
+}

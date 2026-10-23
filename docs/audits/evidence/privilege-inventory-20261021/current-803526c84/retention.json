@@ -1,0 +1,71 @@
+{
+  "source_commit": "803526c84e853f4a1bd122c969b1704aa45d0ad0",
+  "source_unchanged": true,
+  "source_clean_after": true,
+  "steps": [
+    {
+      "name": "positive",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "verify-privilege-inventory",
+        "--build-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/product",
+        "--inventory-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/builder",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/verified-inventory.json"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 3.5505121059832163
+    },
+    {
+      "name": "foreign-map-refusal",
+      "command": [
+        "cargo",
+        "+stable",
+        "xtask",
+        "make",
+        "conduitos",
+        "verify-privilege-inventory",
+        "--build-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/product",
+        "--inventory-dir",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/negative-foreign-map",
+        "--output",
+        "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-803526c84-preserved/must-not-exist.json"
+      ],
+      "exit_code": 1,
+      "elapsed_seconds": 1.5065590899903327
+    }
+  ],
+  "status": "complete-positive-and-structural-foreign-map-refusal",
+  "sha256": {
+    "6176-803526c84-checks.json": "f216340c7c0d2464b43b8b251142fd0d063ce71beea2c3209f2bbb2f78d3b247",
+    "6176-803526c84-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "6176-803526c84-focused-tests.log": "c72b285d7f6094a984715983a27cce861adf81337eb52f106b67c24c0d174bb7",
+    "6176-803526c84-normal-build.log": "e46b7f80b2156fc7ca936c5e77435c8b30909f48dd047abe9284bf0a3aabecb5",
+    "6176-803526c84-strict-clippy.log": "3f25c95dff7805015751cfb868fc330d2bec1803614c03e7397ce421706f043f",
+    "builder/build.json": "3a8d53aa5a4462b03654f9ac994c44789a99276c8eee25616e4582fff5d2a1f2",
+    "builder/image.json": "f6542c939d1c110c8a636e6a9a9a3519e6fbf26e6797310e0f38f6cdb9b7beac",
+    "builder/make-record.rs": "cc0707667498f1091875aa731a4063563bfbd102eb6e4a9849aa7125b5deeb6d",
+    "builder/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.json": "459a9cc7d7a4ee60df3b4125aff771d6a99bad525297e57da06800bb868db990",
+    "builder/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.map": "83b05b0d48e1c60c3091cf4f5e0c8155594d74d96b01d799012da52c0786fa56",
+    "foreign-map-refusal.log": "b95944d41953719d78a4f566f25d865499385a37061cd9648a4f81970bd9e773",
+    "negative-foreign-map/build.json": "3a8d53aa5a4462b03654f9ac994c44789a99276c8eee25616e4582fff5d2a1f2",
+    "negative-foreign-map/image.json": "f6542c939d1c110c8a636e6a9a9a3519e6fbf26e6797310e0f38f6cdb9b7beac",
+    "negative-foreign-map/make-record.rs": "cc0707667498f1091875aa731a4063563bfbd102eb6e4a9849aa7125b5deeb6d",
+    "negative-foreign-map/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.json": "a73a2a4a1a789543dea1455f527785823cad1ccb3172e2ebd92114210ed871bb",
+    "negative-foreign-map/privilege-inventory-451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce-product-host.map": "f3413e6a5f1016d474e7120eede6d1950098a85299beebc940fe0391f80fc16c",
+    "negative-substitution.json": "308a2e58d6230fd1f0337c5d1921026e202971aa422b1e3380224f7c0501c038",
+    "positive.log": "6af59b59916ad27ef62d3563a1c109db18ce8c15476e311c1dc3664220da5fb8",
+    "product/build-manifest.json": "627e9364d44df873f065b6af6b5f13e1e62e48f532e56548ec9df64a336c00eb",
+    "product/conduitos-kernel.elf": "451086600295c30f9746c22b2ae5be2596c25e6ab50a487e4683bacde3733dce",
+    "product/conduitos-x86_64.iso": "3304e75a3f2ff4804176b6773d28503075e8c937b9eaa0b2c1fc072d5ba688a0",
+    "product/resolved-image.json": "b3866d109577ab4c7b170faff2f49d501f8520aad9499c29f2d54e26128c6bab",
+    "verified-inventory.json": "9669197b8a868c5833fff2d3fe7a250c9cf12b684c521cdc40518ae97df4c1c0"
+  }
+}

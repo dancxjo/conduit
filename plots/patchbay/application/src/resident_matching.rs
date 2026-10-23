@@ -47,6 +47,7 @@ impl PatchbayApplicationPort {
             base.disclosures.len(),
         ];
         let mut bounds_error = None;
+        let mut checked_subjects = 0;
         let body = format!("body/{}", body.as_str());
         // Source subjects already belong to the observation. Seeding these
         // preserves the shared emitter's existing subject/disclosure decision.
@@ -73,9 +74,20 @@ impl PatchbayApplicationPort {
                                 == Some(plot.graph.checked_plot_id.as_str())
                     })
                 };
+                let before_filter = content.subjects.len();
                 content
                     .subjects
                     .retain(|subject| !planned(&subject.identity));
+                // append_checkpointed appends subjects and never changes prior
+                // entries: after its initial plot checkpoint, named Gear,
+                // Composition, Port and Cord emitters only append gear/, port/
+                // or cord/ identities (or reuse an unchanged existing entry).
+                // Consequently planned plot/ filtering can remove entries only
+                // at the first checkpoint. Fail closed if that contract changes.
+                if checked_subjects != 0 && before_filter != content.subjects.len() {
+                    bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                    return false;
+                }
                 content
                     .disclosures
                     .retain(|disclosure| !planned(&disclosure.subject));
@@ -130,26 +142,13 @@ impl PatchbayApplicationPort {
                 if bounds_error.is_some() {
                     return false;
                 }
-                if content.subjects.iter().any(|subject| {
-                    subject.identity.is_empty()
-                        || subject.identity.len() > conduit_face::MAX_FACE_ID_BYTES
-                }) {
-                    bounds_error = Some(FaceFragmentError::InvalidIdentity);
+                if let Err(error) = validate_subject_tail(content.subjects, checked_subjects) {
+                    bounds_error = Some(error);
                     return false;
                 }
-                if content.subjects.iter().enumerate().any(|(index, subject)| {
-                    content.subjects[index + 1..]
-                        .iter()
-                        .any(|next| next.identity == subject.identity)
-                }) {
-                    bounds_error = Some(FaceFragmentError::DuplicateSubject);
-                    return false;
-                }
+                let new_subjects = &content.subjects[checked_subjects..];
                 let matches = face.is_none_or(|face| {
-                    content
-                        .subjects
-                        .iter()
-                        .all(|item| face.subjects.contains(item))
+                    new_subjects.iter().all(|item| face.subjects.contains(item))
                         && content
                             .relationships
                             .iter()
@@ -167,10 +166,11 @@ impl PatchbayApplicationPort {
                             .actions
                             .iter()
                             .filter(|action| {
-                                content.subjects.iter().any(|s| s.identity == action.target)
+                                new_subjects.iter().any(|s| s.identity == action.target)
                             })
                             .all(|action| base.actions.contains(action))
                 });
+                checked_subjects = content.subjects.len();
                 // Endpoint visibility is emitter state: keep the finite subject
                 // identities so later Cords emit the exact Connects relations.
                 content.relationships.clear();
@@ -186,6 +186,30 @@ impl PatchbayApplicationPort {
             Ok(matches)
         }
     }
+}
+/// The caller owns an append-only prefix already checked by prior checkpoints.
+/// Compare every new identity with the complete prefix and the other new entries.
+fn validate_subject_tail(
+    subjects: &[conduit_face::FaceSubject],
+    checked: usize,
+) -> Result<(), FaceFragmentError> {
+    let tail = subjects
+        .get(checked..)
+        .ok_or(FaceFragmentError::InvalidIdentity)?;
+    if tail.iter().any(|subject| {
+        subject.identity.is_empty() || subject.identity.len() > conduit_face::MAX_FACE_ID_BYTES
+    }) {
+        return Err(FaceFragmentError::InvalidIdentity);
+    }
+    for (offset, subject) in tail.iter().enumerate() {
+        if subjects[..checked + offset]
+            .iter()
+            .any(|previous| previous.identity == subject.identity)
+        {
+            return Err(FaceFragmentError::DuplicateSubject);
+        }
+    }
+    Ok(())
 }
 fn contains(face: &Face, fragment: &FaceFragment) -> bool {
     macro_rules! included {
@@ -221,6 +245,41 @@ fn contains(face: &Face, fragment: &FaceFragment) -> bool {
 mod tests {
     use super::*;
     use conduit_core::{ActivePlayId, CheckedPlotId, PlanId};
+    #[test]
+    fn later_checkpoint_cannot_reuse_an_earlier_identity_with_changed_facts() {
+        use conduit_face::{FaceRole, FaceSubject};
+        let mut subjects = alloc::vec![FaceSubject {
+            identity: "gear/first".into(),
+            role: FaceRole::Gear,
+            name: "First".into(),
+        }];
+        validate_subject_tail(&subjects, 0).unwrap();
+        subjects.push(FaceSubject {
+            identity: "port/second".into(),
+            role: FaceRole::Port,
+            name: "Second".into(),
+        });
+        validate_subject_tail(&subjects, 1).unwrap();
+        // Collision crosses a checkpoint and differs in non-identity facts.
+        subjects.push(FaceSubject {
+            identity: "gear/first".into(),
+            role: FaceRole::Port,
+            name: "Forged".into(),
+        });
+        assert_eq!(
+            validate_subject_tail(&subjects, 2),
+            Err(FaceFragmentError::DuplicateSubject)
+        );
+        subjects[2].identity.clear();
+        assert_eq!(
+            validate_subject_tail(&subjects, 2),
+            Err(FaceFragmentError::InvalidIdentity)
+        );
+        assert_eq!(
+            validate_subject_tail(&subjects[..1], 2),
+            Err(FaceFragmentError::InvalidIdentity)
+        );
+    }
     #[test]
     fn chunked_bounds_preserve_full_fragment_capacity_refusal() {
         let plans = conduit_patchbay_workbench_conformance::patchbay_mask_plans().unwrap();

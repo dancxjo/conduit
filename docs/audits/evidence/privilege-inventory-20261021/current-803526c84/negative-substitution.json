@@ -1,0 +1,9 @@
+{
+  "foreign_map_original": "/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6176-current-verification/privilege-inventory-c45a6f8fec566b0a9d7f2859265b7619cdb17cf3681ef6309ca03697f26ba2ae-product-host.map",
+  "foreign_map_sha256": "f3413e6a5f1016d474e7120eede6d1950098a85299beebc940fe0391f80fc16c",
+  "updated_fields": [
+    "root_link_map_sha256",
+    "linked_responsibilities"
+  ],
+  "unchanged_positive": true
+}

@@ -1,0 +1,10 @@
+{
+  "inventory": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6176-current-proof/cross-target-cache-inventory.json",
+  "removed_count": 693,
+  "removed_logical_bytes": 1621378124,
+  "free_before": 11465584640,
+  "free_after": 13087928320,
+  "filesystem_free_delta": 1622343680,
+  "preserved_changed_candidates": [],
+  "preserved_classes": "All ELF/ISO/executable/generated source/build-script output/rawproof and active x86/hostcache unchanged"
+}

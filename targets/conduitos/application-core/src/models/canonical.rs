@@ -71,7 +71,9 @@ impl Models {
         // replenish a consumed Show or silently retain old presentation authority.
         p.publication = None;
         let fail = |refusal| Ok(refused(slot, p.selected, revision, refusal));
-        if face.validate().is_err() || show.validate(&face).is_err() {
+        // MaskShow validates the complete Face before checking its receipt.
+        // Keep one admission path rather than repeating the same Face pass here.
+        if show.validate(&face).is_err() {
             return fail(CanonicalRefusal::InvalidFace);
         }
         if show.show.lifecycle != ManifestationLifecycle::Available {

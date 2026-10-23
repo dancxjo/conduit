@@ -61,6 +61,8 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
             "proof/browser/creche-rendezvous.test.mjs",
             "proof/browser/installed-host-encounter.test.mjs",
             "proof/browser/process-output.test.mjs",
+            "proof/browser/process-stop.test.mjs",
+            "proof/browser/native-startup-trace.test.mjs",
         ],
     ),
     Step::new(

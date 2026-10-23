@@ -1,0 +1,78 @@
+{
+  "observed_utc": "2026-10-23T16:12:48.242380+00:00",
+  "source": "1b530d14f4ee49f8d4891053f97e86c07a27adea",
+  "normal_cli_sha256": "484c044055469d39aadd875430ba763f2790892d6c5901f5883851ce338daf0b",
+  "browser_runtime_sha256": "40e85cb6c20b450b9a6404db4c4cab276b2dd1071fae4a7df0865f68ffe43728",
+  "staged_file_identities_unchanged": 110,
+  "tests": 1,
+  "workers": 1,
+  "retries": 0,
+  "timeout_ms": 20000,
+  "native_phase_records": 32,
+  "native_prepared_ms": 5022.835,
+  "encounter_elapsed_ms": 9032.219264000001,
+  "phases_by_duration": [
+    {
+      "phase": "catalogs",
+      "duration_ms": 3033.355
+    },
+    {
+      "phase": "birth-encounter",
+      "duration_ms": 1886.135
+    },
+    {
+      "phase": "host-construction",
+      "duration_ms": 83.83
+    },
+    {
+      "phase": "runtime-identity",
+      "duration_ms": 0.345
+    },
+    {
+      "phase": "ownership-selection",
+      "duration_ms": 0.117
+    },
+    {
+      "phase": "boot-identity",
+      "duration_ms": 0.109
+    },
+    {
+      "phase": "runtime-publication",
+      "duration_ms": 0.107
+    },
+    {
+      "phase": "service-lock",
+      "duration_ms": 0.086
+    },
+    {
+      "phase": "retained-recovery",
+      "duration_ms": 0.065
+    },
+    {
+      "phase": "image-digest",
+      "duration_ms": 0.062
+    },
+    {
+      "phase": "installation",
+      "duration_ms": 0.06
+    },
+    {
+      "phase": "retained-scan",
+      "duration_ms": 0.046
+    },
+    {
+      "phase": "body-lock",
+      "duration_ms": 0.045
+    },
+    {
+      "phase": "runtime-state",
+      "duration_ms": 0.039
+    },
+    {
+      "phase": "equipment-selection",
+      "duration_ms": 0.032
+    }
+  ],
+  "raw_log_sha256": "8e47eae83e10d8a6d01e78a66f084672a9d921ba7843d81b308ead8ea4a417d3",
+  "scope": "Fresh source-matched normal CLI and supported fresh browser release/staging; focused actual Chromium internal diagnostic, not full accepted CI browser Integration, calibrated CPU or proof of the original CI failure cause."
+}

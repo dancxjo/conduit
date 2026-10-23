@@ -408,3 +408,25 @@ fn check_chunked_projection(
     forged.actions.push(action);
     assert!(!port.matches_face_contribution(&forged, basis.clone(), body, true));
 }
+
+#[test]
+fn chunked_projection_checks_exact_late_subject_facts_and_owned_actions() {
+    let (port, body, basis) = setup();
+    let full = face(&port, &body, &basis);
+    let fragment = port.face_fragment(basis.clone(), &body, true).unwrap();
+    // The final emitted graph subject is checked after earlier checkpoints.
+    let expected = fragment.subjects.last().unwrap();
+    let index = full.subjects.iter().position(|s| s == expected).unwrap();
+    let mut renamed = full.clone();
+    renamed.subjects[index].name.push_str(" forged");
+    assert!(!port.matches_face_contribution(&renamed, basis.clone(), &body, true));
+    let mut changed_role = full.clone();
+    changed_role.subjects[index].role = conduit_face::FaceRole::Document;
+    assert!(!port.matches_face_contribution(&changed_role, basis.clone(), &body, true));
+    let mut extra_action = full.clone();
+    let mut action = extra_action.actions[0].clone();
+    action.identity = "forged-late-subject-action".into();
+    action.target = expected.identity.clone();
+    extra_action.actions.push(action);
+    assert!(!port.matches_face_contribution(&extra_action, basis, &body, true));
+}
