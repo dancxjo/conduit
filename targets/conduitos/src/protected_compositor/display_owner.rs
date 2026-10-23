@@ -10,6 +10,17 @@ use super::{
 use crate::{display::DisplayError, protected_region::DomainCost};
 use alloc::{rc::Rc, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
+use sha2::{Digest, Sha256};
+#[cfg(feature = "native-compositor")]
+#[path = "lifecycle_emission.rs"]
+mod lifecycle_emission;
+#[path = "staging_wipe.rs"]
+mod staging_wipe;
+#[cfg(feature = "compositor-semantic-recovery-proof")]
+#[path = "staging_zero.rs"]
+mod staging_zero;
+#[cfg(feature = "compositor-semantic-recovery-proof")]
+pub(crate) use staging_zero::Witness as StagingZeroWitness;
 
 pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
 pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
@@ -42,6 +53,16 @@ pub(crate) struct DisplayOwner {
     staging: Vec<u32>,
     report: PreparationReport,
     grant: SharedDisplayGrant,
+    guest_image_sha256: [u8; 32],
+    #[cfg(feature = "native-compositor")]
+    observation_make: Option<crate::make::MakeRecord>,
+    #[cfg(feature = "native-compositor")]
+    observation_seen: u8,
+    staging_preparation_raw_ticks: Option<u64>,
+    preparation_raw_ticks: Option<u64>,
+    disposal_raw_ticks: Option<u64>,
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    staging_zero: staging_zero::Observer,
 }
 
 impl DisplayOwner {
@@ -64,7 +85,9 @@ impl DisplayOwner {
     pub(crate) fn prepare_shared(
         grant: SharedDisplayGrant,
     ) -> Result<SharedDisplayOwner, PreparationError> {
+        let preparation_started = super::lifecycle::start();
         let (width, height) = grant.extent();
+        let staging_started = super::lifecycle::start();
         let mut staging = Vec::new();
         staging
             .try_reserve_exact(STAGING_PIXELS)
@@ -77,22 +100,59 @@ impl DisplayOwner {
         let admitted = RasterStaging::admit(staging.as_mut_slice())
             .map_err(|_| PreparationError::Owner(OwnerError::Capacity))?;
         drop(admitted);
+        let staging_finished = super::lifecycle::start();
         let service = CompositorService::install_embedded(width, height)
             .map_err(PreparationError::Transport)?;
         let service_cost_at_preparation = service.cost();
         let sessions = SessionOwner::new(service).map_err(PreparationError::Owner)?;
+        // Hash exactly the immutable bytes used by install_embedded, once per
+        // preparation. Its work remains inside the preparation tick envelope.
+        let guest_image_sha256: [u8; 32] =
+            Sha256::digest(CompositorService::embedded_image_bytes()).into();
         let report = PreparationReport {
             staging_logical_bytes: STAGING_BYTES,
             staging_reserved_bytes: staging.capacity() * size_of::<u32>(),
             service_reserved_bytes: SERVICE_RESERVED_BYTES,
             service_cost_at_preparation,
         };
-        Ok(Rc::new(RefCell::new(Self {
+        let owner = Rc::new(RefCell::new(Self {
             sessions,
             staging,
             report,
             grant,
-        })))
+            guest_image_sha256,
+            #[cfg(feature = "native-compositor")]
+            observation_make: None,
+            #[cfg(feature = "native-compositor")]
+            observation_seen: 0,
+            staging_preparation_raw_ticks: super::lifecycle::elapsed(
+                staging_started,
+                staging_finished,
+            ),
+            preparation_raw_ticks: None,
+            disposal_raw_ticks: None,
+            #[cfg(feature = "compositor-semantic-recovery-proof")]
+            staging_zero: staging_zero::Observer::new(),
+        }));
+        let finished = super::lifecycle::start();
+        owner.borrow_mut().preparation_raw_ticks =
+            super::lifecycle::elapsed(preparation_started, finished);
+        Ok(owner)
+    }
+
+    /// Immutable digest custody; observing it never reads or rehashes guest memory.
+    pub(crate) fn guest_image_sha256(&self) -> &[u8; 32] {
+        &self.guest_image_sha256
+    }
+
+    /// Immutable embedded image for preparation-time source binding only.
+    pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+        CompositorService::embedded_image_bytes()
+    }
+
+    /// Borrowed exact scope only; observing it cannot renew or replace a grant.
+    pub(crate) fn display_identity(&self) -> super::display_grant::DisplayIdentity<'_> {
+        self.grant.identity()
     }
 
     pub(crate) fn matches_scope(
@@ -113,9 +173,44 @@ impl DisplayOwner {
     /// admitted allocator. The exclusive owner borrow excludes every RasterLease.
     /// An inert Rc can outlive this release without retaining pixel storage.
     pub(crate) fn quarantine(&mut self) {
+        let started = super::lifecycle::start();
+        let live_staging = !self.staging.is_empty();
         self.sessions.quarantine();
-        self.staging.fill(0);
+        staging_wipe::clear(&mut self.staging);
+        #[cfg(feature = "compositor-semantic-recovery-proof")]
+        self.staging_zero
+            .observe_before_free(&self.staging, self.staging.capacity());
         drop(core::mem::take(&mut self.staging));
+        if live_staging {
+            self.disposal_raw_ticks = super::lifecycle::elapsed(started, super::lifecycle::start());
+        }
+    }
+
+    /// One proof arm belongs to this still-live actual owner. No authority escapes.
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    pub(crate) fn arm_staging_zero_witness(&mut self, instance: u64, release_ordinal: u64) -> bool {
+        !self.staging.is_empty()
+            && self.sessions.service_observation().instance == instance
+            && self.staging_zero.arm(instance, release_ordinal)
+    }
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    pub(crate) fn take_staging_zero_witness(&mut self) -> Option<StagingZeroWitness> {
+        self.staging_zero.take()
+    }
+
+    /// Fixed read-only lifecycle snapshot; no pixel, grant or transport escape.
+    pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
+        super::lifecycle::DisplayObservation {
+            service: self.sessions.service_observation(),
+            guest_image_sha256: self.guest_image_sha256,
+            activations: self.sessions.activation_observation(),
+            current_cost: self.service_cost(),
+            staging_prepared_bytes: self.report.staging_logical_bytes,
+            staging_live_bytes: self.staging.len() * size_of::<u32>(),
+            staging_preparation_raw_ticks: self.staging_preparation_raw_ticks,
+            preparation_raw_ticks: self.preparation_raw_ticks,
+            disposal_raw_ticks: self.disposal_raw_ticks,
+        }
     }
 
     pub(crate) fn service_cost(&self) -> DomainCost {
@@ -149,5 +244,11 @@ impl DisplayOwner {
             self.quarantine();
         }
         Ok(result)
+    }
+}
+
+impl Drop for DisplayOwner {
+    fn drop(&mut self) {
+        self.quarantine();
     }
 }

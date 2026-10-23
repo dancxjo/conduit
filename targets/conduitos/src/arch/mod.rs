@@ -24,6 +24,9 @@ mod aarch64_pci_conformance;
 
 #[cfg(target_arch = "x86_64")]
 mod x86_64;
+/// Uncalibrated raw counter shared with backend cost observations.
+#[cfg(all(target_arch = "x86_64", target_os = "none"))]
+pub(crate) use x86_64::domain_ticks;
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 pub use x86_64::{ServiceDomain, TextDomain};
 
@@ -253,3 +256,16 @@ pub(crate) use usb_xhci::{
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub use usb_xhci::UsbIsochronousCallRefusal;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_os = "none",
+    any(
+        feature = "ordinary-domain-proof",
+        feature = "compositor-semantic-recovery-proof"
+    )
+))]
+pub(crate) use x86_64::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};

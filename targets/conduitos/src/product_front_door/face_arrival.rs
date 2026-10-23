@@ -130,19 +130,35 @@ impl FaceArrival {
         door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
-        self.present_current(door, display)?;
-        let receipt = self
-            .mask
-            .focus_named(
-                &FaceFocusRequest {
-                    action_id: "creche.name".into(),
-                    argument_name: Some("value".into()),
-                },
-                display,
-            )
-            .map_err(|error| error.as_str())?;
-        self.record_focus()?;
-        Ok(receipt)
+        // The existing focus repaint is the final frame of present_first.
+        // Select it specifically, rather than reusing an earlier presentation ACK.
+        let presented = self.present_current(door, display);
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        let selected = self.mask.begin_lifecycle_checkpoint(
+            crate::protected_compositor::lifecycle::sign::Checkpoint::FirstCreche,
+        );
+        let result = (|| {
+            presented?;
+            let receipt = self
+                .mask
+                .focus_named(
+                    &FaceFocusRequest {
+                        action_id: "creche.name".into(),
+                        argument_name: Some("value".into()),
+                    },
+                    display,
+                )
+                .map_err(|error| error.as_str())?;
+            self.record_focus()?;
+            Ok(receipt)
+        })();
+        #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+        self.mask.finish_lifecycle_checkpoint(
+            crate::protected_compositor::lifecycle::sign::Checkpoint::FirstCreche,
+            selected,
+            result.is_ok(),
+        );
+        result
     }
 
     pub(super) fn present_pending_join(
