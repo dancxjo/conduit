@@ -1,0 +1,6 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `target/debug/conduit-xtask-dispatch prove environment network-fallback`
+Fixture acknowledged; no UART requests for 30 seconds
+{"network_configuration": "access-point-restored", "network_control_dispatches": [1, 1, 0], "network_control_failure_phase": "associate", "network_control_failure_reason": "rejected", "native_root_heap_peak_bytes": 38400, "native_sdk_heap_peak_bytes": 37904}
+{"network_configuration": "access-point-restored", "network_control_dispatches": [1, 1, 0], "network_control_failure_phase": "associate", "network_control_failure_reason": "rejected", "native_root_heap_peak_bytes": 38400, "native_sdk_heap_peak_bytes": 37904}
+PASS: one failed join and acknowledged AP restoration in the same Boot

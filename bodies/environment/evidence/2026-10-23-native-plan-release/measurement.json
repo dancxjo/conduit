@@ -1,0 +1,28 @@
+{
+  "implementation_commit": "5f8ffe1eaf690d926d9cb93aa21727b07c63fd7d",
+  "proof_class": "physical ESP32 Root negative network fixture",
+  "elf_sha256": "a71bba14c038f25fd2663640de48756f6a88e91bfa9d431e01948fa74f5d86d4",
+  "elf_bytes": 1924772,
+  "baseline": "../2026-10-23-network-stack-fix/after/offers.json",
+  "root_heap_capacity_bytes": 65536,
+  "sdk_heap_capacity_bytes": 122880,
+  "before_terminal_root_heap_used_bytes": 31756,
+  "after_terminal_root_heap_used_bytes": 15136,
+  "retained_bytes_saved": 16620,
+  "root_heap_peak_bytes": 38400,
+  "sdk_heap_peak_bytes": 37904,
+  "single_boot": true,
+  "dispatches": [
+    1,
+    1,
+    0
+  ],
+  "failure_phase": "associate",
+  "failure_reason": "rejected",
+  "access_point_restored": true,
+  "http_setup_status": 200,
+  "body_installed": false,
+  "climate_plan_installed": false,
+  "station_success_proven": false,
+  "complete_climate_memory_admission": false
+}

@@ -38,3 +38,18 @@ This is Root provisioning Control, with actual current issuance and native
 owners. It is distinct from climate Body birth, sensor Plan installation, a
 successful station attachment, Body-derived mDNS, browser membership, a live
 recorder Line or physical overnight recording. Those remain separate obligations.
+
+## Consumed construction material
+
+After installation transfers exact bindings to the kernel and selected providers,
+Root releases the rich network Plan and lowering. A preparation refusal still
+retains its refusal evidence. Ongoing provider ownership, current Play identity,
+terminal failure and restoration evidence remain with the actual control owner.
+
+The [physical Plan-release receipt](../evidence/2026-10-23-native-plan-release/measurement.json)
+records the same failed-association/AP-restoration path with retained Root heap
+falling from 31,756 to 15,136 bytes. The Root arena remains 64 KiB and the isolated
+SDK arena remains 120 KiB. Root preparation peak is still 38,400 bytes. The
+setup page returns HTTP 200 in the same Boot after one join attempt. This frees
+16,620 retained bytes without claiming complete climate admission, station
+success, Body installation or a recorder Line.
