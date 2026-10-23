@@ -97,7 +97,12 @@ impl ModelCustody {
             count: 0,
         };
         if let Some(model) = symbols.model {
-            symbols.observe(&model.metadata().inputs, &model.sidecar().inputs, inputs)?;
+            symbols.observe(
+                &model.metadata().inputs,
+                &model.sidecar().inputs,
+                inputs,
+                true,
+            )?;
         }
         Ok(symbols)
     }
@@ -108,7 +113,12 @@ impl<'a> ImportedSymbols<'a> {
         outputs: &conduit_data::NamedTensorBundleView<'_>,
     ) -> Result<(), ()> {
         if let Some(model) = self.model {
-            self.observe(&model.metadata().outputs, &model.sidecar().outputs, outputs)?;
+            self.observe(
+                &model.metadata().outputs,
+                &model.sidecar().outputs,
+                outputs,
+                false,
+            )?;
         }
         Ok(())
     }
@@ -117,16 +127,23 @@ impl<'a> ImportedSymbols<'a> {
         graph: &'a [conduit_ai::onnx_metadata::OnnxPort],
         bindings: &[conduit_ai::imported_onnx::ImportedPortBinding],
         tensors: &conduit_data::NamedTensorBundleView<'_>,
+        inputs: bool,
     ) -> Result<(), ()> {
         for binding in bindings {
             let port = graph
                 .iter()
                 .find(|p| p.name == binding.graph_name)
                 .ok_or(())?;
-            let tensor = tensors
-                .values()
-                .find(|t| t.name == binding.semantic_port)
-                .ok_or(())?;
+            let tensor = tensors.values().find(|t| t.name == binding.semantic_port);
+            let Some(tensor) = tensor else {
+                // Presence comes from inspected graph bytes matched to the
+                // semantic signature during admission. Missing outputs never
+                // gain this exemption, even for malformed internal metadata.
+                if inputs && port.presence == conduit_ai::ModelPortPresence::Optional {
+                    continue;
+                }
+                return Err(());
+            };
             if port.dimensions.len() != tensor.dimensions().len() {
                 return Err(());
             }
