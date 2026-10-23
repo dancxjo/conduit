@@ -100,7 +100,20 @@ fn canonical_arrival_retains_checked_mask_show_and_exact_source_publication() {
     assert_eq!(show.show.active_play_id, frame.composition.active_play_id);
     assert_eq!(show.show.lifecycle, ManifestationLifecycle::Available);
     assert!(display.writes > 0);
-    assert!(!frame.mask.route_keyboard().unwrap());
+    assert!(matches!(
+        frame.mask.scene().unwrap().interaction(
+            &face.identity,
+            face.revision,
+            crate::native_face_scene::FaceControl {
+                action: 0,
+                argument: None
+            },
+            show,
+            alloc::vec![],
+            1,
+        ),
+        Err(crate::native_face_scene::FaceSceneError::InputUnavailable)
+    ));
 }
 #[test]
 fn finite_surface_authority_and_failed_scanout_refuse_without_a_frame() {
