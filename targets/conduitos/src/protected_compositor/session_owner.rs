@@ -79,6 +79,9 @@ impl<T: Transport> SessionOwner<T> {
     pub fn active_session(&self) -> Option<SessionId> {
         self.active
     }
+    pub fn active_namespace(&self) -> Option<u64> {
+        self.active.map(|session| session.namespace)
+    }
     pub fn service_instance(&self) -> u64 {
         self.instance
     }

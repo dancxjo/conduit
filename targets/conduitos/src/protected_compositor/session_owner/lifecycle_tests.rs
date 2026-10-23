@@ -19,6 +19,7 @@ fn retained_activation_records_same_instance_and_only_actual_reset_entries() {
     assert_eq!(sample.after, None);
     assert!(!owner.is_active(first.session));
     assert!(owner.is_active(second.session));
+    assert_eq!(owner.active_namespace(), Some(2));
     assert_eq!(owner.transport.commands.len(), 4);
 }
 

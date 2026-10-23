@@ -22,6 +22,8 @@ fn identity(value: &str) -> Identity<'_> {
 }
 fn snapshot<'a>(value: &'a str, cost: &'a DomainCost) -> Snapshot<'a> {
     Snapshot {
+        checkpoint: Checkpoint::Prepared,
+        ack: None,
         position: Position {
             preparation: u64::MAX,
             checkpoint: u64::MAX,
@@ -209,7 +211,13 @@ fn guest_image_digest_retains_every_borrowed_byte_without_hex_allocation() {
 fn prepared_record_and_incomplete_paths_make_no_heap_allocation_calls() {
     // Preparation and JSON parsing are deliberately outside the measured closure.
     let cost = maximum_cost();
-    let normal = snapshot("escaped\"\\\n", &cost);
+    let mut normal = snapshot("escaped\"\\\n", &cost);
+    normal.ack = Some(AckRef {
+        instance: u64::MAX,
+        namespace: u64::MAX,
+        frame_sequence: u64::MAX,
+        guest_sequence: u64::MAX,
+    });
     let long = "\"\\\n".repeat(CAPACITY);
     let oversized = snapshot(&long, &cost);
     let mut overflowed = snapshot("scope", &cost);
@@ -238,5 +246,38 @@ fn prepared_record_and_incomplete_paths_make_no_heap_allocation_calls() {
     for i in 0..records.len() {
         let json = parse(&buffers[i], encoded[i]);
         assert_eq!(json["complete"], encoded[i].complete);
+    }
+}
+
+#[test]
+fn named_checkpoint_and_actual_ack_projection_are_explicit_and_lossless() {
+    let cost = DomainCost::default();
+    for (checkpoint, ordinal, name) in [
+        (Checkpoint::Prepared, 0, "prepared"),
+        (Checkpoint::InitialHub, 1, "initial-hub"),
+        (Checkpoint::FirstCreche, 2, "first-creche"),
+        (Checkpoint::PlayingHub, 3, "playing-hub"),
+    ] {
+        let mut record = snapshot("scope", &cost);
+        record.checkpoint = checkpoint;
+        record.position.checkpoint = ordinal;
+        record.ack = (ordinal != 0).then_some(AckRef {
+            instance: u64::MAX,
+            namespace: u64::MAX,
+            frame_sequence: u64::MAX,
+            guest_sequence: u64::MAX,
+        });
+        let mut buffer = [0; CAPACITY];
+        let encoded = encode(&record, &mut buffer);
+        assert!(encoded.complete);
+        let json = parse(&buffer, encoded);
+        assert_eq!(json["snapshot"]["checkpoint"], name);
+        if ordinal == 0 {
+            assert!(json["snapshot"]["ack"].is_null());
+        } else {
+            for field in ["instance", "namespace", "frame_sequence", "guest_sequence"] {
+                assert_eq!(json["snapshot"]["ack"][field], u64::MAX);
+            }
+        }
     }
 }

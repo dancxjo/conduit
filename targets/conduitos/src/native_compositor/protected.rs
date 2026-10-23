@@ -44,12 +44,22 @@ struct Scanout {
     coverage: [u32; 8],
     session: SessionId,
 }
+/// Private observation captured only after validated copies and the actual
+/// guest AcknowledgeScanout Unit response. Never used to authorize an effect.
+#[derive(Clone, Copy)]
+struct CopyAckRef {
+    instance: u64,
+    namespace: u64,
+    frame_sequence: u64,
+    guest_sequence: u64,
+}
 pub struct NativeCompositor {
     admission: CompositorAdmission,
     owner: Option<SharedDisplayOwner>,
     session: Option<SessionId>,
     surfaces: Vec<Surface>,
     scanout: Option<Scanout>,
+    copy_ack: Cell<Option<CopyAckRef>>,
     frame_sequence: u64,
     admitted_pixels: usize,
     failed: bool,
@@ -65,6 +75,7 @@ impl NativeCompositor {
             session: None,
             surfaces: Vec::with_capacity(8),
             scanout: None,
+            copy_ack: Cell::new(None),
             frame_sequence: 0,
             admitted_pixels: 0,
             failed: false,
@@ -139,6 +150,31 @@ impl NativeCompositor {
             .as_ref()
             .ok_or(NativeCompositorError::ServiceUnavailable)
     }
+    /// Read-only evidence projection; no guest request, render or acknowledgement.
+    pub(crate) fn lifecycle_copy_ack(
+        &self,
+    ) -> Option<crate::protected_compositor::lifecycle::sign::AckRef> {
+        let observed = self.copy_ack.get()?;
+        let current = self.scope().ok().and_then(|_| {
+            let owner = self.owner().ok()?.try_borrow().ok()?;
+            Some((
+                owner.sessions.service_instance(),
+                owner.sessions.active_namespace()?,
+            ))
+        });
+        if current != Some((observed.instance, observed.namespace))
+            || observed.frame_sequence != self.frame_sequence
+        {
+            self.copy_ack.set(None);
+            return None;
+        }
+        Some(crate::protected_compositor::lifecycle::sign::AckRef {
+            instance: observed.instance,
+            namespace: observed.namespace,
+            frame_sequence: observed.frame_sequence,
+            guest_sequence: observed.guest_sequence,
+        })
+    }
     pub(crate) fn validate_active_session(&self) -> Result<(), NativeCompositorError> {
         self.scope().map(|_| ())
     }
@@ -157,20 +193,26 @@ impl NativeCompositor {
         Ok(session)
     }
     fn request(&self, request: Request) -> Result<Response, NativeCompositorError> {
-        let session = self.scope()?;
-        let mut owner = self
-            .owner()?
-            .try_borrow_mut()
-            .map_err(|_| NativeCompositorError::ServiceBusy)?;
-        let result = owner
-            .sessions
-            .request(session, request)
-            .map_err(owner_error)
-            .and_then(response);
-        // The transport can terminally fence the session before returning its
-        // error. Release Root staging now, including read-only routing calls.
-        if owner.sessions.is_terminated() {
-            owner.quarantine();
+        let result = (|| {
+            let session = self.scope()?;
+            let mut owner = self
+                .owner()?
+                .try_borrow_mut()
+                .map_err(|_| NativeCompositorError::ServiceBusy)?;
+            let result = owner
+                .sessions
+                .request(session, request)
+                .map_err(owner_error)
+                .and_then(response);
+            // The transport can terminally fence the session before returning its
+            // error. Release Root staging now, including read-only routing calls.
+            if owner.sessions.is_terminated() {
+                owner.quarantine();
+            }
+            result
+        })();
+        if result.is_err() {
+            self.copy_ack.set(None);
         }
         result
     }
@@ -181,9 +223,11 @@ impl NativeCompositor {
         }
     }
     fn invalidate(&mut self) {
+        self.copy_ack.set(None);
         self.scanout = None;
     }
     fn fail(&mut self) {
+        self.copy_ack.set(None);
         self.scanout = None;
         self.failed = true;
         if let (Some(owner), Some(session)) = (&self.owner, self.session) {

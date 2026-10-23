@@ -8,6 +8,25 @@ pub(crate) const CAPACITY: usize = 4096;
 pub(crate) const PREFIX: &[u8] = b"CONDUIT_COMPOSITOR_LIFECYCLE ";
 const SCHEMA: &str = "conduit.conduitos/compositor-lifecycle@1";
 
+/// Named product checkpoints are not inferred from pictures or frame counts.
+#[derive(Clone, Copy, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub(crate) enum Checkpoint {
+    Prepared,
+    InitialHub,
+    FirstCreche,
+    PlayingHub,
+}
+
+/// Correlation to existing validated-copy/guest-ACK telemetry, not scanout authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub(crate) struct AckRef {
+    pub instance: u64,
+    pub namespace: u64,
+    pub frame_sequence: u64,
+    pub guest_sequence: u64,
+}
+
 #[derive(Clone, Copy, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub(crate) enum Stage {
@@ -146,6 +165,8 @@ impl Serialize for Cost<'_> {
 
 #[derive(Serialize)]
 pub(crate) struct Snapshot<'a> {
+    pub checkpoint: Checkpoint,
+    pub ack: Option<AckRef>,
     pub position: Position,
     pub stage: Stage,
     pub kind: Kind,
