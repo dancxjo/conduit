@@ -140,3 +140,37 @@ visibility and consequently omitted Cord Connects. Those negatives and the
 initial allocator failures are retained under `publication-lifetime` beside the
 passing focused checks. Aggregate and duplicate-subject refusal equivalence are
 also checked. Fresh repaired QEMU proof remains required.
+
+## Repaired ordinary QEMU result
+
+The supported build and normal journey **pass** on clean source
+`f88b3c481b20b296195b4ac8920add42078fd6ca`. ISO SHA256:
+`3b75f2452998dd947c3689e0ec510fff12ad7b52dad6b29653de913f57fbeaf7`.
+The [retained packet](evidence/native-checked-source-20261023/f88-success/summary.json)
+records actual Vision selection, explicit absent inspected Plan/Play, matching
+initialized producer/renderer ledgers, all 49 exact graph subjects reached in
+source order through acknowledged Details, two diagram pages read forward and
+back, and a typed return to the original planned target with the same real
+Body/Plan/Play. The Source has 14 internal Cords and two Fore boundary bindings.
+
+[Diagram page one](evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/diagram-backward-000.png)
+shows six compact nodes and five directional links. Page two continues the
+remaining nodes. The bounded diagram explicitly reports omitted links: this is
+not a claim that all 16 Cords fit simultaneously. The
+[Cord Details capture](evidence/native-checked-source-20261023/f88-success/patchbay-checked-source/details-cord.png)
+shows exact Source OUT and Sink IN endpoints. All 49 subjects were traversed;
+seven Source PNGs capture selection, diagram continuation and representative
+Gear, Port and Cord Details, rather than claiming a PNG of every subject.
+
+The normal journey also completes its existing resident selection, Source Edit
+handoff/loading/restoration, Home, keyboard/pointer and Look paths. Independent
+stdlib PNG decoding, chunk CRC, byte/file hash, dimensions and RGBA hash checks
+pass for all seven Source and 27 ordinary journey captures. Strict native
+all-target Clippy passes on the combined measured source. Image products remain
+retained locally, with complete proof/serial/QMP and image identity evidence in
+Git. These establish normal x86 QEMU and CPU proof, not physical/human enactment,
+hostile-code confinement or stable publication.
+
+Implementation review, relevant exact-head checks and normal merge remain
+required. #6257/#6272 and parent #5519/#5994 have not been closed by this local
+result; the separate #5608 pressure/provider/layout matrix also remains open.
