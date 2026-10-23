@@ -1,0 +1,18 @@
+{
+  "implementation_commit": "405752f3af6a9a937f74eb2354ab4fdaf2ad983c",
+  "proof_class": "CPU fixture readiness and compiler-produced module compilation; ESP32 cross-build",
+  "native_construction_tests_passed": 21,
+  "software_offer_count": 13,
+  "software_offer_array_bytes": 55655,
+  "offer_view_preflight_allocations": 0,
+  "offer_view_refusal_allocations": 0,
+  "offer_view_iteration_allocations": 0,
+  "generated_rust_sha256": "960b428e0579f9d790cb02d374264467fa14e8d28c4aa22d2087c14c79e10645",
+  "generated_rust_compiles": true,
+  "strict_make_runtime_xtask_clippy": true,
+  "locked_esp32_cross_build": true,
+  "firmware_publishes_software_offers": false,
+  "new_firmware_flashed": false,
+  "climate_body_installed": false,
+  "complete_climate_memory_admission": false
+}

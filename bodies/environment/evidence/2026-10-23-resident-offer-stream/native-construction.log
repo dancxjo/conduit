@@ -1,0 +1,111 @@
+   Compiling conduit-xtask-dispatch v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/tools/xtask-dispatch)
+    Finished `dev` profile [unoptimized] target(s) in 0.97s
+     Running `target/debug/conduit-xtask-dispatch prove environment native-construction`
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 1.72s
+     Running tests/credential_owner.rs (target/debug/deps/credential_owner-44efcd28e8c244e0)
+
+running 2 tests
+test native_command::tests::fragmented_requests_refuse_overflow_and_never_infer_execution_permission ... ok
+test actual_private_mailbox_requires_current_selected_possession_and_response_ack ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/native.rs (target/debug/deps/native-da695479578a8f66)
+
+running 9 tests
+test stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation ... ok
+test native_construction_enters_the_real_body_proposal_without_inventing_a_play ... ok
+resident_software_offer_array_bytes=55655
+test recipe::only_initialized_resident_software_lends_exact_host_free_offer_bytes ... ok
+test body_binding_refuses_identity_substitution_membership_loss_and_revocation ... ok
+test body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start ... ok
+test real_authored_source_is_prepared_against_supplied_offers_without_effects ... ok
+test recipe::resident_recipe_is_boot_independent_while_assignment_and_plan_remain_current ... ok
+test a_different_retained_body_play_cannot_confirm_the_prepared_binding ... ok
+test recipe::recipe_cadence_is_pinned_and_compiler_role_mapping_refuses_ambiguous_nodes ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/network_assignment.rs (target/debug/deps/network_assignment-628e6c5d0e029814)
+
+running 1 test
+test network_assignment_preserves_its_independent_subject_and_native_possession ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/network_play.rs (target/debug/deps/network_play-fedf3e2b89c8a8ec)
+
+running 1 test
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=3632
+test checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+
+     Running tests/root_control.rs (target/debug/deps/root_control-d693082b6538d0ea)
+
+running 6 tests
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+
+     Running tests/selected_port_shapes.rs (target/debug/deps/selected_port_shapes-67ce50fb7e1343ab)
+
+running 2 tests
+test assigned_configuration_matches_independent_source_exactly ... ok
+test source_sink_and_single_pair_shapes_bind_exactly ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Locking 55 packages to latest compatible versions
+   Compiling unicode-ident v1.0.27
+   Compiling unicode-normalization v0.1.26
+   Compiling proc-macro2 v1.0.107
+   Compiling serde_json v1.0.154
+   Compiling quote v1.0.47
+   Compiling syn v3.0.9
+    Checking minicbor v2.3.1
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+    Checking thiserror v2.0.21
+    Checking cobs v0.3.0
+   Compiling serde v1.0.229
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/plot)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/kernel)
+    Checking postcard v1.1.3
+    Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/body)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/human)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/language)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/face)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/architecture/planner)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/education)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/alife)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/process)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/text)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/purpose)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/web)
+   Compiling conduit-pulse-capture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/io/pulse-capture)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/mechanisms/protocols/midi)
+   Compiling conduit-environment-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/runtime)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/semantics/catalog)
+    Checking conduit-environment-resident-recipe-proof v0.0.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/environment-resident-recipe-proof)
+    Finished `dev` profile [unoptimized] target(s) in 2m 16s
