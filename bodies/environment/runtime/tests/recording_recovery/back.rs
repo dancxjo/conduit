@@ -277,3 +277,66 @@ fn kernel_recovery_requires_successful_read_completion_and_valid_content() {
         assert_eq!(reader.recovered().samples, u32::from(mode == 0));
     }
 }
+
+#[test]
+fn committed_recovery_projects_into_the_ordinary_recording_face() {
+    use conduit_environment_face::{
+        PreparedRecordingFace, RecordingRecoveryFailure, RecoveredRecordingRange,
+    };
+    use conduit_face::{FaceBasis, FacePropertyValue};
+    let mut reader = back();
+    let mut face = PreparedRecordingFace::prepare(
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: Some("fixture/recording/source".into()),
+            checked_plot_id: Some("fixture/recording/checked".into()),
+            expanded_plot_id: Some("fixture/recording/expanded".into()),
+            plan_id: Some("fixture/recording/plan".into()),
+            active_play_id: Some("fixture/recording/play".into()),
+            sign_ids: vec![],
+        },
+        2,
+        128,
+        4,
+    )
+    .unwrap();
+    let content = history::chunk(&[(1, 10), (3, 20)]);
+    let ((), memory) = allocation_probe::observe(|| {
+        assert_eq!(
+            offer(&mut reader, content.as_bytes(), 16),
+            StepOutcome::Progress
+        );
+        assert_eq!(reader.recovered(), RecoveredHistory::default());
+        assert_eq!(face.current().revision, 0);
+        <RecordingRecoveryBack as StepBack<1>>::step_committed(&mut reader);
+        let recovered = reader.recovered();
+        face.publish_recovered(RecoveredRecordingRange {
+            chunks: recovered.chunks,
+            samples: recovered.samples,
+            first_sequence: recovered.first_sequence.unwrap(),
+            last_sequence: recovered.last_sequence.unwrap(),
+        })
+        .unwrap();
+        assert!(face
+            .current()
+            .properties
+            .iter()
+            .any(|p| p.name == "last-sequence" && p.value == FacePropertyValue::Count(3)));
+        assert!(matches!(
+            offer(&mut reader, b"{}", 16),
+            StepOutcome::Fail(_)
+        ));
+        <RecordingRecoveryBack as StepBack<1>>::step_committed(&mut reader);
+        face.publish_refusal(RecordingRecoveryFailure::InvalidContent)
+            .unwrap();
+        assert_eq!(reader.recovered(), recovered);
+        assert!(face
+            .current()
+            .properties
+            .iter()
+            .any(|p| p.name == "samples" && p.value == FacePropertyValue::Count(2)));
+        face.current().validate().unwrap();
+    });
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+}

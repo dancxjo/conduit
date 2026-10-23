@@ -998,3 +998,15 @@ The other six computations retain between 3,012 and 4,177 bytes each. Individual
 peaks are not additive, and these numbers exclude other live storage and
 allocator overhead. This identifies the next memory-admission work; it does
 not justify a larger Root arena or claim a physical installation.
+
+`PreparedRecordingFace` publishes bounded recovery evidence through the ordinary
+Face grammar: recovered chunk/sample counts, first/last sequence, known missing
+sequences within that range, and distinct content/capacity/cancellation refusals.
+A refusal preserves the last recovered range; duplicates preserve revision, and
+invalid, reversed or exhausted updates preserve the prior Face. Preparation
+reserves all update storage. CPU tests project the recovery Back's committed
+summary into this Face without further allocations. The caller supplies the
+actual contribution basis and only committed recovery state. This Face neither
+acknowledges a new durable write nor treats historical samples as fresh sensor
+readings; quantity observations remain in the existing observation Face/history.
+The browser Mask and real recorder Host installation remain separate work.

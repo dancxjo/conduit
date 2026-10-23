@@ -156,3 +156,8 @@ fn property(name: &str, value: FacePropertyValue) -> FaceProperty {
 mod prepared;
 mod result;
 pub use prepared::{PreparedObservationFace, PublicationRefusal};
+
+mod recording;
+pub use recording::{
+    PreparedRecordingFace, RecordingFaceRefusal, RecordingRecoveryFailure, RecoveredRecordingRange,
+};
