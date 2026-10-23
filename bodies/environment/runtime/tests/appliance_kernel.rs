@@ -15,6 +15,8 @@ mod plan {
     pub const PREFIX: &str = "fixture/environment";
 }
 mod appliance_support;
+#[path = "appliance_support/assigned.rs"]
+mod assigned_software;
 #[allow(
     dead_code,
     reason = "the shared provider also exercises assignment admission"
@@ -58,10 +60,11 @@ fn a_ready_capability_does_not_replace_authority_or_missing_implementations() {
 #[test]
 fn authored_appliance_commits_all_sensor_outcomes_through_the_production_kernel() {
     for scenario in 0..=6 {
-        run(scenario);
+        run(scenario, false);
+        run(scenario, true);
     }
 }
-fn run(scenario: usize) {
+fn run(scenario: usize, native: bool) {
     let source = compile(1, 0).unwrap();
     let (ready, effects) = pulse::ready(scenario);
     let (mut software, software_memory) = allocation_probe::observe(|| software(&source));
@@ -118,44 +121,13 @@ fn run(scenario: usize) {
     let mut capacities = [1024; 32];
     capacities[..2].fill(4096);
     let mut values = k::HostedValueStore::new_with_slot_capacities(&capacities, 38912).unwrap();
-    let wait = values.store(&0_u64.to_le_bytes()).unwrap();
-    let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
-    let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
-    for placement in &plan.fragments[0].startup_order {
-        let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
-        let gear = plan.fragments[0]
-            .placements
-            .iter()
-            .find(|g| &g.placement_id == placement)
-            .unwrap();
-        drivers[i] = Some(if gear.kind_id.as_str() == conduit_time::TICK_KIND {
-            Driver::Tick(conduit_time::TickBack::counted(wait, 1).unwrap())
-        } else if gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND {
-            Driver::Native(CaptureBack::pulse(1024))
-        } else {
-            let prepared = software
-                .take_selected(&plan.fragments[0], placement)
-                .unwrap();
-            selectors[i] = prepared.selector;
-            prepared.driver
-        });
-    }
+    let sign_bytes = lowered.sign_bytes;
     let sign_slots = lowered.sign_items.max(
         u16::try_from(
             (lowered.sign_bytes as usize).div_ceil(core::mem::size_of::<k::KernelEvent>()),
         )
         .unwrap(),
     );
-    let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_with_host_calls(
-        tables.nodes,
-        tables.cords,
-        tables.routes,
-        tables.calls,
-        drivers.map(Option::unwrap),
-        values,
-        k::HostedSignLog::new(sign_slots, lowered.sign_bytes).unwrap(),
-    )
-    .unwrap();
     let tick_node = lowered
         .nodes
         .iter()
@@ -167,6 +139,68 @@ fn run(scenario: usize) {
         })
         .unwrap()
         .node;
+    let (tables, drivers, mut selectors, values) = if native {
+        let recipe = assigned_software::Recipe::prepare(&plan, &lowered, &image, &projection);
+        // The constrained constructor retains no rich Source, Host advertisement,
+        // Plan, lowering, software offer catalog or Make image.
+        drop((source, host, plan, lowered, software, image, tables));
+        let (prepared, memory) = allocation_probe::observe(|| {
+            conduit_environment_runtime::appliance::assigned::PreparedAssignedAppliance::prepare(
+                &projection.bytes,
+                assignment::NativeProjection::maxima(),
+                projection.required(),
+                &recipe.resident(&projection),
+                values,
+            )
+            .unwrap()
+        });
+        assert_eq!((prepared.count, prepared.period_ms), (1, 0));
+        assert_eq!(prepared.roles.pulse, pulse_node);
+        assert_eq!(prepared.roles.tick, tick_node);
+        if scenario == 0 {
+            eprintln!("environment_assigned_software_preparation={memory:?}");
+        }
+        (
+            prepared.tables,
+            prepared.drivers,
+            prepared.selectors,
+            prepared.values,
+        )
+    } else {
+        let wait = values.store(&0_u64.to_le_bytes()).unwrap();
+        let mut selectors: [Option<PreparedCaptureSelector>; N] = core::array::from_fn(|_| None);
+        let mut drivers: [Option<Driver>; N] = core::array::from_fn(|_| None);
+        for placement in &plan.fragments[0].startup_order {
+            let i = usize::from(lowered.identity.node_for_placement(placement).unwrap().0);
+            let gear = plan.fragments[0]
+                .placements
+                .iter()
+                .find(|g| &g.placement_id == placement)
+                .unwrap();
+            drivers[i] = Some(if gear.kind_id.as_str() == conduit_time::TICK_KIND {
+                Driver::Tick(conduit_time::TickBack::counted(wait, 1).unwrap())
+            } else if gear.kind_id.as_str() == conduit_pulse_capture::PULSE_READ_KIND {
+                Driver::Native(CaptureBack::pulse(1024))
+            } else {
+                let prepared = software
+                    .take_selected(&plan.fragments[0], placement)
+                    .unwrap();
+                selectors[i] = prepared.selector;
+                prepared.driver
+            });
+        }
+        (tables, drivers.map(Option::unwrap), selectors, values)
+    };
+    let mut kernel = FixedScheduler::<_, _, _, N, C, P, C, R, C, N, N>::new_with_host_calls(
+        tables.nodes,
+        tables.cords,
+        tables.routes,
+        tables.calls,
+        drivers,
+        values,
+        k::HostedSignLog::new(sign_slots, sign_bytes).unwrap(),
+    )
+    .unwrap();
     let mut drained = false;
     let ((), allocation) = allocation_probe::observe(|| {
         for _ in 0..2000 {

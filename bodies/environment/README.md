@@ -859,3 +859,22 @@ arena therefore has no admission proof for this rich path. MCU installation must
 use the separately bounded native assignment path and prove its complete live
 closure before Play. No new physical Host, Body, sensor or browser installation
 is claimed by these CPU measurements.
+
+`PreparedAssignedAppliance` initializes the actual software drivers directly
+from the bounded native assignment and independently pinned resident roles,
+layout and computation inventory. It checks those before preparing the timer
+value, codecs and publication endpoints. It retains no rich Source, Plan or
+offer catalog. Pulse and wait Host Calls still require independently owned
+native providers, current possession, complete resource admission and a real
+Body start. This constructor neither issues authority nor claims installation.
+
+The publication proof now runs all seven sensor outcomes through both rich and
+assigned preparation after dropping the rich preparation objects on the assigned
+path. Wrong Host/Boot, colliding or mislabelled roles, altered computations and
+insufficient wait storage refuse before software allocation or provider effects.
+Both paths use the production kernel without execution allocations. On the
+64-bit CPU, assignment-based software preparation peaks at 150,803 new heap
+bytes and retains 118,776; preallocated value storage, assignment bytes, resident
+metadata and native owners are outside that measurement. The complete MCU
+closure remains unproven. The ESP32 native-root feature compiles this appliance
+profile, but no physical appliance installation is claimed.

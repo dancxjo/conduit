@@ -66,3 +66,5 @@ impl<const P: usize> StepBack<P> for ApplianceBack {
 
 #[cfg(feature = "construction")]
 pub mod software;
+
+pub mod assigned;
