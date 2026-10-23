@@ -1,0 +1,24 @@
+{
+  "observed_utc": "2026-10-23T23:27:22.087169+00:00",
+  "reason": "Actual failed6336quick40038665397: raw CRLF serial evidence trips git diff --check; preserve exact original bytes as gzip, no whitespace normalization or CI bypass.",
+  "files": [
+    {
+      "original_path": "work/open-prs-omnibus/docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log",
+      "retained_path": "work/open-prs-omnibus/docs/audits/evidence/aarch64-ramfb-g0-20261023/serial.log.gz",
+      "original_bytes": 5899,
+      "original_sha256": "b89906cdc5e71636fb8d2ad3fa403d80d3a8f23169f88e89b0b205959cef69c6",
+      "stored_bytes": 1577,
+      "stored_sha256": "144fd28229a06ae34efe44fe090a521527d8ec0d203c4f53f3189a7c014ec490",
+      "decompression_exact": true
+    },
+    {
+      "original_path": "work/open-prs-omnibus/targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log",
+      "retained_path": "work/open-prs-omnibus/targets/conduitos/proof/firmware-frame/aarch64-f96860659/no-framebuffer/serial.log.gz",
+      "original_bytes": 5876,
+      "original_sha256": "4755fafa465bb76256c5b8210d35dac23c9c9521bd53d332ea170c0002b90ff0",
+      "stored_bytes": 1560,
+      "stored_sha256": "1eec07f45f9dafcc41eafe2596cbe76e140fc818bef91ea61bfd38053ed6e875",
+      "decompression_exact": true
+    }
+  ]
+}

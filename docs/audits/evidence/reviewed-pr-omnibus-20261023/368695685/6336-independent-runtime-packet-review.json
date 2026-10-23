@@ -1,0 +1,125 @@
+{
+  "observed_utc": "2026-10-23T23:24:06.762820+00:00",
+  "head": "ecd44fbe20481e955fdc855b653c6a8387adf3f9",
+  "actual_image_source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+  "status": "VERIFIED_RETAINED_TWO_BOOT_RECORD_AND_PIXEL_JOINS_BINARY_BYTES_UNAVAILABLE",
+  "artifacts": {
+    "image": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-aarch64-f96860659/conduitos-aarch64.iso",
+      "reported_sha256": "47c8dde2b88f200f4af7845d5960aab5ce79ec652954a31725f9a75953df2a23",
+      "bytes_available_on_this_host": false,
+      "independent_binary_hash_verified": false
+    },
+    "kernel": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/conduit/target/host-build/6057-aarch64-f96860659/conduitos-kernel.elf",
+      "reported_sha256": "3515a1fe60d7f3d95f9b48338f990c3fc119d0e54736bf1476c4f861d02b43d4",
+      "bytes_available_on_this_host": false,
+      "independent_binary_hash_verified": false
+    }
+  },
+  "entire_kernel_embedded_once_iso_offset": null,
+  "frames": [
+    {
+      "which": "first",
+      "host": "493df6cfac1ecd822936aa16046ac347e66369b22848af8caca07f3152a4a8dd",
+      "boot": "ea475a7ad1ac65e34310d845b7274170327a17c46de984e7ea34850ae9e41a90",
+      "graphical_face": "6e71d6b525dbfb581143b81351d827d80563780bb0329a5cc295b1028be269d2",
+      "graphical_show": "show/0f17637e7a985c1d46285b7fe8ddfc1df439471709d5db34fa56bb3857104610",
+      "linear_product_face": "8ff645de30b8c20486c8cb7a19bcee83e00e599e82558bed3f2365646ce8287b",
+      "png_sha256": "6f76d6d7ec226e47d79aa093a8a64f4e246ae0f741c960dc9ba97d95a1c356c2",
+      "rgba_sha256": "1fb3bb699e1ce6d86b2d642c600b3c00e5148f2106f88e06fa5ec46b6ad8a6c9",
+      "geometry": [
+        800,
+        600,
+        3200,
+        32
+      ],
+      "raw_record_and_qmp_joins": true
+    },
+    {
+      "which": "second",
+      "host": "9c3021158448ba1ebfc8a2b937ba4c1fbf9d78d22ab3d93c19f403ae518a42c8",
+      "boot": "d7da865f0452586caf70af15f53176c23a4a93d49093209ed00c5996b9846ade",
+      "graphical_face": "71d4581d3b07e40a9135503f63c0dc151d2c5bf5138b1631329dbda34d78bf76",
+      "graphical_show": "show/ac234c8e92a957cf28ea114cb618ff88e1697de91be9057c72c424755cb219ec",
+      "linear_product_face": "624545d7d0cca75eafbe532e9e0b25ca421ce251acb7c80a84f2e9ae0256fee6",
+      "png_sha256": "65a8b056884c40a880a9d81d5ad0608e7c3ff6fe7583ffa96f21b76d77f3eadb",
+      "rgba_sha256": "2269f95d25ad876703876df0f7d24b7a6d700bffe07feaef22ac99f6b92b10b3",
+      "geometry": [
+        800,
+        600,
+        3200,
+        32
+      ],
+      "raw_record_and_qmp_joins": true
+    }
+  ],
+  "negative_receipts": {
+    "no_framebuffer": {
+      "schema": "conduit.conduitos/absent-firmware-framebuffer-negative@1",
+      "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+      "image_sha256": "47c8dde2b88f200f4af7845d5960aab5ce79ec652954a31725f9a75953df2a23",
+      "command": [
+        "/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/tools/bin/qemu-system-aarch64",
+        "-M",
+        "virt",
+        "-cpu",
+        "neoverse-n2",
+        "-m",
+        "512M",
+        "-smp",
+        "1",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        "file:/home/dancxjo/Documents/Codex/2026-10-23/goal-please-finish-and-close-https/work/aarch64-no-framebuffer-current/serial.log",
+        "-net",
+        "none",
+        "-no-reboot",
+        "-bios",
+        "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-aarch64-tools/extracted/usr/share/qemu-efi-aarch64/QEMU_EFI.fd",
+        "-cdrom",
+        "target/host-build/6057-aarch64-f96860659/conduitos-aarch64.iso",
+        "-boot",
+        "d"
+      ],
+      "firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+      "expected_refusal": "display-absent",
+      "graphical_pass": false,
+      "accepted_release": false,
+      "started": 1792797002.9755785,
+      "pid": 143827,
+      "observed_refusal": "display-absent",
+      "guest_exit": 0,
+      "finished": 1792797009.8964298,
+      "firmware_template_unchanged": true,
+      "no_graphical_show": true,
+      "passed": true
+    },
+    "dirty_source": {
+      "source": "f96860659760660fc796e7694df5bee4bd9f2bb8",
+      "command": [
+        "cargo",
+        "xtask",
+        "make",
+        "host",
+        "verify",
+        "target/host-build/6057-aarch64-f96860659",
+        "--boot"
+      ],
+      "exit_code": 1,
+      "expected_refusal": "firmware-frame-source-dirty",
+      "owned_sentinel_removed": true,
+      "clean_after": true,
+      "classification": "retained-proof-source-refusal-before-guest-spawn; no graphical pass"
+    }
+  },
+  "limits": [
+    "Read-only retained Git packet. Original absolute build directory is absent on this host; actual ISO/ELF byte hashes and embedded-kernel identity could not be independently rechecked. Manifest/launch/serial reported identities join. No rebuild or substitute image used.",
+    "Product-ready linear Face and graphical firmware Face are explicitly distinct; graphical acknowledgement comes from firmware Face/Mask/Show records.",
+    "Mapping/cache observations are emulator evidence, not physical coherence. No Body or local input or full6057 closure.",
+    "Candidate and relevant Integration still required."
+  ]
+}

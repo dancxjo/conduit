@@ -1,0 +1,74 @@
+{
+  "observed_utc": "2026-10-23T23:11:34.025798+00:00",
+  "pr": 6331,
+  "head": "03f51f15dc539c19a3fe26c92680e93bc413802f",
+  "mode": "Read-only one ghview/diff; no builds, source edits, ownerbranch/cache mutations or CIpolls.",
+  "findings": [
+    {
+      "priority": "P2",
+      "path": "targets/raspberry-pi/deployment/linux/bootstrap.py",
+      "lines": [
+        77,
+        84,
+        102,
+        109
+      ],
+      "title": "Quote validated user and hostname values when emitting cloud-init YAML",
+      "detail": "Regex accepts valid names such as user true or hostname null. Interpolation writes name:true, hostname:null, unquoted flowsequence owner/group arguments and local-hostname:null. YAML consumers type these as boolean/null rather than requestednames. Byte-for-byte mtype readback authenticates emitted bytes but doesnotvalidate their config semantics; prepared image can fail firstboot user/networkmaintenance setup despite successreceipt.",
+      "fix": "Use json.dumps (alreadyimported, as forSSHkey) for every user/hostname YAMLscalar inuserdata/metadataincludingruncmd sequence. Add accepted scalar-looking name regressions and assert decoded configuration contains exact strings.",
+      "verification": "Source-level configsemantic defect; no image or physicalboot execution performed."
+    }
+  ],
+  "reviewed_no_additional_blocker": [
+    "Base andSSHkey must be regular nonsymlink files; pinnedcompressedSHA verified beforemutation; SSHkey limited/Ed25519selected/ssh-keygenchecked.",
+    "Output uses exclusive xb creation and rejects existingimage orsidecardir; ordinary path doesnotflashblockdevices. Laterreadback doesnotestablish unattendedboot, correctly markedfalse.",
+    "MBRsignature/FATfirstpartition/extents andactualPi3B+DTB checked; cloudinitfilesmcopy thenexactmtypereadback; finalimagehash/size recorded.",
+    "Surface validatescheckedextent/pitch, max8MiBCPUbytes, preparationreserve, boundedexistingraster; alpha forcedopaque andbufferstable.",
+    "Scanout presentfailure revokes preparation and erasesCPU surface; explicitcustodyloss mustbecalledbyenclosingHost asdocumented; nolaterreacquisitionofsameobject.",
+    "KMSDRMpreparation explicitlyselectsdriver and checks actualbackend; nosilentX11/Waylandfallback; actualHostresourceadmission remainsunimplementedanddocumented.",
+    "No new Body/scheduler/recorderauthority; unfinishedHost/client/service/physicalPi/HDMI acceptance honestly retained."
+  ],
+  "coverage_and_limits": [
+    "TwoCPU/SDLdummy tests coverextentbounds, rendering/texture readback, stableCPUbuffer, opaqueemptyframe and explicitterminalloss. They do notproveDRMmaster, actualHDMI/displaylossdetection, Pi/boot acceptance.",
+    "No checked-in automatedbootstrap tests inthisdiff coverYAMLsemantictypes or refusalpath partialoutputs; ownerreportsmanualverifiedbase/FATreadback/overwriteproof, not independentlyexecutedhere.",
+    "Existingoutput collision is checked beforemutation and xb also closes finalfilecreation race; directorypath/environmentconcurrency beyondthat not demonstrated.",
+    "Decompressionboundedby exactpinnedcompressedcontent and4GiBfreepreflight; no arbitraryunverifiedimage acceptance. No independentpinnedURL/hash refresh performed inthisreview.",
+    "Candidate/mergedsourceCI andphysicaldeployment proof remainseparate; thisispreparation sliceonly."
+  ],
+  "ownership": "Othermachineownerunchanged; Root coordinates findings/admission.",
+  "repair_review": {
+    "observed_utc": "2026-10-23T23:15:01.567157+00:00",
+    "fixed_head": "1e5e7d4bea8103f5c0059bd81be077f6fc1b4996",
+    "parent": "03f51f15dc539c19a3fe26c92680e93bc413802f",
+    "parent_matches_original_review": true,
+    "changed_paths": [
+      "targets/raspberry-pi/deployment/linux/bootstrap.py"
+    ],
+    "finding_resolved_at_fixed_head": true,
+    "reason": "All four interpolation sites nowusejson.dumps forvalidhostname/userstrings, includingbothruncmdowner/group slots andmetadata; JSONquotedstringsarevalidYAMLstrings, preservingexactrequestedtext. Nooverwrite/image/display/custodychange.",
+    "proof_receipt": "outputs/6331-bootstrap-yaml-repair-proof.json",
+    "proof_hash_checks": [
+      {
+        "path": "work/6331-bootstrap-yaml-negative-03f51f15.log",
+        "sha256_matches": true
+      },
+      {
+        "path": "work/6331-bootstrap-yaml-positive.log",
+        "sha256_matches": true
+      },
+      {
+        "path": "work/6331-bootstrap-yaml-regression.py",
+        "sha256_matches": true
+      }
+    ],
+    "negative_cases": 6,
+    "positive_cases": 7,
+    "runner_review": "Calls actualprepare withrealtemporaryLZMA/MBR andrealoutput/sidecarwrites; patchespinnedSOURCE_SHA256 onlytobindsyntheticfixture andmocks ssh-keygen/mtools. Readsactualemitteduserdata/metadata viaPyYAML6.0.3 andchecks all5scalarpositions exactstr equality for7names.",
+    "limits": [
+      "Didnotreexecuterunner; independentreviewverifiedrunnerlogic, exact4linepatch, parentidentity andretainedloghashes/results.",
+      "Negative/positive sourcebinding retainedbyRootreceiptandhistoricaltestsequence; logitselfdoesnotembedsourcehash.",
+      "Mocks do notproveofficialimagepartitiontoolbehavior, sshencodingcheck, distributionboot, SDwriteorphysicalPi/HDMI. Thoseboundariesremainunchanged.",
+      "HeldbranchfixisnotclaimofownerPRdelivery/mergedacceptance; Rootcoordinatesownerhandoff."
+    ]
+  }
+}

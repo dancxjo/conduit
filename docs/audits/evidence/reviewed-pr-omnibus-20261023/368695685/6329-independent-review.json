@@ -1,0 +1,54 @@
+{
+  "schema": "conduit.independent-source-review@1",
+  "pr": 6329,
+  "issue": 6317,
+  "head": "6663e81a282d4dd912d52d3c098eaf0de183ec45",
+  "parent": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "scope": "Read-only review of all 27 changed paths and literal live issue acceptance; no builds/tests/CI observations performed.",
+  "disposition": "No concrete active production regression found; one literal acceptance/closure gap remains.",
+  "findings": [
+    {
+      "severity": "acceptance-gap",
+      "title": "Existing production request owner does not yet own the accounting lifecycle",
+      "locations": [
+        {
+          "path": "architecture/core/src/execution/operation.rs",
+          "lines": [
+            48,
+            50,
+            79,
+            90,
+            164,
+            184
+          ]
+        },
+        {
+          "path": "targets/conduitos/tests/protected_operation_accounting.rs",
+          "lines": [
+            28,
+            29,
+            49,
+            58
+          ]
+        }
+      ],
+      "evidence": "The helper explicitly relies on its caller to begin after exact admission and forbid replacement while live. Committed-tree usage search finds ProtectedOperation only in its Core definition/tests and the new integration test. The wire test constructs a helper locally and explicitly models the existing owner response check; no production Root-correlated compositor/service request owner calls begin/grant/finish_slice/complete/cancel_or_fault. A fresh helper would reset totals if an owner recreated it, so the anti-renewal property is not established for any existing owner by these tests.",
+      "requirement": "Live #6317 requires the existing Root-correlated owner to begin once after admission, retain bytes/envelope and remaining grant across transport retry/gate/resume, retire only after its complete bounded matching response validator, and revoke fault/cancel/exhaustion.",
+      "recommendation": "Treat this PR as the canonical contract/deterministic helper prerequisite, not full original #6317 completion, unless existing-owner deterministic integration is added. Explicitly retain the original owner-lifecycle requirement as open/owned; the appended deferral to #6311 does not itself demonstrate it. Actual interrupt/CPL3 enforcement remains correctly outside this prerequisite."
+    }
+  ],
+  "reviewed_controls": {
+    "identity": "Explicit scheduling tags preserve cooperative tag 0 and partitioned tag 1 byte construction; protected tag 2 fingerprints accounting profile, quantum/total and context binding/extent/alignment. Existing scheduling golden digests and absent protected-offer legacy JSON tests are substantive source controls, not independently executed here.",
+    "finite_policy": "Positive quantum/total, quantum <= total, positive aligned context extent, explicit observed-source-interrupt units and missed/coalesced limitations. Private grants bind request envelope, command digest/length and checked epoch; outstanding grant equality prevents successful duplicate finish; invalid counts/exhaustion revoke. Gate is not completion; a new slice clears prior gate readiness.",
+    "admission": "Exact Host/Boot/offer generation and unique pool/profile, BareMetal lane reservation/Base ownership/readiness/enforcement checks, explicit context resource class and extent, checked aggregate placements+lane+context pool accounting. Two-region shared-context-capacity negative is present.",
+    "fail_closed": "Plan lowering admission lines 21-30 unconditionally refuses ProtectedPreemptibleStep; Composite and hosted preparation also refuse rather than interpreting worker storage as scheduling authority. Planner current_lowering_explicitly_refuses_new_profile asserts that boundary.",
+    "wire": "Tests use actual compositor request/response codecs and reject wrong instance/request/kind/truncated/trailing response, but the production-owner invocation is absent."
+  },
+  "proof_limits": [
+    "No tests, lint, native build, runtime, interrupt enforcement, Candidate or Integration independently run or verified by this review.",
+    "All current target profiles refuse the new scheduling variant: no actual native continuation or fairness claim follows.",
+    "SHA-256/length binds command content but helper neither owns immutable transport storage nor establishes admission; these remain trusted existing-owner responsibilities.",
+    "No second production request ledger was introduced.",
+    "Merge/relevant post-merge Integration remain delivery gates, separate from this source review."
+  ]
+}

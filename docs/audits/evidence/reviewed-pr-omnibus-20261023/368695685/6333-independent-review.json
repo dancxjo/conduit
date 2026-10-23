@@ -1,0 +1,50 @@
+{
+  "reviewed_at_utc": "2026-10-23T23:16:55.047667+00:00",
+  "pr": 6333,
+  "head": "458123b56bca0e31d516b2f3c16e477a701fb673",
+  "base": "49f96286079c6ee35aaf5a77c0b3b9a4b8a26b61",
+  "issue": 6332,
+  "decision": "no_concrete_source_blocker_found",
+  "scope": "Independent read-only exact-head source and acceptance review; no execution or CI observation",
+  "findings": [],
+  "verified_source_properties": [
+    {
+      "claim": "Production delta raises only parent preparation caps from 4 subjects/16 properties to 16 subjects/64 properties",
+      "evidence": "projection.rs:35; three-file PR diff contains README, projection caps, one conformance test"
+    },
+    {
+      "claim": "Complete parent Face validation precedes selecting properties; selection matches both subject and property name",
+      "evidence": "projection.rs:38-54; Face::validate verifies complete content and content identity in face.rs:254-260"
+    },
+    {
+      "claim": "Selected view borrows original parent identity and retains original revision; no sensor-only replacement Face or Body state is constructed",
+      "evidence": "projection.rs:101-104; PreparedEnvironmentFace lifetime borrows parent"
+    },
+    {
+      "claim": "Finite caps refuse before complete validation; established complete Face validator retains other content limits",
+      "evidence": "projection.rs:35-37 and face.rs validate_content"
+    },
+    {
+      "claim": "Conformance case fills exactly 16 subjects/64 properties, gives unrelated subjects same-name wrong-type temperature properties, asserts selected Fahrenheit output and unchanged parent/identity/revision, then separately exceeds each cap and mutates content",
+      "evidence": "mask.rs:384-442"
+    },
+    {
+      "claim": "Scope agrees with issue6332: portable capacity correction, complete parent validation, named subject selection and parent correlation; no physical display delivery claim",
+      "evidence": "outputs/6333-owning-issue.json and outputs/6333-review-pr.json"
+    }
+  ],
+  "proof_limits": [
+    "No tests, builds, cache changes, source edits or CI polling performed by this review.",
+    "PR body reports eight current conformance tests and construction-branch strict/supported proof; source review does not independently authenticate those execution claims.",
+    "The new portable fixture has empty Body provenance fields. It proves selected immutable parent correlation, not actual native Body lifecycle or physical sensor/display delivery. Separate replay evidence remains separate as described in PR body.",
+    "No new quantity semantics, formatting policy, Show width, Host effect or manifestation acknowledgement is introduced by this three-file delta."
+  ],
+  "artifacts": {
+    "6333-projection.rs": "68ce74ddf9256983844a5cb3f96beb8d4c533afea618adc5f2d9b0a93ff57f2f",
+    "6333-mask.rs": "957ff7afdcd1a10afe0a695c1e2dfea035ddaf6c215e363c9362a347cf1f2596",
+    "6333-face.rs": "9d2c8ecad16b7f031a209e4d0ffbcacc1fd395c266560bb7e9b8c3e1276bde38",
+    "6333-construction.rs": "ac54052a9a813e740be07e1c15bca85f54b10df5f7164aeda9b83c6ed867212f",
+    "6333-lib.rs": "6af4b6fcb153ca8748c886470fd0b790d0950aec8359ebe3483362bc8fc8b50c",
+    "6333-README.md": "db93865affc168d869393acab1bc273cc029a16121cea680bfd72b12c8c47030"
+  }
+}

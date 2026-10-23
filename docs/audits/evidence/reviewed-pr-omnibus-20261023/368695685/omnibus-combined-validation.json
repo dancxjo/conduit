@@ -1,0 +1,77 @@
+{
+  "source": "368695685bf80ed92262553bd6868bcfd67e7e33",
+  "branch": "integrate/reviewed-prs-20261023-2327",
+  "base": "c40764ccf645414dcd155ac5e2c8c48136005ab2",
+  "preserved_pr_heads": [
+    {
+      "baseRefName": "dev",
+      "headRefName": "work/6057-aarch64-current-dev",
+      "headRefOid": "ecd44fbe20481e955fdc855b653c6a8387adf3f9",
+      "isDraft": false,
+      "number": 6336,
+      "title": "Render a checked native Face on the AArch64 firmware framebuffer",
+      "url": "https://github.com/dancxjo/conduit/pull/6336"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefName": "work/mask-parent-face-dev",
+      "headRefOid": "458123b56bca0e31d516b2f3c16e477a701fb673",
+      "isDraft": false,
+      "number": 6333,
+      "title": "Select environmental observations from bounded parent Body Faces",
+      "url": "https://github.com/dancxjo/conduit/pull/6333"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefName": "work/pi-sdl-host-dev",
+      "headRefOid": "03f51f15dc539c19a3fe26c92680e93bc413802f",
+      "isDraft": false,
+      "number": 6331,
+      "title": "Prepare direct SDL Linux scanout and verified Pi Lite bootstrap",
+      "url": "https://github.com/dancxjo/conduit/pull/6331"
+    },
+    {
+      "baseRefName": "dev",
+      "headRefName": "prep/6317-quantity-dev-delivery-20261023",
+      "headRefOid": "6663e81a282d4dd912d52d3c098eaf0de183ec45",
+      "isDraft": false,
+      "number": 6329,
+      "title": "Bind protected preemption policy and request accounting to admitted execution",
+      "url": "https://github.com/dancxjo/conduit/pull/6329"
+    }
+  ],
+  "merge_conflicts": false,
+  "repairs": [
+    "four-line6331YAML scalar quoting",
+    "lossless gzip retention of two6336rawCRLF evidence logs"
+  ],
+  "git_diff_check": "passed",
+  "yaml_regression_passed_cases": 7,
+  "observed_utc": "2026-10-23T23:27:57.157854+00:00",
+  "status": "combined_local_validation_passed",
+  "logs": [
+    {
+      "path": "work/omnibus-preflight.log",
+      "sha256": "99a507950fbe9a430c25a4c06dbcea71b604aa0053c9acfa798ca01364655c3f",
+      "exit_code": 0
+    },
+    {
+      "path": "work/omnibus-aarch64-check.log",
+      "sha256": "63f183ccf098b3a277a5f6dce6fbd59cff417262e30d0bff1522b58bfa2a02aa",
+      "exit_code": 0
+    },
+    {
+      "path": "work/omnibus-native-clippy.log",
+      "sha256": "6e77f4ece15726a6209f3acf73b12a50438dca31c56dbec8f0894725fa4903b5",
+      "exit_code": 0
+    },
+    {
+      "path": "work/omnibus-bootstrap-yaml-regression.log",
+      "sha256": "152a7444b8eafab4e127e98220b59e8b0cb290cd0362673981756a1abec7daa7",
+      "exit_code": 0
+    }
+  ],
+  "remote_head_verified": true,
+  "verified_utc": "2026-10-23T23:32:21.691998+00:00",
+  "limits": "Native hosted library strictClippy; AArch64 product binarycheck emits40 librarywarnings, not targetwide strictlint. Candidate/Integration still required."
+}

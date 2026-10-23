@@ -1,0 +1,79 @@
+{
+  "schema": "conduit.independent-source-review@1",
+  "pr": 6336,
+  "head": "ecd44fbe20481e955fdc855b653c6a8387adf3f9",
+  "status": "NO_ACTIONABLE_STATIC_FINDINGS_IN_REVIEWED_MAPPING_CACHE_CANONICAL_INPUTLESS_PATHS",
+  "findings": [],
+  "reviewed_source_objects": [
+    {
+      "path": "targets/conduitos/src/arch/aarch64/framebuffer.rs",
+      "sha256": "d908258efe2670b4bb1008ca931e254564d724a22e89be896f76577f8dda4a80"
+    },
+    {
+      "path": "targets/conduitos/src/arch/aarch64/framebuffer/mapping.rs",
+      "sha256": "38b8aff9cd845ac53654b4cd509f10cbe1f66432a85a8363c7aae61bbf509c6d"
+    },
+    {
+      "path": "targets/conduitos/src/arch/aarch64/framebuffer/cache.rs",
+      "sha256": "a23ae1c5c7eee216b2ae3f51477d722b42bac9f9c5ceabfbc65bb6aeb3be3e0e"
+    },
+    {
+      "path": "targets/conduitos/src/firmware_face.rs",
+      "sha256": "ff1de427f22e6865f0f428f4d832d62b53fbc69fd280b152dd414a414e0b879d"
+    },
+    {
+      "path": "targets/conduitos/src/native_face_mask.rs",
+      "sha256": "5f0f40e140df5d103955ed336b9df9c269def527c29eb3836d9f0494d03b3815"
+    },
+    {
+      "path": "targets/conduitos/src/native_face_mask/preparation.rs",
+      "sha256": "78604b0aa93b03a71a46ea1250fa2ea52e242ea053de78c20c084df07bb1b824"
+    },
+    {
+      "path": "targets/conduitos/src/native_face_mask/input.rs",
+      "sha256": "f204b74ee8a56ff9926604f7b11b568c010d385eb97a27471118e53d4a0d2222"
+    },
+    {
+      "path": "targets/conduitos/src/native_face_mask/inputless_tests.rs",
+      "sha256": "368784801bf92abaeb0b41ae501ccc9c81b08be71f11495baee4b355f9c6acfc"
+    },
+    {
+      "path": "targets/conduitos/src/boot/limine.rs",
+      "sha256": "092379220148658684d20bae8407cb829e84fc847c9c76eb458d30c3894c5a9c"
+    },
+    {
+      "path": "targets/conduitos/src/display/raw.rs",
+      "sha256": "e8d10b0a7d20bc2b4ea84e10f6fbdde0139367559fbdadbe9afc97b252f54d5e"
+    },
+    {
+      "path": "targets/conduitos/src/bin/aarch64_product.rs",
+      "sha256": "41b3cb8d316a67d947c07d6ca1e9e5a13aca856202f5e17b2a3d52fde7c26944"
+    },
+    {
+      "path": "docs/proof/conduitos-aarch64-firmware-frame.md",
+      "sha256": "33a6c8b760c8c82c46dfae5dfd85ea8d318b31ef33def1794ca4ebd2d848e6c5"
+    }
+  ],
+  "source_assessment": {
+    "mapping": "FirmwareScanout derives physical address from actual HHDM and verifies exact bootloader FRAMEBUFFER reservation coverage, finite <=8MiB extent, supported EL1 translation regime and every covering actual AT S1E1W translation. Mapping validator rejects faults, nonmatching physical pages, unsupported/mixed memory attributes and accepts only uniform Normal NC(0x44)/WB(0xff). Partial final mapping page is visited. No page table modifications or unchecked synthetic writable mapping introduced.",
+    "cache": "WB preparation derives observed CTR_EL0 DminLine, rejects unsupported line sizes and non-whole-line buffer custody; touched line envelopes checked before writes, DC CVAC covers every touched line and DSB SY precedes return for both NC and WB. Invalid/overflowing/out-of-bound spans refuse before RawDisplay writes. These are architectural source checks, not independent physical coherency proof.",
+    "canonical_face": "FirmwareFace composes existing ProductJourney, FrontDoor.open_creche_reviewed with actual Source candidates/current Host eligibility, canonical BirthDraft Face through mask.birth_basis, existing producer forwarding/checked Mask and acknowledged Show. No second Body model/renderer/kernel is introduced. Retains display, Mask, FrontDoor, ProductJourney and provider bases for product lifetime.",
+    "inputless": "without_local_input is allowed only before scene/session exists; present forces interactions_admitted false, scene.disable_local_input suppresses hit regions/hints, and keyboard, pointer motion, pointer dispatch and semantic submit refuse. New tests inspect unchanged Face/current Show, no hit regions, read-only footer and no PgUp/F2 hints. Ordinary prepared Masks default to local input available, preserving prior entrance semantics.",
+    "resource_and_identity": "Finite surface pixel/slot/byte limits checked; observed framebuffer Base/provider reused. Existing AArch64 caller constructs and validates ImageBoundHostOffer before preparation and passes embedded Make and same Boot identities. Genuine provider key comes through existing admitted entropy with_secret, not transport-provided authority. Renderer receipt must match actual Face and observed display Base and show positive scanout writes.",
+    "serial_identity_boundary": "AArch64 product-ready record continues to describe the separate linear Host Face/presenter. The graphical Cr\u00e8che has its own CONDUIT_FIRMWARE_FACE and mapping record. These are separate manifestations on same Host/Boot and must not be equated by artifact consumers."
+  },
+  "acceptance_and_evidence_boundaries": [
+    "PR body explicitly scopes G1/G2 slice and leaves #6057 open; five-architecture/current live-media routing/comparative gallery/readiness/persistent launcher remain pending, input tracked separately.",
+    "Canonical Cr\u00e8che is a zero-Body prebirth owner presentation. Producer Source/Plan provenance does not prove candidate Plot/Body Source execution. Eligibility does not authorize Play.",
+    "Proof report explicitly names actual measured f96860659760660fc796e7694df5bee4bd9f2bb8, not unexecuted final documentary head; two boots have different legitimate initial names/HostBoot/Face identities.",
+    "Only observed 800x600 first read-only page is claimed. No local-input/navigation, second-mode, physical scanout/GPU/DMA/isolation, broad frame-update performance or calibrated rendering CPU time claim.",
+    "Retained broader local run exit143 and four ignored/manual controls are explicitly not full pass. Local checked test counts were inspected as source/report declarations, not independently run by this reviewer.",
+    "Root separately audits actual packet bytes and correspondence; this receipt does not promote README booleans or the two reported boot proofs into independently verified artifact claims.",
+    "Candidate/relevant combined Integration remain independent delivery gates."
+  ],
+  "review_limits": [
+    "Read-only git-object review only; no builds, QEMU, Cargo/cache writes, source edits or GH/CI observations.",
+    "Architectural correctness assessed from committed code; no independently executed cache/translation hardware fault controls.",
+    "Review scope mapping/cache/canonical Face/MaskShow/inputless integration, not exhaustive all host-construction/collector changes."
+  ]
+}
