@@ -1,4 +1,6 @@
 //! Strict reader for inclusive software envelopes, never hardware trap latency.
+extern crate std;
+use self::std::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 
 const PREFIX: &str = "CONDUIT_SERVICE_TRAP_ENVELOPE ";
