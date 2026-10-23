@@ -268,7 +268,9 @@ impl Lease {
             .map_err(|_| DomainRefusal::InvalidMemory)?;
         Ok(Self {
             profile,
-            cleared: false,
+            // Static initialization and the preceding owner's Release both
+            // guarantee a completely zero store. Any mutable view dirties it.
+            cleared: true,
         })
     }
     pub fn profile(&self) -> ServiceProfile {
