@@ -1,0 +1,357 @@
+{
+  "boot_identity": "not published: display setup refuses before ordinary Boot/Host/Show publication",
+  "canonical_build_metadata": {
+    "proof_scenario": "no-graphics",
+    "resolved_image": {
+      "manifest": {
+        "base_selections": [
+          {
+            "driver": "display/linear-framebuffer@1",
+            "id": "base/0",
+            "kind": "display/scanout"
+          }
+        ],
+        "bases": [
+          "base/0"
+        ],
+        "bounds": {
+          "active_instances": 128,
+          "buffered_bytes": 8388608,
+          "evidence_items": 1024,
+          "heap_arena_bytes": 268435456,
+          "line_sessions": 8,
+          "operation_slots": 64,
+          "queue_items": 1024,
+          "static_memory_bytes": 8388608,
+          "timer_slots": 32
+        },
+        "build_id": "build:sha256:481bf42365d9b004c48a23c8cc5bb103d6f94675a888b63a1ab8f968072a6673",
+        "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+        "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+        "driver_selections": [
+          {
+            "id": "driver/0",
+            "kind": "display/linear-framebuffer@1"
+          }
+        ],
+        "drivers": [
+          "driver/0"
+        ],
+        "facilities": [
+          "compositor/native@1"
+        ],
+        "host_calls": [
+          "conduit.host/present@1"
+        ],
+        "image_id": "image:sha256:1f5555c781a9b5dcc4969de093e1f08dddaf01f947ecd9d99164c80d04c4df87",
+        "implementation_packages": [
+          {
+            "implementation_id": "display/linear-framebuffer@1",
+            "package_id": "conduit-linear-framebuffer@1",
+            "package_revision": 1
+          }
+        ],
+        "implementations": [],
+        "inclusion_paths": {
+          "presenter:presenter/main > base:display/scanout": [
+            "base:display/scanout"
+          ],
+          "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+            "base:display/scanout",
+            "driver:display/linear-framebuffer@1"
+          ],
+          "presenter:presenter/main > facility:compositor/native@1": [
+            "facility:compositor/native@1"
+          ],
+          "presenter:presenter/main > host-call:conduit.host/present@1": [
+            "host-call:conduit.host/present@1"
+          ],
+          "presenter:presenter/main > resource:face/surface": [
+            "resource:face/surface"
+          ]
+        },
+        "lines": [],
+        "make_package_id": "conduitos-image@1",
+        "make_package_revision": 1,
+        "make_strategy": "deterministic-specialized-build",
+        "output": "disk-image",
+        "post_build_actions": [
+          "boot"
+        ],
+        "presenters": [
+          "presenter/native-graphical@1"
+        ],
+        "profile_fragments": [],
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "reproducibility": "byte-exact",
+        "resource_budgets": [
+          {
+            "bytes": 8388608,
+            "class": "face/surface",
+            "id": "surface/main",
+            "slots": 4
+          }
+        ],
+        "resources": [
+          "surface/main"
+        ],
+        "schema": "conduit.host/build-manifest@3",
+        "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+        "source_identity": "80260a13fbc7f611f8f7dda7804d195adfa6b2ec",
+        "target": "conduitos/x86_64/pc",
+        "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+      },
+      "payload": {
+        "base_selections": [
+          {
+            "driver": "display/linear-framebuffer@1",
+            "id": "base/0",
+            "kind": "display/scanout"
+          }
+        ],
+        "bases": [
+          "base/0"
+        ],
+        "bounds": {
+          "active_instances": 128,
+          "buffered_bytes": 8388608,
+          "evidence_items": 1024,
+          "heap_arena_bytes": 268435456,
+          "line_sessions": 8,
+          "operation_slots": 64,
+          "queue_items": 1024,
+          "static_memory_bytes": 8388608,
+          "timer_slots": 32
+        },
+        "build_id": "build:sha256:481bf42365d9b004c48a23c8cc5bb103d6f94675a888b63a1ab8f968072a6673",
+        "driver_selections": [
+          {
+            "id": "driver/0",
+            "kind": "display/linear-framebuffer@1"
+          }
+        ],
+        "drivers": [
+          "driver/0"
+        ],
+        "facilities": [
+          "compositor/native@1"
+        ],
+        "host_calls": [
+          "conduit.host/present@1"
+        ],
+        "implementations": [],
+        "lines": [],
+        "presenters": [
+          "presenter/native-graphical@1"
+        ],
+        "profile_fragments": [],
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "resource_budgets": [
+          {
+            "bytes": 8388608,
+            "class": "face/surface",
+            "id": "surface/main",
+            "slots": 4
+          }
+        ],
+        "resources": [
+          "surface/main"
+        ],
+        "schema": "conduit.host/image@1",
+        "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+        "target": "conduitos/x86_64/pc"
+      }
+    },
+    "target_build_manifest": {
+      "artifact_role": "product-host",
+      "boot_assets": {
+        "architecture": "x86_64",
+        "boot_entry": "BOOTX64.EFI",
+        "firmware": "OVMF_CODE.fd",
+        "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+        "limine_version": "12.5.2",
+        "machine": "q35",
+        "packager": "pinned-limine-hybrid-iso"
+      },
+      "build_id": "build:sha256:481bf42365d9b004c48a23c8cc5bb103d6f94675a888b63a1ab8f968072a6673",
+      "image": {
+        "file": "conduitos-x86_64.iso",
+        "role": "final-bootable-image",
+        "sha256": "5912de28096e4a236ba94b3b7cd01e1e4654f65732b0f6b9203f620ba6a1e4e2"
+      },
+      "image_id": "image:sha256:5912de28096e4a236ba94b3b7cd01e1e4654f65732b0f6b9203f620ba6a1e4e2",
+      "kernel": {
+        "file": "conduitos-kernel.elf",
+        "role": "freestanding-kernel",
+        "sha256": "8ccb5d8022a30e0ce66fbd15cb9aa165a73ad0b8df15048f97905f8eb3d4a3a6"
+      },
+      "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+      "resolved_build": {
+        "base_selections": [
+          {
+            "driver": "display/linear-framebuffer@1",
+            "id": "base/0",
+            "kind": "display/scanout"
+          }
+        ],
+        "bases": [
+          "base/0"
+        ],
+        "bounds": {
+          "active_instances": 128,
+          "buffered_bytes": 8388608,
+          "evidence_items": 1024,
+          "heap_arena_bytes": 268435456,
+          "line_sessions": 8,
+          "operation_slots": 64,
+          "queue_items": 1024,
+          "static_memory_bytes": 8388608,
+          "timer_slots": 32
+        },
+        "build_id": "build:sha256:481bf42365d9b004c48a23c8cc5bb103d6f94675a888b63a1ab8f968072a6673",
+        "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+        "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+        "driver_selections": [
+          {
+            "id": "driver/0",
+            "kind": "display/linear-framebuffer@1"
+          }
+        ],
+        "drivers": [
+          "driver/0"
+        ],
+        "facilities": [
+          "compositor/native@1"
+        ],
+        "host_calls": [
+          "conduit.host/present@1"
+        ],
+        "image_id": "image:sha256:1f5555c781a9b5dcc4969de093e1f08dddaf01f947ecd9d99164c80d04c4df87",
+        "implementation_packages": [
+          {
+            "implementation_id": "display/linear-framebuffer@1",
+            "package_id": "conduit-linear-framebuffer@1",
+            "package_revision": 1
+          }
+        ],
+        "implementations": [],
+        "inclusion_paths": {
+          "presenter:presenter/main > base:display/scanout": [
+            "base:display/scanout"
+          ],
+          "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+            "base:display/scanout",
+            "driver:display/linear-framebuffer@1"
+          ],
+          "presenter:presenter/main > facility:compositor/native@1": [
+            "facility:compositor/native@1"
+          ],
+          "presenter:presenter/main > host-call:conduit.host/present@1": [
+            "host-call:conduit.host/present@1"
+          ],
+          "presenter:presenter/main > resource:face/surface": [
+            "resource:face/surface"
+          ]
+        },
+        "lines": [],
+        "make_package_id": "conduitos-image@1",
+        "make_package_revision": 1,
+        "make_strategy": "deterministic-specialized-build",
+        "output": "disk-image",
+        "post_build_actions": [
+          "boot"
+        ],
+        "presenters": [
+          "presenter/native-graphical@1"
+        ],
+        "profile_fragments": [],
+        "profile_id": "sha256:0cff773abd0b177ddcbac249c7a9ce22ed4e9fdb9151a5683c03d0f8acf4f5cd",
+        "reproducibility": "byte-exact",
+        "resource_budgets": [
+          {
+            "bytes": 8388608,
+            "class": "face/surface",
+            "id": "surface/main",
+            "slots": 4
+          }
+        ],
+        "resources": [
+          "surface/main"
+        ],
+        "schema": "conduit.host/build-manifest@3",
+        "source_configuration_id": "sha256:4d95e55fcbc813f344adef10c62518c3a9dea35c36e867c2de9c1a4f70ea5e03",
+        "source_identity": "80260a13fbc7f611f8f7dda7804d195adfa6b2ec",
+        "target": "conduitos/x86_64/pc",
+        "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+      },
+      "resolved_description_binding": "image:sha256:1f5555c781a9b5dcc4969de093e1f08dddaf01f947ecd9d99164c80d04c4df87",
+      "schema": "conduit.host/target-build-manifest@3",
+      "source_identity": "80260a13fbc7f611f8f7dda7804d195adfa6b2ec",
+      "target": "conduitos/x86_64/pc",
+      "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools"
+    }
+  },
+  "fallback": "typed terminal startup refusal before Face/Show; no graphical substitute invented",
+  "fixture": false,
+  "hot_unplug_recovery": false,
+  "human_enactment": false,
+  "image_sha256": "5912de28096e4a236ba94b3b7cd01e1e4654f65732b0f6b9203f620ba6a1e4e2",
+  "machine": {
+    "cpu": "max",
+    "debug_exit": "external exit witness, no product feature",
+    "display_window": "none",
+    "emulator": "qemu-system-x86_64",
+    "graphics_device": "none",
+    "memory": "512M",
+    "model": "q35",
+    "network": "none",
+    "vcpus": 1
+  },
+  "observation": {
+    "acknowledged_show_count": 0,
+    "display_setup": [
+      {
+        "clock": "x86-tsc-lfence",
+        "context": "boot",
+        "frequency_hz": null,
+        "parent": 0,
+        "phase": "display-setup",
+        "schema": "conduit.conduitos/native-progress@1",
+        "scope": "native-root-boot",
+        "sequence": 8,
+        "span": 5,
+        "state": "started",
+        "ticks": 4515337082
+      },
+      {
+        "clock": "x86-tsc-lfence",
+        "context": "boot",
+        "frequency_hz": null,
+        "parent": 0,
+        "phase": "display-setup",
+        "schema": "conduit.conduitos/native-progress@1",
+        "scope": "native-root-boot",
+        "sequence": 9,
+        "span": 5,
+        "state": "refused",
+        "ticks": 4515848448
+      }
+    ],
+    "exit_code": 35,
+    "refusal": {
+      "reason": "display-absent",
+      "schema": "conduit.conduitos.kernel-sign/v2",
+      "status": "refused"
+    },
+    "scanout_frame_count": 0,
+    "source_change_count": 0
+  },
+  "physical_evidence": false,
+  "proof_class": "freestanding-emulator",
+  "same_uninstrumented_product_binary": true,
+  "schema": "conduit.conduitos/graphics-provider-absence-proof@1",
+  "screenshots": "not applicable: no graphics device",
+  "serial_sha256": "90adcdec0ee07770d1a25efe29812276dab8dcb4df99eb640abcd163e7f04761",
+  "source_commit": "80260a13fbc7f611f8f7dda7804d195adfa6b2ec",
+  "status": "passed"
+}

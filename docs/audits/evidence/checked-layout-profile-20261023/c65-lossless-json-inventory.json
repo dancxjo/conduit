@@ -1,0 +1,35 @@
+{
+  "source_commit": "c65a9d4fa152f028eb1691524cab00ae2a112c3e",
+  "files": [
+    {
+      "stored": "c65-journey-viewport-bound/journey-frames/manifest.json.gz",
+      "original_bytes": 353773,
+      "original_sha256": "876f0ff2346c84d2cd0e4a6ad488c45b315aa11855222c9699af2fdd2004182d"
+    },
+    {
+      "stored": "c65-journey-viewport-bound/patchbay-checked-source/manifest.json.gz",
+      "original_bytes": 534234,
+      "original_sha256": "756026ddd2f95786af4be571097ae2506c8552c1f80c1181bde35429a7f9c05d"
+    },
+    {
+      "stored": "c65-wide-controls/creche-controls-proof.json.gz",
+      "original_bytes": 554946,
+      "original_sha256": "83ab7d90ec43c6c5ec82eeb4ec148ba89488295cc9cd9eb32f4b59731cba1d56"
+    },
+    {
+      "stored": "c65-wide-controls/journey-frames/manifest.json.gz",
+      "original_bytes": 357149,
+      "original_sha256": "7cea5cb5baaff2cd8b03bad8e9458296aab581b03097b581d416e06db8c93054"
+    },
+    {
+      "stored": "c65-narrow-compressed-columns/creche-controls-proof.json.gz",
+      "original_bytes": 588563,
+      "original_sha256": "72adaa331d5c067768b8c7d6fd6d087e0db2ef4ca2c57c6a9b304c9ab45a7846"
+    },
+    {
+      "stored": "c65-narrow-compressed-columns/journey-frames/manifest.json.gz",
+      "original_bytes": 398665,
+      "original_sha256": "b60cf8da6e85c9f12f2f491ceadef33070902050080ea95d08e97ed1d89cef81"
+    }
+  ]
+}

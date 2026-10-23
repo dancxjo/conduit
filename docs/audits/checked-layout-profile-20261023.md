@@ -369,3 +369,105 @@ for native/Face/offers/Network. The new exact join sizes are 33,903 serial and
 viewport test invocation selected zero tests in the host-make facade; the
 corrected owning xtask invocation ran the three tests reported here. It is not
 counted as prior proof. All final logs are retained under `minimum-final-*`.
+
+## Corrected current normal-product proof: 80260a13f
+
+The minimum-sizing correction and viewport guard are synchronized through dev
+`e57706b15` in clean published Source
+`80260a13fbc7f611f8f7dda7804d195adfa6b2ec`. Its actual product-host ISO SHA256 is
+`5912de28096e4a236ba94b3b7cd01e1e4654f65732b0f6b9203f620ba6a1e4e2`.
+[Current original packets](evidence/checked-layout-profile-20261023/802-README.md)
+retain exact source/image identities, immutable input observations, original
+PNGs, paired receipts and losslessly compressed full transcripts.
+
+| Current case | Observed result |
+| --- | --- |
+| Wide controls,1280×800 | Two coherent panels; all four actual Plot controls on page one, also after the long Unicode edit; 223 focus observations,15 captures,47/48 commands |
+| Narrow controls,640×480 | Genuine single-column collapse with explicit continuation,253 focus observations,17 captures,25/48 commands |
+| Search,640×480 | Five real choices/four selected; exactly match,no-match,clear commits, no selection mutation, full inventory restoration and keyboard cycles;108 focus observations,11 captures,25/48 commands |
+| Normal graphical journey | Birth/Home/Body/Patchbay complete on the same actual Body/Plan/Play;49 checked Source subjects,14 Cords/two boundary bindings, continuation and typed return;27 ordinary+20 refusal/Details+seven Source captures |
+| Graphics provider absent | Same uninstrumented ISO, genuinely no VGA device; typed `display-absent` terminal refusal, exit35, zero acknowledged Shows/scanout frames/source changes |
+
+Both current control runs retain real two-Look selection and unchanged checked
+component/recipe/layout identity, forward/reverse traversal, naming-field pointer
+focus, checked Unicode draft edits and incomplete-argument refusal. The separate
+normal journey records source-owned Boolean4→3→4 through two keyboard and two
+pointer actions, with no duplicate held-motion effect. Every command remains at
+or below192 UTF-8 bytes.
+Original wide and narrow captures were visually inspected; the narrow c65
+compressed-column negative remains separate. Current Home visibly shows Commons
+/ Hub with its actual four resident choices, rather than the stale canvas image.
+The current Source diagram and its explicit five-of-sixteen shown/eleven omitted
+status were inspected; complete relationships remain accessible through all49
+Details subjects and continuation, not simultaneous visibility of every edge.
+
+The complete supported graphical-profile command exits zero. Its additional
+four headless product images exclude graphical assets as required by the
+existing entrance; those are build/asset checks, not cross-architecture GUI
+execution. All five independent current cases use the same native product ISO.
+Normal Source preparation completes within the unchanged Application private
+grant. This is observed admission for this product path, not a universal
+worst-case heap theorem or new hostile-code confinement claim.
+
+The first802 normal attempt failed a deterministic local evidence-directory
+precondition: the earlier Source-capture directory still existed. Its packet is
+retained in `802-output-collision`. After preserving and moving those prior
+bytes, a fresh-output run completes. No product timing, action poll, forced
+interaction, retry budget or source code changed between attempts. The failure
+is not hidden or counted as successful product proof.
+
+Independent original-byte verification covers97 current captures:17 narrow,
+15 wide,54 ordinary/refusal/Source journey and11 search PNGs. All declared byte
+lengths, file SHA256, every PNG chunk CRC, dimensions and independently decoded
+RGBA SHA256 match. Only actual-run manifest files are included; stale unreferenced
+working files are excluded. `802-packet-inventory.json` binds every archived
+original length/hash, including losslessly gzipped receipts; the verifier and
+its report are retained. Missing optional Pillow was handled by reusing the
+existing repository stdlib decoder, without a new dependency. The recorded
+97 images are verified bytes, not regenerated screenshots.
+
+### Scoped acceptance and resource ledger
+
+The earlier accepted pressure and stale/copy-loss packets retain their exact
+Sources and QEMU-appliance scope. They exercise unchanged production scene,
+compositor and submission contracts; they are not relabelled as this normal
+product run. Together with the current ordinary product cases, these supply the
+#5608 layout/failure matrix before current merge/check acceptance. Search is
+rerun because geometry/traversal changed. No physical hotplug is inferred or
+required. Earlier unreproduced startup refusal evidence remains historical;
+these results do not claim repeated-run reliability.
+
+| Bound / observation | Disposition |
+| --- | --- |
+| Scene48commands;192-byte command text;20rows/page;eight surfaces | Unchanged; current prepared command high water47; earlier actual QEMU pressure proves atomic49th/193rd/ninth refusal |
+| Two candidates;32total nodes;depth4;four grid tracks;spans1..2 | Unchanged; score/drop candidates then arrange one winner, at most three arrangements |
+| Outer minimum | New explicit0..4096 sixteenths of selected root text em; Crèche/Todo panels20em; no viewport cutoff |
+| Standard48 KiB / Collection256 KiB value profiles | Existing exact selected profiles retained |
+| Application private heap2,072,576bytes;Network private heap1,028,096bytes | Unchanged grants; ordinary current journey/Source admission observed; maximum Network-frame local CPU tests remain distinct from live routed exchange |
+| Native join / WebSocket frame48 KiB | Explicit #6288 finite increase from32 KiB; exact current signed serial33,903/routed33,798bytes; oversized refusal and Root/protected-codec equality retained; existing hosted owner admission limit is2 MiB |
+| Runtime arena/ceiling268,435,456bytes;glyph corpus/fonts | Unchanged; earlier Source-pinned pressure and typography evidence retained |
+| Performance | Finite pass/storage/command ledger only; no calibrated boot-speed or latency claim |
+
+#5519 and #5358 are closed against accepted/published3f801610e after full
+Integration39947738203 and actual49-file/seven-Source-PNG custody verification
+in #6276. #5994 step15 is reconciled. Step12/#5608 still requires this new
+implementation's reviewed merge and relevant current checks; older CI is not
+new-source CI. #5994 closeout remains open until that delivery completes.
+
+### Broader #6159 remains open
+
+Independent read-only review found no blocker in the new outer-minimum law:
+selected-em resolution has one outward rounding, padding is included once,
+preferred demand is raised to the minimum, and actual allocated widths are
+rechecked. This is a first ordinary native consumer, not complete #6159.
+Remaining scope includes authored maximums/general block flex, baseline
+alignment, richer grid-band continuation, browser@3 realization/proof, further
+invalidation/typography coverage and resource-disposition detail. Preferred
+measurement currently takes bounded192-byte chunks rather than the longest
+whole unwrapped item line across chunk boundaries. Full shaping/bidi/CJK and
+physical/human evidence remain outside these claims. Unsupported constraints
+retain explicit refusal/generic fallback; they are not silently called supported.
+
+Workspace Rust formatting and patch hygiene pass after the evidence closeout.
+The measured product Source remains80260a13f; later documentary commits do not
+relabel its actual pixels, binary or source identities.
