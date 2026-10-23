@@ -216,3 +216,5 @@ mod wait;
 mod pulse;
 #[path = "root_control_support/policy.rs"]
 mod policy;
+#[path = "root_control_support/assignment.rs"]
+mod native_assignment;

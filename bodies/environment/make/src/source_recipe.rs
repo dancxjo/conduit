@@ -12,6 +12,8 @@ use conduit_environment_runtime::{
     construction::ApplianceSource,
 };
 use std::fmt::{self, Write};
+#[path = "source_recipe/records.rs"]
+mod records;
 
 pub struct NativeSoftwareSourceRecipe {
     source: ResidentSourceIdentity,
@@ -19,6 +21,7 @@ pub struct NativeSoftwareSourceRecipe {
     cadence: conduit_time::TickConfiguration,
     computations: Vec<c::AssignedComputationRequirement>,
     texts: Vec<(u16, c::AssignedIdentity, String, Vec<u8>)>,
+    configuration_records: Vec<Vec<u8>>,
     offers: Vec<(u16, Vec<u8>)>,
     largest: u16,
     total: u32,
@@ -93,12 +96,14 @@ impl NativeSoftwareSourceRecipe {
                 ))
             })
             .collect::<Result<Vec<_>, E>>()?;
+        let configuration_records = records::configuration_payloads(&texts);
         Ok(Self {
             source: ResidentSourceIdentity::from_expanded(&source.expanded.expanded_plot_id),
             roles,
             cadence,
             computations,
             texts,
+            configuration_records,
             offers,
             largest,
             total,
@@ -151,6 +156,7 @@ impl NativeSoftwareSourceRecipe {
         writeln!(out, "use conduit_core as c;")?;
         writeln!(out,"use conduit_environment_runtime::appliance::assigned::{{ResidentComputation, ResidentRoles, ResidentSoftwareOffer, ResidentSoftwareSpec, ResidentSourceIdentity}};")?;
         crate::software_recipe::write_material(out, &self.computations, &self.texts, &self.offers)?;
+        self.write_computation_records(out)?;
         writeln!(out,"pub fn spec() -> ResidentSoftwareSpec<'static> {{ ResidentSoftwareSpec {{ cadence:cadence(), source: ResidentSourceIdentity {{ expanded_plot_digest: {:?} }}, computations: c::AssignedComputationProfile {{ maximum_text_bytes: {}, maximum_total_text_bytes: {}, requirements: &COMPUTATIONS }},",self.source.expanded_plot_digest,self.largest,self.total)?;
         let r = self.roles;
         writeln!(out,"roles:ResidentRoles {{ pulse:conduit_kernel::NodeId({}),tick:conduit_kernel::NodeId({}),trigger:conduit_kernel::NodeId({}),observation:conduit_kernel::NodeId({}),publications:[",r.pulse.0,r.tick.0,r.trigger.0,r.observation.0)?;
