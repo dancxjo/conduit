@@ -1,0 +1,52 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.14s
+     Running `target/debug/conduit-xtask-dispatch prove environment native-construction`
+    Finished `test` profile [unoptimized] target(s) in 0.04s
+     Running tests/credential_owner.rs (target/debug/deps/credential_owner-a8cfe3163e9dfe4c)
+
+running 2 tests
+test native_command::tests::fragmented_requests_refuse_overflow_and_never_infer_execution_permission ... ok
+test actual_private_mailbox_requires_current_selected_possession_and_response_ack ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/native.rs (target/debug/deps/native-241dc9430bd868a8)
+
+running 6 tests
+test stale_boot_or_wrong_workset_cannot_acquire_a_wake_from_native_preparation ... ok
+test native_construction_enters_the_real_body_proposal_without_inventing_a_play ... ok
+test body_binding_refuses_identity_substitution_membership_loss_and_revocation ... ok
+test a_different_retained_body_play_cannot_confirm_the_prepared_binding ... ok
+test real_authored_source_is_prepared_against_supplied_offers_without_effects ... ok
+test body_and_fragment_plays_are_distinct_and_confirmation_needs_retained_start ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.18s
+
+     Running tests/network_assignment.rs (target/debug/deps/network_assignment-68fbcb1cae9be4a7)
+
+running 1 test
+test network_assignment_preserves_its_independent_subject_and_native_possession ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/network_play.rs (target/debug/deps/network_play-667bb740d13d15db)
+
+running 1 test
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=14744
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=14744
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=14744
+network_preparation_stages source_peak=1548911 graph_clone_peak=4451 graph_and_planner_peak=33037 plan_and_lowering_peak=19265 planner_allocations=919 lowering_allocations=236 image_bytes=4347 image_decode_peak=9531
+network_control_host_preparation_peak=1548911 fixed_kernel_bytes=14744
+test checked_network_plot_consumes_only_acknowledged_private_input_through_real_kernel ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.38s
+
+     Running tests/selected_port_shapes.rs (target/debug/deps/selected_port_shapes-b72a882165edc8a2)
+
+running 1 test
+test source_sink_and_single_pair_shapes_bind_exactly ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

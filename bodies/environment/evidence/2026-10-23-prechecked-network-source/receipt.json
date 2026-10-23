@@ -1,0 +1,61 @@
+{
+  "source_commit": "b811370ac6c4c3863cf49a096619a07c5730780a",
+  "firmware_sha256": "725b5866a6b56e162815488ae659ffce3c4c6f34dc4874f2cfca06e98892ddeb",
+  "host": "esp32/b0a732286178",
+  "boot": "boot/dd9eca9119b2ab5dc7948a0f34146966",
+  "boot_current": false,
+  "prechecked_network_source": "8035c9210bb15c49bbbb9085fac9189016b5609f5ed065a9db9b860fce747754",
+  "complete_offers": 4,
+  "root_pool_bytes": 65536,
+  "observed_root_used_bytes": [
+    9612,
+    9612,
+    9612,
+    9612
+  ],
+  "sdk_pool_bytes": 122880,
+  "observed_sdk_used_bytes": [
+    33408,
+    33408,
+    33408,
+    33408
+  ],
+  "image_bytes": 4347,
+  "host_model_image_decode_peak_bytes": 9531,
+  "host_model_graph_and_planner_peak_bytes": 33037,
+  "body_installed": false,
+  "native_plan_installed": false,
+  "network_join_attempted": false,
+  "credential_submitted": false,
+  "runtime_image_attestation": null,
+  "validation": {
+    "native_construction_tests": 11,
+    "cpu_and_mcu_strict_clippy": "passed",
+    "root_firmware_build": "passed",
+    "workspace_format_check": "pre-existing import order difference in targets/conduitos/src/machine_membrane/selection_fixture.rs; unchanged"
+  },
+  "restoration": {
+    "display_acks": 7,
+    "last_reading": {
+      "face_identity": "35f2f3be231de298bd4af7564b48f592203853f1412beceacbde355fd329f3ba",
+      "face_revision": 2,
+      "sequence": 2,
+      "status": "available",
+      "fresh": true,
+      "current": true,
+      "temperature_f": 69.08,
+      "relative_humidity_percent": 53,
+      "sampled_at_boot_ms": 15847,
+      "age_ms": 3212,
+      "ap_ready": true
+    }
+  },
+  "artifacts": {
+    "serial.log": "9b23851ea0e6ad1e70cdb4c4e0b7a6bdc2a902b77f0876b30fbfbb1f7ab4aa94",
+    "offers.json": "c7a5eab64479ab9ecacc7bd4f517a8b9af0f1a9a148a5ddadbf63216908d4f0e",
+    "flash.log": "a6751eeba9a4a6e21cd83645fc25ac58222d9b7cd16d315acc51674c3e55cd87",
+    "restore.log": "479ee1f62d91c7be68e929989be7c21585fbde9fe7566dc687740a4f901a5a67",
+    "restored-serial.log": "a15f46d2f9eba00b265410b4c54af7fc715e2b3850e6b7525f76cc3996ae9066",
+    "native-construction.log": "9536be8695445e691d63cffb00d3565f2f4c59988334702f39cca10adaac34e0"
+  }
+}
