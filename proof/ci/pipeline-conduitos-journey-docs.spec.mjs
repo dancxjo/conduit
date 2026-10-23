@@ -154,7 +154,7 @@ function makeFixture() {
     const bytes = png(index);
     writeFileSync(path.join(evidence, `${checkpoint}.png`), bytes);
     return {
-      checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused'].includes(checkpoint), health_refusal: null,
+      checkpoint, unchanged: false, expected_change: index !== 0 && !['creche-ready', 'wake-refused', 'patchbay-face'].includes(checkpoint), health_refusal: null,
       ...(look.manifest.checkpoints.find(entry => entry.checkpoint === checkpoint) ?? {}),
       guest_boot_record: { boot_id: boot, host_id: host, build_id: 'build', image_binding: 'image', profile_id: 'profile' },
       frame: {
@@ -298,18 +298,20 @@ for (const [label, mutate] of [
   });
 }
 
-test('Pages composition rejects a refusal screenshot claiming mandatory pixel change', () => {
-  const fixture = makeFixture();
-  try {
-    const filename = path.join(fixture.evidence, 'manifest.json');
-    const manifest = JSON.parse(readFileSync(filename, 'utf8'));
-    manifest.checkpoints.find(entry => entry.checkpoint === 'wake-refused').expected_change = true;
-    writeFileSync(filename, JSON.stringify(manifest));
-    const result = publish(fixture);
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, new RegExp(`checkpoint ${names.indexOf('wake-refused') + 1} violates`));
-  } finally { rmSync(fixture.root, { recursive: true, force: true }); }
-});
+for (const checkpoint of ['wake-refused', 'patchbay-face']) {
+  test(`Pages composition rejects ${checkpoint} claiming mandatory pixel change`, () => {
+    const fixture = makeFixture();
+    try {
+      const filename = path.join(fixture.evidence, 'manifest.json');
+      const manifest = JSON.parse(readFileSync(filename, 'utf8'));
+      manifest.checkpoints.find(entry => entry.checkpoint === checkpoint).expected_change = true;
+      writeFileSync(filename, JSON.stringify(manifest));
+      const result = publish(fixture);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, new RegExp(`checkpoint ${names.indexOf(checkpoint) + 1} violates`));
+    } finally { rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+}
 
 for (const [label, mutate] of [
   ['Unicode bytes', receipt => { receipt.utf8_bytes = [99,97,102,101]; }],
