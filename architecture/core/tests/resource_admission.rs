@@ -25,6 +25,7 @@ fn host() -> HostAdvertisement {
             CLASS,
             16,
             ComputePoolContract {
+                protected_preemption: None,
                 service_guarantee: ComputeServiceGuarantee::Shared,
                 architecture_base_id: ArchitectureBaseId::from("base/hosted-compute@1"),
                 architecture_base_kind: ArchitectureBaseKind::HostedOs,

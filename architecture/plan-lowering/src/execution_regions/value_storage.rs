@@ -13,6 +13,7 @@ pub struct RegionValueStorageLimits {
 }
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum RegionValueStorageError {
+    UnsupportedExecutionProfile,
     CapacityExceeded,
     UnknownRegion,
     Storage(StorageError),
@@ -33,6 +34,14 @@ impl<'plan> PreparedExecutionRegions<'plan> {
         limits: RegionValueStorageLimits,
     ) -> Result<PreparedRegionValueStorage<'prepared, 'plan>, RegionValueStorageError> {
         use RegionValueStorageError::{CapacityExceeded, Storage};
+        if self.regions().iter().any(|region| {
+            matches!(
+                region.admitted().scheduling,
+                conduit_core::ExecutionScheduling::ProtectedPreemptibleStep { .. }
+            )
+        }) {
+            return Err(RegionValueStorageError::UnsupportedExecutionProfile);
+        }
         let inline = core::mem::size_of::<PreparedRegionValueStorage<'_, '_>>();
         let vector_bytes = self
             .regions()

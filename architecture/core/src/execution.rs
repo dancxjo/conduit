@@ -1,3 +1,6 @@
+mod protected;
+pub use protected::*;
+
 use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +23,12 @@ pub enum ExecutionScheduling {
     PartitionedBoundedStep {
         storage: ExecutionWorkerStorage,
     },
+    /// Resumable protected service work under one finite logical-operation grant.
+    /// Targets must explicitly support and revalidate the selected offer.
+    ProtectedPreemptibleStep {
+        policy: ProtectedEntryBudget,
+        context: ExecutionContinuationStorage,
+    },
 }
 
 /// Separate worker realization memory, additional to selected Back resources
@@ -32,9 +41,12 @@ pub struct ExecutionWorkerStorage {
     pub scratch_bytes: u32,
 }
 impl ExecutionScheduling {
+    pub fn is_partitioned(&self) -> bool {
+        matches!(self, Self::PartitionedBoundedStep { .. })
+    }
     pub fn worker_storage(&self) -> Option<&ExecutionWorkerStorage> {
         match self {
-            Self::CooperativeBoundedStep => None,
+            Self::CooperativeBoundedStep | Self::ProtectedPreemptibleStep { .. } => None,
             Self::PartitionedBoundedStep { storage } => Some(storage),
         }
     }
@@ -71,12 +83,12 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     let partitioned = fragment
         .execution_regions
         .iter()
-        .any(|r| r.scheduling.worker_storage().is_some());
+        .any(|r| r.scheduling.is_partitioned());
     if partitioned
         && fragment
             .execution_regions
             .iter()
-            .any(|r| r.scheduling.worker_storage().is_none() || r.lane_count != 1)
+            .any(|r| !r.scheduling.is_partitioned() || r.lane_count != 1)
     {
         return false;
     }
@@ -97,6 +109,18 @@ pub(crate) fn verify_execution_regions(fragment: &PlanFragment) -> bool {
     placement_ids.sort();
     let mut admitted = Vec::new();
     for region in &fragment.execution_regions {
+        if let ExecutionScheduling::ProtectedPreemptibleStep { policy, context } =
+            &region.scheduling
+        {
+            if !policy.is_valid()
+                || !context.is_valid()
+                || region.lane_count != 1
+                || !region.preemption_required
+                || !region.isolation_required
+            {
+                return false;
+            }
+        }
         if let Some(storage) = region.scheduling.worker_storage() {
             let binding = &storage.binding;
             if storage.stack_bytes == 0

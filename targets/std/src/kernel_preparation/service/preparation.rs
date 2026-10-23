@@ -67,6 +67,9 @@ impl InitializedRegionService<'_> {
         .map_err(|e| format!("worker Plan preparation: {e:?}"))?;
         for region in prepared.regions() {
             let region = region.admitted();
+            if !region.scheduling.is_partitioned() {
+                return Err("worker requires its partitioned storage profile".into());
+            }
             let storage = region
                 .scheduling
                 .worker_storage()

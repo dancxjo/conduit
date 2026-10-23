@@ -81,6 +81,7 @@ fn browser_workstation_and_constrained_hosts_have_distinct_allowances() {
 fn topology_bearing_eight_lane_host_pool_can_allow_body_only_two() {
     let (body_id, part_id) = body_and_part();
     let contract = ComputePoolContract {
+        protected_preemption: None,
         service_guarantee: ComputeServiceGuarantee::Reserved,
         architecture_base_id: ArchitectureBaseId::from("workstation/cpu"),
         architecture_base_kind: ArchitectureBaseKind::HostedOs,

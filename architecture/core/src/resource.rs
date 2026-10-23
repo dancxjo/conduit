@@ -80,6 +80,9 @@ pub struct ComputePoolContract {
     /// Optional truthful topology groups. Empty means topology is unknown or
     /// not contractually exposed, not that the machine has no topology.
     pub topology_groups: alloc::vec::Vec<ComputeTopologyGroup>,
+    /// Exact optional protected execution mechanism; absence grants none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub protected_preemption: Option<crate::ProtectedPreemptionOffer>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -180,6 +183,10 @@ impl ComputeRequirement {
 impl ComputePoolContract {
     pub fn is_valid_for_capacity(&self, capacity_units: u32) -> bool {
         !self.architecture_base_id.as_str().is_empty()
+            && self
+                .protected_preemption
+                .as_ref()
+                .is_none_or(|offer| offer.is_valid())
             && self.topology_groups.iter().all(|group| {
                 !group.group_id.as_str().is_empty()
                     && group.lane_capacity > 0

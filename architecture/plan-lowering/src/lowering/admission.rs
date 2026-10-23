@@ -18,11 +18,22 @@ pub(super) fn validate_verified_fragment(
     fragment: &PlanFragment,
     profile: KernelStorageProfile,
 ) -> Result<(), LoweringError> {
+    // No current lowering profile installs native resumable continuations.
+    if let Some(region) = fragment.execution_regions.iter().find(|region| {
+        matches!(
+            region.scheduling,
+            conduit_core::ExecutionScheduling::ProtectedPreemptibleStep { .. }
+        )
+    }) {
+        return Err(LoweringError::UnsupportedExecutionRegion(
+            region.region_id.clone(),
+        ));
+    }
     if !profile.supports_partitioned_regions() {
         if let Some(region) = fragment
             .execution_regions
             .iter()
-            .find(|r| r.scheduling.worker_storage().is_some())
+            .find(|r| r.scheduling.is_partitioned())
         {
             return Err(LoweringError::UnsupportedExecutionRegion(
                 region.region_id.clone(),
