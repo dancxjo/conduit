@@ -1,0 +1,34 @@
+{
+  "failed_candidate": 39915598198,
+  "failed_head": "22348cc941d0978d066fec9d7b38839b6b7d890f",
+  "browser_job": 120289150769,
+  "diagnostic_artifact": 12487542658,
+  "candidate_outcome": {
+    "passed": 267,
+    "failed": 2,
+    "global_deadline_ms": 20000
+  },
+  "trace_findings": {
+    "rendezvous": {
+      "goto_ms": 9658,
+      "birth_complete_ms": 19254,
+      "add_host_attempt_ms": 20404,
+      "button_present_in_error_dom": true
+    },
+    "membership_loss": {
+      "goto_ms": 9472,
+      "disconnect_notice_ms": 19548,
+      "full_evidence_return_ms": 20484,
+      "final_assertions_ms": 20516
+    }
+  },
+  "repair_commit": "6f0bfbe8f",
+  "final_focused_result": {
+    "cases": 2,
+    "passed": 2,
+    "elapsed_seconds": 17.0,
+    "workers": 1,
+    "retries": 0,
+    "product_scope": "existing staged product and CLI; not fresh exact-source product acceptance"
+  }
+}
