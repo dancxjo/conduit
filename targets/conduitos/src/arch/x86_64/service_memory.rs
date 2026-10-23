@@ -124,7 +124,10 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
     {
         return Err(DomainRefusal::InvalidMemory);
     }
-    slot.clear();
+    // The unique claim acquires a statically zero store or the preceding
+    // owner's completed clearing. Taking its mutable view invalidates that
+    // clean marker, so partial preparation still clears before releasing it.
+    // Avoid clearing the same store a second time during installation.
     let hhdm = super::domain_memory::hhdm_offset()?;
     let current_cr3: u64;
     // SAFETY: installation runs only in Root.
@@ -166,7 +169,7 @@ fn install(mut slot: View<'_>, image: &ServiceImage<'_>) -> Result<(u64, u64), D
     }
     if let Some(data) = image.private_data() {
         // The ELF template initializes private metadata, never executable image
-        // storage. The complete slot was zeroed above, including the BSS tail.
+        // storage. The claimed slot was already zero, including the BSS tail.
         if !matches!(
             image.profile(),
             crate::service_memory::ServiceProfile::Draft
