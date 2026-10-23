@@ -25,6 +25,7 @@ pub struct FramebufferFacts {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FramebufferRefusal {
     WrongMagic,
+    InvalidInformation,
     TruncatedInformation,
     UnsupportedFormat,
     InvalidExtent,
@@ -35,12 +36,62 @@ impl FramebufferRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::WrongMagic => "multiboot-framebuffer-wrong-magic",
+            Self::InvalidInformation => "multiboot-framebuffer-information-address-invalid",
             Self::TruncatedInformation => "multiboot-framebuffer-information-truncated",
             Self::UnsupportedFormat => "multiboot-framebuffer-format-unsupported",
             Self::InvalidExtent => "multiboot-framebuffer-extent-invalid",
             Self::AddressOutsideIa32 => "multiboot-framebuffer-address-outside-ia32",
         }
     }
+}
+
+/// Copy only the advertised portion of the pinned bootloader's handoff.
+///
+/// # Safety
+/// `info_address` must be the identity-mapped bootloader information pointer
+/// supplied with `magic`. Its flags and advertised framebuffer fields must
+/// remain readable through the selected type's extent (at most 118 bytes).
+pub unsafe fn framebuffer_from_multiboot1(
+    magic: u32,
+    info_address: u32,
+) -> Result<Option<FramebufferFacts>, FramebufferRefusal> {
+    if magic != MAGIC {
+        return Err(FramebufferRefusal::WrongMagic);
+    }
+    if info_address == 0
+        || info_address
+            .checked_add((RGB_INFORMATION_BYTES - 1) as u32)
+            .is_none()
+    {
+        return Err(FramebufferRefusal::InvalidInformation);
+    }
+    let mut bytes = [0_u8; RGB_INFORMATION_BYTES];
+    let information = info_address as usize as *const u8;
+    unsafe { core::ptr::copy_nonoverlapping(information, bytes.as_mut_ptr(), 4) };
+    if read_u32(&bytes, 0)? & FRAMEBUFFER_PRESENT == 0 {
+        return decode(magic, &bytes[..4]);
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(
+            information.add(4),
+            bytes.as_mut_ptr().add(4),
+            COMMON_INFORMATION_BYTES - 4,
+        )
+    };
+    if bytes[109] == 2 {
+        return decode(magic, &bytes[..COMMON_INFORMATION_BYTES]);
+    }
+    if bytes[109] != 1 {
+        return Err(FramebufferRefusal::UnsupportedFormat);
+    }
+    unsafe {
+        core::ptr::copy_nonoverlapping(
+            information.add(COMMON_INFORMATION_BYTES),
+            bytes.as_mut_ptr().add(COMMON_INFORMATION_BYTES),
+            RGB_INFORMATION_BYTES - COMMON_INFORMATION_BYTES,
+        )
+    };
+    decode(magic, &bytes)
 }
 
 /// Decode an explicitly bounded bootloader snapshot. Absence and EGA text are
@@ -110,6 +161,24 @@ fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, FramebufferRefusal> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn invalid_entry_addresses_refuse_before_reading_bootloader_memory() {
+        for (magic, address, expected) in [
+            (0, 1, FramebufferRefusal::WrongMagic),
+            (MAGIC, 0, FramebufferRefusal::InvalidInformation),
+            (
+                MAGIC,
+                u32::MAX - 116,
+                FramebufferRefusal::InvalidInformation,
+            ),
+        ] {
+            assert_eq!(
+                unsafe { framebuffer_from_multiboot1(magic, address) },
+                Err(expected)
+            );
+        }
+    }
 
     fn observed_rgb() -> [u8; 128] {
         let mut bytes = [0; 128];

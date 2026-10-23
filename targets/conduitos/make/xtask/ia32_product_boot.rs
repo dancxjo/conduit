@@ -20,6 +20,7 @@ const PREFIX: &str = "CONDUIT_IA32_PRODUCT ";
 const OBSERVATORY_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
 
 mod clock;
+mod framebuffer;
 pub(super) use clock::GuestClock;
 
 #[derive(Clone, Copy)]
@@ -184,12 +185,14 @@ fn prove_patchbay(
     product: &serde_json::Value,
 ) -> Result<(), ConduitosError> {
     let linear = super::product_patchbay::render(snapshot, "patchbay-rejected-ia32-product")?;
+    let base_count = 7 + usize::from(product["framebuffer_observation"]["framebuffer"].is_object());
+    let expected_bases = format!("BASES {base_count}");
     for required in [
         product["host_id"].as_str().unwrap_or_default(),
         product["boot_id"].as_str().unwrap_or_default(),
         product["ordinary_plan_id"].as_str().unwrap_or_default(),
         product["ordinary_play_id"].as_str().unwrap_or_default(),
-        "BASES 7",
+        expected_bases.as_str(),
         "lifecycle=Completed",
         "proof=FreestandingEmulator",
     ] {
@@ -303,6 +306,8 @@ fn boot_once(
                 let observatory: serde_json::Value = serde_json::from_str(observatory_json)
                     .map_err(|error| refusal("malformed-ia32-observatory", error.to_string()))?;
                 validate_observatory(&observatory, &value, firmware_mode.expected_firmware())?;
+                value["framebuffer_observation"] =
+                    framebuffer::capture(&transcript, &value, &observatory)?;
                 let ordinary_plan: conduit_core::Plan =
                     serde_json::from_value(observatory["plans"][0].clone()).map_err(|error| {
                         refusal("ordinary-product-plan-invalid", error.to_string())

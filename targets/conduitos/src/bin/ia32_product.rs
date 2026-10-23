@@ -6,6 +6,9 @@ compile_error!("conduitos-ia32-product is only the IA-32 product Host");
 
 use core::panic::PanicInfo;
 
+#[path = "ia32_product/framebuffer.rs"]
+mod framebuffer;
+
 use conduit_core::{BootId, HostId, OfferGeneration};
 use conduitos::{
     allocation::BootArena,
@@ -29,7 +32,7 @@ unsafe extern "C" {
 
 #[used]
 #[unsafe(link_section = ".multiboot")]
-static MULTIBOOT1_HEADER: [u32; 6] = [0x1bad_b002, 4, 0xe452_4ffa, 0, 0, 0];
+static MULTIBOOT1_HEADER: [u32; 12] = conduitos::boot::MULTIBOOT1_VIDEO_HEADER;
 
 // Storage follows the checked, source-authored Make budget.
 const RUNTIME_ARENA_BYTES: usize = EMBEDDED_MAKE.runtime_arena_ceiling as usize;
@@ -80,6 +83,10 @@ extern "C" fn conduitos_ia32_product_rust_entry(
 ) -> ! {
     let firmware = unsafe {
         conduitos::boot::firmware_from_multiboot1(multiboot_magic, multiboot_information)
+    }
+    .unwrap_or_else(|error| refuse(error.as_str()));
+    let framebuffer = unsafe {
+        conduitos::boot::framebuffer_from_multiboot1(multiboot_magic, multiboot_information)
     }
     .unwrap_or_else(|error| refuse(error.as_str()));
     let spore_region = unsafe {
@@ -187,6 +194,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     }
     let image_start = core::ptr::addr_of!(__conduitos_image_start) as usize;
     let image_end = core::ptr::addr_of!(__conduitos_image_end) as usize;
+    let framebuffer_basis = framebuffer::basis(framebuffer.as_ref(), &identities, firmware);
     let boot_record = BootRecord {
         firmware,
         timestamp: counter,
@@ -196,7 +204,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         image_length: image_end.saturating_sub(image_start) as u64,
         memory_region_count: 1,
         artifact_count: 0,
-        framebuffer_count: 0,
+        framebuffer_count: u16::from(framebuffer.is_some()),
         command_line_bytes: 0,
         runtime_arena: RuntimeArena {
             physical_start: unsafe {
@@ -212,7 +220,7 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         &prepared,
         EMBEDDED_MAKE.build_id,
         EMBEDDED_MAKE.image_binding,
-        None,
+        framebuffer_basis.as_ref(),
     )
     .unwrap_or_else(|error| refuse(error.as_str()));
     let mut clock = arch::Clock::new();
