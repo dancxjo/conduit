@@ -33,7 +33,7 @@ fn assigned_configuration_matches_independent_source_exactly() {
                 value: c::ConfigurationValue::U64(250),
             },
             c::ConfigurationEntry {
-                key: "d".into(),
+                key: "label".into(),
                 value: c::ConfigurationValue::Text("fixture".into()),
             },
         ],
