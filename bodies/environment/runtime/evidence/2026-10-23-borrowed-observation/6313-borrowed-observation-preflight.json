@@ -1,0 +1,12 @@
+{
+  "source": "874a611f9b1bdb239c7b422a94aae3471df1dfbb",
+  "base": "3b3f539ae4b376ce6eaaecb6146c2c1533f6d4b0",
+  "command": "cargo +stable xtask ci pipeline preflight 3b3f539ae4b376ce6eaaecb6146c2c1533f6d4b0",
+  "exit_code": 0,
+  "ci_tool_tests_passed": 345,
+  "log": "work/6313-borrowed-observation-preflight.log",
+  "sha256": "eb18c251b5592d1be5a1cfd2fc426241a56838f10009477809b03873b0c62da9",
+  "prior_environment_failure": "work/6313-borrowed-observation-preflight-missing-actionlint.log",
+  "setup_command": "cargo +stable xtask ci pipeline setup-ci",
+  "setup_exit_code": 0
+}

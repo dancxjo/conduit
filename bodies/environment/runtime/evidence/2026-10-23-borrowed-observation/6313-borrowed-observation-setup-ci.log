@@ -1,0 +1,5 @@
+    Finished `dev` profile [unoptimized] target(s) in 0.13s
+     Running `/home/dancxjo/Documents/Codex/2026-10-21/please-finish-and-close-any-conduit/work/6313-current-runtime-target/debug/conduit-xtask-dispatch ci pipeline setup-ci`
+> tar -xOf /home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint_1.7.7_linux_amd64.tar.gz actionlint
+> /home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint -version
+Acquisition preflight: success in 127 ms; report target/acquisition/preflight.json

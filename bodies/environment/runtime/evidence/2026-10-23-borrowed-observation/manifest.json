@@ -41,6 +41,26 @@
       "path": "6313-borrowed-observation-proof-negative-053bbbd2.json",
       "bytes": 581,
       "sha256": "05a7dc63eb0c9537c4f6f0a9f55fbda4e9332af1e13f26c62037492263fedfc1"
+    },
+    {
+      "path": "6313-borrowed-observation-preflight.log",
+      "bytes": 34977,
+      "sha256": "eb18c251b5592d1be5a1cfd2fc426241a56838f10009477809b03873b0c62da9"
+    },
+    {
+      "path": "6313-borrowed-observation-preflight-missing-actionlint.log",
+      "bytes": 36117,
+      "sha256": "06a5d45268f3a7a0a6a26eebff492eda930979334248b769de0c065cef655795"
+    },
+    {
+      "path": "6313-borrowed-observation-setup-ci.log",
+      "bytes": 496,
+      "sha256": "fbd5f752003806565bafd73c4bf48e3c65b2735d371cafbdd521f649b91a3d75"
+    },
+    {
+      "path": "6313-borrowed-observation-preflight.json",
+      "bytes": 583,
+      "sha256": "45891994cef3d8bcfe51a6fa3ca93c1a23ed45e32c0c9b35e2f9325d16507704"
     }
   ]
 }
