@@ -1157,3 +1157,21 @@ passes on the attended ESP32. Evidence in
 `evidence/2026-10-23-physical-kernel-preparation/` records 93,252 retained and
 97,220 peak bytes in the 114,688-byte Root heap. This remains a dormant
 preparation diagnostic; native/control admission and Body start are unfinished.
+
+Root now has a separate provisioned owner-control verifier. It authenticates a
+domain-separated transcript binding the operation, monotonic request sequence,
+current Host/Boot/offer generation, full Body/Wake/Body Plan/Body Play and
+Plot Plan/fragment/fragment Play identities, and assignment seal. Strict Ed25519
+verification precedes sequence consumption; malformed, foreign, stale and replayed
+requests preserve the counter. No provisioned owner key leaves this control
+disabled. Incoming request metadata cannot provision a key.
+
+This is an authentication prerequisite, not installation authority. The bounded
+UART probe admits at most 2 KiB of JSON plus a 64-byte signature, with a five-second
+receive deadline and two-second responses. It reports authentication separately
+from application; lifecycle operations currently return `operation-not-installed`.
+The build reads only an explicitly provisioned public key. Private-key custody,
+the persistent ordinary Body owner, native installation and acknowledged start
+remain unfinished. CPU controls run in `cargo xtask prove environment
+native-construction`; the ESP32 image builds, but this probe has not been flashed
+or physically verified.

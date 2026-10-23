@@ -1,0 +1,98 @@
+//! Bounded owner authentication probe; lifecycle actions are not installed here.
+use crate::{native_owner_control as owner, native_root::NativeRoot};
+use embassy_time::{with_timeout, Duration};
+use esp_hal::{uart::Uart, Async};
+const READY: &[u8] =
+    b"\n{\"event\":\"native-owner-control-ready\",\"maximum_request_bytes\":2048}\n";
+async fn read_exact(uart: &mut Uart<'_, Async>, mut bytes: &mut [u8]) -> Result<(), ()> {
+    while !bytes.is_empty() {
+        let count = uart.read_async(bytes).await.map_err(|_| ())?;
+        if count == 0 {
+            return Err(());
+        }
+        bytes = &mut bytes[count..];
+    }
+    Ok(())
+}
+pub async fn receive(
+    root: &mut NativeRoot,
+    uart: &mut Uart<'_, Async>,
+    buffer: &mut [u8],
+) -> Result<(), ()> {
+    with_timeout(
+        Duration::from_secs(2),
+        crate::native_control::write_all(uart, READY),
+    )
+    .await
+    .map_err(|_| ())??;
+    let received = with_timeout(Duration::from_secs(5), async {
+        let mut length = [0; 2];
+        read_exact(uart, &mut length).await?;
+        let length = usize::from(u16::from_le_bytes(length));
+        if length == 0 || length > owner::MAXIMUM_REQUEST_BYTES {
+            return Err(());
+        }
+        read_exact(uart, buffer.get_mut(..length).ok_or(())?).await?;
+        let mut signature = [0; 64];
+        read_exact(uart, &mut signature).await?;
+        Ok((length, signature))
+    })
+    .await;
+    let result = match received {
+        Ok(Ok((length, signature))) => {
+            match serde_json_core::from_slice::<owner::Request<'_>>(&buffer[..length]) {
+                Ok((request, consumed))
+                    if buffer[consumed..length].iter().all(u8::is_ascii_whitespace) =>
+                {
+                    root.authenticate_owner(request, &signature)
+                        .map(|authenticated| authenticated.into_request().operation)
+                }
+                _ => Err(owner::Refusal::Malformed),
+            }
+        }
+        _ => Err(owner::Refusal::Malformed),
+    };
+    #[derive(serde::Serialize)]
+    struct Reply {
+        event: &'static str,
+        authenticated: bool,
+        operation: Option<owner::Operation>,
+        refusal: Option<&'static str>,
+        sequence: u64,
+        control_applied: bool,
+        body_installed: bool,
+        native_plan_installed: bool,
+        capability_possession_issued: bool,
+    }
+    let refusal = match result {
+        Ok(owner::Operation::Inspect) => None,
+        Ok(_) => Some("operation-not-installed"),
+        Err(owner::Refusal::Disabled) => Some("owner-control-disabled"),
+        Err(owner::Refusal::InvalidKey) => Some("invalid-owner-key"),
+        Err(owner::Refusal::Malformed) => Some("malformed"),
+        Err(owner::Refusal::WrongHost) => Some("wrong-host"),
+        Err(owner::Refusal::StaleBoot) => Some("stale-boot"),
+        Err(owner::Refusal::WrongGeneration) => Some("wrong-generation"),
+        Err(owner::Refusal::Replay) => Some("replay"),
+        Err(owner::Refusal::Signature) => Some("signature"),
+    };
+    let reply = Reply {
+        event: "native-owner-control",
+        authenticated: result.is_ok(),
+        operation: result.ok(),
+        refusal,
+        sequence: root.owner_control_sequence(),
+        control_applied: false,
+        body_installed: false,
+        native_plan_installed: false,
+        capability_possession_issued: false,
+    };
+    let size = serde_json_core::to_slice(&reply, buffer).map_err(|_| ())?;
+    with_timeout(Duration::from_secs(2), async {
+        crate::native_control::write_all(uart, b"\n").await?;
+        crate::native_control::write_all(uart, &buffer[..size]).await?;
+        crate::native_control::write_all(uart, b"\n").await
+    })
+    .await
+    .map_err(|_| ())?
+}

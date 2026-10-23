@@ -8,6 +8,7 @@ pub enum Command {
     AppliancePolicy,
     AssignmentTransfer,
     KernelPrepare,
+    OwnerControl,
     Unsupported,
     TooLarge,
 }
@@ -40,6 +41,8 @@ impl CommandBuffer {
                     Command::SoftwareOffer
                 } else if bytes == b"appliance-policy" {
                     Command::AppliancePolicy
+                } else if bytes == b"owner-control" {
+                    Command::OwnerControl
                 } else if bytes == b"kernel-prepare" {
                     Command::KernelPrepare
                 } else if bytes == b"assignment-transfer" {

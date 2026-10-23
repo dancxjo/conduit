@@ -221,3 +221,6 @@ mod native_assignment;
 
 #[path = "root_control_support/admission.rs"]
 mod admission;
+
+#[path = "root_control_support/owner_control.rs"]
+mod owner_control;

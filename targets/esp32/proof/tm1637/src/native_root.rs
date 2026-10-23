@@ -6,6 +6,7 @@ use conduit_esp32_pulse_capture::{Esp32PulseCapture, LIMITS};
 use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
+    owner_control: crate::native_owner_control::OwnerControl,
     appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
     admission: crate::native_admission::NativeAdmission,
     admission_freshness: u64,
@@ -91,7 +92,13 @@ impl NativeRoot {
         let admission = crate::native_admission::NativeAdmission::new(seed)
             .expect("Root admission requires nonzero entropy");
         seed.fill(0);
+        mod owner_key {
+            include!(concat!(env!("OUT_DIR"), "/owner-control-key.rs"));
+        }
+        let owner_control = crate::native_owner_control::OwnerControl::new(owner_key::PUBLIC_KEY)
+            .expect("installed owner public key must be valid and non-weak");
         Self {
+            owner_control,
             appliance_kernel: None,
             admission,
             admission_freshness: 0,
@@ -113,6 +120,28 @@ impl NativeRoot {
             host,
             boot,
         }
+    }
+    pub fn owner_control_configured(&self) -> bool {
+        self.owner_control.configured()
+    }
+    pub fn owner_control_sequence(&self) -> u64 {
+        self.owner_control.last_sequence()
+    }
+    pub fn authenticate_owner<'a>(
+        &mut self,
+        request: crate::native_owner_control::Request<'a>,
+        signature: &[u8; 64],
+    ) -> Result<
+        crate::native_owner_control::AuthenticatedRequest<'a>,
+        crate::native_owner_control::Refusal,
+    > {
+        self.owner_control.authenticate(
+            request,
+            signature,
+            self.host.as_str(),
+            self.boot.as_str(),
+            self.offer_generation,
+        )
     }
     pub fn prepare_appliance_kernel(&mut self) -> Result<(), &'static str> {
         if self.appliance_kernel.is_some() {
