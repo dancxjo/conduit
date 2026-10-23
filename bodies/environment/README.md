@@ -1275,3 +1275,8 @@ bytes; it grants neither logging authority nor Body start. Its status reports
 actual capability inspections and preserves terminal resources. ESP32 compilation,
 host lint and the portable native-construction proof pass. Physical task custody,
 attributed Body start/release and Face/Mask service wiring remain to be proved.
+
+The requested Raspberry Pi recorder/presenter, MCU construction role and symmetric
+Linux/ConduitOS/browser handoff requirements are retained in
+[SECOND-HOST.md](SECOND-HOST.md). Exact board identification and physical proof
+remain required.
