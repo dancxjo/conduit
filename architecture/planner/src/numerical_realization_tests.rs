@@ -220,3 +220,22 @@ fn direct_placement_cannot_bypass_a_numeric_requirement() {
         .unwrap()
         .is_err());
 }
+
+#[test]
+fn ordinary_candidate_still_validates_properties_without_numeric_requirements() {
+    let plot = crate::tests::plot();
+    let host = crate::tests::host();
+    let gear = &plot.gears[0];
+    assert!(!has_requests(gear));
+    assert_eq!(
+        candidate_check(gear, &host.capabilities[0]).unwrap(),
+        Ok(())
+    );
+    let mut offer = host.capabilities[0].clone();
+    let property = request("1");
+    offer.realization_properties = vec![property.clone(), property];
+    assert!(matches!(
+        candidate_check(gear, &offer),
+        Err(PlannerError::InvalidRealizationProperties(id)) if id == offer.capability_id
+    ));
+}
