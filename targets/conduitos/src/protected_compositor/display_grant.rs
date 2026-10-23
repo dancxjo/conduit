@@ -18,7 +18,26 @@ pub(crate) struct DisplayGrant {
     format: DisplayFormat,
 }
 
+/// A borrowed observation, not possession of the underlying display provider.
+pub(crate) struct DisplayIdentity<'a> {
+    pub host: &'a HostId,
+    pub boot: &'a BootId,
+    pub generation: OfferGeneration,
+    pub base: &'a HostBaseId,
+    pub format: DisplayFormat,
+}
+
 impl DisplayGrant {
+    pub(crate) fn identity(&self) -> DisplayIdentity<'_> {
+        DisplayIdentity {
+            host: &self.host,
+            boot: &self.boot,
+            generation: self.generation,
+            base: &self.base,
+            format: self.format,
+        }
+    }
+
     /// Root must first match the discovered provider to its framebuffer Basis.
     /// Equal formats alone do not identify a device; the boot call site binds
     /// this grant to the concrete scanout target it continues to own.
@@ -92,6 +111,12 @@ mod tests {
             format(),
         )
         .unwrap();
+        let identity = grant.identity();
+        assert!(core::ptr::eq(identity.host, &grant.host));
+        assert!(core::ptr::eq(identity.boot, &grant.boot));
+        assert!(core::ptr::eq(identity.base, &grant.base));
+        assert_eq!(identity.generation, OfferGeneration(3));
+        assert_eq!(identity.format, format());
         assert!(grant.matches(&host, &boot, OfferGeneration(3), &base));
         assert!(!grant.matches(&HostId::from("other"), &boot, OfferGeneration(3), &base));
         assert!(!grant.matches(&host, &BootId::from("old"), OfferGeneration(3), &base));

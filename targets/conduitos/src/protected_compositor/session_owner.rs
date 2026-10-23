@@ -96,6 +96,7 @@ impl<T: Transport> SessionOwner<T> {
         self.observe_activation(false)
     }
     fn observe_activation(&mut self, withdrawn: bool) -> Result<Activation, OwnerError<T::Error>> {
+        let started = lifecycle::start();
         let before = self.transport.observed_cost();
         let namespace = self.namespace;
         let instance = self.transport.instance();
@@ -104,6 +105,7 @@ impl<T: Transport> SessionOwner<T> {
         } else {
             self.activate_inner()
         };
+        let finished = lifecycle::start();
         self.activation_observation.instance_before = instance;
         self.activation_observation.instance_after = self.transport.instance();
         self.activation_observation.namespace_before = namespace;
@@ -115,6 +117,7 @@ impl<T: Transport> SessionOwner<T> {
                 after: self.transport.observed_cost(),
                 succeeded: result.is_ok(),
                 refused: false,
+                raw_ticks: lifecycle::elapsed(started, finished),
             });
         result
     }

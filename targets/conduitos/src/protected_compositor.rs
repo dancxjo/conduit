@@ -42,10 +42,23 @@ pub struct FrameChunk<'a> {
 }
 
 impl CompositorService {
+    /// Immutable build-embedded image. A collector may bind its digest once at
+    /// preparation; request execution does not hash or copy the image.
+    pub(crate) fn embedded_image_bytes() -> &'static [u8] {
+        #[cfg(conduitos_compositor_image)]
+        {
+            include_bytes!(concat!(env!("OUT_DIR"), "/compositor.elf"))
+        }
+        #[cfg(not(conduitos_compositor_image))]
+        {
+            &[]
+        }
+    }
+
     pub fn install_embedded(width: u16, height: u16) -> Result<Self, TransportError> {
         #[cfg(conduitos_compositor_image)]
         {
-            let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/compositor.elf"));
+            let bytes = Self::embedded_image_bytes();
             let image = ServiceImage::compositor(bytes).map_err(|_| TransportError::Protocol)?;
             Self::install(&image, width, height)
         }
@@ -64,7 +77,9 @@ impl CompositorService {
         if width == 0 || height == 0 {
             return Err(TransportError::Bounds);
         }
+        let installation_started = lifecycle::start();
         let domain = ServiceDomain::install(image).map_err(TransportError::Backend)?;
+        let installation_finished = lifecycle::start();
         let mut service = Self {
             observation: lifecycle::ServiceObservation::installed(domain.instance(), domain.cost()),
             instance: domain.instance(),
@@ -73,13 +88,18 @@ impl CompositorService {
             next_request: 1,
             frame_grant: FrameGrant::new(width, height),
         };
+        service.observation.installation_raw_ticks =
+            lifecycle::elapsed(installation_started, installation_finished);
+        let initialization_started = lifecycle::start();
         let before = service.cost();
         let initialized = service.request(Request::Initialize { width, height });
+        let initialization_finished = lifecycle::start();
         service.observation.initialization = Some(lifecycle::Sample {
             before: Some(before),
             after: Some(service.cost()),
             succeeded: matches!(initialized, Ok(Response::Unit)),
             refused: matches!(initialized, Ok(Response::Refused(_))),
+            raw_ticks: lifecycle::elapsed(initialization_started, initialization_finished),
         });
         if initialized? != Response::Unit {
             service.quarantine();
@@ -103,6 +123,7 @@ impl CompositorService {
     }
 
     pub fn quarantine(&mut self) {
+        let started = lifecycle::start();
         self.frame_grant.invalidate();
         // Taking the backend makes terminal release idempotent. Stale owners
         // retain identity/cost only, so their later Drop cannot free a new slot.
@@ -110,13 +131,15 @@ impl CompositorService {
             let before = domain.cost();
             domain.quarantine();
             self.final_cost = domain.cost();
+            drop(domain);
+            let finished = lifecycle::start();
             self.observation.disposal = Some(lifecycle::Sample {
                 before: Some(before),
                 after: Some(self.final_cost),
                 succeeded: true,
                 refused: false,
+                raw_ticks: lifecycle::elapsed(started, finished),
             });
-            drop(domain);
         }
     }
 
@@ -124,17 +147,20 @@ impl CompositorService {
     /// response kind and numeric limits are checked before any caller effect.
     /// A Refused response is an explicit command outcome, never a retry grant.
     pub fn request(&mut self, request: Request) -> Result<Response, TransportError> {
+        let started = lifecycle::start();
         let before = self.cost();
         let result = self.exchange(request);
         if result.is_err() {
             self.quarantine();
         }
+        let finished = lifecycle::start();
         let after = self.cost();
         self.observation.requests.record(lifecycle::Sample {
             before: Some(before),
             after: Some(after),
             succeeded: result.is_ok(),
             refused: matches!(result, Ok(Response::Refused(_))),
+            raw_ticks: lifecycle::elapsed(started, finished),
         });
         result
     }

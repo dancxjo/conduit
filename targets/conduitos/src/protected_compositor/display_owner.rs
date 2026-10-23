@@ -42,6 +42,9 @@ pub(crate) struct DisplayOwner {
     staging: Vec<u32>,
     report: PreparationReport,
     grant: SharedDisplayGrant,
+    staging_preparation_raw_ticks: Option<u64>,
+    preparation_raw_ticks: Option<u64>,
+    disposal_raw_ticks: Option<u64>,
 }
 
 impl DisplayOwner {
@@ -64,7 +67,9 @@ impl DisplayOwner {
     pub(crate) fn prepare_shared(
         grant: SharedDisplayGrant,
     ) -> Result<SharedDisplayOwner, PreparationError> {
+        let preparation_started = super::lifecycle::start();
         let (width, height) = grant.extent();
+        let staging_started = super::lifecycle::start();
         let mut staging = Vec::new();
         staging
             .try_reserve_exact(STAGING_PIXELS)
@@ -77,6 +82,7 @@ impl DisplayOwner {
         let admitted = RasterStaging::admit(staging.as_mut_slice())
             .map_err(|_| PreparationError::Owner(OwnerError::Capacity))?;
         drop(admitted);
+        let staging_finished = super::lifecycle::start();
         let service = CompositorService::install_embedded(width, height)
             .map_err(PreparationError::Transport)?;
         let service_cost_at_preparation = service.cost();
@@ -87,12 +93,32 @@ impl DisplayOwner {
             service_reserved_bytes: SERVICE_RESERVED_BYTES,
             service_cost_at_preparation,
         };
-        Ok(Rc::new(RefCell::new(Self {
+        let owner = Rc::new(RefCell::new(Self {
             sessions,
             staging,
             report,
             grant,
-        })))
+            staging_preparation_raw_ticks: super::lifecycle::elapsed(
+                staging_started,
+                staging_finished,
+            ),
+            preparation_raw_ticks: None,
+            disposal_raw_ticks: None,
+        }));
+        let finished = super::lifecycle::start();
+        owner.borrow_mut().preparation_raw_ticks =
+            super::lifecycle::elapsed(preparation_started, finished);
+        Ok(owner)
+    }
+
+    /// Immutable embedded image for preparation-time source binding only.
+    pub(crate) fn embedded_image_bytes(&self) -> &'static [u8] {
+        CompositorService::embedded_image_bytes()
+    }
+
+    /// Borrowed exact scope only; observing it cannot renew or replace a grant.
+    pub(crate) fn display_identity(&self) -> super::display_grant::DisplayIdentity<'_> {
+        self.grant.identity()
     }
 
     pub(crate) fn matches_scope(
@@ -113,9 +139,14 @@ impl DisplayOwner {
     /// admitted allocator. The exclusive owner borrow excludes every RasterLease.
     /// An inert Rc can outlive this release without retaining pixel storage.
     pub(crate) fn quarantine(&mut self) {
+        let started = super::lifecycle::start();
+        let live_staging = !self.staging.is_empty();
         self.sessions.quarantine();
         self.staging.fill(0);
         drop(core::mem::take(&mut self.staging));
+        if live_staging {
+            self.disposal_raw_ticks = super::lifecycle::elapsed(started, super::lifecycle::start());
+        }
     }
 
     /// Fixed read-only lifecycle snapshot; no pixel, grant or transport escape.
@@ -126,6 +157,9 @@ impl DisplayOwner {
             current_cost: self.service_cost(),
             staging_prepared_bytes: self.report.staging_logical_bytes,
             staging_live_bytes: self.staging.len() * size_of::<u32>(),
+            staging_preparation_raw_ticks: self.staging_preparation_raw_ticks,
+            preparation_raw_ticks: self.preparation_raw_ticks,
+            disposal_raw_ticks: self.disposal_raw_ticks,
         }
     }
 
