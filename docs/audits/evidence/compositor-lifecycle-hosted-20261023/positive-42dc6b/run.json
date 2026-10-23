@@ -1,0 +1,73 @@
+{
+  "source": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+  "command": [
+    "cargo",
+    "+stable",
+    "test",
+    "-p",
+    "conduitos",
+    "--lib",
+    "--features",
+    "hosted-tools,native-compositor",
+    "compositor_session_owner_tests",
+    "--locked",
+    "--",
+    "--test-threads=1"
+  ],
+  "env": {
+    "CARGO_TARGET_DIR": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "cache": "/tmp/conduit-6185-lifecycle-target-42dc6b",
+  "scope": "isolated focused hosted; native and fullsuite pending",
+  "status": "success",
+  "started_utc": "2026-10-23T09:33:11.211629+00:00",
+  "capacity_checks": [
+    {
+      "utc": "2026-10-23T09:34:11.232613+00:00",
+      "cache_bytes": 224578941,
+      "tmp_free_bytes": 20722499584,
+      "mem_available_bytes": 50550013952
+    },
+    {
+      "utc": "2026-10-23T09:35:11.255756+00:00",
+      "cache_bytes": 1011830648,
+      "tmp_free_bytes": 19975651328,
+      "mem_available_bytes": 51157299200
+    },
+    {
+      "utc": "2026-10-23T09:36:11.282166+00:00",
+      "cache_bytes": 1492668595,
+      "tmp_free_bytes": 19579842560,
+      "mem_available_bytes": 50849853440
+    },
+    {
+      "utc": "2026-10-23T09:37:11.303869+00:00",
+      "cache_bytes": 2440332507,
+      "tmp_free_bytes": 18693816320,
+      "mem_available_bytes": 50253877248
+    },
+    {
+      "utc": "2026-10-23T09:38:11.326665+00:00",
+      "cache_bytes": 2760974440,
+      "tmp_free_bytes": 18373496832,
+      "mem_available_bytes": 49133645824
+    }
+  ],
+  "exit_code": 0,
+  "finished_utc": "2026-10-23T09:38:59.416688+00:00",
+  "source_after": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+  "status_after": "",
+  "raw_log_sha256": "75659d1319e8d2ef7ce9f42cd4f624fb4c31e6a96112938be1f5164a6b2aa50e",
+  "root_free_bytes": 18649645056,
+  "retained_executables": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-42dc6b/conduitos-cff8a604d4e3a62b",
+      "bytes": 156221992,
+      "sha256": "918165b3ba24ee3f312e4b9e0a2fa67fa64cb00f08b9812ad9e4a2004710362f"
+    }
+  ]
+}

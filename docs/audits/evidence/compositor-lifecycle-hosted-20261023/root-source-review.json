@@ -1,0 +1,12 @@
+{
+  "source": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+  "review": "read-only source review, not compilation/runtime proof",
+  "findings": {
+    "clock": "Existing domain_ticks export only on actual x86_64none, Nonehosted, checkedsub forreverse; unfenceduncalibratedRDTSC, no physical/cycleaccurateclaim",
+    "identity": "BorrowedHost/Boot/Base,currentofferGeneration/format fromimmutablegrant, no mutablegrant/capabilityrenewal; staticembeddedbytes forone-timehash",
+    "storage": "Fixed count/lastobservations, checkedoverflow flag, no hotpathallocation/history/logging",
+    "behavior": "Sameactivationretirement/terminalcontrolflow; endedmeasurementbeforeobservationrecord/serial; failedrequestintervalmayincludedisposal so collector mustattributeoutcome",
+    "proof_gap": "Hosted tests pending and do not compile native-onlyaccessors; actualnativecompile+productcollector/runtime/lifecycle-negative proof stillrequired; no issuecompletionclaim"
+  },
+  "blockers_found": []
+}

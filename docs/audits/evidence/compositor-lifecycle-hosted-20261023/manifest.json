@@ -1,0 +1,87 @@
+{
+  "schema": "conduit.local/compositor-lifecycle-hosted@1",
+  "source": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+  "proof_class": "hosted focused tests only",
+  "positive": {
+    "owner_tests": 22,
+    "identity_tests": 4,
+    "ignored": 0,
+    "owner_filtered": 1323,
+    "identity_filtered": 1341,
+    "actual_test_executable": {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-42dc6b/conduitos-cff8a604d4e3a62b",
+      "bytes": 156221992,
+      "sha256": "918165b3ba24ee3f312e4b9e0a2fa67fa64cb00f08b9812ad9e4a2004710362f"
+    }
+  },
+  "negative": {
+    "source": "982af9518563b4485f615835466c459197acc221",
+    "exit_code": 101,
+    "stage": "linker SIGBUS; no tests executed",
+    "cause": "unproven; sharedcache later disappeared externally, not asserted causal",
+    "retry_claim": false
+  },
+  "compiler_observation": "rustc +stable version queried after tests during packet sealing; not separately captured before test execution",
+  "sealed_utc": "2026-10-23T09:41:07.074870+00:00",
+  "binaries_in_git": false,
+  "limits": [
+    "No full suite",
+    "No native/CPL3/QEMU proof",
+    "No product lifecycle timing or performance claim",
+    "No complete #6185 claim"
+  ],
+  "files": {
+    "compiler-observed-after-tests.txt": {
+      "bytes": 196,
+      "sha256": "778fbc643a806f0dd123c056e66201d7e8a56a61928ec0a33171be8d6c2d5a37"
+    },
+    "negative-982af9/first.log.gz": {
+      "bytes": 6711,
+      "sha256": "06c28581170402bbb2c14b5e8d5459ee1f46a3f6397424e2f7611bfe3d2098dc",
+      "uncompressed_bytes": 25408,
+      "uncompressed_sha256": "2be278d8ff50ec8edc3cec29a7879ae79676f741b8231c085301087d8debdfc3"
+    },
+    "negative-982af9/preflight-negative.txt.gz": {
+      "bytes": 228,
+      "sha256": "fe91035348639326fbc8d23b0827a23c7a07e549b37dd6dc1608c0f79c36e1eb",
+      "uncompressed_bytes": 304,
+      "uncompressed_sha256": "157f093378a92b6dc368f77a89f879b66b1c4d62c7b9f67b0f016f1670f2438b"
+    },
+    "negative-982af9/run.json": {
+      "bytes": 1300,
+      "sha256": "178d86f98be5047fd51b9993e7f8c6e1cef637366bdd020eba506bf46ee17485"
+    },
+    "positive-42dc6b/first.log.gz": {
+      "bytes": 3959,
+      "sha256": "73591ef967c1a408344c1a71b5a5318c5b17b644ad4dac5e6743a28635b99050",
+      "uncompressed_bytes": 22892,
+      "uncompressed_sha256": "75659d1319e8d2ef7ce9f42cd4f624fb4c31e6a96112938be1f5164a6b2aa50e"
+    },
+    "positive-42dc6b/identity-run.json": {
+      "bytes": 575,
+      "sha256": "f2346c9a5ac5d94b32c099c0ac8bc11507833fd8643fa8e0e7165488b6fbcee3"
+    },
+    "positive-42dc6b/identity.log.gz": {
+      "bytes": 289,
+      "sha256": "bc5f8694f253dba90ac03c6f185eaf27e3c4f3eb0db5c371a8da568c4fefdbbb",
+      "uncompressed_bytes": 586,
+      "uncompressed_sha256": "48c56c8c6ee6cef9f21d7b93149cd27fdfe29f6432c34a2fe2e8a6775cc96925"
+    },
+    "positive-42dc6b/run.json": {
+      "bytes": 2187,
+      "sha256": "e63f3f0e0e5f9a3b14faa82e4cd4384d8ca9a8201b034a2a38eef14d4ff78f15"
+    },
+    "root-source-review.json": {
+      "bytes": 986,
+      "sha256": "926f1a2cf8446f2047e4d0a18107850f3f367303ab8a13164cc0da6e636e2cda"
+    },
+    "README.md": {
+      "bytes": 2677,
+      "sha256": "97457b7eaca82c1376f05616d3c8a7f24761041c5bf510944512ffa6d9a5b0a6"
+    },
+    "negative-982af9/environment-from-orchestration.json": {
+      "bytes": 296,
+      "sha256": "09f94d5dee9f0474a56b528ed4521124849b50d01c85544510b267bca0cd15cb"
+    }
+  }
+}

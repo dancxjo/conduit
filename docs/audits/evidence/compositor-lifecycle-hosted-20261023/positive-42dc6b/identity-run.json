@@ -1,0 +1,13 @@
+{
+  "source": "42dc6b201a6fe900725882eb9eef922a31abc3f5",
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-21/goal-find-the-first-available-github/work/6185-hosted-42dc6b/conduitos-cff8a604d4e3a62b",
+    "compositor_display_grant_tests",
+    "--test-threads=1"
+  ],
+  "executable_sha256": "918165b3ba24ee3f312e4b9e0a2fa67fa64cb00f08b9812ad9e4a2004710362f",
+  "exit_code": 0,
+  "raw_log_sha256": "48c56c8c6ee6cef9f21d7b93149cd27fdfe29f6432c34a2fe2e8a6775cc96925",
+  "utc": "2026-10-23T09:39:08.850287+00:00",
+  "scope": "same frozen hosted test binary; no rebuild"
+}
