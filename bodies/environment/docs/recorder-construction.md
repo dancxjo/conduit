@@ -73,9 +73,10 @@ and corruption; an absent generation remains `ResourceMissing`. The maximum
 
 Identities, authority, preselected browser read bindings and the catalog's
 starting reference are fixtures. This proves durable batch and catalog bytes
-across reopen. Live kernel read routing, durable Root custody of that starting
-reference, Body installation, a Line and physical overnight operation remain
-incomplete. The [earlier single-chunk receipt](../evidence/2026-10-23-browser-recording-storage/measurement.json)
+across reopen. The subsequent kernel/IndexedDB proof below connects actual
+reads to original kernel requests. Durable Root custody of that starting
+reference, Body installation, a production Line and physical overnight operation
+remain incomplete. The [earlier single-chunk receipt](../evidence/2026-10-23-browser-recording-storage/measurement.json)
 retains its narrower historical scope.
 
 `PreparedRecordingKernel` prepares this finite four-gear production kernel from
@@ -152,11 +153,14 @@ history with zero execution allocations or reallocations. Failed, cancelled and
 invalid-content reads refuse without publishing history. Stale tables and an
 unavailable owner refuse before other software transfers.
 
-Root must still admit the complete memory/work closure, retain actual browser
-providers, correlate their results with these exact kernel requests and advance
-the real Body start. These read completions are CPU fixtures; the independent
-IndexedDB proof does not establish that live provider connection. The original
-single-generation kernel retains its separate finite profile.
+The [kernel/IndexedDB receipt](../evidence/2026-10-23-kernel-indexeddb/measurement.json)
+then connects original pending kernel requests to actual Chromium storage reads
+after page reload. Reverse completion recovers all 960 samples without execution
+allocations; equal node-local sequences cannot interchange placement scope.
+Files carry the proof transport between native kernel and browser. Root must
+still admit the complete memory/work closure, retain providers through the real
+Body start, and use production transport. The original single-generation kernel
+retains its separate finite profile.
 
 ## Batches, recovery and Face
 
@@ -211,3 +215,23 @@ A selected reference does not acknowledge publication, prove residence or grant
 a read. Missing listed chunks must still refuse through the actual snapshot
 Host Call; each recovered chunk must satisfy its expected producer context.
 This catalog has not yet been connected to the live recorder Body or Line.
+
+## Production batch software preparation
+
+`ReadyRecordingBatchSoftware::prepare` initializes and retains each exact
+generation, singleton, finite concatenation and recovery Back before publishing
+its offer to Root's Host advertisement. Root supplies only the existing storage
+read choices; the constructor neither synthesizes snapshot providers nor issues
+grants. The ordinary planner still checks resource provenance and independent
+authority. Failure, including a late offer collision, leaves the supplied Host
+advertisement unchanged.
+
+The returned owners and their actual advertised choices pass directly to
+`PreparedRecordingRecovery::prepare_batch` and then to the production batch
+kernel. Ownership transfer removes their continuing availability. This is now
+the same preparation path used by the 1-, 15- and 16-generation kernel proofs
+and the actual IndexedDB/kernel proof. `cargo xtask prove environment recording`
+checks missing, foreign and unoffered read choices plus late publication failure;
+`cargo xtask prove environment recording-browser` checks the real storage I/O
+connection after this production preparation. Actual browser Body admission,
+production transport and durable catalog-seed custody still remain.

@@ -5,7 +5,9 @@ use conduit_environment_runtime::recording as r;
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, LoweringError};
 use std::collections::BTreeMap;
 mod batch;
+mod ready;
 pub use batch::RecordingBatchRecoverySource;
+pub use ready::{ReadyRecordingBatchSoftware, RecordingSoftwarePreparationRefusal};
 
 pub struct RecordingRecoverySource {
     expanded: conduit_plot::ExpandedCanonicalPlot,
