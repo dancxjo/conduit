@@ -152,6 +152,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "critical-section",
  "embassy-sync",
+ "embedded-io-async",
  "heapless 0.8.0",
  "zeroize",
 ]

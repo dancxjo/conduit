@@ -10,7 +10,7 @@ pub struct NetworkSetupLimits {
     pub maximum_credential_bytes: usize,
 }
 impl NetworkSetupLimits {
-    pub(super) fn validate(self) -> Result<(), NetworkSetupRefusal> {
+    pub(crate) fn validate(self) -> Result<(), NetworkSetupRefusal> {
         if self.minimum_credential_bytes == 0
             || self.minimum_credential_bytes > self.maximum_credential_bytes
             || self.maximum_credential_bytes > MAXIMUM_CREDENTIAL_BYTES

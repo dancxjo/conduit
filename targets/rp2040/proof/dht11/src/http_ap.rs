@@ -93,41 +93,8 @@ async fn http(
     }
 }
 async fn exchange(socket: &mut TcpSocket<'_>) -> Result<(), ()> {
-    let mut request = [0; 512];
-    let mut used = 0;
-    loop {
-        let count = socket.read(&mut request[used..]).await.map_err(|_| ())?;
-        if count == 0 {
-            return Err(());
-        }
-        used += count;
-        if request[..used].windows(4).any(|v| v == b"\r\n\r\n") {
-            break;
-        }
-        if used == request.len() {
-            return Err(());
-        }
-    }
-    let response = if request[..used].starts_with(b"GET / HTTP/1.") {
-        crate::http_view::response(Instant::now().as_millis(), false)
-    } else if request[..used].starts_with(b"GET /reading HTTP/1.") {
-        crate::http_view::response(Instant::now().as_millis(), true)
-    } else {
-        heapless::String::try_from(
-            "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
-        )
-        .unwrap()
-    };
-    let mut written = 0;
-    while written < response.len() {
-        let count = socket
-            .write(&response.as_bytes()[written..])
-            .await
-            .map_err(|_| ())?;
-        if count == 0 {
-            return Err(());
-        }
-        written += count;
-    }
-    socket.flush().await.map_err(|_| ())
+    conduit_environment_http::exchange::exchange(socket, || Instant::now().as_millis(), None)
+        .await
+        .map(|_| ())
+        .map_err(|_| ())
 }

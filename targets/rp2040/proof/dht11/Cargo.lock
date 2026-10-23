@@ -271,6 +271,7 @@ dependencies = [
  "conduit-seven-segment-mask",
  "critical-section",
  "embassy-sync 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "embedded-io-async",
  "heapless 0.8.0",
  "zeroize",
 ]

@@ -1,6 +1,7 @@
 #![no_std]
 //! A prepared semantic Face and its bounded HTTP Mask; no second sampler.
 extern crate alloc;
+pub mod exchange;
 pub mod service_control;
 use alloc::boxed::Box;
 use conduit_environment_face::PreparedObservationFace;

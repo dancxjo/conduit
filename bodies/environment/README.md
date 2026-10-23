@@ -686,3 +686,14 @@ allocation. Foreign expected Boot and missing trusted layout refuse. Acknowledge
 credentials reach one join and attachment sign; unacknowledged input reaches no
 radio effect. This is CPU integration evidence, with explicit Root/radio fixtures;
 authenticated MCU delivery, Body admission and physical switching remain.
+
+The shared Pico/ESP32 AP socket loop now uses `http::exchange` for bounded
+request framing and response writes. Root may install a `NetworkSetupRoute`
+alongside its admitted private source/control Play; the current bench passes no
+route and still returns 404 for setup. Installed setup routes render the prepared
+page, accept one private form and release it only after the entire response is
+written and flushed. Short writes are handled; write/flush failure or dropping a
+pending flush cancels and erases the submission. Raw request buffers are erased
+on drop and responses never reflect credentials. CPU transport fixtures cover
+these paths with zero execution allocation. Firmware Root route installation and
+physical joining remain outstanding; no new firmware has been flashed.

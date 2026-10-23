@@ -8,6 +8,7 @@ const REQUEST_BYTES: usize = 1024;
 
 pub enum NetworkHttpRequest {
     Page,
+    Reading { json: bool },
     Join(NetworkSetupInput),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,6 +27,7 @@ pub struct NetworkRequestBuffer {
     bytes: [u8; REQUEST_BYTES],
     used: usize,
     closed: bool,
+    readings: bool,
 }
 impl Default for NetworkRequestBuffer {
     fn default() -> Self {
@@ -33,10 +35,17 @@ impl Default for NetworkRequestBuffer {
             bytes: [0; REQUEST_BYTES],
             used: 0,
             closed: false,
+            readings: false,
         }
     }
 }
 impl NetworkRequestBuffer {
+    pub(crate) fn for_http() -> Self {
+        Self {
+            readings: true,
+            ..Self::default()
+        }
+    }
     pub fn append(&mut self, bytes: &[u8]) -> Result<(), NetworkHttpRefusal> {
         if self.closed {
             return Err(NetworkHttpRefusal::Closed);
@@ -58,7 +67,7 @@ impl NetworkRequestBuffer {
         if self.closed {
             return Err(NetworkHttpRefusal::Closed);
         }
-        let result = parse(&self.bytes[..self.used], limits);
+        let result = parse(&self.bytes[..self.used], limits, self.readings);
         if !matches!(result, Ok(None)) {
             self.close();
         }
@@ -78,6 +87,7 @@ impl Drop for NetworkRequestBuffer {
 fn parse(
     bytes: &[u8],
     limits: NetworkSetupLimits,
+    readings: bool,
 ) -> Result<Option<NetworkHttpRequest>, NetworkHttpRefusal> {
     use NetworkHttpRefusal as E;
     let Some(end) = bytes.windows(4).position(|v| v == b"\r\n\r\n") else {
@@ -94,9 +104,15 @@ fn parse(
     let headers = core::str::from_utf8(&bytes[..end]).map_err(|_| E::Malformed)?;
     let mut lines = headers.split("\r\n");
     let line = lines.next().ok_or(E::Malformed)?;
+    let reading = match line {
+        "GET / HTTP/1.1" | "GET / HTTP/1.0" if readings => Some(false),
+        "GET /reading HTTP/1.1" | "GET /reading HTTP/1.0" if readings => Some(true),
+        _ => None,
+    };
     let page = match line {
         "GET /network HTTP/1.1" | "GET /network HTTP/1.0" => true,
         "POST /network HTTP/1.1" | "POST /network HTTP/1.0" => false,
+        _ if reading.is_some() => true,
         _ => return Err(E::UnsupportedRoute),
     };
     let (mut length, mut content_type) = (None, None);
@@ -141,7 +157,10 @@ fn parse(
         return Err(E::Malformed);
     }
     if page {
-        return Ok(Some(NetworkHttpRequest::Page));
+        return Ok(Some(match reading {
+            Some(json) => NetworkHttpRequest::Reading { json },
+            None => NetworkHttpRequest::Page,
+        }));
     }
     if !content_type.is_some_and(|v| v.eq_ignore_ascii_case("application/x-www-form-urlencoded")) {
         return Err(E::UnsupportedContentType);

@@ -18,8 +18,6 @@ mod services;
 #[cfg(feature = "ap")]
 #[path = "../../../../rp2040/proof/dht11/src/http_ap.rs"]
 mod http_ap;
-#[cfg(feature = "ap")]
-use conduit_environment_http as http_view;
 #[cfg(feature = "capture")]
 mod capture;
 mod electrical;
