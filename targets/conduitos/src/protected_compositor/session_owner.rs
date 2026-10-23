@@ -1,5 +1,8 @@
 //! One Root-owned service with exclusive presenter-local lifecycle namespaces.
 //! Session IDs are NOT Host/Boot capabilities, scanout permission or Show proof.
+#[path = "lifecycle.rs"]
+pub(crate) mod lifecycle;
+
 use conduitos_compositor_core::wire::{FrameSpan, PixelBytes, Request, Response};
 use conduitos_compositor_core::{Error, Handle, MAX_SURFACES};
 
@@ -8,6 +11,9 @@ use conduitos_compositor_core::{Error, Handle, MAX_SURFACES};
 pub(crate) trait Transport {
     type Error;
     fn instance(&self) -> u64;
+    fn observed_cost(&self) -> Option<crate::protected_region::DomainCost> {
+        None
+    }
     fn request(&mut self, request: Request) -> Result<Response, Self::Error>;
     fn upload(&mut self, offset: u32, pixels: &[u32]) -> Result<Response, Self::Error>;
     fn visit_frame<R>(
@@ -50,6 +56,7 @@ pub(crate) struct SessionOwner<T: Transport> {
     handles: [Option<Handle>; MAX_SURFACES],
     generations: [u64; MAX_SURFACES],
     terminated: bool,
+    activation_observation: lifecycle::ActivationObservation,
 }
 impl<T: Transport> SessionOwner<T> {
     pub fn new(mut transport: T) -> Result<Self, OwnerError<T::Error>> {
@@ -66,6 +73,7 @@ impl<T: Transport> SessionOwner<T> {
             handles: [None; MAX_SURFACES],
             generations: [0; MAX_SURFACES],
             terminated: false,
+            activation_observation: lifecycle::ActivationObservation::default(),
         })
     }
     pub fn active_session(&self) -> Option<SessionId> {
@@ -74,6 +82,10 @@ impl<T: Transport> SessionOwner<T> {
     pub fn service_instance(&self) -> u64 {
         self.instance
     }
+    /// Read-only bounded observation, never a session or effect capability.
+    pub fn activation_observation(&self) -> lifecycle::ActivationObservation {
+        self.activation_observation
+    }
     /// Retire <=8 old handles, clear cursor/hover and invalidate the full frame
     /// before publishing the new namespace (at most ten transport commands).
     /// The retired namespace is fenced before the first fallible Remove. Every
@@ -81,6 +93,32 @@ impl<T: Transport> SessionOwner<T> {
     /// Finish/abort an upload before handoff: a Busy retirement refusal is
     /// terminal, not an implicit abort, retry or service replacement.
     pub fn activate(&mut self) -> Result<Activation, OwnerError<T::Error>> {
+        self.observe_activation(false)
+    }
+    fn observe_activation(&mut self, withdrawn: bool) -> Result<Activation, OwnerError<T::Error>> {
+        let before = self.transport.observed_cost();
+        let namespace = self.namespace;
+        let instance = self.transport.instance();
+        let result = if withdrawn && !self.terminated && self.handles.iter().any(Option::is_some) {
+            Err(OwnerError::ActiveSurfaces)
+        } else {
+            self.activate_inner()
+        };
+        self.activation_observation.instance_before = instance;
+        self.activation_observation.instance_after = self.transport.instance();
+        self.activation_observation.namespace_before = namespace;
+        self.activation_observation.namespace_after = self.namespace;
+        self.activation_observation
+            .attempts
+            .record(lifecycle::Sample {
+                before,
+                after: self.transport.observed_cost(),
+                succeeded: result.is_ok(),
+                refused: false,
+            });
+        result
+    }
+    fn activate_inner(&mut self) -> Result<Activation, OwnerError<T::Error>> {
         if self.terminated {
             return Err(OwnerError::Terminated);
         }
@@ -143,13 +181,7 @@ impl<T: Transport> SessionOwner<T> {
     /// Unlike `activate`, this entrance cannot retire another live surface.
     /// A live-surface refusal leaves the namespace and pending damage intact.
     pub fn activate_withdrawn(&mut self) -> Result<Activation, OwnerError<T::Error>> {
-        if self.terminated {
-            return Err(OwnerError::Terminated);
-        }
-        if self.handles.iter().any(Option::is_some) {
-            return Err(OwnerError::ActiveSurfaces);
-        }
-        self.activate()
+        self.observe_activation(true)
     }
     pub fn quarantine(&mut self) {
         if !self.terminated {
@@ -328,6 +360,9 @@ impl Transport for super::CompositorService {
     fn instance(&self) -> u64 {
         super::CompositorService::instance(self)
     }
+    fn observed_cost(&self) -> Option<crate::protected_region::DomainCost> {
+        Some(self.cost())
+    }
     fn request(&mut self, request: Request) -> Result<Response, Self::Error> {
         super::CompositorService::request(self, request)
     }
@@ -352,6 +387,9 @@ impl Transport for super::CompositorService {
 /// Read-only execution accounting; no raw transport or mutable escape.
 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
 impl SessionOwner<super::CompositorService> {
+    pub(crate) fn service_observation(&self) -> lifecycle::ServiceObservation {
+        self.transport.observation()
+    }
     pub(crate) fn service_cost(&self) -> crate::protected_region::DomainCost {
         self.transport.cost()
     }

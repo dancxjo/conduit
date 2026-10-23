@@ -118,6 +118,17 @@ impl DisplayOwner {
         drop(core::mem::take(&mut self.staging));
     }
 
+    /// Fixed read-only lifecycle snapshot; no pixel, grant or transport escape.
+    pub(crate) fn lifecycle_observation(&self) -> super::lifecycle::DisplayObservation {
+        super::lifecycle::DisplayObservation {
+            service: self.sessions.service_observation(),
+            activations: self.sessions.activation_observation(),
+            current_cost: self.service_cost(),
+            staging_prepared_bytes: self.report.staging_logical_bytes,
+            staging_live_bytes: self.staging.len() * size_of::<u32>(),
+        }
+    }
+
     pub(crate) fn service_cost(&self) -> DomainCost {
         self.sessions.service_cost()
     }

@@ -4,6 +4,7 @@
 pub(crate) mod display_grant;
 pub(crate) mod display_owner;
 mod frame_grant;
+pub(crate) use session_owner::lifecycle;
 pub(crate) mod raster_staging;
 pub(crate) mod session_owner;
 use frame_grant::FrameGrant;
@@ -30,6 +31,7 @@ pub struct CompositorService {
     final_cost: crate::protected_region::DomainCost,
     next_request: u64,
     frame_grant: FrameGrant,
+    observation: lifecycle::ServiceObservation,
 }
 
 /// A borrowed, validated transfer span. Its lifetime excludes another entry,
@@ -64,13 +66,22 @@ impl CompositorService {
         }
         let domain = ServiceDomain::install(image).map_err(TransportError::Backend)?;
         let mut service = Self {
+            observation: lifecycle::ServiceObservation::installed(domain.instance(), domain.cost()),
             instance: domain.instance(),
             final_cost: domain.cost(),
             domain: Some(domain),
             next_request: 1,
             frame_grant: FrameGrant::new(width, height),
         };
-        if service.request(Request::Initialize { width, height })? != Response::Unit {
+        let before = service.cost();
+        let initialized = service.request(Request::Initialize { width, height });
+        service.observation.initialization = Some(lifecycle::Sample {
+            before: Some(before),
+            after: Some(service.cost()),
+            succeeded: matches!(initialized, Ok(Response::Unit)),
+            refused: matches!(initialized, Ok(Response::Refused(_))),
+        });
+        if initialized? != Response::Unit {
             service.quarantine();
             return Err(TransportError::Protocol);
         }
@@ -83,6 +94,10 @@ impl CompositorService {
             .map_or(self.final_cost, DomainBackend::cost)
     }
 
+    pub(crate) fn observation(&self) -> lifecycle::ServiceObservation {
+        self.observation
+    }
+
     pub fn instance(&self) -> u64 {
         self.instance
     }
@@ -92,8 +107,15 @@ impl CompositorService {
         // Taking the backend makes terminal release idempotent. Stale owners
         // retain identity/cost only, so their later Drop cannot free a new slot.
         if let Some(mut domain) = self.domain.take() {
+            let before = domain.cost();
             domain.quarantine();
             self.final_cost = domain.cost();
+            self.observation.disposal = Some(lifecycle::Sample {
+                before: Some(before),
+                after: Some(self.final_cost),
+                succeeded: true,
+                refused: false,
+            });
             drop(domain);
         }
     }
@@ -102,10 +124,18 @@ impl CompositorService {
     /// response kind and numeric limits are checked before any caller effect.
     /// A Refused response is an explicit command outcome, never a retry grant.
     pub fn request(&mut self, request: Request) -> Result<Response, TransportError> {
+        let before = self.cost();
         let result = self.exchange(request);
         if result.is_err() {
             self.quarantine();
         }
+        let after = self.cost();
+        self.observation.requests.record(lifecycle::Sample {
+            before: Some(before),
+            after: Some(after),
+            succeeded: result.is_ok(),
+            refused: matches!(result, Ok(Response::Refused(_))),
+        });
         result
     }
 
