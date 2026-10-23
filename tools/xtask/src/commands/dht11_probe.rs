@@ -29,19 +29,6 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
-    if arguments == ["http"] {
-        return execute(
-            Command::new("cargo")
-                .current_dir(&root)
-                .args([
-                    "test",
-                    "--locked",
-                    "--manifest-path",
-                    "bodies/environment/http/Cargo.toml",
-                ])
-                .env("CARGO_TARGET_DIR", root.join("target")),
-        );
-    }
     if arguments == ["display-esp32"] {
         let package = root.join("targets/esp32/proof/tm1637");
         let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
