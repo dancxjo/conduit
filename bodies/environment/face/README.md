@@ -27,6 +27,11 @@ retention of the original quantities, stale/unavailable output, temperature-only
 sensors and invalid-input refusal. The package also checks for
 `thumbv6m-none-eabi` without an OS.
 
+The same entrance checks streamed contract identity and prepared universal Face
+resealing. `cargo xtask prove environment http` checks the HTTP Mask against the
+prepared semantic revisions; it does not start a server or establish radio
+connectivity.
+
 The original `contribution` builder allocates ordinary Face objects and remains
 available for dynamic Body composition. The prepared publication path below
 serves recurring MCU observations. Installed Host/Body construction and physical
