@@ -45,7 +45,6 @@ pub async fn receive(
                     if buffer[consumed..length].iter().all(u8::is_ascii_whitespace) =>
                 {
                     root.authenticate_owner(request, &signature)
-                        .map(|authenticated| authenticated.into_request().operation)
                 }
                 _ => Err(owner::Refusal::Malformed),
             }
@@ -53,20 +52,38 @@ pub async fn receive(
         _ => Err(owner::Refusal::Malformed),
     };
     #[derive(serde::Serialize)]
-    struct Reply {
+    struct Reply<'a> {
         event: &'static str,
         authenticated: bool,
         operation: Option<owner::Operation>,
         refusal: Option<&'static str>,
         sequence: u64,
+        next_play_sequence: Option<u64>,
+        reservation: Option<&'a crate::native_owner_reservation::OwnerReservation>,
         control_applied: bool,
         body_installed: bool,
         native_plan_installed: bool,
         capability_possession_issued: bool,
     }
+    let authenticated = result.is_ok();
+    let mut operation = None;
+    let mut applied = false;
     let refusal = match result {
-        Ok(owner::Operation::Inspect) => None,
-        Ok(_) => Some("operation-not-installed"),
+        Ok(token) => {
+            let selected = token.operation();
+            operation = Some(selected);
+            match selected {
+                owner::Operation::Inspect => None,
+                owner::Operation::Reserve => match root.reserve_owner(token) {
+                    Ok(()) => {
+                        applied = true;
+                        None
+                    }
+                    Err(reason) => Some(reason),
+                },
+                _ => Some("operation-not-installed"),
+            }
+        }
         Err(owner::Refusal::Disabled) => Some("owner-control-disabled"),
         Err(owner::Refusal::InvalidKey) => Some("invalid-owner-key"),
         Err(owner::Refusal::Malformed) => Some("malformed"),
@@ -78,11 +95,13 @@ pub async fn receive(
     };
     let reply = Reply {
         event: "native-owner-control",
-        authenticated: result.is_ok(),
-        operation: result.ok(),
+        authenticated,
+        operation,
         refusal,
         sequence: root.owner_control_sequence(),
-        control_applied: false,
+        next_play_sequence: root.next_play_sequence(),
+        reservation: root.owner_reservation(),
+        control_applied: applied,
         body_installed: false,
         native_plan_installed: false,
         capability_possession_issued: false,

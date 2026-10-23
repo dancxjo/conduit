@@ -41,6 +41,8 @@ mod native_kernel;
 #[cfg(feature = "native-root")]
 mod native_owner_control;
 #[cfg(feature = "native-root")]
+mod native_owner_reservation;
+#[cfg(feature = "native-root")]
 mod native_owner_wire;
 #[cfg(feature = "native-root")]
 mod native_software;

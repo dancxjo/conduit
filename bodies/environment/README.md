@@ -1169,9 +1169,21 @@ disabled. Incoming request metadata cannot provision a key.
 This is an authentication prerequisite, not installation authority. The bounded
 UART probe admits at most 2 KiB of JSON plus a 64-byte signature, with a five-second
 receive deadline and two-second responses. It reports authentication separately
-from application; lifecycle operations currently return `operation-not-installed`.
+from application. `Reserve` correlates signed intent with actual admitted tables
+and retains the scope; prepare/start/release/cancel remain `operation-not-installed`.
 The build reads only an explicitly provisioned public key. Private-key custody,
 the persistent ordinary Body owner, native installation and acknowledged start
 remain unfinished. CPU controls run in `cargo xtask prove environment
 native-construction`; the ESP32 image builds, but this probe has not been flashed
 or physically verified.
+
+The staged assignment receipt now includes a SHA-256 seal of the exact accepted
+transfer. An authenticated reservation must match this retained seal and Root's
+next full fragment Play identity, as well as the assignment's current Host, Boot,
+Plan and fragment. Refusal preserves Root's reservation counter and native
+providers. The accepted scope retains distinct Body/Wake/Body Plan/Body Play
+identities alongside the actual reserved fragment Play; it is not a Body start
+record. Root admits 4 KiB of remaining preparation/response capacity before
+reservation and prevents diagnostic kernel preparation from consuming an
+owner-reserved assignment. Native capability issuance, provider transfer and
+installation remain separate unfinished steps.

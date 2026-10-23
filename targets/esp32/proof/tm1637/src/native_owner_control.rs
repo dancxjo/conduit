@@ -89,6 +89,9 @@ pub struct AuthenticatedRequest<'a> {
     request: Request<'a>,
 }
 impl<'a> AuthenticatedRequest<'a> {
+    pub fn operation(&self) -> Operation {
+        self.request.operation
+    }
     pub fn into_request(self) -> Request<'a> {
         self.request
     }

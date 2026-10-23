@@ -41,6 +41,7 @@ pub async fn receive(
     struct Reply<'a> {
         event: &'static str,
         staged: bool,
+        assignment_seal: Option<[u8; 32]>,
         refusal: Option<&'a str>,
         plan: Option<[u8; 16]>,
         fragment: Option<[u8; 16]>,
@@ -53,6 +54,7 @@ pub async fn receive(
     let reply = Reply {
         event: "native-assignment-stage",
         staged: result.is_ok(),
+        assignment_seal: root.assignment_seal,
         refusal: result.as_ref().err().copied(),
         plan: result.as_ref().ok().map(|view| view.plan.0),
         fragment: result.as_ref().ok().map(|view| view.fragment.0),
@@ -117,6 +119,7 @@ fn stage(
     );
     let admitted = admit(decoded, required, &resident)?;
     let identity = admitted.identity();
+    root.assignment_seal = Some(c::assigned_plan_payload_digest(wire));
     root.assignment = Some(admitted);
     Ok(identity)
 }

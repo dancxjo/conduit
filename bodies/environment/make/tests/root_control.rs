@@ -224,3 +224,7 @@ mod admission;
 
 #[path = "root_control_support/owner_control.rs"]
 mod owner_control;
+
+pub(crate) use owner_control::control as native_owner_control;
+#[path = "../../../../targets/esp32/proof/tm1637/src/native_owner_reservation.rs"]
+mod native_owner_reservation;

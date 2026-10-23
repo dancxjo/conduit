@@ -1,0 +1,46 @@
+   Compiling conduit-esp32-tm1637-probe v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/targets/esp32/proof/tm1637)
+warning: fields `wait_issued` and `pulse_issued` are never read
+  --> src/native_authority.rs:58:5
+   |
+53 | pub struct RootIssuer {
+   |            ---------- fields in this struct
+...
+58 |     wait_issued: bool,
+   |     ^^^^^^^^^^^
+59 |     pulse_issued: bool,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: methods `issue_pulse`, `issue_assigned_pulse`, and `prepare_pulse_possession` are never used
+   --> src/native_pulse_authority.rs:27:12
+    |
+  7 | impl RootIssuer {
+    | --------------- methods in this implementation
+...
+ 27 |     pub fn issue_pulse(
+    |            ^^^^^^^^^^^
+...
+ 92 |     pub fn issue_assigned_pulse<P: conduit_pulse_capture::owner::PulseReadProvider>(
+    |            ^^^^^^^^^^^^^^^^^^^^
+...
+131 |     fn prepare_pulse_possession(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: methods `issue_wait`, `issue_assigned_wait`, and `prepare_wait_possession` are never used
+   --> src/native_wait_authority.rs:26:12
+    |
+  6 | impl RootIssuer {
+    | --------------- methods in this implementation
+...
+ 26 |     pub fn issue_wait(
+    |            ^^^^^^^^^^
+...
+ 74 |     pub fn issue_assigned_wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
+    |            ^^^^^^^^^^^^^^^^^^^
+...
+122 |     fn prepare_wait_possession(
+    |        ^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 3 warnings
+    Finished `release` profile [optimized] target(s) in 21.94s

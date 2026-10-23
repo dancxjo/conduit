@@ -7,6 +7,8 @@ use conduit_pulse_capture::{installation::*, owner::*, PulseReadContract};
 
 pub struct NativeRoot {
     owner_control: crate::native_owner_control::OwnerControl,
+    owner_reservation: Option<crate::native_owner_reservation::OwnerReservation>,
+    pub(crate) assignment_seal: Option<[u8; 32]>,
     appliance_kernel: Option<crate::native_kernel::PreparedKernel>,
     admission: crate::native_admission::NativeAdmission,
     admission_freshness: u64,
@@ -99,6 +101,8 @@ impl NativeRoot {
             .expect("installed owner public key must be valid and non-weak");
         Self {
             owner_control,
+            owner_reservation: None,
+            assignment_seal: None,
             appliance_kernel: None,
             admission,
             admission_freshness: 0,
@@ -143,14 +147,50 @@ impl NativeRoot {
             self.offer_generation,
         )
     }
+    pub fn next_play_sequence(&self) -> Option<u64> {
+        self.issuer.next_play_sequence()
+    }
+    pub fn owner_reservation(&self) -> Option<&crate::native_owner_reservation::OwnerReservation> {
+        self.owner_reservation.as_ref()
+    }
+    pub fn reserve_owner(
+        &mut self,
+        authenticated: crate::native_owner_control::AuthenticatedRequest<'_>,
+    ) -> Result<(), &'static str> {
+        if self.owner_reservation.is_some() || self.appliance_kernel.is_some() {
+            return Err("already-reserved-or-prepared");
+        }
+        // Request IDs are bounded to 128 bytes. This covers retained scope,
+        // prospective identity construction and Root response headroom.
+        let memory = esp_alloc::HEAP.stats();
+        if memory.size.saturating_sub(memory.current_usage) < 4096 {
+            return Err("reservation-capacity");
+        }
+        let assignment = self.assignment.as_ref().ok_or("assignment-unavailable")?;
+        let seal = self
+            .assignment_seal
+            .as_ref()
+            .ok_or("assignment-seal-unavailable")?;
+        self.owner_reservation = Some(crate::native_owner_reservation::OwnerReservation::reserve(
+            authenticated,
+            assignment,
+            seal,
+            &mut self.issuer,
+        )?);
+        Ok(())
+    }
     pub fn prepare_appliance_kernel(&mut self) -> Result<(), &'static str> {
         if self.appliance_kernel.is_some() {
             return Err("already-prepared");
+        }
+        if self.owner_reservation.is_some() {
+            return Err("owner-reserved");
         }
         self.appliance_kernel = Some(crate::native_kernel::prepare(
             &mut self.software,
             &mut self.assignment,
         )?);
+        self.assignment_seal = None;
         Ok(())
     }
     pub fn appliance_kernel_prepared(&self) -> bool {

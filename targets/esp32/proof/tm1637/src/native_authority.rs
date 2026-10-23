@@ -81,6 +81,10 @@ impl RootIssuer {
             reserved_play: None,
         })
     }
+    /// Observation only; this neither reserves nor authorizes the next identity.
+    pub fn next_play_sequence(&self) -> Option<u64> {
+        self.last_play_sequence.checked_add(1)
+    }
     /// Allocate in this actual Host/Boot, independently of any Body-local
     /// counter. Reservation is identity custody only: it neither starts Play,
     /// issues a capability nor retires an earlier active provider.
@@ -116,6 +120,22 @@ impl RootIssuer {
             return Err(());
         }
         self.reserve_plan(plan)
+    }
+    /// Expected identity is checked before consuming Root's global sequence.
+    /// The caller has separately authenticated owner intent and assignment seal.
+    pub fn reserve_assigned_play_matching(
+        &mut self,
+        assignment: &conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
+        plan: &c::PlanId,
+        fragment: &c::FragmentId,
+        expected: &str,
+    ) -> Result<c::ActivePlayIdentity, ()> {
+        let next = self.next_play_sequence().ok_or(())?;
+        let candidate = c::bind_active_play(plan, &self.host, &self.boot, next);
+        if candidate.active_play_id.as_str() != expected {
+            return Err(());
+        }
+        self.reserve_assigned_play(assignment, plan, fragment)
     }
     fn reserve_plan(&mut self, plan: &c::PlanId) -> Result<c::ActivePlayIdentity, ()> {
         let sequence = self.last_play_sequence.checked_add(1).ok_or(())?;
