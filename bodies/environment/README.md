@@ -1318,3 +1318,12 @@ an unpaced sender filling the FIFO. See `evidence/2026-10-23-owner-ingress/`.
 Physical observation/Face acceptance, autonomous owner-loss fencing, the resident
 service, application Lines, network transitions and durable overnight recording
 remain unfinished. The finite proof keeps the owner alive only through its run.
+
+The protocol-2 physical run subsequently passed: three real DHT observations at
+the checked one-minute cadence became three validated ordinary Body Faces,
+retaining their full first-class Temperature and Ratio quantities. The owner
+verified each committed snapshot's signed scope/sequence/channel/length/digest,
+then verified quiescence and recorded Lull. Final native counts were submitted
+[3, 4], completed [3, 3], with 103 Steps, both capabilities revoked and zero
+operations in flight. See `evidence/2026-10-23-native-observations/`. The board is
+quiesced after this finite proof; this is not a resident or overnight recorder.
