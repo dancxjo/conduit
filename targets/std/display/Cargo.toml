@@ -1,0 +1,12 @@
+[package]
+name = "conduit-linux-display"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+conduit-face = { path = "../../../semantics/face" }
+conduitos = { path = "../../conduitos", default-features = false }
+sdl2 = { version = "=0.38.0", default-features = false }

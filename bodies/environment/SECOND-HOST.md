@@ -13,10 +13,35 @@ select the actual implementations and finite resources; a board label or an
 installed operating system is not a ready offer or storage authority.
 
 The selected physical target is a Raspberry Pi 3 Model B+ with an HDMI screen.
-The initial OS preference is Raspberry Pi OS 64-bit, subject to inspection of the
-installed image. Its exact Make/Host profile must be added or verified; profiles
+The selected initial image is Raspberry Pi OS Lite 64-bit (Trixie), with
+Ethernet DHCP and no provisioned Wi-Fi credentials. Its exact Make/Host profile must be added or verified; profiles
 for a Pi 4 or an ARMv6 board are not evidence for this board. A local HDMI Mask
 and a remote browser Mask should consume the same semantic Face.
+
+## Minimal Linux boot and local graphics
+
+Boot directly into the appliance graphics client under systemd. Do not install
+or start X11, Wayland, a desktop session, display manager, or browser kiosk on
+this Host. Keep SSH available for maintenance independently of presentation.
+The graphical client should use Linux DRM/KMS for HDMI scanout, with a bounded
+render surface and explicit loss/reacquisition of display custody. The initial SDL KMSDRM
+adapter reuses the existing GraphicsScene raster and passes CPU texture readback
+and custody-loss checks. It is not an initialized Conduit offer or a selected
+implementation until integrated and tested on this board.
+
+The client implements a Mask over the ordinary appliance Face: first-class
+Temperature and relative humidity remain upstream; Fahrenheit, formatting,
+paging and history presentation belong to Mask/Look work. Recorder and Body
+ownership must survive a graphics-client restart. Use a dedicated service user
+with only the actual display/input/storage resources needed; systemd owns
+startup and bounded restart behavior. Do not replace the Body owner with a
+standalone telemetry renderer.
+
+Repository inspection found no ready Linux DRM/KMS display Back for this Pi.
+The existing linear-framebuffer Make contribution advertises x86_64 targets;
+it is not evidence of working Pi scanout. The initial Linux display adapter is held in `targets/std/display`; its exact
+Host offer, client integration and boot service remain implementation work,
+followed by physical HDMI acceptance. The SD image is not complete until these work.
 
 ## State that must survive a change of Host
 
