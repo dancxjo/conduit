@@ -157,3 +157,25 @@ fn fixed_anchor_does_not_hide_two_optional_realizations() {
         }
     ]));
 }
+
+#[test]
+fn selected_metadata_anchor_retains_its_own_facility_and_host_call_closure() {
+    let graphical = TargetPresenter {
+        id: "native/main".into(),
+        implementation_id: "graphics".into(),
+        interactive: true,
+    };
+    let result = resolve(
+        Some(&graphical),
+        &[],
+        TARGET,
+        &catalog(),
+        &bases(),
+        &[surface()],
+    )
+    .unwrap();
+    assert_eq!(result.presenter.unwrap().implementation, "graphics");
+    assert!(result.supplemental.is_empty());
+    assert_eq!(result.host_calls, ["present"]);
+    assert_eq!(result.facilities, ["compositor/native@1"]);
+}

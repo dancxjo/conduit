@@ -59,6 +59,19 @@ pub(super) fn resolve(
     let selected = candidates.pop();
     let mut host_calls = existing_host_calls.to_vec();
     let mut facilities = Vec::new();
+    if anchor_selected {
+        if let Some(metadata) =
+            default.and_then(|anchor| catalog.presenters.get(&anchor.implementation_id))
+        {
+            collect_derived_face_requirements(
+                &metadata.prerequisites,
+                catalog,
+                &mut host_calls,
+                &mut facilities,
+                &mut BTreeSet::new(),
+            );
+        }
+    }
     if let Some((_, metadata)) = selected {
         collect_derived_face_requirements(
             &metadata.prerequisites,
