@@ -49,21 +49,6 @@ fn make() -> MakeRecord {
         evidence_item_ceiling: 1024,
     }
 }
-fn front(ids: &BootIdentities, make: &MakeRecord) -> FrontDoor {
-    let plot = crate::keyboard_text_plan::checked_plot_identity().unwrap();
-    FrontDoor::new(
-        HostId::from(identity::hex(&ids.host)),
-        BootId::from(identity::hex(&ids.boot)),
-        OfferGeneration(1),
-        make.profile_id,
-        make.build_id,
-        make.image_binding,
-        plot.source_document_id,
-        plot.checked_plot_id,
-        5,
-        false,
-    )
-}
 fn offer<'a>(ids: &BootIdentities, make: &'a MakeRecord) -> ImageBoundHostOffer<'a> {
     ImageBoundHostOffer::new(
         ids,
@@ -78,28 +63,36 @@ fn offer<'a>(ids: &BootIdentities, make: &'a MakeRecord) -> ImageBoundHostOffer<
     .unwrap()
 }
 #[test]
-fn normal_host_face_retains_checked_mask_show_and_exact_publication() {
+fn canonical_arrival_retains_checked_mask_show_and_exact_source_publication() {
     let ids = BootIdentities {
         host: [1; 32],
         boot: [2; 32],
     };
     let make = make();
-    let front = front(&ids, &make);
-    let face = front.face().unwrap();
     let mut display = Display {
         writes: 0,
         fail: false,
     };
-    let frame = NativeFirstFrame::prepare(
-        &ids,
-        &offer(&ids, &make),
-        &make,
-        &front,
-        &mut display,
-        [7; 32],
-    )
-    .unwrap();
+    let frame =
+        NativeFirstFrame::prepare(&ids, &offer(&ids, &make), &make, &mut display, [7; 32]).unwrap();
+    let face = frame.face().unwrap();
     let show = frame.show().unwrap();
+    let publication = frame.publication().unwrap();
+    assert!(face.basis.body_id.is_none());
+    assert_eq!(publication.observed_face_basis, face.basis);
+    assert_eq!(
+        face.basis.source_document_id.as_ref(),
+        Some(&publication.producer_plot.source_document_id)
+    );
+    assert_eq!(
+        face.basis.checked_plot_id.as_ref(),
+        Some(&publication.producer_plot.checked_plot_id)
+    );
+    assert_eq!(
+        face.basis.plan_id.as_ref(),
+        Some(&publication.producer_plan_id)
+    );
+    assert!(publication.kernel_signs > 0);
     assert_eq!(frame.composition.face_id, face.identity);
     assert_eq!(frame.publication().unwrap().face_id, face.identity.as_str());
     assert_eq!(show.show.face_id, face.identity);
@@ -116,7 +109,6 @@ fn finite_surface_authority_and_failed_scanout_refuse_without_a_frame() {
         boot: [2; 32],
     };
     let make = make();
-    let front = front(&ids, &make);
     let offer = offer(&ids, &make);
     let mut display = Display {
         writes: 0,
@@ -125,11 +117,11 @@ fn finite_surface_authority_and_failed_scanout_refuse_without_a_frame() {
     let mut small = make;
     small.face_surface_bytes = 1;
     assert!(matches!(
-        NativeFirstFrame::prepare(&ids, &offer, &small, &front, &mut display, [7; 32]),
+        NativeFirstFrame::prepare(&ids, &offer, &small, &mut display, [7; 32]),
         Err("first-frame-display-bound")
     ));
-    assert!(NativeFirstFrame::prepare(&ids, &offer, &make, &front, &mut display, [0; 32]).is_err());
+    assert!(NativeFirstFrame::prepare(&ids, &offer, &make, &mut display, [0; 32]).is_err());
     assert_eq!(display.writes, 0);
     display.fail = true;
-    assert!(NativeFirstFrame::prepare(&ids, &offer, &make, &front, &mut display, [7; 32]).is_err());
+    assert!(NativeFirstFrame::prepare(&ids, &offer, &make, &mut display, [7; 32]).is_err());
 }

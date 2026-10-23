@@ -131,7 +131,6 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
             &identities,
             &offer,
             &EMBEDDED_MAKE,
-            &front_door,
             display,
             key,
         );
@@ -184,6 +183,8 @@ pub extern "C" fn conduitos_aarch64_product_start() -> ! {
                 let evidence = serde_json::json!({
                     "schema": "conduit.conduitos/native-first-frame@1",
                     "scope": "noninteractive-product-first-frame",
+                    "owner": "canonical-zero-body-birth-draft",
+                    "body_created": false,
                     "profile_id": EMBEDDED_MAKE.profile_id,
                     "build_id": EMBEDDED_MAKE.build_id,
                     "logical_image_id": EMBEDDED_MAKE.image_binding,
