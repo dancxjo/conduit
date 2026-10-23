@@ -29,6 +29,24 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );
     }
+    if arguments == ["display-esp32"] {
+        let package = root.join("targets/esp32/proof/tm1637");
+        let toolchain: toml::Value = toml::from_str(&std::fs::read_to_string(
+            package.join("rust-toolchain.toml"),
+        )?)?;
+        let channel = toolchain
+            .get("toolchain")
+            .and_then(|value| value.get("channel"))
+            .and_then(toml::Value::as_str)
+            .ok_or("display diagnostic has no pinned toolchain")?;
+        return execute(
+            Command::new("cargo")
+                .current_dir(&package)
+                .arg(format!("+{channel}"))
+                .args(["build", "--locked", "--release"])
+                .env("CARGO_TARGET_DIR", root.join("target/environment-esp32")),
+        );
+    }
     if arguments == ["display-target"] {
         return execute(
             Command::new("cargo")
@@ -243,7 +261,7 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
         != ["specifications"]
     {
         return Err(
-            "expected cargo xtask prove environment specifications, face, mask, pulse, pulse-target, kernel, or kernel-target".into(),
+            "expected cargo xtask prove environment specifications, face, mask, display-esp32, pulse, pulse-target, kernel, or kernel-target".into(),
         );
     }
     execute(

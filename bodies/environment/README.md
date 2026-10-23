@@ -246,3 +246,15 @@ bounded DHCP/HTTP buffers and prepares network storage before Play seals the
 allocator. It does not install new offers in the production Host construction
 profile, retain overnight history or realize the optional browser recorder Line.
 See the Pico proof README for exact bounds and proof limitations.
+
+
+## ESP32 display electrical proof
+
+`cargo xtask prove environment display-esp32` builds the separate attended
+HW-463 diagnostic with CLK on GPIO18, DIO on GPIO19 and a 3.3 V display supply.
+The historical physical run received ACKs and the user confirmed `1234` and
+`67.6F`, including the decimal point after 7. These are fixture vectors, not
+sensor readings or an installed Body/Plan. See the
+[diagnostic contract](../../targets/esp32/proof/tm1637/README.md) for wiring,
+observed timing and unverified annunciators. The board's USB connector has since
+broken; this admission does not claim a fresh physical run.

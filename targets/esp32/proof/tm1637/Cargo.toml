@@ -1,0 +1,16 @@
+[package]
+name = "conduit-esp32-tm1637-probe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+[workspace]
+[dependencies]
+conduit-tm1637-wire = { path = "../../../../mechanisms/io/tm1637" }
+esp-hal = { version = "=1.1.2", features = ["esp32", "unstable"] }
+esp-backtrace = { version = "=0.19.0", features = ["esp32", "panic-handler", "println"] }
+esp-bootloader-esp-idf = { version = "=0.5.0", features = ["esp32"] }
+esp-println = { version = "=0.17.0", features = ["esp32"] }
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
