@@ -11,6 +11,7 @@ pub(crate) const VERIFICATION_WORK: u64 = 100_000_000;
 pub(crate) fn is_profile(profile: &conduit_core::KindId) -> bool {
     *profile == conduit_core::numerical_realization_profile()
 }
+#[inline(never)]
 fn requests(gear: &CheckedGear) -> Result<Vec<NumericalRealizationRequest>, PlannerError> {
     let mut result = Vec::new();
     for law in &gear.semantic_contract.laws {
@@ -56,6 +57,30 @@ pub(crate) fn candidate_check(
     gear: &CheckedGear,
     offer: &CapabilityOffer,
 ) -> Result<Result<(), NumericalRealizationRefusal>, PlannerError> {
+    if !has_requests(gear) {
+        return if conduit_core::valid_realization_properties(&offer.realization_properties) {
+            Ok(Ok(()))
+        } else {
+            Err(PlannerError::InvalidRealizationProperties(
+                offer.capability_id.clone(),
+            ))
+        };
+    }
+    numerical_candidate_check(gear, offer)
+}
+fn has_requests(gear: &CheckedGear) -> bool {
+    gear.semantic_contract.laws.iter().any(|law| {
+        matches!(law, KindSemanticLaw::RealizationRequirement { property_profile, .. }
+            if is_profile(property_profile))
+    })
+}
+// Exact numerical certificates carry substantial bounded scratch. Keep that
+// frame out of ordinary candidates without a numerical realization requirement.
+#[inline(never)]
+fn numerical_candidate_check(
+    gear: &CheckedGear,
+    offer: &CapabilityOffer,
+) -> Result<Result<(), NumericalRealizationRefusal>, PlannerError> {
     let requests = requests(gear)?;
     if !conduit_core::valid_realization_properties(&offer.realization_properties) {
         return Err(PlannerError::InvalidRealizationProperties(
@@ -92,9 +117,11 @@ pub(crate) fn filter_candidates<T, F>(
 where
     F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
 {
-    if requests(gear)?.is_empty() {
+    if !has_requests(gear) {
         return Ok(candidates);
     }
+    // Preserve request-validation errors before the candidate-count refusal.
+    requests(gear)?;
     if candidates.len() > MAXIMUM_REALIZATION_DECISION_RECORDS {
         return Err(PlannerError::PlannerLimitExceeded(
             "numeric candidate evidence bound".into(),
