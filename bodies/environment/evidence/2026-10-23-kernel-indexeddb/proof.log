@@ -60,4 +60,3 @@ actual_indexeddb_kernel_requests=15 samples=960 reverse_completion=true executio
 test browser_storage::original_kernel_reads_recover_overnight_chunks_from_actual_indexeddb ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 2.84s
-
