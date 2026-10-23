@@ -344,6 +344,29 @@ impl Drop for Lease {
         if !self.cleared {
             self.clear();
         }
+        #[cfg(any(
+            test,
+            feature = "ordinary-domain-proof",
+            feature = "compositor-semantic-recovery-proof"
+        ))]
+        zero_observer::observe_release(self.profile);
         owned(self.profile).store(false, Ordering::Release);
     }
 }
+
+#[cfg(any(
+    test,
+    feature = "ordinary-domain-proof",
+    feature = "compositor-semantic-recovery-proof"
+))]
+#[path = "storage/zero_observer.rs"]
+mod zero_observer;
+#[cfg(any(
+    test,
+    feature = "ordinary-domain-proof",
+    feature = "compositor-semantic-recovery-proof"
+))]
+pub(crate) use zero_observer::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};

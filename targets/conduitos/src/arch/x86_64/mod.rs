@@ -133,3 +133,15 @@ pub(crate) use usb::{
     UsbEndpointTransmitDma, UsbInboundEndpointParameters, UsbOutboundEndpointParameters,
     configure_usb_inbound, configure_usb_outbound,
 };
+
+#[cfg(all(
+    target_os = "none",
+    any(
+        feature = "ordinary-domain-proof",
+        feature = "compositor-semantic-recovery-proof"
+    )
+))]
+pub(crate) use service_memory::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};

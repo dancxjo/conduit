@@ -256,3 +256,16 @@ pub(crate) use usb_xhci::{
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
 pub use usb_xhci::UsbIsochronousCallRefusal;
+
+#[cfg(all(
+    target_arch = "x86_64",
+    target_os = "none",
+    any(
+        feature = "ordinary-domain-proof",
+        feature = "compositor-semantic-recovery-proof"
+    )
+))]
+pub(crate) use x86_64::{
+    SERVICE_ZERO_OBSERVER_BYTES, ServiceZeroToken, WholeZeroWitness, ZERO_REGIONS,
+    ZeroObserverError, ZeroRegionResult, arm_service_zero_witness, take_service_zero_witness,
+};
