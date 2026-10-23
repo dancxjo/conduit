@@ -1,0 +1,9 @@
+{
+  "runtime_revision": "20d0c5d8f",
+  "proof_class": "32-bit-software-and-negative-physical-startup",
+  "constructor_frame_bytes_before": 11200,
+  "constructor_frame_bytes_after": 3120,
+  "physical_readiness_proved": false,
+  "restoration_offer_observed": true,
+  "intermediate_elf_sha256": "bc1ea5fde758a744bc0edfc1c08be8c8049ac0fc8757cb2ea6e48737d2acbe7c"
+}

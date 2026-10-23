@@ -1,0 +1,106 @@
+[2026-10-23T15:44:55Z INFO ] Using flash stub
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6384
+load:0x40078000,len:15916
+load:0x40080400,len:3920
+entry 0x40080644
+I (27) boot: ESP-IDF v5.5.1-838-gd66ebb86d2e 2nd stage bootloader
+I (27) boot: compile time Nov 26 2025 10:51:37
+I (28) boot: Multicore bootloader
+I (30) boot: chip revision: v3.1
+I (33) boot.esp32: SPI Speed      : 40MHz
+I (37) boot.esp32: SPI Mode       : DIO
+I (40) boot.esp32: SPI Flash Size : 4MB
+I (44) boot: Enabling RNG early entropy source...
+I (48) boot: Partition Table:
+I (51) boot: ## Label            Usage          Type ST Offset   Length
+I (57) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (64) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (70) boot:  2 factory          factory app      00 00 00010000 003f0000
+I (77) boot: End of partition table
+I (80) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=63b6ch (408428) map
+I (227) esp_image: segment 1: paddr=00073b94 vaddr=3ffb0000 size=03ea8h ( 16040) load
+I (233) esp_image: segment 2: paddr=00077a44 vaddr=40080000 size=085d4h ( 34260) load
+I (247) esp_image: segment 3: paddr=00080020 vaddr=400d0020 size=16ebc8h (1502152) map
+I (760) esp_image: segment 4: paddr=001eebf0 vaddr=400885d4 size=065b8h ( 26040) load
+I (778) boot: Loaded app from partition at offset 0x10000
+I (778) boot: Disabling RNG early entropy source...
+[31m
+
+====================== PANIC ======================
+panicked at /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/esp-hal-1.1.2/src/exception_handler/mod.rs:30:9:
+
+
+Detected a write to the stack guard value on ProCpu
+Context { PC: 1074813655, PS: 394016, A0: 2149244591, A1: 1073579200, A2: 1073522956, A3: 8, A4: 115, A5: 3, A6: 1073525664, A7: 1073525724, A8: 87, A9: 1061491485, A10: 1073595280, A11: 1073525664, A12: 1073603752, A13: 12, A14: 15, A15: 1073603752, SAR: 24, EXCCAUSE: 129826848, EXCVADDR: 134023164, LBEG: 1073791712, LEND: 1073791734, LCOUNT: 0, THREADPTR: 1073425232, SCOMPARE1: 16, BR: 0, ACCLO: 0, ACCHI: 0, M0: 0, M1: 0, M2: 0, M3: 0, F64R_LO_CPENABLE: 0, F64R_HI: 0, F64S: 0, FCR: 0, FSR: 0, F0: 0, F1: 0, F2: 0, F3: 0, F4: 0, F5: 0, F6: 0, F7: 0, F8: 0, F9: 0, F10: 0, F11: 0, F12: 0, F13: 0, F14: 0, F15: 0 }
+[0m
+
+Backtrace:
+
+0x401e89a6
+[mcore::panicking::panic_fmt
+    at ??:??
+[m0x401ef519
+[mesp_hal::exception_handler::breakpoint_interrupt
+    at ??:??
+[m0x40081298
+[m__level_6_interrupt
+    at ??:??
+[m0x40080b34
+0x40040003
+[mld_sscan_frm_cbk
+    at ??:??
+[m0x40105ad4
+[mconduit_core::primitive_info::primitive_info_kind
+    at ??:??
+[m0x401af40c
+[mconduit_plot::expression_prepared::equality::binary
+    at ??:??
+[m0x401ae552
+[mconduit_plot::expression_prepared::prepare::prepare_node
+    at ??:??
+[m0x401af439
+[mconduit_plot::expression_prepared::equality::binary
+    at ??:??
+[m0x401ae552
+[mconduit_plot::expression_prepared::prepare::prepare_node
+    at ??:??
+[m
+
+
+ets Jul 29 2019 12:21:46
+
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+configsip: 0, SPIWP:0xee
+clk_drv:0x00,q_drv:0x00,d_drv:0x00,cs0_drv:0x00,hd_drv:0x00,wp_drv:0x00
+mode:DIO, clock div:2
+load:0x3fff0030,len:6384
+load:0x40078000,len:15916
+load:0x40080400,len:3920
+entry 0x40080644
+I (27) boot: ESP-IDF v5.5.1-838-gd66ebb86d2e 2nd stage bootloader
+I (27) boot: compile time Nov 26 2025 10:51:37
+I (28) boot: Multicore bootloader
+I (30) boot: chip revision: v3.1
+I (33) boot.esp32: SPI Speed      : 40MHz
+I (37) boot.esp32: SPI Mode       : DIO
+I (40) boot.esp32: SPI Flash Size : 4MB
+I (44) boot: Enabling RNG early entropy source...
+I (48) boot: Partition Table:
+I (51) boot: ## Label            Usage          Type ST Offset   Length
+I (57) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (64) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (70) boot:  2 factory          factory app      00 00 00010000 003f0000
+I (77) boot: End of partition table
+I (80) esp_image: segment 0: paddr=00010020 vaddr=3f400020 size=63b6ch (408428) map
+I (227) esp_image: segment 1: paddr=00073b94 vaddr=3ffb0000 size=03ea8h ( 16040) load
+I (233) esp_image: segment 2: paddr=00077a44 vaddr=40080000 size=085d4h ( 34260) load
+I (247) esp_image: segment 3: paddr=00080020 vaddr=400d0020 size=16ebc8h (1502152) map
+I (760) esp_image: segment 4: paddr=001eebf0 vaddr=400885d4 size=065b8h ( 26040) load
+I (778) boot: Loaded app from partition at offset 0x10000
+I (778) boot: Disabling RNG early entropy source...
