@@ -331,6 +331,7 @@ fn checked_source_selection_uses_exact_provenance_and_current_show_without_edit_
         Err(PatchbayCommandRefusal::StaleState)
     );
     assert_eq!(port.selected_plan_id(), None);
+    check_chunked_projection(&port, &body, &basis);
     let current = face(&port, &body, &basis);
     assert!(!current
         .actions
@@ -347,4 +348,63 @@ fn checked_source_selection_uses_exact_provenance_and_current_show_without_edit_
     assert!(port
         .admit_face_command(&body, basis, &current, &current_show, &old_edit)
         .is_err());
+}
+
+#[test]
+fn chunked_contribution_matches_full_projection_and_rejects_changed_facts() {
+    let (port, body, basis) = setup();
+    check_chunked_projection(&port, &body, &basis);
+}
+fn check_chunked_projection(
+    port: &PatchbayApplicationPort,
+    body: &BodyId,
+    basis: &FaceContributionBasis,
+) {
+    let full = face(port, body, basis);
+    assert!(port.matches_face_contribution(&full, basis.clone(), body, true));
+    let fragment = port.face_fragment(basis.clone(), body, true).unwrap();
+    let mut unavailable = full.clone();
+    unavailable.actions = port
+        .face_fragment(basis.clone(), body, false)
+        .unwrap()
+        .actions;
+    assert!(port.matches_face_contribution(&unavailable, basis.clone(), body, false));
+    assert!(!port.matches_face_contribution(&unavailable, basis.clone(), body, true));
+    macro_rules! missing {
+        ($field:ident) => {
+            for expected in fragment
+                .$field
+                .iter()
+                .take(1)
+                .chain(fragment.$field.iter().rev().take(1))
+            {
+                assert!(
+                    full.$field.contains(expected),
+                    "absent before removal {}: {:?}",
+                    stringify!($field),
+                    expected
+                );
+                let mut changed = full.clone();
+                changed.$field.retain(|item| item != expected);
+                assert!(
+                    !port.matches_face_contribution(&changed, basis.clone(), body, true),
+                    "{}: {:?}",
+                    stringify!($field),
+                    expected
+                );
+            }
+        };
+    }
+    missing!(subjects);
+    missing!(relationships);
+    missing!(properties);
+    missing!(text);
+    missing!(actions);
+    missing!(disclosures);
+    let mut forged = full.clone();
+    let mut action = forged.actions[0].clone();
+    action.identity = "forged-owned-action".into();
+    action.target = fragment.subjects.last().unwrap().identity.clone();
+    forged.actions.push(action);
+    assert!(!port.matches_face_contribution(&forged, basis.clone(), body, true));
 }

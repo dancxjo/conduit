@@ -122,8 +122,11 @@ impl PatchbayApplicationPort {
         interaction
             .validate_against(face, show)
             .map_err(PatchbayCommandRefusal::InvalidInteraction)?;
+        // Preserve aggregate projection refusal before the smaller action lookup.
+        self.validate_projection_bounds(basis.clone(), body)
+            .map_err(PatchbayCommandRefusal::Projection)?;
         let expected = self
-            .face_fragment(basis.clone(), body, true)
+            .face_fragment_with_graph(basis.clone(), body, true, false)
             .map_err(PatchbayCommandRefusal::Projection)?;
         let canonical = expected
             .actions

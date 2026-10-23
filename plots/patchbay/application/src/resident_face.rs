@@ -19,6 +19,14 @@ impl PatchbayApplicationPort {
         basis: FaceContributionBasis,
         body: &BodyId,
     ) -> Result<FaceFragment, FaceFragmentError> {
+        self.observe_fragment_with_graph(basis, body, true)
+    }
+    pub(super) fn observe_fragment_with_graph(
+        &self,
+        basis: FaceContributionBasis,
+        body: &BodyId,
+        include_graph: bool,
+    ) -> Result<FaceFragment, FaceFragmentError> {
         let root = format!("patchbay/document/{}", basis.checked_plot_id.as_str());
         let body = format!("body/{}", body.as_str());
         let mut fragment = FaceFragment {
@@ -142,7 +150,7 @@ impl PatchbayApplicationPort {
                 ),
             ]);
         }
-        if let Some(index) = self.selected_plot {
+        if let Some(index) = self.selected_plot.filter(|_| include_graph) {
             graph_face::append(
                 &self.plots[index].graph,
                 &body,

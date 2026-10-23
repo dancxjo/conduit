@@ -52,6 +52,7 @@ mod resident_canvas;
 mod resident_command;
 mod resident_execution;
 mod resident_face;
+mod resident_matching;
 pub use resident_command::contribution_matches as patchbay_face_contribution_matches;
 pub use resident_command::{
     PatchbayCommandRefusal, PatchbayResidentCommand, PreparedPatchbayCommand,

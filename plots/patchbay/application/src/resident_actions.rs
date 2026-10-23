@@ -26,8 +26,17 @@ impl PatchbayApplicationPort {
         body: &BodyId,
         actions_admitted: bool,
     ) -> Result<FaceFragment, PatchbayFaceProjectionError> {
+        self.face_fragment_with_graph(basis, body, actions_admitted, true)
+    }
+    pub(super) fn face_fragment_with_graph(
+        &self,
+        basis: FaceContributionBasis,
+        body: &BodyId,
+        actions_admitted: bool,
+        include_graph: bool,
+    ) -> Result<FaceFragment, PatchbayFaceProjectionError> {
         let mut fragment = self
-            .observe_fragment(basis, body)
+            .observe_fragment_with_graph(basis, body, include_graph)
             .map_err(PatchbayFaceProjectionError::InvalidFragment)?;
         let root = fragment.subjects[0].identity.clone();
         let availability = if actions_admitted {
