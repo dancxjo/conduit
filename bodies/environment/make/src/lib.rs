@@ -5,7 +5,7 @@
 mod execution;
 pub use execution::{NativeBodyBinding, NativeBodyBindingRefusal};
 mod network;
-pub use network::compile_network_setup;
+pub use network::{compile_network_setup, PreparedNetworkSetup};
 
 use conduit_core as c;
 use conduit_embedded_build as e;

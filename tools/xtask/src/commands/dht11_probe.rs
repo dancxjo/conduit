@@ -56,6 +56,8 @@ fn specifications(arguments: &[String]) -> Result<(), Box<dyn Error>> {
                     "native",
                     "--test",
                     "network_assignment",
+                    "--test",
+                    "network_play",
                 ])
                 .env("CARGO_TARGET_DIR", root.join("target")),
         );

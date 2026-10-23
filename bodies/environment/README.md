@@ -611,3 +611,16 @@ revocation. Root must supply its current retained owner, persist the correlation
 reserve real target resources, and connect actual start/terminal receipts before
 using it in physical installation. CPU fixtures exercise those lifecycle gates
 and the existing native binder; they do not prove a physical Body Play.
+
+`make::PreparedNetworkSetup` prepares the checked three-gear network setup Plot
+against supplied current Host offers, selected Bases and explicit grants. Its
+ordinary Plan/lowering and Body workset material start no Play. The
+`cargo xtask prove environment native-construction` proof now connects this
+Source through the real private mailbox, selected join owner and fixed kernel.
+Only the radio and Root authority/presence are CPU fixtures. Missing credentials
+authority refuses planning; unacknowledged page input refuses execution before
+join; acknowledged input is consumed once and reaches the attachment-sign call.
+Diagnostic allocation measurements are hosted observations, not MCU memory
+admission. Compiler/planner preparation remains host-side. Firmware Root
+installation, current Body lifecycle, private page routing and physical network
+transitions remain unproved by this test.
