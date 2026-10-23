@@ -306,3 +306,7 @@ fn encode_failure(
 #[cfg(test)]
 #[path = "lifecycle_sign_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "lifecycle_sign_conformance_tests.rs"]
+mod conformance_tests;
