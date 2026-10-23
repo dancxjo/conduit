@@ -3,9 +3,12 @@
 //! This preparation step neither authorizes effects nor admits evaluator storage.
 use conduit_core as c;
 use conduit_kernel as k;
+#[path = "assigned/record_input.rs"]
+mod record_input;
 use k::scheduler::{
     AssignedConnectionTrack as Track, AssignedPressurePolicy, CordCapacity, CordSpec, NodeSpec,
 };
+pub(crate) use record_input::RecordInput;
 
 pub(crate) const MAXIMUM_RESIDENT_RECORDS: usize = 256;
 
@@ -67,15 +70,48 @@ impl<
         computations: c::AssignedComputationProfile<'_>,
         layout: &ResidentLayout<'_>,
     ) -> Result<Self, AssignedKernelRefusal> {
+        Self::prepare_input(
+            RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            computations,
+            layout,
+        )
+    }
+    /// Same fixed-table admission over borrowed canonical records. The caller
+    /// supplies independent resident layout/computation pins, never packet claims.
+    pub fn prepare_records(
+        header: &[u8],
+        records: &[c::AssignedRecord<'_>],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
+        Self::prepare_input(
+            RecordInput::Records { header, records },
+            maxima,
+            required,
+            computations,
+            layout,
+        )
+    }
+    pub(crate) fn prepare_input(
+        input: RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        computations: c::AssignedComputationProfile<'_>,
+        layout: &ResidentLayout<'_>,
+    ) -> Result<Self, AssignedKernelRefusal> {
         use AssignedKernelRefusal as E;
+        let schema = u16_at(input.header(), 8)?;
         if !matches!(
-            u16_at(bytes, 8)?,
+            schema,
             c::ASSIGNED_KERNEL_PLAN_SCHEMA | c::ASSIGNED_NATIVE_PLAN_SCHEMA
         ) {
             return Err(E::Unsupported);
         }
-        let identity =
-            c::decode_assigned_plan_with_computations(bytes, maxima, required, computations)?;
+        let identity = input.decode(maxima, required, computations)?;
         if N == 0
             || N > usize::from(u16::MAX)
             || P == 0
@@ -89,7 +125,7 @@ impl<
         if identity.counts[9] != 0 || identity.counts[12] != 0 {
             return Err(E::Unsupported);
         }
-        validate_layout(bytes, layout)?;
+        validate_layout(input, schema, layout)?;
         let mut nodes = [NodeSpec {
             input_cords: [None; P],
             maximum_step_fuel: 0,
@@ -109,7 +145,7 @@ impl<
         let mut startup_order = [k::NodeId(u16::MAX); N];
         let mut startup_positions = [usize::MAX; N];
         let mut startup_count = 0;
-        for record in c::AssignedPlanRecords::new(bytes)? {
+        for record in input.records()? {
             let record = record?;
             let data = record.payload;
             match record.tag {
@@ -231,7 +267,7 @@ impl<
         if startup_count != N {
             return Err(E::Layout);
         }
-        for record in c::AssignedPlanRecords::new(bytes)? {
+        for record in input.records()? {
             let record = record?;
             if record.tag == c::ASSIGNED_STARTUP && record.payload[0] == 0 {
                 let before = usize::from(u16_at(record.payload, 1)?);
@@ -282,18 +318,22 @@ impl<
         &self.startup_order
     }
 }
-fn validate_layout(bytes: &[u8], layout: &ResidentLayout<'_>) -> Result<(), AssignedKernelRefusal> {
+fn validate_layout(
+    input: RecordInput<'_>,
+    schema: u16,
+    layout: &ResidentLayout<'_>,
+) -> Result<(), AssignedKernelRefusal> {
     use AssignedKernelRefusal as E;
     if layout.records.len() > MAXIMUM_RESIDENT_RECORDS {
         return Err(E::Capacity);
     }
     let mut seen = [false; MAXIMUM_RESIDENT_RECORDS];
-    for record in c::AssignedPlanRecords::new(bytes)? {
+    for record in input.records()? {
         let record = record?;
         if matches!(record.tag, c::ASSIGNED_SIGN | c::ASSIGNED_TERMINAL) {
             continue;
         }
-        let expected = c::AssignedRecordRequirement::from_kernel_record(record, u16_at(bytes, 8)?);
+        let expected = c::AssignedRecordRequirement::from_kernel_record(record, schema);
         let index = layout
             .records
             .iter()

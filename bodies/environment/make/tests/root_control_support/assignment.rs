@@ -28,11 +28,11 @@ pub(super) fn round_trip(
         .collect();
     let source_records: Vec<_> = source_recipe.resident_computation_records().collect();
     assert_eq!(source_records.len(), projected.computations().len());
-    for record in source_records {
+    for record in &source_records {
         assert_eq!(
             assigned_records
                 .iter()
-                .filter(|assigned| **assigned == record)
+                .filter(|assigned| **assigned == *record)
                 .count(),
             1
         );
@@ -58,6 +58,64 @@ pub(super) fn round_trip(
         resources: &resources,
         remote_bindings: &[],
     };
+    let mut borrowed_records = assigned_records.clone();
+    for record in &mut borrowed_records {
+        if let Some(resident) = source_records.iter().find(|expected| **expected == *record) {
+            *record = *resident;
+        }
+    }
+    let (borrowed, memory) = allocation_probe::observe(|| {
+        c::decode_assigned_records_with_computations(
+            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
+            &borrowed_records,
+            limits.assignment,
+            required,
+            resident.computations,
+        )
+    });
+    let contiguous = c::decode_assigned_plan_with_computations(
+        projected.assignment(),
+        limits.assignment,
+        required,
+        resident.computations,
+    );
+    assert_eq!(borrowed, contiguous);
+    assert!(borrowed.is_ok());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let (result, memory) = allocation_probe::observe(|| {
+        ValidatedAssignedAppliance::admit_records(
+            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
+            &borrowed_records,
+            limits.assignment,
+            required,
+            &resident,
+        )
+    });
+    assert!(result.is_ok());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
+    let mut foreign_pins = resident.layout.records.to_vec();
+    foreign_pins[0].payload_digest[0] ^= 1;
+    let foreign = conduit_environment_runtime::appliance::assigned::ResidentAppliance {
+        layout: conduit_environment_runtime::assigned::ResidentLayout {
+            records: &foreign_pins,
+            counts: resident.layout.counts,
+        },
+        cadence: resident.cadence.clone(),
+        source: resident.source,
+        computations: resident.computations,
+        roles: resident.roles,
+    };
+    let (result, memory) = allocation_probe::observe(|| {
+        ValidatedAssignedAppliance::admit_records(
+            &projected.assignment()[..c::ASSIGNED_PLAN_HEADER_BYTES],
+            &borrowed_records,
+            limits.assignment,
+            required,
+            &foreign,
+        )
+    });
+    assert!(result.is_err());
+    assert_eq!((memory.allocations, memory.reallocations), (0, 0));
     let (result, memory) = allocation_probe::observe(|| {
         ValidatedAssignedAppliance::admit(
             projected.assignment(),

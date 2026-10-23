@@ -171,8 +171,37 @@ impl ValidatedAssignedAppliance {
         required: c::AssignedPlanRequirements<'_>,
         resident: &ResidentAppliance<'_>,
     ) -> Result<Self, NativePreparationRefusal> {
-        let tables = NativeTables::prepare(
-            bytes,
+        Self::admit_input(
+            crate::assigned::RecordInput::Bytes(bytes),
+            maxima,
+            required,
+            resident,
+        )
+    }
+    /// Identical Source/role/cadence admission with resident and wire records
+    /// borrowed separately. No owner transfer or native authority is performed.
+    pub fn admit_records(
+        header: &[u8],
+        records: &[c::AssignedRecord<'_>],
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        resident: &ResidentAppliance<'_>,
+    ) -> Result<Self, NativePreparationRefusal> {
+        Self::admit_input(
+            crate::assigned::RecordInput::Records { header, records },
+            maxima,
+            required,
+            resident,
+        )
+    }
+    fn admit_input(
+        input: crate::assigned::RecordInput<'_>,
+        maxima: c::AssignedPlanMaxima,
+        required: c::AssignedPlanRequirements<'_>,
+        resident: &ResidentAppliance<'_>,
+    ) -> Result<Self, NativePreparationRefusal> {
+        let tables = NativeTables::prepare_input(
+            input,
             maxima,
             required,
             resident.computations,
@@ -180,11 +209,11 @@ impl ValidatedAssignedAppliance {
         )
         .map_err(NativePreparationRefusal::Tables)?;
         let roles = resident.roles;
-        let count = numeric(bytes, roles.tick, "count")?;
-        let period_ms = numeric(bytes, roles.tick, "period-ms")?;
+        let count = numeric(input, roles.tick, "count")?;
+        let period_ms = numeric(input, roles.tick, "period-ms")?;
         let construction =
             resident_software::Construction::prepare(&resident.software_spec(), count, period_ms)?;
-        validate_roles(bytes, roles)?;
+        validate_roles(input, roles)?;
         Ok(Self {
             tables,
             construction,
@@ -223,11 +252,16 @@ impl ValidatedAssignedAppliance {
     }
 }
 
-fn numeric(bytes: &[u8], node: k::NodeId, key: &str) -> Result<u64, NativePreparationRefusal> {
+fn numeric(
+    input: crate::assigned::RecordInput<'_>,
+    node: k::NodeId,
+    key: &str,
+) -> Result<u64, NativePreparationRefusal> {
     let key = c::AssignedIdentity::from_text(key);
     let mut result = None;
-    for record in
-        c::AssignedPlanRecords::new(bytes).map_err(|_| NativePreparationRefusal::Configuration)?
+    for record in input
+        .records()
+        .map_err(|_| NativePreparationRefusal::Configuration)?
     {
         let record = record.map_err(|_| NativePreparationRefusal::Configuration)?;
         let data = record.payload;
@@ -252,15 +286,19 @@ fn init<T>(_: T) -> NativePreparationRefusal {
     NativePreparationRefusal::Initialization
 }
 
-fn validate_roles(bytes: &[u8], roles: ResidentRoles) -> Result<(), NativePreparationRefusal> {
+fn validate_roles(
+    input: crate::assigned::RecordInput<'_>,
+    roles: ResidentRoles,
+) -> Result<(), NativePreparationRefusal> {
     let fixed = [
         (roles.pulse, conduit_pulse_capture::PULSE_READ_KIND),
         (roles.tick, conduit_time::TICK_KIND),
         (roles.trigger, conduit_time::TICK_TRIGGER_KIND),
         (roles.observation, crate::observation::KIND),
     ];
-    for record in
-        c::AssignedPlanRecords::new(bytes).map_err(|_| NativePreparationRefusal::Configuration)?
+    for record in input
+        .records()
+        .map_err(|_| NativePreparationRefusal::Configuration)?
     {
         let record = record.map_err(|_| NativePreparationRefusal::Configuration)?;
         if record.tag != c::ASSIGNED_NODE {

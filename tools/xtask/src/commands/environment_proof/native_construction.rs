@@ -3,6 +3,21 @@
 use super::execute;
 use std::{error::Error, fs, path::Path, process::Command};
 pub(super) fn prove(root: &Path) -> Result<(), Box<dyn Error>> {
+    execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-assigned-plan",
+        "--lib",
+    ]))?;
+    execute(Command::new("cargo").current_dir(root).args([
+        "test",
+        "--locked",
+        "-p",
+        "conduit-embedded-build",
+        "--test",
+        "assigned_plan",
+    ]))?;
     let proof = root.join("target/environment-resident-recipe-proof");
     fs::create_dir_all(proof.join("src"))?;
     let generated = proof.join("src/resident.rs");

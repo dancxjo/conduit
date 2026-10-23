@@ -86,19 +86,53 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .map(|resource| resource.resource)
         .collect();
+    let required = conduit_core::AssignedPlanRequirements {
+        host: conduit_core::AssignedIdentity::from_text(advertisement.host_id.as_str()),
+        boot: conduit_core::AssignedIdentity::from_text(advertisement.boot_id.as_str()),
+        host_calls: &calls,
+        resources: &resources,
+        remote_bindings: &[],
+    };
     let view = conduit_core::decode_assigned_plan_with_computations(
         prepared.assignment(),
         NativeApplianceLimits::resident_local().assignment,
-        conduit_core::AssignedPlanRequirements {
-            host: conduit_core::AssignedIdentity::from_text(advertisement.host_id.as_str()),
-            boot: conduit_core::AssignedIdentity::from_text(advertisement.boot_id.as_str()),
-            host_calls: &calls,
-            resources: &resources,
-            remote_bindings: &[],
-        },
+        required,
         recipe.resident().computations,
     )
     .map_err(|why| format!("Assignment validation: {why:?}"))?;
+    let borrowed_records: Vec<_> = conduit_core::AssignedPlanRecords::new(prepared.assignment())
+        .map_err(|why| format!("Assignment records: {why:?}"))?
+        .map(|record| {
+            record.map(|record| {
+                source_records
+                    .iter()
+                    .find(|resident| **resident == record)
+                    .copied()
+                    .unwrap_or(record)
+            })
+        })
+        .collect::<Result<_, _>>()
+        .map_err(|why| format!("Assignment record: {why:?}"))?;
+    let borrowed = conduit_core::decode_assigned_records_with_computations(
+        &prepared.assignment()[..conduit_core::ASSIGNED_PLAN_HEADER_BYTES],
+        &borrowed_records,
+        NativeApplianceLimits::resident_local().assignment,
+        required,
+        recipe.resident().computations,
+    )
+    .map_err(|why| format!("Borrowed records: {why:?}"))?;
+    if view != borrowed {
+        return Err("borrowed and contiguous assigned views differ".into());
+    }
+    // Compiler round trip on the planning host, not device trust/provisioning.
+    conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance::admit_records(
+        &prepared.assignment()[..conduit_core::ASSIGNED_PLAN_HEADER_BYTES],
+        &borrowed_records,
+        NativeApplianceLimits::resident_local().assignment,
+        required,
+        &recipe.resident(),
+    )
+    .map_err(|why| format!("Borrowed compiler table round trip: {why:?}"))?;
     let mut record_bytes = [0usize; conduit_core::ASSIGNED_PLAN_COUNT_KINDS];
     let mut computation_bytes = 0usize;
     let mut matched_source_records = 0usize;
@@ -145,6 +179,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "placements": plan.fragments[0].placements.len(),
         "cords": plan.fragments[0].connections.len(),
         "assignment_bytes": prepared.assignment().len(),
+        "borrowed_record_envelope_validated": true,
+        "borrowed_table_compiler_round_trip": true,
         "assignment_record_bytes": record_bytes,
         "resident_computation_record_bytes": computation_bytes,
         "matched_source_computation_records": matched_source_records,
