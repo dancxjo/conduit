@@ -77,7 +77,7 @@ fn pulse_and_wait_have_independent_finite_root_authority_for_the_same_source() {
         .plan_local(&host, &["conduit.base/local@1".into()], &grants)
         .unwrap();
     let fragment = &selected.fragments[0];
-    super::native_assignment::round_trip(&source, &host, &grants, &selected);
+    super::native_assignment::round_trip(&source, &host, &grants, &selected, &timer);
     let tick = fragment
         .placements
         .iter()

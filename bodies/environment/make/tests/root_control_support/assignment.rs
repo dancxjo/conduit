@@ -1,6 +1,8 @@
 //! Compiler round trip with inert retained native providers. Make-owned layout
 //! material here is not independent provisioning into a physical Root.
 use super::*;
+#[path = "assigned_wait.rs"]
+mod assigned_wait;
 #[path = "assignment_reservation.rs"]
 mod reservation;
 use conduit_environment_make::{NativeApplianceLimits, PreparedNativeAppliance};
@@ -11,6 +13,9 @@ pub(super) fn round_trip(
     host: &c::HostAdvertisement,
     grants: &[c::AuthorityGrant],
     plan: &c::Plan,
+    timer: &conduit_monotonic_wait::ReadyMonotonicWaitBase<
+        impl conduit_monotonic_wait::MonotonicWaitProvider,
+    >,
 ) {
     let limits = NativeApplianceLimits::resident_local();
     let projected = PreparedNativeAppliance::prepare(
@@ -145,7 +150,9 @@ pub(super) fn round_trip(
     });
     assert!(result.is_ok());
     assert_eq!((memory.allocations, memory.reallocations), (0, 0));
-    reservation_scope(&result.unwrap(), &plan.fragments[0]);
+    let admitted = result.unwrap();
+    reservation_scope(&admitted, &plan.fragments[0]);
+    assigned_wait::check(&admitted, &projected, &resident, required, timer);
     let (identity, memory) = allocation_probe::observe(|| {
         let boxed = ValidatedAssignedAppliance::admit_records_boxed(
             decoded.header,

@@ -8,18 +8,16 @@ use conduit_plan_lowering::{
     selected_operation::{SelectedCallRefusal, SelectedOperationContract},
 };
 impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
-    /// Refusal preserves Root's initialized slot. Expected configuration comes
-    /// from independently checked Source; opaque authority must be locally issued.
-    pub fn bind_assigned_retained(
-        slot: &mut Option<Self>,
-        table: BaseCapabilityTable,
-        handle: BaseCapabilityHandle,
-        claim: BaseOperationClaim,
+    /// Check retained identity and attachment without transferring the timer,
+    /// dispatching a wait or consuming a lease.
+    pub fn check_assigned(
+        &self,
+        table: &BaseCapabilityTable,
+        claim: &BaseOperationClaim,
         configuration: &[ConfigurationEntry],
         selected: SelectedAssignedOperationPlan<'_>,
-    ) -> Result<MonotonicWaitHostCall<P>, WaitCallRefusal> {
-        let owner = slot.as_ref().ok_or(WaitCallRefusal::Possession)?;
-        let identity = &owner.identity;
+    ) -> Result<conduit_kernel::NodeId, WaitCallRefusal> {
+        let identity = &self.identity;
         if claim.host_id != identity.host_id
             || claim.boot_id != identity.boot_id
             || claim.base_instance_id != identity.provider_instance_id
@@ -31,16 +29,16 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         {
             return Err(WaitCallRefusal::WrongBinding);
         }
-        let kind = crate::owner::checked_contract(&table, &claim, owner.attachment, configuration)?;
-        let node = bind_selected_assigned_configured_operation(
-            &table,
-            &claim,
+        let kind = crate::owner::checked_contract(table, claim, self.attachment, configuration)?;
+        bind_selected_assigned_configured_operation(
+            table,
+            claim,
             SelectedOperationContract {
                 kind: &kind,
                 call: WAIT_HOST_CALL_CONTRACT,
                 input_bytes: PARAMETER_BYTES,
                 output_bytes: 0,
-                resource_bytes: owner.attachment.resource_bytes,
+                resource_bytes: self.attachment.resource_bytes,
             },
             configuration,
             AssignedNativeIdentity {
@@ -58,7 +56,22 @@ impl<P: MonotonicWaitProvider> ReadyMonotonicWaitBase<P> {
         .map_err(|e| match e {
             SelectedCallRefusal::WrongBinding => WaitCallRefusal::WrongBinding,
             SelectedCallRefusal::Possession => WaitCallRefusal::Possession,
-        })?;
+        })
+    }
+    /// Refusal preserves Root's initialized slot. Expected configuration comes
+    /// from independently checked Source; opaque authority must be locally issued.
+    pub fn bind_assigned_retained(
+        slot: &mut Option<Self>,
+        table: BaseCapabilityTable,
+        handle: BaseCapabilityHandle,
+        claim: BaseOperationClaim,
+        configuration: &[ConfigurationEntry],
+        selected: SelectedAssignedOperationPlan<'_>,
+    ) -> Result<MonotonicWaitHostCall<P>, WaitCallRefusal> {
+        let node = slot
+            .as_ref()
+            .ok_or(WaitCallRefusal::Possession)?
+            .check_assigned(&table, &claim, configuration, selected)?;
         let owner = slot.take().expect("preflighted retained timer");
         Ok(MonotonicWaitHostCall::from_bound(
             table,

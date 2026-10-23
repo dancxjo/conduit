@@ -1129,3 +1129,10 @@ It checks that admitted native facts still match Root before proposing; stale
 scope refuses. The current proposal has no admitted Mask topology because Root
 has no ready display/browser Mask owner. The proof exits after snapshotting;
 this does not replace a persistent owner or its normal restart reconciliation.
+
+The Root timer issuer can now validate a bounded assigned selection against its
+actual retained timer before returning local possession. Rich and bounded paths
+share capability preparation; the existing native binder checks attachment,
+configuration and opaque authority. A refused selection preserves the issuance
+budget and timer. CPU controls cover both record forms; this path is not yet
+wired into physical Body installation or Play.

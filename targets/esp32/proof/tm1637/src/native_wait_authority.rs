@@ -40,7 +40,6 @@ impl RootIssuer {
         if cadence.count == 0 || cadence.count > conduit_time::MAX_TICK_COUNT {
             return Err(());
         }
-        let operations = u32::try_from(cadence.count).map_err(|_| ())?;
         let mut ticks = fragment
             .placements
             .iter()
@@ -58,6 +57,85 @@ impl RootIssuer {
         {
             return Err(());
         }
+        if fragment.host_id != self.host
+            || fragment.boot_id != self.boot
+            || !c::verify_plan_fragment(fragment)
+        {
+            return Err(());
+        }
+        let possession =
+            self.prepare_wait_possession(native, &fragment.plan_id, active, cadence)?;
+        self.wait_issued = true;
+        Ok(possession)
+    }
+    /// Bounded assignment issuance checks the actual retained timer before
+    /// returning possession. Failure drops preparation-only authority and does
+    /// not consume Root's one issuance budget or transfer the provider.
+    pub fn issue_assigned_wait<P: conduit_monotonic_wait::MonotonicWaitProvider>(
+        &mut self,
+        owner: &conduit_monotonic_wait::ReadyMonotonicWaitBase<P>,
+        assignment: &conduit_environment_runtime::appliance::assigned::ValidatedAssignedAppliance,
+        selected: conduit_plan_lowering::selected_assigned_operation::SelectedAssignedOperationPlan<
+            '_,
+        >,
+        cadence: &conduit_time::TickConfiguration,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
+        let identity = assignment.identity();
+        let id = c::AssignedIdentity::from_text;
+        if identity.host != id(self.host.as_str())
+            || identity.boot != id(self.boot.as_str())
+            || identity.plan != id(selected.active.plan_id.as_str())
+            || identity.fragment != id(selected.fragment_id.as_str())
+        {
+            return Err(());
+        }
+        let possession = self.prepare_wait_possession(
+            owner.native_identity(),
+            &selected.active.plan_id,
+            selected.active,
+            cadence,
+        )?;
+        let configuration = [
+            c::ConfigurationEntry {
+                key: "count".into(),
+                value: c::ConfigurationValue::U64(cadence.count),
+            },
+            c::ConfigurationEntry {
+                key: "period-ms".into(),
+                value: c::ConfigurationValue::U64(cadence.period_ms),
+            },
+        ];
+        owner
+            .check_assigned(&possession.0, &possession.2, &configuration, selected)
+            .map_err(|_| ())?;
+        self.wait_issued = true;
+        Ok(possession)
+    }
+    fn prepare_wait_possession(
+        &self,
+        native: &WaitNativeIdentity,
+        plan: &c::PlanId,
+        active: &c::ActivePlayIdentity,
+        cadence: &conduit_time::TickConfiguration,
+    ) -> Result<
+        (
+            c::BaseCapabilityTable,
+            c::BaseCapabilityHandle,
+            c::BaseOperationClaim,
+        ),
+        (),
+    > {
+        if cadence.count == 0 || cadence.count > conduit_time::MAX_TICK_COUNT {
+            return Err(());
+        }
+        let operations = u32::try_from(cadence.count).map_err(|_| ())?;
         let grant = self.grant_wait(native)?;
         let call = c::WAIT_HOST_CALL_CONTRACT;
         let subject = conduit_time::TICK_KIND;
@@ -65,17 +143,8 @@ impl RootIssuer {
         let input = PARAMETER_BYTES;
         let output = 0;
         if self.wait_issued
-            || fragment.host_id != self.host
-            || fragment.boot_id != self.boot
-            || !c::verify_plan_fragment(fragment)
             || self.reserved_play.as_ref() != Some(active)
-            || *active
-                != c::bind_active_play(
-                    &fragment.plan_id,
-                    &self.host,
-                    &self.boot,
-                    active.play_sequence,
-                )
+            || *active != c::bind_active_play(plan, &self.host, &self.boot, active.play_sequence)
         {
             return Err(());
         }
@@ -97,7 +166,7 @@ impl RootIssuer {
             boot_id: self.boot.clone(),
             base_instance_id: native.provider_instance_id.clone(),
             base_provider_generation: native.provider_generation,
-            plan_id: fragment.plan_id.clone(),
+            plan_id: plan.clone(),
             active_play_id: active.active_play_id.clone(),
             authority_grant_id: grant.grant_id.clone(),
             authority_contract_id: grant.contract_id.clone(),
@@ -147,7 +216,6 @@ impl RootIssuer {
         let handle = table
             .issue(c::CapabilityIssueRequest { scope, authority })
             .map_err(|_| ())?;
-        self.wait_issued = true;
         Ok((table, handle, claim))
     }
 }

@@ -1,0 +1,16 @@
+   Compiling conduit-environment-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/make)
+    Finished `test` profile [unoptimized] target(s) in 0.71s
+     Running tests/root_control.rs (target/environment-main-host/debug/deps/root_control-cd55600a467541a0)
+
+running 8 tests
+test issuer_requires_entropy_and_never_falls_back_to_a_fixture_key ... ok
+test wait::wait_issuance_requires_reserved_play_and_exact_independent_cadence ... ok
+test admission::root_proof_enters_ordinary_admission_without_creating_a_plan_or_play ... ok
+test sequences::invalid_reservation_preserves_counter_and_existing_reserved_scope ... ok
+test sequences::only_root_reserved_play_identity_can_receive_current_capability_possession ... ok
+test foreign_boot_grants_and_installation_never_consume_ready_owners ... ok
+test pulse::pulse_and_wait_have_independent_finite_root_authority_for_the_same_source ... ok
+test production_root_control_dispatches_once_and_retains_failure_cleanup_without_allocating ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.74s
+
