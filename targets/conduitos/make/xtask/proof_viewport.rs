@@ -14,6 +14,20 @@ pub struct JourneyArgs {
     #[arg(long, value_enum)]
     pub viewport: Option<Viewport>,
 }
+/// Independent bounded control scenarios share the canonical live-image entrance.
+#[derive(Args, Debug)]
+pub struct ControlsArgs {
+    #[arg(long, value_enum)]
+    pub viewport: Option<Viewport>,
+    #[arg(long, value_enum, default_value = "layout")]
+    pub scenario: ControlScenario,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum ControlScenario {
+    Layout,
+    Search,
+    NoGraphics,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum Viewport {
     #[value(name = "1280x800")]

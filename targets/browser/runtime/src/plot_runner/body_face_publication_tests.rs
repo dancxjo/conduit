@@ -4,8 +4,30 @@ use conduit_body::{BodyFaceSelector, BodyMaskChainPlan, BodyMaskTopology};
 const SOURCE: &str = "plot note {\n value: text/literal(\"ready\")\n show: face/text(\"Message\")\n value >> show\n}\n";
 
 fn prepared_session() -> TourSession {
-    let mut request = super::super::body_start::tests::request_from_sources(&[SOURCE]);
-    request.source = SOURCE.into();
+    prepared_session_for_sources(&[SOURCE])
+}
+fn prepared_session_for_sources(sources: &[&str]) -> TourSession {
+    let mut request = super::super::body_start::tests::request_from_sources(sources);
+    request.source = if sources.len() == 1 {
+        sources[0].to_string()
+    } else {
+        let (startup, _) = crate::installed_browser::catalogs().unwrap();
+        let plots: Vec<_> = sources
+            .iter()
+            .enumerate()
+            .map(|(i, source)| {
+                let checked = conduit_plot::check_syntax_document(
+                    &conduit_plot::parse_syntax_document(source),
+                    &startup,
+                )
+                .unwrap();
+                let entry = super::super::executable_entry(&checked).unwrap();
+                serde_json::json!({"slug":format!("fixture-{i}"),"entry":entry,"source":source})
+            })
+            .collect();
+        serde_json::json!({"schema":"conduit.creche/reviewed-plot-bundle@2", "plots":plots})
+            .to_string()
+    };
     request.owner_face_revision = Some("0".into());
     let host = crate::installed_browser::membership_advertisement(
         request.local_host_id.clone(),
@@ -318,4 +340,19 @@ fn whole_body_mask_missing_selector_and_existing_parent_pressure_refuse() {
         .contains("lease capacity"));
     assert!(pressured.body_face_observation().is_err());
     drop((first, second));
+}
+
+#[test]
+fn rosehip_processing_and_body_mask_share_the_existing_parent_pool() {
+    let mut session = prepared_session_for_sources(&[
+        include_str!("../../../../../plots/button-across-room/main.conduit"),
+        include_str!("../../../../../plots/little-seismograph/main.conduit"),
+    ]);
+    let first = request(&session, 1);
+    let first = session.body_face_prepare(first).unwrap();
+    session.body_face_acknowledge(ack(&first)).unwrap();
+    let next = request(&session, 2);
+    let next = session.body_face_prepare(next).unwrap();
+    session.body_face_acknowledge(ack(&next)).unwrap();
+    session.retire_body_face().unwrap();
 }

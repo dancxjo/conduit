@@ -25,9 +25,12 @@ pub(super) struct LiveOwnerActionProofArgs {
 pub(super) struct LiveOwnerTodoFaceProofArgs {
     #[command(flatten)]
     pub(super) route: LiveOwnerActionProofArgs,
-    /// Exercise four independently selected native Looks through the owner route.
+    /// Exercise three Look selections after activation within four owner refreshes.
     #[arg(long)]
     pub(super) look_selection: bool,
+    /// Use the three selections for palette, 200% text and forced-colors overrides.
+    #[arg(long, requires = "look_selection")]
+    pub(super) user_overrides: bool,
     /// Body expected in the exact installed Owner admission receipt.
     #[arg(long)]
     pub(super) expected_body_id: String,
@@ -80,4 +83,47 @@ pub(super) struct LiveOwnerTodoActionProofArgs {
     /// Expected human progress text after the Owner accepts the action.
     #[arg(long)]
     pub(super) expected_after_status: String,
+}
+
+#[cfg(test)]
+mod override_tests {
+    use super::*;
+    use clap::Parser;
+
+    #[derive(Parser)]
+    struct Entrance {
+        #[command(flatten)]
+        args: LiveOwnerTodoFaceProofArgs,
+    }
+
+    #[test]
+    fn user_overrides_require_the_bounded_look_selection_scenario() {
+        let mut args = vec![
+            "proof",
+            "--spore",
+            "/private/spore.iso",
+            "--candidate-id",
+            "candidate/owner",
+            "--owner-forward",
+            "127.0.0.1:39475",
+            "--output-dir",
+            "/private/output",
+            "--coordinate",
+            "--expected-body-id",
+            "body/test",
+            "--owner-conduit-bin",
+            "/private/conduit",
+            "--owner-state-dir",
+            "/private/state",
+            "--expected-item-count",
+            "4",
+            "--expected-status",
+            "2 things left",
+            "--user-overrides",
+        ];
+        assert!(Entrance::try_parse_from(&args).is_err());
+        args.push("--look-selection");
+        let parsed = Entrance::try_parse_from(args).unwrap();
+        assert!(parsed.args.look_selection && parsed.args.user_overrides);
+    }
 }

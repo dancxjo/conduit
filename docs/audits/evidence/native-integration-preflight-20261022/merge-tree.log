@@ -1,0 +1,63 @@
+90f0e5b6df39ba2cd125e54ae1324d052b4f0848
+.gitattributes
+proof/browser/static-body-application.spec.mjs
+proof/browser/workspace-play.test.mjs
+proof/browser/workspace-resident-applications.spec.mjs
+proof/browser/workspace-resource-bounds.test.mjs
+proof/browser/workspace-surface.test.mjs
+targets/browser/runtime/src/creche/review.rs
+targets/browser/sdk/package-browser-bundle.mjs
+targets/browser/sdk/package-browser-bundle.test.mjs
+targets/browser/sdk/package.json
+targets/browser/workspace/workspace-play.mjs
+targets/browser/workspace/workspace-surface.mjs
+targets/browser/workspace/workspace.application.template.json
+targets/browser/workspace/workspace.mjs
+targets/conduitos/application-core/tests/private_heap/canonical.rs
+targets/conduitos/make/xtask/owner_todo_action_proof.rs
+targets/conduitos/src/native_face_scene/connected_layout/tests.rs
+targets/conduitos/src/native_face_scene/ports/tests.rs
+targets/conduitos/src/native_face_scene/tests.rs
+
+Auto-merging .gitattributes
+CONFLICT (content): Merge conflict in .gitattributes
+Auto-merging proof/browser/static-body-application.spec.mjs
+CONFLICT (content): Merge conflict in proof/browser/static-body-application.spec.mjs
+Auto-merging proof/browser/workspace-play.test.mjs
+CONFLICT (content): Merge conflict in proof/browser/workspace-play.test.mjs
+Auto-merging proof/browser/workspace-resident-applications.spec.mjs
+CONFLICT (content): Merge conflict in proof/browser/workspace-resident-applications.spec.mjs
+Auto-merging proof/browser/workspace-resource-bounds.test.mjs
+CONFLICT (content): Merge conflict in proof/browser/workspace-resource-bounds.test.mjs
+Auto-merging proof/browser/workspace-surface.test.mjs
+CONFLICT (add/add): Merge conflict in proof/browser/workspace-surface.test.mjs
+Auto-merging targets/browser/runtime/src/creche/review.rs
+CONFLICT (content): Merge conflict in targets/browser/runtime/src/creche/review.rs
+Auto-merging targets/browser/sdk/browser-sdk.d.ts
+Auto-merging targets/browser/sdk/browser-sdk.mjs
+Auto-merging targets/browser/sdk/package-browser-bundle.mjs
+CONFLICT (content): Merge conflict in targets/browser/sdk/package-browser-bundle.mjs
+Auto-merging targets/browser/sdk/package-browser-bundle.test.mjs
+CONFLICT (content): Merge conflict in targets/browser/sdk/package-browser-bundle.test.mjs
+Auto-merging targets/browser/sdk/package.json
+CONFLICT (content): Merge conflict in targets/browser/sdk/package.json
+Auto-merging targets/browser/tools/stage-browser-workspace.sh
+Auto-merging targets/browser/workspace/workspace-play.mjs
+CONFLICT (content): Merge conflict in targets/browser/workspace/workspace-play.mjs
+Auto-merging targets/browser/workspace/workspace-surface.mjs
+CONFLICT (content): Merge conflict in targets/browser/workspace/workspace-surface.mjs
+Auto-merging targets/browser/workspace/workspace.application.template.json
+CONFLICT (content): Merge conflict in targets/browser/workspace/workspace.application.template.json
+Auto-merging targets/browser/workspace/workspace.mjs
+CONFLICT (content): Merge conflict in targets/browser/workspace/workspace.mjs
+Auto-merging targets/conduitos/application-core/tests/private_heap/canonical.rs
+CONFLICT (content): Merge conflict in targets/conduitos/application-core/tests/private_heap/canonical.rs
+Auto-merging targets/conduitos/make/xtask/journey_proof.rs
+Auto-merging targets/conduitos/make/xtask/owner_todo_action_proof.rs
+CONFLICT (content): Merge conflict in targets/conduitos/make/xtask/owner_todo_action_proof.rs
+Auto-merging targets/conduitos/src/native_face_scene/connected_layout/tests.rs
+CONFLICT (content): Merge conflict in targets/conduitos/src/native_face_scene/connected_layout/tests.rs
+Auto-merging targets/conduitos/src/native_face_scene/ports/tests.rs
+CONFLICT (content): Merge conflict in targets/conduitos/src/native_face_scene/ports/tests.rs
+Auto-merging targets/conduitos/src/native_face_scene/tests.rs
+CONFLICT (content): Merge conflict in targets/conduitos/src/native_face_scene/tests.rs

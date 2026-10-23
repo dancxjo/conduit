@@ -1,0 +1,21 @@
+# Preserve electrical outcomes independently of frame/checksum/value failures.
+plot dht11-pulse-frame (
+    capture: PulseReadCapture...| >> frame: Dht11Capture...|
+) = ({ length: .length, wire: [.wire.0, .wire.1, .wire.2, .wire.3, .wire.4] })
+
+# One admitted trigger requests one bounded electrical read. Cadence, ownership,
+# retention and manifestation are composed by the enclosing Body workload.
+plot dht11-read (
+    >> begin: Empty...|
+    decoded: Dht11DecodedResult...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    read: machine/pulse/read
+    begin >> dht11-capture-request() >> read.request
+    read.result >> select(PulseReadResult.completed, unmatched=drop) >> dht11-pulse-frame() >> dht11-decode() >> decoded
+    read.result >> select(PulseReadResult.timed-out, unmatched=drop) >> timed_out
+    read.result >> select(PulseReadResult.provider-failed, unmatched=drop) >> provider_failed
+    read.result >> select(PulseReadResult.geometry-refused, unmatched=drop) >> geometry_refused
+}

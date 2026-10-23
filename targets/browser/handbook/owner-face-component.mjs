@@ -211,6 +211,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.addEventListener('compositionend', () => composing.delete(input));
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
+        input.setAttribute('aria-label', argument.value_name);
         input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'argument', argument.name]);
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         input.dataset.ownerDraft = JSON.stringify([view.body_id, action.identity, action.target, argument]);

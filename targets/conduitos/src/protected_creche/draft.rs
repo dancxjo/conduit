@@ -114,13 +114,14 @@ impl CrecheDraft {
             show: show.clone(),
             input: input.clone(),
         })
-        .map_err(face_error)?;
+        .map_err(|error| interaction_error("encode", error))?;
         let response = self
             .service
             .get_mut()
             .input(InputKind::FaceInteraction, &bytes)
-            .map_err(face_error)?;
-        self.outcome(response).map_err(face_error)
+            .map_err(|error| interaction_error("input", error))?;
+        self.outcome(response)
+            .map_err(|error| interaction_error("outcome", error))
     }
     fn outcome(&mut self, response: Response) -> Result<BirthActionOutcome, TransportError> {
         match response {
@@ -286,4 +287,26 @@ fn face_error(error: TransportError) -> BirthFaceRefusal {
         }
         other => BirthFaceRefusal::Draft(errors::draft(other)),
     }
+}
+
+/// Observe the original closed refusal before the public Birth error mapping.
+/// No payload, allocation, retry, or additional service entry is introduced.
+fn interaction_error(phase: &str, error: TransportError) -> BirthFaceRefusal {
+    use core::fmt::Write;
+    let mut line = crate::sign_format::FixedText::new();
+    if writeln!(
+        line,
+        "CONDUIT_CRECHE_INTERACTION_REFUSAL phase={phase} refusal={error:?}"
+    )
+    .is_ok()
+    {
+        #[cfg(not(test))]
+        crate::arch::early_write(line.as_bytes());
+        #[cfg(test)]
+        std::print!(
+            "{}",
+            alloc::string::String::from_utf8_lossy(line.as_bytes())
+        );
+    }
+    face_error(error)
 }

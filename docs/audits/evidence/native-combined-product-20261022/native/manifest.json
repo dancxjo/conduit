@@ -1,0 +1,624 @@
+{
+  "source_identity": "50aaeb07f5bcb6ef99d06b36bf051c34ffd1a756",
+  "checkpoints": [
+    {
+      "frame": {
+        "checkpoint": "front-door-ready",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "80ef391834dbd8866e3bde976fc63dededad36a38df8ce18225140edb78a2aa6",
+        "png": "journey-frames/front-door-ready.png",
+        "png_bytes": 49977,
+        "png_sha256": "6f7889fc3eb52ef9b048c4988081e3f75555c1efef21b389db7c0274efcd55e2",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-ready",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "480e6c384ac2325547600bc75f1cce0fd8a4e8907dc39c265e6193404cac4836",
+        "png": "journey-frames/creche-ready.png",
+        "png_bytes": 169308,
+        "png_sha256": "d7551b61feeebc895a4ab6713b5d36b3e2015e9444da068c89d88ed2272272fd",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-editorial-compact",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "07abab8ae46f3dee1b960121b31e61f744489e450fceb02043d81bdef24fc607",
+        "png": "journey-frames/creche-editorial-compact.png",
+        "png_bytes": 170504,
+        "png_sha256": "556a317532aa1fe651eff57b4516257c40ecd33d89c6fe0a0477179cb2570bc8",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-editorial-spacious",
+        "height": 800,
+        "non_background_pixels": 1017372,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "02a5ba10525910fd696148a952001d31feeb101e0352eeaf792623b7823286b5",
+        "png": "journey-frames/creche-editorial-spacious.png",
+        "png_bytes": 145996,
+        "png_sha256": "4b9ace8d45281723f855a18b8f7cabf14dd6e40828836e368c769fb1d2e9c550",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-engineering-spacious",
+        "height": 800,
+        "non_background_pixels": 1017372,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "13efca67d48741a659c5a62a787e0b53593e63a22bcba86c0fef027add9de4dd",
+        "png": "journey-frames/creche-engineering-spacious.png",
+        "png_bytes": 144955,
+        "png_sha256": "1c3e6606e1041c5b0047f46f9e50cea2823540f26fd8b0ae550923e476414cbf",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-engineering-compact",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "480e6c384ac2325547600bc75f1cce0fd8a4e8907dc39c265e6193404cac4836",
+        "png": "journey-frames/creche-engineering-compact.png",
+        "png_bytes": 169308,
+        "png_sha256": "d7551b61feeebc895a4ab6713b5d36b3e2015e9444da068c89d88ed2272272fd",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-three-selected",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a7aed2955a4cf08fc8302aac6fa2d6cb6b08239264ad8ed1c6e708d3447504b0",
+        "png": "journey-frames/creche-three-selected.png",
+        "png_bytes": 169181,
+        "png_sha256": "fe38febef7813f477cdfaa21269b01ac76b785dc46c674ea137c8ac8a056101f",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-four-restored",
+        "height": 800,
+        "non_background_pixels": 1017456,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "be5d213245b9a849799a2cb02fd8b9c777d362f6d8ab9da302c9f0ec1af7ed0c",
+        "png": "journey-frames/creche-four-restored.png",
+        "png_bytes": 169303,
+        "png_sha256": "b0decc1c5b0e16fafe37168a7a4a11edc82b20bf3375754e7db96bec4ad7af49",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-fourth-checked",
+        "height": 800,
+        "non_background_pixels": 1014920,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "f69892ac5891df6ee6e9c662c2593a234350dedf95e227dcf804861ed7eec1e6",
+        "png": "journey-frames/creche-fourth-checked.png",
+        "png_bytes": 97343,
+        "png_sha256": "972b5f7085260362290a35aff6f2bf7241c4e6aaa30cdd836df79cf00c958085",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-pointer-three-selected",
+        "height": 800,
+        "non_background_pixels": 1014920,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "ab1173d88739c0d8f1f53b0d35f6100f6d6fad59358855e7f4b280fafde742e4",
+        "png": "journey-frames/creche-pointer-three-selected.png",
+        "png_bytes": 97261,
+        "png_sha256": "6201f4a7cc81cec01b96c6e389aff3d4445d4ccef2721498fcd8bb4c53dd730b",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "creche-pointer-four-restored",
+        "height": 800,
+        "non_background_pixels": 1014920,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "96bf39fb2bea5f75a048ac1609f6c8b37b422ede6ead8eae3ccdf09f4ed388fa",
+        "png": "journey-frames/creche-pointer-four-restored.png",
+        "png_bytes": 97360,
+        "png_sha256": "a3580a9ea4109872af2a596b3ad4cad60cdcbfdb594232cd7eeb2468615d4e03",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "body-playing",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "f6ecf6e5f42cf80f1e159a0ea7b4c1b0754c2ee1a7ed098d91814789cdad7d4c",
+        "png": "journey-frames/body-playing.png",
+        "png_bytes": 68475,
+        "png_sha256": "332190eefb23a417abdd46d3cefc6b9479ba40f159d69c2fc75ce81084ec15d5",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "wake-refused",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "cac401d164519bd3bb8fe7c4ca545a09f2bb94786a3b54cd518d591c0920028b",
+        "png": "journey-frames/wake-refused.png",
+        "png_bytes": 126617,
+        "png_sha256": "a4912a4ef1b279b09a4fd9ba4890fb31f044774492ff5ace58fa2dc809f3b1a5",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "protected-keyboard-canvas",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "add342a141bfb6fdb0fa731ac50955a689228bbb47fe2efbfbd83d089ef84987",
+        "png": "journey-frames/protected-keyboard-canvas.png",
+        "png_bytes": 68922,
+        "png_sha256": "ae68d7f800cad13722825a268ff7fd7864652fb9572a1503ddff6baf1643d4a2",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "protected-memory-lantern",
+        "height": 800,
+        "non_background_pixels": 1016002,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "d3940ec0562351a3c9200a363c536e87bb7bcaabe9d7f26711780158b81caffd",
+        "png": "journey-frames/protected-memory-lantern.png",
+        "png_bytes": 64165,
+        "png_sha256": "08c120f5944f229f8d1b1c63660009a6521a17bccf4d8635f60476be5c034ebd",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "home",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "add342a141bfb6fdb0fa731ac50955a689228bbb47fe2efbfbd83d089ef84987",
+        "png": "journey-frames/home.png",
+        "png_bytes": 68922,
+        "png_sha256": "ae68d7f800cad13722825a268ff7fd7864652fb9572a1503ddff6baf1643d4a2",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-workspace",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "42a82a66209c3c630bb54659860d2a3127060a04c5726aa0395bcd06dd1a549d",
+        "png": "journey-frames/patchbay-workspace.png",
+        "png_bytes": 152535,
+        "png_sha256": "c6e29299cb59eacca975af7ca48ab259f8d86a42ee392fe4e03dc06d9c203a9b",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-face",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "42a82a66209c3c630bb54659860d2a3127060a04c5726aa0395bcd06dd1a549d",
+        "png": "journey-frames/patchbay-face.png",
+        "png_bytes": 152535,
+        "png_sha256": "c6e29299cb59eacca975af7ca48ab259f8d86a42ee392fe4e03dc06d9c203a9b",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-diagram",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "430070c0f1b4a823b2b4d28529d56e75584493d0c43572c8bc1bdc6183b407b2",
+        "png": "journey-frames/patchbay-diagram.png",
+        "png_bytes": 153581,
+        "png_sha256": "253f637d479380d49a1823c5409f0351390e3a9906f189cbcfa9ab434eb8f350",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-gear-details",
+        "height": 800,
+        "non_background_pixels": 1017362,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "9a686c0794334edd29d729d78ed0b0f9e5b458d17b254451b32f316d947ad9bb",
+        "png": "journey-frames/patchbay-gear-details.png",
+        "png_bytes": 244377,
+        "png_sha256": "180bba763e6b353845f8e8129e2cc4615db18992b2db32adcdebcfaa43e46c46",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-diagram-returned",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a50bd5a7d4cc2c536e592ea1cd368d2683452f6dc9f5e4f513b8653e526deb79",
+        "png": "journey-frames/patchbay-diagram-returned.png",
+        "png_bytes": 153245,
+        "png_sha256": "33dfd8bcb71525ddbc934cee32223bc6fee5ff4bcc6215efc44e0c02a5dcecd7",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-inspected-other-and-returned",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "42a82a66209c3c630bb54659860d2a3127060a04c5726aa0395bcd06dd1a549d",
+        "png": "journey-frames/patchbay-inspected-other-and-returned.png",
+        "png_bytes": 152535,
+        "png_sha256": "c6e29299cb59eacca975af7ca48ab259f8d86a42ee392fe4e03dc06d9c203a9b",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-mask-replanned",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "cfade6fa491425b03537571a783d54c4a8a2246aacbec1e3e6c6e759cfd0d5b2",
+        "png": "journey-frames/patchbay-mask-replanned.png",
+        "png_bytes": 141314,
+        "png_sha256": "30e9c0c3c0c0ee6582fe56382639f8bef80a6a9226542061a727828870a44359",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "body-stopped",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "4633113926c4de9d161aeb6aa4a4d49948abff53fceac19021e25248c29a579d",
+        "png": "journey-frames/body-stopped.png",
+        "png_bytes": 199062,
+        "png_sha256": "f8362384f50ef0bb8e05c5027ba371dd6dcea0fd5489bb45d34d93046b376aaf",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "home-returned",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a4c3c288c4f1b74d0035021529b1555ff35ced3a7b6356fe55c24f24b088ebe7",
+        "png": "journey-frames/home-returned.png",
+        "png_bytes": 56739,
+        "png_sha256": "4570ffa522431d5e6accf44c5396cfebd25eecc6f5c0dc5c86e47d13f9e80d9c",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-reentered",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "47ce29933119e389f80111bc8b33bdd9ff38bc239aebf2895787ad1ce8a31d81",
+        "png": "journey-frames/patchbay-reentered.png",
+        "png_bytes": 55205,
+        "png_sha256": "35b0170990fffe91a49159a6d4c0c1df1f4643bacffc9b134a309044c24e76cc",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "patchbay-source-editor-loaded",
+        "height": 800,
+        "non_background_pixels": 20516,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "1fbc008a16590abf686de241b93b04d123abb869ac48204d0fac62a0bda88e5d",
+        "png": "journey-frames/patchbay-source-editor-loaded.png",
+        "png_bytes": 100277,
+        "png_sha256": "b812c1ba2c80d8a45acfcf5483bc7b4acf70a71abaaacd561761cdce5690a9b0",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-001",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "97e6b6facb451cee25fedcce2b27b907580aa1b1f27771c7978277cd09976dab",
+        "png": "patchbay-refusal-details/details-001.png",
+        "png_bytes": 240386,
+        "png_sha256": "3ab88e2a4c5d23dac91f2ea91bc4005bb3c36d8d77fa517232f35a5d882b77e3",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-002",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a3019e2e1733d1b4cfa93db41ec234d3cf007b25d13a9e8fd3614643275525bd",
+        "png": "patchbay-refusal-details/details-002.png",
+        "png_bytes": 329232,
+        "png_sha256": "0baf9348e6ce620eb2c505fc9fe1f8a2fcb921e432dcc172fa3b32a00bc39581",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-003",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "15ed84f4c3fbed7c37a319f941a3384044378be1f1efcb07c60371c6a580a909",
+        "png": "patchbay-refusal-details/details-003.png",
+        "png_bytes": 414426,
+        "png_sha256": "3fe39fa35dbf85b543678167b36794a4d13615a8f431762be2e0c5feea9509b7",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-004",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a00bb4be610d137da93ba7631e01098751542a7bfcb7b09f5286adf08b6ed88d",
+        "png": "patchbay-refusal-details/details-004.png",
+        "png_bytes": 164558,
+        "png_sha256": "c810f6a0f5a099fc691a9d6e2b112210a693fca720f7d56c41f29d6346f213ea",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-005",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "8913618fcf3c41c85d986c520061a8fb1e5922753defd61a2d0074658ac8a5f0",
+        "png": "patchbay-refusal-details/details-005.png",
+        "png_bytes": 144440,
+        "png_sha256": "a03413cc891f84e73b631780791c53cbe972223fa417204bd0b7ea719a60b7f7",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-006",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "7eeb66b0e25fd654bdc2f5351684206847fa1e5e680c140f8e25453c8aad7c1f",
+        "png": "patchbay-refusal-details/details-006.png",
+        "png_bytes": 229902,
+        "png_sha256": "9a850358e20eaab6acc2310bd75c76866e7b7f39f3a0acf2254349609ed57b07",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-007",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "a685581d40269d0e65223bdecfd8365cfe8a79a3f52469faf78363dd3b8e6b97",
+        "png": "patchbay-refusal-details/details-007.png",
+        "png_bytes": 355897,
+        "png_sha256": "a247948abc7d96154dffa1920b7c95ce9f19f49ca285a0b5af1872d449e184ea",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-008",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "028f938461736f14b7fa76900c4bcd4fd2906440b065fc189a72ece463d4c1dd",
+        "png": "patchbay-refusal-details/details-008.png",
+        "png_bytes": 380136,
+        "png_sha256": "3cf94bc05f34496f2003ad8097ddbdaad08985fe5c46501359c22100593c8e35",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-009",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "12a64f32c6bd424dc744fa4f4f8c821fd0a7debe8d333566b18d10a07aaaabdd",
+        "png": "patchbay-refusal-details/details-009.png",
+        "png_bytes": 363491,
+        "png_sha256": "03796ce34c4d286ea0224c1d80703f4c6c708c78913332520fb5ba083c126ae3",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-010",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "906f8cb25e81fef7c190f85d0b9a23c2754188ddfa6aaf3f8fc92c35949e2280",
+        "png": "patchbay-refusal-details/details-010.png",
+        "png_bytes": 382543,
+        "png_sha256": "ed63e3e6ecc2ea371e306360d2949aaef4d1a4b4f8b8450a452a452c0d13f984",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-011",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "d15d77b0c0c1fa614d062b2df85877e668b783572c2ae454f9555c761b1b0fa3",
+        "png": "patchbay-refusal-details/details-011.png",
+        "png_bytes": 289519,
+        "png_sha256": "56cb53d7c6584e609a9078f8f342c0b2d81d71e69158eaae71a28a9a81f60869",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-012",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "92a67b14d1c79902f592b3be498bc2e860e04b6e3abc77f26373394c8a553541",
+        "png": "patchbay-refusal-details/details-012.png",
+        "png_bytes": 307656,
+        "png_sha256": "6a866bd44bd0b5cc41dc35deb6a081ce4b1b7c78f7cb5aee0aebccab08110935",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-013",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "2edd181bc28aa5dca0051269341ad913509b396d7a98f19d9838867e3c92a0bd",
+        "png": "patchbay-refusal-details/details-013.png",
+        "png_bytes": 315951,
+        "png_sha256": "0b31610a6d77d2768aeebaced7901e77521fcb8d63d7b8b22da7bf18d6808dee",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-014",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "bc5d1072e5a9d6c0002278c88d1d62335f3d9bf273250b1ac861532d98ac32b1",
+        "png": "patchbay-refusal-details/details-014.png",
+        "png_bytes": 403616,
+        "png_sha256": "0b533847c8d742cd5303b6ded37c4e81836df090720a757d428be68fdde6c0bb",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-015",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "060c5f5cc33dcee537c3f77b161960ceccd3160bc181a0e1ece359628c045df2",
+        "png": "patchbay-refusal-details/details-015.png",
+        "png_bytes": 325431,
+        "png_sha256": "8d78569d753cfc819a551e6b5264af850bf8ba513f7e54161a0fb8b2fd16179c",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-016",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "791b2001187d44f1ebda14181418ccdb1702a6ce0d630e647917080727c0605c",
+        "png": "patchbay-refusal-details/details-016.png",
+        "png_bytes": 309184,
+        "png_sha256": "98cd3179219dfb1a8078037548572f1852f5a75c7ba6c1312cc46c4b5e1c0b34",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-017",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "f4432188a7a7453f5233f73718aa98ae888877b33b78943ff2a817f5cddfc1d4",
+        "png": "patchbay-refusal-details/details-017.png",
+        "png_bytes": 310571,
+        "png_sha256": "b115befee55eae7a6c0f1c15cb0bf6f7c88b4a370c2f878530c614d78349b960",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-018",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "aa53f17becf27d085e97e328cfa8487bc1f0c356527088989a2b58c9a036fb52",
+        "png": "patchbay-refusal-details/details-018.png",
+        "png_bytes": 234099,
+        "png_sha256": "2d5fd45a77a0698d75833823e56755f41ec7580a93351f50f113a01b2f96d1e8",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-019",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "424493fd943dbddaac1db5bdc3608fa1e69db8c45c13dcdaf498a005337fcd5d",
+        "png": "patchbay-refusal-details/details-019.png",
+        "png_bytes": 452851,
+        "png_sha256": "b0e25e7b4d938a8209326775b2f0d3f7293aa480305ea07fd604f6b8a21d6979",
+        "width": 1280
+      }
+    },
+    {
+      "frame": {
+        "checkpoint": "details-020",
+        "height": 800,
+        "non_background_pixels": 1019844,
+        "pixel_format": "RGBA8",
+        "pixel_sha256": "fa5187e02f13413d9028dbaddcf58c71c9ab9a4b24a564cf13cffa289a07e89a",
+        "png": "patchbay-refusal-details/details-020.png",
+        "png_bytes": 82987,
+        "png_sha256": "e6cf14b1ef28432b8541bd2d0a1aa362ae6742cdbc0c05759b460749b52f9fc2",
+        "width": 1280
+      }
+    }
+  ],
+  "png_chunk_crc": "all passed",
+  "outer_exit_code": 0,
+  "guest_stop": "harness-stop-after-success, not natural guest exit",
+  "initial_edit": "draft refusal; aggregate successful_edit_handoff_enacted remains false",
+  "later_fresh_editor": "exact 187-byte Source loaded, suffix and backspace on same actual Play",
+  "source_range_selection": false,
+  "save_reopen": false,
+  "serial_sha256": "65d666c86bd7c4d6bf33d8b0cff4eec6e04e663f18cc7cf4cc533593023cad69"
+}

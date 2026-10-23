@@ -1,0 +1,20 @@
+# Time belongs to the workload, independently of the sensor's electrical timing.
+# 960 samples one minute apart cover sixteen hours; the source then closes.
+plot environment-sampling (
+    count: Count = 960
+    period-ms: Count = 60000
+    observed: Dht11Result...| >>
+    timed_out: PulseReadCapture...| >>
+    provider_failed: PulseReadAbsence...| >>
+    geometry_refused: PulseReadAbsence...| >>
+) {
+    cadence: time/tick(count, period-ms)
+    trigger: time/tick-trigger
+    sensor: dht11-observe
+    cadence.tick >> trigger.tick
+    trigger.begin >> sensor.begin
+    sensor.observed >> observed
+    sensor.timed_out >> timed_out
+    sensor.provider_failed >> provider_failed
+    sensor.geometry_refused >> geometry_refused
+}

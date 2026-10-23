@@ -11,7 +11,7 @@ use conduit_face::{
     Face, FaceInteraction, FaceInteractionArgument, ManifestationLifecycle, MaskShow,
     OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal, OWNER_FACE_RESPONSE_SCHEMA,
 };
-use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
+use conduit_kernel::scheduler::SchedulerStatus;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use serde::{Deserialize, Serialize};
@@ -327,21 +327,8 @@ impl OwnerBrowserMask {
                 return Err("browser Mask lowered a different selected carrier Line".into());
             }
         }
-        let mut scheduler = execution::mask_scheduler(fragment, &lowered)?;
         let bytes = serde_json::to_vec(&face).map_err(|error| error.to_string())?;
-        if bytes.len() > face_boundary.byte_capacity as usize {
-            return Err("owner Face exceeds the browser Mask Fore bound".into());
-        }
-        match scheduler
-            .admit_remote_input(face_boundary.endpoint, face_boundary.cord, 0, &bytes)
-            .map_err(|error| format!("admit owner Face to Mask: {error:?}"))?
-        {
-            RemoteIngressOutcome::Accepted { sequence: 0 } => {}
-            _ => return Err("owner Face Mask did not admit the exact Face".into()),
-        }
-        scheduler
-            .close_remote_input(face_boundary.endpoint, face_boundary.cord)
-            .map_err(|error| format!("close owner Face input: {error:?}"))?;
+        let mut scheduler = execution::single_face_scheduler(fragment, &lowered, &bytes)?;
         let pending = loop {
             if let Some(request) = scheduler.next_host_request() {
                 break request;

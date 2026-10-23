@@ -360,20 +360,24 @@ impl FaceArrival {
                     .map_err(|_| "creche-focus-control-absent")
             })
             .transpose()?;
+        let frame = scene
+            .frame()
+            .map_err(|_| "creche-focus-frame-unavailable")?;
         super::native_action_evidence::focus(
             scene.face(),
             show,
             control,
             scene.page(),
             scene.pages(),
-            scene
-                .frame()
-                .map_err(|_| "creche-focus-frame-unavailable")?
-                .hits
-                .iter()
-                .find(|hit| Some(hit.control) == scene.focused())
-                .map(|hit| hit.bounds),
-            scene.bounds(),
+            super::native_action_evidence::FrameEvidence {
+                scene: &frame.scene,
+                hit_bounds: frame
+                    .hits
+                    .iter()
+                    .find(|hit| Some(hit.control) == scene.focused())
+                    .map(|hit| hit.bounds),
+                display_bounds: scene.bounds(),
+            },
         )
     }
 

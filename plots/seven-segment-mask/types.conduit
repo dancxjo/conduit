@@ -1,0 +1,42 @@
+# Segment meaning is independent of a controller's memory bit assignment.
+type SegmentPattern = {
+    a: Boolean
+    b: Boolean
+    c: Boolean
+    d: Boolean
+    e: Boolean
+    f: Boolean
+    g: Boolean
+}
+form segment-pattern = SegmentPattern as u8 bits
+    a
+    b
+    c
+    d
+    e
+    f
+    g
+
+type SevenSegmentShow = {
+    digits: collection SegmentPattern = 4
+    decimal_points: collection Boolean = 4
+    colon: Boolean
+}
+type SevenSegmentSelection =
+    temperature
+    | humidity
+    | clock
+form seven-segment-selection = SevenSegmentSelection as u8
+
+# A finite Mask Look facet; physical observation meaning stays in the Face.
+type SevenSegmentTemperatureUnit =
+    fahrenheit
+    | celsius
+type SevenSegmentLook = {
+    temperature_unit: SevenSegmentTemperatureUnit
+}
+
+# The application-selected Look is ordinary checked Source data.
+plot fahrenheit-look (
+    begin: Empty >> look: SevenSegmentLook
+) = ({ temperature_unit: fahrenheit(empty) })

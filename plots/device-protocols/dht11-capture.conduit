@@ -1,0 +1,6 @@
+# The DHT11 protocol supplies electrical geometry, never an attachment or GPIO.
+# After release, skip the response's high pulse; sample 40 data highs at 40µs.
+# The selected electrical Base enforces its own finite envelope before effects.
+plot dht11-capture-request (
+    begin: Empty...| >> request: PulseReadRequest...|
+) = ({ hold_low_us: 20000, skip_high_pulses: 1, sample_after_rise_us: 40, octets: 5, capture_timeout_us: 10000 })

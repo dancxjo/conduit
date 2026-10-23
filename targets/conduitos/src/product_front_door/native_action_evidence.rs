@@ -95,6 +95,29 @@ pub(super) fn creche_change(
     )
 }
 
+/// Borrow only the current prepared Mask frame; this is not scanout history.
+pub(super) struct FrameEvidence<'a> {
+    pub scene: &'a conduit_face::GraphicsScene,
+    pub hit_bounds: Option<conduit_face::LayoutRect>,
+    pub display_bounds: conduit_face::LayoutRect,
+}
+fn frame_budget(scene: &conduit_face::GraphicsScene) -> Value {
+    let (payload, maximum) =
+        scene
+            .commands()
+            .iter()
+            .fold((0usize, 0usize), |(sum, max), command| {
+                let bytes = command.payload().len();
+                (sum + bytes, max.max(bytes))
+            });
+    json!({
+        "commands":scene.commands().len(), "command_limit":conduit_face::MAX_GRAPHICS_COMMANDS,
+        "payload_bytes":payload, "maximum_payload_bytes":maximum,
+        "payload_byte_limit":conduit_face::MAX_GRAPHICS_TEXT_BYTES,
+        "basis":"current prepared Mask frame used for focus; not compositor/scanout history"
+    })
+}
+
 /// Read-only observation of Mask-local focus under its acknowledged Show.
 /// This creates neither a binding nor a domain input occurrence.
 pub(super) fn focus(
@@ -103,8 +126,7 @@ pub(super) fn focus(
     control: Option<(&str, Option<&str>)>,
     page: usize,
     pages: usize,
-    hit_bounds: Option<conduit_face::LayoutRect>,
-    display_bounds: conduit_face::LayoutRect,
+    frame: FrameEvidence<'_>,
 ) -> Result<(), &'static str> {
     if show.face_id != face.identity || show.face_revision != face.revision {
         return Err("creche-focus-stale-show");
@@ -118,7 +140,8 @@ pub(super) fn focus(
             "action_id": control.map(|value| value.0),
             "argument_name": control.and_then(|value| value.1),
             "page": page + 1, "pages": pages,
-            "hit_bounds": hit_bounds.map(rectangle), "display_bounds": rectangle(display_bounds),
+            "hit_bounds": frame.hit_bounds.map(rectangle), "display_bounds": rectangle(frame.display_bounds),
+            "prepared_frame_budget":frame_budget(frame.scene),
         }),
     )
 }
@@ -215,6 +238,20 @@ pub(super) fn reading(
     {
         let scene = mask.scene().ok_or("reading-observation-scene-absent")?;
         let show = mask.show().ok_or("reading-observation-show-absent")?;
+        let control = scene
+            .focused()
+            .map(|control| {
+                scene
+                    .resolve(&show.face_id, show.face_revision, control)
+                    .map(|(action, argument)| {
+                        (
+                            action.identity.as_str(),
+                            argument.map(|value| value.name.as_str()),
+                        )
+                    })
+                    .map_err(|_| "reading-observation-control-stale")
+            })
+            .transpose()?;
         emit(
             b"CONDUIT_NATIVE_READING ",
             &json!({
@@ -222,6 +259,8 @@ pub(super) fn reading(
                 "previous_page":previous_page,"page":scene.page(),"pages":scene.pages(),
                 "diagram":scene.showing_diagram(),"details":scene.showing_details(),
                 "graph_focus":scene.graph_navigation().and_then(|(_, cursor)| cursor.focus.as_deref()),
+                "action_id":control.map(|value| value.0),
+                "argument_name":control.and_then(|value| value.1),
                 "face_id":show.face_id,"face_revision":show.face_revision,
                 "show_id":show.show_id,"manifestation_id":show.show.manifestation_id,
                 "host_id":show.show.host_id,"boot_id":show.show.boot_id,
@@ -258,6 +297,34 @@ pub(super) fn journey_timing(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn frame_cost_counts_utf8_bytes_at_existing_scene_limits() {
+        use conduit_face::{GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect};
+        let mut scene = GraphicsScene::empty();
+        assert_eq!(frame_budget(&scene)["commands"], 0);
+        assert_eq!(frame_budget(&scene)["payload_bytes"], 0);
+        let bounds = LayoutRect {
+            x: 0,
+            y: 0,
+            width: 640,
+            height: 480,
+        };
+        let text = "é".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES / 2);
+        let command =
+            GraphicsCommand::text(bounds, bounds, GraphicsPaintRole::Foreground, &text).unwrap();
+        for _ in 0..conduit_face::MAX_GRAPHICS_COMMANDS {
+            scene.push(command).unwrap();
+        }
+        let budget = frame_budget(&scene);
+        assert_eq!(budget["commands"], 48);
+        assert_eq!(budget["payload_bytes"], 48 * 192);
+        assert_eq!(budget["maximum_payload_bytes"], 192);
+        assert_eq!(budget["command_limit"], 48);
+        assert_eq!(budget["payload_byte_limit"], 192);
+        assert!(scene.push(command).is_err());
+        assert_eq!(frame_budget(&scene), budget);
+    }
 
     #[test]
     fn snapshot_carries_actual_planned_editor_state_and_label() {

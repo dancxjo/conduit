@@ -131,7 +131,7 @@ package_test_shard!(
     ["conduit-std-host", "conduit-std-offers",],
     [
         "--features",
-        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create",
+        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create,conduit-std-host/native-model-backing",
         "--",
         "--test-threads=1"
     ]

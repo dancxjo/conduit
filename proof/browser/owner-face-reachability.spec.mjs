@@ -7,7 +7,7 @@ const view = {body_id:'fixture/body',face_id:'fixture/face',face_revision:1,show
   show_state:'prepared',interactions_admitted:false,subjects:[],relationships:[],
   actions:[{identity:'fixture/add',target:'fixture/list',name:'Add item',availability:'available',
     disclosure:'CurrentAction',arguments:[{name:'text',value_name:'Item text',value_kind:'value/text',maximum_bytes:64,choices:[]}]}]};
-for (const attack of ['none','misleading-button','misleading-input','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby','read-only','read-only-forged-enabled','prepared-forged-enabled']) {
+for (const attack of ['none','available','misleading-input-aria','empty-input-aria','input-aria-labelledby','misleading-button','misleading-input','hidden','transparent','inert','clipped','pseudo','unnamed','overflow','aria-hidden','role','tabindex','scale','disabled','aria-disabled','aria-label','aria-labelledby','read-only','read-only-forged-enabled','prepared-forged-enabled']) {
   test(`generic renderer checks named reachable action before Show acknowledgement (${attack})`, async ({page}) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result = await page.evaluate(async ({view,attack}) => {
@@ -15,7 +15,7 @@ for (const attack of ['none','misleading-button','misleading-input','hidden','tr
       const {assertOwnerFaceReachability} = await import('/targets/browser/handbook/owner-face-reachability.mjs');
       const element = document.createElement('conduit-owner-face');
       document.body.replaceChildren(element);
-      if (['disabled','aria-disabled','aria-label','aria-labelledby'].includes(attack)) {
+      if (['available','disabled','aria-disabled','aria-label','aria-labelledby'].includes(attack)) {
         view={...view,show_state:'available',interactions_admitted:true};
       }
       if (attack.startsWith('read-only')) view={...view,show_state:'available',interactions_admitted:false};
@@ -32,6 +32,10 @@ for (const attack of ['none','misleading-button','misleading-input','hidden','tr
       if (attack==='unnamed') button.textContent='';
       if (attack==='misleading-button') button.textContent='Delete every item';
       if (attack==='misleading-input') element.shadowRoot.querySelector('label').firstChild.textContent='Secret password';
+      const argument = element.shadowRoot.querySelector('input,select');
+      if (attack==='misleading-input-aria') argument.setAttribute('aria-label','Secret password');
+      if (attack==='empty-input-aria') argument.setAttribute('aria-label','');
+      if (attack==='input-aria-labelledby') argument.setAttribute('aria-labelledby','forged-name');
       if (attack==='role') button.setAttribute('role','presentation');
       if (attack==='tabindex') button.tabIndex=-1;
       if (attack==='disabled') button.disabled=true;
@@ -42,7 +46,7 @@ for (const attack of ['none','misleading-button','misleading-input','hidden','tr
       try {assertOwnerFaceReachability(element,view);return {admitted:true};}
       catch(error) {return {admitted:false,code:error.code};}
     },{view,attack});
-    expect(result).toEqual(['none','read-only'].includes(attack)?{admitted:true}:{admitted:false,code:'RendererActionInaccessible'});
+    expect(result).toEqual(['none','available','read-only'].includes(attack)?{admitted:true}:{admitted:false,code:'RendererActionInaccessible'});
   });
 }
 

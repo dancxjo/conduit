@@ -149,7 +149,7 @@ pub(super) fn review_from_inventory(
                     plot.name
                 )
             })?;
-        match &authoring {
+        let admitted = match &authoring {
             Some(authored) => conduit_planner::plan_expanded_authoring_with_activations(
                 checked,
                 authored,
@@ -185,6 +185,9 @@ pub(super) fn review_from_inventory(
                 plot.name
             )
         })?;
+        if authoring.is_some() {
+            patchbay::require_planned_fore(&admitted)?;
+        }
         accumulate_requirements(
             hosts,
             &placements,

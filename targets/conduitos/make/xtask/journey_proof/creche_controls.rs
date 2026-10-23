@@ -8,8 +8,11 @@ use serde_json::{json, Value};
 use std::{collections::BTreeSet, fs, os::unix::net::UnixStream, path::Path, process::Child};
 mod custody;
 mod evidence;
+mod frame_budget;
+mod input_refusal;
 mod navigation;
 mod recipe_selection;
+mod search;
 use evidence::*;
 
 #[allow(clippy::too_many_arguments)]
@@ -63,7 +66,9 @@ pub(super) fn exercise(
     let membership = members(&initial.face)?;
     let original = current(&initial.face, "creche.naming")?;
     let observed_name = current(&initial.face, "creche.name")?;
-    let name = b"Naming proof".to_vec();
+    let name = "Café Llanfairpwllgwyngyll long Body name"
+        .as_bytes()
+        .to_vec();
     let expected = controls(&initial.face)?;
     if expected.is_empty() || expected.len() > 64 {
         return Err(refusal(
@@ -80,12 +85,26 @@ pub(super) fn exercise(
         observations: Vec::new(),
     };
     run.capture("creche-controls-ready")?;
+    if metadata["proof_scenario"] == "search" {
+        return search::exercise(
+            &mut run,
+            &initial,
+            destination,
+            source,
+            image,
+            metadata,
+            &selected_recipe,
+            &world,
+            &boot,
+        );
+    }
     let forward = run.traverse(&initial, &expected, false)?;
     let reverse = run.traverse(&initial, &expected, true)?;
     let primary = run.pages(&initial, "primary")?;
     run.press(&["f2"])?;
     let details = run.pages(&initial, "details")?;
     run.press(&["f2"])?;
+    let incomplete_refusal = run.incomplete_argument_refusal()?;
     let probe_name_change = run.rename(&name, "creche-controls-probe-name")?;
     let baseline = snapshot(&text(run.serial)?)?;
     if retained_selection(&initial.face) != retained_selection(&baseline.face)
@@ -95,6 +114,13 @@ pub(super) fn exercise(
             "checked probe rename changed unrelated draft state",
         ));
     }
+    let long_name_controls = controls(&baseline.face)?;
+    if long_name_controls != expected {
+        return Err(refusal("long name changed the source control inventory"));
+    }
+    let long_name_forward = run.traverse(&baseline, &long_name_controls, false)?;
+    let long_name_reverse = run.traverse(&baseline, &long_name_controls, true)?;
+    let long_name_pages = run.pages(&baseline, "long-name")?;
     run.naming(&membership, b"welsh", "creche-naming-welsh")?;
     let welsh = snapshot(&text(run.serial)?)?;
     let suggested = current(&welsh.face, "creche.name")?;
@@ -142,12 +168,14 @@ pub(super) fn exercise(
             "arrival_acknowledged_face":arrival.record,"selected_recipe":selected_recipe,
             "initial_acknowledged_face":initial.record,"source_action_inventory":initial.face.actions,"source_subject_words":initial.face.text,
             "expected_controls":expected,"forward_focus":forward,"reverse_focus":reverse,"primary_pages":primary,"details_pages":details,
+            "long_name_forward_focus":long_name_forward,"long_name_reverse_focus":long_name_reverse,"long_name_pages":long_name_pages,
         }),
         json!({
-            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"restoration_basis":"checked ASCII probe draft; original observed Unicode name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
+            "naming_membership":membership,"original_tradition":original,"observed_original_name":observed_name,"probe_baseline_name":name,"checked_probe_name_change":probe_name_change,"incomplete_argument_refusal":incomplete_refusal,"restoration_basis":"checked long Unicode probe draft typed through actual HID; original observed name is preserved as evidence, not retyped","welsh_suggested_name":suggested,
             "pointer_focus":pointer,"restored_name_change":restored_change,"final_acknowledged_face":final_state.record,
         }),
         json!({
+        "prepared_frame_budget":frame_budget::summarize(&final_text)?,
         "observations":run.observations,"captures":run.captures,"capture_limit":27,"screenshots":"journey-frames/manifest.json",
         "capture_custody":"original QMP PNG and complete serial-prefix offsets/hashes via existing Artifacts",
         "page_capture_policy":"first/middle/last original PNG per primary and Details view; every page and clamped endpoints retain focus receipts; unsampled pages have no pixel claim",
@@ -172,6 +200,9 @@ pub(super) fn exercise(
         serde_json::to_vec_pretty(&proof).map_err(|e| refusal(e.to_string()))?,
     )
     .map_err(io_error)?;
+    identity(&world)
+}
+fn identity(world: &Value) -> Result<JourneyIdentity, ConduitosError> {
     let string = |key: &str| {
         world[key]
             .as_str()
@@ -204,18 +235,19 @@ fn keys_for(bytes: &[u8]) -> Result<Vec<Vec<String>>, ConduitosError> {
     if bytes.is_empty() || bytes.len() > 64 {
         return Err(refusal("probe name outside finite HID input profile"));
     }
-    bytes
-        .iter()
-        .map(|b| {
-            Ok(match b {
-                b'a'..=b'z' | b'0'..=b'9' => vec![char::from(*b).to_string()],
-                b'A'..=b'Z' => vec![
-                    "shift".into(),
-                    char::from(b.to_ascii_lowercase()).to_string(),
-                ],
-                b' ' => vec!["spc".into()],
-                b'-' => vec!["minus".into()],
-                b'\'' => vec!["apostrophe".into()],
+    std::str::from_utf8(bytes)
+        .map_err(|_| refusal("probe name is not UTF-8; no Source changed"))?
+        .chars()
+        .map(|ch| {
+            Ok(match ch {
+                'a'..='z' | '0'..='9' => vec![ch.to_string()],
+                'A'..='Z' => vec!["shift".into(), ch.to_ascii_lowercase().to_string()],
+                ' ' => vec!["spc".into()],
+                '-' => vec!["minus".into()],
+                '\'' => vec!["apostrophe".into()],
+                // The prepared us(altgr-intl) keymap maps this genuine chord to é.
+                // Unsupported scalars refuse before input; never normalize Source.
+                'é' => vec!["alt_r".into(), "e".into()],
                 _ => {
                     return Err(refusal(
                         "probe name needs unsupported HID spelling; no Source changed",
@@ -232,7 +264,9 @@ mod tests {
     #[test]
     fn exact_probe_spelling_is_bounded_and_never_normalizes_unicode() {
         assert_eq!(keys_for(b"Naming proof").unwrap()[0], ["shift", "n"]);
+        assert_eq!(keys_for("Café".as_bytes()).unwrap()[3], ["alt_r", "e"]);
         assert!(keys_for("Dafydd ŵ".as_bytes()).is_err());
+        assert!(keys_for(&[0xff]).is_err());
         assert!(keys_for(&[b'a'; 65]).is_err());
         assert!(keys_for(b"").is_err());
         assert!(keys_for(b"wrong\ninput").is_err());

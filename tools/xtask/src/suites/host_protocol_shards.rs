@@ -6,6 +6,7 @@ use crate::{process::Step, suites::workspace_shards::WorkspaceShard};
 pub const PACKAGE: &str = "conduitos";
 pub const FEATURES: &str = "hosted-tools,native-compositor";
 const NATIVE_TESTS: &[&str] = &[
+    "canonical_root_returns",
     "native_compositor",
     "native_compositor_input",
     "native_compositor_scanout",
@@ -217,7 +218,7 @@ fn integration_targets(metadata: &serde_json::Value) -> Result<Vec<String>, Stri
         .iter()
         .all(|name| targets.iter().any(|target| target == name))
     {
-        return Err("native compositor integration proof missing".into());
+        return Err("native integration proof missing".into());
     }
     Ok(targets)
 }

@@ -8,6 +8,14 @@ use conduit_core::{
 use conduit_kernel::scheduler::{AssignedConnectionTrack, AssignedPressurePolicy};
 use conduit_plan_lowering::lowering::{RemoteCordDirection, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
+/// Explicit binary-artifact ceilings for checked expression/selector programs.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct EmbeddedComputationBounds {
+    /// Canonical binary bytes of one expression or selector (hex text is twice this).
+    pub maximum_program_bytes: u32,
+    pub maximum_total_program_bytes: u32,
+}
+
 /// Reviewed finite ceilings for one generated fixed image.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EmbeddedImageBounds {
@@ -56,6 +64,7 @@ pub enum UnsupportedPlanFeature {
     TextConfiguration,
     StructuredConfiguration,
     QuantityConfiguration,
+    AssignedNativeBinding,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -63,6 +72,7 @@ pub enum GenerationError {
     InvalidFragment,
     EmptyFragment,
     IdentityMismatch,
+    InvalidComputationConfiguration,
     Unsupported(UnsupportedPlanFeature),
     InconsistentLowering(&'static str),
     BoundExceeded {
@@ -87,6 +97,8 @@ impl fmt::Display for GenerationError {
             Self::IdentityMismatch => formatter.write_str(
                 "current plan fragment and lowered fragment do not share exact identity",
             ),
+            Self::InvalidComputationConfiguration => formatter
+                .write_str("computation configuration does not match its exact planned contract"),
             Self::Unsupported(feature) => {
                 write!(formatter, "fixed image does not support {feature:?}")
             }
@@ -273,6 +285,18 @@ pub struct GeneratedStaticRemoteEndpoint {
 /// Owned build output. Firmware may consume only the rendered module and does
 /// not need to link this host-only crate.
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GeneratedNativeBinding {
+    pub node: u16,
+    pub capability_id: String,
+    pub kind_revision: String,
+    pub execution_profile: String,
+    pub limits: conduit_core::CapabilityLimits,
+    pub base: Option<conduit_core::BaseProviderBinding>,
+    pub authority: Vec<conduit_core::AuthorityBinding>,
+    pub resources: Vec<conduit_core::ResourceBinding>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GeneratedEmbeddedPlan {
     pub schema_version: u32,
     pub plan_id: String,
@@ -291,6 +315,7 @@ pub struct GeneratedEmbeddedPlan {
     pub routes: Vec<GeneratedStaticRoute>,
     pub route_targets: Vec<GeneratedStaticRouteTarget>,
     pub host_calls: Vec<GeneratedHostCall>,
+    pub native_bindings: Vec<GeneratedNativeBinding>,
     pub resources: Vec<GeneratedStaticResource>,
     pub resource_cords: Vec<GeneratedStaticResourceCord>,
     pub signs: Vec<GeneratedStaticSign>,

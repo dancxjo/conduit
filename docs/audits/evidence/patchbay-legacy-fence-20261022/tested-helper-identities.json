@@ -1,0 +1,8 @@
+{
+  "parent_commit": "eaf41a44b038dae1949ce8dee1ea136a693b1606",
+  "proof_class": "CPU conformance and non-test WASM compilation; not fresh browser product enactment",
+  "files": {
+    "targets/browser/runtime/src/plot_runner/patchbay_actor_preparation.rs": "a44e4eeea3d14aa89aca23826b405bbe618646b70f91badeca3f75ada0f27df5",
+    "targets/browser/runtime/src/plot_runner/prepared_patchbay.rs": "a1a9dbc06c98d6dc65cf87d7538c69001c20cfcb2514a06076db45a79a4520aa"
+  }
+}

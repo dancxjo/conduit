@@ -1,16 +1,15 @@
-use conduit_core::{
-    verify_plan_fragment, ConfigurationValue, ExpectedSign, ExpectedTerminal, PlanFragment,
-};
+use conduit_core::{verify_plan_fragment, ExpectedSign, ExpectedTerminal, PlanFragment};
 use conduit_kernel::{CordEndpoint, SignExpectationTarget};
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 
+use crate::configuration::generate_configuration;
 use crate::model::{
-    EmbeddedImageBounds, GeneratedConfigurationEntry, GeneratedConfigurationValue,
-    GeneratedCordEndpoint, GeneratedEmbeddedPlan, GeneratedExpectedTerminal, GeneratedHostCall,
-    GeneratedPort, GeneratedSignTarget, GeneratedStartupDependency, GeneratedStaticCord,
-    GeneratedStaticNode, GeneratedStaticRemoteEndpoint, GeneratedStaticResource,
-    GeneratedStaticResourceCord, GeneratedStaticRoute, GeneratedStaticRouteTarget,
-    GeneratedStaticSign, GenerationError, UnsupportedPlanFeature,
+    EmbeddedComputationBounds, EmbeddedImageBounds, GeneratedCordEndpoint, GeneratedEmbeddedPlan,
+    GeneratedExpectedTerminal, GeneratedHostCall, GeneratedPort, GeneratedSignTarget,
+    GeneratedStartupDependency, GeneratedStaticCord, GeneratedStaticNode,
+    GeneratedStaticRemoteEndpoint, GeneratedStaticResource, GeneratedStaticResourceCord,
+    GeneratedStaticRoute, GeneratedStaticRouteTarget, GeneratedStaticSign, GenerationError,
+    UnsupportedPlanFeature,
 };
 use crate::validate::validate_shape;
 use crate::GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION;
@@ -22,6 +21,26 @@ pub fn generate_embedded_plan(
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
     bounds: EmbeddedImageBounds,
+) -> Result<GeneratedEmbeddedPlan, GenerationError> {
+    generate_profile(fragment, lowered, bounds, None)
+}
+
+/// Opt into exact checked expression/selector configuration under explicit artifact
+/// ceilings. This does not admit an Back's preparation heap or Play work.
+pub fn generate_embedded_plan_with_computations(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    bounds: EmbeddedImageBounds,
+    expressions: EmbeddedComputationBounds,
+) -> Result<GeneratedEmbeddedPlan, GenerationError> {
+    generate_profile(fragment, lowered, bounds, Some(expressions))
+}
+
+fn generate_profile(
+    fragment: &PlanFragment,
+    lowered: &LoweredPlanFragment,
+    bounds: EmbeddedImageBounds,
+    expressions: Option<EmbeddedComputationBounds>,
 ) -> Result<GeneratedEmbeddedPlan, GenerationError> {
     if !verify_plan_fragment(fragment) {
         return Err(GenerationError::InvalidFragment);
@@ -41,7 +60,7 @@ pub fn generate_embedded_plan(
     }
     validate_shape(fragment, lowered, bounds)?;
 
-    let configuration = generate_configuration(fragment)?;
+    let configuration = generate_configuration(fragment, expressions)?;
     let nodes = generate_nodes(fragment, lowered)?;
     let input_ports = generate_ports(lowered, true);
     let output_ports = generate_ports(lowered, false);
@@ -105,6 +124,27 @@ pub fn generate_embedded_plan(
         .map(generate_expected_terminal)
         .collect();
 
+    let native_bindings = fragment
+        .placements
+        .iter()
+        .filter(|gear| !gear.host_calls.is_empty())
+        .map(|gear| {
+            Ok(crate::GeneratedNativeBinding {
+                node: lowered
+                    .identity
+                    .node_for_placement(&gear.placement_id)
+                    .ok_or(GenerationError::InconsistentLowering("native binding"))?
+                    .0,
+                capability_id: gear.capability_id.as_str().into(),
+                kind_revision: gear.kind_contract_revision.as_str().into(),
+                execution_profile: gear.execution_profile_id.as_str().into(),
+                limits: gear.limits.clone(),
+                base: gear.base.clone(),
+                authority: gear.authority.clone(),
+                resources: gear.resources.clone(),
+            })
+        })
+        .collect::<Result<Vec<_>, GenerationError>>()?;
     Ok(GeneratedEmbeddedPlan {
         schema_version: GENERATED_EMBEDDED_PLAN_SCHEMA_VERSION,
         plan_id: fragment.plan_id.as_str().to_owned(),
@@ -123,6 +163,7 @@ pub fn generate_embedded_plan(
         routes,
         route_targets,
         host_calls,
+        native_bindings,
         resources,
         resource_cords,
         signs,
@@ -185,50 +226,6 @@ fn generate_remote_endpoints(
         });
     }
     Ok(result)
-}
-
-fn generate_configuration(
-    fragment: &PlanFragment,
-) -> Result<Vec<GeneratedConfigurationEntry>, GenerationError> {
-    let mut generated = Vec::new();
-    for (index, placement) in fragment.placements.iter().enumerate() {
-        let node = as_u16(index, "configuration node ordinal")?;
-        for entry in &placement.configuration {
-            let value = match &entry.value {
-                ConfigurationValue::Bool(value) => GeneratedConfigurationValue::Bool(*value),
-                ConfigurationValue::I64(value) => GeneratedConfigurationValue::I64(*value),
-                ConfigurationValue::U64(value) => GeneratedConfigurationValue::U64(*value),
-                ConfigurationValue::Text(value)
-                    if entry.key == "label" && conduit_core::valid_data_label(value) =>
-                {
-                    GeneratedConfigurationValue::Text(value.clone())
-                }
-                ConfigurationValue::Text(_) => {
-                    return Err(GenerationError::Unsupported(
-                        UnsupportedPlanFeature::TextConfiguration,
-                    ));
-                }
-                ConfigurationValue::Structured(_) => {
-                    return Err(GenerationError::Unsupported(
-                        UnsupportedPlanFeature::StructuredConfiguration,
-                    ));
-                }
-                ConfigurationValue::Quantity(_)
-                | ConfigurationValue::Unit(_)
-                | ConfigurationValue::TemperatureDifference(_) => {
-                    return Err(GenerationError::Unsupported(
-                        UnsupportedPlanFeature::QuantityConfiguration,
-                    ));
-                }
-            };
-            generated.push(GeneratedConfigurationEntry {
-                node,
-                key: entry.key.clone(),
-                value,
-            });
-        }
-    }
-    Ok(generated)
 }
 
 fn generate_nodes(
@@ -447,8 +444,4 @@ fn generate_expected_terminal(expected: &ExpectedTerminal) -> GeneratedExpectedT
             subject: None,
         },
     }
-}
-
-fn as_u16(value: usize, subject: &'static str) -> Result<u16, GenerationError> {
-    u16::try_from(value).map_err(|_| GenerationError::ArithmeticOverflow(subject))
 }

@@ -207,6 +207,7 @@ pub enum PatchbayCanvasDelivery {
 
 pub struct PatchbayApplicationPort {
     plots: Vec<PatchbayActivePlot>,
+    prepared_graph_limit: usize,
     canvas_delivery: PatchbayCanvasDelivery,
     body_plan_id: PlanId,
     active_play_id: Option<ActivePlayId>,
@@ -240,6 +241,7 @@ impl PatchbayApplicationPort {
             return Err(PatchbayApplicationRefusal::TooManyActivePlots);
         }
         Ok(Self {
+            prepared_graph_limit: plots.len(),
             plots,
             canvas_delivery: PatchbayCanvasDelivery::InlineGraph,
             body_plan_id,

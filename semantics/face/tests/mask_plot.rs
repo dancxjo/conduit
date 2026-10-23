@@ -738,3 +738,26 @@ fn the_ordinary_planner_seals_the_mask_plot_without_a_mask_planner() {
     assert_ne!(resting_show.show_id, show.show_id);
     assert_eq!(show.validate(&resting), Err(MaskShowError::StalePlan));
 }
+
+#[test]
+fn seven_segment_source_is_an_ordinary_mask_with_one_role_boundary() {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    install_mask_plot_value_aliases(&mut startup).unwrap();
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
+    let syntax = parse_syntax_document(include_str!(
+        "../../../plots/seven-segment-mask/main.conduit"
+    ));
+    assert!(syntax.diagnostics.is_empty());
+    let checked = check_syntax_document(&syntax, &startup).unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "seven-segment", &profiles).unwrap();
+    let mask = MaskPlot::admit(&expanded).unwrap();
+    assert_eq!(mask.plot_name, "seven-segment");
+    assert_eq!(mask.face_input.front_port_id.as_str(), "face");
+    assert_eq!(
+        mask.interaction_output.front_port_id.as_str(),
+        "interaction"
+    );
+    assert_eq!(mask.show_output.front_port_id.as_str(), "show");
+}

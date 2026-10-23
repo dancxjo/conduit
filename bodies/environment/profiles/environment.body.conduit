@@ -1,0 +1,9 @@
+# The MCU is the persistent part. A recorder is not required to admit this Body.
+with plots/seven-segment-mask/main as seven-segment
+
+body environment {
+  schema = 2
+  id = "body:environment"
+  host = {name: "sensor", part: "part:environment-sensor", configuration: "../../../targets/rp2040/profiles/pico-w-environment.host.conduit", spore: {join_mode: "prejoined", output: "uf2"}}
+  wear seven-segment
+}

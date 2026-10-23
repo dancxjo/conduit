@@ -1,0 +1,14 @@
+flowchart TB
+  plot_in["Plot inputs"]
+  plot_out["Plot outputs"]
+  gear_0["native-graphical/human<br/><small>face/interaction</small>"]
+  gear_1["native-graphical/render<br/><small>face/resource-renderer</small>"]
+  gear_2["native-graphical/spread<br/><small>face/tee</small>"]
+  gear_3["native-graphical/surface<br/><small>face/show-resource-source</small>"]
+  plot_in -- "face/face@1" --> gear_2
+  gear_1 -- "face/show@1" --> gear_0
+  gear_2 -- "face/face@1" --> gear_0
+  gear_2 -- "face/face@1" --> gear_1
+  gear_3 -- "face/show-resource@1" --> gear_1
+  gear_0 -- "face/interaction@2" --> plot_out
+  gear_1 -- "face/show@1" --> plot_out

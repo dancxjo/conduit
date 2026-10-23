@@ -132,7 +132,29 @@ identity and clock loss. Physical BME280 compatibility remains unverified.
 CRC check-vector tests compose the steps in a deterministic test harness; they
 do not establish a complete authored CRC flow through the production kernel.
 
-The repository entrance is:
+`dht11.conduit` owns five-octet frame interpretation and declares an observation
+with `Temperature` and `Ratio` fields. Its separate checked Forms select signed
+temperature tenths in °C and unsigned humidity tenths in % as two-byte little
+endian representations. Form identity changes with storage, scale or Unit;
+semantic Type identity does not. Short captures, malformed lengths, checksum
+failures and invalid payloads emit distinct unavailable outcomes. The prepared
+wire decoder and the selected Form codecs reuse storage without allocating.
+This does not supply an installed MCU GPIO provider.
+The focused `cargo xtask prove dht11 check` entrance checks that decoder. The
+[Pico diagnostic](../../targets/rp2040/proof/dht11/README.md) separately captures
+physical frames and evaluates their interpretation on the host.
+Its explicit `build-source` profile also evaluates that same checked expression
+and generated quantity Forms on the RP2040, with a measured preparation heap
+and allocation sealed before capture. This remains a finite diagnostic outside
+production Plan/Play; it does not install a GPIO provider.
+`pulse-types.conduit` declares the separate class-neutral electrical Fore's
+request/result Types. `dht11-capture.conduit` supplies the DHT11 geometry without
+selecting a physical attachment. The `build-pio` diagnostic realizes it through
+PIO/DMA with interrupts enabled, then uses the same Source decoder and Forms.
+`cargo xtask prove environment pulse` checks its exact typed codecs and Source
+composition; Host/Plan/Play installation remains separate work.
+
+The complete device-protocol repository entrance is:
 
 ```sh
 cargo xtask check device-protocols
@@ -144,3 +166,20 @@ storage, exact possession/replay/revocation, finite controller termination and
 complete BME280 native kernel lifecycle conformance. This suite is deterministic
 proof; native emulator observation uses the separate supported `protocol-run`
 entrance, and neither establishes physical compatibility.
+
+`dht11-read.conduit` composes the Source geometry and decoder over
+`machine/pulse/read`, keeping timeout, provider failure and geometry refusal on
+separate ports. `cargo xtask prove environment kernel` executes its complete
+planned graph through the production kernel with bounded transcript fixtures.
+`cargo xtask prove environment pulse` checks exact native Plan/Play possession
+and cancellation separately. Neither entrance claims physical kernel execution
+or installed MCU offers; the finite PIO diagnostic remains the hardware proof.
+
+The environmental runtime's `ObservationContract` supplies the portable pure
+`device/dht11-observation` Back. `dht11-observe.conduit` composes it with
+`dht11-read`: first-class Temperature/Ratio values leave through `observed`, and
+capture outcomes remain separate. The conversion uses generated Forms from
+`dht11.conduit`; it does not repeat checksum, range or sign decoding. The public
+observation envelope is 4 KiB in the current profile. Run
+`cargo xtask prove environment kernel` for the complete Source/Forms/Face/Mask
+host proof. MCU installation and recurring workload admission remain pending.

@@ -108,3 +108,39 @@ fn truncated_or_forged_values_cannot_produce_a_borrowed_view() {
         &[2]
     );
 }
+
+#[test]
+fn one_nominal_projection_preserves_inner_identity_and_original_value_borrow() {
+    let leaf = StructuredInfoType::leaf(kind_id("value/u16")).unwrap();
+    let inner = StructuredInfoType::nominal(kind_id("type/Inner@1"), leaf.clone()).unwrap();
+    let outer = StructuredInfoType::nominal(kind_id("type/Outer@1"), inner.clone()).unwrap();
+    let encoded = StructuredInfoValue::nominal(
+        outer.clone(),
+        StructuredInfoValue::nominal(
+            inner.clone(),
+            StructuredInfoValue::leaf(leaf.clone(), 7u16.to_le_bytes().to_vec()).unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+    .canonical_bytes()
+    .unwrap();
+    let original = validate_canonical_structured_value(&encoded).unwrap();
+    let first = original.nominal_representation().unwrap();
+    assert_eq!(original.type_bytes(), outer.canonical_bytes().unwrap());
+    assert_eq!(first.type_bytes(), inner.canonical_bytes().unwrap());
+    assert!(core::ptr::eq(first.value_node(), original.value_node()));
+    let second = first.nominal_representation().unwrap();
+    assert_eq!(second.type_bytes(), leaf.canonical_bytes().unwrap());
+    assert!(core::ptr::eq(second.value_node(), original.value_node()));
+    assert_eq!(
+        second.primitive_bytes("value/u16").unwrap(),
+        7u16.to_le_bytes()
+    );
+    assert_eq!(
+        second.nominal_representation(),
+        Err(conduit_core::StructuredInfoRefusal::WrongType)
+    );
+    // Existing all-wrapper projection deliberately retains its old behavior.
+    assert_eq!(original.representation().unwrap(), second);
+}

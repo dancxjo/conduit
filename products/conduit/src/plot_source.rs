@@ -186,6 +186,12 @@ fn dsp_source_backs_for(
     }
 }
 
+/// Prepare immutable compiled semantic contracts before an installed Host is ready.
+/// Each authored Source still receives its own catalogs and checked expansion.
+pub(crate) fn prepare_standard_catalogs() -> Result<(), String> {
+    standard_catalogs().map(|_| ())
+}
+
 fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     // These catalogs contain only this executable's compiled semantic contracts.
     // Check them once, then give each Source its own mutable copy. Host offers,
