@@ -64,6 +64,7 @@ pub async fn receive(
         body_installed: bool,
         native_plan_installed: bool,
         appliance_kernel_prepared: bool,
+        kernel_additional_preparation_bound: Option<usize>,
         capability_possession_issued: bool,
     }
     let authenticated = result.is_ok();
@@ -116,6 +117,9 @@ pub async fn receive(
         body_installed: false,
         native_plan_installed: false,
         appliance_kernel_prepared: root.appliance_kernel_prepared(),
+        kernel_additional_preparation_bound: crate::native_kernel::requirements()
+            .ok()
+            .map(|(bytes, _)| bytes),
         capability_possession_issued: root.native_possession_prepared(),
     };
     let size = serde_json_core::to_slice(&reply, buffer).map_err(|_| ())?;

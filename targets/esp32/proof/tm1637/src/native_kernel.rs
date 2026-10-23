@@ -30,11 +30,15 @@ pub fn requirements() -> Result<(usize, u16), &'static str> {
     let bytes = usize::try_from(crate::appliance_layout::SIGN_BYTES).map_err(|_| "sign-budget")?;
     let slots = usize::from(crate::appliance_layout::SIGN_ITEMS)
         .max(bytes.div_ceil(core::mem::size_of::<k::KernelEvent>()));
-    let needed = core::mem::size_of::<Kernel>()
-        + core::mem::size_of::<[Option<PreparedCaptureSelector>; NODES]>()
-        + core::mem::size_of::<PreparedAssignedAppliance<k::HostedValueStore>>()
-        + slots * core::mem::size_of::<Option<k::KernelEvent>>()
-        + 8192; // Explicit Root preparation/control headroom; not effect authority.
+    // The transfer destination and scheduler destination are separate stages.
+    // assemble() explicitly retires the transfer box before allocating selectors
+    // or the scheduler; sign backing coexists with both stages. Existing source
+    // boxes remain conservatively included in Root's current usage throughout.
+    let transfer = core::mem::size_of::<PreparedAssignedAppliance<k::HostedValueStore>>();
+    let scheduler = core::mem::size_of::<Kernel>()
+        + core::mem::size_of::<[Option<PreparedCaptureSelector>; NODES]>();
+    let needed =
+        transfer.max(scheduler) + slots * core::mem::size_of::<Option<k::KernelEvent>>() + 8192; // Explicit Root preparation/control headroom; not effect authority.
     Ok((needed, slots.try_into().map_err(|_| "sign-budget")?))
 }
 #[inline(never)]
@@ -61,7 +65,10 @@ fn assemble(
     prepared: Box<PreparedAssignedAppliance<k::HostedValueStore>>,
     signs: k::HostedSignLog,
 ) -> Result<PreparedKernel, &'static str> {
-    let prepared = *prepared;
+    let prepared = {
+        let boxed = prepared;
+        *boxed
+    }; // Retire the moved-out box at this block boundary, before scheduler allocation.
     let selectors = Box::new(prepared.selectors);
     let kernel = Kernel::new_boxed_with_active_counts_and_host_calls(
         NODES,

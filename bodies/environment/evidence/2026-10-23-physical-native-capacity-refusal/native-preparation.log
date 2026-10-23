@@ -1,0 +1,7 @@
+{"completed": false, "proof_class": "physical-signed-native-preparation", "body_started": false, "climate_sampling_claimed": false, "root_heap_used_bytes": 89836, "root_heap_peak_bytes": 93724, "native_root_heap_bytes": 114688}
+Traceback (most recent call last):
+  File "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/tools/native-owner-preparation.py", line 82, in <module>
+    receipt = host_line()
+  File "/home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/bodies/environment/tools/native-owner-preparation.py", line 52, in host_line
+    raise RuntimeError('owner frame bound')
+RuntimeError: owner frame bound

@@ -1221,3 +1221,14 @@ final receipt; it does not establish durable owner restart, attributed Body
 start, execution release or overnight sampling. Hardware success remains subject
 to the actual retained native/kernel memory closure, with failures retained in
 the capture rather than replaced by a fixture.
+
+The first signed physical run authenticated and reserved the real scope, then
+bound both native providers. Kernel preparation refused its old 27,660-byte
+additional guard with 24,852 bytes free; the negative receipt is retained in
+`evidence/2026-10-23-physical-native-capacity-refusal/`. No Body start occurred.
+The assembly path now explicitly retires its transfer destination box before
+allocating selectors and the scheduler. Admission uses the maximum of those two
+stages plus coexisting sign backing, retaining the same 8 KiB control headroom.
+The subsequent hardware run must establish the complete native/kernel closure.
+Root startup also has a bounded 25-second read-only readiness poll before the
+one-shot ambient admission challenge; signed mutations are not retried.

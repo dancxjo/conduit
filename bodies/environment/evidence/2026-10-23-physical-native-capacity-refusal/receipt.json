@@ -1,0 +1,9 @@
+{
+  "completed": false,
+  "proof_class": "physical-signed-native-preparation",
+  "body_started": false,
+  "climate_sampling_claimed": false,
+  "root_heap_used_bytes": 89836,
+  "root_heap_peak_bytes": 93724,
+  "native_root_heap_bytes": 114688
+}

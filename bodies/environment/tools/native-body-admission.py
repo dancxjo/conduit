@@ -22,9 +22,13 @@ pending = bytearray()
 observations = []
 
 
-def receive(predicate, seconds=8):
+def receive(predicate, seconds=8, readiness_ping=None):
     deadline = time.monotonic() + seconds
+    next_ping = time.monotonic()
     while time.monotonic() < deadline:
+        if readiness_ping is not None and time.monotonic() >= next_ping:
+            port.write(readiness_ping)
+            next_ping = time.monotonic() + 2
         pending.extend(port.read(8192))
         if len(pending) > 16384:
             raise RuntimeError('UART ingress capacity exceeded')
@@ -57,6 +61,10 @@ def host_line(process):
 process = None
 try:
     port.open()
+    # Boot may still be compiling retained Source while early UART input is lost.
+    # Only read-only readiness is polled; challenges and mutations are not retried.
+    receive(lambda v: v.get('event') == 'native-root-offer', seconds=25,
+            readiness_ping=b'offer\n')
     port.write(b'CONDUIT_BODY_ADVERTISE_V1\n')
     offered = receive(lambda v: v.get('protocol') == 1 and 'verifying_key' in v)
     if offered['advertisement']['host_id'] != 'esp32/b0a732286178':
