@@ -44,7 +44,7 @@ warning: methods `issue_wait` and `issue_assigned_wait` are never used
 warning: `conduit-esp32-tm1637-probe` (bin "conduit-esp32-tm1637-probe") generated 3 warnings
     Finished `release` profile [optimized] target(s) in 22.57s
 Archive:  /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/esp32-tools/espflash-x86_64-unknown-linux-gnu.zip
-  inflating: /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/esp32-tools/espflash-4.5.0/espflash  
+  inflating: /home/dancxjo/Documents/Codex/2026-10-21/goal-most-of-the-mechanisms-for/work/conduit-logger/target/esp32-tools/espflash-4.5.0/espflash
 [2026-10-23T20:24:35Z WARN ] Monitor options were provided, but `--monitor/-M` flag isn't set. These options will be ignored.
 [2026-10-23T20:24:35Z INFO ] Serial port: '/dev/ttyUSB0'
 [2026-10-23T20:24:35Z INFO ] Connecting...
