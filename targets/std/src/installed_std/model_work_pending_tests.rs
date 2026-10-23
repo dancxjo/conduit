@@ -84,7 +84,7 @@ fn stale_node_call_or_request_cannot_retire_current_worker_and_duplicate_is_idem
     host.cancel(cancellation(r));
     drop(host);
     assert_eq!(cancels.load(Ordering::SeqCst), 1);
-    assert_eq!(unloads.load(Ordering::SeqCst), 0);
+    assert_eq!(unloads.load(Ordering::SeqCst), 1);
 }
 #[test]
 fn early_return_retires_pending_worker_but_completed_owner_stays_warm() {

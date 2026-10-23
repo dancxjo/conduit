@@ -75,10 +75,23 @@ impl<'a> InstalledModelWorkHost<'a> {
         // Revoke host publication before entering provider cleanup. Kernel
         // cancellation already owns its terminal outcome; do not complete an
         // already cancelled scheduler request a second time.
+        self.retire_owner();
+    }
+
+    /// Global scheduler cancellation intentionally clears its request table.
+    /// Retire this exact selected owner before that table is discarded.
+    pub(super) fn cancel_all(&mut self) {
+        if self.last_request.is_some() {
+            self.retire_owner();
+        }
+    }
+
+    fn retire_owner(&mut self) {
         self.pending = None;
         self.last_request = None;
         if let Some(adapter) = self.adapter.as_deref_mut() {
             adapter.cancel();
+            adapter.unload();
         }
     }
 

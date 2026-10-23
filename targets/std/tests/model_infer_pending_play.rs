@@ -188,10 +188,13 @@ fn run(
             &control,
         ));
     }
-    // The same prepared adapter serves each separate Value Play. Only owner Drop
-    // retires it, so completed runs do not secretly replace preparation.
+    // Completed Value Plays retain the preparation. Operator cancellation
+    // retires it before the kernel discards global pending-request custody.
     assert_eq!(counts.loads.load(Ordering::SeqCst), 1);
-    assert_eq!(counts.unloads.load(Ordering::SeqCst), 0);
+    assert_eq!(
+        counts.unloads.load(Ordering::SeqCst),
+        usize::from(matches!(mode, Mode::StopPending | Mode::StopReady))
+    );
     drop(host);
     assert_eq!(counts.unloads.load(Ordering::SeqCst), 1);
     (reports, outputs, counts, control)
@@ -230,25 +233,17 @@ fn cancelled(report: &StdRunReport) {
     );
     for kind in [
         KernelEventKind::HostCallRequested,
-        KernelEventKind::HostCallCancellationRequested,
         KernelEventKind::CancellationRequested,
         KernelEventKind::RunCancelled,
     ] {
         assert_eq!(count(report, kind), 1);
     }
     assert_eq!(count(report, KernelEventKind::HostCallCompleted), 0);
-    let sign = &report.kernel.as_ref().unwrap().kernel_sign;
-    let request = sign
-        .iter()
-        .find(|event| event.kind == KernelEventKind::HostCallRequested)
-        .unwrap();
-    let cancel = sign
-        .iter()
-        .find(|event| event.kind == KernelEventKind::HostCallCancellationRequested)
-        .unwrap();
+    // Global cancellation clears all pending requests; it deliberately emits
+    // run cancellation rather than a per-HostCall cancellation event.
     assert_eq!(
-        (request.node, request.request),
-        (cancel.node, cancel.request)
+        count(report, KernelEventKind::HostCallCancellationRequested),
+        0
     );
 }
 #[test]

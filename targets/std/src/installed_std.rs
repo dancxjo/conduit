@@ -864,6 +864,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         }
         if accepted_stop.is_none() {
             if let Some(request_id) = control.requested_stop() {
+                installed_model_work.cancel_all();
                 scheduler
                     .cancel()
                     .map_err(|error| format!("cancel installed kernel: {error:?}"))?;
