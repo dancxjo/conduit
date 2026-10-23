@@ -16,6 +16,11 @@ use sha2::{Digest, Sha256};
 mod lifecycle_emission;
 #[path = "staging_wipe.rs"]
 mod staging_wipe;
+#[cfg(feature = "compositor-semantic-recovery-proof")]
+#[path = "staging_zero.rs"]
+mod staging_zero;
+#[cfg(feature = "compositor-semantic-recovery-proof")]
+pub(crate) use staging_zero::Witness as StagingZeroWitness;
 
 pub(crate) const STAGING_BYTES: usize = STAGING_PIXELS * size_of::<u32>();
 pub(crate) const SERVICE_RESERVED_BYTES: u32 = crate::arch::ServiceDomain::RESERVED_BYTES;
@@ -56,6 +61,8 @@ pub(crate) struct DisplayOwner {
     staging_preparation_raw_ticks: Option<u64>,
     preparation_raw_ticks: Option<u64>,
     disposal_raw_ticks: Option<u64>,
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    staging_zero: staging_zero::Observer,
 }
 
 impl DisplayOwner {
@@ -124,6 +131,8 @@ impl DisplayOwner {
             ),
             preparation_raw_ticks: None,
             disposal_raw_ticks: None,
+            #[cfg(feature = "compositor-semantic-recovery-proof")]
+            staging_zero: staging_zero::Observer::new(),
         }));
         let finished = super::lifecycle::start();
         owner.borrow_mut().preparation_raw_ticks =
@@ -168,10 +177,25 @@ impl DisplayOwner {
         let live_staging = !self.staging.is_empty();
         self.sessions.quarantine();
         staging_wipe::clear(&mut self.staging);
+        #[cfg(feature = "compositor-semantic-recovery-proof")]
+        self.staging_zero
+            .observe_before_free(&self.staging, self.staging.capacity());
         drop(core::mem::take(&mut self.staging));
         if live_staging {
             self.disposal_raw_ticks = super::lifecycle::elapsed(started, super::lifecycle::start());
         }
+    }
+
+    /// One proof arm belongs to this still-live actual owner. No authority escapes.
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    pub(crate) fn arm_staging_zero_witness(&mut self, instance: u64, release_ordinal: u64) -> bool {
+        !self.staging.is_empty()
+            && self.sessions.service_observation().instance == instance
+            && self.staging_zero.arm(instance, release_ordinal)
+    }
+    #[cfg(feature = "compositor-semantic-recovery-proof")]
+    pub(crate) fn take_staging_zero_witness(&mut self) -> Option<StagingZeroWitness> {
+        self.staging_zero.take()
     }
 
     /// Fixed read-only lifecycle snapshot; no pixel, grant or transport escape.
